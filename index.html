@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ZORBO.AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0c12;--side:#111118;--chat:#0f0f16;--card:#1a1a24;--card2:#22222e;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
+  --gold:#e9c46a;--goldd:rgba(233,196,106,.1);--goldb:rgba(233,196,106,.2);
+  --t:#f0ece4;--tm:rgba(240,236,228,.58);--tt:rgba(240,236,228,.3);
+  --green:#52b788;--greend:rgba(82,183,136,.12);--greenb:rgba(82,183,136,.2);
+  --sans:'DM Sans',sans-serif;--display:'Syne',sans-serif;
+  --nav-h:56px;--bottom-h:60px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{height:100%;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--t);font-family:var(--sans);height:100%;overflow:hidden;position:fixed;width:100%}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:100vh;height:100dvh;overflow:hidden}
+
+/* ── SIDEBAR (desktop) ── */
+.sidebar{
+  width:256px;flex-shrink:0;background:var(--side);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;height:100%;
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.sb-logo{padding:18px 16px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sb-logo-mark{width:34px;height:34px;border-radius:9px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.sb-logo-text{font-family:var(--display);font-size:16px;font-weight:800;color:var(--t);letter-spacing:-.5px}
+.sb-logo-sub{font-size:10px;color:var(--tt);margin-top:1px}
+.sb-new{margin:12px 12px 8px;padding:9px 13px;background:var(--goldd);border:1px solid var(--goldb);border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--gold);font-weight:500;transition:all .15s;font-family:var(--sans)}
+.sb-new:hover{background:var(--goldb)}
+.sb-sec{padding:6px 14px 4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--tt)}
+.sb-brand{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:7px;margin:1px 5px;cursor:pointer;transition:all .15s}
+.sb-brand:hover{background:rgba(255,255,255,.04)}
+.sb-brand.active{background:rgba(255,255,255,.06)}
+.sb-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sb-bname{font-size:12px;color:var(--tm);flex:1}
+.sb-brand.active .sb-bname{color:var(--t);font-weight:500}
+.sb-count{font-size:10px;color:var(--tt);background:rgba(255,255,255,.06);padding:1px 6px;border-radius:20px}
+.sb-div{height:1px;background:var(--border);margin:8px 12px}
+.sb-mode-wrap{padding:0 12px 8px}
+.sb-mode-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--tt);margin-bottom:5px}
+.sb-mode-row{display:flex;background:var(--card);border:1px solid var(--border);border-radius:7px;overflow:hidden}
+.sm-btn{flex:1;padding:6px;font-size:11px;font-weight:500;color:var(--tt);cursor:pointer;border:none;background:transparent;font-family:var(--sans);transition:all .15s}
+.sm-btn.on{background:var(--card2);color:var(--t)}
+.sb-cart{margin:auto 12px 12px;padding:11px 13px;background:var(--card);border:1px solid var(--border);border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:9px;transition:border-color .15s}
+.sb-cart:hover{border-color:var(--border2)}
+.sb-cart-icon{font-size:17px}
+.sb-cart-title{font-size:12px;font-weight:500;color:var(--t)}
+.sb-cart-sub{font-size:10px;color:var(--tt)}
+.sb-badge{background:var(--gold);color:var(--bg);border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;display:none}
+.sb-badge.show{display:flex}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;height:100%;background:var(--chat);min-width:0;overflow:hidden}
+
+/* TOPBAR */
+.topbar{
+  padding:0 16px;height:var(--nav-h);
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);flex-shrink:0;
+  background:var(--side);
+}
+.tb-left{display:flex;align-items:center;gap:10px}
+.tb-menu{display:none;width:36px;height:36px;border-radius:8px;background:transparent;border:1px solid var(--border);cursor:pointer;align-items:center;justify-content:center;flex-direction:column;gap:4px;flex-shrink:0}
+.tb-menu span{width:16px;height:1.5px;background:var(--tm);border-radius:1px;display:block}
+.tb-logo-m{display:none;font-family:var(--display);font-size:16px;font-weight:800;color:var(--gold)}
+.tb-brand-info{display:flex;align-items:center;gap:7px}
+.tb-dot{width:7px;height:7px;border-radius:50%}
+.tb-name{font-size:13px;font-weight:500;color:var(--t)}
+.tb-badge-online{font-size:10px;padding:2px 8px;border-radius:20px;background:var(--greend);color:var(--green);border:1px solid var(--greenb)}
+.tb-right{display:flex;gap:8px}
+.tb-btn{padding:6px 13px;font-size:12px;border:1px solid var(--border);border-radius:7px;cursor:pointer;color:var(--tm);background:transparent;font-family:var(--sans);transition:all .15s;white-space:nowrap}
+.tb-btn:hover{border-color:var(--border2);color:var(--t)}
+.tb-btn.primary{background:var(--gold);color:var(--bg);border-color:var(--gold);font-weight:600}
+.tb-cart-m{display:none;position:relative;width:36px;height:36px;border-radius:8px;background:transparent;border:1px solid var(--border);cursor:pointer;align-items:center;justify-content:center;font-size:18px}
+.tb-cart-num{position:absolute;top:-4px;right:-4px;background:var(--gold);color:var(--bg);border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;display:none;align-items:center;justify-content:center}
+.tb-cart-num.show{display:flex}
+
+/* MESSAGES */
+.messages{flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.messages::-webkit-scrollbar{width:3px}
+.messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* EMPTY STATE */
+.empty-state{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;text-align:center}
+.es-logo{font-size:42px;margin-bottom:12px}
+.es-title{font-family:var(--display);font-size:26px;font-weight:800;color:var(--t);letter-spacing:-1px;margin-bottom:8px}
+.es-sub{font-size:14px;color:var(--tm);max-width:380px;line-height:1.6;font-weight:300;margin-bottom:28px}
+.es-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;max-width:460px}
+.es-sug{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:13px 14px;cursor:pointer;text-align:left;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.es-sug:active{border-color:var(--goldb);transform:scale(.98)}
+.es-sug-icon{font-size:18px;margin-bottom:5px}
+.es-sug-title{font-size:13px;font-weight:500;color:var(--t);margin-bottom:2px}
+.es-sug-sub{font-size:11px;color:var(--tt);line-height:1.35}
+
+/* MESSAGE ROWS */
+.msg-row{padding:16px 0;display:flex;justify-content:center}
+.msg-row.bot{background:rgba(255,255,255,.015)}
+.msg-inner{width:100%;max-width:660px;padding:0 16px;display:flex;gap:11px;align-items:flex-start}
+.msg-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;font-size:14px;font-weight:600}
+.msg-row.bot .msg-av{background:var(--gold);font-size:15px}
+.msg-row.user .msg-av{background:var(--card);border:1px solid var(--border);color:var(--tm);font-size:11px}
+.msg-content{flex:1;min-width:0}
+.msg-sender{font-size:11px;font-weight:600;color:var(--tm);margin-bottom:5px;display:flex;align-items:center;gap:7px}
+.msg-ai-badge{font-size:9px;padding:1px 6px;border-radius:20px;background:var(--goldd);color:var(--gold);border:1px solid var(--goldb)}
+.msg-text{font-size:13px;color:var(--t);line-height:1.7}
+.msg-text strong{color:var(--gold);font-weight:600}
+
+/* PRODUCT CARDS */
+.inline-prods{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin-top:12px;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.inline-prods::-webkit-scrollbar{display:none}
+.ip-card{background:var(--card);border:1px solid var(--border);border-radius:11px;width:138px;min-width:138px;overflow:hidden;transition:all .2s;cursor:pointer;flex-shrink:0}
+.ip-card:active{transform:scale(.97);border-color:var(--goldb)}
+.ipc-img{height:68px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:30px;position:relative}
+.ipc-tag{position:absolute;top:5px;right:5px;font-size:9px;font-weight:700;padding:2px 6px;border-radius:20px;background:var(--goldd);color:var(--gold);border:1px solid var(--goldb)}
+.ipc-body{padding:9px}
+.ipc-brand{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--tt);margin-bottom:2px}
+.ipc-name{font-size:11px;font-weight:600;color:var(--t);margin-bottom:1px;line-height:1.3}
+.ipc-style{font-size:10px;color:var(--tt);margin-bottom:5px}
+.ipc-foot{display:flex;align-items:center;justify-content:space-between}
+.ipc-price{font-size:12px;font-weight:700;color:var(--t)}
+.ipc-add{width:24px;height:24px;border-radius:6px;background:var(--gold);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--bg);font-weight:700}
+
+/* QUICK REPLIES */
+.qr-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.qr-btn{padding:6px 12px;font-size:11px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--tm);cursor:pointer;font-family:var(--sans);transition:all .15s;white-space:nowrap}
+.qr-btn:active{border-color:var(--goldb);color:var(--gold);background:var(--goldd)}
+
+/* TOTAL BAR */
+.total-bar{display:none;margin-top:12px;padding:11px 13px;background:var(--greend);border:1px solid var(--greenb);border-radius:9px;align-items:center;gap:10px}
+.total-bar.show{display:flex}
+.tb-sum-n{font-size:13px;font-weight:600;color:var(--t)}
+.tb-sum-s{font-size:10px;color:var(--green)}
+.tb-checkout{padding:7px 16px;background:var(--gold);color:var(--bg);border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--sans);white-space:nowrap}
+
+/* TYPING */
+.typing-row{padding:16px 0;display:flex;justify-content:center;background:rgba(255,255,255,.015)}
+.typing-inner{width:100%;max-width:660px;padding:0 16px;display:flex;gap:11px;align-items:center}
+.typing-dots{display:flex;gap:4px}
+.td{width:5px;height:5px;border-radius:50%;background:var(--tt);animation:tda .9s infinite}
+.td:nth-child(2){animation-delay:.15s}.td:nth-child(3){animation-delay:.3s}
+@keyframes tda{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-5px);opacity:1}}
+
+/* INPUT */
+.input-area{padding:10px 12px 12px;flex-shrink:0;display:flex;justify-content:center;background:var(--chat);border-top:1px solid var(--border)}
+.input-wrap{width:100%;max-width:660px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .2s}
+.input-wrap:focus-within{border-color:var(--border2)}
+.input-top{display:flex;align-items:flex-end}
+textarea.main-input{
+  flex:1;background:transparent;border:none;outline:none;
+  padding:12px 14px;font-size:14px;font-family:var(--sans);
+  color:var(--t);resize:none;height:48px;max-height:140px;
+  line-height:1.5;-webkit-appearance:none;
+}
+textarea.main-input::placeholder{color:var(--tt)}
+.send-btn{margin:6px;width:36px;height:36px;border-radius:9px;background:var(--gold);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:opacity .15s;-webkit-appearance:none}
+.send-btn:active{opacity:.8}
+.send-btn:disabled{background:var(--border);cursor:not-allowed}
+.send-btn svg{width:15px;height:15px;stroke:var(--bg);stroke-width:2.5;fill:none}
+.send-btn:disabled svg{stroke:var(--tt)}
+.input-bottom{display:flex;align-items:center;justify-content:space-between;padding:0 12px 8px}
+.input-hint{font-size:10px;color:var(--tt)}
+.input-tools{display:flex;gap:6px}
+.it-btn{background:transparent;border:none;cursor:pointer;font-size:10px;color:var(--tt);font-family:var(--sans);padding:2px 5px;border-radius:5px}
+.it-btn:active{color:var(--tm)}
+
+/* TOAST */
+.toast{
+  position:fixed;top:12px;left:50%;transform:translateX(-50%) translateY(-90px);
+  background:var(--card2);border:1px solid var(--goldb);
+  border-radius:11px;padding:9px 16px;
+  display:flex;align-items:center;gap:9px;
+  font-size:13px;color:var(--t);
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  z-index:999;white-space:nowrap;
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast-icon{font-size:16px}
+.toast-name{font-size:11px;color:var(--gold);font-weight:600;display:block}
+.toast-sub{font-size:10px;color:var(--tm)}
+
+/* DRAWER OVERLAY */
+.drawer-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;
+  backdrop-filter:blur(2px);
+}
+.drawer-overlay.show{display:block}
+
+/* BOTTOM NAV (mobile) */
+.bottom-nav{
+  display:none;
+  height:var(--bottom-h);
+  background:var(--side);
+  border-top:1px solid var(--border);
+  flex-shrink:0;
+  align-items:center;
+  justify-content:space-around;
+  padding:0 8px;
+}
+.bn-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:6px 12px;border-radius:8px;transition:all .15s;position:relative}
+.bn-item:active{background:rgba(255,255,255,.05)}
+.bn-item.active .bn-icon{color:var(--gold)}
+.bn-item.active .bn-label{color:var(--gold)}
+.bn-icon{font-size:20px;color:var(--tt);transition:color .15s}
+.bn-label{font-size:9px;color:var(--tt);font-weight:500;letter-spacing:.02em}
+.bn-badge{position:absolute;top:4px;right:8px;background:var(--gold);color:var(--bg);border-radius:50%;width:14px;height:14px;font-size:8px;font-weight:700;display:none;align-items:center;justify-content:center}
+.bn-badge.show{display:flex}
+
+/* BRAND SHEET (mobile bottom sheet) */
+.brand-sheet{
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:60;
+  background:var(--side);border-top:1px solid var(--border);
+  border-radius:20px 20px 0 0;padding:16px;
+  transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.brand-sheet.show{transform:translateY(0)}
+.bs-handle{width:36px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 16px}
+.bs-title{font-size:13px;font-weight:600;color:var(--t);margin-bottom:12px}
+.bs-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.bs-brand{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--card);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s}
+.bs-brand:active{border-color:var(--goldb)}
+.bs-brand-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.bs-brand-name{font-size:12px;font-weight:500;color:var(--t)}
+.bs-brand-count{font-size:10px;color:var(--tt);margin-left:auto}
+
+/* ─────────────────────────────────
+   RESPONSIVE
+───────────────────────────────── */
+@media (max-width: 640px) {
+  body{position:fixed;width:100%;overflow:hidden}
+
+  /* Sidebar → drawer */
+  .sidebar{
+    position:fixed;left:0;top:0;bottom:0;z-index:55;
+    transform:translateX(-100%);
+    width:280px;max-width:85vw;
+    box-shadow:20px 0 40px rgba(0,0,0,.5);
+  }
+  .sidebar.open{transform:translateX(0)}
+
+  /* Topbar mobile */
+  .tb-menu{display:flex}
+  .tb-logo-m{display:block}
+  .tb-brand-info{display:none}
+  .tb-right{display:none}
+  .tb-cart-m{display:flex}
+  .topbar{padding:0 12px}
+
+  /* Messages */
+  .msg-inner{padding:0 12px}
+  .msg-text{font-size:13px}
+
+  /* Empty state */
+  .es-title{font-size:22px}
+  .es-sub{font-size:13px;margin-bottom:22px}
+  .es-grid{grid-template-columns:1fr 1fr;gap:7px}
+  .es-sug{padding:11px 12px}
+  .es-sug-title{font-size:12px}
+  .es-sug-sub{font-size:10px}
+
+  /* Input */
+  .input-area{padding:8px 10px 10px}
+  .input-hint{display:none}
+  textarea.main-input{font-size:16px;padding:10px 12px;height:44px} /* 16px evita zoom en iOS */
+
+  /* Bottom nav */
+  .bottom-nav{display:flex}
+  .input-area{padding-bottom:10px}
+}
+
+@media (max-width: 380px) {
+  .es-grid{grid-template-columns:1fr}
+  .es-sug:nth-child(3),.es-sug:nth-child(4){display:none}
+  .es-title{font-size:20px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✓</span>
+  <div>
+    <span class="toast-name" id="toastName">Agregado</span>
+    <span class="toast-sub" id="toastPrice">al pedido</span>
+  </div>
+</div>
+
+<!-- DRAWER OVERLAY -->
+<div class="drawer-overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- BRAND SHEET (mobile) -->
+<div class="brand-sheet" id="brandSheet">
+  <div class="bs-handle"></div>
+  <div class="bs-title">Elegir marca</div>
+  <div class="bs-grid">
+    <div class="bs-brand" onclick="selectBrand('todas')"><div class="bs-brand-dot" style="background:var(--gold)"></div><span class="bs-brand-name">Todas</span><span class="bs-brand-count">30+</span></div>
+    <div class="bs-brand" onclick="selectBrand('kairos')"><div class="bs-brand-dot" style="background:#D07B1A"></div><span class="bs-brand-name">⚡ Kairos</span><span class="bs-brand-count">17</span></div>
+    <div class="bs-brand" onclick="selectBrand('firulais')"><div class="bs-brand-dot" style="background:#C0392B"></div><span class="bs-brand-name">🐾 Firulais</span><span class="bs-brand-count">3</span></div>
+    <div class="bs-brand" onclick="selectBrand('banny')"><div class="bs-brand-dot" style="background:#77CBBF"></div><span class="bs-brand-name">🐰 Banny</span><span class="bs-brand-count">7</span></div>
+    <div class="bs-brand" onclick="selectBrand('biloba')"><div class="bs-brand-dot" style="background:#52b788"></div><span class="bs-brand-name">🍃 Biloba</span><span class="bs-brand-count">4</span></div>
+    <div class="bs-brand" onclick="selectBrand('delpuerto')"><div class="bs-brand-dot" style="background:#74b3ce"></div><span class="bs-brand-name">⚓ Del Puerto</span><span class="bs-brand-count">4</span></div>
+  </div>
+</div>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-mark">⚡</div>
+      <div><div class="sb-logo-text">ZORBO.AI</div><div class="sb-logo-sub">Craft Marketplace</div></div>
+    </div>
+    <button class="sb-new" onclick="newChat();closeSidebar()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      Nueva conversación
+    </button>
+    <div class="sb-sec">Marcas</div>
+    <div class="sb-brand active" onclick="filterBrand('todas',this)"><div class="sb-dot" style="background:var(--gold)"></div><span class="sb-bname">Todas las marcas</span><span class="sb-count">30+</span></div>
+    <div class="sb-brand" onclick="filterBrand('kairos',this)"><div class="sb-dot" style="background:#D07B1A"></div><span class="sb-bname">⚡ Kairos Brewing</span><span class="sb-count">17</span></div>
+    <div class="sb-brand" onclick="filterBrand('firulais',this)"><div class="sb-dot" style="background:#C0392B"></div><span class="sb-bname">🐾 Firulais</span><span class="sb-count">3</span></div>
+    <div class="sb-brand" onclick="filterBrand('banny',this)"><div class="sb-dot" style="background:#77CBBF"></div><span class="sb-bname">🐰 Banny by Kairos</span><span class="sb-count">7</span></div>
+    <div class="sb-brand" onclick="filterBrand('biloba',this)"><div class="sb-dot" style="background:#52b788"></div><span class="sb-bname">🍃 Biloba Kombucha</span><span class="sb-count">4</span></div>
+    <div class="sb-brand" onclick="filterBrand('delpuerto',this)"><div class="sb-dot" style="background:#74b3ce"></div><span class="sb-bname">⚓ Del Puerto</span><span class="sb-count">4</span></div>
+    <div class="sb-div"></div>
+    <div class="sb-mode-wrap">
+      <div class="sb-mode-label">Modo</div>
+      <div class="sb-mode-row">
+        <button class="sm-btn on" onclick="setMode('b2c',this)">Particular</button>
+        <button class="sm-btn" onclick="setMode('b2b',this)">Empresa</button>
+      </div>
+    </div>
+    <div style="flex:1"></div>
+    <div class="sb-cart" onclick="showCart();closeSidebar()" id="sbCart">
+      <span class="sb-cart-icon">🛒</span>
+      <div style="flex:1"><div class="sb-cart-title">Mi pedido</div><div class="sb-cart-sub" id="cartSub">Vacío</div></div>
+      <div class="sb-badge" id="sbBadge">0</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="tb-left">
+        <button class="tb-menu" onclick="toggleSidebar()" aria-label="Menú">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="tb-logo-m">ZORBO.AI</div>
+        <div class="tb-brand-info">
+          <div class="tb-dot" style="background:var(--gold)" id="tbDot"></div>
+          <span class="tb-name" id="tbName">ZorboBot · Todas las marcas</span>
+          <span class="tb-badge-online">● En línea</span>
+        </div>
+      </div>
+      <div class="tb-right">
+        <button class="tb-btn" onclick="newChat()">Nueva conversación</button>
+        <button class="tb-btn primary" onclick="sendQ('Ver opciones de envío')">Pedir ahora</button>
+      </div>
+      <button class="tb-cart-m" onclick="showCart()" id="tbCartM">
+        🛒
+        <div class="tb-cart-num" id="tbCartNum">0</div>
+      </button>
+    </div>
+
+    <!-- MESSAGES -->
+    <div class="messages" id="messages">
+      <div class="empty-state" id="emptyState">
+        <div class="es-logo">⚡</div>
+        <div class="es-title">Soy ZorboBot</div>
+        <div class="es-sub">Tu sommelier digital. Pregúntame lo que sea y te armo el pedido perfecto de las 5 marcas.</div>
+        <div class="es-grid">
+          <div class="es-sug" onclick="sendQ('Tengo un asado para 20 personas')">
+            <div class="es-sug-icon">🔥</div>
+            <div class="es-sug-title">Tengo un asado</div>
+            <div class="es-sug-sub">Arma el pedido completo</div>
+          </div>
+          <div class="es-sug" onclick="sendQ('¿Qué va bien con sushi?')">
+            <div class="es-sug-icon">🍱</div>
+            <div class="es-sug-title">Maridaje con sushi</div>
+            <div class="es-sug-sub">Recomendación perfecta</div>
+          </div>
+          <div class="es-sug" onclick="sendQ('Hay gente que no toma alcohol')">
+            <div class="es-sug-icon">🍃</div>
+            <div class="es-sug-title">Sin alcohol</div>
+            <div class="es-sug-sub">Opciones para todos</div>
+          </div>
+          <div class="es-sug" onclick="sendQ('Soy dueño de un bar, necesito precios mayoristas')">
+            <div class="es-sug-icon">🏢</div>
+            <div class="es-sug-title">Tengo un local</div>
+            <div class="es-sug-sub">Precios B2B y cotización</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INPUT -->
+    <div class="input-area">
+      <div class="input-wrap">
+        <div class="input-top">
+          <textarea class="main-input" id="mainInput"
+            placeholder="Pregunta por marcas, estilos, maridajes..."
+            onkeydown="handleKey(event)"
+            oninput="autoResize(this)"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMsg()" disabled>
+            <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          </button>
+        </div>
+        <div class="input-bottom">
+          <span class="input-hint">ZorboBot puede cometer errores</span>
+          <div class="input-tools">
+            <button class="it-btn" onclick="sendQ('Ver catálogo')">📋 Catálogo</button>
+            <button class="it-btn" onclick="sendQ('Ofertas de hoy')">🏷️ Ofertas</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM NAV (mobile) -->
+    <nav class="bottom-nav">
+      <div class="bn-item active" onclick="newChat()">
+        <span class="bn-icon">💬</span>
+        <span class="bn-label">Chat</span>
+      </div>
+      <div class="bn-item" onclick="showBrandSheet()">
+        <span class="bn-icon">🍺</span>
+        <span class="bn-label">Marcas</span>
+      </div>
+      <div class="bn-item" onclick="sendQ('Ofertas de hoy')">
+        <span class="bn-icon">🏷️</span>
+        <span class="bn-label">Ofertas</span>
+      </div>
+      <div class="bn-item" onclick="showCart()" id="bnCart">
+        <span class="bn-icon">🛒</span>
+        <span class="bn-label">Pedido</span>
+        <div class="bn-badge" id="bnBadge">0</div>
+      </div>
+    </nav>
+  </main>
+</div>
+
+<script>
+// ── DATA ──
+const PRODS={
+  kairos:[
+    {id:'k1',name:'Imperio Perdido NEIPA',style:'NEIPA',emoji:'🍊',price:2490,brand:'Kairos',tag:'TOP'},
+    {id:'k2',name:'Samba IPA',style:'IPA',emoji:'🌺',price:2490,brand:'Kairos'},
+    {id:'k3',name:'Frank Märzen',style:'Märzen',emoji:'🍂',price:2990,brand:'Kairos'},
+    {id:'k4',name:'L200 Irish Stout',style:'Stout',emoji:'🖤',price:2990,brand:'Kairos'},
+    {id:'k5',name:'The Crown Mexican Lager',style:'Mexican Lager',emoji:'🍋',price:2490,brand:'Kairos'},
+    {id:'k6',name:'6 Pack Variado',style:'Pack 6u',emoji:'🎁',price:14190,brand:'Kairos',tag:'-25%'},
+    {id:'k7',name:'24 Pack Variado',style:'Pack 24u',emoji:'📦',price:49990,brand:'Kairos',tag:'Asado'},
+  ],
+  firulais:[
+    {id:'f1',name:'Caurina',style:'Chelada · Limón',emoji:'💛',price:2500,brand:'Firulais'},
+    {id:'f2',name:'Pepita',style:'Mango & Habanero',emoji:'🥭',price:2500,brand:'Firulais',tag:'HOT🌶️'},
+    {id:'f3',name:'Cholita',style:'Michelada',emoji:'🍅',price:2500,brand:'Firulais'},
+  ],
+  banny:[
+    {id:'b1',name:'Gin Banny Contemporáneo',style:'Gin · 700ml',emoji:'🌿',price:28990,brand:'Banny'},
+    {id:'b2',name:'Bárvaro Whiskey',style:'Whiskey',emoji:'🥃',price:34990,brand:'Banny',tag:'Premium'},
+    {id:'b3',name:'Guantánamo Mojito',style:'RTD · Mojito',emoji:'🍹',price:3990,brand:'Banny',tag:'RTD'},
+    {id:'b4',name:'Elizabeth Gin Tonic',style:'RTD · Gin Tonic',emoji:'🫧',price:3990,brand:'Banny',tag:'RTD'},
+  ],
+  biloba:[
+    {id:'bi1',name:'Biloba Elixir',style:'Defensa · 12 pack',emoji:'🛡️',price:41880,brand:'Biloba',tag:'🏆'},
+    {id:'bi2',name:'Biloba Momentum',style:'Energía · 12 pack',emoji:'⚡',price:41880,brand:'Biloba'},
+    {id:'bi3',name:'Biloba Zen',style:'Calma · 12 pack',emoji:'🧘',price:41880,brand:'Biloba'},
+    {id:'bi4',name:'Mix Biloba',style:'Mix · 12 pack',emoji:'🌈',price:41880,brand:'Biloba'},
+  ],
+  delpuerto:[
+    {id:'dp1',name:'Del Puerto Pilsen',style:'Pilsen Lager',emoji:'🌊',price:2200,brand:'Del Puerto'},
+    {id:'dp2',name:'Del Puerto Amber',style:'Amber Ale',emoji:'🍯',price:2200,brand:'Del Puerto'},
+    {id:'dp3',name:'Del Puerto Pale Ale',style:'Pale Ale',emoji:'🌿',price:2200,brand:'Del Puerto'},
+    {id:'dp4',name:'Del Puerto Porter',style:'Porter',emoji:'☕',price:2200,brand:'Del Puerto'},
+  ]
+};
+
+const REPLIES={
+  asado:{text:`¡Para el asado lo tengo todo! 🔥\n\nArmé la selección perfecta combinando marcas:`,prods:['k7','f1','f3','bi4'],note:`**Total estimado: ~$154.000** con envío gratis 🚚\n¿Lo confirmo o ajusto algo?`,quick:['¡Sí, confirmar!','Agregar más sin alcohol','¿Algo más picante?']},
+  sushi:{text:`Para sushi estas son mis top 🍱`,prods:['k1','dp3','b4'],note:`La **NEIPA de Kairos** es la estrella — tropical, jugosa, va increíble con salmón. La **Pale Ale de Del Puerto** para pescados blancos. Y el **Gin Tonic RTD de Banny** si quieren algo con más nivel.`,quick:['Agregar la NEIPA','Ver más Kairos','¿Cuánto cuesta el pack?']},
+  sinalcohol:{text:`Para quienes no toman, Biloba Kombucha es la joya 🍃`,prods:['bi1','bi2','bi3','bi4'],note:`Premiada mundialmente — 3° lugar World Kombucha Awards 2025. No es la típica opción aburrida para quien no toma, **es el producto premium de la reunión**.\n\n¿Cuántas personas son?`,quick:['Pack Mix de los 3','Combinar con cervezas','¿Cuánto rinde el pack de 12?']},
+  b2b:{text:`¡Perfecto, tenemos condiciones especiales para locales! 🏢`,prods:['k7','f1','bi4','b3'],note:`Las ventajas para tu local:\n— Precio mayorista por caja (~18% OFF)\n— **Una sola factura** para las 5 marcas\n— Entrega RM incluida\n— Pedidos recurrentes programables\n\n¿Qué marcas te interesan y cuántas cajas estimarías al mes?`,quick:['Solo cervezas','Mix de marcas','Solicitar cotización']},
+  ofertas:{text:`¡Esta semana hay descuentos especiales! 🏷️`,prods:['k6','bi4','f2','b3'],note:`🍺 **6 Pack Kairos Variado** — $14.190 (antes $18.990) · 25% OFF\n🍃 **Mix Biloba** — envío gratis sin mínimo esta semana\n🌶️ **Firulais Pepita** — 2x1 en packs de 6\n`,quick:['Aprovechar 6 Pack Kairos','2x1 Firulais','¿Cuándo vence?']},
+  catalogo:{text:`Te muestro todo el catálogo del Grupo ZORBO 📋`,prods:['k1','f2','b3','bi4','dp1'],note:`**⚡ Kairos Brewing** — 17 estilos artesanales ($2.490–$2.990)\n**🐾 Firulais** — 3 cheladas artesanales ($2.500)\n**🐰 Banny by Kairos** — Destilados y RTD ($3.990–$34.990)\n**🍃 Biloba** — Kombucha funcional ($41.880/12 pack)\n**⚓ Del Puerto** — 4 estilos clásicos ($2.200)\n\n¿Por cuál empezamos?`,quick:['Ver Kairos','Ver Firulais','Ver Banny','Ver Biloba']},
+  kairos:{text:`⚡ **Kairos Brewing** — 17 estilos artesanales:`,prods:['k1','k2','k3','k4'],note:`¿Buscas algo ligero, lupulado u oscuro?`,quick:['Algo ligero','Las más oscuras','Ver packs','¿Cuál para carne?']},
+  firulais:{text:`🐾 **Firulais** — cheladas artesanales, perrisimas:`,prods:['f1','f2','f3'],note:`100% ingredientes naturales, 4.5% ABV. La Pepita tiene habanero de verdad 🌶️`,quick:['¿Cuál es más picante?','Pack de 24','¿Tienen pack?']},
+  banny:{text:`🐰 **Banny by Kairos** — destilados y RTD:`,prods:['b1','b2','b3','b4'],note:`Los RTD son perfectos para eventos — cóctel de nivel sin necesitar bartender.`,quick:['Solo RTDs','Solo destilados','Pack evento']},
+  biloba:{text:`🍃 **Biloba Kombucha** — premiada mundialmente:`,prods:['bi1','bi2','bi3','bi4'],note:`Viva, sin pasteurizar. 🛡️ Elixir (defensa) · ⚡ Momentum (energía) · 🧘 Zen (calma)`,quick:['El de energía','La de calma','Mix de las 3']},
+  envio:{text:`📦 Info de envíos y retiro:`,prods:[],note:`**Envío GRATIS** sobre $50.000 a toda la RM y Antofagasta 🚚\n\n**Retiro gratuito en:**\n📍 Badass Parque Arauco\n📍 Kairos Garden Vespucio\n📍 Kairos Garden Antofagasta\n\nDespacho 24–48 hrs hábiles en RM.`,quick:['¿Cuánto me falta para envío gratis?','Opciones de retiro','¿Cuándo llega si pido hoy?']},
+  default:{text:`¡Hola! Cuéntame qué buscas y te armo el pedido 🍺`,prods:[],note:`Tengo el catálogo completo de 5 marcas del grupo. ¿Para qué ocasión o qué estilo?`,quick:['Ver catálogo','Para un asado 🔥','Sin alcohol 🍃','Para mi local 🏢']}
+};
+
+function getReply(m){
+  const t=m.toLowerCase();
+  if(t.includes('asado')||t.includes('parrilla')||t.includes('bbq')) return REPLIES.asado;
+  if(t.includes('sushi')||t.includes('japonesa')||t.includes('maridaje')) return REPLIES.sushi;
+  if(t.includes('sin alcohol')||t.includes('no toma')||t.includes('kombucha')||t.includes('biloba')) return REPLIES.sinalcohol;
+  if(t.includes('bar')||t.includes('restaurant')||t.includes('local')||t.includes('mayorista')||t.includes('b2b')||t.includes('empresa')) return REPLIES.b2b;
+  if(t.includes('oferta')||t.includes('descuento')||t.includes('promoción')) return REPLIES.ofertas;
+  if(t.includes('catálogo')||t.includes('catalogo')||t.includes('qué tienen')) return REPLIES.catalogo;
+  if(t.includes('kairos')) return REPLIES.kairos;
+  if(t.includes('firulais')||t.includes('chelada')) return REPLIES.firulais;
+  if(t.includes('banny')||t.includes('gin')||t.includes('whiskey')||t.includes('destilado')||t.includes('rtd')||t.includes('cóctel')) return REPLIES.banny;
+  if(t.includes('envío')||t.includes('envio')||t.includes('despacho')||t.includes('retiro')) return REPLIES.envio;
+  if(t.includes('carro')||t.includes('pedido')||t.includes('carrito')) return cartReply();
+  return REPLIES.default;
+}
+
+// ── CART ──
+let cart=[],cartTotal=0;
+function addToCart(id,name,price){
+  const ex=cart.find(x=>x.id===id);
+  if(ex)ex.qty++;else cart.push({id,name,price,qty:1});
+  cartTotal+=price;
+  updateCartUI();
+  showToast(name,price);
+}
+function updateCartUI(){
+  const n=cart.reduce((a,b)=>a+b.qty,0);
+  const sub=document.getElementById('cartSub');
+  const sbB=document.getElementById('sbBadge');
+  const bnB=document.getElementById('bnBadge');
+  const tbN=document.getElementById('tbCartNum');
+  sub.textContent=n>0?`${n} producto${n>1?'s':''} · $${cartTotal.toLocaleString('es-CL')}`:'Vacío';
+  sbB.textContent=n;sbB.classList.toggle('show',n>0);
+  bnB.textContent=n;bnB.classList.toggle('show',n>0);
+  tbN.textContent=n;tbN.classList.toggle('show',n>0);
+}
+function cartReply(){
+  if(!cart.length)return{text:'Tu pedido está vacío 😊',prods:[],note:'¿Te ayudo a encontrar algo?',quick:['Ver catálogo','Para un asado','Ofertas de hoy']};
+  const items=cart.map(i=>`• ${i.name} — $${i.price.toLocaleString('es-CL')}`).join('\n');
+  return{text:`🛒 **Tu pedido:**\n\n${items}\n\n**Total: $${cartTotal.toLocaleString('es-CL')}**\n${cartTotal>=50000?'🚚 ¡Envío gratis incluido!':``}`,prods:[],note:'',quick:['Confirmar pedido ✓','Seguir eligiendo']};
+}
+
+// ── TOAST ──
+function showToast(name,price){
+  document.getElementById('toastName').textContent=name;
+  document.getElementById('toastPrice').textContent=`$${price.toLocaleString('es-CL')} añadido`;
+  const t=document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ── RENDER ──
+function makeCard(pid){
+  const all=Object.values(PRODS).flat();
+  const p=all.find(x=>x.id===pid);
+  if(!p)return'';
+  const tag=p.tag?`<span class="ipc-tag">${p.tag}</span>`:'';
+  return`<div class="ip-card" onclick="addToCart('${p.id}','${p.name}',${p.price})">
+    <div class="ipc-img">${p.emoji}${tag}</div>
+    <div class="ipc-body">
+      <div class="ipc-brand">${p.brand}</div>
+      <div class="ipc-name">${p.name}</div>
+      <div class="ipc-style">${p.style}</div>
+      <div class="ipc-foot">
+        <div class="ipc-price">$${p.price.toLocaleString('es-CL')}</div>
+        <button class="ipc-add" onclick="event.stopPropagation();addToCart('${p.id}','${p.name}',${p.price})">+</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function addMsg(role,text,prods,note,quick){
+  document.getElementById('emptyState')?.remove();
+  const msgs=document.getElementById('messages');
+  const row=document.createElement('div');
+  row.className=`msg-row ${role}`;
+  const isUser=role==='user';
+  const avHTML=isUser?`<div class="msg-av">Tú</div>`:`<div class="msg-av">🤖</div>`;
+  const senderHTML=isUser?`<div class="msg-sender">Tú</div>`:`<div class="msg-sender">ZorboBot <span class="msg-ai-badge">IA</span></div>`;
+  const fmt=s=>s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>');
+  const textHTML=text?`<div class="msg-text">${fmt(text)}</div>`:'';
+  const prodsHTML=(prods&&prods.length)?`<div class="inline-prods">${prods.map(makeCard).join('')}</div>`:'';
+  const noteHTML=note?`<div class="msg-text" style="margin-top:10px">${fmt(note)}</div>`:'';
+  let cartHTML='';
+  if(cart.length&&!isUser){
+    cartHTML=`<div class="total-bar show"><div style="flex:1"><div class="tb-sum-n">$${cartTotal.toLocaleString('es-CL')} en tu pedido</div><div class="tb-sum-s">${cartTotal>=50000?'🚚 Envío gratis incluido':`Agrega $${(50000-cartTotal).toLocaleString('es-CL')} más`}</div></div><button class="tb-checkout" onclick="sendQ('Confirmar mi pedido')">Checkout →</button></div>`;
+  }
+  const quickHTML=(!isUser&&quick&&quick.length)?`<div class="qr-row">${quick.map(q=>`<button class="qr-btn" onclick="sendQ('${q}')">${q}</button>`).join('')}</div>`:'';
+  row.innerHTML=`<div class="msg-inner">${avHTML}<div class="msg-content">${senderHTML}${textHTML}${prodsHTML}${noteHTML}${cartHTML}${quickHTML}</div></div>`;
+  msgs.appendChild(row);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+function showTyping(){
+  const msgs=document.getElementById('messages');
+  const r=document.createElement('div');
+  r.className='typing-row';r.id='typingRow';
+  r.innerHTML=`<div class="typing-inner"><div class="msg-av" style="background:var(--gold);font-size:15px">🤖</div><div class="typing-dots"><div class="td"></div><div class="td"></div><div class="td"></div></div></div>`;
+  msgs.appendChild(r);msgs.scrollTop=msgs.scrollHeight;
+}
+function hideTyping(){document.getElementById('typingRow')?.remove()}
+
+let busy=false;
+function sendQ(txt){
+  if(busy)return;busy=true;
+  addMsg('user',txt,[],'',[]);
+  showTyping();
+  setTimeout(()=>{
+    hideTyping();
+    const r=getReply(txt);
+    addMsg('bot',r.text,r.prods||[],r.note||'',r.quick||[]);
+    busy=false;
+  },700+Math.random()*600);
+}
+function sendMsg(){
+  const inp=document.getElementById('mainInput');
+  const v=inp.value.trim();if(!v||busy)return;
+  inp.value='';autoResize(inp);
+  document.getElementById('sendBtn').disabled=true;
+  sendQ(v);
+}
+function showCart(){sendQ('Mostrar mi pedido actual')}
+
+// ── INPUT ──
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg()}}
+function autoResize(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,140)+'px';
+  document.getElementById('sendBtn').disabled=el.value.trim()==='';
+}
+document.getElementById('mainInput').addEventListener('input',function(){
+  document.getElementById('sendBtn').disabled=this.value.trim()==='';
+});
+
+// ── NAVIGATION ──
+function newChat(){
+  document.getElementById('messages').innerHTML=`<div class="empty-state" id="emptyState">
+    <div class="es-logo">⚡</div>
+    <div class="es-title">Soy ZorboBot</div>
+    <div class="es-sub">Tu sommelier digital. Pregúntame lo que sea y te armo el pedido perfecto.</div>
+    <div class="es-grid">
+      <div class="es-sug" onclick="sendQ('Tengo un asado para 20 personas')"><div class="es-sug-icon">🔥</div><div class="es-sug-title">Tengo un asado</div><div class="es-sug-sub">Arma el pedido completo</div></div>
+      <div class="es-sug" onclick="sendQ('¿Qué va bien con sushi?')"><div class="es-sug-icon">🍱</div><div class="es-sug-title">Maridaje con sushi</div><div class="es-sug-sub">Recomendación perfecta</div></div>
+      <div class="es-sug" onclick="sendQ('Hay gente que no toma alcohol')"><div class="es-sug-icon">🍃</div><div class="es-sug-title">Sin alcohol</div><div class="es-sug-sub">Opciones para todos</div></div>
+      <div class="es-sug" onclick="sendQ('Soy dueño de un bar, necesito precios mayoristas')"><div class="es-sug-icon">🏢</div><div class="es-sug-title">Tengo un local</div><div class="es-sug-sub">Precios B2B y cotización</div></div>
+    </div>
+  </div>`;
+  busy=false;
+}
+
+function filterBrand(brand,el){
+  document.querySelectorAll('.sb-brand').forEach(b=>b.classList.remove('active'));
+  el?.classList.add('active');
+  const names={todas:'Todas las marcas',kairos:'⚡ Kairos Brewing',firulais:'🐾 Firulais',banny:'🐰 Banny by Kairos',biloba:'🍃 Biloba Kombucha',delpuerto:'⚓ Del Puerto'};
+  const dots={todas:'#e9c46a',kairos:'#D07B1A',firulais:'#C0392B',banny:'#77CBBF',biloba:'#52b788',delpuerto:'#74b3ce'};
+  document.getElementById('tbName').textContent=`ZorboBot · ${names[brand]}`;
+  document.getElementById('tbDot').style.background=dots[brand];
+  if(brand!=='todas')sendQ(`Muéstrame ${names[brand]}`);
+  closeSidebar();
+}
+
+function setMode(mode,btn){
+  document.querySelectorAll('.sm-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  sendQ(mode==='b2b'?'Estoy buscando precios para mi empresa o local':'Hola, busco para consumo personal');
+  closeSidebar();
+}
+
+// ── SIDEBAR / MOBILE ──
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('overlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('show');
+}
+function closeSidebar(){
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// ── BRAND SHEET (mobile) ──
+function showBrandSheet(){
+  const sheet=document.getElementById('brandSheet');
+  const ov=document.getElementById('overlay');
+  sheet.classList.add('show');
+  ov.classList.add('show');
+  ov.onclick=closeBrandSheet;
+}
+function closeBrandSheet(){
+  document.getElementById('brandSheet').classList.remove('show');
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('overlay').onclick=closeSidebar;
+}
+function selectBrand(brand){
+  closeBrandSheet();
+  filterBrand(brand,null);
+}
+
+// ── FIX iOS keyboard ──
+document.getElementById('mainInput').addEventListener('focus',()=>{
+  setTimeout(()=>{
+    document.getElementById('messages').scrollTop=document.getElementById('messages').scrollHeight;
+  },300);
+});
+</script>
+</body>
+</html>
