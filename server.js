@@ -24,22 +24,43 @@ app.post('/chat', async (req, res) => {
     return res.status(400).json({ error: 'El campo "message" es requerido.' });
   }
 
-  const systemPrompt = loadSystemPrompt();
+  let systemPrompt;
+  try {
+    systemPrompt = loadSystemPrompt();
+  } catch {
+    return res.status(500).json({ error: 'Error al cargar el system prompt.' });
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
 
   const messages = [
     ...history,
     { role: 'user', content: message },
   ];
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 1024,
-    system: systemPrompt,
-    messages,
-  });
+  try {
+    const stream = client.messages.stream({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages,
+    });
 
-  const text = response.content.find((b) => b.type === 'text')?.text ?? '';
-  res.json({ response: text });
+    for await (const chunk of stream) {
+      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+        res.write(`data: ${JSON.stringify({ delta: chunk.delta.text })}\n\n`);
+      }
+    }
+  } catch (err) {
+    console.error('Anthropic API error:', err.message);
+    const fallback = 'Uy, tuve un problema técnico. Intenta de nuevo en un momento.';
+    res.write(`data: ${JSON.stringify({ delta: fallback })}\n\n`);
+  } finally {
+    res.write('data: [DONE]\n\n');
+    res.end();
+  }
 });
 
 const PORT = process.env.PORT || 3000;
