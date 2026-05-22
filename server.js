@@ -108,12 +108,13 @@ function serializeSession(s) {
 const PURCHASE_KW = [
   'quiero pagar', 'confirmar pedido', 'lo llevo', 'dale pídelo', 'dale, pídelo',
   'me lo llevo', 'quiero comprar', 'lo quiero todo', 'lo compro', 'hacer el pedido',
-  'arma el pedido', 'checkout', 'comprar', 'quiero pedir', 'listo lo llevo',
+  'arma el pedido', 'checkout', 'quiero pedir', 'listo lo llevo',
 ];
 
 const B2B_KW = [
-  'restaurante', 'bar ', 'bares', 'cantina', 'hotel', 'por volumen',
-  'mayorista', 'cajas', 'distribuci', 'proveedor', 'local gastronómico',
+  'restaurante', ' bar', 'bares', 'cantina', 'hotel', 'por volumen',
+  'mayorista', 'por mayor', 'cajas', 'distribuci', 'proveedor', 'local gastronómico',
+  'dueño de un bar', 'tengo un bar', 'tengo un restaurante',
 ];
 
 const BRAND_KW = {
@@ -202,10 +203,13 @@ app.post('/chat', async (req, res) => {
   touchSession(sessionId);
 
   // Detectar flags
+  const wasB2B = session.isB2B;
   if (detect(message, B2B_KW)) session.isB2B = true;
+  const newlyB2B = !wasB2B && session.isB2B;
 
   // Intención de compra → bypass Claude, enviar link de checkout
-  if (detect(message, PURCHASE_KW)) {
+  // Skip si el mensaje contiene contexto B2B (mayorista, no checkout)
+  if (!detect(message, B2B_KW) && detect(message, PURCHASE_KW)) {
     session.purchaseIntent = true;
     session.messages.push({ role: 'user',      content: message,      timestamp: new Date().toISOString() });
     session.messages.push({ role: 'assistant', content: CHECKOUT_MSG, timestamp: new Date().toISOString() });
