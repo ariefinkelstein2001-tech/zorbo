@@ -177,6 +177,10 @@ function buildSystemPrompt(base, session) {
 const CHECKOUT_MSG = 'Perfecto! 🛒 Te paso el link para cerrar tu pedido: https://zorbot.cl/checkout — si quieres revisar qué llevas antes de pagar, dime y lo vemos juntos!';
 const ERROR_MSG    = 'Disculpa, tuve un problema técnico, dame un segundo e intenta de nuevo 🍺';
 
+// ─── Static frontend ──────────────────────────────────────────────────────────
+
+app.use(express.static(join(__dirname, 'public')));
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 initLogs();
