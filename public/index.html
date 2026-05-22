@@ -1,431 +1,369 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zorbot — Botillería Virtual Artesanal</title>
-  <meta name="description" content="Tu botillería virtual artesanal. Cervezas Kairos, cheladas Firulais y destilados Banny.">
-  <style>
-    :root {
-      --bg:          #0c0c10;
-      --surface:     #13131a;
-      --surface2:    #1a1a24;
-      --surface3:    #22222e;
-      --border:      rgba(245,158,11,0.12);
-      --border-h:    rgba(245,158,11,0.35);
-      --accent:      #f59e0b;
-      --accent-dim:  rgba(245,158,11,0.12);
-      --accent-glow: rgba(245,158,11,0.08);
-      --text:        #e4e4ec;
-      --muted:       #8888a0;
-      --dim:         #55556a;
-      --green:       #22c55e;
-      --k-color:     #f59e0b;
-      --f-color:     #ef4444;
-      --b-color:     #8b5cf6;
-      --font:        -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      --radius:      16px;
-    }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZORBO.AI — Craft Marketplace</title>
+<meta name="description" content="Marketplace de bebidas artesanales. Cervezas Kairos Brewing, cheladas Firulais y destilados Banny.">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0e;
+  --surface:#121219;
+  --surface2:#1a1a24;
+  --surface3:#24242f;
+  --gold:#e9c46a;
+  --gold-bright:#f7e3a7;
+  --gold-deep:#bf9b48;
+  --gold-dim:rgba(233,196,106,.10);
+  --gold-glow:rgba(233,196,106,.07);
+  --gold-bd:rgba(233,196,106,.20);
+  --gold-bd-h:rgba(233,196,106,.46);
+  --text:#f1ede5;
+  --muted:rgba(241,237,229,.58);
+  --dim:rgba(241,237,229,.32);
+  --border:rgba(255,255,255,.07);
+  --green:#5cc98f;
+  --green-dim:rgba(92,201,143,.12);
+  --k:#e9c46a;
+  --f:#e07a5f;
+  --b:#b6a4e6;
+  --sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  --display:'Syne',var(--sans);
+  --radius:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--sans);
+  overflow:hidden;
+  background-image:
+    radial-gradient(60rem 40rem at 80% -10%,var(--gold-glow),transparent),
+    radial-gradient(50rem 35rem at -10% 110%,rgba(182,164,230,.05),transparent);
+}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
 
-    /* ── SCROLLBARS ────────────────────────────────────── */
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+/* ── AGE GATE ── */
+.age-gate{
+  position:fixed;inset:0;z-index:900;
+  background:rgba(6,6,9,.97);backdrop-filter:blur(22px);
+  display:flex;align-items:center;justify-content:center;padding:1.5rem;
+}
+.age-gate.gone{display:none}
+.age-card{
+  background:var(--surface);border:1px solid var(--gold-bd);
+  border-radius:22px;padding:2.6rem 2rem;max-width:380px;width:100%;text-align:center;
+  box-shadow:0 30px 80px rgba(0,0,0,.6);
+  animation:popIn .45s cubic-bezier(.34,1.56,.64,1);
+}
+.age-icon{font-size:3.4rem;display:block;margin-bottom:1rem}
+.age-card h2{font-family:var(--display);font-size:1.5rem;font-weight:800;margin-bottom:.5rem;letter-spacing:-.5px}
+.age-card p{color:var(--muted);font-size:.86rem;line-height:1.65;margin-bottom:1.9rem;font-weight:300}
+.age-yes{
+  display:block;width:100%;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));
+  color:#1a1408;border:none;border-radius:13px;
+  padding:.92rem 1rem;font-size:.98rem;font-weight:700;font-family:var(--sans);
+  cursor:pointer;margin-bottom:.7rem;transition:opacity .2s,transform .12s;
+}
+.age-yes:hover{opacity:.92}
+.age-yes:active{transform:scale(.98)}
+.age-no{
+  display:block;width:100%;background:transparent;color:var(--muted);
+  border:1px solid var(--border);border-radius:13px;
+  padding:.72rem;font-size:.85rem;cursor:pointer;font-family:var(--sans);transition:border-color .2s;
+}
+.age-no:hover{border-color:var(--gold-bd)}
 
-    /* ── AGE GATE ──────────────────────────────────────── */
-    .age-gate {
-      position: fixed; inset: 0; z-index: 900;
-      background: rgba(0,0,0,0.97);
-      backdrop-filter: blur(24px);
-      display: flex; align-items: center; justify-content: center; padding: 1.5rem;
-    }
-    .age-gate.gone { display: none; }
-    .age-card {
-      background: var(--surface);
-      border: 1px solid var(--border-h);
-      border-radius: 24px; padding: 2.5rem 2rem;
-      max-width: 380px; width: 100%; text-align: center;
-      animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
-    }
-    .age-icon { font-size: 3.5rem; display: block; margin-bottom: 1rem; }
-    .age-card h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; }
-    .age-card p { color: var(--muted); font-size: 0.88rem; line-height: 1.6; margin-bottom: 2rem; }
-    .age-yes {
-      display: block; width: 100%;
-      background: var(--accent); color: #000;
-      border: none; border-radius: 14px;
-      padding: 0.9rem 1rem; font-size: 1rem; font-weight: 800;
-      cursor: pointer; margin-bottom: 0.75rem; transition: opacity 0.2s;
-    }
-    .age-yes:hover { opacity: 0.85; }
-    .age-no {
-      display: block; width: 100%;
-      background: transparent; color: var(--muted);
-      border: 1px solid var(--border); border-radius: 14px;
-      padding: 0.75rem; font-size: 0.88rem; cursor: pointer; transition: border-color 0.2s;
-    }
-    .age-no:hover { border-color: var(--border-h); }
+/* ── APP SHELL ── */
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
 
-    /* ── APP SHELL ─────────────────────────────────────── */
-    .app { display: flex; flex-direction: column; height: 100vh; }
+/* ── HEADER ── */
+header{
+  flex-shrink:0;display:flex;align-items:center;gap:.85rem;
+  padding:.7rem 1.25rem;
+  background:rgba(18,18,25,.85);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);z-index:20;
+}
+.brand-logo{display:flex;align-items:center;gap:.55rem;flex-shrink:0;user-select:none}
+.logo-mark{
+  width:34px;height:34px;border-radius:9px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 60%,var(--gold-deep));
+  display:flex;align-items:center;justify-content:center;font-size:17px;
+  box-shadow:0 4px 14px rgba(233,196,106,.28);
+}
+.logo-txt{display:flex;flex-direction:column;line-height:1}
+.logo-name{
+  font-family:var(--display);font-size:1.05rem;font-weight:800;letter-spacing:.02em;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,#fff8e6);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.logo-sub{font-size:.58rem;color:var(--dim);letter-spacing:.16em;text-transform:uppercase;margin-top:3px}
+.brand-pills{display:flex;gap:.4rem;flex:1;overflow-x:auto;scrollbar-width:none}
+.brand-pills::-webkit-scrollbar{display:none}
+.pill{
+  flex-shrink:0;display:flex;align-items:center;gap:.32rem;
+  padding:.34rem .82rem;border-radius:20px;
+  font-size:.74rem;font-weight:600;font-family:var(--sans);
+  border:1px solid var(--border);background:transparent;color:var(--muted);
+  white-space:nowrap;cursor:pointer;transition:all .18s;
+}
+.pill .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.pill:hover{border-color:var(--gold-bd-h);color:var(--text);background:var(--gold-dim)}
+.cart-btn{
+  flex-shrink:0;position:relative;cursor:pointer;
+  width:40px;height:40px;border-radius:11px;
+  background:var(--surface2);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:1.15rem;
+  transition:border-color .2s;
+}
+.cart-btn:hover{border-color:var(--gold-bd-h)}
+.cart-badge{
+  position:absolute;top:-7px;right:-7px;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));
+  color:#1a1408;border-radius:50%;width:19px;height:19px;
+  font-size:.64rem;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transform:scale(0);transition:all .2s;
+}
+.cart-badge.on{opacity:1;transform:scale(1)}
 
-    /* ── HEADER ────────────────────────────────────────── */
-    header {
-      flex-shrink: 0;
-      display: flex; align-items: center; gap: 0.75rem;
-      padding: 0.65rem 1.25rem;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      z-index: 10;
-    }
-    .logo {
-      font-size: 1.35rem; font-weight: 900; letter-spacing: 0.12em;
-      flex-shrink: 0; user-select: none;
-      background: linear-gradient(135deg, var(--accent) 0%, #fde68a 60%, var(--accent) 100%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-    }
-    .logo-dot { -webkit-text-fill-color: var(--accent); }
-    .brand-pills {
-      display: flex; gap: 0.4rem; flex: 1;
-      overflow-x: auto; scrollbar-width: none;
-    }
-    .brand-pills::-webkit-scrollbar { display: none; }
-    .pill {
-      flex-shrink: 0; padding: 0.28rem 0.8rem;
-      border-radius: 20px; font-size: 0.72rem; font-weight: 600;
-      border: 1px solid var(--border); cursor: pointer;
-      background: transparent; color: var(--muted);
-      white-space: nowrap; transition: all 0.18s; font-family: var(--font);
-    }
-    .pill[data-b="kairos"]:hover  { border-color: var(--k-color); color: var(--k-color); background: rgba(245,158,11,0.1); }
-    .pill[data-b="firulais"]:hover { border-color: var(--f-color); color: var(--f-color); background: rgba(239,68,68,0.1); }
-    .pill[data-b="banny"]:hover   { border-color: var(--b-color); color: var(--b-color); background: rgba(139,92,246,0.1); }
-    .cart-btn {
-      flex-shrink: 0; position: relative;
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 11px; padding: 0.38rem 0.7rem;
-      cursor: pointer; font-size: 1.1rem;
-      display: flex; align-items: center;
-      transition: border-color 0.2s;
-    }
-    .cart-btn:hover { border-color: var(--border-h); }
-    .cart-badge {
-      position: absolute; top: -7px; right: -7px;
-      background: var(--accent); color: #000;
-      border-radius: 50%; width: 18px; height: 18px;
-      font-size: 0.62rem; font-weight: 900;
-      display: flex; align-items: center; justify-content: center;
-      opacity: 0; transform: scale(0); transition: all 0.2s;
-    }
-    .cart-badge.on { opacity: 1; transform: scale(1); }
+/* ── PROMO BANNER ── */
+.promo-wrap{
+  flex-shrink:0;height:40px;overflow:hidden;position:relative;
+  background:linear-gradient(90deg,var(--surface) 0%,#16161f 50%,var(--surface) 100%);
+  border-bottom:1px solid var(--border);
+}
+.promo-track{display:flex;height:100%;transition:transform .55s cubic-bezier(.4,0,.2,1)}
+.promo-slide{
+  flex-shrink:0;width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;gap:.5rem;
+  font-size:.77rem;padding:0 1rem;
+}
+.promo-tag{
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));
+  color:#1a1408;padding:.12rem .5rem;border-radius:5px;
+  font-size:.6rem;font-weight:800;letter-spacing:.07em;flex-shrink:0;
+}
+.promo-slide strong{color:var(--text);font-weight:600}
+.promo-slide span{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:300}
+.promo-dots{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);display:flex;gap:4px;pointer-events:none}
+.pdot{width:4px;height:4px;border-radius:50%;background:var(--dim);transition:background .3s}
+.pdot.on{background:var(--gold)}
 
-    /* ── PROMO BANNER ──────────────────────────────────── */
-    .promo-wrap {
-      flex-shrink: 0; height: 38px; overflow: hidden; position: relative;
-      background: linear-gradient(90deg, var(--surface) 0%, #15151e 50%, var(--surface) 100%);
-      border-bottom: 1px solid var(--border);
-    }
-    .promo-track {
-      display: flex; height: 100%;
-      transition: transform 0.55s cubic-bezier(0.4,0,0.2,1);
-    }
-    .promo-slide {
-      flex-shrink: 0; width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-      font-size: 0.78rem; padding: 0 1rem;
-    }
-    .promo-tag {
-      background: var(--accent); color: #000;
-      padding: 0.1rem 0.45rem; border-radius: 4px;
-      font-size: 0.62rem; font-weight: 800; letter-spacing: 0.06em; flex-shrink: 0;
-    }
-    .promo-slide strong { color: var(--text); }
-    .promo-slide span   { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .promo-dots {
-      position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%);
-      display: flex; gap: 4px; pointer-events: none;
-    }
-    .pdot { width: 4px; height: 4px; border-radius: 50%; background: var(--dim); transition: background 0.3s; }
-    .pdot.on { background: var(--accent); }
+/* ── CHAT ── */
+.chat-area{flex:1;overflow-y:auto;overflow-x:hidden;padding:1.4rem 1rem 1rem;scroll-behavior:smooth}
+.messages{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:1.25rem}
 
-    /* ── CHAT AREA ─────────────────────────────────────── */
-    .chat-area {
-      flex: 1; overflow-y: auto; overflow-x: hidden;
-      padding: 1.25rem 1rem 1rem;
-      scroll-behavior: smooth;
-    }
-    .messages {
-      max-width: 780px; margin: 0 auto;
-      display: flex; flex-direction: column; gap: 1.2rem;
-    }
+.row{display:flex;gap:.6rem;animation:fadeUp .26s ease}
+.row.user{justify-content:flex-end}
+.row.bot{justify-content:flex-start}
+.avatar{
+  flex-shrink:0;width:30px;height:30px;border-radius:50%;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;margin-top:2px;align-self:flex-start;
+}
+.msg-col{display:flex;flex-direction:column;gap:.45rem;min-width:0;max-width:80%}
+.row.user .msg-col{max-width:72%;align-items:flex-end}
+.sender{font-size:.66rem;font-weight:600;color:var(--dim);display:flex;align-items:center;gap:.4rem;padding-left:.2rem}
+.ai-badge{
+  font-size:.56rem;font-weight:700;padding:.06rem .4rem;border-radius:20px;
+  background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-bd);
+}
+.bubble{padding:.78rem 1.05rem;border-radius:var(--radius);line-height:1.68;font-size:.88rem;word-break:break-word}
+.row.bot .bubble{
+  background:var(--surface2);border:1px solid var(--border);
+  border-bottom-left-radius:5px;
+}
+.row.user .bubble{
+  background:linear-gradient(135deg,var(--gold-dim),rgba(233,196,106,.04));
+  border:1px solid var(--gold-bd);border-bottom-right-radius:5px;color:var(--text);
+}
+.bubble strong{color:var(--gold);font-weight:700}
+.bubble em{color:var(--b)}
+.bubble h3{font-family:var(--display);color:var(--gold);font-size:.92rem;margin:.45rem 0 .2rem}
+.bubble ul{padding-left:1.1rem;margin:.25rem 0}
+.bubble li{margin-bottom:.16rem;color:var(--muted)}
+.bubble li strong{color:var(--text)}
+.bubble p{margin-bottom:.4rem}
+.bubble p:last-child{margin-bottom:0}
+.bubble hr{border:none;border-top:1px solid var(--border);margin:.6rem 0}
+.bubble blockquote{border-left:3px solid var(--gold);padding-left:.75rem;color:var(--muted);margin:.4rem 0;font-style:italic}
+.bubble table{width:100%;border-collapse:collapse;margin:.45rem 0;font-size:.79rem}
+.bubble th{background:var(--surface3);color:var(--gold);padding:.35rem .6rem;text-align:left;border-bottom:1px solid var(--border);font-weight:700}
+.bubble td{padding:.32rem .6rem;border-bottom:1px solid rgba(255,255,255,.04);color:var(--muted)}
+.bubble td:first-child{color:var(--text);font-weight:600}
 
-    /* ── MESSAGE ROWS ──────────────────────────────────── */
-    .row { display: flex; gap: 0.55rem; }
-    .row.user { justify-content: flex-end; }
-    .row.bot  { justify-content: flex-start; }
-    .avatar {
-      flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
-      background: var(--accent-dim); border: 1px solid rgba(245,158,11,0.25);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.8rem; margin-top: 2px; align-self: flex-start;
-    }
-    .msg-col { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; max-width: 82%; }
-    .row.user .msg-col { max-width: 74%; align-items: flex-end; }
+/* ── TYPING ── */
+.typing{display:flex;gap:4px;align-items:center;padding:.3rem .15rem}
+.tdot{width:7px;height:7px;border-radius:50%;background:var(--dim);animation:tdot 1.3s ease-in-out infinite}
+.tdot:nth-child(2){animation-delay:.18s}
+.tdot:nth-child(3){animation-delay:.36s}
+@keyframes tdot{0%,80%,100%{transform:translateY(0);background:var(--dim)}40%{transform:translateY(-7px);background:var(--gold)}}
 
-    .bubble {
-      padding: 0.75rem 1rem; border-radius: var(--radius);
-      line-height: 1.65; font-size: 0.88rem; word-break: break-word;
-    }
-    .row.user .bubble {
-      background: linear-gradient(135deg, #1a3d10, #1e4a14);
-      border: 1px solid rgba(34,197,94,0.18);
-      border-bottom-right-radius: 4px; color: #d1fae5;
-    }
-    .row.bot .bubble {
-      background: var(--surface2); border: 1px solid var(--border);
-      border-bottom-left-radius: 4px;
-    }
+/* ── PRODUCT CARDS ── */
+.cards-row{display:flex;gap:.65rem;overflow-x:auto;padding:.35rem 0 .25rem;scrollbar-width:none}
+.cards-row::-webkit-scrollbar{display:none}
+.pcard{
+  flex-shrink:0;width:166px;
+  background:linear-gradient(180deg,var(--surface) 0%,var(--surface2) 100%);
+  border:1px solid var(--border);border-radius:14px;
+  padding:.95rem .8rem;display:flex;flex-direction:column;gap:.28rem;
+  transition:border-color .2s,transform .2s,box-shadow .2s;
+}
+.pcard:hover{border-color:var(--gold-bd-h);transform:translateY(-3px);box-shadow:0 12px 28px rgba(0,0,0,.4)}
+.pcard.kairos{border-top:2px solid var(--k)}
+.pcard.firulais{border-top:2px solid var(--f)}
+.pcard.banny{border-top:2px solid var(--b)}
+.pc-brand{font-size:.57rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.pc-brand.kairos{color:var(--k)}
+.pc-brand.firulais{color:var(--f)}
+.pc-brand.banny{color:var(--b)}
+.pc-emoji{font-size:1.7rem;margin:.22rem 0}
+.pc-name{font-size:.84rem;font-weight:700;line-height:1.22}
+.pc-style{font-size:.68rem;color:var(--muted)}
+.pc-desc{font-size:.66rem;color:var(--dim);line-height:1.4;flex:1;margin-top:.1rem}
+.pc-price{
+  font-family:var(--display);font-size:1.05rem;font-weight:800;color:var(--gold);margin-top:.35rem;
+}
+.pc-add{
+  width:100%;padding:.46rem;margin-top:.35rem;
+  background:var(--gold-dim);border:1px solid var(--gold-bd);
+  border-radius:9px;color:var(--gold);
+  font-size:.72rem;font-weight:700;font-family:var(--sans);cursor:pointer;
+  transition:all .18s;
+}
+.pc-add:hover{background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));color:#1a1408;border-color:transparent}
+.pc-add.done{background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));color:#1a1408;border-color:transparent;pointer-events:none}
 
-    /* ── BUBBLE TYPOGRAPHY ─────────────────────────────── */
-    .bubble strong { color: var(--accent); font-weight: 700; }
-    .bubble em { color: #c4b5fd; }
-    .bubble h3 { color: var(--accent); font-size: 0.9rem; margin: 0.4rem 0 0.2rem; }
-    .bubble ul { padding-left: 1.1rem; margin: 0.2rem 0; }
-    .bubble li { margin-bottom: 0.15rem; color: var(--muted); }
-    .bubble li strong { color: var(--text); }
-    .bubble p { margin-bottom: 0.35rem; }
-    .bubble p:last-child { margin-bottom: 0; }
-    .bubble hr { border: none; border-top: 1px solid var(--border); margin: 0.6rem 0; }
-    .bubble blockquote {
-      border-left: 3px solid var(--accent); padding-left: 0.75rem;
-      color: var(--muted); margin: 0.4rem 0; font-style: italic;
-    }
-    .bubble table { width: 100%; border-collapse: collapse; margin: 0.4rem 0; font-size: 0.8rem; }
-    .bubble th {
-      background: var(--surface3); color: var(--accent);
-      padding: 0.35rem 0.6rem; text-align: left;
-      border-bottom: 1px solid var(--border); font-weight: 700;
-    }
-    .bubble td {
-      padding: 0.3rem 0.6rem; border-bottom: 1px solid rgba(255,255,255,0.04);
-      color: var(--muted);
-    }
-    .bubble td:first-child { color: var(--text); font-weight: 600; }
+/* ── INPUT ── */
+.input-wrap{flex-shrink:0;background:var(--surface);border-top:1px solid var(--border);padding:.7rem 1rem .8rem}
+.quick-row{display:flex;gap:.45rem;overflow-x:auto;scrollbar-width:none;padding-bottom:.6rem;max-width:780px;margin:0 auto}
+.quick-row::-webkit-scrollbar{display:none}
+.qr{
+  flex-shrink:0;padding:.34rem .82rem;border-radius:20px;
+  font-size:.75rem;font-weight:500;font-family:var(--sans);
+  border:1px solid var(--border);background:transparent;color:var(--muted);
+  white-space:nowrap;cursor:pointer;transition:all .18s;
+}
+.qr:hover{border-color:var(--gold-bd-h);color:var(--gold);background:var(--gold-dim)}
+.send-row{display:flex;gap:.55rem;align-items:flex-end;max-width:780px;margin:0 auto}
+.msg-in{
+  flex:1;background:var(--surface2);border:1px solid var(--border);
+  border-radius:14px;padding:.72rem .95rem;
+  color:var(--text);font-size:.9rem;font-family:var(--sans);line-height:1.45;
+  resize:none;max-height:130px;min-height:44px;outline:none;transition:border-color .2s;
+}
+.msg-in:focus{border-color:var(--gold-bd-h)}
+.msg-in::placeholder{color:var(--dim)}
+.msg-in:disabled{opacity:.55}
+.send-btn{
+  flex-shrink:0;width:44px;height:44px;border:none;border-radius:12px;cursor:pointer;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));
+  color:#1a1408;display:flex;align-items:center;justify-content:center;
+  transition:opacity .2s,transform .12s;
+}
+.send-btn:hover{opacity:.92}
+.send-btn:active{transform:scale(.95)}
+.send-btn:disabled{opacity:.35;cursor:not-allowed}
+.input-hint{text-align:center;font-size:.62rem;color:var(--dim);margin-top:.5rem}
 
-    /* ── TYPING INDICATOR ──────────────────────────────── */
-    .typing { display: flex; gap: 4px; align-items: center; padding: 0.35rem 0.2rem; }
-    .tdot {
-      width: 7px; height: 7px; border-radius: 50%; background: var(--dim);
-      animation: tdot 1.3s ease-in-out infinite;
-    }
-    .tdot:nth-child(2) { animation-delay: 0.18s; }
-    .tdot:nth-child(3) { animation-delay: 0.36s; }
-    @keyframes tdot {
-      0%,80%,100% { transform: translateY(0);   background: var(--dim); }
-      40%          { transform: translateY(-7px); background: var(--accent); }
-    }
+/* ── TOASTS ── */
+.toast-wrap{position:fixed;bottom:90px;right:1rem;z-index:200;display:flex;flex-direction:column;gap:.45rem;pointer-events:none;max-width:270px}
+.toast{
+  background:var(--surface2);border:1px solid var(--gold-bd);
+  border-left:3px solid var(--gold);border-radius:11px;padding:.66rem .9rem;
+  font-size:.8rem;box-shadow:0 8px 28px rgba(0,0,0,.5);
+  animation:toastIn .3s ease,toastOut .3s 2.9s ease forwards;
+}
+.toast.ship{border-left-color:var(--green);border-color:rgba(92,201,143,.25)}
+.toast strong{color:var(--gold);display:block;font-size:.72rem;margin-bottom:.12rem}
+.toast.ship strong{color:var(--green)}
+.toast .tsub{color:var(--muted);font-size:.68rem;font-weight:300}
 
-    /* ── PRODUCT CARDS ─────────────────────────────────── */
-    .cards-row {
-      display: flex; gap: 0.65rem;
-      overflow-x: auto; padding: 0.4rem 0 0.2rem;
-      scrollbar-width: none;
-    }
-    .cards-row::-webkit-scrollbar { display: none; }
-    .pcard {
-      flex-shrink: 0; width: 158px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px; padding: 0.9rem 0.8rem;
-      display: flex; flex-direction: column; gap: 0.3rem;
-      transition: border-color 0.2s, transform 0.2s;
-      cursor: default;
-    }
-    .pcard:hover { border-color: var(--border-h); transform: translateY(-2px); }
-    .pcard.kairos   { border-top: 2px solid rgba(245,158,11,0.55); }
-    .pcard.firulais { border-top: 2px solid rgba(239,68,68,0.55); }
-    .pcard.banny    { border-top: 2px solid rgba(139,92,246,0.55); }
-    .pc-brand { font-size: 0.58rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
-    .pc-brand.kairos   { color: var(--k-color); }
-    .pc-brand.firulais { color: var(--f-color); }
-    .pc-brand.banny    { color: var(--b-color); }
-    .pc-emoji { font-size: 1.6rem; margin: 0.25rem 0; }
-    .pc-name  { font-size: 0.83rem; font-weight: 700; line-height: 1.2; }
-    .pc-style { font-size: 0.68rem; color: var(--muted); }
-    .pc-abv   { font-size: 0.63rem; color: var(--dim); }
-    .pc-desc  { font-size: 0.67rem; color: var(--dim); line-height: 1.35; flex: 1; }
-    .pc-price { font-size: 1rem; font-weight: 900; color: var(--accent); margin-top: 0.3rem; }
-    .pc-add {
-      width: 100%; padding: 0.38rem;
-      background: var(--accent-dim); border: 1px solid rgba(245,158,11,0.2);
-      border-radius: 8px; color: var(--accent);
-      font-size: 0.72rem; font-weight: 700; cursor: pointer;
-      font-family: var(--font); transition: all 0.18s; margin-top: 0.2rem;
-    }
-    .pc-add:hover { background: var(--accent); color: #000; }
-    .pc-add.done  { background: var(--accent); color: #000; pointer-events: none; }
+/* ── CART DRAWER ── */
+.cart-panel{position:fixed;inset:0;z-index:500;opacity:0;pointer-events:none;transition:opacity .3s}
+.cart-panel.open{opacity:1;pointer-events:all}
+.cart-overlay{position:absolute;inset:0;background:rgba(0,0,0,.68);cursor:pointer}
+.cart-drawer{
+  position:absolute;top:0;right:0;bottom:0;width:350px;max-width:92vw;
+  background:var(--surface);border-left:1px solid var(--gold-bd);
+  display:flex;flex-direction:column;
+  transform:translateX(100%);transition:transform .32s cubic-bezier(.4,0,.2,1);
+}
+.cart-panel.open .cart-drawer{transform:none}
+.cart-head{padding:1.05rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cart-head h2{font-family:var(--display);font-size:1rem;font-weight:800}
+.cart-x{background:none;border:none;color:var(--muted);font-size:1.15rem;cursor:pointer;padding:.2rem .45rem;border-radius:7px}
+.cart-x:hover{background:var(--surface3);color:var(--text)}
+.cart-body{flex:1;overflow-y:auto;padding:.8rem}
+.cart-empty-msg{padding:2.8rem 1rem;text-align:center;color:var(--dim);font-size:.85rem;line-height:1.7;font-weight:300}
+.ci{display:flex;gap:.6rem;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:.58rem .68rem;margin-bottom:.45rem}
+.ci-em{font-size:1.2rem;flex-shrink:0}
+.ci-info{flex:1;min-width:0}
+.ci-name{font-size:.79rem;font-weight:600;line-height:1.25}
+.ci-unit{font-size:.64rem;color:var(--dim)}
+.ci-qty{display:flex;align-items:center;gap:.35rem;flex-shrink:0}
+.qbtn{width:23px;height:23px;border-radius:7px;background:var(--surface3);border:1px solid var(--border);color:var(--text);font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--sans)}
+.qbtn:hover{border-color:var(--gold-bd-h)}
+.ci-qty span{font-size:.78rem;min-width:16px;text-align:center}
+.ci-price{font-size:.74rem;color:var(--gold);font-weight:800;white-space:nowrap;flex-shrink:0}
+.cart-foot{padding:.95rem 1.25rem;border-top:1px solid var(--border);flex-shrink:0}
+.ship-bar{height:4px;background:var(--surface3);border-radius:2px;margin-bottom:.32rem;overflow:hidden}
+.ship-fill{height:100%;background:linear-gradient(90deg,var(--gold-deep),var(--green));border-radius:2px;transition:width .5s ease}
+.ship-hint{font-size:.66rem;color:var(--dim);text-align:center;margin-bottom:.7rem}
+.free-badge{
+  background:var(--green-dim);border:1px solid rgba(92,201,143,.25);color:var(--green);
+  border-radius:9px;padding:.36rem .75rem;font-size:.73rem;font-weight:700;
+  text-align:center;margin-bottom:.7rem;display:none;
+}
+.free-badge.on{display:block}
+.cart-total{display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem}
+.cart-total span{font-size:.83rem;color:var(--muted)}
+.cart-total .amt{font-family:var(--display);font-size:1.2rem;font-weight:800;color:var(--gold)}
+.checkout-btn{
+  width:100%;padding:.85rem;border:none;border-radius:12px;cursor:pointer;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));
+  color:#1a1408;font-size:.9rem;font-weight:700;font-family:var(--sans);
+  transition:opacity .2s;
+}
+.checkout-btn:hover{opacity:.92}
+.checkout-btn:disabled{opacity:.4;cursor:not-allowed}
 
-    /* ── INPUT WRAPPER ─────────────────────────────────── */
-    .input-wrap {
-      flex-shrink: 0;
-      background: var(--surface); border-top: 1px solid var(--border);
-      padding: 0.65rem 1rem 0.75rem;
-    }
-    .quick-row {
-      display: flex; gap: 0.45rem; overflow-x: auto;
-      scrollbar-width: none; padding-bottom: 0.55rem;
-    }
-    .quick-row::-webkit-scrollbar { display: none; }
-    .qr {
-      flex-shrink: 0; padding: 0.3rem 0.8rem;
-      border-radius: 20px; font-size: 0.75rem; font-weight: 500;
-      border: 1px solid var(--border); cursor: pointer;
-      background: transparent; color: var(--muted);
-      white-space: nowrap; font-family: var(--font); transition: all 0.18s;
-    }
-    .qr:hover { border-color: var(--border-h); color: var(--accent); background: var(--accent-dim); }
-    .send-row { display: flex; gap: 0.55rem; align-items: flex-end; }
-    .msg-in {
-      flex: 1; background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 14px; padding: 0.68rem 0.9rem;
-      color: var(--text); font-size: 0.88rem; font-family: var(--font);
-      resize: none; max-height: 130px; min-height: 42px;
-      outline: none; transition: border-color 0.2s; line-height: 1.45;
-    }
-    .msg-in:focus { border-color: rgba(245,158,11,0.35); }
-    .msg-in::placeholder { color: var(--dim); }
-    .send-btn {
-      flex-shrink: 0; width: 42px; height: 42px;
-      background: var(--accent); border: none; border-radius: 12px;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-      font-size: 1rem; color: #000; transition: opacity 0.2s;
-    }
-    .send-btn:hover   { opacity: 0.85; }
-    .send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+/* ── ANIMATIONS ── */
+@keyframes popIn{from{opacity:0;transform:scale(.88) translateY(12px)}to{opacity:1;transform:none}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes toastIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+@keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(16px)}}
 
-    /* ── TOAST ─────────────────────────────────────────── */
-    .toast-wrap {
-      position: fixed; bottom: 88px; right: 1rem; z-index: 200;
-      display: flex; flex-direction: column; gap: 0.45rem;
-      pointer-events: none; max-width: 260px;
-    }
-    .toast {
-      background: var(--surface2); border: 1px solid var(--border);
-      border-left: 3px solid var(--accent);
-      border-radius: 10px; padding: 0.65rem 0.9rem;
-      font-size: 0.8rem; box-shadow: 0 4px 24px rgba(0,0,0,0.45);
-      animation: toastIn 0.3s ease, toastOut 0.3s 2.8s ease forwards;
-    }
-    .toast.ship { border-left-color: var(--green); }
-    .toast strong { color: var(--accent); display: block; font-size: 0.73rem; margin-bottom: 0.1rem; }
-    .toast.ship strong { color: var(--green); }
-    .toast .tsub { color: var(--muted); font-size: 0.68rem; }
-    @keyframes toastIn  { from { opacity:0; transform:translateX(16px); } to { opacity:1; transform:none; } }
-    @keyframes toastOut { from { opacity:1; } to { opacity:0; transform:translateX(16px); } }
-
-    /* ── CART PANEL ────────────────────────────────────── */
-    .cart-panel {
-      position: fixed; inset: 0; z-index: 500;
-      opacity: 0; pointer-events: none; transition: opacity 0.3s;
-    }
-    .cart-panel.open { opacity: 1; pointer-events: all; }
-    .cart-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.65); cursor: pointer; }
-    .cart-drawer {
-      position: absolute; top: 0; right: 0; bottom: 0;
-      width: 340px; max-width: 92vw;
-      background: var(--surface);
-      border-left: 1px solid var(--border);
-      display: flex; flex-direction: column;
-      transform: translateX(100%); transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
-    }
-    .cart-panel.open .cart-drawer { transform: none; }
-    .cart-head {
-      padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
-    }
-    .cart-head h2 { font-size: 0.95rem; font-weight: 800; }
-    .cart-x {
-      background: none; border: none; color: var(--muted);
-      font-size: 1.1rem; cursor: pointer; padding: 0.2rem 0.4rem; border-radius: 6px;
-    }
-    .cart-x:hover { background: var(--surface3); color: var(--text); }
-    .cart-body { flex: 1; overflow-y: auto; padding: 0.75rem; }
-    .cart-empty-msg { padding: 2.5rem 1rem; text-align: center; color: var(--dim); font-size: 0.85rem; line-height: 1.6; }
-    .ci {
-      display: flex; gap: 0.6rem; align-items: center;
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 10px; padding: 0.55rem 0.65rem; margin-bottom: 0.4rem;
-    }
-    .ci-em { font-size: 1.15rem; flex-shrink: 0; }
-    .ci-name { flex: 1; font-size: 0.8rem; font-weight: 600; line-height: 1.2; }
-    .ci-qty { display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0; }
-    .qbtn {
-      width: 22px; height: 22px; border-radius: 6px;
-      background: var(--surface3); border: 1px solid var(--border);
-      color: var(--text); font-size: 0.85rem; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; font-family: var(--font);
-    }
-    .qbtn:hover { border-color: var(--border-h); }
-    .ci-qty span { font-size: 0.78rem; min-width: 16px; text-align: center; }
-    .ci-price { font-size: 0.73rem; color: var(--accent); font-weight: 800; white-space: nowrap; flex-shrink: 0; }
-    .cart-foot { padding: 0.9rem 1.25rem; border-top: 1px solid var(--border); flex-shrink: 0; }
-    .ship-bar { height: 3px; background: var(--surface3); border-radius: 2px; margin-bottom: 0.3rem; overflow: hidden; }
-    .ship-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width 0.5s ease; }
-    .ship-hint { font-size: 0.64rem; color: var(--dim); text-align: center; margin-bottom: 0.65rem; }
-    .free-badge {
-      background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.25);
-      color: var(--green); border-radius: 8px;
-      padding: 0.35rem 0.75rem; font-size: 0.73rem; font-weight: 700;
-      text-align: center; margin-bottom: 0.65rem; display: none;
-    }
-    .free-badge.on { display: block; }
-    .cart-total { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
-    .cart-total span { font-size: 0.82rem; color: var(--muted); }
-    .cart-total .amt { font-size: 1.15rem; font-weight: 900; color: var(--accent); }
-    .checkout-btn {
-      width: 100%; padding: 0.82rem; background: var(--accent); color: #000;
-      border: none; border-radius: 12px; font-size: 0.9rem; font-weight: 800;
-      cursor: pointer; font-family: var(--font); transition: opacity 0.2s;
-    }
-    .checkout-btn:hover { opacity: 0.85; }
-
-    /* ── ANIMATIONS ────────────────────────────────────── */
-    @keyframes popIn {
-      from { opacity: 0; transform: scale(0.88) translateY(12px); }
-      to   { opacity: 1; transform: none; }
-    }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: none; }
-    }
-    .row { animation: fadeUp 0.25s ease; }
-
-    /* ── RESPONSIVE ────────────────────────────────────── */
-    @media (max-width: 600px) {
-      header { padding: 0.55rem 0.85rem; gap: 0.55rem; }
-      .logo { font-size: 1.1rem; }
-      .chat-area { padding: 1rem 0.75rem 0.75rem; }
-      .input-wrap { padding: 0.55rem 0.75rem 0.6rem; }
-      .row.user .msg-col { max-width: 88%; }
-      .msg-col { max-width: 92%; }
-      .bubble { font-size: 0.84rem; }
-      .toast-wrap { right: 0.5rem; bottom: 80px; }
-      .pcard { width: 145px; }
-    }
-  </style>
+/* ── RESPONSIVE ── */
+@media (max-width:600px){
+  header{padding:.6rem .8rem;gap:.55rem}
+  .logo-sub{display:none}
+  .chat-area{padding:1.1rem .75rem .75rem}
+  .input-wrap{padding:.6rem .75rem .65rem}
+  .msg-col{max-width:90%}
+  .row.user .msg-col{max-width:86%}
+  .bubble{font-size:.85rem}
+  .pcard{width:152px}
+  .toast-wrap{right:.5rem;bottom:82px}
+  .msg-in{font-size:16px}
+}
+</style>
 </head>
 <body>
 
 <!-- AGE GATE -->
 <div class="age-gate" id="ageGate">
   <div class="age-card">
-    <span class="age-icon">🍺</span>
-    <h2>Bienvenido a Zorbot</h2>
-    <p>Esta botillería virtual vende bebidas con alcohol.<br>Para entrar debes tener 18 años o más.</p>
-    <button class="age-yes" onclick="confirmAge(true)">Tengo 18 años o más →</button>
-    <button class="age-no"  onclick="confirmAge(false)">Soy menor de 18</button>
+    <span class="age-icon">🥃</span>
+    <h2>Bienvenido a ZORBO.AI</h2>
+    <p>Este marketplace vende bebidas con alcohol.<br>Para entrar debes tener 18 años o más.</p>
+    <button class="age-yes" onclick="confirmAge(true)">Tengo 18 años o más</button>
+    <button class="age-no" onclick="confirmAge(false)">Soy menor de 18</button>
   </div>
 </div>
 
@@ -433,15 +371,20 @@
 
   <!-- HEADER -->
   <header>
-    <div class="logo">ZORBOT</div>
-    <div class="brand-pills">
-      <button class="pill" data-b="kairos"   onclick="sendQuick('Qué cervezas artesanales de Kairos tienen?')">🍺 Kairos</button>
-      <button class="pill" data-b="firulais" onclick="sendQuick('Cuéntame sobre las cheladas Firulais')">🌶️ Firulais</button>
-      <button class="pill" data-b="banny"    onclick="sendQuick('Qué destilados y RTD de Banny tienen?')">🍸 Banny</button>
+    <div class="brand-logo">
+      <div class="logo-mark">⚡</div>
+      <div class="logo-txt">
+        <span class="logo-name">ZORBO.AI</span>
+        <span class="logo-sub">Craft Marketplace</span>
+      </div>
     </div>
-    <button class="cart-btn" id="cartBtn" onclick="toggleCart()">
-      🛒
-      <span class="cart-badge" id="cartBadge">0</span>
+    <div class="brand-pills">
+      <button class="pill" onclick="brandPill('kairos')"><span class="dot" style="background:var(--k)"></span>Kairos Brewing</button>
+      <button class="pill" onclick="brandPill('firulais')"><span class="dot" style="background:var(--f)"></span>Firulais</button>
+      <button class="pill" onclick="brandPill('banny')"><span class="dot" style="background:var(--b)"></span>Banny</button>
+    </div>
+    <button class="cart-btn" onclick="toggleCart()" aria-label="Carro">
+      🛒<span class="cart-badge" id="cartBadge">0</span>
     </button>
   </header>
 
@@ -456,17 +399,17 @@
       <div class="promo-slide">
         <span class="promo-tag">KAIROS</span>
         <strong>Pack 24 latas $49.990</strong>
-        <span>arma tu mix a gusto 🍺</span>
+        <span>arma tu mix artesanal a gusto</span>
       </div>
       <div class="promo-slide">
-        <span class="promo-tag">NUEVO</span>
-        <strong>Firulais Craft Mix</strong>
-        <span>cheladas artesanales EST. 2025 🌶️</span>
+        <span class="promo-tag">FIRULAIS</span>
+        <strong>Cheladas craft EST. 2025</strong>
+        <span>perrísimas desde el primer sorbo</span>
       </div>
       <div class="promo-slide">
         <span class="promo-tag">BANNY</span>
         <strong>RTD desde $3.990</strong>
-        <span>Mojito y Gin Tonic listos para tomar 🍸</span>
+        <span>Mojito y Gin Tonic listos para tomar</span>
       </div>
     </div>
     <div class="promo-dots" id="promoDots"></div>
@@ -477,27 +420,24 @@
     <div class="messages" id="messages"></div>
   </div>
 
-  <!-- INPUT AREA -->
+  <!-- INPUT -->
   <div class="input-wrap">
     <div class="quick-row">
       <button class="qr" onclick="sendQuick('Para un asado con amigos, qué me recomiendas?')">🔥 Para un asado</button>
       <button class="qr" onclick="sendQuick('Qué recomiendan para el verano?')">☀️ Para el verano</button>
       <button class="qr" onclick="sendQuick('Sorpréndeme con algo distinto')">✨ Sorpréndeme</button>
-      <button class="qr" onclick="sendQuick('Ver los packs disponibles')">📦 Ver packs</button>
+      <button class="qr" onclick="sendQuick('Qué packs de Kairos tienen?')">📦 Ver packs</button>
       <button class="qr" onclick="sendQuick('Soy dueño de un bar, quiero comprar al por mayor')">🏪 Soy un bar</button>
     </div>
     <div class="send-row">
-      <textarea
-        class="msg-in" id="msgIn"
-        placeholder="Qué estás buscando..."
-        rows="1"
-        onkeydown="onKey(event)"
-        oninput="autoResize(this)"
-      ></textarea>
-      <button class="send-btn" id="sendBtn" onclick="send()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      <textarea class="msg-in" id="msgIn" rows="1"
+        placeholder="Pregunta por marcas, estilos, maridajes..."
+        onkeydown="onKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="send()" aria-label="Enviar">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
+    <div class="input-hint">ZorboBot puede cometer errores · responde con IA</div>
   </div>
 </div>
 
@@ -509,106 +449,102 @@
   <div class="cart-overlay" onclick="toggleCart()"></div>
   <div class="cart-drawer">
     <div class="cart-head">
-      <h2>Tu carrito 🛒</h2>
+      <h2>Tu carro 🛒</h2>
       <button class="cart-x" onclick="toggleCart()">✕</button>
     </div>
     <div class="cart-body" id="cartBody">
-      <div class="cart-empty-msg">Tu carrito está vacío.<br>Pídele una recomendación a Zorbot!</div>
+      <div class="cart-empty-msg">Tu carro está vacío.<br>Pídele una recomendación a ZorboBot!</div>
     </div>
     <div class="cart-foot">
       <div class="ship-bar"><div class="ship-fill" id="shipFill" style="width:0%"></div></div>
       <div class="ship-hint" id="shipHint">Agrega $50.000 para envío gratis</div>
       <div class="free-badge" id="freeBadge">🎉 Envío gratis activado!</div>
-      <div class="cart-total">
-        <span>Total</span>
-        <span class="amt" id="cartTotal">$0</span>
-      </div>
-      <button class="checkout-btn" onclick="doCheckout()">Ir al checkout →</button>
+      <div class="cart-total"><span>Total</span><span class="amt" id="cartTotal">$0</span></div>
+      <button class="checkout-btn" id="checkoutBtn" onclick="doCheckout()">Ir al checkout</button>
     </div>
   </div>
 </div>
 
 <script>
-// ─── PRODUCT CATALOG ─────────────────────────────────────────────────────────
+// ─── CATÁLOGO (3 marcas: Kairos Brewing, Firulais, Banny) ─────────────────────
 const CATALOG = [
-  // Kairos — Colección de la Casa
-  { name:'Secret Lab',          brand:'kairos',   style:'APA',             abv:'5%',   price:2490,  emoji:'🌿', desc:'Fresca, lupulada, notas cítricas y herbales' },
-  { name:'Galactic Mission',    brand:'kairos',   style:'Golden Ale',      abv:'4,8%', price:2490,  emoji:'⭐', desc:'Ligera, dorada, bajo amargor, muy tomable' },
-  { name:'Alerta Roja',        brand:'kairos',   style:'Red Ale',         abv:'5%',   price:2490,  emoji:'🔴', desc:'Maltosa, notas tostadas y leve caramelo' },
-  { name:'Nada Personal',       brand:'kairos',   style:'Italian Pils',    abv:'4,1%', price:2490,  emoji:'🌾', desc:'Seca, fresca, floral, extremadamente liviana' },
-  { name:'Imperio Perdido',     brand:'kairos',   style:'Session NEIPA',   abv:'4,5%', price:2490,  emoji:'🥭', desc:'Jugosa y tropical — mango, pomelo, naranja' },
-  // Kairos — Temporada
-  { name:'Ritual de la Banana', brand:'kairos',   style:'Weizen',          abv:'4,5%', price:2490,  emoji:'🍌', desc:'Trigo alemana, banana y clavo, refrescante' },
-  { name:'Obertura',            brand:'kairos',   style:'Oatmeal Stout',   abv:'5,1%', price:2490,  emoji:'☕', desc:'Sedosa con avena, café y chocolate' },
-  { name:'Samba',               brand:'kairos',   style:'West Coast IPA',  abv:'5,8%', price:2490,  emoji:'🌴', desc:'Intensa, cítrica, resinosa y tropical' },
-  { name:'Hoyo en Uno',         brand:'kairos',   style:'Hoppy Lager',     abv:'4,7%', price:2490,  emoji:'⛳', desc:'Lager con dry hop Citra y Cascade, cítrica' },
-  { name:'Kenny Bell',          brand:'kairos',   style:'American Amber',  abv:'5,2%', price:2490,  emoji:'🔔', desc:'Caramelo y suave cacao, herbal y balanceada' },
-  // Kairos — Artistas
-  { name:'New Zpot',            brand:'kairos',   style:'NZ Pils',         abv:'4,8%', price:2990,  emoji:'🌺', desc:'Lúpulos neozelandeses, tropical y floral' },
-  { name:'Vamos de Paseo',      brand:'kairos',   style:'Hazy IPA',        abv:'6%',   price:2990,  emoji:'🍊', desc:'Con naranja, turbia, sedosa, amargor bajo' },
-  { name:'Valle Nevado',        brand:'kairos',   style:'Barley Wine',     abv:'10%',  price:2990,  emoji:'🏔️', desc:'Intensa, caramelo, roble americano macerado' },
-  { name:'Osagui',              brand:'kairos',   style:'Japanese Lager',  abv:'4,6%', price:2990,  emoji:'🎋', desc:'Muy refrescante, Yuzu, hierbas y limón' },
-  { name:'Mango con Petazetas', brand:'kairos',   style:'Sour Ale',        abv:'4,7%', price:2990,  emoji:'🌶️', desc:'Ácida, tropical, mango y ají habanero' },
-  { name:'4 Balloons',          brand:'kairos',   style:'Doble Hazy IPA',  abv:'8%',   price:2990,  emoji:'🎈', desc:'Cremosa, tropical — peligrosamente tomable' },
-  { name:'L200',                brand:'kairos',   style:'Irish Stout',     abv:'4,6%', price:2990,  emoji:'🖤', desc:'Tostada, seca, similar al café, cuerpo ligero' },
-  { name:'Frank',               brand:'kairos',   style:'Märzen',          abv:'6%',   price:2990,  emoji:'🇩🇪', desc:'Lager alemana anaranjada, pan tostado, herbal' },
-  { name:'Albert',              brand:'kairos',   style:'Dunkles Bock',    abv:'6,3%', price:2990,  emoji:'🍂', desc:'Lager oscura alemana, ideal para asados' },
+  // Kairos Brewing — Colección de la Casa
+  { name:'Secret Lab',          brand:'kairos',   style:'APA',            abv:'5%',   price:2490,  emoji:'🌿', desc:'Fresca, lupulada, notas cítricas y herbales' },
+  { name:'Galactic Mission',    brand:'kairos',   style:'Golden Ale',     abv:'4,8%', price:2490,  emoji:'⭐', desc:'Ligera, dorada, bajo amargor, muy tomable' },
+  { name:'Alerta Roja',         brand:'kairos',   style:'Red Ale',        abv:'5%',   price:2490,  emoji:'🔴', desc:'Maltosa, notas tostadas y leve caramelo' },
+  { name:'Nada Personal',       brand:'kairos',   style:'Italian Pils',   abv:'4,1%', price:2490,  emoji:'🌾', desc:'Seca, fresca, floral, extremadamente liviana' },
+  { name:'Imperio Perdido',     brand:'kairos',   style:'Session NEIPA',  abv:'4,5%', price:2490,  emoji:'🥭', desc:'Jugosa y tropical — mango, pomelo, naranja' },
+  // Kairos Brewing — Temporada
+  { name:'Ritual de la Banana', brand:'kairos',   style:'Weizen',         abv:'4,5%', price:2490,  emoji:'🍌', desc:'Trigo alemana, banana y clavo, refrescante' },
+  { name:'Obertura',            brand:'kairos',   style:'Oatmeal Stout',  abv:'5,1%', price:2490,  emoji:'☕', desc:'Sedosa con avena, café y chocolate' },
+  { name:'Samba',               brand:'kairos',   style:'West Coast IPA', abv:'5,8%', price:2490,  emoji:'🌴', desc:'Intensa, cítrica, resinosa y tropical' },
+  { name:'Hoyo en Uno',         brand:'kairos',   style:'Hoppy Lager',    abv:'4,7%', price:2490,  emoji:'⛳', desc:'Lager con dry hop Citra y Cascade, cítrica' },
+  { name:'Kenny Bell',          brand:'kairos',   style:'American Amber', abv:'5,2%', price:2490,  emoji:'🔔', desc:'Caramelo y suave cacao, herbal y balanceada' },
+  // Kairos Brewing — Artistas
+  { name:'New Zpot',            brand:'kairos',   style:'NZ Pils',        abv:'4,8%', price:2990,  emoji:'🌺', desc:'Lúpulos neozelandeses, tropical y floral' },
+  { name:'Vamos de Paseo',      brand:'kairos',   style:'Hazy IPA',       abv:'6%',   price:2990,  emoji:'🍊', desc:'Con naranja, turbia, sedosa, amargor bajo' },
+  { name:'Valle Nevado',        brand:'kairos',   style:'Barley Wine',    abv:'10%',  price:2990,  emoji:'🏔️', desc:'Intensa, caramelo, roble americano macerado' },
+  { name:'Osagui',              brand:'kairos',   style:'Japanese Lager', abv:'4,6%', price:2990,  emoji:'🎋', desc:'Muy refrescante, Yuzu, hierbas y limón' },
+  { name:'Mango con Petazetas', brand:'kairos',   style:'Sour Ale',       abv:'4,7%', price:2990,  emoji:'🌶️', desc:'Ácida, tropical, mango y ají habanero' },
+  { name:'4 Balloons',          brand:'kairos',   style:'Doble Hazy IPA', abv:'8%',   price:2990,  emoji:'🎈', desc:'Cremosa, tropical — peligrosamente tomable' },
+  { name:'L200',                brand:'kairos',   style:'Irish Stout',    abv:'4,6%', price:2990,  emoji:'🖤', desc:'Tostada, seca, similar al café, cuerpo ligero' },
+  { name:'Frank',               brand:'kairos',   style:'Märzen',         abv:'6%',   price:2990,  emoji:'🇩🇪', desc:'Lager alemana anaranjada, pan tostado, herbal' },
+  { name:'Albert',              brand:'kairos',   style:'Dunkles Bock',   abv:'6,3%', price:2990,  emoji:'🍂', desc:'Lager oscura alemana, ideal para asados' },
   // Firulais
-  { name:'Caurina',             brand:'firulais', style:'Chelada',         abv:'4,5%', price:2500,  emoji:'🍋', desc:'Limón de pica natural y sal de mar' },
-  { name:'Pepita',              brand:'firulais', style:'Chelada Spicy',   abv:'4,5%', price:2500,  emoji:'🌶️', desc:'Mango y ají habanero — spicy & sweet' },
-  { name:'Cholita',             brand:'firulais', style:'Michelada',       abv:'4,5%', price:2500,  emoji:'🍅', desc:'Limón de pica y jugo de tomate natural' },
+  { name:'Caurina',             brand:'firulais', style:'Chelada',        abv:'4,5%', price:2500,  emoji:'🍋', desc:'Limón de pica natural y sal de mar' },
+  { name:'Pepita',              brand:'firulais', style:'Chelada Spicy',  abv:'4,5%', price:2500,  emoji:'🌶️', desc:'Mango y ají habanero — spicy & sweet' },
+  { name:'Cholita',             brand:'firulais', style:'Michelada',      abv:'4,5%', price:2500,  emoji:'🍅', desc:'Limón de pica y jugo de tomate natural' },
   // Banny — Destilados
-  { name:'Gin Banny Contemporáneo', brand:'banny', style:'Gin',           abv:'43%',  price:28990, emoji:'🌿', desc:'Botánico, fresco, 700ml' },
-  { name:'Gin Banny London Dry',    brand:'banny', style:'Gin',           abv:'43%',  price:28990, emoji:'🇬🇧', desc:'Clásico London Dry, 700ml' },
-  { name:'Rey de Copas White Rum',  brand:'banny', style:'Ron',           abv:null,   price:24990, emoji:'👑', desc:'Ron artesanal chileno, 700ml' },
-  { name:'Vermut Banny',            brand:'banny', style:'Vermut',        abv:null,   price:19990, emoji:'🍷', desc:'Aperitivo artesanal chileno' },
-  { name:'Bárvaro Whiskey Banny',   brand:'banny', style:'Whiskey',       abv:null,   price:34990, emoji:'🥃', desc:'Premium artesanal, carácter propio' },
-  // Banny — RTD
-  { name:'Guantánamo Mojito',   brand:'banny',    style:'RTD Mojito',     abv:null,   price:3990,  emoji:'🍃', desc:'Con Ron Rey de Copas, listo para tomar' },
-  { name:'Elizabeth Gin Tonic', brand:'banny',    style:'RTD Gin Tonic',  abv:null,   price:3990,  emoji:'🫧', desc:'Con Banny Contemporáneo, fresco y burbujeante' },
+  { name:'Gin Banny Contemporáneo', brand:'banny', style:'Gin',          abv:'43%',  price:28990, emoji:'🌿', desc:'Botánico, fresco, 700ml' },
+  { name:'Gin Banny London Dry',    brand:'banny', style:'Gin',          abv:'43%',  price:28990, emoji:'🇬🇧', desc:'Clásico London Dry, 700ml' },
+  { name:'Rey de Copas White Rum',  brand:'banny', style:'Ron',          abv:null,   price:24990, emoji:'👑', desc:'Ron artesanal chileno, 700ml' },
+  { name:'Vermut Banny',            brand:'banny', style:'Vermut',       abv:null,   price:19990, emoji:'🍷', desc:'Aperitivo artesanal chileno' },
+  { name:'Bárvaro Whiskey Banny',   brand:'banny', style:'Whiskey',      abv:null,   price:34990, emoji:'🥃', desc:'Premium artesanal, carácter propio' },
+  // Banny — Ready to Drink
+  { name:'Guantánamo Mojito',   brand:'banny',    style:'RTD Mojito',    abv:null,   price:3990,  emoji:'🍃', desc:'Con Ron Rey de Copas, listo para tomar' },
+  { name:'Elizabeth Gin Tonic', brand:'banny',    style:'RTD Gin Tonic', abv:null,   price:3990,  emoji:'🫧', desc:'Con Banny Contemporáneo, fresco y burbujeante' },
 ];
-
+CATALOG.forEach((p, i) => { p.i = i; });
 const PMAP = new Map(CATALOG.map(p => [p.name.toLowerCase(), p]));
+const BRAND_LABEL = { kairos:'Kairos Brewing', firulais:'Firulais', banny:'Banny' };
 
-// ─── STATE ────────────────────────────────────────────────────────────────────
-const urlFrom  = new URLSearchParams(location.search).get('from') || 'zorbot';
-let sessionId  = sessionStorage.getItem('zsid') || null;
-let cart       = [];
-let streaming  = false;
-let cartOpen   = false;
+// ─── ESTADO ───────────────────────────────────────────────────────────────────
+const urlFrom   = new URLSearchParams(location.search).get('from') || 'zorbot';
+let sessionId   = sessionStorage.getItem('zsid') || null;
+let cart        = [];
+let streaming   = false;
+let cartOpen    = false;
+let welcomed    = false;
 const FREE_SHIP = 50000;
 
-// ─── AGE GATE ────────────────────────────────────────────────────────────────
+// ─── AGE GATE ─────────────────────────────────────────────────────────────────
 function confirmAge(ok) {
   if (ok) {
     document.cookie = 'zage=1; max-age=86400; path=/';
     document.getElementById('ageGate').classList.add('gone');
     welcome();
   } else {
-    document.getElementById('ageGate').innerHTML = `
-      <div class="age-card" style="animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1)">
-        <span class="age-icon">🙁</span>
-        <h2>Lo sentimos</h2>
-        <p>Debes tener 18 años o más para acceder a esta botillería.</p>
-      </div>`;
+    document.getElementById('ageGate').innerHTML =
+      '<div class="age-card"><span class="age-icon">🙁</span>' +
+      '<h2>Lo sentimos</h2>' +
+      '<p>Debes tener 18 años o más para acceder a este marketplace.</p></div>';
   }
 }
-
 function checkAge() {
   if (document.cookie.includes('zage=1')) {
     document.getElementById('ageGate').classList.add('gone');
     welcome();
   }
 }
-
 function welcome() {
-  botMsg('Hola! bienvenido a Zorbot 🍺 Soy tu asistente de la botillería virtual artesanal.\n\nTenemos **Kairos Brewing** (cervezas artesanales), **Firulais** (cheladas craft) y **Banny by Kairos** (destilados y RTD).\n\nQué estás buscando hoy?');
+  if (welcomed) return;
+  welcomed = true;
+  botStatic('Hola! bienvenido a ZORBO.AI ✨ Soy ZorboBot, tu sommelier digital del marketplace.\n\nTenemos las 3 marcas de la casa: **Kairos Brewing** (cervezas artesanales), **Firulais** (cheladas craft) y **Banny** (destilados y RTD).\n\nQué se te antoja hoy?');
 }
 
-// ─── PROMO CAROUSEL ───────────────────────────────────────────────────────────
+// ─── CARRUSEL DE PROMOS ───────────────────────────────────────────────────────
 let promoIdx = 0;
 const PROMO_N = 4;
-
 function initPromos() {
   const dots = document.getElementById('promoDots');
   for (let i = 0; i < PROMO_N; i++) {
@@ -623,12 +559,9 @@ function initPromos() {
   }, 3800);
 }
 
-// ─── MARKDOWN RENDERER ────────────────────────────────────────────────────────
+// ─── MARKDOWN ─────────────────────────────────────────────────────────────────
 function md(text) {
-  let h = text
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-
-  // Tables
+  let h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   h = h.replace(/(\|.+\|\n?)+/g, m => {
     const rows = m.trim().split('\n').filter(r => r.trim());
     let t = '<table>';
@@ -640,64 +573,53 @@ function md(text) {
     });
     return t + '</table>';
   });
-
-  // Blockquote
   h = h.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
-  // Headings
   h = h.replace(/^#{1,3} (.+)$/gm, '<h3>$1</h3>');
-  // Bold + italic
   h = h.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
-  h = h.replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>');
-  h = h.replace(/\*(.+?)\*/g,         '<em>$1</em>');
-  // Lists
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  h = h.replace(/\*(.+?)\*/g, '<em>$1</em>');
   h = h.replace(/^[-*] (.+)$/gm, '<li>$1</li>');
   h = h.replace(/(<li>[\s\S]*?<\/li>\n?)+/g, m => `<ul>${m}</ul>`);
-  // HR
   h = h.replace(/^---$/gm, '<hr>');
-  // Paragraphs
   return h.split(/\n\n+/).map(b => {
     if (/^<(table|ul|ol|h[1-6]|hr|blockquote)/.test(b.trim())) return b;
     return `<p>${b.replace(/\n/g, '<br>')}</p>`;
   }).join('');
 }
-
-// Lightweight renderer for during streaming (avoids incomplete table flicker)
 function mdStream(text) {
-  let h = text
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+  let h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,     '<em>$1</em>');
+    .replace(/\*(.+?)\*/g, '<em>$1</em>');
   return h.split(/\n\n+/).map(b => `<p>${b.replace(/\n/g,'<br>')}</p>`).join('');
 }
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
-// ─── PRODUCT DETECTION + CARDS ────────────────────────────────────────────────
+// ─── DETECCIÓN DE PRODUCTOS + TARJETAS ────────────────────────────────────────
 function detectProducts(text) {
   const lower = text.toLowerCase();
   const found = [];
   for (const [key, p] of PMAP) {
-    if (lower.includes(key) && !found.some(x => x.name === p.name)) found.push(p);
+    if (lower.includes(key) && !found.includes(p)) found.push(p);
     if (found.length >= 4) break;
   }
   return found;
 }
-
 function buildCard(p) {
-  const key = JSON.stringify(p.name.toLowerCase());
   return `
   <div class="pcard ${p.brand}">
-    <span class="pc-brand ${p.brand}">${p.brand === 'kairos' ? 'Kairos Brewing' : p.brand === 'firulais' ? 'Firulais' : 'Banny'}</span>
+    <span class="pc-brand ${p.brand}">${BRAND_LABEL[p.brand]}</span>
     <div class="pc-emoji">${p.emoji}</div>
-    <div class="pc-name">${p.name}</div>
-    <div class="pc-style">${p.style}${p.abv ? ' · ' + p.abv : ''}</div>
-    <div class="pc-desc">${p.desc}</div>
+    <div class="pc-name">${escapeHtml(p.name)}</div>
+    <div class="pc-style">${escapeHtml(p.style)}${p.abv ? ' · ' + p.abv : ''}</div>
+    <div class="pc-desc">${escapeHtml(p.desc)}</div>
     <div class="pc-price">$${p.price.toLocaleString('es-CL')}</div>
-    <button class="pc-add" data-pk=${key} onclick="addFromCard(this)">+ Agregar</button>
+    <button class="pc-add" data-i="${p.i}" onclick="addFromCard(this)">Agregar al carro</button>
   </div>`;
 }
-
 function addFromCard(btn) {
-  const key = btn.getAttribute('data-pk').replace(/^"|"$/g, '');
-  const p   = PMAP.get(key);
+  const p = CATALOG[+btn.getAttribute('data-i')];
   if (!p) return;
   addToCart(p);
   btn.textContent = '✓ Agregado';
@@ -709,59 +631,40 @@ function scrollBottom() {
   const ca = document.getElementById('chatArea');
   ca.scrollTop = ca.scrollHeight;
 }
-
-function botMsg(text) {
-  const prods = detectProducts(text);
+function botRow(innerHTML) {
   const row = document.createElement('div');
   row.className = 'row bot';
-  row.innerHTML = `
-    <div class="avatar">⚡</div>
-    <div class="msg-col">
-      <div class="bubble">${md(text)}</div>
-      ${prods.length ? `<div class="cards-row">${prods.map(buildCard).join('')}</div>` : ''}
-    </div>`;
+  row.innerHTML = `<div class="avatar">⚡</div><div class="msg-col">
+    <div class="sender">ZorboBot <span class="ai-badge">IA</span></div>${innerHTML}</div>`;
   document.getElementById('messages').appendChild(row);
   scrollBottom();
   return row;
 }
-
+function botStatic(text) {
+  const prods = detectProducts(text);
+  botRow(`<div class="bubble">${md(text)}</div>` +
+    (prods.length ? `<div class="cards-row">${prods.map(buildCard).join('')}</div>` : ''));
+}
 function userMsg(text) {
   const row = document.createElement('div');
   row.className = 'row user';
-  row.innerHTML = `
-    <div class="msg-col">
-      <div class="bubble">${text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-    </div>`;
+  row.innerHTML = `<div class="msg-col"><div class="bubble">${escapeHtml(text)}</div></div>`;
   document.getElementById('messages').appendChild(row);
   scrollBottom();
 }
-
 function typingRow() {
-  const row = document.createElement('div');
-  row.className = 'row bot';
-  row.innerHTML = `
-    <div class="avatar">⚡</div>
-    <div class="msg-col">
-      <div class="bubble">
-        <div class="typing">
-          <div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>
-        </div>
-      </div>
-    </div>`;
-  document.getElementById('messages').appendChild(row);
-  scrollBottom();
-  return row;
+  return botRow('<div class="bubble"><div class="typing"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div></div>');
 }
-
 function finalizeRow(row, fullText) {
   const prods = detectProducts(fullText);
-  row.querySelector('.msg-col').innerHTML = `
-    <div class="bubble">${md(fullText)}</div>
-    ${prods.length ? `<div class="cards-row">${prods.map(buildCard).join('')}</div>` : ''}`;
+  const col = row.querySelector('.msg-col');
+  col.innerHTML = `<div class="sender">ZorboBot <span class="ai-badge">IA</span></div>
+    <div class="bubble">${md(fullText)}</div>` +
+    (prods.length ? `<div class="cards-row">${prods.map(buildCard).join('')}</div>` : '');
   scrollBottom();
 }
 
-// ─── SEND ─────────────────────────────────────────────────────────────────────
+// ─── ENVÍO AL ENDPOINT REAL /chat ─────────────────────────────────────────────
 async function send() {
   const inp  = document.getElementById('msgIn');
   const text = inp.value.trim();
@@ -799,85 +702,86 @@ async function send() {
         if (!line.startsWith('data: ')) continue;
         const raw = line.slice(6);
         if (raw === '[DONE]') continue;
-        try {
-          const obj = JSON.parse(raw);
-          if (obj.sessionId) {
-            sessionId = obj.sessionId;
-            sessionStorage.setItem('zsid', sessionId);
-          }
-          if (obj.delta) {
-            if (!started) {
-              tRow.querySelector('.bubble').innerHTML = '';
-              started = true;
-            }
-            full += obj.delta;
-            tRow.querySelector('.bubble').innerHTML = mdStream(full);
-            scrollBottom();
-          }
-        } catch {}
+        let obj;
+        try { obj = JSON.parse(raw); } catch { continue; }
+
+        if (obj.sessionId) {
+          sessionId = obj.sessionId;
+          sessionStorage.setItem('zsid', sessionId);
+        }
+        if (obj.delta) {
+          if (!started) { tRow.querySelector('.bubble').innerHTML = ''; started = true; }
+          full += obj.delta;
+          tRow.querySelector('.bubble').innerHTML = mdStream(full);
+          scrollBottom();
+        }
       }
     }
-    finalizeRow(tRow, full);
+    finalizeRow(tRow, full || 'No recibí respuesta del servidor. Intenta de nuevo en un momento 🍺');
 
-  } catch {
+  } catch (e) {
     finalizeRow(tRow, 'Disculpa, tuve un problema técnico. Intenta de nuevo en un momento 🍺');
   } finally {
     setStreaming(false);
   }
 }
-
 function sendQuick(text) {
+  if (streaming) return;
   document.getElementById('msgIn').value = text;
   send();
 }
-
+function brandPill(brand) {
+  const q = {
+    kairos:   'Qué cervezas artesanales tiene Kairos Brewing?',
+    firulais: 'Cuéntame de las cheladas Firulais',
+    banny:    'Qué destilados y RTD tiene Banny?',
+  };
+  sendQuick(q[brand]);
+}
 function setStreaming(v) {
   streaming = v;
   document.getElementById('sendBtn').disabled = v;
   document.getElementById('msgIn').disabled   = v;
 }
-
 function onKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
 }
-
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 130) + 'px';
 }
 
-// ─── CART ─────────────────────────────────────────────────────────────────────
+// ─── CARRO ────────────────────────────────────────────────────────────────────
 function addToCart(p) {
   const ex = cart.find(i => i.p.name === p.name);
   ex ? ex.qty++ : cart.push({ p, qty: 1 });
   updateCart();
   toast(p);
 }
-
 function changeQty(idx, d) {
   cart[idx].qty += d;
   if (cart[idx].qty <= 0) cart.splice(idx, 1);
   updateCart();
 }
-
 function updateCart() {
   const total = cart.reduce((s, i) => s + i.p.price * i.qty, 0);
   const count = cart.reduce((s, i) => s + i.qty, 0);
 
-  // Badge
   const badge = document.getElementById('cartBadge');
   badge.textContent = count;
   badge.classList.toggle('on', count > 0);
 
-  // Cart body
   const body = document.getElementById('cartBody');
   if (!cart.length) {
-    body.innerHTML = '<div class="cart-empty-msg">Tu carrito está vacío.<br>Pídele una recomendación a Zorbot!</div>';
+    body.innerHTML = '<div class="cart-empty-msg">Tu carro está vacío.<br>Pídele una recomendación a ZorboBot!</div>';
   } else {
     body.innerHTML = cart.map((item, idx) => `
       <div class="ci">
         <span class="ci-em">${item.p.emoji}</span>
-        <div class="ci-name">${item.p.name}</div>
+        <div class="ci-info">
+          <div class="ci-name">${escapeHtml(item.p.name)}</div>
+          <div class="ci-unit">$${item.p.price.toLocaleString('es-CL')} c/u</div>
+        </div>
         <div class="ci-qty">
           <button class="qbtn" onclick="changeQty(${idx},-1)">−</button>
           <span>${item.qty}</span>
@@ -887,8 +791,8 @@ function updateCart() {
       </div>`).join('');
   }
 
-  // Total + shipping
   document.getElementById('cartTotal').textContent = '$' + total.toLocaleString('es-CL');
+  document.getElementById('checkoutBtn').disabled = cart.length === 0;
   const pct = Math.min(total / FREE_SHIP * 100, 100);
   document.getElementById('shipFill').style.width = pct + '%';
   const free = total >= FREE_SHIP;
@@ -897,33 +801,32 @@ function updateCart() {
     ? 'Envío gratis activado!'
     : '$' + (FREE_SHIP - total).toLocaleString('es-CL') + ' para envío gratis';
 }
-
 function toggleCart() {
   cartOpen = !cartOpen;
   document.getElementById('cartPanel').classList.toggle('open', cartOpen);
 }
-
 function doCheckout() {
+  if (!cart.length) return;
   window.open('https://zorbot.cl/checkout', '_blank');
 }
 
 // ─── TOASTS ───────────────────────────────────────────────────────────────────
 function toast(p) {
-  const total = cart.reduce((s, i) => s + i.p.price * i.qty, 0);
+  const total  = cart.reduce((s, i) => s + i.p.price * i.qty, 0);
   const isFree = total >= FREE_SHIP;
-  const wrap  = document.getElementById('toasts');
-  const el    = document.createElement('div');
+  const el = document.createElement('div');
   el.className = 'toast' + (isFree ? ' ship' : '');
-  el.innerHTML  = isFree
-    ? `<strong>🎉 Envío gratis activado!</strong><div class="tsub">Tu pedido supera los $50.000</div>`
-    : `<strong>${p.emoji} ${p.name}</strong><div class="tsub">$${p.price.toLocaleString('es-CL')} · agregado al carrito</div>`;
-  wrap.appendChild(el);
-  setTimeout(() => el.remove(), 3200);
+  el.innerHTML = isFree
+    ? '<strong>🎉 Envío gratis activado!</strong><div class="tsub">Tu pedido supera los $50.000</div>'
+    : `<strong>${p.emoji} ${escapeHtml(p.name)}</strong><div class="tsub">$${p.price.toLocaleString('es-CL')} · agregado al carro</div>`;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3300);
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 checkAge();
 initPromos();
+updateCart();
 </script>
 </body>
 </html>
