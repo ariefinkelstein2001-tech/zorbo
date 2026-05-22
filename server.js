@@ -44,5 +44,5 @@ app.post('/chat', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`ZorboBot escuchando en http://localhost:${PORT}`);
+  console.log(`Zorbot escuchando en http://localhost:${PORT}`);
 });

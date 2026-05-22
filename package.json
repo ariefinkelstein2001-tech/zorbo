@@ -1,7 +1,7 @@
 {
-  "name": "zorbobot",
+  "name": "zorbot",
   "version": "1.0.0",
-  "description": "ZorboBot — chatbot de ventas IA para bebidas artesanales",
+  "description": "Zorbot — chatbot de ventas IA para bebidas artesanales",
   "type": "module",
   "main": "server.js",
   "scripts": {
