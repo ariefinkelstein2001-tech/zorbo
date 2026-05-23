@@ -568,6 +568,9 @@ body.theme-firulais .send-btn{background:linear-gradient(135deg,#2a5a2a,#1a3a1a)
 /* Banners superiores: alto/opacidad se modulan por JS segun el scroll del chat */
 .hero-slides,.promo-wrap{will-change:height,opacity;overflow:hidden}
 
+/* El juego (gira y gana) no aplica a mayoristas */
+body.mayorista-active .game-banner{display:none}
+
 /* ── MAYORISTAS BUTTON (header) ── */
 .mayoristas-btn{
   flex-shrink:0;cursor:pointer;
@@ -1498,6 +1501,11 @@ let wonPrize = null;
 
 // ═══════════════ ABRIR / CERRAR ═══════════════
 function openGame(){
+  // El juego es exclusivo B2C — los mayoristas tienen sus condiciones negociadas
+  if (isMayoristaContext()){
+    botStatic('Como mayorista, tienes tus condiciones comerciales propias — el juego es exclusivo para clientes particulares 🍺');
+    return;
+  }
   if (gamePlayed || alreadyPlayedToday()){
     botStatic('Ya jugaste hoy. Vuelve mañana para otra oportunidad de ganar un descuento extra!');
     return;
@@ -1508,6 +1516,16 @@ function openGame(){
   document.getElementById('gameModal').classList.add('open');
   buildWheel();
   buildSlotStrips();
+}
+function isMayoristaContext(){
+  return mayoristaMode || localStorage.getItem('zmayolead') === '1';
+}
+function markMayoristaActive(){
+  document.body.classList.add('mayorista-active');
+}
+function restoreMayoristaState(){
+  if (sessionStorage.getItem('zmayo') === '1') mayoristaMode = true;
+  if (isMayoristaContext()) markMayoristaActive();
 }
 function closeGame(){
   document.getElementById('gameModal').classList.remove('open');
@@ -1880,6 +1898,7 @@ async function mayoLogin(){
       // Cuando la integración con Shopify esté activa, acá entra al modo mayorista.
       mayoristaMode = true;
       sessionStorage.setItem('zmayo', '1');
+      markMayoristaActive();
       ok.textContent = 'Sesión iniciada. Ya puedes hablar con el bot mayorista.';
       ok.classList.add('show');
       setTimeout(closeMayoristaModal, 1200);
@@ -1926,6 +1945,9 @@ async function mayoLead(){
       ok.classList.add('show');
       ['leadNombre','leadLocal','leadComuna','leadEmail','leadTelefono'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('leadCanal').value = '';
+      // El lead es contexto B2B — el juego no aplica a partir de ahora
+      try { localStorage.setItem('zmayolead', '1'); } catch {}
+      markMayoristaActive();
     } else {
       err.textContent = data.error || 'No pudimos enviar tus datos.';
       err.classList.add('show');
@@ -1965,6 +1987,7 @@ checkAge();
 initPromos();
 initHeroSlides();
 restoreWelcomeFromStorage();
+restoreMayoristaState();
 updateCart();
 </script>
 </body>
