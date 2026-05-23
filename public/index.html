@@ -567,6 +567,79 @@ body.theme-firulais .send-btn{background:linear-gradient(135deg,#2a5a2a,#1a3a1a)
 
 /* Banners superiores: alto/opacidad se modulan por JS segun el scroll del chat */
 .hero-slides,.promo-wrap{will-change:height,opacity;overflow:hidden}
+
+/* ── MAYORISTAS BUTTON (header) ── */
+.mayoristas-btn{
+  flex-shrink:0;cursor:pointer;
+  background:var(--surface2);border:1px solid var(--gold-bd);
+  border-radius:11px;padding:.42rem .7rem;
+  font-family:var(--sans);font-size:.7rem;font-weight:700;color:var(--gold);
+  letter-spacing:.04em;text-transform:uppercase;
+  display:flex;align-items:center;gap:.32rem;white-space:nowrap;
+  transition:border-color .2s,background .2s;
+}
+.mayoristas-btn:hover{border-color:var(--gold-bd-h);background:var(--gold-dim)}
+.mayoristas-btn .mb-ico{font-size:.85rem}
+@media (max-width:600px){
+  .mayoristas-btn{padding:.35rem .5rem;font-size:.62rem}
+  .mayoristas-btn .mb-txt{display:none}
+}
+
+/* ── MODAL GENERICO (mayoristas + game gate) ── */
+.zmodal{position:fixed;inset:0;z-index:820;display:none;align-items:center;justify-content:center;padding:1.2rem;background:rgba(5,4,10,.85);backdrop-filter:blur(10px)}
+.zmodal.open{display:flex}
+.zm-card{
+  background:linear-gradient(180deg,var(--surface) 0%,#0e0e16 100%);
+  border:1px solid var(--gold-bd);border-radius:20px;
+  padding:1.6rem 1.4rem;max-width:420px;width:100%;
+  position:relative;box-shadow:0 30px 90px rgba(0,0,0,.7);
+  animation:popIn .4s cubic-bezier(.34,1.56,.64,1);
+  max-height:92vh;overflow-y:auto;
+}
+.zm-x{position:absolute;top:.8rem;right:.9rem;background:none;border:none;color:var(--dim);font-size:1.2rem;cursor:pointer;z-index:5}
+.zm-x:hover{color:var(--text)}
+.zm-title{font-family:var(--display);font-size:1.25rem;font-weight:800;margin-bottom:.25rem;letter-spacing:-.5px}
+.zm-sub{font-size:.78rem;color:var(--muted);margin-bottom:1.15rem;font-weight:300;line-height:1.55}
+.zm-tabs{display:flex;gap:.35rem;background:var(--surface3);padding:.25rem;border-radius:11px;margin-bottom:1.1rem}
+.zm-tab{flex:1;padding:.55rem .3rem;border:none;background:transparent;color:var(--muted);font-size:.74rem;font-weight:700;font-family:var(--sans);border-radius:8px;cursor:pointer;transition:all .18s}
+.zm-tab.on{background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));color:#1a1408}
+.zm-pane{display:none}
+.zm-pane.on{display:block}
+.zm-field{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.7rem}
+.zm-field label{font-size:.66rem;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;padding-left:.15rem}
+.zm-input,.zm-select{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;padding:.62rem .8rem;
+  color:var(--text);font-size:.88rem;font-family:var(--sans);
+  outline:none;transition:border-color .2s;
+}
+.zm-input:focus,.zm-select:focus{border-color:var(--gold-bd-h)}
+.zm-input:disabled{opacity:.55;cursor:not-allowed}
+.zm-input::placeholder{color:var(--dim)}
+.zm-submit{
+  width:100%;padding:.85rem;border:none;border-radius:12px;cursor:pointer;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));
+  color:#1a1408;font-size:.92rem;font-weight:800;font-family:var(--sans);
+  transition:opacity .2s,transform .1s;margin-top:.5rem;
+}
+.zm-submit:hover{opacity:.93}
+.zm-submit:active{transform:scale(.98)}
+.zm-submit:disabled{opacity:.4;cursor:not-allowed}
+.zm-err{
+  display:none;background:rgba(224,101,79,.12);border:1px solid rgba(224,101,79,.3);
+  color:#e98373;border-radius:9px;padding:.55rem .75rem;
+  font-size:.76rem;line-height:1.45;margin-bottom:.8rem;
+}
+.zm-err.show{display:block}
+.zm-ok{
+  display:none;background:var(--green-dim);border:1px solid rgba(92,201,143,.3);
+  color:var(--green);border-radius:9px;padding:.55rem .75rem;
+  font-size:.76rem;line-height:1.45;margin-bottom:.8rem;
+}
+.zm-ok.show{display:block}
+.zm-foot{font-size:.7rem;color:var(--dim);text-align:center;margin-top:.9rem;line-height:1.5}
+.zm-link{color:var(--gold);cursor:pointer;text-decoration:underline;background:none;border:none;font:inherit;padding:0}
+.zm-link:hover{opacity:.85}
 </style>
 </head>
 <body>
@@ -604,6 +677,9 @@ body.theme-firulais .send-btn{background:linear-gradient(135deg,#2a5a2a,#1a3a1a)
         <img src="brands/banny.png" alt="Banny">
       </button>
     </div>
+    <button class="mayoristas-btn" onclick="openMayoristaModal()" aria-label="Acceso mayoristas">
+      <span class="mb-ico">🔐</span><span class="mb-txt">Mayoristas</span>
+    </button>
     <button class="cart-btn" onclick="toggleCart()" aria-label="Carro">
       🛒<span class="cart-badge" id="cartBadge">0</span>
     </button>
@@ -769,6 +845,100 @@ body.theme-firulais .send-btn{background:linear-gradient(135deg,#2a5a2a,#1a3a1a)
   </div>
 </div>
 
+<!-- MAYORISTAS MODAL -->
+<div class="zmodal" id="mayoristaModal">
+  <div class="zm-card">
+    <button class="zm-x" onclick="closeMayoristaModal()" aria-label="Cerrar">✕</button>
+    <div class="zm-title">🔐 Acceso Mayoristas</div>
+    <div class="zm-sub">Sección exclusiva para restaurantes, botillerías y eventos. Inicia sesión con tu cuenta Kairos, o cuéntanos de tu local si todavía no trabajas con nosotros.</div>
+
+    <div class="zm-tabs">
+      <button class="zm-tab on" data-tab="login" onclick="switchMayoTab('login',this)">Tengo cuenta</button>
+      <button class="zm-tab" data-tab="nuevo" onclick="switchMayoTab('nuevo',this)">Soy nuevo</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="zm-pane on" id="mayoPaneLogin">
+      <div class="zm-err" id="mayoLoginErr"></div>
+      <div class="zm-ok" id="mayoLoginOk"></div>
+      <div class="zm-field">
+        <label>Correo</label>
+        <input class="zm-input" type="email" id="mayoEmail" placeholder="local@dominio.cl" autocomplete="email">
+      </div>
+      <div class="zm-field">
+        <label>Contraseña</label>
+        <input class="zm-input" type="password" id="mayoPass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="zm-submit" id="mayoLoginBtn" onclick="mayoLogin()">Iniciar sesión</button>
+      <div class="zm-foot">
+        Olvidaste tu contraseña? Escríbenos por el chat normal y te ayudamos a recuperarla.
+      </div>
+    </div>
+
+    <!-- NUEVO -->
+    <div class="zm-pane" id="mayoPaneNuevo">
+      <div class="zm-err" id="mayoLeadErr"></div>
+      <div class="zm-ok" id="mayoLeadOk"></div>
+      <div class="zm-field">
+        <label>Nombre de contacto*</label>
+        <input class="zm-input" type="text" id="leadNombre" placeholder="Tu nombre">
+      </div>
+      <div class="zm-field">
+        <label>Nombre del local</label>
+        <input class="zm-input" type="text" id="leadLocal" placeholder="Ej. Bar La Esquina">
+      </div>
+      <div class="zm-field">
+        <label>Comuna o ciudad</label>
+        <input class="zm-input" type="text" id="leadComuna" placeholder="Ej. Providencia">
+      </div>
+      <div class="zm-field">
+        <label>Tipo de canal</label>
+        <select class="zm-select" id="leadCanal">
+          <option value="">Elige una opción</option>
+          <option value="restaurante">Restaurante</option>
+          <option value="botilleria">Botillería</option>
+          <option value="eventos">Eventos / Activaciones</option>
+        </select>
+      </div>
+      <div class="zm-field">
+        <label>Correo</label>
+        <input class="zm-input" type="email" id="leadEmail" placeholder="contacto@dominio.cl">
+      </div>
+      <div class="zm-field">
+        <label>Teléfono*</label>
+        <input class="zm-input" type="tel" id="leadTelefono" placeholder="+56 9 ...">
+      </div>
+      <button class="zm-submit" id="mayoLeadBtn" onclick="mayoLead()">Enviar a Kairos</button>
+      <div class="zm-foot">Te contactamos en las próximas 48 horas hábiles.</div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME GATE MODAL (antes de jugar) -->
+<div class="zmodal" id="gameGateModal">
+  <div class="zm-card">
+    <button class="zm-x" onclick="closeGameGate()" aria-label="Cerrar">✕</button>
+    <div class="zm-title">🎰 Antes de jugar</div>
+    <div class="zm-sub">Te pedimos algunos datos para entregarte el cupón si ganas. El juego es <strong style="color:var(--gold)">una vez por persona</strong>.</div>
+
+    <div class="zm-err" id="gateErr"></div>
+    <div class="zm-field">
+      <label>Nombre*</label>
+      <input class="zm-input" type="text" id="gateNombre" placeholder="Tu nombre">
+    </div>
+    <div class="zm-field">
+      <label>Apellido*</label>
+      <input class="zm-input" type="text" id="gateApellido" placeholder="Tu apellido">
+    </div>
+    <div class="zm-field">
+      <label>Correo*</label>
+      <input class="zm-input" type="email" id="gateEmail" placeholder="tu@email.com" autocomplete="email">
+    </div>
+    <button class="zm-submit" id="gateBtn" onclick="submitGameGate()">Continuar al juego</button>
+    <div class="zm-foot">Usamos tu correo solo para evitar que se reuse el cupón.</div>
+  </div>
+</div>
+
 <!-- CART DRAWER -->
 <div class="cart-panel" id="cartPanel">
   <div class="cart-overlay" onclick="toggleCart()"></div>
@@ -829,13 +999,14 @@ const BRAND_LABEL = { kairos:'Kairos Brewing', firulais:'Firulais', banny:'Banny
 function prod(name){ return PMAP.get(name.toLowerCase()); }
 
 // ─── ESTADO ───────────────────────────────────────────────────────────────────
-const urlFrom   = new URLSearchParams(location.search).get('from') || 'zorbot';
-let sessionId   = sessionStorage.getItem('zsid') || null;
-let cart        = [];
-let streaming   = false;
-let cartOpen    = false;
-let welcomed    = false;
-const FREE_SHIP = 50000;
+const urlFrom    = new URLSearchParams(location.search).get('from') || 'zorbot';
+let sessionId    = sessionStorage.getItem('zsid') || null;
+let cart         = [];
+let streaming    = false;
+let cartOpen     = false;
+let welcomed     = false;
+let mayoristaMode = false;
+const FREE_SHIP  = 50000;
 
 // ─── AGE GATE ─────────────────────────────────────────────────────────────────
 function confirmAge(ok) {
@@ -1091,6 +1262,7 @@ async function send(opts) {
   try {
     const body = { message: text, from: urlFrom };
     if (sessionId) body.sessionId = sessionId;
+    if (mayoristaMode) body.mayorista = true;
 
     const res = await fetch('/chat', {
       method:  'POST',
@@ -1317,6 +1489,9 @@ let wonPrize = null;
 // ═══════════════ ABRIR / CERRAR ═══════════════
 function openGame(){
   if(gamePlayed){ return; }
+  // Antes de abrir el juego, pasar por el gate (nombre + apellido + email)
+  const user = getGateUser();
+  if (!user) { openGameGate(); return; }
   document.getElementById('gameModal').classList.add('open');
   buildWheel();
   buildSlotStrips();
@@ -1473,26 +1648,47 @@ function showResult(){
   document.getElementById('grCode').textContent=prizeCode(wonPrize);
   fireConfetti();
 }
-function applyPrize(){
-  activeCoupon=wonPrize;
-  // chip en header
+let activeCoupon=null;
+async function applyPrize(){
+  const user = getGateUser();
+  let code = prizeCode(wonPrize); // fallback local
+  // Reclamar el cupón en el server (graba y dedupea por email)
+  if (user) {
+    try {
+      const res = await fetch('/game/claim', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          nombre: user.nombre, apellido: user.apellido, email: user.email,
+          prize: wonPrize,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.code) {
+        code = data.code;
+      } else if (res.status === 409) {
+        alert(data.error || 'Ya jugaste con este email.');
+        closeGame();
+        return;
+      }
+    } catch {}
+  }
+  activeCoupon = { ...wonPrize, code };
+
   const head=document.querySelector('header');
   if(head && !document.getElementById('couponChip')){
     const chip=document.createElement('div');
     chip.className='coupon-chip';chip.id='couponChip';
-    chip.innerHTML=`🎟️ ${prizeCode(wonPrize)}`;
-    head.insertBefore(chip,document.querySelector('.cart-btn'));
+    chip.innerHTML=`🎟️ ${code}`;
+    head.insertBefore(chip,document.querySelector('.mayoristas-btn') || document.querySelector('.cart-btn'));
   }
   closeGame();
-  // mensaje del bot
   let msg='';
-  if(wonPrize.type==='pct') msg=`Bacán! activaste tu cupón **${prizeCode(wonPrize)}** de **${wonPrize.value}% OFF** 🎉 Lo aplico cuando armes tu pedido. Qué se te antoja?`;
-  else if(wonPrize.type==='ship') msg='Ganaste **envío gratis** sin mínimo 🚚 Aprovéchalo hoy! Qué quieres pedir?';
-  else msg='Te ganaste una **Firulais gratis** en tu primer pedido 🐾🎁 Armemos tu compra!';
+  if(wonPrize.type==='pct') msg=`Bacán! activaste tu cupón **${code}** de **${wonPrize.value}% OFF** 🎉 Lo aplico cuando armes tu pedido. Qué se te antoja?`;
+  else if(wonPrize.type==='ship') msg=`Ganaste **envío gratis** sin mínimo 🚚 Tu código es **${code}**. Aprovéchalo hoy! Qué quieres pedir?`;
+  else msg=`Te ganaste una **Firulais gratis** en tu primer pedido 🐾🎁 Tu código es **${code}**. Armemos tu compra!`;
   botStatic(msg);
   updateCart();
 }
-let activeCoupon=null;
 
 // ═══════════════ CONFETTI ═══════════════
 function fireConfetti(){
@@ -1511,6 +1707,159 @@ function fireConfetti(){
       {transform:`translate(${dx}px,${window.innerHeight+40}px) rotate(${Math.random()*720}deg)`,opacity:.9}
     ],{duration:dur*1000,easing:'cubic-bezier(.3,.6,.5,1)'});
     setTimeout(()=>c.remove(),dur*1000);
+  }
+}
+
+// ═══════════════ GAME GATE (nombre + apellido + email) ═══════════════════════
+function getGateUser(){
+  try { return JSON.parse(sessionStorage.getItem('zgate') || 'null'); } catch { return null; }
+}
+function setGateUser(u){
+  try { sessionStorage.setItem('zgate', JSON.stringify(u)); } catch {}
+}
+function openGameGate(){
+  const err = document.getElementById('gateErr');
+  if (err) { err.classList.remove('show'); err.textContent = ''; }
+  document.getElementById('gameGateModal').classList.add('open');
+  setTimeout(() => document.getElementById('gateNombre').focus(), 60);
+}
+function closeGameGate(){
+  document.getElementById('gameGateModal').classList.remove('open');
+}
+async function submitGameGate(){
+  const nombre   = document.getElementById('gateNombre').value.trim();
+  const apellido = document.getElementById('gateApellido').value.trim();
+  const email    = document.getElementById('gateEmail').value.trim().toLowerCase();
+  const err      = document.getElementById('gateErr');
+  const btn      = document.getElementById('gateBtn');
+  const showErr  = (m) => { err.textContent = m; err.classList.add('show'); };
+
+  err.classList.remove('show');
+  if (!nombre || !apellido) return showErr('Necesitamos tu nombre y apellido.');
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return showErr('Ingresa un correo válido.');
+
+  btn.disabled = true;
+  btn.textContent = 'Validando...';
+  try {
+    const res = await fetch('/game/check-email', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return showErr(data.error || 'No pudimos validar el correo. Intenta de nuevo.');
+    if (data.exists) return showErr('Este correo ya jugó. El cupón es uno por persona.');
+
+    setGateUser({ nombre, apellido, email });
+    closeGameGate();
+    // Ahora sí abrimos el juego
+    document.getElementById('gameModal').classList.add('open');
+    buildWheel();
+    buildSlotStrips();
+  } catch {
+    showErr('Error de red. Revisa tu conexión e intenta de nuevo.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Continuar al juego';
+  }
+}
+
+// ═══════════════ MAYORISTAS MODAL ═══════════════════════════════════════════
+function openMayoristaModal(){
+  ['mayoLoginErr','mayoLoginOk','mayoLeadErr','mayoLeadOk'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.classList.remove('show'); el.textContent = ''; }
+  });
+  document.getElementById('mayoristaModal').classList.add('open');
+}
+function closeMayoristaModal(){
+  document.getElementById('mayoristaModal').classList.remove('open');
+}
+function switchMayoTab(tab, btn){
+  document.querySelectorAll('#mayoristaModal .zm-tab').forEach(t => t.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('mayoPaneLogin').classList.toggle('on', tab === 'login');
+  document.getElementById('mayoPaneNuevo').classList.toggle('on', tab === 'nuevo');
+}
+async function mayoLogin(){
+  const email = document.getElementById('mayoEmail').value.trim().toLowerCase();
+  const pass  = document.getElementById('mayoPass').value;
+  const err   = document.getElementById('mayoLoginErr');
+  const ok    = document.getElementById('mayoLoginOk');
+  const btn   = document.getElementById('mayoLoginBtn');
+  err.classList.remove('show'); ok.classList.remove('show');
+
+  if (!email || !pass) {
+    err.textContent = 'Ingresa tu correo y contraseña.';
+    err.classList.add('show');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Validando...';
+  try {
+    const res = await fetch('/mayorista/login', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password: pass }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.token) {
+      // Cuando la integración con Shopify esté activa, acá entra al modo mayorista.
+      mayoristaMode = true;
+      sessionStorage.setItem('zmayo', '1');
+      ok.textContent = 'Sesión iniciada. Ya puedes hablar con el bot mayorista.';
+      ok.classList.add('show');
+      setTimeout(closeMayoristaModal, 1200);
+    } else {
+      err.textContent = data.error || 'No pudimos validar tu acceso.';
+      err.classList.add('show');
+    }
+  } catch {
+    err.textContent = 'Error de red. Intenta de nuevo en un momento.';
+    err.classList.add('show');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Iniciar sesión';
+  }
+}
+async function mayoLead(){
+  const nombre   = document.getElementById('leadNombre').value.trim();
+  const local    = document.getElementById('leadLocal').value.trim();
+  const comuna   = document.getElementById('leadComuna').value.trim();
+  const canal    = document.getElementById('leadCanal').value;
+  const email    = document.getElementById('leadEmail').value.trim().toLowerCase();
+  const telefono = document.getElementById('leadTelefono').value.trim();
+  const err = document.getElementById('mayoLeadErr');
+  const ok  = document.getElementById('mayoLeadOk');
+  const btn = document.getElementById('mayoLeadBtn');
+  err.classList.remove('show'); ok.classList.remove('show');
+
+  if (!nombre || !telefono) {
+    err.textContent = 'Tu nombre y teléfono son obligatorios para que te contactemos.';
+    err.classList.add('show');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+  try {
+    const res = await fetch('/mayorista/lead', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ nombre, local, comuna, canal, email, telefono }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      ok.textContent = `Recibimos tus datos! Te contactaremos al ${telefono} dentro de las próximas 48 horas hábiles.`;
+      ok.classList.add('show');
+      ['leadNombre','leadLocal','leadComuna','leadEmail','leadTelefono'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('leadCanal').value = '';
+    } else {
+      err.textContent = data.error || 'No pudimos enviar tus datos.';
+      err.classList.add('show');
+    }
+  } catch {
+    err.textContent = 'Error de red. Intenta de nuevo en un momento.';
+    err.classList.add('show');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Enviar a Kairos';
   }
 }
 

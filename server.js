@@ -16,19 +16,39 @@ app.use(express.json());
 
 // ─── Logs ─────────────────────────────────────────────────────────────────────
 
-const LOGS_DIR = join(__dirname, 'logs');
+const LOGS_DIR  = join(__dirname, 'logs');
 const CONV_LOG  = join(LOGS_DIR, 'conversations.json');
 const ERR_LOG   = join(LOGS_DIR, 'errors.json');
+const GAMES_LOG = join(LOGS_DIR, 'games.json');
+const LEADS_LOG = join(LOGS_DIR, 'mayoristas_leads.json');
 
 function initLogs() {
-  if (!existsSync(LOGS_DIR)) mkdirSync(LOGS_DIR, { recursive: true });
-  if (!existsSync(CONV_LOG)) writeFileSync(CONV_LOG, '[]');
-  if (!existsSync(ERR_LOG))  writeFileSync(ERR_LOG,  '[]');
+  if (!existsSync(LOGS_DIR))   mkdirSync(LOGS_DIR, { recursive: true });
+  if (!existsSync(CONV_LOG))   writeFileSync(CONV_LOG,  '[]');
+  if (!existsSync(ERR_LOG))    writeFileSync(ERR_LOG,   '[]');
+  if (!existsSync(GAMES_LOG))  writeFileSync(GAMES_LOG, '[]');
+  if (!existsSync(LEADS_LOG))  writeFileSync(LEADS_LOG, '[]');
 }
 
 function readLog(file) {
   try { return JSON.parse(readFileSync(file, 'utf-8')); }
   catch { return []; }
+}
+
+function appendLog(file, entry) {
+  try {
+    const list = readLog(file);
+    list.push(entry);
+    writeFileSync(file, JSON.stringify(list, null, 2));
+  } catch (e) { console.error('Log append error:', e.message); }
+}
+
+const normEmail = (e) => String(e || '').trim().toLowerCase();
+const RAND_ALPH = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function randomCode(n) {
+  let s = '';
+  for (let i = 0; i < n; i++) s += RAND_ALPH[Math.floor(Math.random() * RAND_ALPH.length)];
+  return s;
 }
 
 function saveSession(session) {
@@ -189,13 +209,15 @@ initLogs();
 
 app.post('/chat', async (req, res) => {
   const { message, sessionId: clientId } = req.body;
-  const from = req.body.from || req.query.from;
+  const from      = req.body.from || req.query.from;
+  const mayorista = req.body.mayorista === true;
 
   if (!message) return res.status(400).json({ error: 'El campo "message" es requerido.' });
 
   let promptBase;
   try {
-    promptBase = readFileSync(join(__dirname, 'prompts', 'master.md'), 'utf-8');
+    const promptFile = mayorista ? 'mayorista.md' : 'master.md';
+    promptBase = readFileSync(join(__dirname, 'prompts', promptFile), 'utf-8');
   } catch {
     return res.status(500).json({ error: 'Error al cargar el sistema.' });
   }
@@ -273,6 +295,76 @@ app.post('/chat', async (req, res) => {
     res.write('data: [DONE]\n\n');
     res.end();
   }
+});
+
+// ─── POST /game/check-email — verifica si el email ya jugó ───────────────────
+
+app.post('/game/check-email', (req, res) => {
+  const email = normEmail(req.body && req.body.email);
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'Email inválido.' });
+  }
+  const list = readLog(GAMES_LOG);
+  const exists = list.some(g => normEmail(g.email) === email);
+  res.json({ exists });
+});
+
+// ─── POST /game/claim — registra el premio ganado y devuelve el cupón ────────
+
+app.post('/game/claim', (req, res) => {
+  const { nombre, apellido, email, prize } = req.body || {};
+  const e = normEmail(email);
+  if (!e || !e.includes('@')) return res.status(400).json({ error: 'Email inválido.' });
+  if (!nombre || !apellido)   return res.status(400).json({ error: 'Nombre y apellido son requeridos.' });
+  if (!prize || !prize.type)  return res.status(400).json({ error: 'Premio inválido.' });
+
+  const list = readLog(GAMES_LOG);
+  if (list.some(g => normEmail(g.email) === e)) {
+    return res.status(409).json({ error: 'Ya jugaste con este email. El cupón es uno por persona.' });
+  }
+
+  const suffix = randomCode(6);
+  const code = prize.type === 'pct'  ? `ZORBO${prize.value}-${suffix}`
+             : prize.type === 'ship' ? `ENVIO-${suffix}`
+             :                         `REGALO-${suffix}`;
+
+  const entry = {
+    timestamp: new Date().toISOString(),
+    nombre, apellido, email: e,
+    prize, code,
+    shopifyCreated: false, // se actualiza a true cuando integremos Admin API
+  };
+  appendLog(GAMES_LOG, entry);
+  // TODO Shopify Admin API: crear discount code y marcar shopifyCreated:true
+  res.json({ ok: true, code });
+});
+
+// ─── POST /mayorista/login — autenticación contra Shopify (pendiente) ────────
+
+app.post('/mayorista/login', (req, res) => {
+  // TODO Storefront API customerAccessTokenCreate + Admin API tag check (MAYORISTA1).
+  // Mientras no tengamos los tokens, devolvemos 501 con mensaje claro.
+  return res.status(501).json({
+    error: 'Acceso mayorista pendiente: la integración con Shopify aún no está activa. Tu equipo está terminando de conectarla.',
+  });
+});
+
+// ─── POST /mayorista/lead — guarda info de mayorista nuevo ───────────────────
+
+app.post('/mayorista/lead', (req, res) => {
+  const { nombre, local, comuna, canal, email, telefono, mensaje } = req.body || {};
+  if (!nombre || !telefono) {
+    return res.status(400).json({ error: 'Nombre y teléfono son requeridos.' });
+  }
+  const entry = {
+    timestamp: new Date().toISOString(),
+    nombre, local, comuna, canal,
+    email:    normEmail(email),
+    telefono: String(telefono).trim(),
+    mensaje:  mensaje || '',
+  };
+  appendLog(LEADS_LOG, entry);
+  res.json({ ok: true });
 });
 
 // ─── DELETE /session/:id — terminar sesión y obtener resumen ──────────────────
