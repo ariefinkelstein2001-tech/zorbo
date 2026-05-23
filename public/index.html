@@ -382,6 +382,112 @@ header{
   .occ-btn{min-width:70px;font-size:.7rem}
 }
 
+/* ── SLIDESHOW HERO (3 marcas) ── */
+.hero-slides{flex-shrink:0;position:relative;height:150px;overflow:hidden;border-bottom:1px solid var(--border)}
+.hs-track{display:flex;height:100%;transition:transform .6s cubic-bezier(.4,0,.2,1)}
+.hs-slide{flex-shrink:0;width:100%;height:100%;position:relative;display:flex;align-items:center;padding:0 1.5rem;overflow:hidden}
+.hs-slide.kairos{background:linear-gradient(115deg,#1a1207 0%,#3a2a0e 55%,#1a1207 100%)}
+.hs-slide.firulais{background:linear-gradient(115deg,#2a0f0a 0%,#4a1d14 55%,#2a0f0a 100%)}
+.hs-slide.banny{background:linear-gradient(115deg,#1a1330 0%,#2e2358 55%,#1a1330 100%)}
+.hs-emoji{position:absolute;right:-10px;top:50%;transform:translateY(-50%);font-size:6.5rem;opacity:.22;pointer-events:none}
+.hs-content{position:relative;z-index:2;max-width:70%}
+.hs-tag{display:inline-block;font-size:.58rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:.18rem .55rem;border-radius:6px;margin-bottom:.5rem}
+.hs-slide.kairos .hs-tag{background:var(--k);color:#1a1408}
+.hs-slide.firulais .hs-tag{background:var(--f);color:#fff}
+.hs-slide.banny .hs-tag{background:var(--b);color:#1a1330}
+.hs-title{font-family:var(--display);font-size:1.35rem;font-weight:800;line-height:1.1;margin-bottom:.3rem;color:#fff;letter-spacing:-.5px}
+.hs-sub{font-size:.78rem;color:rgba(255,255,255,.72);line-height:1.4;font-weight:300;margin-bottom:.6rem}
+.hs-btn{display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;font-weight:700;padding:.4rem .85rem;border-radius:9px;border:none;cursor:pointer;font-family:var(--sans);background:rgba(255,255,255,.92);color:#1a1408;transition:transform .12s}
+.hs-btn:active{transform:scale(.95)}
+.hs-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:3}
+.hs-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3);transition:all .3s;cursor:pointer}
+.hs-dot.on{background:#fff;width:18px;border-radius:3px}
+
+/* ── GAME LAUNCHER (banner que invita a jugar) ── */
+.game-banner{
+  position:relative;overflow:hidden;
+  background:linear-gradient(120deg,#2a1c4a 0%,#3a1c3a 45%,#4a2410 100%);
+  border:1px solid var(--gold-bd);border-radius:16px;
+  padding:1rem 1.1rem;display:flex;align-items:center;gap:.9rem;cursor:pointer;
+  transition:transform .15s,border-color .2s;
+}
+.game-banner:hover{transform:translateY(-2px);border-color:var(--gold-bd-h)}
+.game-banner::after{content:'';position:absolute;top:-50%;left:-60%;width:40%;height:200%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent);transform:rotate(20deg);animation:shine 3.5s ease-in-out infinite}
+@keyframes shine{0%,60%{left:-60%}100%{left:130%}}
+.gb-icon{font-size:2rem;flex-shrink:0;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
+.gb-txt{flex:1;min-width:0}
+.gb-title{font-family:var(--display);font-size:.95rem;font-weight:800;color:#fff;line-height:1.1}
+.gb-sub{font-size:.7rem;color:rgba(255,255,255,.7);margin-top:.15rem;font-weight:300}
+.gb-cta{flex-shrink:0;font-size:.72rem;font-weight:800;color:#1a1408;background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));padding:.45rem .8rem;border-radius:9px}
+.game-banner.played{opacity:.6;pointer-events:none}
+.game-banner.played::after{display:none}
+
+/* ── GAME MODAL ── */
+.game-modal{position:fixed;inset:0;z-index:800;display:none;align-items:center;justify-content:center;padding:1.2rem;background:rgba(5,4,10,.85);backdrop-filter:blur(10px)}
+.game-modal.open{display:flex}
+.gm-card{background:linear-gradient(180deg,var(--surface) 0%,#0e0e16 100%);border:1px solid var(--gold-bd);border-radius:22px;padding:1.6rem 1.4rem;max-width:380px;width:100%;text-align:center;position:relative;box-shadow:0 30px 90px rgba(0,0,0,.7);animation:popIn .4s cubic-bezier(.34,1.56,.64,1);max-height:92vh;overflow-y:auto}
+.gm-x{position:absolute;top:.8rem;right:.9rem;background:none;border:none;color:var(--dim);font-size:1.2rem;cursor:pointer;z-index:5}
+.gm-x:hover{color:var(--text)}
+.gm-title{font-family:var(--display);font-size:1.25rem;font-weight:800;margin-bottom:.25rem;letter-spacing:-.5px}
+.gm-sub{font-size:.78rem;color:var(--muted);margin-bottom:1.1rem;font-weight:300;line-height:1.5}
+/* tabs de juego */
+.gm-tabs{display:flex;gap:.35rem;background:var(--surface3);padding:.25rem;border-radius:11px;margin-bottom:1.2rem}
+.gm-tab{flex:1;padding:.5rem .3rem;border:none;background:transparent;color:var(--muted);font-size:.72rem;font-weight:700;font-family:var(--sans);border-radius:8px;cursor:pointer;transition:all .18s}
+.gm-tab.on{background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));color:#1a1408}
+.gm-pane{display:none}
+.gm-pane.on{display:block}
+
+/* ── RULETA ── */
+.wheel-wrap{position:relative;width:230px;height:230px;margin:0 auto 1.2rem}
+.wheel{width:100%;height:100%;border-radius:50%;position:relative;transition:transform 4.5s cubic-bezier(.17,.67,.25,1);border:5px solid var(--gold);box-shadow:0 0 0 4px var(--surface3),0 10px 40px rgba(0,0,0,.5)}
+.wheel-pointer{position:absolute;top:-6px;left:50%;transform:translateX(-50%);z-index:5;font-size:1.8rem;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))}
+.wheel-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));z-index:4;display:flex;align-items:center;justify-content:center;font-size:1.3rem;box-shadow:0 3px 12px rgba(0,0,0,.5)}
+
+/* ── RASCA Y GANA ── */
+.scratch-wrap{position:relative;width:240px;height:130px;margin:0 auto 1.2rem;border-radius:14px;overflow:hidden;border:1px solid var(--gold-bd)}
+.scratch-prize{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1408,#2a1f0a);gap:.2rem}
+.scratch-prize .sp-em{font-size:2rem}
+.scratch-prize .sp-tx{font-family:var(--display);font-size:1.3rem;font-weight:800;color:var(--gold)}
+.scratch-canvas{position:absolute;inset:0;cursor:grab;touch-action:none}
+.scratch-hint{font-size:.68rem;color:var(--dim);margin-bottom:1rem}
+
+/* ── TRAGAMONEDAS ── */
+.slot-wrap{display:flex;gap:.5rem;justify-content:center;margin:0 auto 1.1rem;padding:1rem;background:#0c0a14;border-radius:14px;border:1px solid var(--gold-bd);width:fit-content}
+.slot-reel{width:64px;height:80px;background:linear-gradient(180deg,#16121f,#0a0810);border-radius:10px;overflow:hidden;position:relative;border:1px solid var(--surface3)}
+.slot-strip{position:absolute;top:0;left:0;width:100%;display:flex;flex-direction:column;align-items:center}
+.slot-sym{height:80px;display:flex;align-items:center;justify-content:center;font-size:2.4rem;flex-shrink:0}
+.slot-reel::before,.slot-reel::after{content:'';position:absolute;left:0;right:0;height:22px;z-index:2;pointer-events:none}
+.slot-reel::before{top:0;background:linear-gradient(180deg,#0c0a14,transparent)}
+.slot-reel::after{bottom:0;background:linear-gradient(0deg,#0c0a14,transparent)}
+
+/* botón jugar */
+.play-btn{width:100%;padding:.9rem;border:none;border-radius:13px;cursor:pointer;background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));color:#1a1408;font-size:.95rem;font-weight:800;font-family:var(--sans);transition:opacity .2s,transform .1s}
+.play-btn:hover{opacity:.93}
+.play-btn:active{transform:scale(.98)}
+.play-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* resultado */
+.game-result{display:none;flex-direction:column;align-items:center;gap:.6rem;animation:popIn .5s cubic-bezier(.34,1.56,.64,1)}
+.game-result.show{display:flex}
+.gr-emoji{font-size:3rem}
+.gr-prize{font-family:var(--display);font-size:1.8rem;font-weight:800;color:var(--gold);line-height:1}
+.gr-label{font-size:.82rem;color:var(--muted);font-weight:300}
+.gr-code{background:var(--gold-dim);border:1px dashed var(--gold-bd);border-radius:10px;padding:.6rem 1rem;margin:.3rem 0;font-family:var(--display);font-weight:800;color:var(--gold);font-size:1.1rem;letter-spacing:.1em}
+.gr-apply{width:100%;padding:.8rem;border:none;border-radius:12px;cursor:pointer;background:var(--green);color:#06120b;font-size:.9rem;font-weight:800;font-family:var(--sans)}
+
+/* confetti */
+.confetti{position:fixed;width:9px;height:9px;z-index:850;pointer-events:none;border-radius:1px}
+
+/* cupón activo en header */
+.coupon-chip{flex-shrink:0;display:flex;align-items:center;gap:.3rem;padding:.3rem .6rem;border-radius:20px;font-size:.68rem;font-weight:800;background:var(--green-dim);border:1px solid rgba(92,201,143,.3);color:var(--green);white-space:nowrap}
+
+@media (max-width:600px){
+  .hero-slides{height:128px}
+  .hs-title{font-size:1.15rem}
+  .hs-emoji{font-size:5rem}
+  .wheel-wrap{width:200px;height:200px}
+}
+
 /* ── RESPONSIVE ── */
 @media (max-width:600px){
   header{padding:.6rem .8rem;gap:.55rem}
@@ -430,6 +536,40 @@ header{
       🛒<span class="cart-badge" id="cartBadge">0</span>
     </button>
   </header>
+
+<!-- HERO SLIDESHOW (3 marcas) -->
+  <div class="hero-slides">
+    <div class="hs-track" id="hsTrack">
+      <div class="hs-slide kairos">
+        <span class="hs-emoji">🍺</span>
+        <div class="hs-content">
+          <span class="hs-tag">Kairos Brewing</span>
+          <div class="hs-title">Cerveza artesanal<br>con carácter</div>
+          <div class="hs-sub">17 estilos · desde $2.490</div>
+          <button class="hs-btn" onclick="sendQuick('Qué cervezas artesanales tiene Kairos Brewing?')">Ver cervezas →</button>
+        </div>
+      </div>
+      <div class="hs-slide firulais">
+        <span class="hs-emoji">🐾</span>
+        <div class="hs-content">
+          <span class="hs-tag">Firulais</span>
+          <div class="hs-title">Cheladas craft<br>perrísimas 🌶️</div>
+          <div class="hs-sub">Limón, mango-habanero y michelada · $2.500</div>
+          <button class="hs-btn" onclick="sendQuick('Cuéntame de las cheladas Firulais')">Ver cheladas →</button>
+        </div>
+      </div>
+      <div class="hs-slide banny">
+        <span class="hs-emoji">🍸</span>
+        <div class="hs-content">
+          <span class="hs-tag">Banny by Kairos</span>
+          <div class="hs-title">Destilados y<br>cócteles listos</div>
+          <div class="hs-sub">Gin, ron, whiskey y RTD · craft to be wild</div>
+          <button class="hs-btn" onclick="sendQuick('Qué destilados y RTD tiene Banny?')">Ver Banny →</button>
+        </div>
+      </div>
+    </div>
+    <div class="hs-dots" id="hsDots"></div>
+  </div>
 
   <!-- PROMO BANNER -->
   <div class="promo-wrap">
@@ -486,6 +626,60 @@ header{
 
 <!-- TOASTS -->
 <div class="toast-wrap" id="toasts"></div>
+
+<!-- GAME MODAL -->
+<div class="game-modal" id="gameModal">
+  <div class="gm-card">
+    <button class="gm-x" onclick="closeGame()">✕</button>
+    <div class="gm-title">🎰 Gira y gana</div>
+    <div class="gm-sub">Juega <strong style="color:var(--gold)">una vez</strong> y llévate un descuento para tu pedido de hoy</div>
+
+    <div class="gm-tabs">
+      <button class="gm-tab on" data-game="wheel" onclick="switchGame('wheel',this)">🎡 Ruleta</button>
+      <button class="gm-tab" data-game="scratch" onclick="switchGame('scratch',this)">🎫 Rasca</button>
+      <button class="gm-tab" data-game="slot" onclick="switchGame('slot',this)">🎰 Slots</button>
+    </div>
+
+    <!-- RULETA -->
+    <div class="gm-pane on" id="paneWheel">
+      <div class="wheel-wrap">
+        <div class="wheel-pointer">▼</div>
+        <div class="wheel" id="wheelEl"></div>
+        <div class="wheel-center">🎁</div>
+      </div>
+      <button class="play-btn" id="wheelBtn" onclick="spinWheel()">Girar la ruleta</button>
+    </div>
+
+    <!-- RASCA Y GANA -->
+    <div class="gm-pane" id="paneScratch">
+      <div class="scratch-hint">Rasca con el dedo para descubrir tu premio 👆</div>
+      <div class="scratch-wrap">
+        <div class="scratch-prize" id="scratchPrize"></div>
+        <canvas class="scratch-canvas" id="scratchCanvas" width="240" height="130"></canvas>
+      </div>
+      <button class="play-btn" id="scratchBtn" onclick="initScratch()">Preparar tarjeta</button>
+    </div>
+
+    <!-- SLOTS -->
+    <div class="gm-pane" id="paneSlot">
+      <div class="slot-wrap">
+        <div class="slot-reel"><div class="slot-strip" id="reel0"></div></div>
+        <div class="slot-reel"><div class="slot-strip" id="reel1"></div></div>
+        <div class="slot-reel"><div class="slot-strip" id="reel2"></div></div>
+      </div>
+      <button class="play-btn" id="slotBtn" onclick="spinSlot()">Tirar la palanca</button>
+    </div>
+
+    <!-- RESULTADO -->
+    <div class="game-result" id="gameResult">
+      <div class="gr-emoji" id="grEmoji">🎉</div>
+      <div class="gr-prize" id="grPrize"></div>
+      <div class="gr-label" id="grLabel"></div>
+      <div class="gr-code" id="grCode"></div>
+      <button class="gr-apply" onclick="applyPrize()">Usar en mi pedido</button>
+    </div>
+  </div>
+</div>
 
 <!-- CART DRAWER -->
 <div class="cart-panel" id="cartPanel">
@@ -694,6 +888,15 @@ function showStorefront() {
 
   const html = `
   <div class="storefront">
+    <div class="game-banner" id="gameBanner" onclick="openGame()">
+      <span class="gb-icon">🎰</span>
+      <div class="gb-txt">
+        <div class="gb-title">Gira y gana hasta 10% OFF</div>
+        <div class="gb-sub">Ruleta · Rasca · Slots — premio garantizado</div>
+      </div>
+      <span class="gb-cta">JUGAR</span>
+    </div>
+
     <div class="sf-block">
       <div class="sf-head">
         <span class="sf-title">⚡ Ofertas Relámpago</span>
@@ -911,7 +1114,16 @@ function updateCart() {
       </div>`).join('');
   }
 
-  document.getElementById('cartTotal').textContent = '$' + total.toLocaleString('es-CL');
+  let finalTotal = total;
+  if (activeCoupon && activeCoupon.type === 'pct' && total > 0) {
+    finalTotal = Math.round(total * (1 - activeCoupon.value/100));
+  }
+  const totalEl = document.getElementById('cartTotal');
+  if (activeCoupon && activeCoupon.type === 'pct' && total > 0) {
+    totalEl.innerHTML = '<span style="font-size:.8rem;color:var(--dim);text-decoration:line-through;margin-right:.4rem">$' + total.toLocaleString('es-CL') + '</span>$' + finalTotal.toLocaleString('es-CL');
+  } else {
+    totalEl.textContent = '$' + total.toLocaleString('es-CL');
+  }
   document.getElementById('checkoutBtn').disabled = cart.length === 0;
   const pct = Math.min(total / FREE_SHIP * 100, 100);
   document.getElementById('shipFill').style.width = pct + '%';
@@ -943,9 +1155,265 @@ function toast(p) {
   setTimeout(() => el.remove(), 3300);
 }
 
+// ═══════════════ SLIDESHOW HERO ═══════════════
+let hsIdx = 0;
+const HS_N = 3;
+function initHeroSlides(){
+  const dots = document.getElementById('hsDots');
+  if(!dots) return;
+  for(let i=0;i<HS_N;i++){
+    const d=document.createElement('div');
+    d.className='hs-dot'+(i===0?' on':'');
+    d.onclick=()=>goHeroSlide(i);
+    dots.appendChild(d);
+  }
+  setInterval(()=>goHeroSlide((hsIdx+1)%HS_N),4500);
+}
+function goHeroSlide(i){
+  hsIdx=i;
+  document.getElementById('hsTrack').style.transform=`translateX(-${i*100}%)`;
+  document.querySelectorAll('.hs-dot').forEach((d,j)=>d.classList.toggle('on',j===i));
+}
+
+// ═══════════════ PREMIOS Y PROBABILIDADES ═══════════════
+// Pesos: la mayoría 1-5%, el 10% raro, producto gratis muy raro
+const PRIZES = [
+  { type:'pct', value:1,  weight:26, emoji:'🎟️', label:'de descuento' },
+  { type:'pct', value:2,  weight:22, emoji:'🎟️', label:'de descuento' },
+  { type:'pct', value:3,  weight:18, emoji:'🎟️', label:'de descuento' },
+  { type:'pct', value:5,  weight:16, emoji:'⭐', label:'de descuento' },
+  { type:'pct', value:7,  weight:9,  emoji:'🌟', label:'de descuento' },
+  { type:'pct', value:10, weight:6,  emoji:'💎', label:'de descuento' },
+  { type:'ship',value:0,  weight:2,  emoji:'🚚', label:'¡Envío gratis!' },
+  { type:'free',value:0,  weight:1,  emoji:'🎁', label:'¡Producto gratis!' },
+];
+const WHEEL_COLORS = ['#e9c46a','#bf9b48','#e0654f','#b6a4e6','#5cc98f','#e9c46a','#7a6cb0','#d4943a'];
+
+function pickPrize(){
+  const total = PRIZES.reduce((s,p)=>s+p.weight,0);
+  let r = Math.random()*total;
+  for(const p of PRIZES){ if(r < p.weight) return p; r -= p.weight; }
+  return PRIZES[0];
+}
+function prizeText(p){
+  if(p.type==='pct') return p.value+'%';
+  if(p.type==='ship') return 'ENVÍO';
+  if(p.type==='free') return 'GRATIS';
+}
+function prizeCode(p){
+  if(p.type==='pct') return 'ZORBO'+p.value;
+  if(p.type==='ship') return 'ENVIOGRATIS';
+  if(p.type==='free') return 'REGALOZORBO';
+}
+
+let gamePlayed = sessionStorage.getItem('zgame') === '1';
+let currentGame = 'wheel';
+let wonPrize = null;
+
+// ═══════════════ ABRIR / CERRAR ═══════════════
+function openGame(){
+  if(gamePlayed){ return; }
+  document.getElementById('gameModal').classList.add('open');
+  buildWheel();
+  buildSlotStrips();
+}
+function closeGame(){
+  document.getElementById('gameModal').classList.remove('open');
+}
+function switchGame(g,btn){
+  if(gamePlayed) return;
+  currentGame=g;
+  document.querySelectorAll('.gm-tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  document.querySelectorAll('.gm-pane').forEach(p=>p.classList.remove('on'));
+  document.getElementById('pane'+g.charAt(0).toUpperCase()+g.slice(1)).classList.add('on');
+}
+function lockGame(){
+  gamePlayed=true;
+  sessionStorage.setItem('zgame','1');
+  const banner=document.getElementById('gameBanner');
+  if(banner){banner.classList.add('played');banner.querySelector('.gb-sub').textContent='Ya jugaste hoy · vuelve mañana';}
+}
+
+// ═══════════════ RULETA ═══════════════
+function buildWheel(){
+  const w=document.getElementById('wheelEl');
+  if(w.dataset.built) return;
+  const seg=360/PRIZES.length;
+  let grad=PRIZES.map((p,i)=>`${WHEEL_COLORS[i]} ${i*seg}deg ${(i+1)*seg}deg`).join(',');
+  w.style.background=`conic-gradient(${grad})`;
+  // etiquetas
+  PRIZES.forEach((p,i)=>{
+    const lab=document.createElement('div');
+    const ang=i*seg+seg/2;
+    lab.style.cssText=`position:absolute;top:50%;left:50%;transform:rotate(${ang}deg) translateY(-86px) rotate(${-ang}deg);transform-origin:center;font-size:.7rem;font-weight:800;color:#1a1408;`;
+    lab.textContent=prizeText(p);
+    w.appendChild(lab);
+  });
+  w.dataset.built='1';
+}
+function spinWheel(){
+  if(gamePlayed) return;
+  const btn=document.getElementById('wheelBtn');
+  btn.disabled=true;
+  wonPrize=pickPrize();
+  const idx=PRIZES.indexOf(wonPrize);
+  const seg=360/PRIZES.length;
+  const target=360*6 + (360 - (idx*seg + seg/2));
+  document.getElementById('wheelEl').style.transform=`rotate(${target}deg)`;
+  setTimeout(()=>showResult(),4700);
+}
+
+// ═══════════════ SLOTS ═══════════════
+const SLOT_SYMS=['🍺','🍋','🍸','🐾','💎','🎁','⭐','🍊'];
+function buildSlotStrips(){
+  for(let r=0;r<3;r++){
+    const strip=document.getElementById('reel'+r);
+    if(strip.dataset.built)continue;
+    let html='';
+    for(let k=0;k<20;k++) html+=`<div class="slot-sym">${SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)]}</div>`;
+    strip.innerHTML=html;
+    strip.dataset.built='1';
+  }
+}
+function spinSlot(){
+  if(gamePlayed) return;
+  const btn=document.getElementById('slotBtn');
+  btn.disabled=true;
+  wonPrize=pickPrize();
+  // símbolo final según premio
+  let finalSym='🍺';
+  if(wonPrize.type==='free') finalSym='🎁';
+  else if(wonPrize.type==='ship') finalSym='🚚';
+  else if(wonPrize.value>=10) finalSym='💎';
+  else if(wonPrize.value>=5) finalSym='⭐';
+  for(let r=0;r<3;r++){
+    const strip=document.getElementById('reel'+r);
+    // rellenar y poner el símbolo final en posición visible
+    let html='';
+    for(let k=0;k<24;k++) html+=`<div class="slot-sym">${SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)]}</div>`;
+    strip.innerHTML=html;
+    strip.querySelectorAll('.slot-sym')[22].textContent=finalSym;
+    strip.style.transition='none';
+    strip.style.transform='translateY(0)';
+    void strip.offsetHeight;
+    strip.style.transition=`transform ${2.2+r*0.5}s cubic-bezier(.15,.7,.2,1)`;
+    strip.style.transform=`translateY(-${22*80 - 0}px)`;
+  }
+  setTimeout(()=>showResult(),2200+3*500+300);
+}
+
+// ═══════════════ RASCA Y GANA ═══════════════
+let scratchReady=false;
+function initScratch(){
+  if(gamePlayed) return;
+  wonPrize=pickPrize();
+  const prize=document.getElementById('scratchPrize');
+  prize.innerHTML=`<div class="sp-em">${wonPrize.emoji}</div><div class="sp-tx">${prizeText(wonPrize)}</div><div style="font-size:.7rem;color:var(--muted)">${wonPrize.label}</div>`;
+  const canvas=document.getElementById('scratchCanvas');
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#3a2e12';
+  ctx.fillRect(0,0,240,130);
+  ctx.fillStyle='#e9c46a';
+  ctx.font='bold 16px sans-serif';
+  ctx.textAlign='center';
+  ctx.fillText('✦ RASCA AQUÍ ✦',120,68);
+  ctx.globalCompositeOperation='destination-out';
+  scratchReady=true;
+  document.getElementById('scratchBtn').style.display='none';
+  let scratched=0;
+  const total=240*130;
+  let drawing=false;
+  function pos(e){
+    const r=canvas.getBoundingClientRect();
+    const t=e.touches?e.touches[0]:e;
+    return {x:(t.clientX-r.left)*(240/r.width),y:(t.clientY-r.top)*(130/r.height)};
+  }
+  function scratch(e){
+    if(!drawing)return;
+    const {x,y}=pos(e);
+    ctx.beginPath();ctx.arc(x,y,16,0,7);ctx.fill();
+    scratched+=800;
+    if(scratched>total*0.45 && !gamePlayed){
+      ctx.clearRect(0,0,240,130);
+      showResult();
+    }
+  }
+  canvas.onmousedown=e=>{drawing=true;scratch(e);};
+  canvas.onmousemove=scratch;
+  canvas.onmouseup=()=>drawing=false;
+  canvas.ontouchstart=e=>{drawing=true;scratch(e);e.preventDefault();};
+  canvas.ontouchmove=e=>{scratch(e);e.preventDefault();};
+  canvas.ontouchend=()=>drawing=false;
+}
+
+// ═══════════════ RESULTADO ═══════════════
+function showResult(){
+  if(gamePlayed) return;
+  lockGame();
+  document.querySelectorAll('.gm-pane').forEach(p=>p.classList.remove('on'));
+  document.querySelector('.gm-tabs').style.display='none';
+  const res=document.getElementById('gameResult');
+  res.classList.add('show');
+  document.getElementById('grEmoji').textContent=wonPrize.emoji;
+  if(wonPrize.type==='pct'){
+    document.getElementById('grPrize').textContent=wonPrize.value+'% OFF';
+    document.getElementById('grLabel').textContent='Ganaste un descuento para tu pedido de hoy';
+  }else if(wonPrize.type==='ship'){
+    document.getElementById('grPrize').textContent='ENVÍO GRATIS';
+    document.getElementById('grLabel').textContent='Sin mínimo de compra, solo por hoy';
+  }else{
+    document.getElementById('grPrize').textContent='PRODUCTO GRATIS';
+    document.getElementById('grLabel').textContent='Una Firulais gratis en tu primer pedido 🐾';
+  }
+  document.getElementById('grCode').textContent=prizeCode(wonPrize);
+  fireConfetti();
+}
+function applyPrize(){
+  activeCoupon=wonPrize;
+  // chip en header
+  const head=document.querySelector('header');
+  if(head && !document.getElementById('couponChip')){
+    const chip=document.createElement('div');
+    chip.className='coupon-chip';chip.id='couponChip';
+    chip.innerHTML=`🎟️ ${prizeCode(wonPrize)}`;
+    head.insertBefore(chip,document.querySelector('.cart-btn'));
+  }
+  closeGame();
+  // mensaje del bot
+  let msg='';
+  if(wonPrize.type==='pct') msg=`Bacán! activaste tu cupón **${prizeCode(wonPrize)}** de **${wonPrize.value}% OFF** 🎉 Lo aplico cuando armes tu pedido. Qué se te antoja?`;
+  else if(wonPrize.type==='ship') msg='Ganaste **envío gratis** sin mínimo 🚚 Aprovéchalo hoy! Qué quieres pedir?';
+  else msg='Te ganaste una **Firulais gratis** en tu primer pedido 🐾🎁 Armemos tu compra!';
+  botStatic(msg);
+  updateCart();
+}
+let activeCoupon=null;
+
+// ═══════════════ CONFETTI ═══════════════
+function fireConfetti(){
+  const colors=['#e9c46a','#e0654f','#b6a4e6','#5cc98f','#f7e3a7'];
+  for(let i=0;i<60;i++){
+    const c=document.createElement('div');
+    c.className='confetti';
+    c.style.background=colors[Math.floor(Math.random()*colors.length)];
+    c.style.left=Math.random()*100+'vw';
+    c.style.top='-20px';
+    document.body.appendChild(c);
+    const dx=(Math.random()-0.5)*300;
+    const dur=1.8+Math.random()*1.4;
+    c.animate([
+      {transform:'translate(0,0) rotate(0)',opacity:1},
+      {transform:`translate(${dx}px,${window.innerHeight+40}px) rotate(${Math.random()*720}deg)`,opacity:.9}
+    ],{duration:dur*1000,easing:'cubic-bezier(.3,.6,.5,1)'});
+    setTimeout(()=>c.remove(),dur*1000);
+  }
+}
+
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 checkAge();
 initPromos();
+initHeroSlides();
 updateCart();
 </script>
 </body>
