@@ -25,6 +25,8 @@
   --border:rgba(255,255,255,.07);
   --green:#5cc98f;
   --green-dim:rgba(92,201,143,.12);
+  --red:#e0654f;
+  --red-dim:rgba(224,101,79,.14);
   --k:#e9c46a;
   --f:#e07a5f;
   --b:#b6a4e6;
@@ -213,6 +215,7 @@ header{
   border:1px solid var(--border);border-radius:14px;
   padding:.95rem .8rem;display:flex;flex-direction:column;gap:.28rem;
   transition:border-color .2s,transform .2s,box-shadow .2s;
+  position:relative;
 }
 .pcard:hover{border-color:var(--gold-bd-h);transform:translateY(-3px);box-shadow:0 12px 28px rgba(0,0,0,.4)}
 .pcard.kairos{border-top:2px solid var(--k)}
@@ -338,6 +341,46 @@ header{
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes toastIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
 @keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(16px)}}
+
+/* ── STOREFRONT / VITRINA ── */
+.sf-row .msg-col{gap:.2rem}
+.storefront{display:flex;flex-direction:column;gap:1.15rem;width:100%;margin-top:.2rem}
+.sf-block{display:flex;flex-direction:column;gap:.5rem}
+.sf-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem}
+.sf-title{font-family:var(--display);font-size:.94rem;font-weight:800;color:var(--text);letter-spacing:-.2px}
+.sf-timer{
+  font-size:.7rem;font-weight:700;color:var(--red);
+  background:var(--red-dim);border:1px solid rgba(224,101,79,.25);
+  padding:.2rem .55rem;border-radius:7px;white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+/* badges en tarjetas */
+.pc-badge{
+  position:absolute;top:8px;right:8px;z-index:2;
+  font-size:.56rem;font-weight:800;letter-spacing:.04em;
+  padding:.18rem .42rem;border-radius:6px;
+}
+.pc-badge.discount{background:linear-gradient(135deg,#e0654f,#c0392b);color:#fff;box-shadow:0 3px 10px rgba(224,101,79,.4)}
+.pc-badge.top{background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));color:#1a1408}
+.pc-price-row{display:flex;align-items:baseline;gap:.4rem;margin-top:.35rem;flex-wrap:wrap}
+.pc-old{font-size:.74rem;color:var(--dim);text-decoration:line-through;font-weight:600}
+.pc-price-row .pc-price{margin-top:0}
+/* botones de ocasión */
+.occasion-grid{display:flex;gap:.5rem;overflow-x:auto;scrollbar-width:none;padding:.1rem 0}
+.occasion-grid::-webkit-scrollbar{display:none}
+.occ-btn{
+  flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:.3rem;
+  min-width:78px;padding:.7rem .6rem;
+  background:linear-gradient(180deg,var(--surface) 0%,var(--surface2) 100%);
+  border:1px solid var(--border);border-radius:13px;
+  font-size:.74rem;font-weight:700;color:var(--text);font-family:var(--sans);
+  cursor:pointer;transition:all .18s;
+}
+.occ-btn:hover{border-color:var(--gold-bd-h);transform:translateY(-2px);background:var(--gold-dim)}
+.occ-em{font-size:1.5rem}
+@media (max-width:600px){
+  .sf-title{font-size:.88rem}
+  .occ-btn{min-width:70px;font-size:.7rem}
+}
 
 /* ── RESPONSIVE ── */
 @media (max-width:600px){
@@ -468,19 +511,16 @@ header{
 <script>
 // ─── CATÁLOGO (3 marcas: Kairos Brewing, Firulais, Banny) ─────────────────────
 const CATALOG = [
-  // Kairos Brewing — Colección de la Casa
   { name:'Secret Lab',          brand:'kairos',   style:'APA',            abv:'5%',   price:2490,  emoji:'🌿', desc:'Fresca, lupulada, notas cítricas y herbales' },
   { name:'Galactic Mission',    brand:'kairos',   style:'Golden Ale',     abv:'4,8%', price:2490,  emoji:'⭐', desc:'Ligera, dorada, bajo amargor, muy tomable' },
   { name:'Alerta Roja',         brand:'kairos',   style:'Red Ale',        abv:'5%',   price:2490,  emoji:'🔴', desc:'Maltosa, notas tostadas y leve caramelo' },
   { name:'Nada Personal',       brand:'kairos',   style:'Italian Pils',   abv:'4,1%', price:2490,  emoji:'🌾', desc:'Seca, fresca, floral, extremadamente liviana' },
   { name:'Imperio Perdido',     brand:'kairos',   style:'Session NEIPA',  abv:'4,5%', price:2490,  emoji:'🥭', desc:'Jugosa y tropical — mango, pomelo, naranja' },
-  // Kairos Brewing — Temporada
   { name:'Ritual de la Banana', brand:'kairos',   style:'Weizen',         abv:'4,5%', price:2490,  emoji:'🍌', desc:'Trigo alemana, banana y clavo, refrescante' },
   { name:'Obertura',            brand:'kairos',   style:'Oatmeal Stout',  abv:'5,1%', price:2490,  emoji:'☕', desc:'Sedosa con avena, café y chocolate' },
   { name:'Samba',               brand:'kairos',   style:'West Coast IPA', abv:'5,8%', price:2490,  emoji:'🌴', desc:'Intensa, cítrica, resinosa y tropical' },
   { name:'Hoyo en Uno',         brand:'kairos',   style:'Hoppy Lager',    abv:'4,7%', price:2490,  emoji:'⛳', desc:'Lager con dry hop Citra y Cascade, cítrica' },
   { name:'Kenny Bell',          brand:'kairos',   style:'American Amber', abv:'5,2%', price:2490,  emoji:'🔔', desc:'Caramelo y suave cacao, herbal y balanceada' },
-  // Kairos Brewing — Artistas
   { name:'New Zpot',            brand:'kairos',   style:'NZ Pils',        abv:'4,8%', price:2990,  emoji:'🌺', desc:'Lúpulos neozelandeses, tropical y floral' },
   { name:'Vamos de Paseo',      brand:'kairos',   style:'Hazy IPA',       abv:'6%',   price:2990,  emoji:'🍊', desc:'Con naranja, turbia, sedosa, amargor bajo' },
   { name:'Valle Nevado',        brand:'kairos',   style:'Barley Wine',    abv:'10%',  price:2990,  emoji:'🏔️', desc:'Intensa, caramelo, roble americano macerado' },
@@ -490,23 +530,21 @@ const CATALOG = [
   { name:'L200',                brand:'kairos',   style:'Irish Stout',    abv:'4,6%', price:2990,  emoji:'🖤', desc:'Tostada, seca, similar al café, cuerpo ligero' },
   { name:'Frank',               brand:'kairos',   style:'Märzen',         abv:'6%',   price:2990,  emoji:'🇩🇪', desc:'Lager alemana anaranjada, pan tostado, herbal' },
   { name:'Albert',              brand:'kairos',   style:'Dunkles Bock',   abv:'6,3%', price:2990,  emoji:'🍂', desc:'Lager oscura alemana, ideal para asados' },
-  // Firulais
   { name:'Caurina',             brand:'firulais', style:'Chelada',        abv:'4,5%', price:2500,  emoji:'🍋', desc:'Limón de pica natural y sal de mar' },
   { name:'Pepita',              brand:'firulais', style:'Chelada Spicy',  abv:'4,5%', price:2500,  emoji:'🌶️', desc:'Mango y ají habanero — spicy & sweet' },
   { name:'Cholita',             brand:'firulais', style:'Michelada',      abv:'4,5%', price:2500,  emoji:'🍅', desc:'Limón de pica y jugo de tomate natural' },
-  // Banny — Destilados
   { name:'Gin Banny Contemporáneo', brand:'banny', style:'Gin',          abv:'43%',  price:28990, emoji:'🌿', desc:'Botánico, fresco, 700ml' },
   { name:'Gin Banny London Dry',    brand:'banny', style:'Gin',          abv:'43%',  price:28990, emoji:'🇬🇧', desc:'Clásico London Dry, 700ml' },
   { name:'Rey de Copas White Rum',  brand:'banny', style:'Ron',          abv:null,   price:24990, emoji:'👑', desc:'Ron artesanal chileno, 700ml' },
   { name:'Vermut Banny',            brand:'banny', style:'Vermut',       abv:null,   price:19990, emoji:'🍷', desc:'Aperitivo artesanal chileno' },
   { name:'Bárvaro Whiskey Banny',   brand:'banny', style:'Whiskey',      abv:null,   price:34990, emoji:'🥃', desc:'Premium artesanal, carácter propio' },
-  // Banny — Ready to Drink
   { name:'Guantánamo Mojito',   brand:'banny',    style:'RTD Mojito',    abv:null,   price:3990,  emoji:'🍃', desc:'Con Ron Rey de Copas, listo para tomar' },
   { name:'Elizabeth Gin Tonic', brand:'banny',    style:'RTD Gin Tonic', abv:null,   price:3990,  emoji:'🫧', desc:'Con Banny Contemporáneo, fresco y burbujeante' },
 ];
 CATALOG.forEach((p, i) => { p.i = i; });
 const PMAP = new Map(CATALOG.map(p => [p.name.toLowerCase(), p]));
 const BRAND_LABEL = { kairos:'Kairos Brewing', firulais:'Firulais', banny:'Banny' };
+function prod(name){ return PMAP.get(name.toLowerCase()); }
 
 // ─── ESTADO ───────────────────────────────────────────────────────────────────
 const urlFrom   = new URLSearchParams(location.search).get('from') || 'zorbot';
@@ -539,7 +577,8 @@ function checkAge() {
 function welcome() {
   if (welcomed) return;
   welcomed = true;
-  botStatic('Hola! bienvenido a ZORBO.AI ✨ Soy ZorboBot, tu sommelier digital del marketplace.\n\nTenemos las 3 marcas de la casa: **Kairos Brewing** (cervezas artesanales), **Firulais** (cheladas craft) y **Banny** (destilados y RTD).\n\nQué se te antoja hoy?');
+  botStatic('Hola! bienvenido a ZORBO.AI ✨ Soy ZorboBot, tu sommelier digital del marketplace.\n\nTenemos las 3 marcas de la casa: **Kairos Brewing** (cervezas artesanales), **Firulais** (cheladas craft) y **Banny** (destilados y RTD).\n\nMira lo que tenemos hoy o cuéntame qué se te antoja 👇');
+  showStorefront();
 }
 
 // ─── CARRUSEL DE PROMOS ───────────────────────────────────────────────────────
@@ -606,15 +645,21 @@ function detectProducts(text) {
   }
   return found;
 }
-function buildCard(p) {
+function buildCard(p, opts={}) {
+  const badge = opts.badge ? `<span class="pc-badge ${opts.badgeType||''}">${opts.badge}</span>` : '';
+  let priceHtml = `<div class="pc-price">$${p.price.toLocaleString('es-CL')}</div>`;
+  if (opts.oldPrice) {
+    priceHtml = `<div class="pc-price-row"><span class="pc-old">$${opts.oldPrice.toLocaleString('es-CL')}</span><span class="pc-price">$${p.price.toLocaleString('es-CL')}</span></div>`;
+  }
   return `
   <div class="pcard ${p.brand}">
+    ${badge}
     <span class="pc-brand ${p.brand}">${BRAND_LABEL[p.brand]}</span>
     <div class="pc-emoji">${p.emoji}</div>
     <div class="pc-name">${escapeHtml(p.name)}</div>
     <div class="pc-style">${escapeHtml(p.style)}${p.abv ? ' · ' + p.abv : ''}</div>
     <div class="pc-desc">${escapeHtml(p.desc)}</div>
-    <div class="pc-price">$${p.price.toLocaleString('es-CL')}</div>
+    ${priceHtml}
     <button class="pc-add" data-i="${p.i}" onclick="addFromCard(this)">Agregar al carro</button>
   </div>`;
 }
@@ -624,6 +669,81 @@ function addFromCard(btn) {
   addToCart(p);
   btn.textContent = '✓ Agregado';
   btn.classList.add('done');
+}
+
+// ─── VITRINA / STOREFRONT ─────────────────────────────────────────────────────
+function showStorefront() {
+  // Ofertas relámpago: 4 productos con descuento simulado
+  const flashItems = [
+    { p: prod('Imperio Perdido'),  old: 3290 },
+    { p: prod('Samba'),            old: 3290 },
+    { p: prod('Caurina'),          old: 3290 },
+    { p: prod('Guantánamo Mojito'),old: 4990 },
+  ].filter(x => x.p);
+
+  // Más pedidos
+  const topItems = ['Imperio Perdido','Samba','Caurina','Pepita','Elizabeth Gin Tonic','Frank']
+    .map(prod).filter(Boolean);
+
+  const flashCards = flashItems.map(x => {
+    const off = Math.round((1 - x.p.price / x.old) * 100);
+    return buildCard(x.p, { badge:'-'+off+'%', badgeType:'discount', oldPrice:x.old });
+  }).join('');
+
+  const topCards = topItems.map(p => buildCard(p, { badge:'MÁS VENDIDO', badgeType:'top' })).join('');
+
+  const html = `
+  <div class="storefront">
+    <div class="sf-block">
+      <div class="sf-head">
+        <span class="sf-title">⚡ Ofertas Relámpago</span>
+        <span class="sf-timer" id="flashTimer">--:--:--</span>
+      </div>
+      <div class="cards-row">${flashCards}</div>
+    </div>
+
+    <div class="sf-block">
+      <div class="sf-head"><span class="sf-title">🏆 Los más pedidos</span></div>
+      <div class="cards-row">${topCards}</div>
+    </div>
+
+    <div class="sf-block">
+      <div class="sf-head"><span class="sf-title">¿Para qué ocasión?</span></div>
+      <div class="occasion-grid">
+        <button class="occ-btn" onclick="sendQuick('Tengo un asado con amigos, qué me recomiendas?')"><span class="occ-em">🔥</span>Asado</button>
+        <button class="occ-btn" onclick="sendQuick('Es para una previa con amigos, qué llevo?')"><span class="occ-em">🎉</span>Previa</button>
+        <button class="occ-btn" onclick="sendQuick('Quiero hacer un regalo, qué me recomiendas?')"><span class="occ-em">🎁</span>Regalo</button>
+        <button class="occ-btn" onclick="sendQuick('Busco algo refrescante para el calor')"><span class="occ-em">☀️</span>Verano</button>
+        <button class="occ-btn" onclick="sendQuick('Soy dueño de un bar, quiero comprar al por mayor')"><span class="occ-em">🏪</span>Para mi local</button>
+      </div>
+    </div>
+  </div>`;
+
+  const row = document.createElement('div');
+  row.className = 'row bot sf-row';
+  row.innerHTML = `<div class="avatar">⚡</div><div class="msg-col" style="max-width:100%;width:100%">${html}</div>`;
+  document.getElementById('messages').appendChild(row);
+  scrollBottom();
+  startFlashTimer();
+}
+
+let flashEnd = null;
+function startFlashTimer() {
+  // termina hoy a medianoche
+  const now = new Date();
+  flashEnd = new Date(now);
+  flashEnd.setHours(23,59,59,0);
+  tickFlash();
+  setInterval(tickFlash, 1000);
+}
+function tickFlash() {
+  const el = document.getElementById('flashTimer');
+  if (!el || !flashEnd) return;
+  let diff = Math.max(0, Math.floor((flashEnd - new Date())/1000));
+  const h = String(Math.floor(diff/3600)).padStart(2,'0');
+  const m = String(Math.floor((diff%3600)/60)).padStart(2,'0');
+  const s = String(diff%60).padStart(2,'0');
+  el.textContent = `Termina en ${h}:${m}:${s}`;
 }
 
 // ─── CHAT ─────────────────────────────────────────────────────────────────────
@@ -643,7 +763,7 @@ function botRow(innerHTML) {
 function botStatic(text) {
   const prods = detectProducts(text);
   botRow(`<div class="bubble">${md(text)}</div>` +
-    (prods.length ? `<div class="cards-row">${prods.map(buildCard).join('')}</div>` : ''));
+    (prods.length ? `<div class="cards-row">${prods.map(p=>buildCard(p)).join('')}</div>` : ''));
 }
 function userMsg(text) {
   const row = document.createElement('div');
@@ -660,7 +780,7 @@ function finalizeRow(row, fullText) {
   const col = row.querySelector('.msg-col');
   col.innerHTML = `<div class="sender">ZorboBot <span class="ai-badge">IA</span></div>
     <div class="bubble">${md(fullText)}</div>` +
-    (prods.length ? `<div class="cards-row">${prods.map(buildCard).join('')}</div>` : '');
+    (prods.length ? `<div class="cards-row">${prods.map(p=>buildCard(p)).join('')}</div>` : '');
   scrollBottom();
 }
 
