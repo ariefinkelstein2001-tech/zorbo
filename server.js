@@ -55,10 +55,14 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
 // ─── Klaviyo (no-op si KLAVIYO_API_KEY no está configurada) ──────────────────
 
 const KLAVIYO_REVISION = '2024-10-15';
+const isE164 = (p) => typeof p === 'string' && /^\+[1-9]\d{6,14}$/.test(p);
 
 async function klaviyoFetch(path, body, method = 'POST') {
   const key = process.env.KLAVIYO_API_KEY;
-  if (!key) return { skipped: true };
+  if (!key) {
+    console.warn(`[Klaviyo] SKIP ${method} ${path} — KLAVIYO_API_KEY no está seteada`);
+    return { skipped: true, reason: 'no_api_key' };
+  }
   try {
     const res = await fetch(`https://a.klaviyo.com/api${path}`, {
       method,
@@ -70,41 +74,42 @@ async function klaviyoFetch(path, body, method = 'POST') {
       },
       body: body ? JSON.stringify(body) : undefined,
     });
+    const txt = await res.text().catch(() => '');
     if (!res.ok) {
-      const txt = await res.text().catch(() => '');
-      console.error('Klaviyo error:', res.status, txt.slice(0, 300));
-      return { ok: false, status: res.status };
+      console.error(`[Klaviyo] ERROR ${method} ${path} → ${res.status}`, txt.slice(0, 500));
+      return { ok: false, status: res.status, body: txt };
     }
-    return { ok: true };
+    console.log(`[Klaviyo] OK ${method} ${path} → ${res.status}`);
+    return { ok: true, status: res.status, body: txt };
   } catch (e) {
-    console.error('Klaviyo network error:', e.message);
+    console.error(`[Klaviyo] NETWORK ${method} ${path} →`, e.message);
     return { ok: false, error: e.message };
   }
 }
 
-async function klaviyoUpsertProfile({ email, first_name, last_name, phone_number, properties }) {
-  return klaviyoFetch('/profiles/', {
-    data: {
-      type: 'profile',
-      attributes: {
-        email,
-        first_name,
-        last_name,
-        phone_number,
-        properties: properties || undefined,
-      },
-    },
-  });
-}
+// Endpoint combinado: crea o actualiza el perfil Y lo suscribe a la lista en
+// una sola llamada. Devuelve OK también si el email ya existía.
+async function klaviyoSubscribeToList(listId, profile = {}) {
+  if (!listId) {
+    console.warn('[Klaviyo] SKIP subscribe — listId vacío');
+    return { skipped: true, reason: 'no_list_id' };
+  }
+  if (!profile.email) return { skipped: true, reason: 'no_email' };
 
-async function klaviyoSubscribeToList(listId, email) {
-  if (!listId) return { skipped: true };
+  const attrs = { email: profile.email };
+  if (profile.first_name)   attrs.first_name   = profile.first_name;
+  if (profile.last_name)    attrs.last_name    = profile.last_name;
+  if (isE164(profile.phone_number)) attrs.phone_number = profile.phone_number;
+  if (profile.properties)   attrs.properties   = profile.properties;
+  attrs.subscriptions = { email: { marketing: { consent: 'SUBSCRIBED' } } };
+
   return klaviyoFetch('/profile-subscription-bulk-create-jobs/', {
     data: {
       type: 'profile-subscription-bulk-create-job',
       attributes: {
-        custom_source: 'Zorbo',
-        profiles: { data: [{ type: 'profile', attributes: { email } }] },
+        custom_source: 'Zorbot',
+        historical_import: false,
+        profiles: { data: [{ type: 'profile', attributes: attrs }] },
       },
       relationships: { list: { data: { type: 'list', id: listId } } },
     },
@@ -112,12 +117,13 @@ async function klaviyoSubscribeToList(listId, email) {
 }
 
 async function klaviyoTrackEvent({ email, name, properties }) {
+  if (!email || !name) return { skipped: true };
   return klaviyoFetch('/events/', {
     data: {
       type: 'event',
       attributes: {
         properties: properties || {},
-        metric: { data: { type: 'metric', attributes: { name } } },
+        metric:  { data: { type: 'metric',  attributes: { name } } },
         profile: { data: { type: 'profile', attributes: { email } } },
       },
     },
@@ -126,9 +132,12 @@ async function klaviyoTrackEvent({ email, name, properties }) {
 
 async function klaviyoOnboard({ email, first_name, last_name, phone_number, listId, eventName, eventProps }) {
   if (!email) return;
-  await klaviyoUpsertProfile({ email, first_name, last_name, phone_number });
-  if (listId)    await klaviyoSubscribeToList(listId, email);
-  if (eventName) await klaviyoTrackEvent({ email, name: eventName, properties: eventProps });
+  const sub = await klaviyoSubscribeToList(listId, { email, first_name, last_name, phone_number });
+  if (eventName) {
+    const ev = await klaviyoTrackEvent({ email, name: eventName, properties: eventProps });
+    return { sub, ev };
+  }
+  return { sub };
 }
 
 function saveSession(session) {
@@ -511,6 +520,34 @@ app.post('/mayorista/lead', async (req, res) => {
   }
 
   res.json({ ok: true, welcomeCode, isFirstTime });
+});
+
+// ─── Klaviyo: diagnóstico ────────────────────────────────────────────────────
+
+app.get('/klaviyo/status', (req, res) => {
+  res.json({
+    apiKeyPresent:     !!process.env.KLAVIYO_API_KEY,
+    apiKeyPrefix:      process.env.KLAVIYO_API_KEY ? process.env.KLAVIYO_API_KEY.slice(0, 6) + '...' : null,
+    listFirstPurchase: process.env.KLAVIYO_LIST_FIRST_PURCHASE || null,
+    listMayoristas:    process.env.KLAVIYO_LIST_MAYORISTAS || null,
+    revision:          KLAVIYO_REVISION,
+  });
+});
+
+app.post('/klaviyo/test', async (req, res) => {
+  const { email, listId, kind } = req.body || {};
+  if (!email) return res.status(400).json({ error: 'email requerido' });
+  const useList = listId
+    || (kind === 'mayorista' ? process.env.KLAVIYO_LIST_MAYORISTAS : process.env.KLAVIYO_LIST_FIRST_PURCHASE);
+  const result = await klaviyoOnboard({
+    email,
+    first_name: 'Test',
+    last_name:  'Zorbo',
+    listId:     useList,
+    eventName:  'Zorbo Test Sync',
+    eventProps: { source: 'klaviyo-test-endpoint' },
+  });
+  res.json({ listIdUsed: useList, result });
 });
 
 // ─── DELETE /session/:id — terminar sesión y obtener resumen ──────────────────
