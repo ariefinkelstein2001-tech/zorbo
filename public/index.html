@@ -918,8 +918,8 @@ body.theme-firulais .send-btn{background:linear-gradient(135deg,#2a5a2a,#1a3a1a)
 <div class="zmodal" id="gameGateModal">
   <div class="zm-card">
     <button class="zm-x" onclick="closeGameGate()" aria-label="Cerrar">✕</button>
-    <div class="zm-title">🎰 Antes de jugar</div>
-    <div class="zm-sub">Te pedimos algunos datos para entregarte el cupón si ganas. El juego es <strong style="color:var(--gold)">una vez por persona</strong>.</div>
+    <div class="zm-title">🎁 10% OFF en tu primera compra</div>
+    <div class="zm-sub">Suscríbete y recibes tu cupón al instante. Si además juegas la ruleta, tienes la chance de un <strong style="color:var(--gold)">descuento extra</strong>. Una jugada por día por persona.</div>
 
     <div class="zm-err" id="gateErr"></div>
     <div class="zm-field">
@@ -1006,6 +1006,7 @@ let streaming    = false;
 let cartOpen     = false;
 let welcomed     = false;
 let mayoristaMode = false;
+let welcomeCoupon = null; // {type:'pct', value:10, code:'BIENVENIDA10-XXXXXX'}
 const FREE_SHIP  = 50000;
 
 // ─── AGE GATE ─────────────────────────────────────────────────────────────────
@@ -1148,12 +1149,12 @@ function showStorefront() {
   const html = `
   <div class="storefront">
     <div class="game-banner" id="gameBanner" onclick="openGame()">
-      <span class="gb-icon">🎰</span>
+      <span class="gb-icon">🎁</span>
       <div class="gb-txt">
-        <div class="gb-title">Gira y gana hasta 10% OFF</div>
-        <div class="gb-sub">Ruleta · Rasca · Slots — premio garantizado</div>
+        <div class="gb-title">10% OFF en tu primera compra</div>
+        <div class="gb-sub">Reclama tu cupón y juega cada día por un descuento extra</div>
       </div>
-      <span class="gb-cta">JUGAR</span>
+      <span class="gb-cta">RECLAMAR</span>
     </div>
 
     <div class="sf-block">
@@ -1390,12 +1391,21 @@ function updateCart() {
       </div>`).join('');
   }
 
+  // Apilamos welcome 10% + premio (si es pct) multiplicativamente
   let finalTotal = total;
-  if (activeCoupon && activeCoupon.type === 'pct' && total > 0) {
-    finalTotal = Math.round(total * (1 - activeCoupon.value/100));
+  if (total > 0 && welcomeCoupon && welcomeCoupon.type === 'pct') {
+    finalTotal = finalTotal * (1 - welcomeCoupon.value/100);
   }
+  if (total > 0 && activeCoupon && activeCoupon.type === 'pct') {
+    finalTotal = finalTotal * (1 - activeCoupon.value/100);
+  }
+  finalTotal = Math.round(finalTotal);
   const totalEl = document.getElementById('cartTotal');
-  if (activeCoupon && activeCoupon.type === 'pct' && total > 0) {
+  const hasDiscount = total > 0 && (
+    (welcomeCoupon && welcomeCoupon.type === 'pct') ||
+    (activeCoupon && activeCoupon.type === 'pct')
+  );
+  if (hasDiscount) {
     totalEl.innerHTML = '<span style="font-size:.8rem;color:var(--dim);text-decoration:line-through;margin-right:.4rem">$' + total.toLocaleString('es-CL') + '</span>$' + finalTotal.toLocaleString('es-CL');
   } else {
     totalEl.textContent = '$' + total.toLocaleString('es-CL');
@@ -1482,16 +1492,19 @@ function prizeCode(p){
   if(p.type==='free') return 'REGALOZORBO';
 }
 
-let gamePlayed = sessionStorage.getItem('zgame') === '1';
+let gamePlayed = alreadyPlayedToday();
 let currentGame = 'wheel';
 let wonPrize = null;
 
 // ═══════════════ ABRIR / CERRAR ═══════════════
 function openGame(){
-  if(gamePlayed){ return; }
-  // Antes de abrir el juego, pasar por el gate (nombre + apellido + email)
+  if (gamePlayed || alreadyPlayedToday()){
+    botStatic('Ya jugaste hoy. Vuelve mañana para otra oportunidad de ganar un descuento extra!');
+    return;
+  }
   const user = getGateUser();
   if (!user) { openGameGate(); return; }
+  // Returning user con datos ya guardados: directo al juego
   document.getElementById('gameModal').classList.add('open');
   buildWheel();
   buildSlotStrips();
@@ -1509,7 +1522,7 @@ function switchGame(g,btn){
 }
 function lockGame(){
   gamePlayed=true;
-  sessionStorage.setItem('zgame','1');
+  markPlayedToday();
   const banner=document.getElementById('gameBanner');
   if(banner){banner.classList.add('played');banner.querySelector('.gb-sub').textContent='Ya jugaste hoy · vuelve mañana';}
 }
@@ -1652,21 +1665,18 @@ let activeCoupon=null;
 async function applyPrize(){
   const user = getGateUser();
   let code = prizeCode(wonPrize); // fallback local
-  // Reclamar el cupón en el server (graba y dedupea por email)
   if (user) {
     try {
       const res = await fetch('/game/claim', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          nombre: user.nombre, apellido: user.apellido, email: user.email,
-          prize: wonPrize,
-        }),
+        body: JSON.stringify({ email: user.email, prize: wonPrize }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.code) {
         code = data.code;
       } else if (res.status === 409) {
-        alert(data.error || 'Ya jugaste con este email.');
+        alert(data.error || 'Ya jugaste hoy.');
+        markPlayedToday();
         closeGame();
         return;
       }
@@ -1680,12 +1690,20 @@ async function applyPrize(){
     chip.className='coupon-chip';chip.id='couponChip';
     chip.innerHTML=`🎟️ ${code}`;
     head.insertBefore(chip,document.querySelector('.mayoristas-btn') || document.querySelector('.cart-btn'));
+  } else if (document.getElementById('couponChip')) {
+    document.getElementById('couponChip').innerHTML = `🎟️ ${code}`;
   }
   closeGame();
+  const hasWelcome = !!welcomeCoupon;
   let msg='';
-  if(wonPrize.type==='pct') msg=`Bacán! activaste tu cupón **${code}** de **${wonPrize.value}% OFF** 🎉 Lo aplico cuando armes tu pedido. Qué se te antoja?`;
-  else if(wonPrize.type==='ship') msg=`Ganaste **envío gratis** sin mínimo 🚚 Tu código es **${code}**. Aprovéchalo hoy! Qué quieres pedir?`;
-  else msg=`Te ganaste una **Firulais gratis** en tu primer pedido 🐾🎁 Tu código es **${code}**. Armemos tu compra!`;
+  if(wonPrize.type==='pct') {
+    const extra = hasWelcome ? `**EXTRA sobre tu 10% de bienvenida**` : '';
+    msg = `Bacán! ganaste **${wonPrize.value}% OFF** ${extra} 🎉 Código: **${code}** — lo aplico cuando armes tu pedido.`;
+  } else if(wonPrize.type==='ship') {
+    msg = `Ganaste **envío gratis** sin mínimo 🚚 Código: **${code}**${hasWelcome ? ' (suma a tu 10% de bienvenida)' : ''}. Aprovéchalo hoy!`;
+  } else {
+    msg = `Te ganaste una **Firulais gratis** en tu primer pedido 🐾🎁 Código: **${code}**${hasWelcome ? ' (suma a tu 10% de bienvenida)' : ''}. Armemos tu compra!`;
+  }
   botStatic(msg);
   updateCart();
 }
@@ -1711,15 +1729,56 @@ function fireConfetti(){
 }
 
 // ═══════════════ GAME GATE (nombre + apellido + email) ═══════════════════════
+// Usamos localStorage para que el usuario pueda volver a jugar mañana sin re-llenar.
 function getGateUser(){
-  try { return JSON.parse(sessionStorage.getItem('zgate') || 'null'); } catch { return null; }
+  try { return JSON.parse(localStorage.getItem('zgate') || 'null'); } catch { return null; }
 }
 function setGateUser(u){
-  try { sessionStorage.setItem('zgate', JSON.stringify(u)); } catch {}
+  try { localStorage.setItem('zgate', JSON.stringify(u)); } catch {}
 }
+function todayLocalISO(){
+  return new Date().toISOString().slice(0, 10);
+}
+function markPlayedToday(){
+  try { localStorage.setItem('zgame_last', todayLocalISO()); } catch {}
+}
+function alreadyPlayedToday(){
+  return localStorage.getItem('zgame_last') === todayLocalISO();
+}
+function activateWelcomeCoupon(code){
+  if (!code) return;
+  welcomeCoupon = { type: 'pct', value: 10, code };
+  try { localStorage.setItem('zwelcome', JSON.stringify(welcomeCoupon)); } catch {}
+  const head = document.querySelector('header');
+  if (head && !document.getElementById('welcomeChip')){
+    const chip = document.createElement('div');
+    chip.className = 'coupon-chip';
+    chip.id = 'welcomeChip';
+    chip.innerHTML = `🎁 ${code}`;
+    const anchor = document.querySelector('.mayoristas-btn') || document.querySelector('.cart-btn');
+    head.insertBefore(chip, anchor);
+  } else if (document.getElementById('welcomeChip')) {
+    document.getElementById('welcomeChip').innerHTML = `🎁 ${code}`;
+  }
+  updateCart();
+}
+function restoreWelcomeFromStorage(){
+  try {
+    const w = JSON.parse(localStorage.getItem('zwelcome') || 'null');
+    if (w && w.code) activateWelcomeCoupon(w.code);
+  } catch {}
+}
+
 function openGameGate(){
   const err = document.getElementById('gateErr');
   if (err) { err.classList.remove('show'); err.textContent = ''; }
+  // Prefill si ya tenemos el user guardado
+  const prev = getGateUser();
+  if (prev){
+    document.getElementById('gateNombre').value   = prev.nombre   || '';
+    document.getElementById('gateApellido').value = prev.apellido || '';
+    document.getElementById('gateEmail').value    = prev.email    || '';
+  }
   document.getElementById('gameGateModal').classList.add('open');
   setTimeout(() => document.getElementById('gateNombre').focus(), 60);
 }
@@ -1741,17 +1800,33 @@ async function submitGameGate(){
   btn.disabled = true;
   btn.textContent = 'Validando...';
   try {
-    const res = await fetch('/game/check-email', {
+    const res = await fetch('/game/register', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ nombre, apellido, email }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) return showErr(data.error || 'No pudimos validar el correo. Intenta de nuevo.');
-    if (data.exists) return showErr('Este correo ya jugó. El cupón es uno por persona.');
+    if (!res.ok) return showErr(data.error || 'No pudimos registrar tu correo. Intenta de nuevo.');
 
     setGateUser({ nombre, apellido, email });
+
+    // Activar cupón de bienvenida (chip + estado). Para returning ya estará igual.
+    if (data.welcomeCode) activateWelcomeCoupon(data.welcomeCode);
+
     closeGameGate();
-    // Ahora sí abrimos el juego
+
+    if (data.isFirstTime){
+      botStatic(`Bienvenida! Te enviamos por correo tu cupón de **10% OFF** para tu primera compra: **${data.welcomeCode}** 🎁\n\nYa lo dejé aplicado en tu carro. Y ahora, juega para ganar un **descuento EXTRA** encima 🎰`);
+    }
+
+    if (!data.canPlayToday){
+      botStatic('Ya jugaste hoy. Vuelve mañana para otra oportunidad de ganar un descuento extra!');
+      markPlayedToday();
+      const banner = document.getElementById('gameBanner');
+      if (banner){ banner.classList.add('played'); banner.querySelector('.gb-sub').textContent = 'Ya jugaste hoy · vuelve mañana'; }
+      return;
+    }
+
+    // Abrir el juego
     document.getElementById('gameModal').classList.add('open');
     buildWheel();
     buildSlotStrips();
@@ -1846,7 +1921,8 @@ async function mayoLead(){
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      ok.textContent = `Recibimos tus datos! Te contactaremos al ${telefono} dentro de las próximas 48 horas hábiles.`;
+      const wc = data.welcomeCode ? ` Como bienvenida, te dejamos un cupón de 10% OFF en tu primera compra: ${data.welcomeCode}` : '';
+      ok.innerHTML = `Recibimos tus datos! Te contactamos al ${telefono} dentro de las próximas 48 horas hábiles.${wc}`;
       ok.classList.add('show');
       ['leadNombre','leadLocal','leadComuna','leadEmail','leadTelefono'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('leadCanal').value = '';
@@ -1888,6 +1964,7 @@ async function mayoLead(){
 checkAge();
 initPromos();
 initHeroSlides();
+restoreWelcomeFromStorage();
 updateCart();
 </script>
 </body>

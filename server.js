@@ -50,6 +50,86 @@ function randomCode(n) {
   for (let i = 0; i < n; i++) s += RAND_ALPH[Math.floor(Math.random() * RAND_ALPH.length)];
   return s;
 }
+const todayISO = () => new Date().toISOString().slice(0, 10);
+
+// ─── Klaviyo (no-op si KLAVIYO_API_KEY no está configurada) ──────────────────
+
+const KLAVIYO_REVISION = '2024-10-15';
+
+async function klaviyoFetch(path, body, method = 'POST') {
+  const key = process.env.KLAVIYO_API_KEY;
+  if (!key) return { skipped: true };
+  try {
+    const res = await fetch(`https://a.klaviyo.com/api${path}`, {
+      method,
+      headers: {
+        Authorization: `Klaviyo-API-Key ${key}`,
+        accept: 'application/json',
+        revision: KLAVIYO_REVISION,
+        ...(body ? { 'content-type': 'application/json' } : {}),
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      console.error('Klaviyo error:', res.status, txt.slice(0, 300));
+      return { ok: false, status: res.status };
+    }
+    return { ok: true };
+  } catch (e) {
+    console.error('Klaviyo network error:', e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
+async function klaviyoUpsertProfile({ email, first_name, last_name, phone_number, properties }) {
+  return klaviyoFetch('/profiles/', {
+    data: {
+      type: 'profile',
+      attributes: {
+        email,
+        first_name,
+        last_name,
+        phone_number,
+        properties: properties || undefined,
+      },
+    },
+  });
+}
+
+async function klaviyoSubscribeToList(listId, email) {
+  if (!listId) return { skipped: true };
+  return klaviyoFetch('/profile-subscription-bulk-create-jobs/', {
+    data: {
+      type: 'profile-subscription-bulk-create-job',
+      attributes: {
+        custom_source: 'Zorbo',
+        profiles: { data: [{ type: 'profile', attributes: { email } }] },
+      },
+      relationships: { list: { data: { type: 'list', id: listId } } },
+    },
+  });
+}
+
+async function klaviyoTrackEvent({ email, name, properties }) {
+  return klaviyoFetch('/events/', {
+    data: {
+      type: 'event',
+      attributes: {
+        properties: properties || {},
+        metric: { data: { type: 'metric', attributes: { name } } },
+        profile: { data: { type: 'profile', attributes: { email } } },
+      },
+    },
+  });
+}
+
+async function klaviyoOnboard({ email, first_name, last_name, phone_number, listId, eventName, eventProps }) {
+  if (!email) return;
+  await klaviyoUpsertProfile({ email, first_name, last_name, phone_number });
+  if (listId)    await klaviyoSubscribeToList(listId, email);
+  if (eventName) await klaviyoTrackEvent({ email, name: eventName, properties: eventProps });
+}
 
 function saveSession(session) {
   try {
@@ -297,30 +377,68 @@ app.post('/chat', async (req, res) => {
   }
 });
 
-// ─── POST /game/check-email — verifica si el email ya jugó ───────────────────
+// ─── POST /game/register — crea perfil + cupón de bienvenida, valida juego ───
 
-app.post('/game/check-email', (req, res) => {
+app.post('/game/register', async (req, res) => {
+  const { nombre, apellido } = req.body || {};
   const email = normEmail(req.body && req.body.email);
-  if (!email || !email.includes('@')) {
-    return res.status(400).json({ error: 'Email inválido.' });
-  }
+  if (!email || !email.includes('@')) return res.status(400).json({ error: 'Email inválido.' });
+  if (!nombre || !apellido)            return res.status(400).json({ error: 'Nombre y apellido son requeridos.' });
+
   const list = readLog(GAMES_LOG);
-  const exists = list.some(g => normEmail(g.email) === email);
-  res.json({ exists });
+  let entry = list.find(g => normEmail(g.email) === email);
+  let isFirstTime = false;
+
+  if (!entry) {
+    const welcomeCode = `BIENVENIDA10-${randomCode(6)}`;
+    entry = {
+      email, nombre, apellido,
+      createdAt: new Date().toISOString(),
+      welcomeCode,
+      welcomeShopifyCreated: false, // TODO Shopify Admin API: crear discount real
+      plays: [],
+    };
+    list.push(entry);
+    writeFileSync(GAMES_LOG, JSON.stringify(list, null, 2));
+    isFirstTime = true;
+
+    klaviyoOnboard({
+      email, first_name: nombre, last_name: apellido,
+      listId:    process.env.KLAVIYO_LIST_FIRST_PURCHASE,
+      eventName: 'Welcome 10% Issued',
+      eventProps: { welcome_code: welcomeCode, source: 'game-gate' },
+    }).catch(() => {});
+  }
+
+  const today    = todayISO();
+  const lastPlay = Array.isArray(entry.plays) && entry.plays[entry.plays.length - 1];
+  const canPlayToday = !lastPlay || lastPlay.date !== today;
+
+  res.json({
+    isFirstTime,
+    welcomeCode: entry.welcomeCode,
+    canPlayToday,
+    nombre: entry.nombre,
+    apellido: entry.apellido,
+  });
 });
 
-// ─── POST /game/claim — registra el premio ganado y devuelve el cupón ────────
+// ─── POST /game/claim — registra el premio ganado del día y devuelve cupón ───
 
-app.post('/game/claim', (req, res) => {
-  const { nombre, apellido, email, prize } = req.body || {};
-  const e = normEmail(email);
-  if (!e || !e.includes('@')) return res.status(400).json({ error: 'Email inválido.' });
-  if (!nombre || !apellido)   return res.status(400).json({ error: 'Nombre y apellido son requeridos.' });
-  if (!prize || !prize.type)  return res.status(400).json({ error: 'Premio inválido.' });
+app.post('/game/claim', async (req, res) => {
+  const { prize } = req.body || {};
+  const email = normEmail(req.body && req.body.email);
+  if (!email || !email.includes('@')) return res.status(400).json({ error: 'Email inválido.' });
+  if (!prize || !prize.type)           return res.status(400).json({ error: 'Premio inválido.' });
 
   const list = readLog(GAMES_LOG);
-  if (list.some(g => normEmail(g.email) === e)) {
-    return res.status(409).json({ error: 'Ya jugaste con este email. El cupón es uno por persona.' });
+  const entry = list.find(g => normEmail(g.email) === email);
+  if (!entry) return res.status(404).json({ error: 'Tu correo no está registrado. Pasa por el gate primero.' });
+
+  if (!Array.isArray(entry.plays)) entry.plays = [];
+  const today = todayISO();
+  if (entry.plays.some(p => p.date === today)) {
+    return res.status(409).json({ error: 'Ya jugaste hoy. Vuelve mañana para otra oportunidad.' });
   }
 
   const suffix = randomCode(6);
@@ -328,14 +446,19 @@ app.post('/game/claim', (req, res) => {
              : prize.type === 'ship' ? `ENVIO-${suffix}`
              :                         `REGALO-${suffix}`;
 
-  const entry = {
+  entry.plays.push({
+    date: today,
     timestamp: new Date().toISOString(),
-    nombre, apellido, email: e,
     prize, code,
-    shopifyCreated: false, // se actualiza a true cuando integremos Admin API
-  };
-  appendLog(GAMES_LOG, entry);
-  // TODO Shopify Admin API: crear discount code y marcar shopifyCreated:true
+    shopifyCreated: false, // TODO Shopify Admin API: crear discount real
+  });
+  writeFileSync(GAMES_LOG, JSON.stringify(list, null, 2));
+
+  klaviyoTrackEvent({
+    email, name: 'Game Prize Won',
+    properties: { prize_type: prize.type, prize_value: prize.value || null, code, day: today },
+  }).catch(() => {});
+
   res.json({ ok: true, code });
 });
 
@@ -351,20 +474,43 @@ app.post('/mayorista/login', (req, res) => {
 
 // ─── POST /mayorista/lead — guarda info de mayorista nuevo ───────────────────
 
-app.post('/mayorista/lead', (req, res) => {
-  const { nombre, local, comuna, canal, email, telefono, mensaje } = req.body || {};
+app.post('/mayorista/lead', async (req, res) => {
+  const { nombre, local, comuna, canal, telefono, mensaje } = req.body || {};
+  const email = normEmail(req.body && req.body.email);
   if (!nombre || !telefono) {
     return res.status(400).json({ error: 'Nombre y teléfono son requeridos.' });
   }
+
+  const list = readLog(LEADS_LOG);
+  const existing = email && list.find(l => normEmail(l.email) === email);
+  let welcomeCode = existing && existing.welcomeCode ? existing.welcomeCode : null;
+  let isFirstTime = false;
+  if (!welcomeCode) {
+    welcomeCode = `MAYORISTA10-${randomCode(6)}`;
+    isFirstTime = true;
+  }
+
   const entry = {
     timestamp: new Date().toISOString(),
     nombre, local, comuna, canal,
-    email:    normEmail(email),
+    email,
     telefono: String(telefono).trim(),
     mensaje:  mensaje || '',
+    welcomeCode,
+    welcomeShopifyCreated: false, // TODO Shopify Admin API
   };
   appendLog(LEADS_LOG, entry);
-  res.json({ ok: true });
+
+  if (isFirstTime && email) {
+    klaviyoOnboard({
+      email, first_name: nombre, phone_number: entry.telefono,
+      listId:    process.env.KLAVIYO_LIST_MAYORISTAS,
+      eventName: 'Mayorista Lead Submitted',
+      eventProps: { welcome_code: welcomeCode, canal, local, comuna },
+    }).catch(() => {});
+  }
+
+  res.json({ ok: true, welcomeCode, isFirstTime });
 });
 
 // ─── DELETE /session/:id — terminar sesión y obtener resumen ──────────────────
