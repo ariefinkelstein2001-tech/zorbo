@@ -114,6 +114,34 @@ header{
 }
 .pill .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .pill:hover{border-color:var(--gold-bd-h);color:var(--text);background:var(--gold-dim)}
+
+/* ── BRAND CIRCLES (logos) ── */
+.brand-circle{
+  flex-shrink:0;cursor:pointer;
+  background:#fff;border:1.5px solid var(--gold-bd);
+  border-radius:50%;overflow:hidden;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .15s,border-color .2s,box-shadow .2s;
+}
+.brand-circle img{width:100%;height:100%;object-fit:cover;display:block}
+.brand-circle:hover{border-color:var(--gold-bd-h);transform:scale(1.06);box-shadow:0 4px 14px rgba(233,196,106,.25)}
+.brand-circle.sm{width:38px;height:38px}
+.brand-circle.lg{width:62px;height:62px;border-width:2px}
+
+.brand-row-bottom{
+  flex-shrink:0;background:var(--surface);
+  border-top:1px solid var(--border);
+  padding:.7rem 1rem .6rem;
+  display:flex;justify-content:center;gap:1.4rem;
+}
+.brc{
+  background:none;border:none;padding:0;cursor:pointer;font-family:var(--sans);
+  display:flex;flex-direction:column;align-items:center;gap:.32rem;
+  transition:transform .15s;
+}
+.brc:hover{transform:translateY(-2px)}
+.brc-label{font-size:.66rem;font-weight:700;color:var(--muted);letter-spacing:.04em}
+.brc:hover .brc-label{color:var(--gold)}
 .cart-btn{
   flex-shrink:0;position:relative;cursor:pointer;
   width:40px;height:40px;border-radius:11px;
@@ -528,9 +556,15 @@ header{
       </div>
     </div>
     <div class="brand-pills">
-      <button class="pill" onclick="brandPill('kairos')"><span class="dot" style="background:var(--k)"></span>Kairos Brewing</button>
-      <button class="pill" onclick="brandPill('firulais')"><span class="dot" style="background:var(--f)"></span>Firulais</button>
-      <button class="pill" onclick="brandPill('banny')"><span class="dot" style="background:var(--b)"></span>Banny</button>
+      <button class="brand-circle sm" onclick="brandPill('kairos')" aria-label="Kairos Brewing">
+        <img src="brands/kairos.png" alt="Kairos Brewing">
+      </button>
+      <button class="brand-circle sm" onclick="brandPill('firulais')" aria-label="Firulais">
+        <img src="brands/firulais.png" alt="Firulais">
+      </button>
+      <button class="brand-circle sm" onclick="brandPill('banny')" aria-label="Banny">
+        <img src="brands/banny.png" alt="Banny">
+      </button>
     </div>
     <button class="cart-btn" onclick="toggleCart()" aria-label="Carro">
       🛒<span class="cart-badge" id="cartBadge">0</span>
@@ -601,6 +635,22 @@ header{
   <!-- CHAT -->
   <div class="chat-area" id="chatArea">
     <div class="messages" id="messages"></div>
+  </div>
+
+  <!-- BRAND ROW (debajo del chat) -->
+  <div class="brand-row-bottom">
+    <button class="brc" onclick="brandPill('kairos')" aria-label="Kairos Brewing">
+      <span class="brand-circle lg"><img src="brands/kairos.png" alt=""></span>
+      <span class="brc-label">Kairos</span>
+    </button>
+    <button class="brc" onclick="brandPill('firulais')" aria-label="Firulais">
+      <span class="brand-circle lg"><img src="brands/firulais.png" alt=""></span>
+      <span class="brc-label">Firulais</span>
+    </button>
+    <button class="brc" onclick="brandPill('banny')" aria-label="Banny">
+      <span class="brand-circle lg"><img src="brands/banny.png" alt=""></span>
+      <span class="brc-label">Banny</span>
+    </button>
   </div>
 
   <!-- INPUT -->
