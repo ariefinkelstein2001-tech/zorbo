@@ -530,26 +530,24 @@ header{
   .msg-in{font-size:16px}
 }
 
-/* ── BRAND TAKEOVER (Firulais) ── */
-.brand-takeover{
-  flex-shrink:0;position:relative;
-  background:#f7d534;border-bottom:1px solid rgba(42,90,42,.28);
-  max-height:0;opacity:0;overflow:hidden;
-  transition:max-height .4s cubic-bezier(.4,0,.2,1),opacity .25s,border-color .25s;
+/* ── VITRINA FIRULAIS DENTRO DEL CHAT ── */
+.firulais-visual-row .msg-col{gap:.55rem;max-width:100%;width:100%}
+.fv-banner{
+  display:block;width:100%;max-height:140px;object-fit:contain;
+  background:#f7d534;border-radius:14px;
+  border:1px solid rgba(42,90,42,.2);
 }
-body.theme-firulais .brand-takeover{max-height:240px;opacity:1}
-.bt-close{
-  position:absolute;top:8px;right:10px;z-index:5;
-  background:rgba(0,0,0,.55);color:#fff;border:none;
-  width:28px;height:28px;border-radius:50%;cursor:pointer;
-  font-size:.9rem;line-height:1;
-  display:flex;align-items:center;justify-content:center;
-  transition:background .15s;
+.fv-strip{
+  display:flex;gap:0;overflow:hidden;
+  background:#f7d534;border-radius:14px;
+  border:1px solid rgba(42,90,42,.2);
+  height:84px;padding:0;align-items:center;
 }
-.bt-close:hover{background:rgba(0,0,0,.78)}
-.bt-banner{display:block;width:100%;max-height:148px;object-fit:contain;background:#f7d534}
-.bt-video{height:84px;background:#f7d534;overflow:hidden;display:flex;align-items:center;justify-content:flex-start}
-.bt-video video{height:100%;width:auto;max-width:none;display:block}
+.fv-dog{height:100%;width:auto;flex-shrink:0;display:block}
+@media (max-width:600px){
+  .fv-banner{max-height:110px}
+  .fv-strip{height:68px}
+}
 
 /* Skin amarillo del chat cuando Firulais esta activo */
 body.theme-firulais .chat-area{background:#fff4b8;background-image:none}
@@ -567,15 +565,8 @@ body.theme-firulais .qr{color:rgba(42,90,42,.7);border-color:rgba(42,90,42,.2)}
 body.theme-firulais .qr:hover{color:#c0392b;background:rgba(192,57,43,.08);border-color:rgba(192,57,43,.3)}
 body.theme-firulais .send-btn{background:linear-gradient(135deg,#2a5a2a,#1a3a1a);color:#f7d534}
 
-/* Banners colapsables al hacer scroll en el chat */
-.hero-slides,.promo-wrap,.brand-takeover{
-  transition:max-height .4s cubic-bezier(.4,0,.2,1),opacity .25s,border-color .25s;
-}
-body.scrolled .hero-slides,
-body.scrolled .promo-wrap,
-body.scrolled.theme-firulais .brand-takeover{
-  max-height:0;opacity:0;border-bottom-color:transparent;
-}
+/* Banners superiores: alto/opacidad se modulan por JS segun el scroll del chat */
+.hero-slides,.promo-wrap{will-change:height,opacity;overflow:hidden}
 </style>
 </head>
 <body>
@@ -677,15 +668,6 @@ body.scrolled.theme-firulais .brand-takeover{
       </div>
     </div>
     <div class="promo-dots" id="promoDots"></div>
-  </div>
-
-  <!-- BRAND TAKEOVER (Firulais) -->
-  <div class="brand-takeover" id="brandTakeover">
-    <button class="bt-close" onclick="closeTakeover()" aria-label="Cerrar">✕</button>
-    <img class="bt-banner" src="brands/firulais_banner.png" alt="Firulais">
-    <div class="bt-video">
-      <video id="btVideo" src="brands/perroca.mp4" loop muted playsinline preload="metadata"></video>
-    </div>
   </div>
 
   <!-- CHAT -->
@@ -1094,7 +1076,7 @@ function finalizeRow(row, fullText) {
 }
 
 // ─── ENVÍO AL ENDPOINT REAL /chat ─────────────────────────────────────────────
-async function send() {
+async function send(opts) {
   const inp  = document.getElementById('msgIn');
   const text = inp.value.trim();
   if (!text || streaming) return;
@@ -1103,6 +1085,7 @@ async function send() {
   autoResize(inp);
   setStreaming(true);
   userMsg(text);
+  if (opts && typeof opts.beforeBot === 'function') opts.beforeBot();
   const tRow = typingRow();
 
   try {
@@ -1154,31 +1137,33 @@ async function send() {
     setStreaming(false);
   }
 }
-function sendQuick(text) {
+function sendQuick(text, opts) {
   if (streaming) return;
   document.getElementById('msgIn').value = text;
-  send();
+  send(opts);
 }
 function brandPill(brand) {
-  const v = document.getElementById('btVideo');
   document.body.classList.remove('theme-firulais');
-  if (brand === 'firulais') {
-    document.body.classList.add('theme-firulais');
-    if (v) { try { v.currentTime = 0; v.play().catch(()=>{}); } catch{} }
-  } else if (v) {
-    v.pause();
-  }
+  if (brand === 'firulais') document.body.classList.add('theme-firulais');
   const q = {
     kairos:   'Qué cervezas artesanales tiene Kairos Brewing?',
     firulais: 'Cuéntame de las cheladas Firulais',
     banny:    'Qué destilados y RTD tiene Banny?',
   };
-  sendQuick(q[brand]);
+  const opts = brand === 'firulais' ? { beforeBot: showFirulaisVisual } : undefined;
+  sendQuick(q[brand], opts);
 }
-function closeTakeover() {
-  document.body.classList.remove('theme-firulais');
-  const v = document.getElementById('btVideo');
-  if (v) v.pause();
+function showFirulaisVisual() {
+  const row = document.createElement('div');
+  row.className = 'row bot firulais-visual-row';
+  const dogs = Array.from({ length: 6 }, () =>
+    '<video class="fv-dog" src="brands/perroca.mp4" loop muted autoplay playsinline preload="auto"></video>'
+  ).join('');
+  row.innerHTML = `<div class="avatar">⚡</div><div class="msg-col">
+    <img class="fv-banner" src="brands/firulais_banner.png" alt="Firulais">
+    <div class="fv-strip">${dogs}</div></div>`;
+  document.getElementById('messages').appendChild(row);
+  scrollBottom();
 }
 function setStreaming(v) {
   streaming = v;
@@ -1529,12 +1514,24 @@ function fireConfetti(){
   }
 }
 
-// ─── SCROLL: esconde banners superiores al bajar en el chat ──────────────────
+// ─── SCROLL: los banners superiores se deslizan en proporcion al scroll ──────
 (function(){
   const ca = document.getElementById('chatArea');
   if (!ca) return;
+  const hero  = document.querySelector('.hero-slides');
+  const promo = document.querySelector('.promo-wrap');
+  const heroBase  = hero  ? hero.offsetHeight  : 150;
+  const promoBase = promo ? promo.offsetHeight : 40;
+  const RANGE = 200;
+  let ticking = false;
+  function update(){
+    const t = Math.max(0, Math.min(1, ca.scrollTop / RANGE));
+    if (hero)  { hero.style.height  = ((1 - t) * heroBase ) + 'px'; hero.style.opacity  = String(1 - t); }
+    if (promo) { promo.style.height = ((1 - t) * promoBase) + 'px'; promo.style.opacity = String(1 - t); }
+    ticking = false;
+  }
   ca.addEventListener('scroll', () => {
-    document.body.classList.toggle('scrolled', ca.scrollTop > 30);
+    if (!ticking) { ticking = true; requestAnimationFrame(update); }
   }, { passive: true });
 })();
 
