@@ -529,6 +529,53 @@ header{
   .toast-wrap{right:.5rem;bottom:82px}
   .msg-in{font-size:16px}
 }
+
+/* ── BRAND TAKEOVER (Firulais) ── */
+.brand-takeover{
+  flex-shrink:0;position:relative;
+  background:#f7d534;border-bottom:1px solid rgba(42,90,42,.28);
+  max-height:0;opacity:0;overflow:hidden;
+  transition:max-height .4s cubic-bezier(.4,0,.2,1),opacity .25s,border-color .25s;
+}
+body.theme-firulais .brand-takeover{max-height:240px;opacity:1}
+.bt-close{
+  position:absolute;top:8px;right:10px;z-index:5;
+  background:rgba(0,0,0,.55);color:#fff;border:none;
+  width:28px;height:28px;border-radius:50%;cursor:pointer;
+  font-size:.9rem;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s;
+}
+.bt-close:hover{background:rgba(0,0,0,.78)}
+.bt-banner{display:block;width:100%;max-height:148px;object-fit:contain;background:#f7d534}
+.bt-video{height:84px;background:#f7d534;overflow:hidden;display:flex;align-items:center;justify-content:flex-start}
+.bt-video video{height:100%;width:auto;max-width:none;display:block}
+
+/* Skin amarillo del chat cuando Firulais esta activo */
+body.theme-firulais .chat-area{background:#fff4b8;background-image:none}
+body.theme-firulais .input-wrap{background:#fff4b8;border-top-color:rgba(42,90,42,.18)}
+body.theme-firulais .brand-row-bottom{background:#fff4b8;border-top-color:rgba(42,90,42,.18)}
+body.theme-firulais .input-hint{color:rgba(42,90,42,.55)}
+body.theme-firulais .msg-in{background:#fffdf0;border-color:rgba(42,90,42,.22);color:#2a3a2a}
+body.theme-firulais .msg-in::placeholder{color:rgba(42,90,42,.45)}
+body.theme-firulais .row.bot .bubble{background:#fffdf0;border-color:rgba(42,90,42,.18);color:#2a3a2a}
+body.theme-firulais .row.bot .bubble strong{color:#c0392b}
+body.theme-firulais .row.user .bubble{background:linear-gradient(135deg,#f0c81f,#c9a40f);border-color:transparent;color:#2a2410}
+body.theme-firulais .sender{color:rgba(42,90,42,.55)}
+body.theme-firulais .avatar{background:linear-gradient(135deg,#2a5a2a,#1a3a1a);color:#f7d534}
+body.theme-firulais .qr{color:rgba(42,90,42,.7);border-color:rgba(42,90,42,.2)}
+body.theme-firulais .qr:hover{color:#c0392b;background:rgba(192,57,43,.08);border-color:rgba(192,57,43,.3)}
+body.theme-firulais .send-btn{background:linear-gradient(135deg,#2a5a2a,#1a3a1a);color:#f7d534}
+
+/* Banners colapsables al hacer scroll en el chat */
+.hero-slides,.promo-wrap,.brand-takeover{
+  transition:max-height .4s cubic-bezier(.4,0,.2,1),opacity .25s,border-color .25s;
+}
+body.scrolled .hero-slides,
+body.scrolled .promo-wrap,
+body.scrolled.theme-firulais .brand-takeover{
+  max-height:0;opacity:0;border-bottom-color:transparent;
+}
 </style>
 </head>
 <body>
@@ -630,6 +677,15 @@ header{
       </div>
     </div>
     <div class="promo-dots" id="promoDots"></div>
+  </div>
+
+  <!-- BRAND TAKEOVER (Firulais) -->
+  <div class="brand-takeover" id="brandTakeover">
+    <button class="bt-close" onclick="closeTakeover()" aria-label="Cerrar">✕</button>
+    <img class="bt-banner" src="brands/firulais_banner.png" alt="Firulais">
+    <div class="bt-video">
+      <video id="btVideo" src="brands/perroca.mp4" loop muted playsinline preload="metadata"></video>
+    </div>
   </div>
 
   <!-- CHAT -->
@@ -1104,12 +1160,25 @@ function sendQuick(text) {
   send();
 }
 function brandPill(brand) {
+  const v = document.getElementById('btVideo');
+  document.body.classList.remove('theme-firulais');
+  if (brand === 'firulais') {
+    document.body.classList.add('theme-firulais');
+    if (v) { try { v.currentTime = 0; v.play().catch(()=>{}); } catch{} }
+  } else if (v) {
+    v.pause();
+  }
   const q = {
     kairos:   'Qué cervezas artesanales tiene Kairos Brewing?',
     firulais: 'Cuéntame de las cheladas Firulais',
     banny:    'Qué destilados y RTD tiene Banny?',
   };
   sendQuick(q[brand]);
+}
+function closeTakeover() {
+  document.body.classList.remove('theme-firulais');
+  const v = document.getElementById('btVideo');
+  if (v) v.pause();
 }
 function setStreaming(v) {
   streaming = v;
@@ -1459,6 +1528,15 @@ function fireConfetti(){
     setTimeout(()=>c.remove(),dur*1000);
   }
 }
+
+// ─── SCROLL: esconde banners superiores al bajar en el chat ──────────────────
+(function(){
+  const ca = document.getElementById('chatArea');
+  if (!ca) return;
+  ca.addEventListener('scroll', () => {
+    document.body.classList.toggle('scrolled', ca.scrollTop > 30);
+  }, { passive: true });
+})();
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 checkAge();
