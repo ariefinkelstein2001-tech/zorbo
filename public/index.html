@@ -142,6 +142,132 @@ header{
 .brc:hover{transform:translateY(-2px)}
 .brc-label{font-size:.66rem;font-weight:700;color:var(--muted);letter-spacing:.04em}
 .brc:hover .brc-label{color:var(--gold)}
+.account-chip{
+  flex-shrink:0;cursor:pointer;
+  display:flex;align-items:center;gap:.5rem;
+  padding:.45rem .75rem;border-radius:11px;
+  background:linear-gradient(135deg,var(--gold-dim),rgba(233,196,106,.06));
+  border:1px solid var(--gold-bd);color:var(--gold);
+  font-family:var(--sans);font-size:.74rem;font-weight:700;letter-spacing:.02em;
+  transition:border-color .2s,transform .12s;
+}
+.account-chip:hover{border-color:var(--gold-bd-h);transform:translateY(-1px)}
+.account-chip .ac-ico{font-size:.95rem}
+.account-chip .ac-name{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.account-menu{
+  position:absolute;top:62px;right:1rem;z-index:600;
+  background:var(--surface2);border:1px solid var(--gold-bd);
+  border-radius:11px;padding:.4rem;min-width:200px;
+  box-shadow:0 14px 36px rgba(0,0,0,.55);
+}
+.account-menu.open{display:block!important}
+.account-menu .am-head{
+  padding:.55rem .75rem;border-bottom:1px solid var(--border);
+  color:var(--muted);font-size:.7rem;margin-bottom:.3rem;
+}
+.account-menu .am-item{
+  width:100%;text-align:left;background:none;border:none;
+  padding:.55rem .75rem;border-radius:7px;cursor:pointer;
+  color:var(--text);font-family:var(--sans);font-size:.78rem;
+}
+.account-menu .am-item:hover{background:var(--gold-dim);color:var(--gold)}
+body.mayorista-active .mayoristas-btn{display:none}
+
+/* ── MAYORISTA STOREFRONT (dentro del chat) ── */
+.mayo-hero{
+  background:linear-gradient(135deg,#1a1408 0%,#0e0e16 100%);
+  border:1px solid var(--gold-bd);border-radius:18px;
+  padding:1.2rem 1.3rem;margin-bottom:1.1rem;
+  display:flex;align-items:center;gap:1rem;
+}
+.mayo-hero .mh-ico{font-size:2rem;flex-shrink:0;filter:drop-shadow(0 2px 6px rgba(233,196,106,.5))}
+.mayo-hero .mh-txt{flex:1;min-width:0}
+.mayo-hero .mh-title{font-family:var(--display);font-size:1.05rem;font-weight:800;color:var(--gold)}
+.mayo-hero .mh-sub{font-size:.74rem;color:var(--muted);margin-top:.18rem;font-weight:300;line-height:1.4}
+.mayo-section{margin-bottom:1.4rem}
+.mayo-section-head{
+  display:flex;align-items:baseline;gap:.6rem;
+  margin-bottom:.7rem;padding-bottom:.4rem;
+  border-bottom:1px solid var(--border);
+}
+.mayo-section-head .ms-title{
+  font-family:var(--display);font-size:1.05rem;font-weight:800;
+  letter-spacing:.04em;color:var(--text);
+}
+.mayo-section-head .ms-count{font-size:.66rem;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+.mayo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.75rem}
+.mayo-card{
+  background:linear-gradient(180deg,var(--surface) 0%,var(--surface2) 100%);
+  border:1px solid var(--border);border-radius:13px;
+  padding:.85rem .85rem .95rem;
+  display:flex;flex-direction:column;gap:.32rem;
+  transition:border-color .18s,transform .18s,box-shadow .18s;
+  position:relative;
+}
+.mayo-card:hover{border-color:var(--gold-bd-h);transform:translateY(-3px);box-shadow:0 14px 30px rgba(0,0,0,.4)}
+.mayo-card.kairos{border-top:2px solid var(--k)}
+.mayo-card.lanus{border-top:2px solid #7b1f3a}
+.mayo-card.osagui{border-top:2px solid #c0241a}
+.mayo-card.firulais{border-top:2px solid var(--f)}
+.mayo-card.banny{border-top:2px solid var(--b)}
+.mayo-card .mc-img{
+  position:relative;width:100%;aspect-ratio:1;
+  background:var(--surface3);border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;margin-bottom:.3rem;
+}
+.mayo-card .mc-img img{
+  width:100%;height:100%;object-fit:contain;
+  position:absolute;inset:0;transition:opacity .3s ease;
+}
+.mayo-card .mc-img img.img2{opacity:0;pointer-events:none}
+.mayo-card:hover .mc-img img.img2{opacity:1}
+.mayo-card:hover .mc-img img.img1{opacity:0}
+.mayo-card .mc-img .mc-fb{font-size:2.6rem;opacity:.3;color:var(--gold)}
+.mayo-card .mc-tag{
+  position:absolute;top:.55rem;left:.55rem;
+  background:var(--gold);color:#1a1408;
+  font-family:var(--display);font-size:.55rem;font-weight:800;
+  letter-spacing:.1em;padding:.15rem .42rem;border-radius:3px;z-index:2;
+}
+.mayo-card .mc-style{font-size:.62rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+.mayo-card .mc-name{font-family:var(--display);font-size:.92rem;font-weight:800;color:var(--text);line-height:1.15}
+.mayo-card select.mc-variant{
+  width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:6px;
+  color:var(--text);font-size:.7rem;padding:.35rem .5rem;margin-top:.2rem;
+  font-family:var(--sans);cursor:pointer;
+}
+.mayo-card select.mc-variant:focus{outline:none;border-color:var(--gold-bd-h)}
+.mayo-card .mc-price{
+  font-family:var(--display);font-size:1.05rem;font-weight:800;color:var(--gold);
+  margin-top:.25rem;
+}
+.mayo-card .mc-price small{font-size:.62rem;color:var(--dim);font-weight:400;margin-left:.25rem;letter-spacing:.05em}
+.mayo-card .mc-acts{display:flex;gap:.4rem;margin-top:.45rem;align-items:stretch}
+.mayo-card .mc-qty{
+  display:flex;border:1px solid var(--border);border-radius:7px;
+  background:var(--surface3);flex-shrink:0;
+}
+.mayo-card .mc-qty button{
+  background:none;border:none;color:var(--gold);
+  width:24px;font-size:1rem;font-weight:700;cursor:pointer;
+}
+.mayo-card .mc-qty button:hover{background:var(--gold-dim)}
+.mayo-card .mc-qty .mq-v{
+  width:24px;text-align:center;color:var(--text);font-weight:700;font-size:.78rem;
+  display:flex;align-items:center;justify-content:center;
+}
+.mayo-card .mc-add{
+  flex:1;background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));
+  border:none;border-radius:7px;color:#1a1408;
+  font-size:.66rem;font-weight:800;font-family:var(--sans);
+  letter-spacing:.08em;text-transform:uppercase;cursor:pointer;
+  padding:.4rem;transition:filter .15s;
+}
+.mayo-card .mc-add:hover{filter:brightness(1.1)}
+.mayo-card .mc-add.done{background:var(--green);color:#fff;pointer-events:none}
+.mayo-empty{padding:2rem;text-align:center;color:var(--dim);font-size:.78rem}
+
 .cart-btn{
   flex-shrink:0;position:relative;cursor:pointer;
   width:40px;height:40px;border-radius:11px;
@@ -715,9 +841,16 @@ body.mayorista-active .game-banner{display:none}
         <img src="brands/banny.png" alt="Banny">
       </button>
     </div>
-    <button class="mayoristas-btn" onclick="openMayoristaModal()" aria-label="Acceso mayoristas">
+    <button class="mayoristas-btn" id="mayoristasBtn" onclick="openMayoristaModal()" aria-label="Acceso mayoristas">
       <span class="mb-ico">🔐</span><span class="mb-txt">Mayoristas</span>
     </button>
+    <button class="account-chip" id="accountChip" style="display:none" onclick="toggleAccountMenu()" aria-label="Mi cuenta">
+      <span class="ac-ico">👤</span><span class="ac-name" id="accountName">Mi cuenta</span>
+    </button>
+    <div class="account-menu" id="accountMenu" style="display:none">
+      <div class="am-head" id="amHead">—</div>
+      <button class="am-item" onclick="logoutMayorista()">Cerrar sesión</button>
+    </div>
     <button class="cart-btn" onclick="toggleCart()" aria-label="Carro">
       🛒<span class="cart-badge" id="cartBadge">0</span>
     </button>
@@ -1646,9 +1779,248 @@ function isMayoristaContext(){
 function markMayoristaActive(){
   document.body.classList.add('mayorista-active');
 }
+
+// ─── ACCOUNT CHIP / LOGOUT ───────────────────────────────────────────────────
+function showAccountChip(customer){
+  const chip = document.getElementById('accountChip');
+  const name = document.getElementById('accountName');
+  const head = document.getElementById('amHead');
+  if (!chip || !name) return;
+  const nom = (customer && (customer.first_name || customer.email)) || 'Mi cuenta';
+  name.textContent = nom;
+  if (head) head.textContent = (customer && customer.email) || '';
+  chip.style.display = 'flex';
+}
+function hideAccountChip(){
+  const chip = document.getElementById('accountChip');
+  const menu = document.getElementById('accountMenu');
+  if (chip) chip.style.display = 'none';
+  if (menu) { menu.style.display = 'none'; menu.classList.remove('open'); }
+}
+function toggleAccountMenu(){
+  const menu = document.getElementById('accountMenu');
+  if (!menu) return;
+  const open = menu.classList.toggle('open');
+  menu.style.display = open ? 'block' : 'none';
+}
+document.addEventListener('click', e => {
+  const menu = document.getElementById('accountMenu');
+  const chip = document.getElementById('accountChip');
+  if (!menu || !chip) return;
+  if (menu.classList.contains('open') && !menu.contains(e.target) && !chip.contains(e.target)) {
+    menu.classList.remove('open');
+    menu.style.display = 'none';
+  }
+});
+function logoutMayorista(){
+  mayoristaMode = false;
+  sessionStorage.removeItem('zmayo');
+  sessionStorage.removeItem('zmayo_customer');
+  document.body.classList.remove('mayorista-active');
+  hideAccountChip();
+  showStorefront(); // vuelve al storefront B2C
+  botStatic('Cerraste sesión. Si quieres volver a entrar como mayorista, pulsa MAYORISTAS.');
+}
+
+// ─── MAYORISTA STOREFRONT ────────────────────────────────────────────────────
+const BRAND_INFO = {
+  kairos:  { label:'Kairos Brewing',     emoji:'🍺' },
+  lanus:   { label:'Lanús · Argentina',  emoji:'⚽' },
+  osagui:  { label:'Osagui · Japón',     emoji:'🌸' },
+  firulais:{ label:'Firulais Craft Mix', emoji:'🐶' },
+  banny:   { label:'Banny by Kairos',    emoji:'🐇' },
+};
+function detectMayoristaBrand(p){
+  const t = (p.title || '').toLowerCase();
+  if (t.includes('lanús') || t.includes('lanus'))  return 'lanus';
+  if (t.includes('osagui'))                         return 'osagui';
+  if (t.includes('firulais') || t.includes('chelada')) return 'firulais';
+  if (t.includes('banny') || t.includes('gin ') || /\brum\b|\bron\b/.test(t)
+      || t.includes('whisky') || t.includes('whiskey') || t.includes('vermut')
+      || t.includes('mojito') || t.includes('rtd')) return 'banny';
+  return 'kairos';
+}
+function cleanMayoristaTitle(s){
+  return String(s||'')
+    .replace(/24\s*pack\s*473\s*cc?\s*mayorista\s*/gi, '24 Pack ')
+    .replace(/^\s*barril\s*/i, 'Barril ')
+    .replace(/^\s*bid[oó]n\s*/i, 'Bidón ')
+    .replace(/\s*\(mayorista\)\s*/gi, ' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function styleLabelFor(p){
+  if (p.type)  return p.type;
+  const t = (p.title || '').toLowerCase();
+  if (t.includes('gin')) return 'Gin';
+  if (t.includes('ron') || t.includes('rum')) return 'Ron';
+  if (t.includes('whisky')) return 'Whiskey';
+  if (t.includes('vermut')) return 'Vermut';
+  if (t.includes('mojito')) return 'RTD Mojito';
+  if (t.includes('barril')) return 'Barril';
+  if (t.includes('24 pack')) return '24 Pack 473cc';
+  return '';
+}
+function buildMayoristaCard(p, brand){
+  const variants = p.variants || [];
+  const v0 = variants[0] || {};
+  const price = parseFloat(v0.price || 0);
+  const unit = variants[0] && /barril/i.test(p.title||'') ? 'CLP / barril' :
+               /pack/i.test(p.title||'') ? '× 24 latas' : 'CLP';
+  const img1 = p.image || (p.images && p.images[0]) || null;
+  const img2 = (p.images && p.images[1]) || null;
+  const visual = img1
+    ? `<div class="mc-img">
+         <img class="img1" src="${img1}" alt="${escapeHtml(p.title)}" loading="lazy">
+         ${img2 ? `<img class="img2" src="${img2}" alt="" loading="lazy">` : ''}
+       </div>`
+    : `<div class="mc-img"><span class="mc-fb">${BRAND_INFO[brand].emoji}</span></div>`;
+  const tag = /barril/i.test(p.title||'') ? 'Barril'
+            : /bid[oó]n/i.test(p.title||'') ? 'Bidón'
+            : /pack/i.test(p.title||'') ? 'Pack' : 'Mayorista';
+  const variantSelect = variants.length > 1
+    ? `<select class="mc-variant" onchange="mayoCardVariantChange(this)">
+         ${variants.map((v,i) => `<option value="${v.id}" data-price="${v.price}">${escapeHtml(v.title)} — $${Math.round(parseFloat(v.price)).toLocaleString('es-CL')}</option>`).join('')}
+       </select>`
+    : '';
+  // Datos comprimidos en el botón para usar al agregar al carro
+  const productData = {
+    name:      cleanMayoristaTitle(p.title),
+    brand,
+    emoji:     BRAND_INFO[brand].emoji,
+    style:     styleLabelFor(p),
+    desc:      '',
+    price,
+    variantId: v0.id,
+    variants:  variants.map(v => ({ id:v.id, title:v.title, price:parseFloat(v.price) })),
+  };
+  return `
+  <div class="mayo-card ${brand}">
+    <span class="mc-tag">${tag}</span>
+    ${visual}
+    <div class="mc-style">${escapeHtml(styleLabelFor(p))}</div>
+    <div class="mc-name">${escapeHtml(cleanMayoristaTitle(p.title))}</div>
+    ${variantSelect}
+    <div class="mc-price">$${price.toLocaleString('es-CL')}<small>${unit}</small></div>
+    <div class="mc-acts">
+      <div class="mc-qty">
+        <button onclick="mayoCardQty(this,-1)" aria-label="Restar">−</button>
+        <span class="mq-v">1</span>
+        <button onclick="mayoCardQty(this,1)" aria-label="Sumar">+</button>
+      </div>
+      <button class="mc-add" data-product='${JSON.stringify(productData).replace(/'/g,"&#39;")}' onclick="mayoAddToCart(this)">Agregar</button>
+    </div>
+  </div>`;
+}
+function mayoCardQty(btn, delta){
+  const wrap = btn.closest('.mc-qty');
+  const el = wrap && wrap.querySelector('.mq-v');
+  if (!el) return;
+  const next = Math.max(1, Math.min(99, (parseInt(el.textContent,10)||1)+delta));
+  el.textContent = next;
+}
+function mayoCardVariantChange(sel){
+  const card = sel.closest('.mayo-card');
+  if (!card) return;
+  const opt = sel.options[sel.selectedIndex];
+  const newPrice = parseFloat(opt.dataset.price || '0');
+  const priceEl = card.querySelector('.mc-price');
+  if (priceEl) {
+    const small = priceEl.querySelector('small');
+    const unitTxt = small ? small.textContent : 'CLP';
+    priceEl.innerHTML = `$${newPrice.toLocaleString('es-CL')}<small>${unitTxt}</small>`;
+  }
+  // Actualizar el data del botón para que addToCart use el variant correcto
+  const btn = card.querySelector('.mc-add');
+  if (btn) {
+    const data = JSON.parse(btn.getAttribute('data-product').replace(/&#39;/g,"'"));
+    data.variantId = sel.value;
+    data.price = newPrice;
+    btn.setAttribute('data-product', JSON.stringify(data).replace(/'/g,"&#39;"));
+  }
+}
+function mayoAddToCart(btn){
+  const data = JSON.parse(btn.getAttribute('data-product').replace(/&#39;/g,"'"));
+  const card = btn.closest('.mayo-card');
+  const qtyEl = card && card.querySelector('.mq-v');
+  const qty = qtyEl ? Math.max(1, parseInt(qtyEl.textContent,10)||1) : 1;
+  addToCart(data, qty);
+  btn.textContent = `✓ Agregado (${qty})`;
+  btn.classList.add('done');
+}
+
+let MAYO_CACHE = null;
+let MAYO_CACHE_AT = 0;
+async function loadMayoristaCatalog(){
+  if (MAYO_CACHE && Date.now() - MAYO_CACHE_AT < 5*60*1000) return MAYO_CACHE;
+  try {
+    const r = await fetch('/api/products?mode=b2b');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    MAYO_CACHE = data.products || [];
+    MAYO_CACHE_AT = Date.now();
+    return MAYO_CACHE;
+  } catch (e) { console.error('loadMayoristaCatalog:', e); return []; }
+}
+async function showMayoristaStorefront(){
+  const products = await loadMayoristaCatalog();
+  const customer = JSON.parse(sessionStorage.getItem('zmayo_customer') || '{}');
+  const nom = customer.first_name || 'mayorista';
+
+  // Agrupar por marca
+  const groups = { kairos:[], lanus:[], osagui:[], firulais:[], banny:[] };
+  for (const p of products) {
+    if (!p.variants || !p.variants.length) continue;
+    const brand = detectMayoristaBrand(p);
+    groups[brand].push(p);
+  }
+  const order = ['kairos','lanus','osagui','firulais','banny'];
+  const sectionsHtml = order
+    .filter(b => groups[b].length)
+    .map(b => `
+      <div class="mayo-section">
+        <div class="mayo-section-head">
+          <span class="ms-title">${BRAND_INFO[b].emoji} ${BRAND_INFO[b].label}</span>
+          <span class="ms-count">${groups[b].length} ${groups[b].length === 1 ? 'producto' : 'productos'}</span>
+        </div>
+        <div class="mayo-grid">${groups[b].map(p => buildMayoristaCard(p,b)).join('')}</div>
+      </div>`)
+    .join('');
+
+  const html = `
+    <div class="mayo-hero">
+      <span class="mh-ico">🔐</span>
+      <div class="mh-txt">
+        <div class="mh-title">Hola ${escapeHtml(nom)} — modo mayorista</div>
+        <div class="mh-sub">Catálogo wholesale activo. Barriles, bidones y packs por 24. Precios sin IVA configurados por Kairos.</div>
+      </div>
+    </div>
+    ${sectionsHtml || '<div class="mayo-empty">No hay productos mayoristas activos en este momento.</div>'}
+  `;
+
+  // Reemplazo del storefront B2C
+  const existing = document.querySelector('.sf-row');
+  if (existing) {
+    existing.querySelector('.msg-col').innerHTML = html;
+  } else {
+    const row = document.createElement('div');
+    row.className = 'row bot sf-row';
+    row.innerHTML = `<div class="avatar">⚡</div><div class="msg-col" style="max-width:100%;width:100%">${html}</div>`;
+    document.getElementById('messages').appendChild(row);
+    scrollBottom();
+  }
+}
 function restoreMayoristaState(){
   if (sessionStorage.getItem('zmayo') === '1') mayoristaMode = true;
   if (isMayoristaContext()) markMayoristaActive();
+  if (mayoristaMode) {
+    try {
+      const c = JSON.parse(sessionStorage.getItem('zmayo_customer') || '{}');
+      showAccountChip(c);
+      // Reemplaza el storefront B2C por el de mayoristas (esperá a que welcome() lo monte)
+      setTimeout(showMayoristaStorefront, 250);
+    } catch {}
+  }
 }
 function closeGame(){
   document.getElementById('gameModal').classList.remove('open');
@@ -2028,8 +2400,10 @@ async function mayoLogin(){
       sessionStorage.setItem('zmayo', '1');
       try { sessionStorage.setItem('zmayo_customer', JSON.stringify(data.customer || {})); } catch {}
       markMayoristaActive();
+      showAccountChip(data.customer || {});
+      showMayoristaStorefront();
       const nom = (data.customer && data.customer.first_name) || '';
-      ok.textContent = `Bienvenido${nom ? ' ' + nom : ''}! Ya puedes hablar con el bot mayorista.`;
+      ok.textContent = `Bienvenido${nom ? ' ' + nom : ''}! Cargamos tu catálogo mayorista.`;
       ok.classList.add('show');
       setTimeout(closeMayoristaModal, 1300);
     } else {
