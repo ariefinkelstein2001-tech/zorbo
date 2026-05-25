@@ -593,6 +593,13 @@ app.get('/api/cart-link', (req, res) => {
 
 app.use(express.static(join(__dirname, 'public')));
 
+// Clon de kairos-brewing.com servido en /kairos. Misma Shopify backend que
+// Zorbo, checkout via permalink Shopify (que muestra el nombre actual de la
+// tienda — si la renombrás a Zorbo, el clon va a checkout-ar como Zorbo).
+app.get('/kairos', (req, res) => {
+  res.sendFile(join(__dirname, 'public', 'kairos.html'));
+});
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 initLogs();

@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kairos Brewing — Craft beer artesanal</title>
+<meta name="description" content="Kairos Brewing · cerveza artesanal con carácter · 17 estilos · sin filtrar · sin aditivos">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#000;--card:#0c0c0c;--bdr:#1a1a1a;--bdr-h:#2a2a2a;
+  --orange:#f5a623;--orange-d:#d88f15;--orange-l:#ffb840;
+  --text:#fff;--mut:#9a9a9a;--dim:#5a5a5a;
+}
+html,body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5;min-height:100vh}
+a{color:inherit;text-decoration:none}
+img{display:block;max-width:100%}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+
+/* ── HEADER ── */
+.kb-header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(0,0,0,.92);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--bdr);
+  padding:14px clamp(1rem,4vw,3rem);
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+}
+.kb-logo{height:56px;width:auto}
+.kb-nav{display:flex;gap:24px;align-items:center;flex:1;justify-content:center}
+.kb-nav a{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.1em;color:var(--text);transition:color .2s;cursor:pointer}
+.kb-nav a:hover{color:var(--orange)}
+.kb-cart{
+  position:relative;cursor:pointer;
+  width:42px;height:42px;border-radius:50%;
+  background:var(--card);border:1px solid var(--bdr);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;transition:border-color .2s;
+}
+.kb-cart:hover{border-color:var(--orange)}
+.kb-cart-badge{
+  position:absolute;top:-5px;right:-5px;
+  background:var(--orange);color:#1a1408;
+  border-radius:50%;width:20px;height:20px;
+  font-size:11px;font-weight:800;font-family:'Barlow',sans-serif;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transform:scale(0);transition:all .2s;
+}
+.kb-cart-badge.on{opacity:1;transform:scale(1)}
+
+/* ── HERO carousel ── */
+.kb-hero{position:relative;width:100%;overflow:hidden;background:#000;line-height:0}
+.kb-hero-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1)}
+.kb-hero-slide{flex:0 0 100%;line-height:0;position:relative}
+.kb-hero-slide img{width:100%;display:block;max-height:520px;object-fit:cover;object-position:center}
+.kb-hero-arr{
+  position:absolute;top:50%;transform:translateY(-50%);z-index:5;
+  background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.2);
+  color:#fff;width:48px;height:48px;border-radius:50%;
+  font-size:24px;display:flex;align-items:center;justify-content:center;
+  transition:background .2s,border-color .2s;
+}
+.kb-hero-arr:hover{background:rgba(245,166,35,.6);border-color:var(--orange)}
+.kb-hero-arr.prev{left:18px}
+.kb-hero-arr.next{right:18px}
+.kb-hero-dots{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:5}
+.kb-hero-dots .d{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.35);transition:all .25s;cursor:pointer;border:none}
+.kb-hero-dots .d.on{background:var(--orange);width:24px;border-radius:5px}
+
+/* ── Section base ── */
+.kb-section{padding:72px clamp(1rem,4vw,3rem) 56px;max-width:1500px;margin:0 auto}
+.kb-section-t{
+  font-family:'Lalezar','Bebas Neue',sans-serif;
+  font-size:clamp(40px,5.5vw,64px);
+  font-weight:400;letter-spacing:.02em;
+  text-align:center;color:var(--text);line-height:1;
+  margin-bottom:48px;text-transform:uppercase;
+}
+.kb-section-t::after{
+  content:'';display:block;width:64px;height:3px;background:var(--orange);
+  margin:18px auto 0;border-radius:2px;
+}
+
+/* ── Product grid ── */
+.kb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+.kb-card{
+  background:var(--card);border:1px solid var(--bdr);
+  display:flex;flex-direction:column;
+  transition:border-color .2s,transform .2s;position:relative;
+  border-radius:4px;overflow:hidden;
+}
+.kb-card:hover{border-color:var(--orange);transform:translateY(-4px)}
+.kb-card-img{
+  aspect-ratio:1;background:#000;
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;position:relative;overflow:hidden;
+}
+.kb-card-img img{
+  max-height:100%;max-width:100%;object-fit:contain;
+  transition:transform .3s,opacity .3s;
+  position:absolute;inset:0;width:100%;height:100%;padding:20px;
+}
+.kb-card-img img.img2{opacity:0}
+.kb-card:hover .kb-card-img img.img1{opacity:0;transform:scale(1.05)}
+.kb-card:hover .kb-card-img img.img2{opacity:1}
+.kb-card-body{padding:18px 18px 20px;display:flex;flex-direction:column;gap:8px;flex:1}
+.kb-card-name{
+  font-family:'Barlow',sans-serif;font-size:15px;font-weight:600;
+  color:var(--text);text-align:center;line-height:1.3;min-height:40px;
+}
+.kb-card-price{
+  font-family:'Barlow',sans-serif;font-size:18px;font-weight:700;
+  color:var(--text);text-align:center;letter-spacing:.02em;
+}
+.kb-card-price .old{
+  color:var(--dim);font-weight:400;font-size:14px;
+  text-decoration:line-through;margin-right:8px;
+}
+.kb-card-acts{display:flex;flex-direction:column;gap:8px;margin-top:auto}
+select.kb-sel{
+  background:#000;border:1px solid var(--bdr);color:var(--text);
+  padding:9px 28px 9px 11px;font-family:inherit;font-size:13px;
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23f5a623' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  cursor:pointer;width:100%;border-radius:3px;
+}
+.kb-qty{display:flex;align-items:stretch;border-radius:3px;overflow:hidden}
+.kb-qty button{
+  background:#3a2f1f;color:var(--orange);
+  width:38px;height:42px;font-size:20px;font-weight:700;
+  transition:background .15s;
+}
+.kb-qty button:hover{background:#4a3a25}
+.kb-qty .v{
+  flex:1;background:#fff;color:#000;height:42px;line-height:42px;
+  text-align:center;font-weight:700;font-family:'Barlow',sans-serif;
+  font-size:15px;min-width:42px;user-select:none;
+}
+button.kb-add{
+  background:var(--orange);color:#1a1408;
+  font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.12em;
+  height:42px;border-radius:3px;font-weight:600;
+  transition:background .15s,transform .12s;
+}
+button.kb-add:hover{background:var(--orange-l)}
+button.kb-add:active{transform:scale(.97)}
+button.kb-add.done{background:#4caf50!important;color:#fff!important;pointer-events:none}
+
+/* ── Pack builder cards ── */
+.kb-pack-builder{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.kb-pack-card{
+  background:var(--card);border:1px solid var(--bdr);border-radius:4px;
+  overflow:hidden;display:flex;flex-direction:column;
+  transition:border-color .2s,transform .2s;cursor:pointer;
+}
+.kb-pack-card:hover{border-color:var(--orange);transform:translateY(-4px)}
+.kb-pack-card-img{aspect-ratio:1.2;background:#000;position:relative;overflow:hidden}
+.kb-pack-card-img img{width:100%;height:100%;object-fit:cover}
+.kb-pack-card-tag{
+  position:absolute;top:14px;left:14px;
+  background:var(--orange);color:#1a1408;
+  font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.08em;
+  padding:5px 12px;border-radius:3px;
+}
+.kb-pack-card-name{
+  padding:18px;text-align:center;
+  font-family:'Lalezar','Bebas Neue',sans-serif;font-size:24px;letter-spacing:.04em;
+  color:var(--text);text-transform:uppercase;
+}
+.kb-pack-card-cta{
+  background:var(--orange);color:#1a1408;text-align:center;
+  padding:14px;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.14em;
+  font-weight:600;transition:background .15s;
+}
+.kb-pack-card:hover .kb-pack-card-cta{background:var(--orange-l)}
+
+/* ── Brand circles ── */
+.kb-brands{padding:72px clamp(1rem,4vw,3rem);background:#000;border-top:1px solid var(--bdr);text-align:center}
+.kb-brands-t{
+  font-family:'Lalezar','Bebas Neue',sans-serif;
+  font-size:clamp(36px,5vw,52px);letter-spacing:.03em;
+  margin-bottom:48px;color:var(--text);text-transform:uppercase;
+}
+.kb-brand-circles{display:flex;gap:48px;justify-content:center;flex-wrap:wrap}
+.kb-brand-circle{display:flex;flex-direction:column;align-items:center;gap:14px;cursor:pointer}
+.kb-brand-circle .c{
+  width:150px;height:150px;border-radius:50%;
+  background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;
+  border:3px solid var(--bdr);transition:transform .2s,border-color .2s;
+}
+.kb-brand-circle:hover .c{transform:scale(1.06);border-color:var(--orange)}
+.kb-brand-circle .c img{width:100%;height:100%;object-fit:cover}
+.kb-brand-circle .nm{
+  font-family:'Lalezar','Bebas Neue',sans-serif;
+  font-size:22px;letter-spacing:.05em;color:var(--text);text-transform:uppercase;
+}
+
+/* ── Footer ── */
+.kb-footer{
+  background:#000;color:var(--mut);
+  padding:48px clamp(1rem,4vw,3rem);text-align:center;
+  border-top:1px solid var(--bdr);font-size:13px;
+}
+.kb-footer a{color:var(--orange)}
+
+/* ── Cart drawer ── */
+.kb-cart-panel{position:fixed;inset:0;z-index:500;opacity:0;pointer-events:none;transition:opacity .3s}
+.kb-cart-panel.open{opacity:1;pointer-events:all}
+.kb-cart-overlay{position:absolute;inset:0;background:rgba(0,0,0,.7);cursor:pointer}
+.kb-cart-drawer{
+  position:absolute;right:0;top:0;bottom:0;width:380px;max-width:90vw;
+  background:#0c0c0c;border-left:1px solid var(--bdr);
+  display:flex;flex-direction:column;transform:translateX(100%);
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.kb-cart-panel.open .kb-cart-drawer{transform:none}
+.kb-cart-head{
+  padding:18px 22px;border-bottom:1px solid var(--bdr);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.kb-cart-head h2{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.06em;text-transform:uppercase}
+.kb-cart-x{font-size:20px;color:var(--mut);width:32px;height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.kb-cart-x:hover{background:var(--bdr);color:var(--text)}
+.kb-cart-body{flex:1;overflow-y:auto;padding:14px}
+.kb-cart-empty{padding:60px 16px;text-align:center;color:var(--dim);font-size:14px;line-height:1.7}
+.kb-ci{
+  display:grid;grid-template-columns:60px 1fr auto;gap:12px;
+  padding:12px;border-bottom:1px solid var(--bdr);align-items:center;
+}
+.kb-ci-img{width:60px;height:60px;background:#000;border-radius:3px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.kb-ci-img img{max-width:100%;max-height:100%;object-fit:contain}
+.kb-ci-info{min-width:0}
+.kb-ci-name{font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;color:var(--text);line-height:1.3}
+.kb-ci-unit{font-size:12px;color:var(--mut);margin-top:3px}
+.kb-ci-qty{display:flex;align-items:center;gap:4px;margin-top:6px}
+.kb-ci-qty button{
+  width:22px;height:22px;border-radius:3px;background:#2a1f12;color:var(--orange);
+  font-size:13px;font-weight:700;
+}
+.kb-ci-qty span{min-width:24px;text-align:center;font-size:13px;font-weight:700}
+.kb-ci-price{font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;color:var(--orange)}
+.kb-cart-foot{
+  padding:18px 22px;border-top:1px solid var(--bdr);flex-shrink:0;
+}
+.kb-cart-total{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:14px;font-family:'Bebas Neue',sans-serif;
+}
+.kb-cart-total span:first-child{font-size:14px;letter-spacing:.1em;color:var(--mut);text-transform:uppercase}
+.kb-cart-total span:last-child{font-size:24px;color:var(--orange)}
+.kb-checkout-btn{
+  width:100%;background:var(--orange);color:#1a1408;
+  font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:.12em;
+  padding:14px;border-radius:3px;font-weight:600;
+  transition:background .15s;
+}
+.kb-checkout-btn:hover{background:var(--orange-l)}
+.kb-checkout-btn:disabled{opacity:.4;cursor:not-allowed}
+
+@media(max-width:760px){
+  .kb-nav{display:none}
+  .kb-logo{height:42px}
+}
+
+/* Loading state */
+.kb-loading{padding:80px 20px;text-align:center;color:var(--mut);font-size:14px;letter-spacing:.1em;text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<header class="kb-header">
+  <a href="/kairos"><img class="kb-logo" src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/LOGO_KAIROS_BREWING_b42351c9-1e32-4cfd-8712-4ce6bf1114f5.png?v=1772805913" alt="Kairos Brewing"></a>
+  <nav class="kb-nav">
+    <a onclick="document.getElementById('sec-chelitas')?.scrollIntoView({behavior:'smooth'})">Chelitas</a>
+    <a onclick="document.getElementById('sec-packs')?.scrollIntoView({behavior:'smooth'})">Packs</a>
+    <a onclick="document.getElementById('sec-marcas')?.scrollIntoView({behavior:'smooth'})">Marcas</a>
+    <a href="/">Volver a Zorbo</a>
+  </nav>
+  <button class="kb-cart" onclick="toggleCart()">🛒<span class="kb-cart-badge" id="kbCartBadge">0</span></button>
+</header>
+
+<!-- HERO carousel -->
+<div class="kb-hero" id="kbHero">
+  <div class="kb-hero-track" id="kbHeroTrack">
+    <div class="kb-hero-slide"><img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-01.png?v=1775154725&width=1800" alt="Kairos Brewing"></div>
+    <div class="kb-hero-slide"><img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-02.png?v=1775154766&width=1800" alt="Kairos Brewing"></div>
+    <div class="kb-hero-slide"><img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-03.png?v=1775154716&width=1800" alt="Kairos Brewing"></div>
+  </div>
+  <button class="kb-hero-arr prev" onclick="heroGo(-1)">‹</button>
+  <button class="kb-hero-arr next" onclick="heroGo(1)">›</button>
+  <div class="kb-hero-dots" id="kbHeroDots">
+    <button class="d on" onclick="heroGo(0,true)"></button>
+    <button class="d" onclick="heroGo(1,true)"></button>
+    <button class="d" onclick="heroGo(2,true)"></button>
+  </div>
+</div>
+
+<!-- CHELITAS -->
+<section class="kb-section" id="sec-chelitas">
+  <h2 class="kb-section-t">Nuestras Chelitas</h2>
+  <div id="gridChelitas" class="kb-grid"><div class="kb-loading">Cargando catálogo…</div></div>
+</section>
+
+<!-- ARMA EL PACK -->
+<section class="kb-section">
+  <h2 class="kb-section-t">Arma el Pack a tu Pinta</h2>
+  <div class="kb-pack-builder">
+    <div class="kb-pack-card" onclick="document.getElementById('sec-packs')?.scrollIntoView({behavior:'smooth'})">
+      <div class="kb-pack-card-img">
+        <span class="kb-pack-card-tag">6 PACK</span>
+        <img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/6-pack-variado-5833798.png?v=1758768342" alt="6 Pack" onerror="this.style.display='none'">
+      </div>
+      <div class="kb-pack-card-name">6 Pack</div>
+      <div class="kb-pack-card-cta">Ver Packs</div>
+    </div>
+    <div class="kb-pack-card" onclick="document.getElementById('sec-packs')?.scrollIntoView({behavior:'smooth'})">
+      <div class="kb-pack-card-img">
+        <span class="kb-pack-card-tag">12 PACK</span>
+        <img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/12-pack-variado-3764880.png?v=1758768343" alt="12 Pack" onerror="this.style.display='none'">
+      </div>
+      <div class="kb-pack-card-name">12 Pack</div>
+      <div class="kb-pack-card-cta">Ver Packs</div>
+    </div>
+    <div class="kb-pack-card" onclick="document.getElementById('sec-packs')?.scrollIntoView({behavior:'smooth'})">
+      <div class="kb-pack-card-img">
+        <span class="kb-pack-card-tag">24 PACK</span>
+        <img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/24-pack-variado-2216659.png?v=1758768343" alt="24 Pack" onerror="this.style.display='none'">
+      </div>
+      <div class="kb-pack-card-name">24 Pack</div>
+      <div class="kb-pack-card-cta">Ver Packs</div>
+    </div>
+  </div>
+</section>
+
+<!-- PACKS -->
+<section class="kb-section" id="sec-packs">
+  <h2 class="kb-section-t">Nuestros Packs</h2>
+  <div id="gridPacks" class="kb-grid"><div class="kb-loading">Cargando packs…</div></div>
+</section>
+
+<!-- MARCAS -->
+<section class="kb-brands" id="sec-marcas">
+  <h3 class="kb-brands-t">Nuestras Marcas</h3>
+  <div class="kb-brand-circles">
+    <a class="kb-brand-circle" onclick="alert('Kairos Garden — taproom Kairos Brewing')">
+      <span class="c" style="background:linear-gradient(135deg,#7ba84a,#3d6f25)"><img src="/brands/kairos.png" alt="Kairos Garden" onerror="this.style.display='none'"></span>
+      <span class="nm">Kairos Garden</span>
+    </a>
+    <a class="kb-brand-circle" onclick="document.getElementById('sec-chelitas')?.scrollIntoView({behavior:'smooth'})">
+      <span class="c" style="background:#f5a623"><img src="/brands/kairos.png" alt="Kairos Brewing" onerror="this.style.display='none'"></span>
+      <span class="nm">Kairos Brewing</span>
+    </a>
+    <a class="kb-brand-circle" onclick="alert('Kairos Badass — bar gastronómico')">
+      <span class="c" style="background:#e91e63"><img src="/brands/kairos.png" alt="Kairos Badass" onerror="this.style.display='none'"></span>
+      <span class="nm">Kairos Badass</span>
+    </a>
+  </div>
+</section>
+
+<footer class="kb-footer">
+  Kairos Brewing · craft beer artesanal · sin filtrar · sin aditivos<br>
+  Powered by <a href="/">Zorbo Marketplace</a>
+</footer>
+
+<!-- CART DRAWER -->
+<div class="kb-cart-panel" id="kbCartPanel">
+  <div class="kb-cart-overlay" onclick="toggleCart()"></div>
+  <div class="kb-cart-drawer">
+    <div class="kb-cart-head">
+      <h2>Tu Carro</h2>
+      <button class="kb-cart-x" onclick="toggleCart()">✕</button>
+    </div>
+    <div class="kb-cart-body" id="kbCartBody">
+      <div class="kb-cart-empty">Tu carro está vacío.<br>Explora las chelitas para empezar.</div>
+    </div>
+    <div class="kb-cart-foot">
+      <div class="kb-cart-total"><span>Total</span><span id="kbCartTotal">$0</span></div>
+      <button class="kb-checkout-btn" id="kbCheckoutBtn" onclick="doKbCheckout()" disabled>Ir a Pagar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const SHOPIFY_DOMAIN = 'kairos-brewing.myshopify.com';
+const STORAGE_KEY = 'kb-cart-v1';
+let CART = loadCart();
+let cartOpen = false;
+let heroCur = 0;
+let heroTmr = null;
+
+function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function fmtPrice(n){return '$'+Math.round(n).toLocaleString('es-CL')}
+function loadCart(){try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch{return[]}}
+function saveCart(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(CART))}catch{}}
+
+// ─── HERO ────────────────────────────────────────────────────────────────────
+function heroGo(n, absolute){
+  const track = document.getElementById('kbHeroTrack');
+  const dots = document.querySelectorAll('#kbHeroDots .d');
+  const total = track.children.length;
+  heroCur = absolute ? ((n + total) % total) : ((heroCur + n + total) % total);
+  track.style.transform = 'translateX(-' + (heroCur*100) + '%)';
+  dots.forEach((d,i) => d.classList.toggle('on', i === heroCur));
+  resetHeroTimer();
+}
+function resetHeroTimer(){clearInterval(heroTmr); heroTmr = setInterval(() => heroGo(1), 5000)}
+resetHeroTimer();
+
+// ─── CATALOG ─────────────────────────────────────────────────────────────────
+async function loadCatalog(){
+  try {
+    const r = await fetch('/api/products?mode=b2c');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    return data.products || [];
+  } catch (e) {
+    console.error('catalog', e);
+    return [];
+  }
+}
+
+function detectIsKairos(p){
+  const t = (p.title || '').toLowerCase();
+  // Excluye Firulais (chelada/firulais) y Banny (gin/ron/whisky/vermut/mojito/rtd)
+  if (/chelada|firulais|gin |\bron\b|\brum\b|whisky|whiskey|vermut|mojito|rtd/.test(t)) return false;
+  return true;
+}
+function isChelita(p){
+  const t = (p.title || '').toLowerCase();
+  return /(lata\s*473|473cc|433cc)/.test(t) && !/(6\s*pack|12\s*pack|24\s*pack)/.test(t);
+}
+function isPack(p){
+  const t = (p.title || '').toLowerCase();
+  return /(6\s*pack|12\s*pack|24\s*pack)/.test(t);
+}
+function cleanTitle(s){return String(s||'').replace(/24\s*pack\s*473\s*cc?\s*mayorista\s*/gi,'24 Pack ').replace(/\s+/g,' ').trim()}
+
+function buildCard(p){
+  const variants = p.variants || [];
+  const v0 = variants[0] || {};
+  const price = parseFloat(v0.price || 0);
+  const compareAt = parseFloat(v0.compareAtPrice || 0);
+  const oldP = (compareAt && compareAt > price) ? `<span class="old">${fmtPrice(compareAt)}</span>` : '';
+  const img1 = p.image || (p.images && p.images[0]) || null;
+  const img2 = (p.images && p.images[1]) || null;
+  const visual = img1
+    ? `<div class="kb-card-img"><img class="img1" src="${img1}" alt="${escapeHtml(p.title)}" loading="lazy">${img2 ? `<img class="img2" src="${img2}" alt="" loading="lazy">` : ''}</div>`
+    : `<div class="kb-card-img"></div>`;
+  const variantSelect = variants.length > 1
+    ? `<select class="kb-sel" onchange="onVariantChange(this)">${variants.map(v => `<option value="${v.id}" data-price="${v.price}">${escapeHtml(v.title)} — ${fmtPrice(parseFloat(v.price))}</option>`).join('')}</select>`
+    : '';
+  const productData = {
+    name: cleanTitle(p.title),
+    image: img1,
+    price,
+    variantId: v0.id,
+  };
+  return `<div class="kb-card">
+    ${visual}
+    <div class="kb-card-body">
+      <div class="kb-card-name">${escapeHtml(cleanTitle(p.title))}</div>
+      <div class="kb-card-price">${oldP}${fmtPrice(price)}</div>
+      <div class="kb-card-acts">
+        ${variantSelect}
+        <div class="kb-qty"><button onclick="cardQty(this,-1)">−</button><span class="v">1</span><button onclick="cardQty(this,1)">+</button></div>
+        <button class="kb-add" data-product='${JSON.stringify(productData).replace(/'/g,"&#39;")}' onclick="kbAddToCart(this)">Añadir al carrito</button>
+      </div>
+    </div>
+  </div>`;
+}
+function cardQty(btn, delta){
+  const el = btn.closest('.kb-qty').querySelector('.v');
+  if (!el) return;
+  el.textContent = Math.max(1, Math.min(99, (parseInt(el.textContent,10)||1)+delta));
+}
+function onVariantChange(sel){
+  const card = sel.closest('.kb-card');
+  if (!card) return;
+  const opt = sel.options[sel.selectedIndex];
+  const newPrice = parseFloat(opt.dataset.price || '0');
+  const priceEl = card.querySelector('.kb-card-price');
+  if (priceEl) priceEl.innerHTML = fmtPrice(newPrice);
+  const btn = card.querySelector('.kb-add');
+  if (btn){
+    const data = JSON.parse(btn.getAttribute('data-product').replace(/&#39;/g,"'"));
+    data.variantId = sel.value;
+    data.price = newPrice;
+    btn.setAttribute('data-product', JSON.stringify(data).replace(/'/g,"&#39;"));
+  }
+}
+function kbAddToCart(btn){
+  const data = JSON.parse(btn.getAttribute('data-product').replace(/&#39;/g,"'"));
+  const card = btn.closest('.kb-card');
+  const qty = parseInt(card.querySelector('.v').textContent,10) || 1;
+  if (!data.variantId) { alert('Este producto no está disponible online'); return; }
+  const ex = CART.find(i => i.variantId === data.variantId);
+  if (ex) ex.qty += qty; else CART.push({ ...data, qty });
+  saveCart(); updateCart();
+  btn.textContent = `✓ Agregado (${qty})`;
+  btn.classList.add('done');
+  setTimeout(() => { btn.textContent = 'Añadir al carrito'; btn.classList.remove('done'); }, 2200);
+}
+
+// ─── CART ────────────────────────────────────────────────────────────────────
+function toggleCart(){
+  cartOpen = !cartOpen;
+  document.getElementById('kbCartPanel').classList.toggle('open', cartOpen);
+}
+function updateCart(){
+  const badge = document.getElementById('kbCartBadge');
+  const body = document.getElementById('kbCartBody');
+  const totalEl = document.getElementById('kbCartTotal');
+  const btn = document.getElementById('kbCheckoutBtn');
+  const count = CART.reduce((s,i) => s + i.qty, 0);
+  const total = CART.reduce((s,i) => s + i.qty * i.price, 0);
+  badge.textContent = count;
+  badge.classList.toggle('on', count > 0);
+  totalEl.textContent = fmtPrice(total);
+  btn.disabled = count === 0;
+  if (!CART.length) {
+    body.innerHTML = '<div class="kb-cart-empty">Tu carro está vacío.<br>Explora las chelitas para empezar.</div>';
+    return;
+  }
+  body.innerHTML = CART.map((i,idx) => `
+    <div class="kb-ci">
+      <div class="kb-ci-img">${i.image ? `<img src="${i.image}" alt="">` : ''}</div>
+      <div class="kb-ci-info">
+        <div class="kb-ci-name">${escapeHtml(i.name)}</div>
+        <div class="kb-ci-unit">${fmtPrice(i.price)} c/u</div>
+        <div class="kb-ci-qty">
+          <button onclick="changeCartQty(${idx},-1)">−</button>
+          <span>${i.qty}</span>
+          <button onclick="changeCartQty(${idx},1)">+</button>
+        </div>
+      </div>
+      <div class="kb-ci-price">${fmtPrice(i.qty * i.price)}</div>
+    </div>`).join('');
+}
+function changeCartQty(idx, delta){
+  CART[idx].qty += delta;
+  if (CART[idx].qty <= 0) CART.splice(idx, 1);
+  saveCart(); updateCart();
+}
+function doKbCheckout(){
+  if (!CART.length) return;
+  const items = CART.filter(i => i.variantId).map(i => `${i.variantId}:${i.qty}`).join(',');
+  if (!items) { alert('Ningún producto del carro está disponible online'); return; }
+  const url = `https://${SHOPIFY_DOMAIN}/cart/${items}?attributes[source]=kairos-clone`;
+  window.location.href = url;
+}
+
+// ─── BOOT ────────────────────────────────────────────────────────────────────
+(async function(){
+  updateCart();
+  const products = await loadCatalog();
+  const kairosProducts = products.filter(detectIsKairos);
+  const chelitas = kairosProducts.filter(isChelita);
+  const packs = kairosProducts.filter(isPack);
+  const cg = document.getElementById('gridChelitas');
+  const pg = document.getElementById('gridPacks');
+  cg.innerHTML = chelitas.length ? chelitas.map(buildCard).join('') : '<div class="kb-loading">No hay chelitas disponibles</div>';
+  pg.innerHTML = packs.length    ? packs.map(buildCard).join('')    : '<div class="kb-loading">No hay packs disponibles</div>';
+})();
+</script>
+</body>
+</html>
