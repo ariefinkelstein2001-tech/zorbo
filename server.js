@@ -87,8 +87,28 @@ async function klaviyoFetch(path, body, method = 'POST') {
   }
 }
 
-// Endpoint combinado: crea o actualiza el perfil Y lo suscribe a la lista en
-// una sola llamada. Devuelve OK también si el email ya existía.
+// Upsert de profile: el endpoint de bulk import acepta first_name, last_name,
+// phone_number, properties. Maneja crear-o-actualizar automáticamente.
+async function klaviyoUpsertProfile(profile = {}) {
+  if (!profile.email) return { skipped: true, reason: 'no_email' };
+  const attrs = { email: profile.email };
+  if (profile.first_name)            attrs.first_name   = profile.first_name;
+  if (profile.last_name)             attrs.last_name    = profile.last_name;
+  if (isE164(profile.phone_number))  attrs.phone_number = profile.phone_number;
+  if (profile.properties)            attrs.properties   = profile.properties;
+  return klaviyoFetch('/profile-bulk-import-jobs/', {
+    data: {
+      type: 'profile-bulk-import-job',
+      attributes: {
+        profiles: { data: [{ type: 'profile', attributes: attrs }] },
+      },
+    },
+  });
+}
+
+// Suscribir a una lista: este endpoint SOLO acepta email/phone + subscription.
+// Los demás campos del perfil (nombre, apellido, props) van por separado vía
+// klaviyoUpsertProfile.
 async function klaviyoSubscribeToList(listId, profile = {}) {
   if (!listId) {
     console.warn('[Klaviyo] SKIP subscribe — listId vacío');
@@ -96,12 +116,11 @@ async function klaviyoSubscribeToList(listId, profile = {}) {
   }
   if (!profile.email) return { skipped: true, reason: 'no_email' };
 
-  const attrs = { email: profile.email };
-  if (profile.first_name)   attrs.first_name   = profile.first_name;
-  if (profile.last_name)    attrs.last_name    = profile.last_name;
+  const attrs = {
+    email: profile.email,
+    subscriptions: { email: { marketing: { consent: 'SUBSCRIBED' } } },
+  };
   if (isE164(profile.phone_number)) attrs.phone_number = profile.phone_number;
-  if (profile.properties)   attrs.properties   = profile.properties;
-  attrs.subscriptions = { email: { marketing: { consent: 'SUBSCRIBED' } } };
 
   return klaviyoFetch('/profile-subscription-bulk-create-jobs/', {
     data: {
@@ -132,12 +151,12 @@ async function klaviyoTrackEvent({ email, name, properties }) {
 
 async function klaviyoOnboard({ email, first_name, last_name, phone_number, listId, eventName, eventProps }) {
   if (!email) return;
-  const sub = await klaviyoSubscribeToList(listId, { email, first_name, last_name, phone_number });
-  if (eventName) {
-    const ev = await klaviyoTrackEvent({ email, name: eventName, properties: eventProps });
-    return { sub, ev };
-  }
-  return { sub };
+  const upsert = await klaviyoUpsertProfile({ email, first_name, last_name, phone_number });
+  const sub    = await klaviyoSubscribeToList(listId, { email, phone_number });
+  const ev     = eventName
+    ? await klaviyoTrackEvent({ email, name: eventName, properties: eventProps })
+    : null;
+  return { upsert, sub, ev };
 }
 
 function saveSession(session) {
