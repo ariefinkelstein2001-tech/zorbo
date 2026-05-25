@@ -897,13 +897,17 @@ body.mayorista-active .game-banner{display:none}
       </div>
     </div>
 
-    <!-- NUEVO -->
+    <!-- NUEVO (crea cuenta Shopify con tag MAYORISTA_PENDIENTE) -->
     <div class="zm-pane" id="mayoPaneNuevo">
       <div class="zm-err" id="mayoLeadErr"></div>
       <div class="zm-ok" id="mayoLeadOk"></div>
       <div class="zm-field">
-        <label>Nombre de contacto*</label>
-        <input class="zm-input" type="text" id="leadNombre" placeholder="Tu nombre">
+        <label>Nombre*</label>
+        <input class="zm-input" type="text" id="leadNombre" placeholder="Tu nombre" autocomplete="given-name">
+      </div>
+      <div class="zm-field">
+        <label>Apellido</label>
+        <input class="zm-input" type="text" id="leadApellido" placeholder="Tu apellido" autocomplete="family-name">
       </div>
       <div class="zm-field">
         <label>Nombre del local</label>
@@ -923,15 +927,19 @@ body.mayorista-active .game-banner{display:none}
         </select>
       </div>
       <div class="zm-field">
-        <label>Correo</label>
-        <input class="zm-input" type="email" id="leadEmail" placeholder="contacto@dominio.cl">
+        <label>Correo*</label>
+        <input class="zm-input" type="email" id="leadEmail" placeholder="contacto@dominio.cl" autocomplete="email">
       </div>
       <div class="zm-field">
         <label>Teléfono*</label>
-        <input class="zm-input" type="tel" id="leadTelefono" placeholder="+56 9 ...">
+        <input class="zm-input" type="tel" id="leadTelefono" placeholder="+56 9 ..." autocomplete="tel">
       </div>
-      <button class="zm-submit" id="mayoLeadBtn" onclick="mayoLead()">Enviar a Kairos</button>
-      <div class="zm-foot">Te contactamos en las próximas 48 horas hábiles.</div>
+      <div class="zm-field">
+        <label>Contraseña* (mínimo 5 caracteres)</label>
+        <input class="zm-input" type="password" id="leadPass" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <button class="zm-submit" id="mayoLeadBtn" onclick="mayoSignup()">Crear cuenta</button>
+      <div class="zm-foot">Tu cuenta queda creada al instante. La validamos como mayorista en las próximas 48 horas hábiles.</div>
     </div>
   </div>
 </div>
@@ -2009,17 +2017,25 @@ async function mayoLogin(){
       body: JSON.stringify({ email, password: pass }),
     });
     const data = await res.json().catch(() => ({}));
-    if (res.ok && data.token) {
-      // Cuando la integración con Shopify esté activa, acá entra al modo mayorista.
-      mayoristaMode = true;
-      sessionStorage.setItem('zmayo', '1');
-      markMayoristaActive();
-      ok.textContent = 'Sesión iniciada. Ya puedes hablar con el bot mayorista.';
-      ok.classList.add('show');
-      setTimeout(closeMayoristaModal, 1200);
-    } else {
+    if (!res.ok) {
       err.textContent = data.error || 'No pudimos validar tu acceso.';
       err.classList.add('show');
+      return;
+    }
+    // Login OK — pero el acceso mayorista depende del tag MAYORISTA1
+    if (data.isMayorista) {
+      mayoristaMode = true;
+      sessionStorage.setItem('zmayo', '1');
+      try { sessionStorage.setItem('zmayo_customer', JSON.stringify(data.customer || {})); } catch {}
+      markMayoristaActive();
+      const nom = (data.customer && data.customer.first_name) || '';
+      ok.textContent = `Bienvenido${nom ? ' ' + nom : ''}! Ya puedes hablar con el bot mayorista.`;
+      ok.classList.add('show');
+      setTimeout(closeMayoristaModal, 1300);
+    } else {
+      // Cuenta válida pero sin tag MAYORISTA1 — pendiente de aprobación
+      ok.innerHTML = 'Tu cuenta existe pero todavía no está validada como mayorista. Te contactamos en las próximas 48 horas hábiles.';
+      ok.classList.add('show');
     }
   } catch {
     err.textContent = 'Error de red. Intenta de nuevo en un momento.';
@@ -2029,42 +2045,47 @@ async function mayoLogin(){
     btn.textContent = 'Iniciar sesión';
   }
 }
-async function mayoLead(){
-  const nombre   = document.getElementById('leadNombre').value.trim();
-  const local    = document.getElementById('leadLocal').value.trim();
-  const comuna   = document.getElementById('leadComuna').value.trim();
-  const canal    = document.getElementById('leadCanal').value;
-  const email    = document.getElementById('leadEmail').value.trim().toLowerCase();
-  const telefono = document.getElementById('leadTelefono').value.trim();
+async function mayoSignup(){
+  const first_name = document.getElementById('leadNombre').value.trim();
+  const last_name  = document.getElementById('leadApellido').value.trim();
+  const local      = document.getElementById('leadLocal').value.trim();
+  const comuna     = document.getElementById('leadComuna').value.trim();
+  const canal      = document.getElementById('leadCanal').value;
+  const email      = document.getElementById('leadEmail').value.trim().toLowerCase();
+  const phone      = document.getElementById('leadTelefono').value.trim();
+  const password   = document.getElementById('leadPass').value;
   const err = document.getElementById('mayoLeadErr');
   const ok  = document.getElementById('mayoLeadOk');
   const btn = document.getElementById('mayoLeadBtn');
   err.classList.remove('show'); ok.classList.remove('show');
 
-  if (!nombre || !telefono) {
-    err.textContent = 'Tu nombre y teléfono son obligatorios para que te contactemos.';
+  if (!first_name || !email || !phone || !password) {
+    err.textContent = 'Nombre, correo, teléfono y contraseña son obligatorios.';
+    err.classList.add('show');
+    return;
+  }
+  if (password.length < 5) {
+    err.textContent = 'La contraseña debe tener al menos 5 caracteres.';
     err.classList.add('show');
     return;
   }
   btn.disabled = true;
-  btn.textContent = 'Enviando...';
+  btn.textContent = 'Creando cuenta...';
   try {
-    const res = await fetch('/mayorista/lead', {
+    const res = await fetch('/mayorista/signup', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ nombre, local, comuna, canal, email, telefono }),
+      body: JSON.stringify({ first_name, last_name, local, comuna, canal, email, phone, password }),
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      const wc = data.welcomeCode ? ` Como bienvenida, te dejamos un cupón de 10% OFF en tu primera compra: ${data.welcomeCode}` : '';
-      ok.innerHTML = `Recibimos tus datos! Te contactamos al ${telefono} dentro de las próximas 48 horas hábiles.${wc}`;
+      ok.innerHTML = (data.message || 'Cuenta creada!') + (data.welcomeCode ? ` Te dejamos un cupón de bienvenida: <strong>${data.welcomeCode}</strong>` : '');
       ok.classList.add('show');
-      ['leadNombre','leadLocal','leadComuna','leadEmail','leadTelefono'].forEach(id => document.getElementById(id).value = '');
+      ['leadNombre','leadApellido','leadLocal','leadComuna','leadEmail','leadTelefono','leadPass'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('leadCanal').value = '';
-      // El lead es contexto B2B — el juego no aplica a partir de ahora
       try { localStorage.setItem('zmayolead', '1'); } catch {}
       markMayoristaActive();
     } else {
-      err.textContent = data.error || 'No pudimos enviar tus datos.';
+      err.textContent = data.error || 'No pudimos crear tu cuenta.';
       err.classList.add('show');
     }
   } catch {
@@ -2072,7 +2093,7 @@ async function mayoLead(){
     err.classList.add('show');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Enviar a Kairos';
+    btn.textContent = 'Crear cuenta';
   }
 }
 
