@@ -174,17 +174,93 @@ header{
 body.mayorista-active .mayoristas-btn{display:none}
 
 /* ════════════════════════════════════════════════════════════════════════
-   MAYORISTA — PÁGINA ECOMMERCE COMPLETA (port del portal PageFly)
-   En modo B2C: hero+promo+chat-storefront normal, #mayoPage oculto.
-   En modo mayorista: se oculta hero+promo+storefront-en-chat, se muestra
-   #mayoPage edge-to-edge y el chat queda abajo accesible.
+   STOREFRONT ECOMMERCE — B2C (#homePage, tema beige Kairos) y B2B (#mayoPage).
+   Ambas son páginas completas dentro de .chat-area. El chat queda abajo
+   accesible scrolleando. El viejo hero+promo+storefront-in-chat ya no se
+   usan, se sustituyeron por #homePage.
 ════════════════════════════════════════════════════════════════════════ */
-#mayoPage{display:none;background:#080808}
+.hero-slides,.promo-wrap,.sf-row{display:none!important}
+#homePage,#mayoPage{background:#080808}
+#homePage{display:block}
+#mayoPage{display:none}
+body.mayorista-active #homePage{display:none}
 body.mayorista-active #mayoPage{display:block}
-body.mayorista-active .hero-slides,
-body.mayorista-active .promo-wrap,
-body.mayorista-active .sf-row{display:none!important}
 .shop-page *,.shop-page *::before,.shop-page *::after{box-sizing:border-box}
+
+/* ── HOME B2C (tema beige Kairos) ────────────────────────────────────────── */
+#homePage{color:#f4f0e8;font-family:'Barlow',sans-serif}
+#homePage .hp-hero{position:relative;width:100%;overflow:hidden;background:#000;line-height:0}
+#homePage .hp-hero .ht-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1)}
+#homePage .hp-hero .ht-slide{flex:0 0 100%;line-height:0}
+#homePage .hp-hero .ht-slide img{width:100%;display:block;max-height:420px;object-fit:cover;object-position:center}
+#homePage .hp-hero .ht-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:5}
+#homePage .hp-hero .ht-dots .d{width:8px;height:8px;border-radius:50%;background:rgba(244,240,232,.35);transition:all .25s}
+#homePage .hp-hero .ht-dots .d.on{background:#d4b896;width:22px;border-radius:4px}
+#homePage .hp-hero .ht-arr{position:absolute;top:50%;transform:translateY(-50%);z-index:5;background:rgba(0,0,0,.45);border:1px solid rgba(244,240,232,.2);color:#f4f0e8;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:background .2s}
+#homePage .hp-hero .ht-arr:hover{background:rgba(212,184,150,.5)}
+#homePage .hp-hero .ht-arr.prev{left:18px}
+#homePage .hp-hero .ht-arr.next{right:18px}
+
+#homePage .hp-section{padding:64px clamp(1rem,4vw,3rem) 32px}
+#homePage .hp-section + .hp-section{padding-top:48px;border-top:1px solid #1a1a1a}
+#homePage .hp-section-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,6vw,64px);letter-spacing:.03em;text-align:center;line-height:1;margin-bottom:8px;color:#f4f0e8}
+#homePage .hp-section-sub{font-family:'Barlow Condensed',sans-serif;font-size:13px;letter-spacing:.18em;text-transform:uppercase;text-align:center;color:#d4b896;margin-bottom:36px;font-weight:600}
+#homePage .hp-subhead{font-family:'Bebas Neue',sans-serif;font-size:clamp(26px,4vw,38px);letter-spacing:.05em;text-align:center;line-height:1;margin:40px 0 20px;color:#f4f0e8}
+#homePage .hp-subhead:first-of-type{margin-top:0}
+
+#homePage .hp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem;max-width:1400px;margin:0 auto}
+#homePage .hp-card{
+  background:#0d0d0d;border:1px solid #2a2a2a;border-radius:3px;
+  padding:16px;display:flex;flex-direction:column;gap:12px;
+  transition:border-color .2s,transform .2s;position:relative;
+}
+#homePage .hp-card:hover{border-color:rgba(212,184,150,.4);transform:translateY(-3px)}
+#homePage .hp-card-img{aspect-ratio:1;background:#000;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+#homePage .hp-card-img img{max-width:100%;max-height:100%;object-fit:contain;padding:12px;transition:transform .3s,opacity .3s;position:absolute;inset:0;width:100%;height:100%}
+#homePage .hp-card-img img.img2{opacity:0}
+#homePage .hp-card:hover .hp-card-img img.img1{opacity:0}
+#homePage .hp-card:hover .hp-card-img img.img2{opacity:1}
+#homePage .hp-card-name{font-family:'Barlow',sans-serif;font-size:15px;font-weight:600;color:#f4f0e8;text-align:center;line-height:1.3;min-height:38px}
+#homePage .hp-card-price{font-family:'Barlow',sans-serif;font-size:17px;font-weight:700;color:#f4f0e8;text-align:center;letter-spacing:.02em}
+#homePage .hp-card-price .old{color:#6e6e6e;font-weight:400;font-size:14px;text-decoration:line-through;margin-right:6px}
+#homePage .hp-acts{display:flex;flex-direction:column;gap:8px;margin-top:auto}
+#homePage select.hp-sel{background:#000;border:1px solid #2a2a2a;color:#f4f0e8;border-radius:2px;padding:8px 28px 8px 10px;font-family:inherit;font-size:13px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23d4b896' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;cursor:pointer;width:100%}
+#homePage .hp-qty{display:flex;align-items:stretch;border-radius:2px;overflow:hidden}
+#homePage .hp-qty button{background:#3a2f1f;border:none;color:#d4b896;width:36px;height:42px;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s}
+#homePage .hp-qty button:hover{background:#4a3a25}
+#homePage .hp-qty .v{flex:1;background:#fff;color:#1a1a1a;height:42px;line-height:42px;text-align:center;font-weight:700;font-family:'Barlow',sans-serif;font-size:14px;min-width:36px;user-select:none}
+#homePage button.hp-add{
+  background:#d4b896;border:none;color:#1a1a1a;
+  font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:.12em;
+  height:42px;cursor:pointer;border-radius:2px;
+  transition:background .15s,transform .12s;
+}
+#homePage button.hp-add:hover{background:#e8d8b8}
+#homePage button.hp-add:active{transform:scale(.97)}
+#homePage button.hp-add.done{background:#4caf50!important;color:#fff!important;pointer-events:none}
+
+#homePage .hp-brand-strip{padding:60px clamp(1rem,4vw,3rem);text-align:center;border-top:1px solid #1a1a1a}
+#homePage .hp-brand-strip-t{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,5vw,52px);letter-spacing:.03em;margin-bottom:32px;color:#f4f0e8}
+#homePage .hp-brand-circles{display:flex;gap:48px;justify-content:center;flex-wrap:wrap}
+#homePage .hp-brand-circle{display:flex;flex-direction:column;align-items:center;gap:12px;text-decoration:none;cursor:pointer}
+#homePage .hp-brand-circle .circle{width:140px;height:140px;border-radius:50%;background:#fff;overflow:hidden;display:flex;align-items:center;justify-content:center;border:3px solid #2a2a2a;transition:transform .2s,border-color .2s}
+#homePage .hp-brand-circle:hover .circle{transform:scale(1.05);border-color:#d4b896}
+#homePage .hp-brand-circle .circle img{width:100%;height:100%;object-fit:cover}
+#homePage .hp-brand-circle .nm{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:.05em;color:#f4f0e8}
+
+#homePage .hp-game-banner{
+  margin:32px clamp(1rem,4vw,3rem) 0;padding:18px 22px;
+  background:linear-gradient(120deg,#2a1c4a 0%,#3a1c3a 45%,#4a2410 100%);
+  border:1px solid #d4b896;border-radius:14px;
+  display:flex;align-items:center;gap:14px;cursor:pointer;
+  transition:transform .15s,border-color .2s;
+}
+#homePage .hp-game-banner:hover{transform:translateY(-2px);border-color:#e8d8b8}
+#homePage .hp-game-banner .gbi{font-size:1.7rem;flex-shrink:0}
+#homePage .hp-game-banner .gbt{flex:1;min-width:0}
+#homePage .hp-game-banner .gbt strong{font-family:'Bebas Neue',sans-serif;font-size:17px;color:#fff;letter-spacing:.04em;display:block;line-height:1}
+#homePage .hp-game-banner .gbt small{font-size:12px;color:rgba(255,255,255,.65);display:block;margin-top:4px;font-family:'Barlow',sans-serif}
+#homePage .hp-game-banner .gbc{flex-shrink:0;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.1em;background:#d4b896;color:#1a1408;padding:9px 14px;border-radius:6px}
 
 /* Brand nav sticky */
 .shop-page .mp-nav{
@@ -1064,6 +1140,9 @@ body.mayorista-active .game-banner{display:none}
       <div class="promo-dots" id="promoDots"></div>
     </div>
 
+    <!-- HOME ECOMMERCE (B2C). Visible cuando NO sos mayorista. -->
+    <div id="homePage" class="shop-page"></div>
+
     <!-- MAYORISTA STOREFRONT. Visible cuando body.mayorista-active. -->
     <div id="mayoPage" class="shop-page"></div>
 
@@ -1490,82 +1569,170 @@ function addFromCard(btn) {
   btn.classList.add('done');
 }
 
-// ─── VITRINA / STOREFRONT (B2C, dentro del chat) ─────────────────────────────
-function showStorefront() {
-  const flashItems = [
-    { p: prod('Imperio Perdido'),  old: 3290 },
-    { p: prod('Samba'),            old: 3290 },
-    { p: prod('Caurina'),          old: 3290 },
-    { p: prod('Guantánamo Mojito'),old: 4990 },
-  ].filter(x => x.p);
-
-  const topItems = ['Imperio Perdido','Samba','Caurina','Pepita','Elizabeth Gin Tonic','Frank']
-    .map(prod).filter(Boolean);
-
-  const flashCards = flashItems.map(x => {
-    const off = Math.round((1 - x.p.price / x.old) * 100);
-    return buildCard(x.p, { badge:'-'+off+'%', badgeType:'discount', oldPrice:x.old });
-  }).join('');
-  const topCards = topItems.map(p => buildCard(p, { badge:'MÁS VENDIDO', badgeType:'top' })).join('');
-
-  const html = `
-  <div class="storefront">
-    <div class="game-banner" id="gameBanner" onclick="openGame()">
-      <span class="gb-icon">🎁</span>
-      <div class="gb-txt">
-        <div class="gb-title">10% OFF en tu primera compra</div>
-        <div class="gb-sub">Reclama tu cupón y juega cada día por un descuento extra</div>
-      </div>
-      <span class="gb-cta">RECLAMAR</span>
-    </div>
-    <div class="sf-block">
-      <div class="sf-head">
-        <span class="sf-title">⚡ Ofertas Relámpago</span>
-        <span class="sf-timer" id="flashTimer">--:--:--</span>
-      </div>
-      <div class="cards-row">${flashCards}</div>
-    </div>
-    <div class="sf-block">
-      <div class="sf-head"><span class="sf-title">🏆 Los más pedidos</span></div>
-      <div class="cards-row">${topCards}</div>
-    </div>
-    <div class="sf-block">
-      <div class="sf-head"><span class="sf-title">¿Para qué ocasión?</span></div>
-      <div class="occasion-grid">
-        <button class="occ-btn" onclick="sendQuick('Tengo un asado con amigos, qué me recomiendas?')"><span class="occ-em">🔥</span>Asado</button>
-        <button class="occ-btn" onclick="sendQuick('Es para una previa con amigos, qué llevo?')"><span class="occ-em">🎉</span>Previa</button>
-        <button class="occ-btn" onclick="sendQuick('Quiero hacer un regalo, qué me recomiendas?')"><span class="occ-em">🎁</span>Regalo</button>
-        <button class="occ-btn" onclick="sendQuick('Busco algo refrescante para el calor')"><span class="occ-em">☀️</span>Verano</button>
-        <button class="occ-btn" onclick="sendQuick('Soy dueño de un bar, quiero comprar al por mayor')"><span class="occ-em">🏪</span>Para mi local</button>
-      </div>
-    </div>
-    <div class="sf-brands">
-      <button class="brc" onclick="brandPill('kairos')" aria-label="Kairos Brewing">
-        <span class="brand-circle lg"><img src="brands/kairos.png" alt=""></span>
-        <span class="brc-label">Kairos</span>
-      </button>
-      <button class="brc" onclick="brandPill('firulais')" aria-label="Firulais">
-        <span class="brand-circle lg"><img src="brands/firulais.png" alt=""></span>
-        <span class="brc-label">Firulais</span>
-      </button>
-      <button class="brc" onclick="brandPill('banny')" aria-label="Banny">
-        <span class="brand-circle lg"><img src="brands/banny.png" alt=""></span>
-        <span class="brc-label">Banny</span>
-      </button>
+// ─── HOME ECOMMERCE B2C (#homePage, dark/beige estilo Kairos) ──────────────
+const HP_HERO_SLIDES = [
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-01.png?v=1775154725&width=1600',
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-02.png?v=1775154766&width=1600',
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-03.png?v=1775154716&width=1600',
+];
+function buildHpCard(p){
+  const variants = p.variants || [];
+  const v0 = variants[0] || {};
+  const price = parseFloat(v0.price || 0);
+  const compareAt = parseFloat(v0.compareAtPrice || 0);
+  const oldPrice = (compareAt && compareAt > price) ? `<span class="old">$${compareAt.toLocaleString('es-CL')}</span>` : '';
+  const img1 = p.image || (p.images && p.images[0]) || null;
+  const img2 = (p.images && p.images[1]) || null;
+  const visual = img1
+    ? `<div class="hp-card-img"><img class="img1" src="${img1}" alt="${escapeHtml(p.title)}" loading="lazy">${img2 ? `<img class="img2" src="${img2}" alt="" loading="lazy">` : ''}</div>`
+    : `<div class="hp-card-img"></div>`;
+  const variantSelect = variants.length > 1
+    ? `<select class="hp-sel" onchange="hpVariantChange(this)">${variants.map(v => `<option value="${v.id}" data-price="${v.price}">${escapeHtml(v.title)} — $${Math.round(parseFloat(v.price)).toLocaleString('es-CL')}</option>`).join('')}</select>`
+    : '';
+  const productData = { name: cleanMpTitle(p.title), brand: detectMpBrand(p), emoji:'🍺', style: mpStyle(p), desc:'', price, variantId: v0.id };
+  return `<div class="hp-card">
+    ${visual}
+    <div class="hp-card-name">${escapeHtml(cleanMpTitle(p.title))}</div>
+    <div class="hp-card-price">${oldPrice}$${price.toLocaleString('es-CL')}</div>
+    <div class="hp-acts">
+      ${variantSelect}
+      <div class="hp-qty"><button onclick="hpQty(this,-1)">−</button><span class="v">1</span><button onclick="hpQty(this,1)">+</button></div>
+      <button class="hp-add" data-product='${JSON.stringify(productData).replace(/'/g,"&#39;")}' onclick="hpAdd(this)">AÑADIR AL CARRITO</button>
     </div>
   </div>`;
-
-  const existing = document.querySelector('.sf-row');
-  if (existing) {
-    existing.querySelector('.msg-col').innerHTML = html;
-  } else {
-    const row = document.createElement('div');
-    row.className = 'row bot sf-row';
-    row.innerHTML = `<div class="avatar">⚡</div><div class="msg-col" style="max-width:100%;width:100%">${html}</div>`;
-    document.getElementById('messages').appendChild(row);
-    scrollBottom();
+}
+function hpQty(btn, delta){
+  const el = btn.closest('.hp-qty').querySelector('.v');
+  if (!el) return;
+  el.textContent = Math.max(1, Math.min(99, (parseInt(el.textContent,10)||1)+delta));
+}
+function hpVariantChange(sel){
+  const card = sel.closest('.hp-card'); if (!card) return;
+  const opt = sel.options[sel.selectedIndex];
+  const newPrice = parseFloat(opt.dataset.price || '0');
+  const priceEl = card.querySelector('.hp-card-price');
+  if (priceEl) priceEl.innerHTML = `$${newPrice.toLocaleString('es-CL')}`;
+  const btn = card.querySelector('.hp-add');
+  if (btn){
+    const data = JSON.parse(btn.getAttribute('data-product').replace(/&#39;/g,"'"));
+    data.variantId = sel.value; data.price = newPrice;
+    btn.setAttribute('data-product', JSON.stringify(data).replace(/'/g,"&#39;"));
   }
-  startFlashTimer();
+}
+function hpAdd(btn){
+  const data = JSON.parse(btn.getAttribute('data-product').replace(/&#39;/g,"'"));
+  const qty = parseInt(btn.closest('.hp-card').querySelector('.v').textContent,10) || 1;
+  addToCart(data, qty);
+  btn.textContent = `✓ AGREGADO (${qty})`;
+  btn.classList.add('done');
+}
+function hpInitHero(){
+  const ss = document.querySelector('#homePage .hp-hero');
+  if (!ss || ss.dataset.init) return;
+  ss.dataset.init = '1';
+  const track = ss.querySelector('.ht-track');
+  const dots = ss.querySelectorAll('.ht-dots .d');
+  const slides = track.children;
+  if (slides.length <= 1) return;
+  let cur = 0, tmr;
+  function go(n){
+    cur = (n + slides.length) % slides.length;
+    track.style.transform = `translateX(-${cur*100}%)`;
+    dots.forEach((d,i) => d.classList.toggle('on', i === cur));
+    clearInterval(tmr); tmr = setInterval(()=>go(cur+1), 4500);
+  }
+  tmr = setInterval(()=>go(cur+1), 4500);
+  ss.querySelector('.ht-arr.prev').onclick = () => go(cur-1);
+  ss.querySelector('.ht-arr.next').onclick = () => go(cur+1);
+  dots.forEach((d,i) => d.onclick = () => go(i));
+}
+
+async function showStorefront(){
+  const page = document.getElementById('homePage');
+  if (!page) return;
+  if (page.dataset.rendered) return;
+  page.dataset.rendered = '1';
+
+  let products = [];
+  try {
+    const r = await fetch('/api/products?mode=b2c');
+    if (r.ok) {
+      const data = await r.json();
+      products = data.products || [];
+    }
+  } catch (e) { console.warn('home catalog:', e); }
+
+  const groups = { kairos:{latas:[],packs:[],otros:[]}, firulais:[], banny:[] };
+  for (const p of products) {
+    if (!p.variants || !p.variants.length) continue;
+    const b = detectMpBrand(p);
+    if (b === 'firulais') { groups.firulais.push(p); continue; }
+    if (b === 'banny')    { groups.banny.push(p);    continue; }
+    const t = (p.title || '').toLowerCase();
+    if (/24\s*pack|12\s*pack|6\s*pack/.test(t)) groups.kairos.packs.push(p);
+    else if (/lata\s*473|473cc|433cc/.test(t))  groups.kairos.latas.push(p);
+    else                                         groups.kairos.otros.push(p);
+  }
+
+  const hero = `
+    <div class="hp-hero">
+      <div class="ht-track">${HP_HERO_SLIDES.map(u => `<div class="ht-slide"><img src="${u}" alt="Kairos Brewing" onerror="this.parentElement.parentElement.parentElement.parentElement.style.display='none'"></div>`).join('')}</div>
+      <button class="ht-arr prev" aria-label="Anterior">‹</button>
+      <button class="ht-arr next" aria-label="Siguiente">›</button>
+      <div class="ht-dots">${HP_HERO_SLIDES.map((_,i)=>`<span class="d ${i===0?'on':''}"></span>`).join('')}</div>
+    </div>`;
+
+  const gameBanner = `
+    <div class="hp-game-banner" onclick="openGame()">
+      <span class="gbi">🎁</span>
+      <div class="gbt"><strong>10% OFF EN TU PRIMERA COMPRA</strong><small>Reclama tu cupón y juega cada día por un descuento extra</small></div>
+      <span class="gbc">RECLAMAR</span>
+    </div>`;
+
+  const kairosHtml = (groups.kairos.latas.length || groups.kairos.packs.length || groups.kairos.otros.length) ? `
+    <section class="hp-section">
+      <h2 class="hp-section-title">Kairos Brewing</h2>
+      <p class="hp-section-sub">Craft beer · 17 estilos · sin preservantes</p>
+      ${groups.kairos.latas.length ? `<h3 class="hp-subhead">Nuestras Chelitas</h3><div class="hp-grid">${groups.kairos.latas.map(buildHpCard).join('')}</div>` : ''}
+      ${groups.kairos.packs.length ? `<h3 class="hp-subhead">Nuestros Packs</h3><div class="hp-grid">${groups.kairos.packs.map(buildHpCard).join('')}</div>` : ''}
+      ${groups.kairos.otros.length ? `<h3 class="hp-subhead">Más de Kairos</h3><div class="hp-grid">${groups.kairos.otros.map(buildHpCard).join('')}</div>` : ''}
+    </section>` : '';
+
+  const firulaisHtml = groups.firulais.length ? `
+    <section class="hp-section">
+      <h2 class="hp-section-title">Firulais</h2>
+      <p class="hp-section-sub">Craft Mix · Cheladas honestas · Est. 2025</p>
+      <div class="hp-grid">${groups.firulais.map(buildHpCard).join('')}</div>
+    </section>` : '';
+
+  const bannyHtml = groups.banny.length ? `
+    <section class="hp-section">
+      <h2 class="hp-section-title">Banny</h2>
+      <p class="hp-section-sub">Destilados premium · Ready To Drink · Craft to be Wild</p>
+      <div class="hp-grid">${groups.banny.map(buildHpCard).join('')}</div>
+    </section>` : '';
+
+  const brandStrip = `
+    <div class="hp-brand-strip">
+      <h3 class="hp-brand-strip-t">Nuestras Marcas</h3>
+      <div class="hp-brand-circles">
+        <a class="hp-brand-circle" onclick="document.querySelector('.hp-section')?.scrollIntoView({behavior:'smooth'})">
+          <span class="circle"><img src="brands/kairos.png" alt="Kairos"></span>
+          <span class="nm">Kairos Brewing</span>
+        </a>
+        <a class="hp-brand-circle" onclick="sendQuick('Cuéntame de las cheladas Firulais')">
+          <span class="circle"><img src="brands/firulais.png" alt="Firulais"></span>
+          <span class="nm">Firulais</span>
+        </a>
+        <a class="hp-brand-circle" onclick="sendQuick('Qué destilados y RTD tiene Banny?')">
+          <span class="circle"><img src="brands/banny.png" alt="Banny"></span>
+          <span class="nm">Banny</span>
+        </a>
+      </div>
+    </div>`;
+
+  page.innerHTML = `${hero}${gameBanner}${kairosHtml}${firulaisHtml}${bannyHtml}${brandStrip}`;
+  hpInitHero();
 }
 
 let flashEnd = null;
