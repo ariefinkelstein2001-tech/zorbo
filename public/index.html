@@ -254,14 +254,41 @@ header{
 .pc-brand.firulais{color:var(--f)}
 .pc-brand.banny{color:var(--b)}
 .pc-emoji{font-size:1.7rem;margin:.22rem 0}
+.pc-img{
+  width:100%;aspect-ratio:1;margin:.3rem 0;
+  background:var(--surface3);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}
+.pc-img img{width:100%;height:100%;object-fit:cover;display:block}
+.pc-img .pc-emoji-fb{font-size:2.6rem}
 .pc-name{font-size:.84rem;font-weight:700;line-height:1.22}
 .pc-style{font-size:.68rem;color:var(--muted)}
 .pc-desc{font-size:.66rem;color:var(--dim);line-height:1.4;flex:1;margin-top:.1rem}
 .pc-price{
   font-family:var(--display);font-size:1.05rem;font-weight:800;color:var(--gold);margin-top:.35rem;
 }
+.pc-qty{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:.4rem;gap:.3rem;
+  background:var(--surface3);border:1px solid var(--border);border-radius:9px;
+  padding:.2rem .35rem;
+}
+.pc-qty button{
+  width:24px;height:24px;
+  background:none;border:none;color:var(--gold);
+  font-size:1.05rem;font-weight:700;cursor:pointer;border-radius:5px;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s;
+}
+.pc-qty button:hover{background:var(--gold-dim)}
+.pc-qty button:disabled{opacity:.3;cursor:not-allowed}
+.pc-qty .qty-num{
+  flex:1;text-align:center;font-weight:700;color:var(--text);
+  font-size:.85rem;font-family:var(--display);
+}
 .pc-add{
-  width:100%;padding:.46rem;margin-top:.35rem;
+  width:100%;padding:.46rem;margin-top:.3rem;
   background:var(--gold-dim);border:1px solid var(--gold-bd);
   border-radius:9px;color:var(--gold);
   font-size:.72rem;font-weight:700;font-family:var(--sans);cursor:pointer;
@@ -1005,6 +1032,26 @@ const PMAP = new Map(CATALOG.map(p => [p.name.toLowerCase(), p]));
 const BRAND_LABEL = { kairos:'Kairos Brewing', firulais:'Firulais', banny:'Banny' };
 function prod(name){ return PMAP.get(name.toLowerCase()); }
 
+// variantId → imagen real de Shopify. Se llena al cargar la página (loadShopifyCatalog).
+const SHOPIFY_IMG = {};
+async function loadShopifyCatalog() {
+  try {
+    const r = await fetch('/api/products?mode=b2c');
+    if (!r.ok) return;
+    const { products } = await r.json();
+    for (const sp of products) {
+      for (const v of (sp.variants || [])) {
+        if (sp.image && v.id) SHOPIFY_IMG[v.id] = sp.image;
+      }
+    }
+    // Re-renderizar la vitrina si ya está montada
+    if (typeof showStorefront === 'function' && document.querySelector('.storefront')) {
+      showStorefront();
+    }
+  } catch (e) { console.warn('Shopify catalog load failed:', e); }
+}
+loadShopifyCatalog();
+
 // ─── ESTADO ───────────────────────────────────────────────────────────────────
 const urlFrom    = new URLSearchParams(location.search).get('from') || 'zorbot';
 let sessionId    = sessionStorage.getItem('zsid') || null;
@@ -1112,23 +1159,41 @@ function buildCard(p, opts={}) {
   if (opts.oldPrice) {
     priceHtml = `<div class="pc-price-row"><span class="pc-old">$${opts.oldPrice.toLocaleString('es-CL')}</span><span class="pc-price">$${p.price.toLocaleString('es-CL')}</span></div>`;
   }
+  const imgUrl = SHOPIFY_IMG[p.variantId];
+  const visual = imgUrl
+    ? `<div class="pc-img"><img src="${imgUrl}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'pc-emoji-fb',textContent:'${p.emoji}'}))"></div>`
+    : `<div class="pc-img"><span class="pc-emoji-fb">${p.emoji}</span></div>`;
   return `
   <div class="pcard ${p.brand}">
     ${badge}
     <span class="pc-brand ${p.brand}">${BRAND_LABEL[p.brand]}</span>
-    <div class="pc-emoji">${p.emoji}</div>
+    ${visual}
     <div class="pc-name">${escapeHtml(p.name)}</div>
     <div class="pc-style">${escapeHtml(p.style)}${p.abv ? ' · ' + p.abv : ''}</div>
     <div class="pc-desc">${escapeHtml(p.desc)}</div>
     ${priceHtml}
+    <div class="pc-qty" data-i="${p.i}">
+      <button onclick="cardQty(${p.i},-1)" aria-label="Restar">−</button>
+      <span class="qty-num" id="qty-${p.i}">1</span>
+      <button onclick="cardQty(${p.i},1)" aria-label="Sumar">+</button>
+    </div>
     <button class="pc-add" data-i="${p.i}" onclick="addFromCard(this)">Agregar al carro</button>
   </div>`;
 }
+function cardQty(i, delta) {
+  const el = document.getElementById('qty-' + i);
+  if (!el) return;
+  const next = Math.max(1, Math.min(99, (parseInt(el.textContent, 10) || 1) + delta));
+  el.textContent = next;
+}
 function addFromCard(btn) {
-  const p = CATALOG[+btn.getAttribute('data-i')];
+  const i = +btn.getAttribute('data-i');
+  const p = CATALOG[i];
   if (!p) return;
-  addToCart(p);
-  btn.textContent = '✓ Agregado';
+  const qtyEl = document.getElementById('qty-' + i);
+  const qty = qtyEl ? Math.max(1, parseInt(qtyEl.textContent, 10) || 1) : 1;
+  addToCart(p, qty);
+  btn.textContent = `✓ Agregado (${qty})`;
   btn.classList.add('done');
 }
 
@@ -1359,9 +1424,10 @@ function autoResize(el) {
 }
 
 // ─── CARRO ────────────────────────────────────────────────────────────────────
-function addToCart(p) {
+function addToCart(p, qty = 1) {
   const ex = cart.find(i => i.p.name === p.name);
-  ex ? ex.qty++ : cart.push({ p, qty: 1 });
+  if (ex) ex.qty += qty;
+  else cart.push({ p, qty });
   updateCart();
   toast(p);
 }
