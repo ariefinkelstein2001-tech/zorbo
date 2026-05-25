@@ -184,8 +184,9 @@ header{
 .pdot.on{background:var(--gold)}
 
 /* ── CHAT ── */
-.chat-area{flex:1;overflow-y:auto;overflow-x:hidden;padding:1.4rem 1rem 1rem;scroll-behavior:smooth}
-.messages{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:1.25rem}
+.chat-area{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+.messages{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:1.25rem;padding:1.4rem 1rem 1rem}
+.sf-brands{display:flex;justify-content:center;gap:1.4rem;padding:.4rem 0 .2rem;flex-wrap:wrap}
 
 .row{display:flex;gap:.6rem;animation:fadeUp .26s ease}
 .row.user{justify-content:flex-end}
@@ -554,7 +555,7 @@ header{
 @media (max-width:600px){
   header{padding:.6rem .8rem;gap:.55rem}
   .logo-sub{display:none}
-  .chat-area{padding:1.1rem .75rem .75rem}
+  .messages{padding:1.1rem .75rem .75rem}
   .input-wrap{padding:.6rem .75rem .65rem}
   .msg-col{max-width:90%}
   .row.user .msg-col{max-width:86%}
@@ -722,86 +723,70 @@ body.mayorista-active .game-banner{display:none}
     </button>
   </header>
 
-<!-- HERO SLIDESHOW (3 marcas) -->
-  <div class="hero-slides">
-    <div class="hs-track" id="hsTrack">
-      <div class="hs-slide kairos">
-        <span class="hs-emoji">🍺</span>
-        <div class="hs-content">
-          <span class="hs-tag">Kairos Brewing</span>
-          <div class="hs-title">Cerveza artesanal<br>con carácter</div>
-          <div class="hs-sub">17 estilos · desde $2.490</div>
-          <button class="hs-btn" onclick="sendQuick('Qué cervezas artesanales tiene Kairos Brewing?')">Ver cervezas →</button>
-        </div>
-      </div>
-      <div class="hs-slide firulais">
-        <span class="hs-emoji">🐾</span>
-        <div class="hs-content">
-          <span class="hs-tag">Firulais</span>
-          <div class="hs-title">Cheladas craft<br>perrísimas 🌶️</div>
-          <div class="hs-sub">Limón, mango-habanero y michelada · $2.500</div>
-          <button class="hs-btn" onclick="sendQuick('Cuéntame de las cheladas Firulais')">Ver cheladas →</button>
-        </div>
-      </div>
-      <div class="hs-slide banny">
-        <span class="hs-emoji">🍸</span>
-        <div class="hs-content">
-          <span class="hs-tag">Banny by Kairos</span>
-          <div class="hs-title">Destilados y<br>cócteles listos</div>
-          <div class="hs-sub">Gin, ron, whiskey y RTD · craft to be wild</div>
-          <button class="hs-btn" onclick="sendQuick('Qué destilados y RTD tiene Banny?')">Ver Banny →</button>
-        </div>
-      </div>
-    </div>
-    <div class="hs-dots" id="hsDots"></div>
-  </div>
-
-  <!-- PROMO BANNER -->
-  <div class="promo-wrap">
-    <div class="promo-track" id="promoTrack">
-      <div class="promo-slide">
-        <span class="promo-tag">GRATIS</span>
-        <strong>Envío gratis</strong>
-        <span>en compras sobre $50.000 · RM y Antofagasta</span>
-      </div>
-      <div class="promo-slide">
-        <span class="promo-tag">KAIROS</span>
-        <strong>Pack 24 latas $49.990</strong>
-        <span>arma tu mix artesanal a gusto</span>
-      </div>
-      <div class="promo-slide">
-        <span class="promo-tag">FIRULAIS</span>
-        <strong>Cheladas craft EST. 2025</strong>
-        <span>perrísimas desde el primer sorbo</span>
-      </div>
-      <div class="promo-slide">
-        <span class="promo-tag">BANNY</span>
-        <strong>RTD desde $3.990</strong>
-        <span>Mojito y Gin Tonic listos para tomar</span>
-      </div>
-    </div>
-    <div class="promo-dots" id="promoDots"></div>
-  </div>
-
-  <!-- CHAT -->
+<!-- CHAT (con hero + promo adentro, así scrollean junto al contenido) -->
   <div class="chat-area" id="chatArea">
-    <div class="messages" id="messages"></div>
-  </div>
+    <!-- HERO SLIDESHOW (3 marcas) -->
+    <div class="hero-slides">
+      <div class="hs-track" id="hsTrack">
+        <div class="hs-slide kairos">
+          <span class="hs-emoji">🍺</span>
+          <div class="hs-content">
+            <span class="hs-tag">Kairos Brewing</span>
+            <div class="hs-title">Cerveza artesanal<br>con carácter</div>
+            <div class="hs-sub">17 estilos · desde $2.490</div>
+            <button class="hs-btn" onclick="sendQuick('Qué cervezas artesanales tiene Kairos Brewing?')">Ver cervezas →</button>
+          </div>
+        </div>
+        <div class="hs-slide firulais">
+          <span class="hs-emoji">🐾</span>
+          <div class="hs-content">
+            <span class="hs-tag">Firulais</span>
+            <div class="hs-title">Cheladas craft<br>perrísimas 🌶️</div>
+            <div class="hs-sub">Limón, mango-habanero y michelada · $2.500</div>
+            <button class="hs-btn" onclick="sendQuick('Cuéntame de las cheladas Firulais')">Ver cheladas →</button>
+          </div>
+        </div>
+        <div class="hs-slide banny">
+          <span class="hs-emoji">🍸</span>
+          <div class="hs-content">
+            <span class="hs-tag">Banny by Kairos</span>
+            <div class="hs-title">Destilados y<br>cócteles listos</div>
+            <div class="hs-sub">Gin, ron, whiskey y RTD · craft to be wild</div>
+            <button class="hs-btn" onclick="sendQuick('Qué destilados y RTD tiene Banny?')">Ver Banny →</button>
+          </div>
+        </div>
+      </div>
+      <div class="hs-dots" id="hsDots"></div>
+    </div>
 
-  <!-- BRAND ROW (debajo del chat) -->
-  <div class="brand-row-bottom">
-    <button class="brc" onclick="brandPill('kairos')" aria-label="Kairos Brewing">
-      <span class="brand-circle lg"><img src="brands/kairos.png" alt=""></span>
-      <span class="brc-label">Kairos</span>
-    </button>
-    <button class="brc" onclick="brandPill('firulais')" aria-label="Firulais">
-      <span class="brand-circle lg"><img src="brands/firulais.png" alt=""></span>
-      <span class="brc-label">Firulais</span>
-    </button>
-    <button class="brc" onclick="brandPill('banny')" aria-label="Banny">
-      <span class="brand-circle lg"><img src="brands/banny.png" alt=""></span>
-      <span class="brc-label">Banny</span>
-    </button>
+    <!-- PROMO BANNER -->
+    <div class="promo-wrap">
+      <div class="promo-track" id="promoTrack">
+        <div class="promo-slide">
+          <span class="promo-tag">GRATIS</span>
+          <strong>Envío gratis</strong>
+          <span>en compras sobre $50.000 · RM y Antofagasta</span>
+        </div>
+        <div class="promo-slide">
+          <span class="promo-tag">KAIROS</span>
+          <strong>Pack 24 latas $49.990</strong>
+          <span>arma tu mix artesanal a gusto</span>
+        </div>
+        <div class="promo-slide">
+          <span class="promo-tag">FIRULAIS</span>
+          <strong>Cheladas craft EST. 2025</strong>
+          <span>perrísimas desde el primer sorbo</span>
+        </div>
+        <div class="promo-slide">
+          <span class="promo-tag">BANNY</span>
+          <strong>RTD desde $3.990</strong>
+          <span>Mojito y Gin Tonic listos para tomar</span>
+        </div>
+      </div>
+      <div class="promo-dots" id="promoDots"></div>
+    </div>
+
+    <div class="messages" id="messages"></div>
   </div>
 
   <!-- INPUT -->
@@ -1268,6 +1253,21 @@ function showStorefront() {
         <button class="occ-btn" onclick="sendQuick('Busco algo refrescante para el calor')"><span class="occ-em">☀️</span>Verano</button>
         <button class="occ-btn" onclick="sendQuick('Soy dueño de un bar, quiero comprar al por mayor')"><span class="occ-em">🏪</span>Para mi local</button>
       </div>
+    </div>
+
+    <div class="sf-brands">
+      <button class="brc" onclick="brandPill('kairos')" aria-label="Kairos Brewing">
+        <span class="brand-circle lg"><img src="brands/kairos.png" alt=""></span>
+        <span class="brc-label">Kairos</span>
+      </button>
+      <button class="brc" onclick="brandPill('firulais')" aria-label="Firulais">
+        <span class="brand-circle lg"><img src="brands/firulais.png" alt=""></span>
+        <span class="brc-label">Firulais</span>
+      </button>
+      <button class="brc" onclick="brandPill('banny')" aria-label="Banny">
+        <span class="brand-circle lg"><img src="brands/banny.png" alt=""></span>
+        <span class="brc-label">Banny</span>
+      </button>
     </div>
   </div>`;
 
@@ -2075,27 +2075,6 @@ async function mayoLead(){
     btn.textContent = 'Enviar a Kairos';
   }
 }
-
-// ─── SCROLL: los banners superiores se deslizan en proporcion al scroll ──────
-(function(){
-  const ca = document.getElementById('chatArea');
-  if (!ca) return;
-  const hero  = document.querySelector('.hero-slides');
-  const promo = document.querySelector('.promo-wrap');
-  const heroBase  = hero  ? hero.offsetHeight  : 150;
-  const promoBase = promo ? promo.offsetHeight : 40;
-  const RANGE = 200;
-  let ticking = false;
-  function update(){
-    const t = Math.max(0, Math.min(1, ca.scrollTop / RANGE));
-    if (hero)  { hero.style.height  = ((1 - t) * heroBase ) + 'px'; hero.style.opacity  = String(1 - t); }
-    if (promo) { promo.style.height = ((1 - t) * promoBase) + 'px'; promo.style.opacity = String(1 - t); }
-    ticking = false;
-  }
-  ca.addEventListener('scroll', () => {
-    if (!ticking) { ticking = true; requestAnimationFrame(update); }
-  }, { passive: true });
-})();
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 checkAge();
