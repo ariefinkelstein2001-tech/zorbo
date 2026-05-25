@@ -312,7 +312,7 @@ app.get('/shopify/install', (req, res) => {
   const apiKey = process.env.SHOPIFY_API_KEY;
   if (!apiKey) return res.status(500).send('Falta SHOPIFY_API_KEY en el servidor.');
 
-  const redirectUri = `${req.protocol}://${req.get('host')}/shopify/callback`;
+  const redirectUri = `https://${req.get('host')}/shopify/callback`;
   const state = randomUUID();
   const url = `https://${shop}/admin/oauth/authorize`
     + `?client_id=${encodeURIComponent(apiKey)}`
