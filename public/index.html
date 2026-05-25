@@ -174,238 +174,243 @@ header{
 body.mayorista-active .mayoristas-btn{display:none}
 
 /* ════════════════════════════════════════════════════════════════════════
-   MAYORISTA — PÁGINA ECOMMERCE COMPLETA (port del portal PageFly)
+   STOREFRONT ECOMMERCE (home B2C + mayorista B2B). Mismo CSS reutilizado
+   en .shop-page; el toggle de visibilidad cambia qué bloque se muestra.
 ════════════════════════════════════════════════════════════════════════ */
-body.mayorista-active .chat-area{display:none!important}
-body.mayorista-active #mayoPage{display:block!important;flex:1;overflow-y:auto;background:#080808}
-#mayoPage *,#mayoPage *::before,#mayoPage *::after{box-sizing:border-box}
+.hero-slides,.promo-wrap{display:none!important} /* sustituidos por #homePage */
+#homePage,#mayoPage{background:#080808}
+#homePage{display:block}
+#mayoPage{display:none}
+body.mayorista-active #homePage{display:none}
+body.mayorista-active #mayoPage{display:block}
+.shop-page *,.shop-page *::before,.shop-page *::after{box-sizing:border-box}
 
 /* Brand nav sticky */
-#mayoPage .mp-nav{
+.shop-page .mp-nav{
   position:sticky;top:0;z-index:50;background:rgba(8,8,8,.94);backdrop-filter:blur(10px);
   border-bottom:1px solid #1a1a1a;padding:.85rem clamp(1rem,3vw,2rem);
   display:flex;gap:.55rem;overflow-x:auto;scrollbar-width:none;align-items:center;justify-content:center;flex-wrap:wrap;
 }
-#mayoPage .mp-nav::-webkit-scrollbar{display:none}
-#mayoPage .mp-nav a{
+.shop-page .mp-nav::-webkit-scrollbar{display:none}
+.shop-page .mp-nav a{
   flex-shrink:0;text-decoration:none;cursor:pointer;
   font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:700;
   letter-spacing:.12em;text-transform:uppercase;padding:.6rem 1.1rem;border-radius:100px;
   border:2px solid transparent;transition:transform .15s,filter .15s,box-shadow .15s;
   display:inline-flex;align-items:center;gap:.4rem;white-space:nowrap;
 }
-#mayoPage .mp-nav a:hover{transform:translateY(-2px);filter:brightness(1.1);box-shadow:0 4px 14px rgba(0,0,0,.4)}
-#mayoPage .mp-nav a[data-brand=kairos]  {background:#e8a020;color:#000}
-#mayoPage .mp-nav a[data-brand=lanus]   {background:#7b1f3a;color:#f5eed8;border-color:#c9a227}
-#mayoPage .mp-nav a[data-brand=osagui]  {background:#c0241a;color:#fff}
-#mayoPage .mp-nav a[data-brand=firulais]{background:#f5c900;color:#1d3d25;border-color:#1d3d25}
-#mayoPage .mp-nav a[data-brand=banny]   {background:#77cbbf;color:#0d0f2a}
+.shop-page .mp-nav a:hover{transform:translateY(-2px);filter:brightness(1.1);box-shadow:0 4px 14px rgba(0,0,0,.4)}
+.shop-page .mp-nav a[data-brand=kairos]  {background:#e8a020;color:#000}
+.shop-page .mp-nav a[data-brand=lanus]   {background:#7b1f3a;color:#f5eed8;border-color:#c9a227}
+.shop-page .mp-nav a[data-brand=osagui]  {background:#c0241a;color:#fff}
+.shop-page .mp-nav a[data-brand=firulais]{background:#f5c900;color:#1d3d25;border-color:#1d3d25}
+.shop-page .mp-nav a[data-brand=banny]   {background:#77cbbf;color:#0d0f2a}
 
 /* Card base compartido */
-#mayoPage .mp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
-#mayoPage .mp-card{display:flex;flex-direction:column;overflow:hidden;border-radius:3px;transition:border-color .2s,transform .2s,box-shadow .2s;position:relative}
-#mayoPage .mp-card:hover{transform:translateY(-3px)}
-#mayoPage .mp-ci{display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;aspect-ratio:1}
-#mayoPage .mp-ci img{max-height:100%;max-width:100%;object-fit:contain;filter:drop-shadow(0 8px 20px rgba(0,0,0,.6));transition:transform .3s,opacity .3s;position:absolute;inset:0;width:100%;height:100%;padding:18px}
-#mayoPage .mp-ci img.img2{opacity:0}
-#mayoPage .mp-card:hover .mp-ci img.img1{opacity:0;transform:scale(1.04)}
-#mayoPage .mp-card:hover .mp-ci img.img2{opacity:1}
-#mayoPage .mp-ctag{position:absolute;top:11px;left:0;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:3px 10px 3px 12px;clip-path:polygon(0 0,100% 0,calc(100% - 6px) 100%,0 100%);z-index:3}
-#mayoPage .mp-cb{padding:14px 14px 18px;display:flex;flex-direction:column;flex:1;gap:3px}
-#mayoPage .mp-cst{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:500;letter-spacing:.16em;text-transform:uppercase}
-#mayoPage .mp-cn{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.02em;line-height:1;margin-bottom:3px}
-#mayoPage .mp-cp{font-size:19px;font-weight:700;margin-bottom:10px;font-family:'Barlow',sans-serif}
-#mayoPage .mp-cp small{font-size:11px;font-weight:400;margin-left:4px;opacity:.55}
-#mayoPage select.mp-sel{width:100%;border-radius:2px;font-family:'Barlow',sans-serif;font-size:12.5px;padding:8px 28px 8px 11px;appearance:none;-webkit-appearance:none;background-repeat:no-repeat;background-position:right 10px center;cursor:pointer;margin-bottom:9px;transition:border-color .2s}
-#mayoPage .mp-acts{display:flex;gap:7px;margin-top:auto}
-#mayoPage .mp-qty{display:flex;border-radius:2px;overflow:hidden;flex-shrink:0}
-#mayoPage .mp-qty button{background:transparent;border:none;font-size:16px;width:32px;height:40px;cursor:pointer;line-height:1;font-family:'Barlow',sans-serif;font-weight:700;transition:background .15s}
-#mayoPage .mp-qv{width:32px;text-align:center;font-size:14px;font-weight:600;height:40px;line-height:40px;user-select:none}
-#mayoPage button.mp-add{flex:1;border:none;border-radius:2px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;height:40px;transition:filter .15s}
-#mayoPage button.mp-add:hover{filter:brightness(1.12)}
-#mayoPage button.mp-add:active{transform:scale(.98)}
-#mayoPage button.mp-add.done{background:#4caf50!important;color:#fff!important;pointer-events:none}
+.shop-page .mp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
+.shop-page .mp-card{display:flex;flex-direction:column;overflow:hidden;border-radius:3px;transition:border-color .2s,transform .2s,box-shadow .2s;position:relative}
+.shop-page .mp-card:hover{transform:translateY(-3px)}
+.shop-page .mp-ci{display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;aspect-ratio:1}
+.shop-page .mp-ci img{max-height:100%;max-width:100%;object-fit:contain;filter:drop-shadow(0 8px 20px rgba(0,0,0,.6));transition:transform .3s,opacity .3s;position:absolute;inset:0;width:100%;height:100%;padding:18px}
+.shop-page .mp-ci img.img2{opacity:0}
+.shop-page .mp-card:hover .mp-ci img.img1{opacity:0;transform:scale(1.04)}
+.shop-page .mp-card:hover .mp-ci img.img2{opacity:1}
+.shop-page .mp-ctag{position:absolute;top:11px;left:0;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:3px 10px 3px 12px;clip-path:polygon(0 0,100% 0,calc(100% - 6px) 100%,0 100%);z-index:3}
+.shop-page .mp-cb{padding:14px 14px 18px;display:flex;flex-direction:column;flex:1;gap:3px}
+.shop-page .mp-cst{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:500;letter-spacing:.16em;text-transform:uppercase}
+.shop-page .mp-cn{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.02em;line-height:1;margin-bottom:3px}
+.shop-page .mp-cp{font-size:19px;font-weight:700;margin-bottom:10px;font-family:'Barlow',sans-serif}
+.shop-page .mp-cp small{font-size:11px;font-weight:400;margin-left:4px;opacity:.55}
+.shop-page select.mp-sel{width:100%;border-radius:2px;font-family:'Barlow',sans-serif;font-size:12.5px;padding:8px 28px 8px 11px;appearance:none;-webkit-appearance:none;background-repeat:no-repeat;background-position:right 10px center;cursor:pointer;margin-bottom:9px;transition:border-color .2s}
+.shop-page .mp-acts{display:flex;gap:7px;margin-top:auto}
+.shop-page .mp-qty{display:flex;border-radius:2px;overflow:hidden;flex-shrink:0}
+.shop-page .mp-qty button{background:transparent;border:none;font-size:16px;width:32px;height:40px;cursor:pointer;line-height:1;font-family:'Barlow',sans-serif;font-weight:700;transition:background .15s}
+.shop-page .mp-qv{width:32px;text-align:center;font-size:14px;font-weight:600;height:40px;line-height:40px;user-select:none}
+.shop-page button.mp-add{flex:1;border:none;border-radius:2px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;height:40px;transition:filter .15s}
+.shop-page button.mp-add:hover{filter:brightness(1.12)}
+.shop-page button.mp-add:active{transform:scale(.98)}
+.shop-page button.mp-add.done{background:#4caf50!important;color:#fff!important;pointer-events:none}
 
-#mayoPage .mp-note{margin:0 clamp(1rem,4vw,3rem) 2rem;padding:14px 18px;border-left:3px solid;background:rgba(255,255,255,.04);font-size:13px;line-height:1.65}
-#mayoPage .mp-note strong{font-weight:700}
-#mayoPage .mp-section{padding:48px clamp(1rem,4vw,3rem) 12px}
-#mayoPage .mp-section-t{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:.04em;line-height:1;margin-bottom:5px}
-#mayoPage .mp-section-s{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:24px}
-#mayoPage .mp-sub-head{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.05em;margin:32px 0 14px;display:flex;align-items:baseline;gap:.5rem;padding-bottom:8px;border-bottom:1px solid currentColor}
-#mayoPage .mp-sub-head:first-of-type{margin-top:0}
-#mayoPage .mp-sub-head .sub-count{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:.14em;opacity:.6;font-weight:600}
+.shop-page .mp-note{margin:0 clamp(1rem,4vw,3rem) 2rem;padding:14px 18px;border-left:3px solid;background:rgba(255,255,255,.04);font-size:13px;line-height:1.65}
+.shop-page .mp-note strong{font-weight:700}
+.shop-page .mp-section{padding:48px clamp(1rem,4vw,3rem) 12px}
+.shop-page .mp-section-t{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:.04em;line-height:1;margin-bottom:5px}
+.shop-page .mp-section-s{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:24px}
+.shop-page .mp-sub-head{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.05em;margin:32px 0 14px;display:flex;align-items:baseline;gap:.5rem;padding-bottom:8px;border-bottom:1px solid currentColor}
+.shop-page .mp-sub-head:first-of-type{margin-top:0}
+.shop-page .mp-sub-head .sub-count{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:.14em;opacity:.6;font-weight:600}
 
 /* ── KAIROS ─────────────────────────────────────────────────────────── */
-#mayoPage .kb{background:#080808;color:#f4f0e8;font-family:'Barlow',sans-serif}
-#mayoPage .kb .mp-section-t,#mayoPage .kb .mp-cn{color:#f4f0e8}
-#mayoPage .kb .mp-section-s{color:#6e6e6e}
-#mayoPage .kb .mp-sub-head{color:#e8a020;border-color:rgba(232,160,32,.25)}
-#mayoPage .kb .mp-card{background:#161616;border:1px solid #252525}
-#mayoPage .kb .mp-card:hover{border-color:rgba(232,160,32,.45)}
-#mayoPage .kb .mp-ci{background:#0c0c0c}
-#mayoPage .kb .mp-ctag{background:#e8a020;color:#000;border-radius:1px}
-#mayoPage .kb .mp-cst{color:#e8a020}
-#mayoPage .kb .mp-cp{color:#f5c147}
-#mayoPage .kb .mp-cp small{color:#6e6e6e}
-#mayoPage .kb select.mp-sel{background:#0a0a0a;border:1px solid #252525;color:#f4f0e8;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23666' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
-#mayoPage .kb .mp-qty{border:1px solid #252525}
-#mayoPage .kb .mp-qty button{color:#6e6e6e}
-#mayoPage .kb .mp-qty button:hover{color:#e8a020;background:rgba(232,160,32,.08)}
-#mayoPage .kb .mp-qv{color:#f4f0e8;border-left:1px solid #252525;border-right:1px solid #252525}
-#mayoPage .kb button.mp-add{background:#e8a020;color:#000}
-#mayoPage .kb .mp-note{border-left-color:#e8a020;background:rgba(232,160,32,.04);color:#6e6e6e}
-#mayoPage .kb .mp-note strong{color:#e8a020}
-#mayoPage .kb-slideshow{position:relative;width:100%;overflow:hidden;background:#000;line-height:0}
-#mayoPage .kb-slideshow .ss-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1)}
-#mayoPage .kb-slideshow .ss-slide{flex:0 0 100%}
-#mayoPage .kb-slideshow .ss-slide img{width:100%;display:block;max-height:340px;object-fit:cover;object-position:center top}
-#mayoPage .kb-slideshow .ss-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:5}
-#mayoPage .kb-slideshow .ss-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);transition:background .25s,transform .25s}
-#mayoPage .kb-slideshow .ss-dot.on{background:#e8a020;transform:scale(1.3)}
-#mayoPage .kb-hd{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:22px clamp(1rem,4vw,3rem);border-bottom:1px solid #252525}
-#mayoPage .kb-hd-logo{height:54px;width:auto;object-fit:contain}
-#mayoPage .kb-hd-r{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
-#mayoPage .kb-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-#mayoPage .kb-pill{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:5px 14px;border-radius:2px}
-#mayoPage .kb-pill.g{background:#e8a020;color:#000}
-#mayoPage .kb-pill.o{border:1px solid #252525;color:#6e6e6e}
-#mayoPage .kb-hd-tag{font-size:12px;color:#6e6e6e;font-style:italic}
+.shop-page .kb{background:#080808;color:#f4f0e8;font-family:'Barlow',sans-serif}
+.shop-page .kb .mp-section-t,.shop-page .kb .mp-cn{color:#f4f0e8}
+.shop-page .kb .mp-section-s{color:#6e6e6e}
+.shop-page .kb .mp-sub-head{color:#e8a020;border-color:rgba(232,160,32,.25)}
+.shop-page .kb .mp-card{background:#161616;border:1px solid #252525}
+.shop-page .kb .mp-card:hover{border-color:rgba(232,160,32,.45)}
+.shop-page .kb .mp-ci{background:#0c0c0c}
+.shop-page .kb .mp-ctag{background:#e8a020;color:#000;border-radius:1px}
+.shop-page .kb .mp-cst{color:#e8a020}
+.shop-page .kb .mp-cp{color:#f5c147}
+.shop-page .kb .mp-cp small{color:#6e6e6e}
+.shop-page .kb select.mp-sel{background:#0a0a0a;border:1px solid #252525;color:#f4f0e8;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23666' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
+.shop-page .kb .mp-qty{border:1px solid #252525}
+.shop-page .kb .mp-qty button{color:#6e6e6e}
+.shop-page .kb .mp-qty button:hover{color:#e8a020;background:rgba(232,160,32,.08)}
+.shop-page .kb .mp-qv{color:#f4f0e8;border-left:1px solid #252525;border-right:1px solid #252525}
+.shop-page .kb button.mp-add{background:#e8a020;color:#000}
+.shop-page .kb .mp-note{border-left-color:#e8a020;background:rgba(232,160,32,.04);color:#6e6e6e}
+.shop-page .kb .mp-note strong{color:#e8a020}
+.shop-page .kb-slideshow{position:relative;width:100%;overflow:hidden;background:#000;line-height:0}
+.shop-page .kb-slideshow .ss-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1)}
+.shop-page .kb-slideshow .ss-slide{flex:0 0 100%}
+.shop-page .kb-slideshow .ss-slide img{width:100%;display:block;max-height:340px;object-fit:cover;object-position:center top}
+.shop-page .kb-slideshow .ss-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:5}
+.shop-page .kb-slideshow .ss-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);transition:background .25s,transform .25s}
+.shop-page .kb-slideshow .ss-dot.on{background:#e8a020;transform:scale(1.3)}
+.shop-page .kb-hd{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:22px clamp(1rem,4vw,3rem);border-bottom:1px solid #252525}
+.shop-page .kb-hd-logo{height:54px;width:auto;object-fit:contain}
+.shop-page .kb-hd-r{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.shop-page .kb-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.shop-page .kb-pill{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:5px 14px;border-radius:2px}
+.shop-page .kb-pill.g{background:#e8a020;color:#000}
+.shop-page .kb-pill.o{border:1px solid #252525;color:#6e6e6e}
+.shop-page .kb-hd-tag{font-size:12px;color:#6e6e6e;font-style:italic}
 
 /* ── LANÚS ──────────────────────────────────────────────────────────── */
-#mayoPage .ln{background:#1a0810;color:#f5eed8;font-family:'Barlow',sans-serif}
-#mayoPage .ln .mp-section-t{font-family:'Playfair Display',serif;font-weight:700;color:#f5eed8}
-#mayoPage .ln .mp-section-s{color:#8a6a7a}
-#mayoPage .ln .mp-card{background:#2c0f1c;border:1px solid rgba(201,162,39,.2)}
-#mayoPage .ln .mp-card:hover{border-color:rgba(201,162,39,.55)}
-#mayoPage .ln .mp-ci{background:#110508}
-#mayoPage .ln .mp-ctag{background:#c9a227;color:#1a0810}
-#mayoPage .ln .mp-cst{color:#c9a227}
-#mayoPage .ln .mp-cn{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#f5eed8}
-#mayoPage .ln .mp-cp{color:#e8c454}
-#mayoPage .ln .mp-cp small{color:#8a6a7a}
-#mayoPage .ln select.mp-sel{background:#0f0409;border:1px solid rgba(201,162,39,.2);color:#f5eed8;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%238a6a10' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
-#mayoPage .ln .mp-qty{border:1px solid rgba(201,162,39,.2)}
-#mayoPage .ln .mp-qty button{color:#8a6a7a}
-#mayoPage .ln .mp-qty button:hover{color:#c9a227;background:rgba(201,162,39,.08)}
-#mayoPage .ln .mp-qv{color:#f5eed8;border-left:1px solid rgba(201,162,39,.2);border-right:1px solid rgba(201,162,39,.2)}
-#mayoPage .ln button.mp-add{background:linear-gradient(135deg,#8a6a10,#c9a227);color:#1a0810}
-#mayoPage .ln .mp-note{border-left-color:#c9a227;background:rgba(201,162,39,.04);color:#8a6a7a;font-style:italic}
-#mayoPage .ln .mp-note strong{color:#c9a227;font-style:normal}
-#mayoPage .ln-hero{position:relative;padding:60px clamp(1rem,4vw,3rem) 48px;border-bottom:1px solid rgba(201,162,39,.2);text-align:center;display:flex;flex-direction:column;align-items:center;overflow:hidden}
-#mayoPage .ln-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,#75aadb 33%,#f0ece0 33% 67%,#75aadb 67%)}
-#mayoPage .ln-hero::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 50% 50%,rgba(123,31,58,.25) 0%,transparent 70%);pointer-events:none}
-#mayoPage .ln-hero > *{position:relative;z-index:1}
-#mayoPage .ln-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#c9a227;margin-bottom:12px}
-#mayoPage .ln-title{font-family:'Playfair Display',serif;font-size:clamp(60px,9vw,110px);font-weight:900;line-height:.9;color:#f5eed8;margin-bottom:4px}
-#mayoPage .ln-title em{font-style:italic;color:#c9a227}
-#mayoPage .ln-year{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,4vw,48px);color:#75aadb;letter-spacing:.1em;margin-bottom:14px}
-#mayoPage .ln-tag{font-style:italic;font-size:15px;color:#8a6a7a;border-left:2px solid #c9a227;padding-left:14px;text-align:left;line-height:1.5}
-#mayoPage .ln-flag{position:absolute;right:clamp(1rem,4vw,3rem);top:48px;display:flex;flex-direction:column;align-items:center;gap:5px;z-index:2}
-#mayoPage .ln-flag .flag{width:66px;height:42px;border-radius:3px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.5);display:flex;flex-direction:column}
-#mayoPage .ln-flag .flag span{display:block;flex:1}
-#mayoPage .ln-flag .flag span:nth-child(odd){background:#75aadb}
-#mayoPage .ln-flag .flag span:nth-child(2){background:#f0ece0}
-#mayoPage .ln-flag .cap{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#8a6a7a}
+.shop-page .ln{background:#1a0810;color:#f5eed8;font-family:'Barlow',sans-serif}
+.shop-page .ln .mp-section-t{font-family:'Playfair Display',serif;font-weight:700;color:#f5eed8}
+.shop-page .ln .mp-section-s{color:#8a6a7a}
+.shop-page .ln .mp-card{background:#2c0f1c;border:1px solid rgba(201,162,39,.2)}
+.shop-page .ln .mp-card:hover{border-color:rgba(201,162,39,.55)}
+.shop-page .ln .mp-ci{background:#110508}
+.shop-page .ln .mp-ctag{background:#c9a227;color:#1a0810}
+.shop-page .ln .mp-cst{color:#c9a227}
+.shop-page .ln .mp-cn{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#f5eed8}
+.shop-page .ln .mp-cp{color:#e8c454}
+.shop-page .ln .mp-cp small{color:#8a6a7a}
+.shop-page .ln select.mp-sel{background:#0f0409;border:1px solid rgba(201,162,39,.2);color:#f5eed8;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%238a6a10' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
+.shop-page .ln .mp-qty{border:1px solid rgba(201,162,39,.2)}
+.shop-page .ln .mp-qty button{color:#8a6a7a}
+.shop-page .ln .mp-qty button:hover{color:#c9a227;background:rgba(201,162,39,.08)}
+.shop-page .ln .mp-qv{color:#f5eed8;border-left:1px solid rgba(201,162,39,.2);border-right:1px solid rgba(201,162,39,.2)}
+.shop-page .ln button.mp-add{background:linear-gradient(135deg,#8a6a10,#c9a227);color:#1a0810}
+.shop-page .ln .mp-note{border-left-color:#c9a227;background:rgba(201,162,39,.04);color:#8a6a7a;font-style:italic}
+.shop-page .ln .mp-note strong{color:#c9a227;font-style:normal}
+.shop-page .ln-hero{position:relative;padding:60px clamp(1rem,4vw,3rem) 48px;border-bottom:1px solid rgba(201,162,39,.2);text-align:center;display:flex;flex-direction:column;align-items:center;overflow:hidden}
+.shop-page .ln-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,#75aadb 33%,#f0ece0 33% 67%,#75aadb 67%)}
+.shop-page .ln-hero::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 50% 50%,rgba(123,31,58,.25) 0%,transparent 70%);pointer-events:none}
+.shop-page .ln-hero > *{position:relative;z-index:1}
+.shop-page .ln-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#c9a227;margin-bottom:12px}
+.shop-page .ln-title{font-family:'Playfair Display',serif;font-size:clamp(60px,9vw,110px);font-weight:900;line-height:.9;color:#f5eed8;margin-bottom:4px}
+.shop-page .ln-title em{font-style:italic;color:#c9a227}
+.shop-page .ln-year{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,4vw,48px);color:#75aadb;letter-spacing:.1em;margin-bottom:14px}
+.shop-page .ln-tag{font-style:italic;font-size:15px;color:#8a6a7a;border-left:2px solid #c9a227;padding-left:14px;text-align:left;line-height:1.5}
+.shop-page .ln-flag{position:absolute;right:clamp(1rem,4vw,3rem);top:48px;display:flex;flex-direction:column;align-items:center;gap:5px;z-index:2}
+.shop-page .ln-flag .flag{width:66px;height:42px;border-radius:3px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.5);display:flex;flex-direction:column}
+.shop-page .ln-flag .flag span{display:block;flex:1}
+.shop-page .ln-flag .flag span:nth-child(odd){background:#75aadb}
+.shop-page .ln-flag .flag span:nth-child(2){background:#f0ece0}
+.shop-page .ln-flag .cap{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#8a6a7a}
 
 /* ── OSAGUI ─────────────────────────────────────────────────────────── */
-#mayoPage .os{background:#0d0a08;color:#f5e6c8;font-family:'Barlow',sans-serif}
-#mayoPage .os .mp-section-t,#mayoPage .os .mp-cn{color:#f5e6c8}
-#mayoPage .os .mp-section-s{color:#8a7060}
-#mayoPage .os .mp-card{background:#1a1208;border:1px solid rgba(180,30,30,.25)}
-#mayoPage .os .mp-card:hover{border-color:rgba(192,36,26,.55)}
-#mayoPage .os .mp-ci{background:#100c06}
-#mayoPage .os .mp-ctag{background:#c0241a;color:#fff}
-#mayoPage .os .mp-cst{color:#c0241a}
-#mayoPage .os .mp-cp{color:#d4b896}
-#mayoPage .os .mp-cp small{color:#8a7060}
-#mayoPage .os select.mp-sel{background:#0a0806;border:1px solid rgba(180,30,30,.25);color:#f5e6c8;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23666' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
-#mayoPage .os .mp-qty{border:1px solid rgba(180,30,30,.25)}
-#mayoPage .os .mp-qty button{color:#8a7060}
-#mayoPage .os .mp-qty button:hover{color:#c0241a;background:rgba(192,36,26,.08)}
-#mayoPage .os .mp-qv{color:#f5e6c8;border-left:1px solid rgba(180,30,30,.25);border-right:1px solid rgba(180,30,30,.25)}
-#mayoPage .os button.mp-add{background:#c0241a;color:#fff}
-#mayoPage .os .mp-note{border-left-color:#c0241a;background:rgba(192,36,26,.04);color:#8a7060}
-#mayoPage .os .mp-note strong{color:#c0241a}
-#mayoPage .os-banner{width:100%;line-height:0;overflow:hidden;max-height:360px}
-#mayoPage .os-banner img{width:100%;display:block;object-fit:cover;object-position:center;max-height:360px}
-#mayoPage .os-hero{position:relative;padding:48px clamp(1rem,4vw,3rem) 40px;border-bottom:1px solid rgba(180,30,30,.25);display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;overflow:hidden}
-#mayoPage .os-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 80% at 30% 50%,rgba(192,36,26,.15) 0%,transparent 70%);pointer-events:none}
-#mayoPage .os-hero > *{position:relative;z-index:1}
-#mayoPage .os-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#c0241a;margin-bottom:10px}
-#mayoPage .os-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(60px,9vw,108px);line-height:.9;color:#f5e6c8;margin-bottom:4px;letter-spacing:.02em}
-#mayoPage .os-jp{font-size:clamp(18px,3vw,30px);color:#4a90d9;letter-spacing:.15em;margin-bottom:12px;font-weight:300}
-#mayoPage .os-tag{font-style:italic;font-size:15px;color:#8a7060;border-left:2px solid #c0241a;padding-left:14px;line-height:1.5}
-#mayoPage .os-flag{display:flex;flex-direction:column;align-items:center;gap:5px}
-#mayoPage .os-flag .flag-jp{width:66px;height:44px;border-radius:3px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.5);background:#fff;display:flex;align-items:center;justify-content:center}
-#mayoPage .os-flag .flag-jp::after{content:'';width:22px;height:22px;border-radius:50%;background:#c0241a}
-#mayoPage .os-flag .cap{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#8a7060}
+.shop-page .os{background:#0d0a08;color:#f5e6c8;font-family:'Barlow',sans-serif}
+.shop-page .os .mp-section-t,.shop-page .os .mp-cn{color:#f5e6c8}
+.shop-page .os .mp-section-s{color:#8a7060}
+.shop-page .os .mp-card{background:#1a1208;border:1px solid rgba(180,30,30,.25)}
+.shop-page .os .mp-card:hover{border-color:rgba(192,36,26,.55)}
+.shop-page .os .mp-ci{background:#100c06}
+.shop-page .os .mp-ctag{background:#c0241a;color:#fff}
+.shop-page .os .mp-cst{color:#c0241a}
+.shop-page .os .mp-cp{color:#d4b896}
+.shop-page .os .mp-cp small{color:#8a7060}
+.shop-page .os select.mp-sel{background:#0a0806;border:1px solid rgba(180,30,30,.25);color:#f5e6c8;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23666' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
+.shop-page .os .mp-qty{border:1px solid rgba(180,30,30,.25)}
+.shop-page .os .mp-qty button{color:#8a7060}
+.shop-page .os .mp-qty button:hover{color:#c0241a;background:rgba(192,36,26,.08)}
+.shop-page .os .mp-qv{color:#f5e6c8;border-left:1px solid rgba(180,30,30,.25);border-right:1px solid rgba(180,30,30,.25)}
+.shop-page .os button.mp-add{background:#c0241a;color:#fff}
+.shop-page .os .mp-note{border-left-color:#c0241a;background:rgba(192,36,26,.04);color:#8a7060}
+.shop-page .os .mp-note strong{color:#c0241a}
+.shop-page .os-banner{width:100%;line-height:0;overflow:hidden;max-height:360px}
+.shop-page .os-banner img{width:100%;display:block;object-fit:cover;object-position:center;max-height:360px}
+.shop-page .os-hero{position:relative;padding:48px clamp(1rem,4vw,3rem) 40px;border-bottom:1px solid rgba(180,30,30,.25);display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;overflow:hidden}
+.shop-page .os-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 80% at 30% 50%,rgba(192,36,26,.15) 0%,transparent 70%);pointer-events:none}
+.shop-page .os-hero > *{position:relative;z-index:1}
+.shop-page .os-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#c0241a;margin-bottom:10px}
+.shop-page .os-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(60px,9vw,108px);line-height:.9;color:#f5e6c8;margin-bottom:4px;letter-spacing:.02em}
+.shop-page .os-jp{font-size:clamp(18px,3vw,30px);color:#4a90d9;letter-spacing:.15em;margin-bottom:12px;font-weight:300}
+.shop-page .os-tag{font-style:italic;font-size:15px;color:#8a7060;border-left:2px solid #c0241a;padding-left:14px;line-height:1.5}
+.shop-page .os-flag{display:flex;flex-direction:column;align-items:center;gap:5px}
+.shop-page .os-flag .flag-jp{width:66px;height:44px;border-radius:3px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.5);background:#fff;display:flex;align-items:center;justify-content:center}
+.shop-page .os-flag .flag-jp::after{content:'';width:22px;height:22px;border-radius:50%;background:#c0241a}
+.shop-page .os-flag .cap{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#8a7060}
 
 /* ── FIRULAIS ───────────────────────────────────────────────────────── */
-#mayoPage .fr{background:#f5c900;color:#1d3d25;font-family:'Barlow',sans-serif}
-#mayoPage .fr .mp-section-t{color:#1d3d25}
-#mayoPage .fr .mp-section-s{color:#5a6e40}
-#mayoPage .fr .mp-sub-head{color:#1d3d25;border-color:rgba(29,61,37,.3)}
-#mayoPage .fr .mp-card{background:#fffbe6;border:2px solid #1d3d25;border-radius:4px}
-#mayoPage .fr .mp-card:hover{box-shadow:4px 4px 0 #1d3d25}
-#mayoPage .fr .mp-ci{background:#fef9d0}
-#mayoPage .fr .mp-ctag{background:#1d3d25;color:#f5c900}
-#mayoPage .fr .mp-cst{color:#3a8c5a;font-weight:600}
-#mayoPage .fr .mp-cn{color:#1d3d25}
-#mayoPage .fr .mp-cp{color:#1d3d25}
-#mayoPage .fr .mp-cp small{color:#5a6e40}
-#mayoPage .fr select.mp-sel{background:#fef9d0;border:1.5px solid #1d3d25;color:#1d3d25;font-weight:600;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%231d3d25' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
-#mayoPage .fr .mp-qty{border:1.5px solid #1d3d25}
-#mayoPage .fr .mp-qty button{color:#5a6e40;font-weight:700}
-#mayoPage .fr .mp-qty button:hover{color:#1d3d25;background:rgba(29,61,37,.1)}
-#mayoPage .fr .mp-qv{color:#1d3d25;font-weight:700;border-left:1.5px solid #1d3d25;border-right:1.5px solid #1d3d25}
-#mayoPage .fr button.mp-add{background:#1d3d25;color:#f5c900;border-radius:3px}
-#mayoPage .fr button.mp-add:hover{background:#2d5a3a}
-#mayoPage .fr .mp-note{border-left:4px solid #3a8c5a;background:rgba(29,61,37,.06);color:#1d3d25;font-weight:500}
-#mayoPage .fr .mp-note strong{color:#3a8c5a;font-weight:700}
-#mayoPage .fr-banner{width:100%;line-height:0;overflow:hidden;max-height:360px}
-#mayoPage .fr-banner img{width:100%;display:block;object-fit:cover;max-height:360px}
-#mayoPage .fr-hero{padding:48px clamp(1rem,4vw,3rem) 40px;border-bottom:3px solid #1d3d25;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
-#mayoPage .fr-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#1d3d25;opacity:.6;margin-bottom:8px}
-#mayoPage .fr-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(60px,9vw,108px);line-height:.88;color:#1d3d25;margin-bottom:4px;letter-spacing:.01em}
-#mayoPage .fr-sub{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:500;letter-spacing:.25em;text-transform:uppercase;color:#5a6e40;margin-bottom:10px}
-#mayoPage .fr-tag{font-family:'Barlow',sans-serif;font-size:15px;color:#1d3d25;border-left:3px solid #1d3d25;padding-left:12px;line-height:1.5;font-weight:600}
-#mayoPage .fr-badge{width:104px;height:104px;background:#1d3d25;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;flex-shrink:0}
-#mayoPage .fr-badge span:nth-child(1){font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#f5c900;opacity:.7}
-#mayoPage .fr-badge span:nth-child(2){font-family:'Bebas Neue',sans-serif;font-size:22px;color:#f5c900;letter-spacing:.05em;line-height:1}
-#mayoPage .fr-badge span:nth-child(3){font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#3a8c5a}
+.shop-page .fr{background:#f5c900;color:#1d3d25;font-family:'Barlow',sans-serif}
+.shop-page .fr .mp-section-t{color:#1d3d25}
+.shop-page .fr .mp-section-s{color:#5a6e40}
+.shop-page .fr .mp-sub-head{color:#1d3d25;border-color:rgba(29,61,37,.3)}
+.shop-page .fr .mp-card{background:#fffbe6;border:2px solid #1d3d25;border-radius:4px}
+.shop-page .fr .mp-card:hover{box-shadow:4px 4px 0 #1d3d25}
+.shop-page .fr .mp-ci{background:#fef9d0}
+.shop-page .fr .mp-ctag{background:#1d3d25;color:#f5c900}
+.shop-page .fr .mp-cst{color:#3a8c5a;font-weight:600}
+.shop-page .fr .mp-cn{color:#1d3d25}
+.shop-page .fr .mp-cp{color:#1d3d25}
+.shop-page .fr .mp-cp small{color:#5a6e40}
+.shop-page .fr select.mp-sel{background:#fef9d0;border:1.5px solid #1d3d25;color:#1d3d25;font-weight:600;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%231d3d25' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
+.shop-page .fr .mp-qty{border:1.5px solid #1d3d25}
+.shop-page .fr .mp-qty button{color:#5a6e40;font-weight:700}
+.shop-page .fr .mp-qty button:hover{color:#1d3d25;background:rgba(29,61,37,.1)}
+.shop-page .fr .mp-qv{color:#1d3d25;font-weight:700;border-left:1.5px solid #1d3d25;border-right:1.5px solid #1d3d25}
+.shop-page .fr button.mp-add{background:#1d3d25;color:#f5c900;border-radius:3px}
+.shop-page .fr button.mp-add:hover{background:#2d5a3a}
+.shop-page .fr .mp-note{border-left:4px solid #3a8c5a;background:rgba(29,61,37,.06);color:#1d3d25;font-weight:500}
+.shop-page .fr .mp-note strong{color:#3a8c5a;font-weight:700}
+.shop-page .fr-banner{width:100%;line-height:0;overflow:hidden;max-height:360px}
+.shop-page .fr-banner img{width:100%;display:block;object-fit:cover;max-height:360px}
+.shop-page .fr-hero{padding:48px clamp(1rem,4vw,3rem) 40px;border-bottom:3px solid #1d3d25;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.shop-page .fr-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#1d3d25;opacity:.6;margin-bottom:8px}
+.shop-page .fr-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(60px,9vw,108px);line-height:.88;color:#1d3d25;margin-bottom:4px;letter-spacing:.01em}
+.shop-page .fr-sub{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:500;letter-spacing:.25em;text-transform:uppercase;color:#5a6e40;margin-bottom:10px}
+.shop-page .fr-tag{font-family:'Barlow',sans-serif;font-size:15px;color:#1d3d25;border-left:3px solid #1d3d25;padding-left:12px;line-height:1.5;font-weight:600}
+.shop-page .fr-badge{width:104px;height:104px;background:#1d3d25;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;flex-shrink:0}
+.shop-page .fr-badge span:nth-child(1){font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#f5c900;opacity:.7}
+.shop-page .fr-badge span:nth-child(2){font-family:'Bebas Neue',sans-serif;font-size:22px;color:#f5c900;letter-spacing:.05em;line-height:1}
+.shop-page .fr-badge span:nth-child(3){font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#3a8c5a}
 
 /* ── BANNY ──────────────────────────────────────────────────────────── */
-#mayoPage .bn{background:#77cbbf;color:#0d0f2a;font-family:'Barlow',sans-serif}
-#mayoPage .bn .mp-section-t,#mayoPage .bn .mp-cn{color:#0d0f2a}
-#mayoPage .bn .mp-section-s{color:rgba(13,15,42,.55)}
-#mayoPage .bn .mp-sub-head{color:#0d0f2a;border-color:rgba(13,15,42,.3)}
-#mayoPage .bn .mp-card{background:#fff9f0;border:1.5px solid rgba(13,15,42,.15);border-radius:8px}
-#mayoPage .bn .mp-card:hover{box-shadow:0 8px 24px rgba(13,15,42,.18)}
-#mayoPage .bn .mp-ci{background:#f0faf8}
-#mayoPage .bn .mp-ctag{background:#0d0f2a;color:#77cbbf}
-#mayoPage .bn .mp-cst{color:#5ab8aa;font-weight:600}
-#mayoPage .bn .mp-cp{color:#0d0f2a}
-#mayoPage .bn .mp-cp small{color:rgba(13,15,42,.45)}
-#mayoPage .bn select.mp-sel{background:#f0faf8;border:1.5px solid rgba(13,15,42,.15);color:#0d0f2a;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%230d0f2a' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
-#mayoPage .bn .mp-qty{border:1.5px solid rgba(13,15,42,.15)}
-#mayoPage .bn .mp-qty button{color:rgba(13,15,42,.45)}
-#mayoPage .bn .mp-qty button:hover{color:#5ab8aa;background:rgba(119,203,191,.15)}
-#mayoPage .bn .mp-qv{color:#0d0f2a;border-left:1.5px solid rgba(13,15,42,.15);border-right:1.5px solid rgba(13,15,42,.15)}
-#mayoPage .bn button.mp-add{background:#0d0f2a;color:#77cbbf;border-radius:4px}
-#mayoPage .bn .mp-note{border-left:4px solid #0d0f2a;background:rgba(13,15,42,.05);color:#0d0f2a}
-#mayoPage .bn .mp-note strong{color:#5ab8aa;font-weight:700}
-#mayoPage .bn-hero{padding:60px clamp(1rem,4vw,3rem) 48px;border-bottom:3px solid #0d0f2a;display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap;position:relative;overflow:hidden}
-#mayoPage .bn-hero::after{content:'';position:absolute;right:-80px;top:-80px;width:380px;height:380px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none}
-#mayoPage .bn-hero > *{position:relative;z-index:1}
-#mayoPage .bn-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#0d0f2a;opacity:.55;margin-bottom:10px}
-#mayoPage .bn-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(70px,11vw,130px);line-height:.85;color:#0d0f2a;letter-spacing:.02em;margin-bottom:4px}
-#mayoPage .bn-by{font-family:'Barlow',sans-serif;font-size:15px;font-weight:600;color:#0d0f2a;opacity:.5;letter-spacing:.1em;margin-bottom:14px}
-#mayoPage .bn-tag{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#0d0f2a;border-left:3px solid #0d0f2a;padding-left:14px;line-height:1.4}
-#mayoPage .bn-dots{display:flex;gap:8px;margin-top:10px}
-#mayoPage .bn-dot{width:24px;height:24px;border-radius:50%;border:2px solid rgba(13,15,42,.2)}
-#mayoPage .bn-bar{background:#0d0f2a;padding:14px clamp(1rem,4vw,3rem);display:flex;align-items:center;gap:16px}
-#mayoPage .bn-bar .lbl{font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff8e6}
-#mayoPage .bn-bar .br{font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:.15em;text-transform:uppercase;color:#77cbbf}
+.shop-page .bn{background:#77cbbf;color:#0d0f2a;font-family:'Barlow',sans-serif}
+.shop-page .bn .mp-section-t,.shop-page .bn .mp-cn{color:#0d0f2a}
+.shop-page .bn .mp-section-s{color:rgba(13,15,42,.55)}
+.shop-page .bn .mp-sub-head{color:#0d0f2a;border-color:rgba(13,15,42,.3)}
+.shop-page .bn .mp-card{background:#fff9f0;border:1.5px solid rgba(13,15,42,.15);border-radius:8px}
+.shop-page .bn .mp-card:hover{box-shadow:0 8px 24px rgba(13,15,42,.18)}
+.shop-page .bn .mp-ci{background:#f0faf8}
+.shop-page .bn .mp-ctag{background:#0d0f2a;color:#77cbbf}
+.shop-page .bn .mp-cst{color:#5ab8aa;font-weight:600}
+.shop-page .bn .mp-cp{color:#0d0f2a}
+.shop-page .bn .mp-cp small{color:rgba(13,15,42,.45)}
+.shop-page .bn select.mp-sel{background:#f0faf8;border:1.5px solid rgba(13,15,42,.15);color:#0d0f2a;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%230d0f2a' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
+.shop-page .bn .mp-qty{border:1.5px solid rgba(13,15,42,.15)}
+.shop-page .bn .mp-qty button{color:rgba(13,15,42,.45)}
+.shop-page .bn .mp-qty button:hover{color:#5ab8aa;background:rgba(119,203,191,.15)}
+.shop-page .bn .mp-qv{color:#0d0f2a;border-left:1.5px solid rgba(13,15,42,.15);border-right:1.5px solid rgba(13,15,42,.15)}
+.shop-page .bn button.mp-add{background:#0d0f2a;color:#77cbbf;border-radius:4px}
+.shop-page .bn .mp-note{border-left:4px solid #0d0f2a;background:rgba(13,15,42,.05);color:#0d0f2a}
+.shop-page .bn .mp-note strong{color:#5ab8aa;font-weight:700}
+.shop-page .bn-hero{padding:60px clamp(1rem,4vw,3rem) 48px;border-bottom:3px solid #0d0f2a;display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap;position:relative;overflow:hidden}
+.shop-page .bn-hero::after{content:'';position:absolute;right:-80px;top:-80px;width:380px;height:380px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none}
+.shop-page .bn-hero > *{position:relative;z-index:1}
+.shop-page .bn-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#0d0f2a;opacity:.55;margin-bottom:10px}
+.shop-page .bn-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(70px,11vw,130px);line-height:.85;color:#0d0f2a;letter-spacing:.02em;margin-bottom:4px}
+.shop-page .bn-by{font-family:'Barlow',sans-serif;font-size:15px;font-weight:600;color:#0d0f2a;opacity:.5;letter-spacing:.1em;margin-bottom:14px}
+.shop-page .bn-tag{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#0d0f2a;border-left:3px solid #0d0f2a;padding-left:14px;line-height:1.4}
+.shop-page .bn-dots{display:flex;gap:8px;margin-top:10px}
+.shop-page .bn-dot{width:24px;height:24px;border-radius:50%;border:2px solid rgba(13,15,42,.2)}
+.shop-page .bn-bar{background:#0d0f2a;padding:14px clamp(1rem,4vw,3rem);display:flex;align-items:center;gap:16px}
+.shop-page .bn-bar .lbl{font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff8e6}
+.shop-page .bn-bar .br{font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:.15em;text-transform:uppercase;color:#77cbbf}
 
 .cart-btn{
   flex-shrink:0;position:relative;cursor:pointer;
@@ -1058,11 +1063,15 @@ body.mayorista-active .game-banner{display:none}
       <div class="promo-dots" id="promoDots"></div>
     </div>
 
+    <!-- HOME ECOMMERCE (B2C). Visible cuando NO sos mayorista. -->
+    <div id="homePage" class="shop-page"></div>
+
+    <!-- MAYORISTA STOREFRONT. Visible cuando body.mayorista-active. -->
+    <div id="mayoPage" class="shop-page" style="display:none"></div>
+
+    <!-- CHAT MESSAGES. Siempre presente, abajo del storefront. -->
     <div class="messages" id="messages"></div>
   </div>
-
-  <!-- MAYORISTA FULL-PAGE STOREFRONT (visible solo cuando body.mayorista-active) -->
-  <div id="mayoPage" style="display:none"></div>
 
   <!-- INPUT -->
   <div class="input-wrap">
@@ -1076,7 +1085,8 @@ body.mayorista-active .game-banner{display:none}
     <div class="send-row">
       <textarea class="msg-in" id="msgIn" rows="1"
         placeholder="Pregunta por marcas, estilos, maridajes..."
-        onkeydown="onKey(event)" oninput="autoResize(this)"></textarea>
+        onkeydown="onKey(event)" oninput="autoResize(this)"
+        onfocus="scrollToChat()"></textarea>
       <button class="send-btn" id="sendBtn" onclick="send()" aria-label="Enviar">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
@@ -1482,91 +1492,137 @@ function addFromCard(btn) {
   btn.classList.add('done');
 }
 
-// ─── VITRINA / STOREFRONT ─────────────────────────────────────────────────────
-function showStorefront() {
-  // Ofertas relámpago: 4 productos con descuento simulado
-  const flashItems = [
-    { p: prod('Imperio Perdido'),  old: 3290 },
-    { p: prod('Samba'),            old: 3290 },
-    { p: prod('Caurina'),          old: 3290 },
-    { p: prod('Guantánamo Mojito'),old: 4990 },
-  ].filter(x => x.p);
+// ─── HOME STOREFRONT (B2C ecommerce en #homePage) ────────────────────────────
+async function showStorefront(){
+  const page = document.getElementById('homePage');
+  if (!page) return;
+  if (page.dataset.rendered) return;
+  page.dataset.rendered = '1';
 
-  // Más pedidos
-  const topItems = ['Imperio Perdido','Samba','Caurina','Pepita','Elizabeth Gin Tonic','Frank']
-    .map(prod).filter(Boolean);
+  let products = [];
+  try {
+    const r = await fetch('/api/products?mode=b2c');
+    if (r.ok) {
+      const data = await r.json();
+      products = data.products || [];
+    }
+  } catch (e) { console.warn('home catalog:', e); }
 
-  const flashCards = flashItems.map(x => {
-    const off = Math.round((1 - x.p.price / x.old) * 100);
-    return buildCard(x.p, { badge:'-'+off+'%', badgeType:'discount', oldPrice:x.old });
-  }).join('');
-
-  const topCards = topItems.map(p => buildCard(p, { badge:'MÁS VENDIDO', badgeType:'top' })).join('');
-
-  const html = `
-  <div class="storefront">
-    <div class="game-banner" id="gameBanner" onclick="openGame()">
-      <span class="gb-icon">🎁</span>
-      <div class="gb-txt">
-        <div class="gb-title">10% OFF en tu primera compra</div>
-        <div class="gb-sub">Reclama tu cupón y juega cada día por un descuento extra</div>
-      </div>
-      <span class="gb-cta">RECLAMAR</span>
-    </div>
-
-    <div class="sf-block">
-      <div class="sf-head">
-        <span class="sf-title">⚡ Ofertas Relámpago</span>
-        <span class="sf-timer" id="flashTimer">--:--:--</span>
-      </div>
-      <div class="cards-row">${flashCards}</div>
-    </div>
-
-    <div class="sf-block">
-      <div class="sf-head"><span class="sf-title">🏆 Los más pedidos</span></div>
-      <div class="cards-row">${topCards}</div>
-    </div>
-
-    <div class="sf-block">
-      <div class="sf-head"><span class="sf-title">¿Para qué ocasión?</span></div>
-      <div class="occasion-grid">
-        <button class="occ-btn" onclick="sendQuick('Tengo un asado con amigos, qué me recomiendas?')"><span class="occ-em">🔥</span>Asado</button>
-        <button class="occ-btn" onclick="sendQuick('Es para una previa con amigos, qué llevo?')"><span class="occ-em">🎉</span>Previa</button>
-        <button class="occ-btn" onclick="sendQuick('Quiero hacer un regalo, qué me recomiendas?')"><span class="occ-em">🎁</span>Regalo</button>
-        <button class="occ-btn" onclick="sendQuick('Busco algo refrescante para el calor')"><span class="occ-em">☀️</span>Verano</button>
-        <button class="occ-btn" onclick="sendQuick('Soy dueño de un bar, quiero comprar al por mayor')"><span class="occ-em">🏪</span>Para mi local</button>
-      </div>
-    </div>
-
-    <div class="sf-brands">
-      <button class="brc" onclick="brandPill('kairos')" aria-label="Kairos Brewing">
-        <span class="brand-circle lg"><img src="brands/kairos.png" alt=""></span>
-        <span class="brc-label">Kairos</span>
-      </button>
-      <button class="brc" onclick="brandPill('firulais')" aria-label="Firulais">
-        <span class="brand-circle lg"><img src="brands/firulais.png" alt=""></span>
-        <span class="brc-label">Firulais</span>
-      </button>
-      <button class="brc" onclick="brandPill('banny')" aria-label="Banny">
-        <span class="brand-circle lg"><img src="brands/banny.png" alt=""></span>
-        <span class="brc-label">Banny</span>
-      </button>
-    </div>
-  </div>`;
-
-  // Si ya hay un storefront, reemplazo el HTML en su lugar (sin duplicar ni
-  // mover scroll). Si no, agrego una fila nueva al final.
-  const existing = document.querySelector('.sf-row');
-  if (existing) {
-    existing.querySelector('.msg-col').innerHTML = html;
-  } else {
-    const row = document.createElement('div');
-    row.className = 'row bot sf-row';
-    row.innerHTML = `<div class="avatar">⚡</div><div class="msg-col" style="max-width:100%;width:100%">${html}</div>`;
-    document.getElementById('messages').appendChild(row);
-    scrollBottom();
+  const groups = { kairos:[], firulais:[], banny:[] };
+  for (const p of products) {
+    if (!p.variants || !p.variants.length) continue;
+    const b = detectMpBrand(p);
+    if (b === 'kairos' || b === 'firulais' || b === 'banny') groups[b].push(p);
   }
-  startFlashTimer();
+
+  const featuredHandles = [
+    'neipa-473cc','apa-american-pale','golden-golden-ale',
+    'samba-ipa','obertura-stout','the-crown-mexican-lager',
+    'whisky-bavaro-dcto-black-rabbit-20','london-dry',
+  ];
+  const featured = featuredHandles
+    .map(h => products.find(p => p.handle === h))
+    .filter(Boolean);
+
+  const nav = `<nav class="mp-nav">
+    ${featured.length        ? '<a data-brand="kairos"   onclick="document.getElementById(\'hp-destacados\').scrollIntoView({behavior:\'smooth\'})">✨ Destacados</a>' : ''}
+    ${groups.kairos.length   ? '<a data-brand="kairos"   onclick="document.getElementById(\'hp-kairos\').scrollIntoView({behavior:\'smooth\'})">🍺 Kairos</a>' : ''}
+    ${groups.firulais.length ? '<a data-brand="firulais" onclick="document.getElementById(\'hp-firulais\').scrollIntoView({behavior:\'smooth\'})">🐶 Firulais</a>' : ''}
+    ${groups.banny.length    ? '<a data-brand="banny"    onclick="document.getElementById(\'hp-banny\').scrollIntoView({behavior:\'smooth\'})">🐇 Banny</a>' : ''}
+  </nav>`;
+
+  const destacados = featured.length ? `
+    <section id="hp-destacados" class="kb">
+      <div class="kb-hd">
+        <img class="kb-hd-logo" src="${KAIROS_LOGO}" alt="Kairos Brewing" onerror="this.style.display='none'">
+        <div class="kb-hd-r">
+          <div class="kb-pills">
+            <span class="kb-pill g">✨ Destacados</span>
+            <span class="kb-pill o">Hand-picked · Temporada 2026</span>
+          </div>
+          <div class="kb-hd-tag">Lo más pedido del marketplace · craft real, sin filtrar</div>
+        </div>
+      </div>
+      <div class="mp-section">
+        <div class="mp-section-t">Destacados de la Casa</div>
+        <div class="mp-section-s">Selección curada · Kairos · Firulais · Banny</div>
+        <div class="mp-grid">${featured.map(buildMpCard).join('')}</div>
+      </div>
+    </section>` : '';
+
+  const kairosSection = groups.kairos.length ? `
+    <section id="hp-kairos" class="kb">
+      <div class="kb-slideshow" data-kb-slideshow>
+        <div class="ss-track">${KAIROS_SLIDES.map(u => `<div class="ss-slide"><img src="${u}" alt="Kairos Brewing" onerror="this.parentElement.parentElement.parentElement.style.display='none'"></div>`).join('')}</div>
+        <div class="ss-dots">${KAIROS_SLIDES.map((_,i)=>`<span class="ss-dot ${i===0?'on':''}"></span>`).join('')}</div>
+      </div>
+      <div class="kb-hd">
+        <img class="kb-hd-logo" src="${KAIROS_LOGO}" alt="Kairos Brewing" onerror="this.style.display='none'">
+        <div class="kb-hd-r">
+          <div class="kb-pills">
+            <span class="kb-pill g">Kairos Brewing</span>
+            <span class="kb-pill o">17 estilos · desde $2.490</span>
+          </div>
+          <div class="kb-hd-tag">Cerveza artesanal con carácter · sin filtrar · sin aditivos</div>
+        </div>
+      </div>
+      <div class="mp-section">
+        <div class="mp-section-t">Cervezas Kairos</div>
+        <div class="mp-section-s">Latas 473cc · Packs · Merch oficial</div>
+        <div class="mp-grid">${groups.kairos.map(buildMpCard).join('')}</div>
+      </div>
+      <div class="mp-note"><strong>Producto vivo:</strong> nuestras cervezas no llevan preservantes ni aditivos. Conservalas refrigeradas y disfrutalas bien frías.</div>
+    </section>` : '';
+
+  const firulaisSection = groups.firulais.length ? `
+    <section id="hp-firulais" class="fr">
+      <div class="fr-banner"><img src="${FIRULAIS_BANNER}" alt="Firulais Craft Mix" onerror="this.parentElement.style.display='none'"></div>
+      <div class="fr-hero">
+        <div>
+          <p class="fr-wt">🐶 Craft Mix · Micheladas</p>
+          <h1 class="fr-title">FIRULAIS</h1>
+          <p class="fr-sub">Free of Lice · Craft Mix · Est. 2025</p>
+          <p class="fr-tag">La michelada más honesta de Chile<br>Latas individuales · Chelada Artesanal</p>
+        </div>
+        <div class="fr-badge"><span>EST</span><span>2025</span><span>Craft Mix</span></div>
+      </div>
+      <div class="mp-section">
+        <div class="mp-section-t">Cheladas Firulais</div>
+        <div class="mp-section-s">Listas para tomar · sin preservantes</div>
+        <div class="mp-grid">${groups.firulais.map(buildMpCard).join('')}</div>
+      </div>
+      <div class="mp-note"><strong>Firulais Craft Mix</strong> — la michelada artesanal hecha con cerveza de verdad. Sin conservantes, sin colorantes. <strong>Mantener refrigerada.</strong></div>
+    </section>` : '';
+
+  const bannySection = groups.banny.length ? `
+    <section id="hp-banny" class="bn">
+      <div class="bn-hero">
+        <div>
+          <p class="bn-wt">🐇 Destilados & Ready To Drink</p>
+          <h1 class="bn-title">BANNY</h1>
+          <p class="bn-by">by Kairos</p>
+          <p class="bn-tag">Craft to be Wild<br>Gin · Whiskey · Ron · Vermut · RTD</p>
+        </div>
+        <div>
+          <div class="bn-dots">
+            <div class="bn-dot" style="background:#77cbbf"></div>
+            <div class="bn-dot" style="background:#94c46b"></div>
+            <div class="bn-dot" style="background:#7da6d8"></div>
+            <div class="bn-dot" style="background:#eeab37"></div>
+          </div>
+        </div>
+      </div>
+      <div class="bn-bar"><span class="lbl">FAMILIA</span><span class="br">BANNY</span></div>
+      <div class="mp-section">
+        <div class="mp-section-t">Destilados & RTD</div>
+        <div class="mp-section-s">Premiados · diseñados desde la barra</div>
+        <div class="mp-grid">${groups.banny.map(buildMpCard).join('')}</div>
+      </div>
+      <div class="mp-note"><strong>BANNY · Craft to be Wild</strong> — gin, ron, whiskey, vermut y cócteles RTD diseñados desde la barra, probados en operación real.</div>
+    </section>` : '';
+
+  page.innerHTML = `${nav}${destacados}${kairosSection}${firulaisSection}${bannySection}`;
+  initKairosSlideshow();
 }
 
 let flashEnd = null;
@@ -1635,6 +1691,7 @@ async function send(opts) {
   inp.value = '';
   autoResize(inp);
   setStreaming(true);
+  scrollToChat();
   userMsg(text);
   if (opts && typeof opts.beforeBot === 'function') opts.beforeBot();
   const tRow = typingRow();
@@ -1960,7 +2017,10 @@ function logoutMayorista(){
   sessionStorage.removeItem('zmayo_customer');
   document.body.classList.remove('mayorista-active');
   hideAccountChip();
-  showStorefront(); // vuelve al storefront B2C
+  // Reset del flag de welcome mayorista, así si volvés a loguear se reinyecta
+  const msgs = document.getElementById('messages');
+  if (msgs) delete msgs.dataset.mayoWelcome;
+  showStorefront(); // monta la home B2C si aún no estaba
   botStatic('Cerraste sesión. Si quieres volver a entrar como mayorista, pulsa MAYORISTAS.');
 }
 
@@ -2269,6 +2329,31 @@ function buildBrandNav(present){
   ].filter(([k]) => present[k]);
   return `<nav class="mp-nav">${items.map(([k,lbl]) => `<a data-brand="${k}" onclick="document.getElementById('mp-sec-${k}').scrollIntoView({behavior:'smooth',block:'start'})">${lbl}</a>`).join('')}</nav>`;
 }
+// Mensaje de bienvenida del bot cuando el mayorista loguea. Aparece en el
+// chat, debajo del catálogo, listo para que el cliente lo encuentre cuando
+// scrollee o cuando empiece a escribir (el input lo lleva ahí).
+function addMayoristaWelcomeMessage(customer){
+  const messagesEl = document.getElementById('messages');
+  if (!messagesEl) return;
+  // Evita duplicar el welcome si ya está
+  if (messagesEl.dataset.mayoWelcome) return;
+  messagesEl.dataset.mayoWelcome = '1';
+  const nom = (customer && customer.first_name) || 'colega';
+  const msg = `Hola ${nom}, soy tu **sommelier corporativo** de Kairos 🍺\n\nEstoy acá para ayudarte con: cotizaciones a medida, recomendaciones para tu local (asado, bar, restaurante, eventos), packs combinados, condiciones de despacho y cualquier duda sobre el catálogo mayorista.\n\n¿En qué te ayudo hoy?`;
+  botStatic(msg);
+}
+
+// Auto-scroll al chat cuando el usuario empieza a interactuar con el input.
+// En modo mayorista (página ecommerce arriba), esto "tira para abajo" para
+// que vean el chat con el bot.
+function scrollToChat(){
+  const ca = document.getElementById('chatArea');
+  const msgs = document.getElementById('messages');
+  if (!ca || !msgs) return;
+  // Scroll para que las messages queden visibles (la última al fondo)
+  msgs.scrollIntoView({ behavior: 'smooth', block: 'end' });
+}
+
 async function showMayoristaStorefront(){
   const products = await loadMpCatalog();
   const groups = { kairos:{barril:[],pack:[]}, lanus:[], osagui:[], firulais:[], banny:[] };
@@ -2697,6 +2782,7 @@ async function mayoLogin(){
       markMayoristaActive();
       showAccountChip(data.customer || {});
       showMayoristaStorefront();
+      addMayoristaWelcomeMessage(data.customer || {});
       const nom = (data.customer && data.customer.first_name) || '';
       ok.textContent = `Bienvenido${nom ? ' ' + nom : ''}! Cargamos tu catálogo mayorista.`;
       ok.classList.add('show');
@@ -2773,6 +2859,10 @@ initHeroSlides();
 restoreWelcomeFromStorage();
 restoreMayoristaState();
 updateCart();
+// Renderiza la home ecommerce siempre que estemos en modo B2C (lo más pronto
+// posible, no esperar al welcome message). Si es mayorista, restoreMayoristaState
+// arriba ya monta la página B2B.
+if (!mayoristaMode) showStorefront();
 </script>
 </body>
 </html>
