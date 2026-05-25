@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ZORBO.AI — Craft Marketplace</title>
 <meta name="description" content="Marketplace de bebidas artesanales. Cervezas Kairos Brewing, cheladas Firulais y destilados Banny.">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0a0a0e;
@@ -173,242 +173,239 @@ header{
 .account-menu .am-item:hover{background:var(--gold-dim);color:var(--gold)}
 body.mayorista-active .mayoristas-btn{display:none}
 
-/* ── MAYORISTA STOREFRONT (dentro del chat) ── */
-.mayo-hero{
-  background:linear-gradient(135deg,#1a1408 0%,#0e0e16 100%);
-  border:1px solid var(--gold-bd);border-radius:18px;
-  padding:1.2rem 1.3rem;margin-bottom:1.1rem;
-  display:flex;align-items:center;gap:1rem;
-}
-.mayo-hero .mh-ico{font-size:2rem;flex-shrink:0;filter:drop-shadow(0 2px 6px rgba(233,196,106,.5))}
-.mayo-hero .mh-txt{flex:1;min-width:0}
-.mayo-hero .mh-title{font-family:var(--display);font-size:1.05rem;font-weight:800;color:var(--gold)}
-.mayo-hero .mh-sub{font-size:.74rem;color:var(--muted);margin-top:.18rem;font-weight:300;line-height:1.4}
-.mayo-section{margin-bottom:1.4rem}
-.mayo-section.themed{
-  border-radius:18px;overflow:hidden;border:1px solid var(--border);
-}
-.mayo-section.themed.kairos-theme   {background:linear-gradient(180deg,#0e0e0e,#161616);border-color:rgba(232,160,32,.28)}
-.mayo-section.themed.lanus-theme    {background:linear-gradient(180deg,#1a0810,#2c0f1c);border-color:rgba(201,162,39,.3)}
-.mayo-section.themed.osagui-theme   {background:linear-gradient(180deg,#0d0a08,#1a1208);border-color:rgba(192,36,26,.35)}
-.mayo-section.themed.firulais-theme {background:linear-gradient(180deg,#f5c900,#f5d840);border-color:#1d3d25}
-.mayo-section.themed.banny-theme    {background:linear-gradient(180deg,#77cbbf,#5ab8aa);border-color:#0d0f2a}
+/* ════════════════════════════════════════════════════════════════════════
+   MAYORISTA — PÁGINA ECOMMERCE COMPLETA (port del portal PageFly)
+════════════════════════════════════════════════════════════════════════ */
+body.mayorista-active .chat-area{display:none!important}
+body.mayorista-active #mayoPage{display:block!important;flex:1;overflow-y:auto;background:#080808}
+#mayoPage *,#mayoPage *::before,#mayoPage *::after{box-sizing:border-box}
 
-.msec-hero{position:relative;padding:1.3rem 1.3rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.08);overflow:hidden}
-.firulais-theme .msec-hero,.banny-theme .msec-hero{border-bottom-color:rgba(13,15,42,.15)}
-.msec-hero .mh-label{
-  display:inline-block;font-size:.58rem;font-weight:800;letter-spacing:.18em;
-  text-transform:uppercase;padding:.18rem .55rem;border-radius:3px;margin-bottom:.55rem;
+/* Brand nav sticky */
+#mayoPage .mp-nav{
+  position:sticky;top:0;z-index:50;background:rgba(8,8,8,.94);backdrop-filter:blur(10px);
+  border-bottom:1px solid #1a1a1a;padding:.85rem clamp(1rem,3vw,2rem);
+  display:flex;gap:.55rem;overflow-x:auto;scrollbar-width:none;align-items:center;justify-content:center;flex-wrap:wrap;
 }
-.kairos-theme   .mh-label{background:#e8a020;color:#000}
-.lanus-theme    .mh-label{background:#c9a227;color:#1a0810}
-.osagui-theme   .mh-label{background:#c0241a;color:#fff}
-.firulais-theme .mh-label{background:#1d3d25;color:#f5c900}
-.banny-theme    .mh-label{background:#0d0f2a;color:#77cbbf}
-.msec-hero .mh-title{
-  font-family:var(--display);font-size:clamp(1.6rem,5vw,2.4rem);font-weight:900;line-height:.95;
-  letter-spacing:-.01em;margin-bottom:.3rem;
+#mayoPage .mp-nav::-webkit-scrollbar{display:none}
+#mayoPage .mp-nav a{
+  flex-shrink:0;text-decoration:none;cursor:pointer;
+  font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;padding:.6rem 1.1rem;border-radius:100px;
+  border:2px solid transparent;transition:transform .15s,filter .15s,box-shadow .15s;
+  display:inline-flex;align-items:center;gap:.4rem;white-space:nowrap;
 }
-.kairos-theme   .mh-title{color:#f4f0e8}
-.lanus-theme    .mh-title{color:#f5eed8;font-style:normal}
-.lanus-theme    .mh-title .em{color:#c9a227;font-style:italic}
-.osagui-theme   .mh-title{color:#f5e6c8;letter-spacing:.02em}
-.firulais-theme .mh-title{color:#1d3d25}
-.banny-theme    .mh-title{color:#0d0f2a}
-.msec-hero .mh-sub{font-size:.82rem;margin-bottom:.35rem;font-weight:400;font-style:italic}
-.kairos-theme   .mh-sub{color:rgba(244,240,232,.7)}
-.lanus-theme    .mh-sub{color:rgba(245,238,216,.65)}
-.osagui-theme   .mh-sub{color:rgba(245,230,200,.7)}
-.firulais-theme .mh-sub{color:#3a8c5a;font-style:normal;font-weight:600}
-.banny-theme    .mh-sub{color:rgba(13,15,42,.7);font-style:normal;font-weight:500}
-.msec-hero .mh-tag{
-  display:inline-block;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;
-  padding:.2rem .5rem;border-radius:2px;font-weight:700;
-}
-.kairos-theme   .mh-tag{border:1px solid rgba(232,160,32,.4);color:rgba(244,240,232,.8)}
-.lanus-theme    .mh-tag{border:1px solid rgba(201,162,39,.5);color:rgba(245,238,216,.8)}
-.osagui-theme   .mh-tag{border:1px solid rgba(192,36,26,.5);color:rgba(245,230,200,.85)}
-.firulais-theme .mh-tag{border:1.5px solid #1d3d25;color:#1d3d25}
-.banny-theme    .mh-tag{border:1.5px solid #0d0f2a;color:#0d0f2a}
-.msec-banner{width:100%;max-height:130px;overflow:hidden;background:#000;line-height:0}
-.msec-banner img{width:100%;height:100%;object-fit:cover;display:block;max-height:130px}
-.msec-body{padding:1.1rem 1.1rem 1.2rem}
+#mayoPage .mp-nav a:hover{transform:translateY(-2px);filter:brightness(1.1);box-shadow:0 4px 14px rgba(0,0,0,.4)}
+#mayoPage .mp-nav a[data-brand=kairos]  {background:#e8a020;color:#000}
+#mayoPage .mp-nav a[data-brand=lanus]   {background:#7b1f3a;color:#f5eed8;border-color:#c9a227}
+#mayoPage .mp-nav a[data-brand=osagui]  {background:#c0241a;color:#fff}
+#mayoPage .mp-nav a[data-brand=firulais]{background:#f5c900;color:#1d3d25;border-color:#1d3d25}
+#mayoPage .mp-nav a[data-brand=banny]   {background:#77cbbf;color:#0d0f2a}
 
-/* Cards en temas claros (Firulais amarillo, Banny teal) */
-.firulais-theme .mayo-card{background:#fffbe6;border:1.5px solid #1d3d25;color:#1d3d25}
-.firulais-theme .mayo-card .mc-style{color:#3a8c5a;font-weight:700}
-.firulais-theme .mayo-card .mc-name{color:#1d3d25}
-.firulais-theme .mayo-card .mc-price{color:#1d3d25}
-.firulais-theme .mayo-card .mc-price small{color:rgba(29,61,37,.5)}
-.firulais-theme .mayo-card .mc-tag{background:#1d3d25;color:#f5c900}
-.firulais-theme .mayo-card .mc-add{background:#1d3d25;color:#f5c900;background-image:none}
-.firulais-theme .mayo-card .mc-add:hover{background:#2d5a3a}
-.firulais-theme .mayo-card .mc-qty{background:#fef9d0;border-color:#1d3d25}
-.firulais-theme .mayo-card .mc-qty button{color:#1d3d25}
-.firulais-theme .mayo-card .mc-qty button:hover{background:rgba(29,61,37,.1)}
-.firulais-theme .mayo-card .mc-qty .mq-v{color:#1d3d25}
-.firulais-theme .mayo-card select.mc-variant{background:#fef9d0;border-color:#1d3d25;color:#1d3d25}
+/* Card base compartido */
+#mayoPage .mp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
+#mayoPage .mp-card{display:flex;flex-direction:column;overflow:hidden;border-radius:3px;transition:border-color .2s,transform .2s,box-shadow .2s;position:relative}
+#mayoPage .mp-card:hover{transform:translateY(-3px)}
+#mayoPage .mp-ci{display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;aspect-ratio:1}
+#mayoPage .mp-ci img{max-height:100%;max-width:100%;object-fit:contain;filter:drop-shadow(0 8px 20px rgba(0,0,0,.6));transition:transform .3s,opacity .3s;position:absolute;inset:0;width:100%;height:100%;padding:18px}
+#mayoPage .mp-ci img.img2{opacity:0}
+#mayoPage .mp-card:hover .mp-ci img.img1{opacity:0;transform:scale(1.04)}
+#mayoPage .mp-card:hover .mp-ci img.img2{opacity:1}
+#mayoPage .mp-ctag{position:absolute;top:11px;left:0;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:3px 10px 3px 12px;clip-path:polygon(0 0,100% 0,calc(100% - 6px) 100%,0 100%);z-index:3}
+#mayoPage .mp-cb{padding:14px 14px 18px;display:flex;flex-direction:column;flex:1;gap:3px}
+#mayoPage .mp-cst{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:500;letter-spacing:.16em;text-transform:uppercase}
+#mayoPage .mp-cn{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.02em;line-height:1;margin-bottom:3px}
+#mayoPage .mp-cp{font-size:19px;font-weight:700;margin-bottom:10px;font-family:'Barlow',sans-serif}
+#mayoPage .mp-cp small{font-size:11px;font-weight:400;margin-left:4px;opacity:.55}
+#mayoPage select.mp-sel{width:100%;border-radius:2px;font-family:'Barlow',sans-serif;font-size:12.5px;padding:8px 28px 8px 11px;appearance:none;-webkit-appearance:none;background-repeat:no-repeat;background-position:right 10px center;cursor:pointer;margin-bottom:9px;transition:border-color .2s}
+#mayoPage .mp-acts{display:flex;gap:7px;margin-top:auto}
+#mayoPage .mp-qty{display:flex;border-radius:2px;overflow:hidden;flex-shrink:0}
+#mayoPage .mp-qty button{background:transparent;border:none;font-size:16px;width:32px;height:40px;cursor:pointer;line-height:1;font-family:'Barlow',sans-serif;font-weight:700;transition:background .15s}
+#mayoPage .mp-qv{width:32px;text-align:center;font-size:14px;font-weight:600;height:40px;line-height:40px;user-select:none}
+#mayoPage button.mp-add{flex:1;border:none;border-radius:2px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;height:40px;transition:filter .15s}
+#mayoPage button.mp-add:hover{filter:brightness(1.12)}
+#mayoPage button.mp-add:active{transform:scale(.98)}
+#mayoPage button.mp-add.done{background:#4caf50!important;color:#fff!important;pointer-events:none}
 
-.banny-theme .mayo-card{background:#fff9f0;border:1.5px solid rgba(13,15,42,.18);color:#0d0f2a}
-.banny-theme .mayo-card .mc-style{color:#5ab8aa;font-weight:700}
-.banny-theme .mayo-card .mc-name{color:#0d0f2a}
-.banny-theme .mayo-card .mc-price{color:#0d0f2a}
-.banny-theme .mayo-card .mc-price small{color:rgba(13,15,42,.5)}
-.banny-theme .mayo-card .mc-tag{background:#0d0f2a;color:#77cbbf}
-.banny-theme .mayo-card .mc-add{background:#0d0f2a;color:#77cbbf;background-image:none}
-.banny-theme .mayo-card .mc-add:hover{background:#1a1d3a}
-.banny-theme .mayo-card .mc-qty{background:#f0faf8;border-color:rgba(13,15,42,.15)}
-.banny-theme .mayo-card .mc-qty button{color:#0d0f2a}
-.banny-theme .mayo-card .mc-qty .mq-v{color:#0d0f2a}
-.banny-theme .mayo-card select.mc-variant{background:#f0faf8;border-color:rgba(13,15,42,.15);color:#0d0f2a}
-.mayo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.75rem}
-.mayo-card{
-  background:linear-gradient(180deg,var(--surface) 0%,var(--surface2) 100%);
-  border:1px solid var(--border);border-radius:13px;
-  padding:.85rem .85rem .95rem;
-  display:flex;flex-direction:column;gap:.32rem;
-  transition:border-color .18s,transform .18s,box-shadow .18s;
-  position:relative;
-}
-.mayo-card:hover{border-color:var(--gold-bd-h);transform:translateY(-3px);box-shadow:0 14px 30px rgba(0,0,0,.4)}
-.mayo-card.kairos{border-top:2px solid var(--k)}
-.mayo-card.lanus{border-top:2px solid #7b1f3a}
-.mayo-card.osagui{border-top:2px solid #c0241a}
-.mayo-card.firulais{border-top:2px solid var(--f)}
-.mayo-card.banny{border-top:2px solid var(--b)}
-.mayo-card .mc-img{
-  position:relative;width:100%;aspect-ratio:1;
-  background:var(--surface3);border-radius:9px;
-  display:flex;align-items:center;justify-content:center;
-  overflow:hidden;margin-bottom:.3rem;
-}
-.mayo-card .mc-img img{
-  width:100%;height:100%;object-fit:contain;
-  position:absolute;inset:0;transition:opacity .3s ease;
-}
-.mayo-card .mc-img img.img2{opacity:0;pointer-events:none}
-.mayo-card:hover .mc-img img.img2{opacity:1}
-.mayo-card:hover .mc-img img.img1{opacity:0}
-.mayo-card .mc-img .mc-fb{font-size:2.6rem;opacity:.3;color:var(--gold)}
-.mayo-card .mc-tag{
-  position:absolute;top:.55rem;left:.55rem;
-  background:var(--gold);color:#1a1408;
-  font-family:var(--display);font-size:.55rem;font-weight:800;
-  letter-spacing:.1em;padding:.15rem .42rem;border-radius:3px;z-index:2;
-}
-.mayo-card .mc-style{font-size:.62rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;font-weight:700}
-.mayo-card .mc-name{font-family:var(--display);font-size:.92rem;font-weight:800;color:var(--text);line-height:1.15}
-.mayo-card select.mc-variant{
-  width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:6px;
-  color:var(--text);font-size:.7rem;padding:.35rem .5rem;margin-top:.2rem;
-  font-family:var(--sans);cursor:pointer;
-}
-.mayo-card select.mc-variant:focus{outline:none;border-color:var(--gold-bd-h)}
-.mayo-card .mc-price{
-  font-family:var(--display);font-size:1.05rem;font-weight:800;color:var(--gold);
-  margin-top:.25rem;
-}
-.mayo-card .mc-price small{font-size:.62rem;color:var(--dim);font-weight:400;margin-left:.25rem;letter-spacing:.05em}
-.mayo-card .mc-acts{display:flex;gap:.4rem;margin-top:.45rem;align-items:stretch}
-.mayo-card .mc-qty{
-  display:flex;border:1px solid var(--border);border-radius:7px;
-  background:var(--surface3);flex-shrink:0;
-}
-.mayo-card .mc-qty button{
-  background:none;border:none;color:var(--gold);
-  width:24px;font-size:1rem;font-weight:700;cursor:pointer;
-}
-.mayo-card .mc-qty button:hover{background:var(--gold-dim)}
-.mayo-card .mc-qty .mq-v{
-  width:24px;text-align:center;color:var(--text);font-weight:700;font-size:.78rem;
-  display:flex;align-items:center;justify-content:center;
-}
-.mayo-card .mc-add{
-  flex:1;background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));
-  border:none;border-radius:7px;color:#1a1408;
-  font-size:.66rem;font-weight:800;font-family:var(--sans);
-  letter-spacing:.08em;text-transform:uppercase;cursor:pointer;
-  padding:.4rem;transition:filter .15s;
-}
-.mayo-card .mc-add:hover{filter:brightness(1.1)}
-.mayo-card .mc-add.done{background:var(--green);color:#fff;pointer-events:none}
-.mayo-empty{padding:2rem;text-align:center;color:var(--dim);font-size:.78rem}
+#mayoPage .mp-note{margin:0 clamp(1rem,4vw,3rem) 2rem;padding:14px 18px;border-left:3px solid;background:rgba(255,255,255,.04);font-size:13px;line-height:1.65}
+#mayoPage .mp-note strong{font-weight:700}
+#mayoPage .mp-section{padding:48px clamp(1rem,4vw,3rem) 12px}
+#mayoPage .mp-section-t{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:.04em;line-height:1;margin-bottom:5px}
+#mayoPage .mp-section-s{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:24px}
+#mayoPage .mp-sub-head{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.05em;margin:32px 0 14px;display:flex;align-items:baseline;gap:.5rem;padding-bottom:8px;border-bottom:1px solid currentColor}
+#mayoPage .mp-sub-head:first-of-type{margin-top:0}
+#mayoPage .mp-sub-head .sub-count{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:.14em;opacity:.6;font-weight:600}
 
-/* ── KAIROS slideshow ── */
-.mayo-slideshow{position:relative;width:100%;overflow:hidden;background:#000;line-height:0;border-radius:18px 18px 0 0}
-.mayo-slide-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1)}
-.mayo-slide{flex:0 0 100%;line-height:0}
-.mayo-slide img{width:100%;display:block;max-height:170px;object-fit:cover;object-position:center top}
-.mayo-slide-dots{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:5}
-.mayo-slide-dots .sd{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.35);transition:all .25s}
-.mayo-slide-dots .sd.on{background:#e8a020;width:18px;border-radius:3px}
+/* ── KAIROS ─────────────────────────────────────────────────────────── */
+#mayoPage .kb{background:#080808;color:#f4f0e8;font-family:'Barlow',sans-serif}
+#mayoPage .kb .mp-section-t,#mayoPage .kb .mp-cn{color:#f4f0e8}
+#mayoPage .kb .mp-section-s{color:#6e6e6e}
+#mayoPage .kb .mp-sub-head{color:#e8a020;border-color:rgba(232,160,32,.25)}
+#mayoPage .kb .mp-card{background:#161616;border:1px solid #252525}
+#mayoPage .kb .mp-card:hover{border-color:rgba(232,160,32,.45)}
+#mayoPage .kb .mp-ci{background:#0c0c0c}
+#mayoPage .kb .mp-ctag{background:#e8a020;color:#000;border-radius:1px}
+#mayoPage .kb .mp-cst{color:#e8a020}
+#mayoPage .kb .mp-cp{color:#f5c147}
+#mayoPage .kb .mp-cp small{color:#6e6e6e}
+#mayoPage .kb select.mp-sel{background:#0a0a0a;border:1px solid #252525;color:#f4f0e8;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23666' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
+#mayoPage .kb .mp-qty{border:1px solid #252525}
+#mayoPage .kb .mp-qty button{color:#6e6e6e}
+#mayoPage .kb .mp-qty button:hover{color:#e8a020;background:rgba(232,160,32,.08)}
+#mayoPage .kb .mp-qv{color:#f4f0e8;border-left:1px solid #252525;border-right:1px solid #252525}
+#mayoPage .kb button.mp-add{background:#e8a020;color:#000}
+#mayoPage .kb .mp-note{border-left-color:#e8a020;background:rgba(232,160,32,.04);color:#6e6e6e}
+#mayoPage .kb .mp-note strong{color:#e8a020}
+#mayoPage .kb-slideshow{position:relative;width:100%;overflow:hidden;background:#000;line-height:0}
+#mayoPage .kb-slideshow .ss-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1)}
+#mayoPage .kb-slideshow .ss-slide{flex:0 0 100%}
+#mayoPage .kb-slideshow .ss-slide img{width:100%;display:block;max-height:340px;object-fit:cover;object-position:center top}
+#mayoPage .kb-slideshow .ss-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:5}
+#mayoPage .kb-slideshow .ss-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);transition:background .25s,transform .25s}
+#mayoPage .kb-slideshow .ss-dot.on{background:#e8a020;transform:scale(1.3)}
+#mayoPage .kb-hd{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:22px clamp(1rem,4vw,3rem);border-bottom:1px solid #252525}
+#mayoPage .kb-hd-logo{height:54px;width:auto;object-fit:contain}
+#mayoPage .kb-hd-r{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+#mayoPage .kb-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+#mayoPage .kb-pill{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:5px 14px;border-radius:2px}
+#mayoPage .kb-pill.g{background:#e8a020;color:#000}
+#mayoPage .kb-pill.o{border:1px solid #252525;color:#6e6e6e}
+#mayoPage .kb-hd-tag{font-size:12px;color:#6e6e6e;font-style:italic}
 
-/* Kairos logo + pills */
-.kairos-extras{display:flex;align-items:center;gap:12px;margin-bottom:.7rem;flex-wrap:wrap}
-.kairos-logo{height:32px;width:auto;object-fit:contain;filter:brightness(1.1)}
-.kairos-pills{display:flex;gap:5px;flex-wrap:wrap}
-.kairos-pill{font-family:var(--display);font-size:.55rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:.18rem .5rem;border-radius:2px}
-.kairos-pill.gold{background:#e8a020;color:#000}
-.kairos-pill.out{border:1px solid #444;color:#999}
+/* ── LANÚS ──────────────────────────────────────────────────────────── */
+#mayoPage .ln{background:#1a0810;color:#f5eed8;font-family:'Barlow',sans-serif}
+#mayoPage .ln .mp-section-t{font-family:'Playfair Display',serif;font-weight:700;color:#f5eed8}
+#mayoPage .ln .mp-section-s{color:#8a6a7a}
+#mayoPage .ln .mp-card{background:#2c0f1c;border:1px solid rgba(201,162,39,.2)}
+#mayoPage .ln .mp-card:hover{border-color:rgba(201,162,39,.55)}
+#mayoPage .ln .mp-ci{background:#110508}
+#mayoPage .ln .mp-ctag{background:#c9a227;color:#1a0810}
+#mayoPage .ln .mp-cst{color:#c9a227}
+#mayoPage .ln .mp-cn{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#f5eed8}
+#mayoPage .ln .mp-cp{color:#e8c454}
+#mayoPage .ln .mp-cp small{color:#8a6a7a}
+#mayoPage .ln select.mp-sel{background:#0f0409;border:1px solid rgba(201,162,39,.2);color:#f5eed8;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%238a6a10' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
+#mayoPage .ln .mp-qty{border:1px solid rgba(201,162,39,.2)}
+#mayoPage .ln .mp-qty button{color:#8a6a7a}
+#mayoPage .ln .mp-qty button:hover{color:#c9a227;background:rgba(201,162,39,.08)}
+#mayoPage .ln .mp-qv{color:#f5eed8;border-left:1px solid rgba(201,162,39,.2);border-right:1px solid rgba(201,162,39,.2)}
+#mayoPage .ln button.mp-add{background:linear-gradient(135deg,#8a6a10,#c9a227);color:#1a0810}
+#mayoPage .ln .mp-note{border-left-color:#c9a227;background:rgba(201,162,39,.04);color:#8a6a7a;font-style:italic}
+#mayoPage .ln .mp-note strong{color:#c9a227;font-style:normal}
+#mayoPage .ln-hero{position:relative;padding:60px clamp(1rem,4vw,3rem) 48px;border-bottom:1px solid rgba(201,162,39,.2);text-align:center;display:flex;flex-direction:column;align-items:center;overflow:hidden}
+#mayoPage .ln-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,#75aadb 33%,#f0ece0 33% 67%,#75aadb 67%)}
+#mayoPage .ln-hero::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 50% 50%,rgba(123,31,58,.25) 0%,transparent 70%);pointer-events:none}
+#mayoPage .ln-hero > *{position:relative;z-index:1}
+#mayoPage .ln-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#c9a227;margin-bottom:12px}
+#mayoPage .ln-title{font-family:'Playfair Display',serif;font-size:clamp(60px,9vw,110px);font-weight:900;line-height:.9;color:#f5eed8;margin-bottom:4px}
+#mayoPage .ln-title em{font-style:italic;color:#c9a227}
+#mayoPage .ln-year{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,4vw,48px);color:#75aadb;letter-spacing:.1em;margin-bottom:14px}
+#mayoPage .ln-tag{font-style:italic;font-size:15px;color:#8a6a7a;border-left:2px solid #c9a227;padding-left:14px;text-align:left;line-height:1.5}
+#mayoPage .ln-flag{position:absolute;right:clamp(1rem,4vw,3rem);top:48px;display:flex;flex-direction:column;align-items:center;gap:5px;z-index:2}
+#mayoPage .ln-flag .flag{width:66px;height:42px;border-radius:3px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.5);display:flex;flex-direction:column}
+#mayoPage .ln-flag .flag span{display:block;flex:1}
+#mayoPage .ln-flag .flag span:nth-child(odd){background:#75aadb}
+#mayoPage .ln-flag .flag span:nth-child(2){background:#f0ece0}
+#mayoPage .ln-flag .cap{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#8a6a7a}
 
-/* Hero row para banderas/badges al costado */
-.msec-hero-row{display:flex;width:100%;justify-content:space-between;align-items:flex-start;gap:1rem}
-.msec-hero-row > .msec-hero-main{flex:1;min-width:0}
+/* ── OSAGUI ─────────────────────────────────────────────────────────── */
+#mayoPage .os{background:#0d0a08;color:#f5e6c8;font-family:'Barlow',sans-serif}
+#mayoPage .os .mp-section-t,#mayoPage .os .mp-cn{color:#f5e6c8}
+#mayoPage .os .mp-section-s{color:#8a7060}
+#mayoPage .os .mp-card{background:#1a1208;border:1px solid rgba(180,30,30,.25)}
+#mayoPage .os .mp-card:hover{border-color:rgba(192,36,26,.55)}
+#mayoPage .os .mp-ci{background:#100c06}
+#mayoPage .os .mp-ctag{background:#c0241a;color:#fff}
+#mayoPage .os .mp-cst{color:#c0241a}
+#mayoPage .os .mp-cp{color:#d4b896}
+#mayoPage .os .mp-cp small{color:#8a7060}
+#mayoPage .os select.mp-sel{background:#0a0806;border:1px solid rgba(180,30,30,.25);color:#f5e6c8;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23666' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
+#mayoPage .os .mp-qty{border:1px solid rgba(180,30,30,.25)}
+#mayoPage .os .mp-qty button{color:#8a7060}
+#mayoPage .os .mp-qty button:hover{color:#c0241a;background:rgba(192,36,26,.08)}
+#mayoPage .os .mp-qv{color:#f5e6c8;border-left:1px solid rgba(180,30,30,.25);border-right:1px solid rgba(180,30,30,.25)}
+#mayoPage .os button.mp-add{background:#c0241a;color:#fff}
+#mayoPage .os .mp-note{border-left-color:#c0241a;background:rgba(192,36,26,.04);color:#8a7060}
+#mayoPage .os .mp-note strong{color:#c0241a}
+#mayoPage .os-banner{width:100%;line-height:0;overflow:hidden;max-height:360px}
+#mayoPage .os-banner img{width:100%;display:block;object-fit:cover;object-position:center;max-height:360px}
+#mayoPage .os-hero{position:relative;padding:48px clamp(1rem,4vw,3rem) 40px;border-bottom:1px solid rgba(180,30,30,.25);display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;overflow:hidden}
+#mayoPage .os-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 80% at 30% 50%,rgba(192,36,26,.15) 0%,transparent 70%);pointer-events:none}
+#mayoPage .os-hero > *{position:relative;z-index:1}
+#mayoPage .os-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#c0241a;margin-bottom:10px}
+#mayoPage .os-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(60px,9vw,108px);line-height:.9;color:#f5e6c8;margin-bottom:4px;letter-spacing:.02em}
+#mayoPage .os-jp{font-size:clamp(18px,3vw,30px);color:#4a90d9;letter-spacing:.15em;margin-bottom:12px;font-weight:300}
+#mayoPage .os-tag{font-style:italic;font-size:15px;color:#8a7060;border-left:2px solid #c0241a;padding-left:14px;line-height:1.5}
+#mayoPage .os-flag{display:flex;flex-direction:column;align-items:center;gap:5px}
+#mayoPage .os-flag .flag-jp{width:66px;height:44px;border-radius:3px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.5);background:#fff;display:flex;align-items:center;justify-content:center}
+#mayoPage .os-flag .flag-jp::after{content:'';width:22px;height:22px;border-radius:50%;background:#c0241a}
+#mayoPage .os-flag .cap{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#8a7060}
 
-/* Bandera Argentina (Lanús) */
-.flag-ar{width:48px;height:30px;border-radius:2px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 6px rgba(0,0,0,.4);flex-shrink:0}
-.flag-ar span{flex:1;display:block}
-.flag-ar span:nth-child(1),.flag-ar span:nth-child(3){background:#75aadb}
-.flag-ar span:nth-child(2){background:#f0ece0}
-.flag-cap{font-family:var(--display);font-size:.55rem;letter-spacing:.18em;color:rgba(245,238,216,.6);text-align:center;margin-top:4px;font-weight:800}
+/* ── FIRULAIS ───────────────────────────────────────────────────────── */
+#mayoPage .fr{background:#f5c900;color:#1d3d25;font-family:'Barlow',sans-serif}
+#mayoPage .fr .mp-section-t{color:#1d3d25}
+#mayoPage .fr .mp-section-s{color:#5a6e40}
+#mayoPage .fr .mp-sub-head{color:#1d3d25;border-color:rgba(29,61,37,.3)}
+#mayoPage .fr .mp-card{background:#fffbe6;border:2px solid #1d3d25;border-radius:4px}
+#mayoPage .fr .mp-card:hover{box-shadow:4px 4px 0 #1d3d25}
+#mayoPage .fr .mp-ci{background:#fef9d0}
+#mayoPage .fr .mp-ctag{background:#1d3d25;color:#f5c900}
+#mayoPage .fr .mp-cst{color:#3a8c5a;font-weight:600}
+#mayoPage .fr .mp-cn{color:#1d3d25}
+#mayoPage .fr .mp-cp{color:#1d3d25}
+#mayoPage .fr .mp-cp small{color:#5a6e40}
+#mayoPage .fr select.mp-sel{background:#fef9d0;border:1.5px solid #1d3d25;color:#1d3d25;font-weight:600;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%231d3d25' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
+#mayoPage .fr .mp-qty{border:1.5px solid #1d3d25}
+#mayoPage .fr .mp-qty button{color:#5a6e40;font-weight:700}
+#mayoPage .fr .mp-qty button:hover{color:#1d3d25;background:rgba(29,61,37,.1)}
+#mayoPage .fr .mp-qv{color:#1d3d25;font-weight:700;border-left:1.5px solid #1d3d25;border-right:1.5px solid #1d3d25}
+#mayoPage .fr button.mp-add{background:#1d3d25;color:#f5c900;border-radius:3px}
+#mayoPage .fr button.mp-add:hover{background:#2d5a3a}
+#mayoPage .fr .mp-note{border-left:4px solid #3a8c5a;background:rgba(29,61,37,.06);color:#1d3d25;font-weight:500}
+#mayoPage .fr .mp-note strong{color:#3a8c5a;font-weight:700}
+#mayoPage .fr-banner{width:100%;line-height:0;overflow:hidden;max-height:360px}
+#mayoPage .fr-banner img{width:100%;display:block;object-fit:cover;max-height:360px}
+#mayoPage .fr-hero{padding:48px clamp(1rem,4vw,3rem) 40px;border-bottom:3px solid #1d3d25;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+#mayoPage .fr-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#1d3d25;opacity:.6;margin-bottom:8px}
+#mayoPage .fr-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(60px,9vw,108px);line-height:.88;color:#1d3d25;margin-bottom:4px;letter-spacing:.01em}
+#mayoPage .fr-sub{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:500;letter-spacing:.25em;text-transform:uppercase;color:#5a6e40;margin-bottom:10px}
+#mayoPage .fr-tag{font-family:'Barlow',sans-serif;font-size:15px;color:#1d3d25;border-left:3px solid #1d3d25;padding-left:12px;line-height:1.5;font-weight:600}
+#mayoPage .fr-badge{width:104px;height:104px;background:#1d3d25;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;flex-shrink:0}
+#mayoPage .fr-badge span:nth-child(1){font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#f5c900;opacity:.7}
+#mayoPage .fr-badge span:nth-child(2){font-family:'Bebas Neue',sans-serif;font-size:22px;color:#f5c900;letter-spacing:.05em;line-height:1}
+#mayoPage .fr-badge span:nth-child(3){font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#3a8c5a}
 
-/* Bandera Japón (Osagui) */
-.flag-jp{width:48px;height:30px;border-radius:2px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.4);flex-shrink:0}
-.flag-jp::after{content:'';width:14px;height:14px;border-radius:50%;background:#c0241a}
-.osagui-theme .flag-cap{color:rgba(245,230,200,.6)}
-
-/* Badge EST 2025 (Firulais) */
-.firulais-badge{
-  width:64px;height:64px;background:#1d3d25;border-radius:50%;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;flex-shrink:0;
-}
-.firulais-badge .fb1{font-size:7px;letter-spacing:.18em;color:rgba(245,201,0,.7);font-weight:800}
-.firulais-badge .fb2{font-family:var(--display);font-size:15px;color:#f5c900;letter-spacing:.04em;line-height:1}
-.firulais-badge .fb3{font-size:6px;letter-spacing:.16em;color:#3a8c5a;font-weight:800}
-
-/* Color dots + navy bar (Banny) */
-.banny-dots{display:flex;gap:6px;margin-top:.55rem}
-.banny-dot{width:18px;height:18px;border-radius:50%;border:1.5px solid rgba(13,15,42,.3)}
-.banny-bar{background:#0d0f2a;padding:.55rem 1.1rem;display:flex;align-items:center;gap:.8rem;color:#77cbbf;font-family:var(--display);font-size:.7rem;letter-spacing:.15em;text-transform:uppercase}
-.banny-bar .bb-lbl{color:#fff8e6;font-weight:800}
-
-/* Sub-headers para Kairos (Barriles / Packs) */
-.msec-sub-head{
-  font-family:var(--display);font-size:.78rem;font-weight:800;
-  letter-spacing:.18em;text-transform:uppercase;
-  color:rgba(232,160,32,.9);
-  padding:0 0 .45rem;border-bottom:1px solid rgba(232,160,32,.18);
-  margin-bottom:.75rem;display:flex;align-items:center;gap:.45rem;
-}
-.msec-sub-head:not(:first-child){margin-top:1.4rem}
-.msec-sub-head .sh-count{font-size:.6rem;color:rgba(232,160,32,.5);letter-spacing:.1em;font-weight:600}
-
-/* Notas/disclaimers al final de cada sección */
-.mayo-note{
-  margin-top:1rem;padding:.7rem .95rem;border-radius:6px;
-  border-left:3px solid var(--gold);
-  background:rgba(232,160,32,.05);
-  font-size:.72rem;color:rgba(244,240,232,.72);line-height:1.55;
-}
-.mayo-note strong{color:var(--gold);font-weight:700}
-.lanus-theme .mayo-note{border-left-color:#c9a227;background:rgba(201,162,39,.06);color:rgba(245,238,216,.75)}
-.lanus-theme .mayo-note strong{color:#e8c454}
-.osagui-theme .mayo-note{border-left-color:#c0241a;background:rgba(192,36,26,.06);color:rgba(245,230,200,.75)}
-.osagui-theme .mayo-note strong{color:#e03030}
-.firulais-theme .mayo-note{border-left-color:#1d3d25;background:rgba(29,61,37,.1);color:#1d3d25}
-.firulais-theme .mayo-note strong{color:#3a8c5a}
-.banny-theme .mayo-note{border-left-color:#0d0f2a;background:rgba(13,15,42,.08);color:#0d0f2a}
-.banny-theme .mayo-note strong{color:#5ab8aa}
+/* ── BANNY ──────────────────────────────────────────────────────────── */
+#mayoPage .bn{background:#77cbbf;color:#0d0f2a;font-family:'Barlow',sans-serif}
+#mayoPage .bn .mp-section-t,#mayoPage .bn .mp-cn{color:#0d0f2a}
+#mayoPage .bn .mp-section-s{color:rgba(13,15,42,.55)}
+#mayoPage .bn .mp-sub-head{color:#0d0f2a;border-color:rgba(13,15,42,.3)}
+#mayoPage .bn .mp-card{background:#fff9f0;border:1.5px solid rgba(13,15,42,.15);border-radius:8px}
+#mayoPage .bn .mp-card:hover{box-shadow:0 8px 24px rgba(13,15,42,.18)}
+#mayoPage .bn .mp-ci{background:#f0faf8}
+#mayoPage .bn .mp-ctag{background:#0d0f2a;color:#77cbbf}
+#mayoPage .bn .mp-cst{color:#5ab8aa;font-weight:600}
+#mayoPage .bn .mp-cp{color:#0d0f2a}
+#mayoPage .bn .mp-cp small{color:rgba(13,15,42,.45)}
+#mayoPage .bn select.mp-sel{background:#f0faf8;border:1.5px solid rgba(13,15,42,.15);color:#0d0f2a;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%230d0f2a' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
+#mayoPage .bn .mp-qty{border:1.5px solid rgba(13,15,42,.15)}
+#mayoPage .bn .mp-qty button{color:rgba(13,15,42,.45)}
+#mayoPage .bn .mp-qty button:hover{color:#5ab8aa;background:rgba(119,203,191,.15)}
+#mayoPage .bn .mp-qv{color:#0d0f2a;border-left:1.5px solid rgba(13,15,42,.15);border-right:1.5px solid rgba(13,15,42,.15)}
+#mayoPage .bn button.mp-add{background:#0d0f2a;color:#77cbbf;border-radius:4px}
+#mayoPage .bn .mp-note{border-left:4px solid #0d0f2a;background:rgba(13,15,42,.05);color:#0d0f2a}
+#mayoPage .bn .mp-note strong{color:#5ab8aa;font-weight:700}
+#mayoPage .bn-hero{padding:60px clamp(1rem,4vw,3rem) 48px;border-bottom:3px solid #0d0f2a;display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap;position:relative;overflow:hidden}
+#mayoPage .bn-hero::after{content:'';position:absolute;right:-80px;top:-80px;width:380px;height:380px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none}
+#mayoPage .bn-hero > *{position:relative;z-index:1}
+#mayoPage .bn-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#0d0f2a;opacity:.55;margin-bottom:10px}
+#mayoPage .bn-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(70px,11vw,130px);line-height:.85;color:#0d0f2a;letter-spacing:.02em;margin-bottom:4px}
+#mayoPage .bn-by{font-family:'Barlow',sans-serif;font-size:15px;font-weight:600;color:#0d0f2a;opacity:.5;letter-spacing:.1em;margin-bottom:14px}
+#mayoPage .bn-tag{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#0d0f2a;border-left:3px solid #0d0f2a;padding-left:14px;line-height:1.4}
+#mayoPage .bn-dots{display:flex;gap:8px;margin-top:10px}
+#mayoPage .bn-dot{width:24px;height:24px;border-radius:50%;border:2px solid rgba(13,15,42,.2)}
+#mayoPage .bn-bar{background:#0d0f2a;padding:14px clamp(1rem,4vw,3rem);display:flex;align-items:center;gap:16px}
+#mayoPage .bn-bar .lbl{font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff8e6}
+#mayoPage .bn-bar .br{font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:.15em;text-transform:uppercase;color:#77cbbf}
 
 .cart-btn{
   flex-shrink:0;position:relative;cursor:pointer;
@@ -1063,6 +1060,9 @@ body.mayorista-active .game-banner{display:none}
 
     <div class="messages" id="messages"></div>
   </div>
+
+  <!-- MAYORISTA FULL-PAGE STOREFRONT (visible solo cuando body.mayorista-active) -->
+  <div id="mayoPage" style="display:none"></div>
 
   <!-- INPUT -->
   <div class="input-wrap">
@@ -1964,15 +1964,17 @@ function logoutMayorista(){
   botStatic('Cerraste sesión. Si quieres volver a entrar como mayorista, pulsa MAYORISTAS.');
 }
 
-// ─── MAYORISTA STOREFRONT ────────────────────────────────────────────────────
-const BRAND_INFO = {
-  kairos:  { label:'Kairos Brewing',     emoji:'🍺' },
-  lanus:   { label:'Lanús · Argentina',  emoji:'⚽' },
-  osagui:  { label:'Osagui · Japón',     emoji:'🌸' },
-  firulais:{ label:'Firulais Craft Mix', emoji:'🐶' },
-  banny:   { label:'Banny by Kairos',    emoji:'🐇' },
-};
-function detectMayoristaBrand(p){
+// ─── MAYORISTA — PÁGINA ECOMMERCE COMPLETA (#mayoPage) ──────────────────────
+const KAIROS_SLIDES = [
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-01.png?v=1775154725&width=1600',
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-02.png?v=1775154766&width=1600',
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-03.png?v=1775154716&width=1600',
+];
+const KAIROS_LOGO = 'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/LOGO_KAIROS_BREWING_b42351c9-1e32-4cfd-8712-4ce6bf1114f5.png?v=1772805913';
+const OSAGUI_BANNER = 'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Osagui-03.webp';
+const FIRULAIS_BANNER = 'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Firulais.jpg';
+
+function detectMpBrand(p){
   const t = (p.title || '').toLowerCase();
   if (t.includes('lanús') || t.includes('lanus'))  return 'lanus';
   if (t.includes('osagui'))                         return 'osagui';
@@ -1982,245 +1984,271 @@ function detectMayoristaBrand(p){
       || t.includes('mojito') || t.includes('rtd')) return 'banny';
   return 'kairos';
 }
-// Para Kairos mayorista solo se venden APA, PILS y GOLDEN (decisión comercial)
-function passesKairosMayoristaFilter(p){
+function passesKairosMpFilter(p){
   const t = (p.title || '').toLowerCase();
   return /(\bapa\b|secret\s*lab|\bpils\b|nada\s*personal|golden|galactic\s*mission)/.test(t);
 }
-function kairosFormat(p){
+function kairosFmt(p){
   const t = (p.title || '').toLowerCase();
   if (/barril/.test(t))     return 'barril';
   if (/pack|lata/.test(t))  return 'pack';
   return null;
 }
-function cleanMayoristaTitle(s){
+function cleanMpTitle(s){
   return String(s||'')
     .replace(/24\s*pack\s*473\s*cc?\s*mayorista\s*/gi, '24 Pack ')
     .replace(/^\s*barril\s*/i, 'Barril ')
     .replace(/^\s*bid[oó]n\s*/i, 'Bidón ')
     .replace(/\s*\(mayorista\)\s*/gi, ' ')
-    .replace(/\s+/g,' ')
+    .replace(/\s+/g, ' ')
     .trim();
 }
-function styleLabelFor(p){
+function mpStyle(p){
   if (p.type)  return p.type;
   const t = (p.title || '').toLowerCase();
-  if (t.includes('gin')) return 'Gin';
+  if (t.includes('gin'))    return 'Gin';
   if (t.includes('ron') || t.includes('rum')) return 'Ron';
   if (t.includes('whisky')) return 'Whiskey';
   if (t.includes('vermut')) return 'Vermut';
   if (t.includes('mojito')) return 'RTD Mojito';
-  if (t.includes('barril')) return 'Barril';
+  if (t.includes('barril')) return 'Barril cervecero';
   if (t.includes('24 pack')) return '24 Pack 473cc';
   return '';
 }
-function buildMayoristaCard(p, brand){
+function mpTagFor(p){
+  const t = (p.title || '').toLowerCase();
+  if (/barril/.test(t))    return 'Barril';
+  if (/bid[oó]n/.test(t))  return 'Bidón';
+  if (/pack/.test(t))      return 'Pack';
+  return 'Mayorista';
+}
+function mpUnit(p){
+  const t = (p.title || '').toLowerCase();
+  if (/barril/.test(t))    return 'CLP / barril';
+  if (/pack/.test(t))      return '× 24 latas';
+  return 'CLP';
+}
+function buildMpCard(p){
   const variants = p.variants || [];
   const v0 = variants[0] || {};
   const price = parseFloat(v0.price || 0);
-  const unit = variants[0] && /barril/i.test(p.title||'') ? 'CLP / barril' :
-               /pack/i.test(p.title||'') ? '× 24 latas' : 'CLP';
   const img1 = p.image || (p.images && p.images[0]) || null;
   const img2 = (p.images && p.images[1]) || null;
   const visual = img1
-    ? `<div class="mc-img">
+    ? `<div class="mp-ci"><div class="mp-ctag">${mpTagFor(p)}</div>
          <img class="img1" src="${img1}" alt="${escapeHtml(p.title)}" loading="lazy">
          ${img2 ? `<img class="img2" src="${img2}" alt="" loading="lazy">` : ''}
        </div>`
-    : `<div class="mc-img"><span class="mc-fb">${BRAND_INFO[brand].emoji}</span></div>`;
-  const tag = /barril/i.test(p.title||'') ? 'Barril'
-            : /bid[oó]n/i.test(p.title||'') ? 'Bidón'
-            : /pack/i.test(p.title||'') ? 'Pack' : 'Mayorista';
+    : `<div class="mp-ci"><div class="mp-ctag">${mpTagFor(p)}</div></div>`;
   const variantSelect = variants.length > 1
-    ? `<select class="mc-variant" onchange="mayoCardVariantChange(this)">
-         ${variants.map((v,i) => `<option value="${v.id}" data-price="${v.price}">${escapeHtml(v.title)} — $${Math.round(parseFloat(v.price)).toLocaleString('es-CL')}</option>`).join('')}
+    ? `<select class="mp-sel" onchange="mpVariantChange(this)">
+         ${variants.map(v => `<option value="${v.id}" data-price="${v.price}">${escapeHtml(v.title)} — $${Math.round(parseFloat(v.price)).toLocaleString('es-CL')}</option>`).join('')}
        </select>`
     : '';
-  // Datos comprimidos en el botón para usar al agregar al carro
   const productData = {
-    name:      cleanMayoristaTitle(p.title),
-    brand,
-    emoji:     BRAND_INFO[brand].emoji,
-    style:     styleLabelFor(p),
-    desc:      '',
+    name: cleanMpTitle(p.title),
+    brand: detectMpBrand(p),
+    emoji: '🍺',
+    style: mpStyle(p),
+    desc: '',
     price,
     variantId: v0.id,
-    variants:  variants.map(v => ({ id:v.id, title:v.title, price:parseFloat(v.price) })),
   };
-  return `
-  <div class="mayo-card ${brand}">
-    <span class="mc-tag">${tag}</span>
+  return `<div class="mp-card">
     ${visual}
-    <div class="mc-style">${escapeHtml(styleLabelFor(p))}</div>
-    <div class="mc-name">${escapeHtml(cleanMayoristaTitle(p.title))}</div>
-    ${variantSelect}
-    <div class="mc-price">$${price.toLocaleString('es-CL')}<small>${unit}</small></div>
-    <div class="mc-acts">
-      <div class="mc-qty">
-        <button onclick="mayoCardQty(this,-1)" aria-label="Restar">−</button>
-        <span class="mq-v">1</span>
-        <button onclick="mayoCardQty(this,1)" aria-label="Sumar">+</button>
+    <div class="mp-cb">
+      <div class="mp-cst">${escapeHtml(mpStyle(p))}</div>
+      <div class="mp-cn">${escapeHtml(cleanMpTitle(p.title))}</div>
+      <div class="mp-cp">$${price.toLocaleString('es-CL')}<small>${mpUnit(p)}</small></div>
+      ${variantSelect}
+      <div class="mp-acts">
+        <div class="mp-qty">
+          <button onclick="mpQty(this,-1)">−</button>
+          <span class="mp-qv">1</span>
+          <button onclick="mpQty(this,1)">+</button>
+        </div>
+        <button class="mp-add" data-product='${JSON.stringify(productData).replace(/'/g,"&#39;")}' onclick="mpAdd(this)">Agregar</button>
       </div>
-      <button class="mc-add" data-product='${JSON.stringify(productData).replace(/'/g,"&#39;")}' onclick="mayoAddToCart(this)">Agregar</button>
     </div>
   </div>`;
 }
-function mayoCardQty(btn, delta){
-  const wrap = btn.closest('.mc-qty');
-  const el = wrap && wrap.querySelector('.mq-v');
+function mpQty(btn, delta){
+  const wrap = btn.closest('.mp-qty');
+  const el = wrap && wrap.querySelector('.mp-qv');
   if (!el) return;
   const next = Math.max(1, Math.min(99, (parseInt(el.textContent,10)||1)+delta));
   el.textContent = next;
 }
-function mayoCardVariantChange(sel){
-  const card = sel.closest('.mayo-card');
+function mpVariantChange(sel){
+  const card = sel.closest('.mp-card');
   if (!card) return;
   const opt = sel.options[sel.selectedIndex];
   const newPrice = parseFloat(opt.dataset.price || '0');
-  const priceEl = card.querySelector('.mc-price');
-  if (priceEl) {
+  const priceEl = card.querySelector('.mp-cp');
+  if (priceEl){
     const small = priceEl.querySelector('small');
     const unitTxt = small ? small.textContent : 'CLP';
     priceEl.innerHTML = `$${newPrice.toLocaleString('es-CL')}<small>${unitTxt}</small>`;
   }
-  // Actualizar el data del botón para que addToCart use el variant correcto
-  const btn = card.querySelector('.mc-add');
-  if (btn) {
+  const btn = card.querySelector('.mp-add');
+  if (btn){
     const data = JSON.parse(btn.getAttribute('data-product').replace(/&#39;/g,"'"));
     data.variantId = sel.value;
     data.price = newPrice;
     btn.setAttribute('data-product', JSON.stringify(data).replace(/'/g,"&#39;"));
   }
 }
-function mayoAddToCart(btn){
+function mpAdd(btn){
   const data = JSON.parse(btn.getAttribute('data-product').replace(/&#39;/g,"'"));
-  const card = btn.closest('.mayo-card');
-  const qtyEl = card && card.querySelector('.mq-v');
+  const card = btn.closest('.mp-card');
+  const qtyEl = card && card.querySelector('.mp-qv');
   const qty = qtyEl ? Math.max(1, parseInt(qtyEl.textContent,10)||1) : 1;
   addToCart(data, qty);
   btn.textContent = `✓ Agregado (${qty})`;
   btn.classList.add('done');
 }
 
-// Hero por marca — estética inspirada en el portal PageFly: slideshow + logo
-// para Kairos, bandera argentina/año 1978 para Lanús, banner + bandera japonesa
-// y kanji para Osagui, banner + badge EST 2025 para Firulais, color dots +
-// navy bar para Banny.
-function renderMayoHero(brand, count){
-  const c = count + (count === 1 ? ' producto' : ' productos');
-  if (brand === 'kairos') {
-    const slides = [
-      'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-01.png?v=1775154725&width=1280',
-      'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-02.png?v=1775154766&width=1280',
-      'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-03.png?v=1775154716&width=1280',
-    ];
-    return `
-      <div class="mayo-slideshow" data-mayo-slideshow>
-        <div class="mayo-slide-track">${slides.map(u => `<div class="mayo-slide"><img src="${u}" alt="Kairos Brewing" onerror="this.parentElement.parentElement.parentElement.style.display='none'"></div>`).join('')}</div>
-        <div class="mayo-slide-dots">${slides.map((_,i) => `<span class="sd ${i===0?'on':''}"></span>`).join('')}</div>
-      </div>
-      <div class="msec-hero">
-        <div class="kairos-extras">
-          <img class="kairos-logo" src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/LOGO_KAIROS_BREWING_b42351c9-1e32-4cfd-8712-4ce6bf1114f5.png?v=1772805913" alt="Kairos Brewing" onerror="this.style.display='none'">
-          <div class="kairos-pills">
-            <span class="kairos-pill gold">Temporada 2026</span>
-            <span class="kairos-pill out">Craft Brewery · 2017</span>
-          </div>
-        </div>
-        <span class="mh-label">🍺 Cervezas de la Casa</span>
-        <div class="mh-title">Cerveza viva</div>
-        <div class="mh-sub">Sin preservantes · sin aditivos · sin filtrar</div>
-        <span class="mh-tag">${c} · Barriles + Pack 24 latas</span>
-      </div>`;
-  }
-  if (brand === 'lanus') {
-    return `
-      <div class="msec-hero">
-        <div class="msec-hero-row">
-          <div class="msec-hero-main">
-            <span class="mh-label">⚽ World Tour · Argentina · 1978</span>
-            <div class="mh-title">La<span class="em">nús</span></div>
-            <div class="mh-sub">El Sabor de una Pasión · ${c}</div>
-            <span class="mh-tag">Italian Pils · 5% ABV</span>
-          </div>
-          <div>
-            <div class="flag-ar"><span></span><span></span><span></span></div>
-            <div class="flag-cap">Argentina</div>
-          </div>
-        </div>
-      </div>`;
-  }
-  if (brand === 'osagui') {
-    return `
-      <div class="msec-banner"><img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Osagui-03.webp" alt="Osagui" onerror="this.parentElement.style.display='none'"></div>
-      <div class="msec-hero">
-        <div class="msec-hero-row">
-          <div class="msec-hero-main">
-            <span class="mh-label">🌸 World Tour · Japón</span>
-            <div class="mh-title">OSAGUI</div>
-            <div class="mh-sub">De Oriente con Amor · Japanese Lager 4.6%</div>
-            <span class="mh-tag">${c} · 日本のラガー</span>
-          </div>
-          <div>
-            <div class="flag-jp"></div>
-            <div class="flag-cap">Japón</div>
-          </div>
-        </div>
-      </div>`;
-  }
-  if (brand === 'firulais') {
-    return `
-      <div class="msec-banner"><img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Firulais.jpg" alt="Firulais" onerror="this.parentElement.style.display='none'"></div>
-      <div class="msec-hero">
-        <div class="msec-hero-row">
-          <div class="msec-hero-main">
-            <span class="mh-label">🐶 Craft Mix · Est. 2025</span>
-            <div class="mh-title">FIRULAIS</div>
-            <div class="mh-sub">La michelada más honesta de Chile</div>
-            <span class="mh-tag">${c} · Free of Lice</span>
-          </div>
-          <div class="firulais-badge">
-            <span class="fb1">EST</span>
-            <span class="fb2">2025</span>
-            <span class="fb3">CRAFT</span>
-          </div>
-        </div>
-      </div>`;
-  }
-  if (brand === 'banny') {
-    return `
-      <div class="msec-hero">
-        <span class="mh-label">🐇 Destilados & Ready To Drink</span>
-        <div class="mh-title">BANNY</div>
-        <div class="mh-sub">by Kairos · Craft to be Wild</div>
-        <span class="mh-tag">${c} · Gin · Ron · Whiskey · Vermut · RTD</span>
-        <div class="banny-dots">
-          <div class="banny-dot" style="background:#77cbbf"></div>
-          <div class="banny-dot" style="background:#94c46b"></div>
-          <div class="banny-dot" style="background:#7da6d8"></div>
-          <div class="banny-dot" style="background:#eeab37"></div>
-        </div>
-      </div>
-      <div class="banny-bar"><span class="bb-lbl">FAMILIA</span><span>BANNY</span></div>`;
-  }
-  return '';
+let MP_CACHE = null, MP_CACHE_AT = 0;
+async function loadMpCatalog(){
+  if (MP_CACHE && Date.now() - MP_CACHE_AT < 5*60*1000) return MP_CACHE;
+  try {
+    const r = await fetch('/api/products?mode=b2b');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    MP_CACHE = data.products || [];
+    MP_CACHE_AT = Date.now();
+    return MP_CACHE;
+  } catch (e) { console.error('loadMpCatalog:', e); return []; }
 }
-function renderMayoNote(brand){
-  const notes = {
-    kairos:   '<strong>Producto vivo:</strong> nuestras cervezas no llevan preservantes ni aditivos. La conservación en frío es fundamental. Solicita tu máquina de almacenaje y dispensado en frío — sin costo adicional para mayoristas activos.',
-    lanus:    '<strong>Lanús 1978 · Italian Pils</strong> — muy ligera y refrescante, con lúpulos en frío para aromas florales y cítricos. Cerveza elegante, repleta de tradición. <strong>Mantener siempre refrigerada.</strong>',
-    osagui:   '<strong>Osagui · Japanese Lager 4.6%</strong> — colección de artistas inspirada en el Japón tradicional. El conejo Kairos danza frente al Monte Fuji y el torii de Itsukushima. Sin filtrar. <strong>Mantener refrigerada.</strong>',
-    firulais: '<strong>Firulais Craft Mix</strong> — la michelada artesanal hecha con cerveza de verdad. Sin conservantes, sin colorantes. El perro más honesto del barrio te la trae en barril o en lata. <strong>Mantener refrigerada.</strong>',
-    banny:    '<strong>BANNY · Craft to be Wild</strong> — destilados y Ready To Drink de Kairos. Gin, ron, whiskey, vermut y cócteles RTD diseñados desde la barra, probados en operación real.',
-  };
-  return `<div class="mayo-note">${notes[brand] || ''}</div>`;
+
+function buildKairosSection(barril, pack){
+  if (!barril.length && !pack.length) return '';
+  const slides = `<div class="kb-slideshow" data-kb-slideshow>
+    <div class="ss-track">${KAIROS_SLIDES.map(u => `<div class="ss-slide"><img src="${u}" alt="Kairos Brewing" onerror="this.parentElement.parentElement.parentElement.style.display='none'"></div>`).join('')}</div>
+    <div class="ss-dots">${KAIROS_SLIDES.map((_,i)=>`<span class="ss-dot ${i===0?'on':''}"></span>`).join('')}</div>
+  </div>`;
+  const hd = `<div class="kb-hd">
+    <img class="kb-hd-logo" src="${KAIROS_LOGO}" alt="Kairos Brewing" onerror="this.style.display='none'">
+    <div class="kb-hd-r">
+      <div class="kb-pills">
+        <span class="kb-pill g">Temporada 2026</span>
+        <span class="kb-pill o">Craft Brewery · 2017</span>
+      </div>
+      <div class="kb-hd-tag">Cerveza viva · sin preservantes · sin aditivos</div>
+    </div>
+  </div>`;
+  const barrilG = barril.length
+    ? `<div class="mp-sub-head">🛢 Barriles <span class="sub-count">${barril.length} estilo${barril.length===1?'':'s'}</span></div>
+       <div class="mp-grid">${barril.map(buildMpCard).join('')}</div>` : '';
+  const packG = pack.length
+    ? `<div class="mp-sub-head">📦 Pack 24 Latas 473cc <span class="sub-count">${pack.length} estilo${pack.length===1?'':'s'}</span></div>
+       <div class="mp-grid">${pack.map(buildMpCard).join('')}</div>` : '';
+  return `<section id="mp-sec-kairos" class="kb">
+    ${slides}
+    ${hd}
+    <div class="mp-section">
+      <div class="mp-section-t">Cervezas de la Casa</div>
+      <div class="mp-section-s">Barriles & Pack Latas · Mayorista EX Kairos Brewing</div>
+      ${barrilG}
+      ${packG}
+    </div>
+    <div class="mp-note"><strong>Producto vivo:</strong> nuestras cervezas no llevan preservantes ni aditivos. La conservación en frío es fundamental. Solicita tu máquina de almacenaje y dispensado en frío — sin costo adicional para mayoristas activos.</div>
+  </section>`;
 }
-function initMayoSlideshows(){
-  document.querySelectorAll('[data-mayo-slideshow]').forEach(ss => {
+function buildLanusSection(products){
+  if (!products.length) return '';
+  return `<section id="mp-sec-lanus" class="ln">
+    <div class="ln-hero">
+      <div class="ln-flag"><div class="flag"><span></span><span></span><span></span></div><div class="cap">Argentina</div></div>
+      <p class="ln-wt">⚽ World Tour · Argentina</p>
+      <h1 class="ln-title">La<em>nús</em></h1>
+      <p class="ln-year">1978</p>
+      <p class="ln-tag">El Sabor de una Pasión<br>Italian Pils · Cerveza Original</p>
+    </div>
+    <div class="mp-section">
+      <div class="mp-section-t">Colección Lanús</div>
+      <div class="mp-section-s">Barril & Pack Latas · Mayorista EX Lanús</div>
+      <div class="mp-grid">${products.map(buildMpCard).join('')}</div>
+    </div>
+    <div class="mp-note"><strong>Lanús 1978 · Italian Pils</strong> — muy ligera y refrescante, con lúpulos en frío para aromas florales y cítricos. Una cerveza elegante, repleta de tradición. <strong>Mantener siempre refrigerada.</strong></div>
+  </section>`;
+}
+function buildOsaguiSection(products){
+  if (!products.length) return '';
+  return `<section id="mp-sec-osagui" class="os">
+    <div class="os-banner"><img src="${OSAGUI_BANNER}" alt="Osagui" onerror="this.parentElement.style.display='none'"></div>
+    <div class="os-hero">
+      <div>
+        <p class="os-wt">🌸 World Tour · Japón</p>
+        <h1 class="os-title">OSAGUI</h1>
+        <p class="os-jp">カイロス</p>
+        <p class="os-tag">De Oriente con Amor<br>Japanese Lager · Colección de Artistas</p>
+      </div>
+      <div class="os-flag"><div class="flag-jp"></div><div class="cap">Japón</div></div>
+    </div>
+    <div class="mp-section">
+      <div class="mp-section-t">Colección Osagui</div>
+      <div class="mp-section-s">Barril & Pack Latas · Mayorista EX Osagui</div>
+      <div class="mp-grid">${products.map(buildMpCard).join('')}</div>
+    </div>
+    <div class="mp-note"><strong>Osagui · Japanese Lager 4.6%</strong> — colección de artistas inspirada en el Japón tradicional. El conejo Kairos danza frente al Monte Fuji y el torii de Itsukushima. Cerveza artesanal, sin filtrar. <strong>Mantener refrigerada.</strong></div>
+  </section>`;
+}
+function buildFirulaisSection(products){
+  if (!products.length) return '';
+  return `<section id="mp-sec-firulais" class="fr">
+    <div class="fr-banner"><img src="${FIRULAIS_BANNER}" alt="Firulais" onerror="this.parentElement.style.display='none'"></div>
+    <div class="fr-hero">
+      <div>
+        <p class="fr-wt">🐶 Craft Mix · Micheladas</p>
+        <h1 class="fr-title">FIRULAIS</h1>
+        <p class="fr-sub">Free of Lice · Craft Mix · Est. 2025</p>
+        <p class="fr-tag">La michelada más honesta de Chile<br>Barril & Pack Latas · Chelada Artesanal</p>
+      </div>
+      <div class="fr-badge"><span>EST</span><span>2025</span><span>Craft Mix</span></div>
+    </div>
+    <div class="mp-section">
+      <div class="mp-section-t">Colección Firulais</div>
+      <div class="mp-section-s">Barril & Pack Latas · Mayorista EX Firulais</div>
+      <div class="mp-grid">${products.map(buildMpCard).join('')}</div>
+    </div>
+    <div class="mp-note"><strong>Firulais Craft Mix</strong> — la michelada artesanal hecha con cerveza de verdad. Sin conservantes, sin colorantes. El perro más honesto del barrio te la trae en barril o en lata. <strong>Mantener refrigerada.</strong></div>
+  </section>`;
+}
+function buildBannySection(products){
+  if (!products.length) return '';
+  return `<section id="mp-sec-banny" class="bn">
+    <div class="bn-hero">
+      <div>
+        <p class="bn-wt">🐇 Destilados & Ready To Drink</p>
+        <h1 class="bn-title">BANNY</h1>
+        <p class="bn-by">by Kairos</p>
+        <p class="bn-tag">Craft to be Wild<br>Destilados · Ready To Drink</p>
+      </div>
+      <div>
+        <div class="bn-dots">
+          <div class="bn-dot" style="background:#77cbbf"></div>
+          <div class="bn-dot" style="background:#94c46b"></div>
+          <div class="bn-dot" style="background:#7da6d8"></div>
+          <div class="bn-dot" style="background:#eeab37"></div>
+        </div>
+      </div>
+    </div>
+    <div class="bn-bar"><span class="lbl">FAMILIA</span><span class="br">BANNY</span></div>
+    <div class="mp-section">
+      <div class="mp-section-t">Colección Banny</div>
+      <div class="mp-section-s">Destilados & Ready To Drink · Mayorista EX Banny</div>
+      <div class="mp-grid">${products.map(buildMpCard).join('')}</div>
+    </div>
+    <div class="mp-note"><strong>BANNY · Craft to be Wild</strong> — línea de destilados y Ready To Drink de Kairos. Gin, ron, whiskey, vermut y cócteles RTD diseñados desde la barra, probados en operación real.</div>
+  </section>`;
+}
+function initKairosSlideshow(){
+  document.querySelectorAll('[data-kb-slideshow]').forEach(ss => {
     if (ss.dataset.initialized) return;
     ss.dataset.initialized = '1';
-    const track = ss.querySelector('.mayo-slide-track');
-    const dots = ss.querySelectorAll('.sd');
+    const track = ss.querySelector('.ss-track');
+    const dots = ss.querySelectorAll('.ss-dot');
     const slides = track.children;
     if (slides.length <= 1) return;
     let cur = 0;
@@ -2231,94 +2259,52 @@ function initMayoSlideshows(){
     }, 3500);
   });
 }
-
-let MAYO_CACHE = null;
-let MAYO_CACHE_AT = 0;
-async function loadMayoristaCatalog(){
-  if (MAYO_CACHE && Date.now() - MAYO_CACHE_AT < 5*60*1000) return MAYO_CACHE;
-  try {
-    const r = await fetch('/api/products?mode=b2b');
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
-    MAYO_CACHE = data.products || [];
-    MAYO_CACHE_AT = Date.now();
-    return MAYO_CACHE;
-  } catch (e) { console.error('loadMayoristaCatalog:', e); return []; }
+function buildBrandNav(present){
+  const items = [
+    ['kairos','🍺 Kairos'],
+    ['lanus','⚽ Lanús'],
+    ['osagui','🌸 Osagui'],
+    ['firulais','🐶 Firulais'],
+    ['banny','🐇 Banny'],
+  ].filter(([k]) => present[k]);
+  return `<nav class="mp-nav">${items.map(([k,lbl]) => `<a data-brand="${k}" onclick="document.getElementById('mp-sec-${k}').scrollIntoView({behavior:'smooth',block:'start'})">${lbl}</a>`).join('')}</nav>`;
 }
 async function showMayoristaStorefront(){
-  const products = await loadMayoristaCatalog();
-  const customer = JSON.parse(sessionStorage.getItem('zmayo_customer') || '{}');
-  const nom = customer.first_name || 'mayorista';
-
-  // Agrupar por marca. Kairos se sub-divide en barril / pack (solo APA, PILS,
-  // GOLDEN — decisión comercial). El resto va a un único grid por marca.
+  const products = await loadMpCatalog();
   const groups = { kairos:{barril:[],pack:[]}, lanus:[], osagui:[], firulais:[], banny:[] };
   for (const p of products) {
     if (!p.variants || !p.variants.length) continue;
-    const brand = detectMayoristaBrand(p);
+    const brand = detectMpBrand(p);
     if (brand === 'kairos') {
-      if (!passesKairosMayoristaFilter(p)) continue;
-      const fmt = kairosFormat(p);
+      if (!passesKairosMpFilter(p)) continue;
+      const fmt = kairosFmt(p);
       if (fmt === 'barril')   groups.kairos.barril.push(p);
       else if (fmt === 'pack') groups.kairos.pack.push(p);
     } else if (groups[brand]) {
       groups[brand].push(p);
     }
   }
-
-  const kairosCount = groups.kairos.barril.length + groups.kairos.pack.length;
-  const kairosHtml = kairosCount ? `
-    <div class="mayo-section themed kairos-theme">
-      ${renderMayoHero('kairos', kairosCount)}
-      <div class="msec-body">
-        ${groups.kairos.barril.length ? `
-          <div class="msec-sub-head">🛢 Barriles <span class="sh-count">${groups.kairos.barril.length} estilo${groups.kairos.barril.length===1?'':'s'}</span></div>
-          <div class="mayo-grid">${groups.kairos.barril.map(p => buildMayoristaCard(p,'kairos')).join('')}</div>` : ''}
-        ${groups.kairos.pack.length ? `
-          <div class="msec-sub-head">📦 Pack 24 latas 473cc <span class="sh-count">${groups.kairos.pack.length} estilo${groups.kairos.pack.length===1?'':'s'}</span></div>
-          <div class="mayo-grid">${groups.kairos.pack.map(p => buildMayoristaCard(p,'kairos')).join('')}</div>` : ''}
-        ${renderMayoNote('kairos')}
-      </div>
-    </div>` : '';
-
-  const otherBrands = ['lanus','osagui','firulais','banny']
-    .filter(b => groups[b].length)
-    .map(b => `
-      <div class="mayo-section themed ${b}-theme">
-        ${renderMayoHero(b, groups[b].length)}
-        <div class="msec-body">
-          <div class="mayo-grid">${groups[b].map(p => buildMayoristaCard(p,b)).join('')}</div>
-          ${renderMayoNote(b)}
-        </div>
-      </div>`)
-    .join('');
-
-  const sectionsHtml = kairosHtml + otherBrands;
-
+  const present = {
+    kairos:   groups.kairos.barril.length || groups.kairos.pack.length,
+    lanus:    groups.lanus.length,
+    osagui:   groups.osagui.length,
+    firulais: groups.firulais.length,
+    banny:    groups.banny.length,
+  };
   const html = `
-    <div class="mayo-hero">
-      <span class="mh-ico">🔐</span>
-      <div class="mh-txt">
-        <div class="mh-title">Hola ${escapeHtml(nom)} — modo mayorista</div>
-        <div class="mh-sub">Catálogo wholesale activo. Barriles, bidones y packs por 24. Precios sin IVA configurados por Kairos.</div>
-      </div>
-    </div>
-    ${sectionsHtml || '<div class="mayo-empty">No hay productos mayoristas activos en este momento.</div>'}
+    ${buildBrandNav(present)}
+    ${buildKairosSection(groups.kairos.barril, groups.kairos.pack)}
+    ${buildLanusSection(groups.lanus)}
+    ${buildOsaguiSection(groups.osagui)}
+    ${buildFirulaisSection(groups.firulais)}
+    ${buildBannySection(groups.banny)}
   `;
-
-  // Reemplazo del storefront B2C
-  const existing = document.querySelector('.sf-row');
-  if (existing) {
-    existing.querySelector('.msg-col').innerHTML = html;
-  } else {
-    const row = document.createElement('div');
-    row.className = 'row bot sf-row';
-    row.innerHTML = `<div class="avatar">⚡</div><div class="msg-col" style="max-width:100%;width:100%">${html}</div>`;
-    document.getElementById('messages').appendChild(row);
-    scrollBottom();
-  }
-  initMayoSlideshows();
+  const page = document.getElementById('mayoPage');
+  if (!page) return;
+  page.innerHTML = html;
+  initKairosSlideshow();
 }
+
 function restoreMayoristaState(){
   if (sessionStorage.getItem('zmayo') === '1') mayoristaMode = true;
   if (isMayoristaContext()) markMayoristaActive();
