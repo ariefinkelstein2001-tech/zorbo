@@ -965,36 +965,40 @@ body.mayorista-active .game-banner{display:none}
 
 <script>
 // ─── CATÁLOGO (3 marcas: Kairos Brewing, Firulais, Banny) ─────────────────────
+// El campo `variantId` mapea cada item al variant_id real de Shopify para que
+// el checkout arme el cart permalink. Items sin variantId no son comprables
+// online por ahora (se filtran en doCheckout).
+const SHOPIFY_DOMAIN = 'kairos-brewing.myshopify.com';
 const CATALOG = [
-  { name:'Secret Lab',          brand:'kairos',   style:'APA',            abv:'5%',   price:2490,  emoji:'🌿', desc:'Fresca, lupulada, notas cítricas y herbales' },
-  { name:'Galactic Mission',    brand:'kairos',   style:'Golden Ale',     abv:'4,8%', price:2490,  emoji:'⭐', desc:'Ligera, dorada, bajo amargor, muy tomable' },
-  { name:'Alerta Roja',         brand:'kairos',   style:'Red Ale',        abv:'5%',   price:2490,  emoji:'🔴', desc:'Maltosa, notas tostadas y leve caramelo' },
-  { name:'Nada Personal',       brand:'kairos',   style:'Italian Pils',   abv:'4,1%', price:2490,  emoji:'🌾', desc:'Seca, fresca, floral, extremadamente liviana' },
-  { name:'Imperio Perdido',     brand:'kairos',   style:'Session NEIPA',  abv:'4,5%', price:2490,  emoji:'🥭', desc:'Jugosa y tropical — mango, pomelo, naranja' },
-  { name:'Ritual de la Banana', brand:'kairos',   style:'Weizen',         abv:'4,5%', price:2490,  emoji:'🍌', desc:'Trigo alemana, banana y clavo, refrescante' },
-  { name:'Obertura',            brand:'kairos',   style:'Oatmeal Stout',  abv:'5,1%', price:2490,  emoji:'☕', desc:'Sedosa con avena, café y chocolate' },
-  { name:'Samba',               brand:'kairos',   style:'West Coast IPA', abv:'5,8%', price:2490,  emoji:'🌴', desc:'Intensa, cítrica, resinosa y tropical' },
-  { name:'Hoyo en Uno',         brand:'kairos',   style:'Hoppy Lager',    abv:'4,7%', price:2490,  emoji:'⛳', desc:'Lager con dry hop Citra y Cascade, cítrica' },
-  { name:'Kenny Bell',          brand:'kairos',   style:'American Amber', abv:'5,2%', price:2490,  emoji:'🔔', desc:'Caramelo y suave cacao, herbal y balanceada' },
-  { name:'New Zpot',            brand:'kairos',   style:'NZ Pils',        abv:'4,8%', price:2990,  emoji:'🌺', desc:'Lúpulos neozelandeses, tropical y floral' },
-  { name:'Vamos de Paseo',      brand:'kairos',   style:'Hazy IPA',       abv:'6%',   price:2990,  emoji:'🍊', desc:'Con naranja, turbia, sedosa, amargor bajo' },
-  { name:'Valle Nevado',        brand:'kairos',   style:'Barley Wine',    abv:'10%',  price:2990,  emoji:'🏔️', desc:'Intensa, caramelo, roble americano macerado' },
-  { name:'Osagui',              brand:'kairos',   style:'Japanese Lager', abv:'4,6%', price:2990,  emoji:'🎋', desc:'Muy refrescante, Yuzu, hierbas y limón' },
-  { name:'Mango con Petazetas', brand:'kairos',   style:'Sour Ale',       abv:'4,7%', price:2990,  emoji:'🌶️', desc:'Ácida, tropical, mango y ají habanero' },
-  { name:'4 Balloons',          brand:'kairos',   style:'Doble Hazy IPA', abv:'8%',   price:2990,  emoji:'🎈', desc:'Cremosa, tropical — peligrosamente tomable' },
-  { name:'L200',                brand:'kairos',   style:'Irish Stout',    abv:'4,6%', price:2990,  emoji:'🖤', desc:'Tostada, seca, similar al café, cuerpo ligero' },
-  { name:'Frank',               brand:'kairos',   style:'Märzen',         abv:'6%',   price:2990,  emoji:'🇩🇪', desc:'Lager alemana anaranjada, pan tostado, herbal' },
-  { name:'Albert',              brand:'kairos',   style:'Dunkles Bock',   abv:'6,3%', price:2990,  emoji:'🍂', desc:'Lager oscura alemana, ideal para asados' },
-  { name:'Caurina',             brand:'firulais', style:'Chelada',        abv:'4,5%', price:2500,  emoji:'🍋', desc:'Limón de pica natural y sal de mar' },
-  { name:'Pepita',              brand:'firulais', style:'Chelada Spicy',  abv:'4,5%', price:2500,  emoji:'🌶️', desc:'Mango y ají habanero — spicy & sweet' },
-  { name:'Cholita',             brand:'firulais', style:'Michelada',      abv:'4,5%', price:2500,  emoji:'🍅', desc:'Limón de pica y jugo de tomate natural' },
-  { name:'Gin Banny Contemporáneo', brand:'banny', style:'Gin',          abv:'43%',  price:28990, emoji:'🌿', desc:'Botánico, fresco, 700ml' },
-  { name:'Gin Banny London Dry',    brand:'banny', style:'Gin',          abv:'43%',  price:28990, emoji:'🇬🇧', desc:'Clásico London Dry, 700ml' },
-  { name:'Rey de Copas White Rum',  brand:'banny', style:'Ron',          abv:null,   price:24990, emoji:'👑', desc:'Ron artesanal chileno, 700ml' },
-  { name:'Vermut Banny',            brand:'banny', style:'Vermut',       abv:null,   price:19990, emoji:'🍷', desc:'Aperitivo artesanal chileno' },
-  { name:'Bárvaro Whiskey Banny',   brand:'banny', style:'Whiskey',      abv:null,   price:34990, emoji:'🥃', desc:'Premium artesanal, carácter propio' },
-  { name:'Guantánamo Mojito',   brand:'banny',    style:'RTD Mojito',    abv:null,   price:3990,  emoji:'🍃', desc:'Con Ron Rey de Copas, listo para tomar' },
-  { name:'Elizabeth Gin Tonic', brand:'banny',    style:'RTD Gin Tonic', abv:null,   price:3990,  emoji:'🫧', desc:'Con Banny Contemporáneo, fresco y burbujeante' },
+  { name:'Secret Lab',          brand:'kairos',   style:'APA',            abv:'5%',   price:2490,  emoji:'🌿', desc:'Fresca, lupulada, notas cítricas y herbales',         variantId:'43688398029095' },
+  { name:'Galactic Mission',    brand:'kairos',   style:'Golden Ale',     abv:'4,8%', price:2490,  emoji:'⭐', desc:'Ligera, dorada, bajo amargor, muy tomable',           variantId:'43688418869543' },
+  { name:'Alerta Roja',         brand:'kairos',   style:'Red Ale',        abv:'5%',   price:2490,  emoji:'🔴', desc:'Maltosa, notas tostadas y leve caramelo',             variantId:'43688418214183' },
+  { name:'Nada Personal',       brand:'kairos',   style:'Italian Pils',   abv:'4,1%', price:2490,  emoji:'🌾', desc:'Seca, fresca, floral, extremadamente liviana',        variantId:'44978229674279' },
+  { name:'Imperio Perdido',     brand:'kairos',   style:'Session NEIPA',  abv:'4,5%', price:2490,  emoji:'🥭', desc:'Jugosa y tropical — mango, pomelo, naranja',          variantId:'43631302181159' },
+  { name:'Ritual de la Banana', brand:'kairos',   style:'Weizen',         abv:'4,5%', price:2490,  emoji:'🍌', desc:'Trigo alemana, banana y clavo, refrescante',          variantId:'43631338225959' },
+  { name:'Obertura',            brand:'kairos',   style:'Oatmeal Stout',  abv:'5,1%', price:2490,  emoji:'☕', desc:'Sedosa con avena, café y chocolate',                  variantId:'50421112406311' },
+  { name:'Samba',               brand:'kairos',   style:'West Coast IPA', abv:'5,8%', price:2490,  emoji:'🌴', desc:'Intensa, cítrica, resinosa y tropical',               variantId:'50421112504615' },
+  { name:'Hoyo en Uno',         brand:'kairos',   style:'Hoppy Lager',    abv:'4,7%', price:2490,  emoji:'⛳', desc:'Lager con dry hop Citra y Cascade, cítrica',          variantId:'50421108179239' },
+  { name:'Kenny Bell',          brand:'kairos',   style:'American Amber', abv:'5,2%', price:2490,  emoji:'🔔', desc:'Caramelo y suave cacao, herbal y balanceada',         variantId:'50421112373543' },
+  { name:'New Zpot',            brand:'kairos',   style:'NZ Pils',        abv:'4,8%', price:2990,  emoji:'🌺', desc:'Lúpulos neozelandeses, tropical y floral',            variantId:null },
+  { name:'Vamos de Paseo',      brand:'kairos',   style:'Hazy IPA',       abv:'6%',   price:2990,  emoji:'🍊', desc:'Con naranja, turbia, sedosa, amargor bajo',           variantId:null },
+  { name:'Valle Nevado',        brand:'kairos',   style:'Barley Wine',    abv:'10%',  price:2990,  emoji:'🏔️', desc:'Intensa, caramelo, roble americano macerado',         variantId:'51373387940135' },
+  { name:'Osagui',              brand:'kairos',   style:'Japanese Lager', abv:'4,6%', price:2990,  emoji:'🎋', desc:'Muy refrescante, Yuzu, hierbas y limón',              variantId:'51231794299175' },
+  { name:'Mango con Petazetas', brand:'kairos',   style:'Sour Ale',       abv:'4,7%', price:2990,  emoji:'🌶️', desc:'Ácida, tropical, mango y ají habanero',               variantId:'51038211375399' },
+  { name:'4 Balloons',          brand:'kairos',   style:'Doble Hazy IPA', abv:'8%',   price:2990,  emoji:'🎈', desc:'Cremosa, tropical — peligrosamente tomable',          variantId:null },
+  { name:'L200',                brand:'kairos',   style:'Irish Stout',    abv:'4,6%', price:2990,  emoji:'🖤', desc:'Tostada, seca, similar al café, cuerpo ligero',       variantId:'49926653772071' },
+  { name:'Frank',               brand:'kairos',   style:'Märzen',         abv:'6%',   price:2990,  emoji:'🇩🇪', desc:'Lager alemana anaranjada, pan tostado, herbal',       variantId:null },
+  { name:'Albert',              brand:'kairos',   style:'Dunkles Bock',   abv:'6,3%', price:2990,  emoji:'🍂', desc:'Lager oscura alemana, ideal para asados',             variantId:null },
+  { name:'Caurina',             brand:'firulais', style:'Chelada',        abv:'4,5%', price:2500,  emoji:'🍋', desc:'Limón de pica natural y sal de mar',                  variantId:null },
+  { name:'Pepita',              brand:'firulais', style:'Chelada Spicy',  abv:'4,5%', price:2500,  emoji:'🌶️', desc:'Mango y ají habanero — spicy & sweet',                variantId:null },
+  { name:'Cholita',             brand:'firulais', style:'Michelada',      abv:'4,5%', price:2500,  emoji:'🍅', desc:'Limón de pica y jugo de tomate natural',              variantId:null },
+  { name:'Gin Banny Contemporáneo', brand:'banny', style:'Gin',          abv:'43%',  price:28990, emoji:'🌿', desc:'Botánico, fresco, 700ml',                             variantId:'45206758981927' },
+  { name:'Gin Banny London Dry',    brand:'banny', style:'Gin',          abv:'43%',  price:28990, emoji:'🇬🇧', desc:'Clásico London Dry, 700ml',                           variantId:'50844059369767' },
+  { name:'Rey de Copas White Rum',  brand:'banny', style:'Ron',          abv:null,   price:24990, emoji:'👑', desc:'Ron artesanal chileno, 700ml',                        variantId:null },
+  { name:'Vermut Banny',            brand:'banny', style:'Vermut',       abv:null,   price:19990, emoji:'🍷', desc:'Aperitivo artesanal chileno',                         variantId:null },
+  { name:'Bárvaro Whiskey Banny',   brand:'banny', style:'Whiskey',      abv:null,   price:34990, emoji:'🥃', desc:'Premium artesanal, carácter propio',                  variantId:'44036260561191' },
+  { name:'Guantánamo Mojito',   brand:'banny',    style:'RTD Mojito',    abv:null,   price:3990,  emoji:'🍃', desc:'Con Ron Rey de Copas, listo para tomar',              variantId:null },
+  { name:'Elizabeth Gin Tonic', brand:'banny',    style:'RTD Gin Tonic', abv:null,   price:3990,  emoji:'🫧', desc:'Con Banny Contemporáneo, fresco y burbujeante',       variantId:null },
 ];
 CATALOG.forEach((p, i) => { p.i = i; });
 const PMAP = new Map(CATALOG.map(p => [p.name.toLowerCase(), p]));
@@ -1428,7 +1432,28 @@ function toggleCart() {
 }
 function doCheckout() {
   if (!cart.length) return;
-  window.open('https://zorbot.cl/checkout', '_blank');
+
+  const buyable = cart.filter(i => i.p.variantId);
+  const skipped = cart.filter(i => !i.p.variantId);
+
+  if (!buyable.length) {
+    alert('Ninguno de los productos en tu carro está disponible online todavía. Pídelos por WhatsApp y te los preparamos.');
+    return;
+  }
+
+  if (skipped.length) {
+    const names = skipped.map(i => i.p.name).join(', ');
+    if (!confirm(`Estos productos no están disponibles online todavía y se omitirán del checkout: ${names}.\n\n¿Continúas con el resto?`)) return;
+  }
+
+  const items = buyable.map(i => `${i.p.variantId}:${i.qty}`).join(',');
+  const attrs = [];
+  attrs.push('attributes[source]=zorbot');
+  if (welcomeCoupon && welcomeCoupon.code) attrs.push(`discount=${encodeURIComponent(welcomeCoupon.code)}`);
+  else if (activeCoupon && activeCoupon.code) attrs.push(`discount=${encodeURIComponent(activeCoupon.code)}`);
+
+  const url = `https://${SHOPIFY_DOMAIN}/cart/${items}?${attrs.join('&')}`;
+  window.open(url, '_blank');
 }
 
 // ─── TOASTS ───────────────────────────────────────────────────────────────────

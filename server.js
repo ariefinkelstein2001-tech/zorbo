@@ -387,6 +387,32 @@ let productsCache = null;
 let productsCacheAt = 0;
 const PRODUCTS_TTL_MS = 5 * 60 * 1000;
 
+// Productos/handles a ocultar siempre (tests, eventos, recargas, reservas).
+const HIDE_HANDLES = new Set([
+  'producto-de-prueba', 'evento', 'recarga-co2', 'reserva-cumpleanos',
+]);
+const HIDE_TITLE_RX = /^(pago factura|reservas?|recarga)/i;
+
+function isMayoristaProduct(p) {
+  const tags = (p.tags || []).map(t => t.toUpperCase());
+  if (tags.includes('MAYORISTA')) return true;
+  const title = (p.title || '').toLowerCase();
+  if (title.startsWith('barril ') || title.startsWith('bidon ')) return true;
+  if (/^\d+\s*pack.*mayorista/i.test(p.title || '')) return true;
+  return false;
+}
+
+function filterProducts(products, mode) {
+  return products.filter(p => {
+    if (HIDE_HANDLES.has(p.handle)) return false;
+    if (HIDE_TITLE_RX.test(p.title || '')) return false;
+    const isB2B = isMayoristaProduct(p);
+    if (mode === 'b2b') return isB2B;
+    if (mode === 'b2c') return !isB2B;
+    return true; // mode === 'all'
+  });
+}
+
 const PRODUCTS_QUERY = `{
   products(first: 100, query: "status:active") {
     edges {
@@ -412,9 +438,11 @@ app.get('/api/products', async (req, res) => {
   if (!process.env.SHOPIFY_ADMIN_TOKEN) {
     return res.status(503).json({ error: 'Shopify aún no está conectado. Falta SHOPIFY_ADMIN_TOKEN.' });
   }
+  const mode = ['b2c', 'b2b', 'all'].includes(req.query.mode) ? req.query.mode : 'all';
   const force = req.query.refresh === '1';
   if (!force && productsCache && Date.now() - productsCacheAt < PRODUCTS_TTL_MS) {
-    return res.json({ cached: true, ...productsCache });
+    const filtered = filterProducts(productsCache.products, mode);
+    return res.json({ cached: true, mode, count: filtered.length, products: filtered, fetchedAt: productsCache.fetchedAt });
   }
   try {
     const resp = await shopifyAdminFetch('/graphql.json', {
@@ -443,9 +471,10 @@ app.get('/api/products', async (req, res) => {
       })),
     }));
 
-    productsCache = { products, count: products.length, fetchedAt: new Date().toISOString() };
+    productsCache = { products, fetchedAt: new Date().toISOString() };
     productsCacheAt = Date.now();
-    res.json({ cached: false, ...productsCache });
+    const filtered = filterProducts(products, mode);
+    res.json({ cached: false, mode, count: filtered.length, products: filtered, fetchedAt: productsCache.fetchedAt });
   } catch (e) {
     console.error('Shopify products error:', e.message);
     res.status(500).json({ error: e.message });
