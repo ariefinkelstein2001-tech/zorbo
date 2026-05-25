@@ -150,15 +150,16 @@ header{
   border:1px solid var(--gold-bd);color:var(--gold);
   font-family:var(--sans);font-size:.74rem;font-weight:700;letter-spacing:.02em;
   transition:border-color .2s,transform .12s;
+  position:relative;z-index:1001;
 }
 .account-chip:hover{border-color:var(--gold-bd-h);transform:translateY(-1px)}
 .account-chip .ac-ico{font-size:.95rem}
 .account-chip .ac-name{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .account-menu{
-  position:absolute;top:62px;right:1rem;z-index:600;
+  position:fixed;top:62px;right:1rem;z-index:1100;
   background:var(--surface2);border:1px solid var(--gold-bd);
   border-radius:11px;padding:.4rem;min-width:200px;
-  box-shadow:0 14px 36px rgba(0,0,0,.55);
+  box-shadow:0 14px 36px rgba(0,0,0,.6);
 }
 .account-menu.open{display:block!important}
 .account-menu .am-head{
