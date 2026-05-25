@@ -334,6 +334,82 @@ body.mayorista-active .mayoristas-btn{display:none}
 .mayo-card .mc-add.done{background:var(--green);color:#fff;pointer-events:none}
 .mayo-empty{padding:2rem;text-align:center;color:var(--dim);font-size:.78rem}
 
+/* ── KAIROS slideshow ── */
+.mayo-slideshow{position:relative;width:100%;overflow:hidden;background:#000;line-height:0;border-radius:18px 18px 0 0}
+.mayo-slide-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1)}
+.mayo-slide{flex:0 0 100%;line-height:0}
+.mayo-slide img{width:100%;display:block;max-height:170px;object-fit:cover;object-position:center top}
+.mayo-slide-dots{position:absolute;bottom:9px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:5}
+.mayo-slide-dots .sd{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.35);transition:all .25s}
+.mayo-slide-dots .sd.on{background:#e8a020;width:18px;border-radius:3px}
+
+/* Kairos logo + pills */
+.kairos-extras{display:flex;align-items:center;gap:12px;margin-bottom:.7rem;flex-wrap:wrap}
+.kairos-logo{height:32px;width:auto;object-fit:contain;filter:brightness(1.1)}
+.kairos-pills{display:flex;gap:5px;flex-wrap:wrap}
+.kairos-pill{font-family:var(--display);font-size:.55rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;padding:.18rem .5rem;border-radius:2px}
+.kairos-pill.gold{background:#e8a020;color:#000}
+.kairos-pill.out{border:1px solid #444;color:#999}
+
+/* Hero row para banderas/badges al costado */
+.msec-hero-row{display:flex;width:100%;justify-content:space-between;align-items:flex-start;gap:1rem}
+.msec-hero-row > .msec-hero-main{flex:1;min-width:0}
+
+/* Bandera Argentina (Lanús) */
+.flag-ar{width:48px;height:30px;border-radius:2px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 2px 6px rgba(0,0,0,.4);flex-shrink:0}
+.flag-ar span{flex:1;display:block}
+.flag-ar span:nth-child(1),.flag-ar span:nth-child(3){background:#75aadb}
+.flag-ar span:nth-child(2){background:#f0ece0}
+.flag-cap{font-family:var(--display);font-size:.55rem;letter-spacing:.18em;color:rgba(245,238,216,.6);text-align:center;margin-top:4px;font-weight:800}
+
+/* Bandera Japón (Osagui) */
+.flag-jp{width:48px;height:30px;border-radius:2px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.4);flex-shrink:0}
+.flag-jp::after{content:'';width:14px;height:14px;border-radius:50%;background:#c0241a}
+.osagui-theme .flag-cap{color:rgba(245,230,200,.6)}
+
+/* Badge EST 2025 (Firulais) */
+.firulais-badge{
+  width:64px;height:64px;background:#1d3d25;border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;flex-shrink:0;
+}
+.firulais-badge .fb1{font-size:7px;letter-spacing:.18em;color:rgba(245,201,0,.7);font-weight:800}
+.firulais-badge .fb2{font-family:var(--display);font-size:15px;color:#f5c900;letter-spacing:.04em;line-height:1}
+.firulais-badge .fb3{font-size:6px;letter-spacing:.16em;color:#3a8c5a;font-weight:800}
+
+/* Color dots + navy bar (Banny) */
+.banny-dots{display:flex;gap:6px;margin-top:.55rem}
+.banny-dot{width:18px;height:18px;border-radius:50%;border:1.5px solid rgba(13,15,42,.3)}
+.banny-bar{background:#0d0f2a;padding:.55rem 1.1rem;display:flex;align-items:center;gap:.8rem;color:#77cbbf;font-family:var(--display);font-size:.7rem;letter-spacing:.15em;text-transform:uppercase}
+.banny-bar .bb-lbl{color:#fff8e6;font-weight:800}
+
+/* Sub-headers para Kairos (Barriles / Packs) */
+.msec-sub-head{
+  font-family:var(--display);font-size:.78rem;font-weight:800;
+  letter-spacing:.18em;text-transform:uppercase;
+  color:rgba(232,160,32,.9);
+  padding:0 0 .45rem;border-bottom:1px solid rgba(232,160,32,.18);
+  margin-bottom:.75rem;display:flex;align-items:center;gap:.45rem;
+}
+.msec-sub-head:not(:first-child){margin-top:1.4rem}
+.msec-sub-head .sh-count{font-size:.6rem;color:rgba(232,160,32,.5);letter-spacing:.1em;font-weight:600}
+
+/* Notas/disclaimers al final de cada sección */
+.mayo-note{
+  margin-top:1rem;padding:.7rem .95rem;border-radius:6px;
+  border-left:3px solid var(--gold);
+  background:rgba(232,160,32,.05);
+  font-size:.72rem;color:rgba(244,240,232,.72);line-height:1.55;
+}
+.mayo-note strong{color:var(--gold);font-weight:700}
+.lanus-theme .mayo-note{border-left-color:#c9a227;background:rgba(201,162,39,.06);color:rgba(245,238,216,.75)}
+.lanus-theme .mayo-note strong{color:#e8c454}
+.osagui-theme .mayo-note{border-left-color:#c0241a;background:rgba(192,36,26,.06);color:rgba(245,230,200,.75)}
+.osagui-theme .mayo-note strong{color:#e03030}
+.firulais-theme .mayo-note{border-left-color:#1d3d25;background:rgba(29,61,37,.1);color:#1d3d25}
+.firulais-theme .mayo-note strong{color:#3a8c5a}
+.banny-theme .mayo-note{border-left-color:#0d0f2a;background:rgba(13,15,42,.08);color:#0d0f2a}
+.banny-theme .mayo-note strong{color:#5ab8aa}
+
 .cart-btn{
   flex-shrink:0;position:relative;cursor:pointer;
   width:40px;height:40px;border-radius:11px;
@@ -1906,6 +1982,17 @@ function detectMayoristaBrand(p){
       || t.includes('mojito') || t.includes('rtd')) return 'banny';
   return 'kairos';
 }
+// Para Kairos mayorista solo se venden APA, PILS y GOLDEN (decisión comercial)
+function passesKairosMayoristaFilter(p){
+  const t = (p.title || '').toLowerCase();
+  return /(\bapa\b|secret\s*lab|\bpils\b|nada\s*personal|golden|galactic\s*mission)/.test(t);
+}
+function kairosFormat(p){
+  const t = (p.title || '').toLowerCase();
+  if (/barril/.test(t))     return 'barril';
+  if (/pack|lata/.test(t))  return 'pack';
+  return null;
+}
 function cleanMayoristaTitle(s){
   return String(s||'')
     .replace(/24\s*pack\s*473\s*cc?\s*mayorista\s*/gi, '24 Pack ')
@@ -2015,59 +2102,134 @@ function mayoAddToCart(btn){
   btn.classList.add('done');
 }
 
-// Hero por marca — estética inspirada en el portal PageFly (negro/dorado Kairos,
-// borgoña argentina Lanús, japonés rojo/crema Osagui, amarillo/verde Firulais,
-// teal/navy Banny). Cada uno con su tag, título y bajada.
+// Hero por marca — estética inspirada en el portal PageFly: slideshow + logo
+// para Kairos, bandera argentina/año 1978 para Lanús, banner + bandera japonesa
+// y kanji para Osagui, banner + badge EST 2025 para Firulais, color dots +
+// navy bar para Banny.
 function renderMayoHero(brand, count){
   const c = count + (count === 1 ? ' producto' : ' productos');
   if (brand === 'kairos') {
+    const slides = [
+      'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-01.png?v=1775154725&width=1280',
+      'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-02.png?v=1775154766&width=1280',
+      'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-03.png?v=1775154716&width=1280',
+    ];
     return `
+      <div class="mayo-slideshow" data-mayo-slideshow>
+        <div class="mayo-slide-track">${slides.map(u => `<div class="mayo-slide"><img src="${u}" alt="Kairos Brewing" onerror="this.parentElement.parentElement.parentElement.style.display='none'"></div>`).join('')}</div>
+        <div class="mayo-slide-dots">${slides.map((_,i) => `<span class="sd ${i===0?'on':''}"></span>`).join('')}</div>
+      </div>
       <div class="msec-hero">
-        <span class="mh-label">🍺 Cervezas de la Casa · ${c}</span>
-        <div class="mh-title">Kairos Brewing</div>
-        <div class="mh-sub">Craft beer · 17 estilos · sin preservantes</div>
-        <span class="mh-tag">Barriles · 24 Pack 473cc · EX Kairos</span>
+        <div class="kairos-extras">
+          <img class="kairos-logo" src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/LOGO_KAIROS_BREWING_b42351c9-1e32-4cfd-8712-4ce6bf1114f5.png?v=1772805913" alt="Kairos Brewing" onerror="this.style.display='none'">
+          <div class="kairos-pills">
+            <span class="kairos-pill gold">Temporada 2026</span>
+            <span class="kairos-pill out">Craft Brewery · 2017</span>
+          </div>
+        </div>
+        <span class="mh-label">🍺 Cervezas de la Casa</span>
+        <div class="mh-title">Cerveza viva</div>
+        <div class="mh-sub">Sin preservantes · sin aditivos · sin filtrar</div>
+        <span class="mh-tag">${c} · Barriles + Pack 24 latas</span>
       </div>`;
   }
   if (brand === 'lanus') {
     return `
       <div class="msec-hero">
-        <span class="mh-label">⚽ World Tour · Argentina · 1978</span>
-        <div class="mh-title">La<span class="em">nús</span></div>
-        <div class="mh-sub">El Sabor de una Pasión · ${c}</div>
-        <span class="mh-tag">Italian Pils · 5% ABV</span>
+        <div class="msec-hero-row">
+          <div class="msec-hero-main">
+            <span class="mh-label">⚽ World Tour · Argentina · 1978</span>
+            <div class="mh-title">La<span class="em">nús</span></div>
+            <div class="mh-sub">El Sabor de una Pasión · ${c}</div>
+            <span class="mh-tag">Italian Pils · 5% ABV</span>
+          </div>
+          <div>
+            <div class="flag-ar"><span></span><span></span><span></span></div>
+            <div class="flag-cap">Argentina</div>
+          </div>
+        </div>
       </div>`;
   }
   if (brand === 'osagui') {
     return `
       <div class="msec-banner"><img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Osagui-03.webp" alt="Osagui" onerror="this.parentElement.style.display='none'"></div>
       <div class="msec-hero">
-        <span class="mh-label">🌸 World Tour · Japón</span>
-        <div class="mh-title">OSAGUI</div>
-        <div class="mh-sub">De Oriente con Amor · Japanese Lager 4.6%</div>
-        <span class="mh-tag">${c} · 日本のラガー</span>
+        <div class="msec-hero-row">
+          <div class="msec-hero-main">
+            <span class="mh-label">🌸 World Tour · Japón</span>
+            <div class="mh-title">OSAGUI</div>
+            <div class="mh-sub">De Oriente con Amor · Japanese Lager 4.6%</div>
+            <span class="mh-tag">${c} · 日本のラガー</span>
+          </div>
+          <div>
+            <div class="flag-jp"></div>
+            <div class="flag-cap">Japón</div>
+          </div>
+        </div>
       </div>`;
   }
   if (brand === 'firulais') {
     return `
       <div class="msec-banner"><img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Firulais.jpg" alt="Firulais" onerror="this.parentElement.style.display='none'"></div>
       <div class="msec-hero">
-        <span class="mh-label">🐶 Craft Mix · Est. 2025</span>
-        <div class="mh-title">FIRULAIS</div>
-        <div class="mh-sub">La michelada más honesta de Chile</div>
-        <span class="mh-tag">${c} · Free of Lice</span>
+        <div class="msec-hero-row">
+          <div class="msec-hero-main">
+            <span class="mh-label">🐶 Craft Mix · Est. 2025</span>
+            <div class="mh-title">FIRULAIS</div>
+            <div class="mh-sub">La michelada más honesta de Chile</div>
+            <span class="mh-tag">${c} · Free of Lice</span>
+          </div>
+          <div class="firulais-badge">
+            <span class="fb1">EST</span>
+            <span class="fb2">2025</span>
+            <span class="fb3">CRAFT</span>
+          </div>
+        </div>
       </div>`;
   }
   if (brand === 'banny') {
     return `
       <div class="msec-hero">
-        <span class="mh-label">🐇 Destilados & RTD · ${c}</span>
+        <span class="mh-label">🐇 Destilados & Ready To Drink</span>
         <div class="mh-title">BANNY</div>
         <div class="mh-sub">by Kairos · Craft to be Wild</div>
-        <span class="mh-tag">Gin · Ron · Whiskey · Vermut · RTD</span>
-      </div>`;
+        <span class="mh-tag">${c} · Gin · Ron · Whiskey · Vermut · RTD</span>
+        <div class="banny-dots">
+          <div class="banny-dot" style="background:#77cbbf"></div>
+          <div class="banny-dot" style="background:#94c46b"></div>
+          <div class="banny-dot" style="background:#7da6d8"></div>
+          <div class="banny-dot" style="background:#eeab37"></div>
+        </div>
+      </div>
+      <div class="banny-bar"><span class="bb-lbl">FAMILIA</span><span>BANNY</span></div>`;
   }
   return '';
+}
+function renderMayoNote(brand){
+  const notes = {
+    kairos:   '<strong>Producto vivo:</strong> nuestras cervezas no llevan preservantes ni aditivos. La conservación en frío es fundamental. Solicita tu máquina de almacenaje y dispensado en frío — sin costo adicional para mayoristas activos.',
+    lanus:    '<strong>Lanús 1978 · Italian Pils</strong> — muy ligera y refrescante, con lúpulos en frío para aromas florales y cítricos. Cerveza elegante, repleta de tradición. <strong>Mantener siempre refrigerada.</strong>',
+    osagui:   '<strong>Osagui · Japanese Lager 4.6%</strong> — colección de artistas inspirada en el Japón tradicional. El conejo Kairos danza frente al Monte Fuji y el torii de Itsukushima. Sin filtrar. <strong>Mantener refrigerada.</strong>',
+    firulais: '<strong>Firulais Craft Mix</strong> — la michelada artesanal hecha con cerveza de verdad. Sin conservantes, sin colorantes. El perro más honesto del barrio te la trae en barril o en lata. <strong>Mantener refrigerada.</strong>',
+    banny:    '<strong>BANNY · Craft to be Wild</strong> — destilados y Ready To Drink de Kairos. Gin, ron, whiskey, vermut y cócteles RTD diseñados desde la barra, probados en operación real.',
+  };
+  return `<div class="mayo-note">${notes[brand] || ''}</div>`;
+}
+function initMayoSlideshows(){
+  document.querySelectorAll('[data-mayo-slideshow]').forEach(ss => {
+    if (ss.dataset.initialized) return;
+    ss.dataset.initialized = '1';
+    const track = ss.querySelector('.mayo-slide-track');
+    const dots = ss.querySelectorAll('.sd');
+    const slides = track.children;
+    if (slides.length <= 1) return;
+    let cur = 0;
+    setInterval(() => {
+      cur = (cur + 1) % slides.length;
+      track.style.transform = `translateX(-${cur * 100}%)`;
+      dots.forEach((d,i) => d.classList.toggle('on', i === cur));
+    }, 3500);
+  });
 }
 
 let MAYO_CACHE = null;
@@ -2088,24 +2250,50 @@ async function showMayoristaStorefront(){
   const customer = JSON.parse(sessionStorage.getItem('zmayo_customer') || '{}');
   const nom = customer.first_name || 'mayorista';
 
-  // Agrupar por marca
-  const groups = { kairos:[], lanus:[], osagui:[], firulais:[], banny:[] };
+  // Agrupar por marca. Kairos se sub-divide en barril / pack (solo APA, PILS,
+  // GOLDEN — decisión comercial). El resto va a un único grid por marca.
+  const groups = { kairos:{barril:[],pack:[]}, lanus:[], osagui:[], firulais:[], banny:[] };
   for (const p of products) {
     if (!p.variants || !p.variants.length) continue;
     const brand = detectMayoristaBrand(p);
-    groups[brand].push(p);
+    if (brand === 'kairos') {
+      if (!passesKairosMayoristaFilter(p)) continue;
+      const fmt = kairosFormat(p);
+      if (fmt === 'barril')   groups.kairos.barril.push(p);
+      else if (fmt === 'pack') groups.kairos.pack.push(p);
+    } else if (groups[brand]) {
+      groups[brand].push(p);
+    }
   }
-  const order = ['kairos','lanus','osagui','firulais','banny'];
-  const sectionsHtml = order
+
+  const kairosCount = groups.kairos.barril.length + groups.kairos.pack.length;
+  const kairosHtml = kairosCount ? `
+    <div class="mayo-section themed kairos-theme">
+      ${renderMayoHero('kairos', kairosCount)}
+      <div class="msec-body">
+        ${groups.kairos.barril.length ? `
+          <div class="msec-sub-head">🛢 Barriles <span class="sh-count">${groups.kairos.barril.length} estilo${groups.kairos.barril.length===1?'':'s'}</span></div>
+          <div class="mayo-grid">${groups.kairos.barril.map(p => buildMayoristaCard(p,'kairos')).join('')}</div>` : ''}
+        ${groups.kairos.pack.length ? `
+          <div class="msec-sub-head">📦 Pack 24 latas 473cc <span class="sh-count">${groups.kairos.pack.length} estilo${groups.kairos.pack.length===1?'':'s'}</span></div>
+          <div class="mayo-grid">${groups.kairos.pack.map(p => buildMayoristaCard(p,'kairos')).join('')}</div>` : ''}
+        ${renderMayoNote('kairos')}
+      </div>
+    </div>` : '';
+
+  const otherBrands = ['lanus','osagui','firulais','banny']
     .filter(b => groups[b].length)
     .map(b => `
       <div class="mayo-section themed ${b}-theme">
         ${renderMayoHero(b, groups[b].length)}
         <div class="msec-body">
           <div class="mayo-grid">${groups[b].map(p => buildMayoristaCard(p,b)).join('')}</div>
+          ${renderMayoNote(b)}
         </div>
       </div>`)
     .join('');
+
+  const sectionsHtml = kairosHtml + otherBrands;
 
   const html = `
     <div class="mayo-hero">
@@ -2129,6 +2317,7 @@ async function showMayoristaStorefront(){
     document.getElementById('messages').appendChild(row);
     scrollBottom();
   }
+  initMayoSlideshows();
 }
 function restoreMayoristaState(){
   if (sessionStorage.getItem('zmayo') === '1') mayoristaMode = true;
