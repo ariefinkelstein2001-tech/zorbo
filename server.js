@@ -593,12 +593,19 @@ app.get('/api/cart-link', (req, res) => {
 
 app.use(express.static(join(__dirname, 'public')));
 
-// Clon de kairos-brewing.com servido en /kairos. Misma Shopify backend que
-// Zorbo, checkout via permalink Shopify (que muestra el nombre actual de la
-// tienda — si la renombrás a Zorbo, el clon va a checkout-ar como Zorbo).
-app.get('/kairos', (req, res) => {
-  res.sendFile(join(__dirname, 'public', 'kairos.html'));
-});
+// Clon de kairos-brewing.com servido en /kairos y sub-rutas (cervezas, packs,
+// destileria, merch, restaurantes, eventos, nosotros). Todas resuelven al
+// mismo HTML — adentro hay una mini-SPA que renderea la vista según el path.
+// Checkout via permalink Shopify (muestra el nombre actual de la tienda).
+const kairosHtml = (req, res) => res.sendFile(join(__dirname, 'public', 'kairos.html'));
+app.get('/kairos', kairosHtml);
+app.get('/kairos/cervezas',     kairosHtml);
+app.get('/kairos/packs',        kairosHtml);
+app.get('/kairos/destileria',   kairosHtml);
+app.get('/kairos/merch',        kairosHtml);
+app.get('/kairos/restaurantes', kairosHtml);
+app.get('/kairos/eventos',      kairosHtml);
+app.get('/kairos/nosotros',     kairosHtml);
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
