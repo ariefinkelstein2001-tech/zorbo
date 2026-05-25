@@ -5,7 +5,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { randomUUID } from 'crypto';
+import { randomUUID, createHmac, timingSafeEqual } from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -285,6 +285,183 @@ function buildSystemPrompt(base, session) {
 
 const CHECKOUT_MSG = 'Perfecto! 🛒 Te paso el link para cerrar tu pedido: https://zorbot.cl/checkout — si quieres revisar qué llevas antes de pagar, dime y lo vemos juntos!';
 const ERROR_MSG    = 'Disculpa, tuve un problema técnico, dame un segundo e intenta de nuevo 🍺';
+
+// ─── Shopify OAuth + Catálogo ─────────────────────────────────────────────────
+
+const SHOPIFY_API_VERSION = '2026-04';
+const SHOPIFY_SCOPES = 'read_products,read_inventory,read_locations';
+const SHOPIFY_SHOP_REGEX = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i;
+
+function verifyShopifyHmac(query, secret) {
+  const { hmac, signature, ...rest } = query;
+  if (!hmac || typeof hmac !== 'string') return false;
+  const message = Object.keys(rest).sort()
+    .map(k => `${k}=${rest[k]}`).join('&');
+  const computed = createHmac('sha256', secret).update(message).digest('hex');
+  try {
+    return timingSafeEqual(Buffer.from(computed, 'hex'), Buffer.from(hmac, 'hex'));
+  } catch { return false; }
+}
+
+// GET /shopify/install — redirige al consent screen de Shopify
+app.get('/shopify/install', (req, res) => {
+  const shop = String(req.query.shop || process.env.SHOPIFY_STORE_DOMAIN || '');
+  if (!SHOPIFY_SHOP_REGEX.test(shop)) {
+    return res.status(400).send('Dominio inválido. Esperaba algo como kairos-brewing.myshopify.com');
+  }
+  const apiKey = process.env.SHOPIFY_API_KEY;
+  if (!apiKey) return res.status(500).send('Falta SHOPIFY_API_KEY en el servidor.');
+
+  const redirectUri = `${req.protocol}://${req.get('host')}/shopify/callback`;
+  const state = randomUUID();
+  const url = `https://${shop}/admin/oauth/authorize`
+    + `?client_id=${encodeURIComponent(apiKey)}`
+    + `&scope=${encodeURIComponent(SHOPIFY_SCOPES)}`
+    + `&redirect_uri=${encodeURIComponent(redirectUri)}`
+    + `&state=${encodeURIComponent(state)}`;
+  res.redirect(url);
+});
+
+// GET /shopify/callback — intercambia code por access_token y lo muestra una vez
+app.get('/shopify/callback', async (req, res) => {
+  const shop = String(req.query.shop || '');
+  const code = String(req.query.code || '');
+  if (!SHOPIFY_SHOP_REGEX.test(shop) || !code) {
+    return res.status(400).send('Parámetros inválidos.');
+  }
+  const apiKey = process.env.SHOPIFY_API_KEY;
+  const apiSecret = process.env.SHOPIFY_API_SECRET;
+  if (!apiKey || !apiSecret) return res.status(500).send('Faltan SHOPIFY_API_KEY o SHOPIFY_API_SECRET.');
+
+  if (!verifyShopifyHmac(req.query, apiSecret)) {
+    return res.status(401).send('HMAC inválido.');
+  }
+
+  try {
+    const r = await fetch(`https://${shop}/admin/oauth/access_token`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ client_id: apiKey, client_secret: apiSecret, code }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.access_token) {
+      return res.status(500).send(`<pre>Error: ${JSON.stringify(data, null, 2)}</pre>`);
+    }
+    res.send(`<!doctype html><meta charset="utf-8"><title>Token Shopify</title>
+<style>body{font-family:system-ui;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.5}
+pre{background:#f0f0f0;padding:16px;border-radius:8px;word-break:break-all;white-space:pre-wrap;font-size:14px}
+.warn{background:#fff3cd;padding:14px;border-radius:8px;border-left:4px solid #ffc107;margin:16px 0}
+code{background:#eee;padding:2px 6px;border-radius:4px}</style>
+<h1>✅ Token Shopify obtenido</h1>
+<p>Copia este token y guárdalo en Railway como variable de entorno <code>SHOPIFY_ADMIN_TOKEN</code>:</p>
+<pre>${data.access_token}</pre>
+<p><b>Scopes:</b> ${data.scope || '(no devueltos)'}</p>
+<p><b>Tienda:</b> ${shop}</p>
+<div class="warn">⚠️ Copia el token YA. Cuando lo tengas en Railway, considerá borrar los endpoints <code>/shopify/install</code> y <code>/shopify/callback</code> o protegerlos — ahora cualquiera con esta URL puede iniciar el flujo.</div>`);
+  } catch (e) {
+    res.status(500).send(`<pre>Error: ${e.message}</pre>`);
+  }
+});
+
+// ─── Shopify Catalog API ──────────────────────────────────────────────────────
+
+async function shopifyAdminFetch(path, init = {}) {
+  const shop = process.env.SHOPIFY_STORE_DOMAIN;
+  const token = process.env.SHOPIFY_ADMIN_TOKEN;
+  if (!shop || !token) throw new Error('Shopify no configurado (faltan SHOPIFY_STORE_DOMAIN o SHOPIFY_ADMIN_TOKEN)');
+  const r = await fetch(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}${path}`, {
+    ...init,
+    headers: {
+      'X-Shopify-Access-Token': token,
+      'content-type': 'application/json',
+      accept: 'application/json',
+      ...(init.headers || {}),
+    },
+  });
+  const text = await r.text();
+  if (!r.ok) throw new Error(`Shopify ${r.status}: ${text.slice(0, 400)}`);
+  return text ? JSON.parse(text) : {};
+}
+
+let productsCache = null;
+let productsCacheAt = 0;
+const PRODUCTS_TTL_MS = 5 * 60 * 1000;
+
+const PRODUCTS_QUERY = `{
+  products(first: 100, query: "status:active") {
+    edges {
+      node {
+        id title handle description productType vendor tags
+        featuredImage { url altText }
+        variants(first: 25) {
+          edges {
+            node {
+              id title price compareAtPrice sku
+              availableForSale inventoryQuantity
+            }
+          }
+        }
+      }
+    }
+  }
+}`;
+
+const stripGid = (gid, kind) => String(gid || '').replace(`gid://shopify/${kind}/`, '');
+
+app.get('/api/products', async (req, res) => {
+  if (!process.env.SHOPIFY_ADMIN_TOKEN) {
+    return res.status(503).json({ error: 'Shopify aún no está conectado. Falta SHOPIFY_ADMIN_TOKEN.' });
+  }
+  const force = req.query.refresh === '1';
+  if (!force && productsCache && Date.now() - productsCacheAt < PRODUCTS_TTL_MS) {
+    return res.json({ cached: true, ...productsCache });
+  }
+  try {
+    const resp = await shopifyAdminFetch('/graphql.json', {
+      method: 'POST',
+      body: JSON.stringify({ query: PRODUCTS_QUERY }),
+    });
+    if (resp.errors) throw new Error(JSON.stringify(resp.errors));
+
+    const products = resp.data.products.edges.map(({ node: p }) => ({
+      id:          stripGid(p.id, 'Product'),
+      handle:      p.handle,
+      title:       p.title,
+      description: p.description,
+      type:        p.productType,
+      vendor:      p.vendor,
+      tags:        p.tags,
+      image:       p.featuredImage?.url || null,
+      variants: p.variants.edges.map(({ node: v }) => ({
+        id:             stripGid(v.id, 'ProductVariant'),
+        title:          v.title,
+        price:          v.price,
+        compareAtPrice: v.compareAtPrice,
+        sku:            v.sku,
+        available:      v.availableForSale,
+        stock:          v.inventoryQuantity,
+      })),
+    }));
+
+    productsCache = { products, count: products.length, fetchedAt: new Date().toISOString() };
+    productsCacheAt = Date.now();
+    res.json({ cached: false, ...productsCache });
+  } catch (e) {
+    console.error('Shopify products error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/cart-link?items=44123:2,44987:1 → URL de checkout pre-cargado
+app.get('/api/cart-link', (req, res) => {
+  const shop = process.env.SHOPIFY_STORE_DOMAIN;
+  if (!shop) return res.status(500).json({ error: 'SHOPIFY_STORE_DOMAIN no configurado.' });
+  const items = String(req.query.items || '');
+  if (!/^\d+:\d+(,\d+:\d+)*$/.test(items)) {
+    return res.status(400).json({ error: 'Formato inválido. Esperaba variantId:qty,variantId:qty' });
+  }
+  res.json({ url: `https://${shop}/cart/${items}` });
+});
 
 // ─── Static frontend ──────────────────────────────────────────────────────────
 
