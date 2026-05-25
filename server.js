@@ -308,7 +308,7 @@ const ERROR_MSG    = 'Disculpa, tuve un problema técnico, dame un segundo e int
 // ─── Shopify OAuth + Catálogo ─────────────────────────────────────────────────
 
 const SHOPIFY_API_VERSION = '2026-04';
-const SHOPIFY_SCOPES = 'read_products,read_inventory,read_locations';
+const SHOPIFY_SCOPES = 'read_products,read_inventory,read_locations,read_customers,write_customers,unauthenticated_read_customers,unauthenticated_write_customers,unauthenticated_read_customer_tags';
 const SHOPIFY_SHOP_REGEX = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i;
 
 function verifyShopifyHmac(query, secret) {
@@ -366,17 +366,55 @@ app.get('/shopify/callback', async (req, res) => {
     if (!r.ok || !data.access_token) {
       return res.status(500).send(`<pre>Error: ${JSON.stringify(data, null, 2)}</pre>`);
     }
-    res.send(`<!doctype html><meta charset="utf-8"><title>Token Shopify</title>
+    const adminToken = data.access_token;
+    const scopes = data.scope || '';
+
+    // Generar Storefront API token usando el Admin token recién obtenido.
+    // Solo intenta si los scopes incluyen unauthenticated_* (sino Shopify rechaza).
+    let storefrontToken = null;
+    let storefrontError = null;
+    if (scopes.includes('unauthenticated_')) {
+      try {
+        const sr = await fetch(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}/storefront_access_tokens.json`, {
+          method: 'POST',
+          headers: {
+            'X-Shopify-Access-Token': adminToken,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({ storefront_access_token: { title: 'Zorbot Customer Auth' } }),
+        });
+        const sdata = await sr.json().catch(() => ({}));
+        if (sr.ok && sdata.storefront_access_token) {
+          storefrontToken = sdata.storefront_access_token.access_token;
+        } else {
+          storefrontError = `${sr.status} ${JSON.stringify(sdata).slice(0, 200)}`;
+        }
+      } catch (e) { storefrontError = e.message; }
+    } else {
+      storefrontError = 'La app no tiene scopes unauthenticated_*. Agregá los scopes de Storefront API y reinstalá.';
+    }
+
+    res.send(`<!doctype html><meta charset="utf-8"><title>Tokens Shopify</title>
 <style>body{font-family:system-ui;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.5}
 pre{background:#f0f0f0;padding:16px;border-radius:8px;word-break:break-all;white-space:pre-wrap;font-size:14px}
 .warn{background:#fff3cd;padding:14px;border-radius:8px;border-left:4px solid #ffc107;margin:16px 0}
-code{background:#eee;padding:2px 6px;border-radius:4px}</style>
-<h1>✅ Token Shopify obtenido</h1>
-<p>Copia este token y guárdalo en Railway como variable de entorno <code>SHOPIFY_ADMIN_TOKEN</code>:</p>
-<pre>${data.access_token}</pre>
-<p><b>Scopes:</b> ${data.scope || '(no devueltos)'}</p>
+.err{background:#f8d7da;padding:14px;border-radius:8px;border-left:4px solid #dc3545;margin:16px 0}
+code{background:#eee;padding:2px 6px;border-radius:4px}
+h2{margin-top:32px}</style>
+<h1>✅ Tokens Shopify obtenidos</h1>
 <p><b>Tienda:</b> ${shop}</p>
-<div class="warn">⚠️ Copia el token YA. Cuando lo tengas en Railway, considerá borrar los endpoints <code>/shopify/install</code> y <code>/shopify/callback</code> o protegerlos — ahora cualquiera con esta URL puede iniciar el flujo.</div>`);
+<p><b>Scopes concedidos:</b> ${scopes}</p>
+
+<h2>1. Admin API token</h2>
+<p>Guardalo en Railway como <code>SHOPIFY_ADMIN_TOKEN</code>:</p>
+<pre>${adminToken}</pre>
+
+<h2>2. Storefront API token</h2>
+${storefrontToken
+  ? `<p>Guardalo en Railway como <code>SHOPIFY_STOREFRONT_TOKEN</code>:</p><pre>${storefrontToken}</pre>`
+  : `<div class="err"><b>No se pudo generar:</b> ${storefrontError}</div>`}
+
+<div class="warn">⚠️ Copialos YA. Cuando los tengas en Railway, considerá proteger o borrar <code>/shopify/install</code> y <code>/shopify/callback</code>.</div>`);
   } catch (e) {
     res.status(500).send(`<pre>Error: ${e.message}</pre>`);
   }
@@ -400,6 +438,38 @@ async function shopifyAdminFetch(path, init = {}) {
   const text = await r.text();
   if (!r.ok) throw new Error(`Shopify ${r.status}: ${text.slice(0, 400)}`);
   return text ? JSON.parse(text) : {};
+}
+
+// Storefront API: para autenticar clientes con email+password sin redirigir
+// a Shopify. Usa un token distinto al Admin (SHOPIFY_STOREFRONT_TOKEN).
+async function shopifyStorefrontFetch(query, variables) {
+  const shop = process.env.SHOPIFY_STORE_DOMAIN;
+  const token = process.env.SHOPIFY_STOREFRONT_TOKEN;
+  if (!shop || !token) throw new Error('Storefront API no configurado (falta SHOPIFY_STOREFRONT_TOKEN)');
+  const r = await fetch(`https://${shop}/api/${SHOPIFY_API_VERSION}/graphql.json`, {
+    method: 'POST',
+    headers: {
+      'X-Shopify-Storefront-Access-Token': token,
+      'content-type': 'application/json',
+      accept: 'application/json',
+    },
+    body: JSON.stringify({ query, variables }),
+  });
+  const text = await r.text();
+  if (!r.ok) throw new Error(`Storefront ${r.status}: ${text.slice(0, 400)}`);
+  return text ? JSON.parse(text) : {};
+}
+
+async function shopifyGetCustomerByEmail(email) {
+  if (!email) return null;
+  const q = encodeURIComponent(`email:${email}`);
+  const r = await shopifyAdminFetch(`/customers/search.json?query=${q}`);
+  return (r.customers && r.customers[0]) || null;
+}
+
+function customerHasMayoristaTag(customer) {
+  if (!customer || !customer.tags) return false;
+  return customer.tags.split(',').map(t => t.trim().toUpperCase()).includes('MAYORISTA1');
 }
 
 let productsCache = null;
@@ -698,55 +768,166 @@ app.post('/game/claim', async (req, res) => {
   res.json({ ok: true, code });
 });
 
-// ─── POST /mayorista/login — autenticación contra Shopify (pendiente) ────────
+// ─── POST /mayorista/login — autenticación real contra Shopify ──────────────
 
-app.post('/mayorista/login', (req, res) => {
-  // TODO Storefront API customerAccessTokenCreate + Admin API tag check (MAYORISTA1).
-  // Mientras no tengamos los tokens, devolvemos 501 con mensaje claro.
-  return res.status(501).json({
-    error: 'Acceso mayorista pendiente: la integración con Shopify aún no está activa. Tu equipo está terminando de conectarla.',
-  });
+app.post('/mayorista/login', async (req, res) => {
+  const email = normEmail(req.body && req.body.email);
+  const password = req.body && req.body.password;
+  if (!email || !password) return res.status(400).json({ error: 'Email y contraseña son requeridos.' });
+  if (!process.env.SHOPIFY_STOREFRONT_TOKEN) {
+    return res.status(503).json({ error: 'Login no configurado. Falta SHOPIFY_STOREFRONT_TOKEN.' });
+  }
+
+  try {
+    const data = await shopifyStorefrontFetch(`
+      mutation login($input: CustomerAccessTokenCreateInput!) {
+        customerAccessTokenCreate(input: $input) {
+          customerAccessToken { accessToken expiresAt }
+          customerUserErrors { code field message }
+        }
+      }`, { input: { email, password } });
+
+    const result = data.data && data.data.customerAccessTokenCreate;
+    if (!result) return res.status(500).json({ error: 'Respuesta inválida de Shopify.' });
+
+    if (result.customerUserErrors && result.customerUserErrors.length) {
+      const err = result.customerUserErrors[0];
+      if (err.code === 'UNIDENTIFIED_CUSTOMER') {
+        return res.status(401).json({ error: 'Email o contraseña incorrectos.' });
+      }
+      return res.status(400).json({ error: err.message || 'No pudimos validar tu acceso.' });
+    }
+    if (!result.customerAccessToken) {
+      return res.status(401).json({ error: 'Email o contraseña incorrectos.' });
+    }
+
+    const customer = await shopifyGetCustomerByEmail(email);
+    if (!customer) return res.status(404).json({ error: 'No encontramos tu cuenta en Kairos.' });
+
+    const isMayorista = customerHasMayoristaTag(customer);
+    return res.json({
+      ok: true,
+      isMayorista,
+      status: isMayorista ? 'approved' : 'pending',
+      customer: {
+        first_name: customer.first_name,
+        last_name:  customer.last_name,
+        email:      customer.email,
+        phone:      customer.phone,
+      },
+    });
+  } catch (e) {
+    console.error('Mayorista login error:', e.message);
+    return res.status(500).json({ error: 'Error al iniciar sesión. Intenta de nuevo.' });
+  }
 });
 
-// ─── POST /mayorista/lead — guarda info de mayorista nuevo ───────────────────
+// ─── POST /mayorista/signup — crea cuenta Shopify con tag MAYORISTA_PENDIENTE ─
+
+app.post('/mayorista/signup', async (req, res) => {
+  const email    = normEmail(req.body && req.body.email);
+  const password = req.body && req.body.password;
+  const { first_name, last_name, phone, local, comuna, canal } = req.body || {};
+  if (!email || !password || !first_name) {
+    return res.status(400).json({ error: 'Nombre, email y contraseña son requeridos.' });
+  }
+  if (password.length < 5) {
+    return res.status(400).json({ error: 'La contraseña debe tener al menos 5 caracteres.' });
+  }
+
+  try {
+    const existing = await shopifyGetCustomerByEmail(email);
+    if (existing) {
+      return res.status(409).json({ error: 'Ya existe una cuenta con ese email. Inicia sesión.' });
+    }
+
+    const tags = ['MAYORISTA_PENDIENTE'];
+    if (canal) tags.push('CANAL_' + String(canal).toUpperCase());
+
+    const note = [
+      local  && `Local: ${local}`,
+      comuna && `Comuna: ${comuna}`,
+      canal  && `Canal: ${canal}`,
+    ].filter(Boolean).join(' · ') || 'Mayorista pendiente de validación';
+
+    const body = {
+      customer: {
+        email, password,
+        password_confirmation: password,
+        first_name,
+        last_name: last_name || '',
+        phone: phone || null,
+        tags: tags.join(', '),
+        send_email_welcome: false,
+        verified_email: false,
+        note,
+      },
+    };
+
+    const r = await shopifyAdminFetch('/customers.json', {
+      method: 'POST', body: JSON.stringify(body),
+    });
+
+    // Log local (backup) + Klaviyo
+    const welcomeCode = `MAYORISTA10-${randomCode(6)}`;
+    appendLog(LEADS_LOG, {
+      timestamp: new Date().toISOString(),
+      nombre: first_name + (last_name ? ' ' + last_name : ''),
+      local: local || '', comuna: comuna || '', canal: canal || '',
+      email, telefono: phone || '', welcomeCode,
+      shopifyCustomerId: r.customer ? r.customer.id : null,
+    });
+
+    klaviyoOnboard({
+      email, first_name, last_name, phone_number: phone,
+      listId:    process.env.KLAVIYO_LIST_MAYORISTAS,
+      eventName: 'Mayorista Signup',
+      eventProps: { welcome_code: welcomeCode, canal, local, comuna },
+    }).catch(() => {});
+
+    return res.json({
+      ok: true,
+      status: 'pending',
+      customer_id: r.customer ? r.customer.id : null,
+      welcomeCode,
+      message: 'Tu cuenta fue creada. Te contactamos en las próximas 48 horas hábiles para activarla como mayorista.',
+    });
+  } catch (e) {
+    const msg = e.message || 'Error al crear la cuenta.';
+    // Shopify devuelve 422 con detalle si el email/password no son válidos
+    if (msg.includes('422')) {
+      return res.status(422).json({ error: 'Datos inválidos: ' + msg.slice(0, 200) });
+    }
+    console.error('Mayorista signup error:', msg);
+    return res.status(500).json({ error: 'Error al crear la cuenta.' });
+  }
+});
+
+// ─── POST /mayorista/lead — DEPRECATED, usa /mayorista/signup ────────────────
 
 app.post('/mayorista/lead', async (req, res) => {
-  const { nombre, local, comuna, canal, telefono, mensaje } = req.body || {};
+  const { nombre, local, comuna, canal, telefono } = req.body || {};
   const email = normEmail(req.body && req.body.email);
-  if (!nombre || !telefono) {
-    return res.status(400).json({ error: 'Nombre y teléfono son requeridos.' });
-  }
+  if (!nombre || !telefono) return res.status(400).json({ error: 'Nombre y teléfono son requeridos.' });
 
-  const list = readLog(LEADS_LOG);
-  const existing = email && list.find(l => normEmail(l.email) === email);
-  let welcomeCode = existing && existing.welcomeCode ? existing.welcomeCode : null;
-  let isFirstTime = false;
-  if (!welcomeCode) {
-    welcomeCode = `MAYORISTA10-${randomCode(6)}`;
-    isFirstTime = true;
-  }
-
-  const entry = {
+  const welcomeCode = `MAYORISTA10-${randomCode(6)}`;
+  appendLog(LEADS_LOG, {
     timestamp: new Date().toISOString(),
-    nombre, local, comuna, canal,
-    email,
+    nombre, local, comuna, canal, email,
     telefono: String(telefono).trim(),
-    mensaje:  mensaje || '',
-    welcomeCode,
-    welcomeShopifyCreated: false, // TODO Shopify Admin API
-  };
-  appendLog(LEADS_LOG, entry);
+    welcomeCode, legacy: true,
+  });
 
-  if (isFirstTime && email) {
+  if (email) {
     klaviyoOnboard({
-      email, first_name: nombre, phone_number: entry.telefono,
+      email, first_name: nombre, phone_number: String(telefono).trim(),
       listId:    process.env.KLAVIYO_LIST_MAYORISTAS,
       eventName: 'Mayorista Lead Submitted',
       eventProps: { welcome_code: welcomeCode, canal, local, comuna },
     }).catch(() => {});
   }
 
-  res.json({ ok: true, welcomeCode, isFirstTime });
+  res.json({ ok: true, welcomeCode, isFirstTime: true });
 });
 
 // ─── Klaviyo: diagnóstico ────────────────────────────────────────────────────
