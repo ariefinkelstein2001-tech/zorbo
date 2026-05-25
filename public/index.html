@@ -255,13 +255,20 @@ header{
 .pc-brand.banny{color:var(--b)}
 .pc-emoji{font-size:1.7rem;margin:.22rem 0}
 .pc-img{
+  position:relative;
   width:100%;aspect-ratio:1;margin:.3rem 0;
   background:var(--surface3);border-radius:10px;
   display:flex;align-items:center;justify-content:center;
   overflow:hidden;
 }
-.pc-img img{width:100%;height:100%;object-fit:cover;display:block}
-.pc-img .pc-emoji-fb{font-size:2.6rem}
+.pc-img img{
+  width:100%;height:100%;object-fit:cover;display:block;
+  position:absolute;inset:0;transition:opacity .3s ease;
+}
+.pc-img img.img2{opacity:0;pointer-events:none}
+.pcard:hover .pc-img img.img2{opacity:1}
+.pcard:hover .pc-img img.img1{opacity:0}
+.pc-img .pc-emoji-fb{font-size:2.6rem;position:relative;z-index:1}
 .pc-name{font-size:.84rem;font-weight:700;line-height:1.22}
 .pc-style{font-size:.68rem;color:var(--muted)}
 .pc-desc{font-size:.66rem;color:var(--dim);line-height:1.4;flex:1;margin-top:.1rem}
@@ -1032,16 +1039,18 @@ const PMAP = new Map(CATALOG.map(p => [p.name.toLowerCase(), p]));
 const BRAND_LABEL = { kairos:'Kairos Brewing', firulais:'Firulais', banny:'Banny' };
 function prod(name){ return PMAP.get(name.toLowerCase()); }
 
-// variantId → imagen real de Shopify. Se llena al cargar la página (loadShopifyCatalog).
-const SHOPIFY_IMG = {};
+// variantId → array de URLs de imágenes (Shopify). Se llena al cargar la página.
+const SHOPIFY_IMGS = {};
 async function loadShopifyCatalog() {
   try {
     const r = await fetch('/api/products?mode=b2c');
     if (!r.ok) return;
     const { products } = await r.json();
     for (const sp of products) {
+      const imgs = (sp.images && sp.images.length) ? sp.images : (sp.image ? [sp.image] : []);
+      if (!imgs.length) continue;
       for (const v of (sp.variants || [])) {
-        if (sp.image && v.id) SHOPIFY_IMG[v.id] = sp.image;
+        if (v.id) SHOPIFY_IMGS[v.id] = imgs;
       }
     }
     // Re-renderizar la vitrina si ya está montada
@@ -1159,10 +1168,17 @@ function buildCard(p, opts={}) {
   if (opts.oldPrice) {
     priceHtml = `<div class="pc-price-row"><span class="pc-old">$${opts.oldPrice.toLocaleString('es-CL')}</span><span class="pc-price">$${p.price.toLocaleString('es-CL')}</span></div>`;
   }
-  const imgUrl = SHOPIFY_IMG[p.variantId];
-  const visual = imgUrl
-    ? `<div class="pc-img"><img src="${imgUrl}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'pc-emoji-fb',textContent:'${p.emoji}'}))"></div>`
-    : `<div class="pc-img"><span class="pc-emoji-fb">${p.emoji}</span></div>`;
+  const imgs = SHOPIFY_IMGS[p.variantId] || [];
+  let visual;
+  if (imgs.length) {
+    const img2 = imgs[1] ? `<img class="img2" src="${imgs[1]}" alt="" loading="lazy">` : '';
+    visual = `<div class="pc-img">
+      <img class="img1" src="${imgs[0]}" alt="${escapeHtml(p.name)}" loading="lazy" onerror="this.parentElement.innerHTML='<span class=&quot;pc-emoji-fb&quot;>${p.emoji}</span>'">
+      ${img2}
+    </div>`;
+  } else {
+    visual = `<div class="pc-img"><span class="pc-emoji-fb">${p.emoji}</span></div>`;
+  }
   return `
   <div class="pcard ${p.brand}">
     ${badge}
@@ -1172,25 +1188,26 @@ function buildCard(p, opts={}) {
     <div class="pc-style">${escapeHtml(p.style)}${p.abv ? ' · ' + p.abv : ''}</div>
     <div class="pc-desc">${escapeHtml(p.desc)}</div>
     ${priceHtml}
-    <div class="pc-qty" data-i="${p.i}">
-      <button onclick="cardQty(${p.i},-1)" aria-label="Restar">−</button>
-      <span class="qty-num" id="qty-${p.i}">1</span>
-      <button onclick="cardQty(${p.i},1)" aria-label="Sumar">+</button>
+    <div class="pc-qty">
+      <button onclick="cardQty(this,-1)" aria-label="Restar">−</button>
+      <span class="qty-num">1</span>
+      <button onclick="cardQty(this,1)" aria-label="Sumar">+</button>
     </div>
     <button class="pc-add" data-i="${p.i}" onclick="addFromCard(this)">Agregar al carro</button>
   </div>`;
 }
-function cardQty(i, delta) {
-  const el = document.getElementById('qty-' + i);
+function cardQty(btn, delta) {
+  const wrap = btn.closest('.pc-qty');
+  const el = wrap && wrap.querySelector('.qty-num');
   if (!el) return;
   const next = Math.max(1, Math.min(99, (parseInt(el.textContent, 10) || 1) + delta));
   el.textContent = next;
 }
 function addFromCard(btn) {
-  const i = +btn.getAttribute('data-i');
-  const p = CATALOG[i];
+  const p = CATALOG[+btn.getAttribute('data-i')];
   if (!p) return;
-  const qtyEl = document.getElementById('qty-' + i);
+  const card = btn.closest('.pcard');
+  const qtyEl = card && card.querySelector('.qty-num');
   const qty = qtyEl ? Math.max(1, parseInt(qtyEl.textContent, 10) || 1) : 1;
   addToCart(p, qty);
   btn.textContent = `✓ Agregado (${qty})`;
@@ -1254,11 +1271,18 @@ function showStorefront() {
     </div>
   </div>`;
 
-  const row = document.createElement('div');
-  row.className = 'row bot sf-row';
-  row.innerHTML = `<div class="avatar">⚡</div><div class="msg-col" style="max-width:100%;width:100%">${html}</div>`;
-  document.getElementById('messages').appendChild(row);
-  scrollBottom();
+  // Si ya hay un storefront, reemplazo el HTML en su lugar (sin duplicar ni
+  // mover scroll). Si no, agrego una fila nueva al final.
+  const existing = document.querySelector('.sf-row');
+  if (existing) {
+    existing.querySelector('.msg-col').innerHTML = html;
+  } else {
+    const row = document.createElement('div');
+    row.className = 'row bot sf-row';
+    row.innerHTML = `<div class="avatar">⚡</div><div class="msg-col" style="max-width:100%;width:100%">${html}</div>`;
+    document.getElementById('messages').appendChild(row);
+    scrollBottom();
+  }
   startFlashTimer();
 }
 

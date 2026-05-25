@@ -419,6 +419,7 @@ const PRODUCTS_QUERY = `{
       node {
         id title handle description productType vendor tags
         featuredImage { url altText }
+        images(first: 5) { edges { node { url altText } } }
         variants(first: 25) {
           edges {
             node {
@@ -460,6 +461,7 @@ app.get('/api/products', async (req, res) => {
       vendor:      p.vendor,
       tags:        p.tags,
       image:       p.featuredImage?.url || null,
+      images:      (p.images?.edges || []).map(e => e.node.url),
       variants: p.variants.edges.map(({ node: v }) => ({
         id:             stripGid(v.id, 'ProductVariant'),
         title:          v.title,
