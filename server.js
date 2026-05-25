@@ -308,7 +308,7 @@ const ERROR_MSG    = 'Disculpa, tuve un problema técnico, dame un segundo e int
 // ─── Shopify OAuth + Catálogo ─────────────────────────────────────────────────
 
 const SHOPIFY_API_VERSION = '2026-04';
-const SHOPIFY_SCOPES = 'read_products,read_inventory,read_locations';
+const SHOPIFY_SCOPES = 'read_products,read_inventory,read_locations,read_customers,write_customers,unauthenticated_read_customers,unauthenticated_write_customers,unauthenticated_read_customer_tags';
 const SHOPIFY_SHOP_REGEX = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i;
 
 function verifyShopifyHmac(query, secret) {
@@ -366,17 +366,55 @@ app.get('/shopify/callback', async (req, res) => {
     if (!r.ok || !data.access_token) {
       return res.status(500).send(`<pre>Error: ${JSON.stringify(data, null, 2)}</pre>`);
     }
-    res.send(`<!doctype html><meta charset="utf-8"><title>Token Shopify</title>
+    const adminToken = data.access_token;
+    const scopes = data.scope || '';
+
+    // Generar Storefront API token usando el Admin token recién obtenido.
+    // Solo intenta si los scopes incluyen unauthenticated_* (sino Shopify rechaza).
+    let storefrontToken = null;
+    let storefrontError = null;
+    if (scopes.includes('unauthenticated_')) {
+      try {
+        const sr = await fetch(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}/storefront_access_tokens.json`, {
+          method: 'POST',
+          headers: {
+            'X-Shopify-Access-Token': adminToken,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({ storefront_access_token: { title: 'Zorbot Customer Auth' } }),
+        });
+        const sdata = await sr.json().catch(() => ({}));
+        if (sr.ok && sdata.storefront_access_token) {
+          storefrontToken = sdata.storefront_access_token.access_token;
+        } else {
+          storefrontError = `${sr.status} ${JSON.stringify(sdata).slice(0, 200)}`;
+        }
+      } catch (e) { storefrontError = e.message; }
+    } else {
+      storefrontError = 'La app no tiene scopes unauthenticated_*. Agregá los scopes de Storefront API y reinstalá.';
+    }
+
+    res.send(`<!doctype html><meta charset="utf-8"><title>Tokens Shopify</title>
 <style>body{font-family:system-ui;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.5}
 pre{background:#f0f0f0;padding:16px;border-radius:8px;word-break:break-all;white-space:pre-wrap;font-size:14px}
 .warn{background:#fff3cd;padding:14px;border-radius:8px;border-left:4px solid #ffc107;margin:16px 0}
-code{background:#eee;padding:2px 6px;border-radius:4px}</style>
-<h1>✅ Token Shopify obtenido</h1>
-<p>Copia este token y guárdalo en Railway como variable de entorno <code>SHOPIFY_ADMIN_TOKEN</code>:</p>
-<pre>${data.access_token}</pre>
-<p><b>Scopes:</b> ${data.scope || '(no devueltos)'}</p>
+.err{background:#f8d7da;padding:14px;border-radius:8px;border-left:4px solid #dc3545;margin:16px 0}
+code{background:#eee;padding:2px 6px;border-radius:4px}
+h2{margin-top:32px}</style>
+<h1>✅ Tokens Shopify obtenidos</h1>
 <p><b>Tienda:</b> ${shop}</p>
-<div class="warn">⚠️ Copia el token YA. Cuando lo tengas en Railway, considerá borrar los endpoints <code>/shopify/install</code> y <code>/shopify/callback</code> o protegerlos — ahora cualquiera con esta URL puede iniciar el flujo.</div>`);
+<p><b>Scopes concedidos:</b> ${scopes}</p>
+
+<h2>1. Admin API token</h2>
+<p>Guardalo en Railway como <code>SHOPIFY_ADMIN_TOKEN</code>:</p>
+<pre>${adminToken}</pre>
+
+<h2>2. Storefront API token</h2>
+${storefrontToken
+  ? `<p>Guardalo en Railway como <code>SHOPIFY_STOREFRONT_TOKEN</code>:</p><pre>${storefrontToken}</pre>`
+  : `<div class="err"><b>No se pudo generar:</b> ${storefrontError}</div>`}
+
+<div class="warn">⚠️ Copialos YA. Cuando los tengas en Railway, considerá proteger o borrar <code>/shopify/install</code> y <code>/shopify/callback</code>.</div>`);
   } catch (e) {
     res.status(500).send(`<pre>Error: ${e.message}</pre>`);
   }
