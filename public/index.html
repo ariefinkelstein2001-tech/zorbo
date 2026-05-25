@@ -185,16 +185,82 @@ body.mayorista-active .mayoristas-btn{display:none}
 .mayo-hero .mh-title{font-family:var(--display);font-size:1.05rem;font-weight:800;color:var(--gold)}
 .mayo-hero .mh-sub{font-size:.74rem;color:var(--muted);margin-top:.18rem;font-weight:300;line-height:1.4}
 .mayo-section{margin-bottom:1.4rem}
-.mayo-section-head{
-  display:flex;align-items:baseline;gap:.6rem;
-  margin-bottom:.7rem;padding-bottom:.4rem;
-  border-bottom:1px solid var(--border);
+.mayo-section.themed{
+  border-radius:18px;overflow:hidden;border:1px solid var(--border);
 }
-.mayo-section-head .ms-title{
-  font-family:var(--display);font-size:1.05rem;font-weight:800;
-  letter-spacing:.04em;color:var(--text);
+.mayo-section.themed.kairos-theme   {background:linear-gradient(180deg,#0e0e0e,#161616);border-color:rgba(232,160,32,.28)}
+.mayo-section.themed.lanus-theme    {background:linear-gradient(180deg,#1a0810,#2c0f1c);border-color:rgba(201,162,39,.3)}
+.mayo-section.themed.osagui-theme   {background:linear-gradient(180deg,#0d0a08,#1a1208);border-color:rgba(192,36,26,.35)}
+.mayo-section.themed.firulais-theme {background:linear-gradient(180deg,#f5c900,#f5d840);border-color:#1d3d25}
+.mayo-section.themed.banny-theme    {background:linear-gradient(180deg,#77cbbf,#5ab8aa);border-color:#0d0f2a}
+
+.msec-hero{position:relative;padding:1.3rem 1.3rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.08);overflow:hidden}
+.firulais-theme .msec-hero,.banny-theme .msec-hero{border-bottom-color:rgba(13,15,42,.15)}
+.msec-hero .mh-label{
+  display:inline-block;font-size:.58rem;font-weight:800;letter-spacing:.18em;
+  text-transform:uppercase;padding:.18rem .55rem;border-radius:3px;margin-bottom:.55rem;
 }
-.mayo-section-head .ms-count{font-size:.66rem;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+.kairos-theme   .mh-label{background:#e8a020;color:#000}
+.lanus-theme    .mh-label{background:#c9a227;color:#1a0810}
+.osagui-theme   .mh-label{background:#c0241a;color:#fff}
+.firulais-theme .mh-label{background:#1d3d25;color:#f5c900}
+.banny-theme    .mh-label{background:#0d0f2a;color:#77cbbf}
+.msec-hero .mh-title{
+  font-family:var(--display);font-size:clamp(1.6rem,5vw,2.4rem);font-weight:900;line-height:.95;
+  letter-spacing:-.01em;margin-bottom:.3rem;
+}
+.kairos-theme   .mh-title{color:#f4f0e8}
+.lanus-theme    .mh-title{color:#f5eed8;font-style:normal}
+.lanus-theme    .mh-title .em{color:#c9a227;font-style:italic}
+.osagui-theme   .mh-title{color:#f5e6c8;letter-spacing:.02em}
+.firulais-theme .mh-title{color:#1d3d25}
+.banny-theme    .mh-title{color:#0d0f2a}
+.msec-hero .mh-sub{font-size:.82rem;margin-bottom:.35rem;font-weight:400;font-style:italic}
+.kairos-theme   .mh-sub{color:rgba(244,240,232,.7)}
+.lanus-theme    .mh-sub{color:rgba(245,238,216,.65)}
+.osagui-theme   .mh-sub{color:rgba(245,230,200,.7)}
+.firulais-theme .mh-sub{color:#3a8c5a;font-style:normal;font-weight:600}
+.banny-theme    .mh-sub{color:rgba(13,15,42,.7);font-style:normal;font-weight:500}
+.msec-hero .mh-tag{
+  display:inline-block;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;
+  padding:.2rem .5rem;border-radius:2px;font-weight:700;
+}
+.kairos-theme   .mh-tag{border:1px solid rgba(232,160,32,.4);color:rgba(244,240,232,.8)}
+.lanus-theme    .mh-tag{border:1px solid rgba(201,162,39,.5);color:rgba(245,238,216,.8)}
+.osagui-theme   .mh-tag{border:1px solid rgba(192,36,26,.5);color:rgba(245,230,200,.85)}
+.firulais-theme .mh-tag{border:1.5px solid #1d3d25;color:#1d3d25}
+.banny-theme    .mh-tag{border:1.5px solid #0d0f2a;color:#0d0f2a}
+.msec-banner{width:100%;max-height:130px;overflow:hidden;background:#000;line-height:0}
+.msec-banner img{width:100%;height:100%;object-fit:cover;display:block;max-height:130px}
+.msec-body{padding:1.1rem 1.1rem 1.2rem}
+
+/* Cards en temas claros (Firulais amarillo, Banny teal) */
+.firulais-theme .mayo-card{background:#fffbe6;border:1.5px solid #1d3d25;color:#1d3d25}
+.firulais-theme .mayo-card .mc-style{color:#3a8c5a;font-weight:700}
+.firulais-theme .mayo-card .mc-name{color:#1d3d25}
+.firulais-theme .mayo-card .mc-price{color:#1d3d25}
+.firulais-theme .mayo-card .mc-price small{color:rgba(29,61,37,.5)}
+.firulais-theme .mayo-card .mc-tag{background:#1d3d25;color:#f5c900}
+.firulais-theme .mayo-card .mc-add{background:#1d3d25;color:#f5c900;background-image:none}
+.firulais-theme .mayo-card .mc-add:hover{background:#2d5a3a}
+.firulais-theme .mayo-card .mc-qty{background:#fef9d0;border-color:#1d3d25}
+.firulais-theme .mayo-card .mc-qty button{color:#1d3d25}
+.firulais-theme .mayo-card .mc-qty button:hover{background:rgba(29,61,37,.1)}
+.firulais-theme .mayo-card .mc-qty .mq-v{color:#1d3d25}
+.firulais-theme .mayo-card select.mc-variant{background:#fef9d0;border-color:#1d3d25;color:#1d3d25}
+
+.banny-theme .mayo-card{background:#fff9f0;border:1.5px solid rgba(13,15,42,.18);color:#0d0f2a}
+.banny-theme .mayo-card .mc-style{color:#5ab8aa;font-weight:700}
+.banny-theme .mayo-card .mc-name{color:#0d0f2a}
+.banny-theme .mayo-card .mc-price{color:#0d0f2a}
+.banny-theme .mayo-card .mc-price small{color:rgba(13,15,42,.5)}
+.banny-theme .mayo-card .mc-tag{background:#0d0f2a;color:#77cbbf}
+.banny-theme .mayo-card .mc-add{background:#0d0f2a;color:#77cbbf;background-image:none}
+.banny-theme .mayo-card .mc-add:hover{background:#1a1d3a}
+.banny-theme .mayo-card .mc-qty{background:#f0faf8;border-color:rgba(13,15,42,.15)}
+.banny-theme .mayo-card .mc-qty button{color:#0d0f2a}
+.banny-theme .mayo-card .mc-qty .mq-v{color:#0d0f2a}
+.banny-theme .mayo-card select.mc-variant{background:#f0faf8;border-color:rgba(13,15,42,.15);color:#0d0f2a}
 .mayo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.75rem}
 .mayo-card{
   background:linear-gradient(180deg,var(--surface) 0%,var(--surface2) 100%);
@@ -1949,6 +2015,61 @@ function mayoAddToCart(btn){
   btn.classList.add('done');
 }
 
+// Hero por marca — estética inspirada en el portal PageFly (negro/dorado Kairos,
+// borgoña argentina Lanús, japonés rojo/crema Osagui, amarillo/verde Firulais,
+// teal/navy Banny). Cada uno con su tag, título y bajada.
+function renderMayoHero(brand, count){
+  const c = count + (count === 1 ? ' producto' : ' productos');
+  if (brand === 'kairos') {
+    return `
+      <div class="msec-hero">
+        <span class="mh-label">🍺 Cervezas de la Casa · ${c}</span>
+        <div class="mh-title">Kairos Brewing</div>
+        <div class="mh-sub">Craft beer · 17 estilos · sin preservantes</div>
+        <span class="mh-tag">Barriles · 24 Pack 473cc · EX Kairos</span>
+      </div>`;
+  }
+  if (brand === 'lanus') {
+    return `
+      <div class="msec-hero">
+        <span class="mh-label">⚽ World Tour · Argentina · 1978</span>
+        <div class="mh-title">La<span class="em">nús</span></div>
+        <div class="mh-sub">El Sabor de una Pasión · ${c}</div>
+        <span class="mh-tag">Italian Pils · 5% ABV</span>
+      </div>`;
+  }
+  if (brand === 'osagui') {
+    return `
+      <div class="msec-banner"><img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Osagui-03.webp" alt="Osagui" onerror="this.parentElement.style.display='none'"></div>
+      <div class="msec-hero">
+        <span class="mh-label">🌸 World Tour · Japón</span>
+        <div class="mh-title">OSAGUI</div>
+        <div class="mh-sub">De Oriente con Amor · Japanese Lager 4.6%</div>
+        <span class="mh-tag">${c} · 日本のラガー</span>
+      </div>`;
+  }
+  if (brand === 'firulais') {
+    return `
+      <div class="msec-banner"><img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Firulais.jpg" alt="Firulais" onerror="this.parentElement.style.display='none'"></div>
+      <div class="msec-hero">
+        <span class="mh-label">🐶 Craft Mix · Est. 2025</span>
+        <div class="mh-title">FIRULAIS</div>
+        <div class="mh-sub">La michelada más honesta de Chile</div>
+        <span class="mh-tag">${c} · Free of Lice</span>
+      </div>`;
+  }
+  if (brand === 'banny') {
+    return `
+      <div class="msec-hero">
+        <span class="mh-label">🐇 Destilados & RTD · ${c}</span>
+        <div class="mh-title">BANNY</div>
+        <div class="mh-sub">by Kairos · Craft to be Wild</div>
+        <span class="mh-tag">Gin · Ron · Whiskey · Vermut · RTD</span>
+      </div>`;
+  }
+  return '';
+}
+
 let MAYO_CACHE = null;
 let MAYO_CACHE_AT = 0;
 async function loadMayoristaCatalog(){
@@ -1978,12 +2099,11 @@ async function showMayoristaStorefront(){
   const sectionsHtml = order
     .filter(b => groups[b].length)
     .map(b => `
-      <div class="mayo-section">
-        <div class="mayo-section-head">
-          <span class="ms-title">${BRAND_INFO[b].emoji} ${BRAND_INFO[b].label}</span>
-          <span class="ms-count">${groups[b].length} ${groups[b].length === 1 ? 'producto' : 'productos'}</span>
+      <div class="mayo-section themed ${b}-theme">
+        ${renderMayoHero(b, groups[b].length)}
+        <div class="msec-body">
+          <div class="mayo-grid">${groups[b].map(p => buildMayoristaCard(p,b)).join('')}</div>
         </div>
-        <div class="mayo-grid">${groups[b].map(p => buildMayoristaCard(p,b)).join('')}</div>
       </div>`)
     .join('');
 
