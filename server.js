@@ -308,7 +308,10 @@ const ERROR_MSG    = 'Disculpa, tuve un problema técnico, dame un segundo e int
 // ─── Shopify OAuth + Catálogo ─────────────────────────────────────────────────
 
 const SHOPIFY_API_VERSION = '2026-04';
-const SHOPIFY_SCOPES = 'read_products,read_inventory,read_locations,read_customers,write_customers,unauthenticated_read_customers,unauthenticated_write_customers,unauthenticated_read_customer_tags';
+// Solo scopes Admin van por OAuth. Los unauthenticated_* (Storefront API) son
+// config a nivel de app (Dev Dashboard → Alcances opcionales) y se aplican
+// automáticamente al crear el storefront_access_token.
+const SHOPIFY_SCOPES = 'read_products,read_inventory,read_locations,read_customers,write_customers';
 const SHOPIFY_SHOP_REGEX = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i;
 
 function verifyShopifyHmac(query, secret) {
@@ -370,29 +373,27 @@ app.get('/shopify/callback', async (req, res) => {
     const scopes = data.scope || '';
 
     // Generar Storefront API token usando el Admin token recién obtenido.
-    // Solo intenta si los scopes incluyen unauthenticated_* (sino Shopify rechaza).
+    // Los scopes unauthenticated_* son a nivel de app config, no se devuelven
+    // en la respuesta del OAuth — así que intentamos crear el token directo
+    // y dejamos que Shopify decida si lo concede.
     let storefrontToken = null;
     let storefrontError = null;
-    if (scopes.includes('unauthenticated_')) {
-      try {
-        const sr = await fetch(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}/storefront_access_tokens.json`, {
-          method: 'POST',
-          headers: {
-            'X-Shopify-Access-Token': adminToken,
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({ storefront_access_token: { title: 'Zorbot Customer Auth' } }),
-        });
-        const sdata = await sr.json().catch(() => ({}));
-        if (sr.ok && sdata.storefront_access_token) {
-          storefrontToken = sdata.storefront_access_token.access_token;
-        } else {
-          storefrontError = `${sr.status} ${JSON.stringify(sdata).slice(0, 200)}`;
-        }
-      } catch (e) { storefrontError = e.message; }
-    } else {
-      storefrontError = 'La app no tiene scopes unauthenticated_*. Agregá los scopes de Storefront API y reinstalá.';
-    }
+    try {
+      const sr = await fetch(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}/storefront_access_tokens.json`, {
+        method: 'POST',
+        headers: {
+          'X-Shopify-Access-Token': adminToken,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ storefront_access_token: { title: 'Zorbot Customer Auth' } }),
+      });
+      const sdata = await sr.json().catch(() => ({}));
+      if (sr.ok && sdata.storefront_access_token) {
+        storefrontToken = sdata.storefront_access_token.access_token;
+      } else {
+        storefrontError = `HTTP ${sr.status} — ${JSON.stringify(sdata).slice(0, 400)}`;
+      }
+    } catch (e) { storefrontError = e.message; }
 
     res.send(`<!doctype html><meta charset="utf-8"><title>Tokens Shopify</title>
 <style>body{font-family:system-ui;max-width:720px;margin:40px auto;padding:0 20px;line-height:1.5}
