@@ -174,15 +174,16 @@ header{
 body.mayorista-active .mayoristas-btn{display:none}
 
 /* ════════════════════════════════════════════════════════════════════════
-   STOREFRONT ECOMMERCE (home B2C + mayorista B2B). Mismo CSS reutilizado
-   en .shop-page; el toggle de visibilidad cambia qué bloque se muestra.
+   MAYORISTA — PÁGINA ECOMMERCE COMPLETA (port del portal PageFly)
+   En modo B2C: hero+promo+chat-storefront normal, #mayoPage oculto.
+   En modo mayorista: se oculta hero+promo+storefront-en-chat, se muestra
+   #mayoPage edge-to-edge y el chat queda abajo accesible.
 ════════════════════════════════════════════════════════════════════════ */
-.hero-slides,.promo-wrap{display:none!important} /* sustituidos por #homePage */
-#homePage,#mayoPage{background:#080808}
-#homePage{display:block}
-#mayoPage{display:none}
-body.mayorista-active #homePage{display:none}
+#mayoPage{display:none;background:#080808}
 body.mayorista-active #mayoPage{display:block}
+body.mayorista-active .hero-slides,
+body.mayorista-active .promo-wrap,
+body.mayorista-active .sf-row{display:none!important}
 .shop-page *,.shop-page *::before,.shop-page *::after{box-sizing:border-box}
 
 /* Brand nav sticky */
@@ -1063,11 +1064,8 @@ body.mayorista-active .game-banner{display:none}
       <div class="promo-dots" id="promoDots"></div>
     </div>
 
-    <!-- HOME ECOMMERCE (B2C). Visible cuando NO sos mayorista. -->
-    <div id="homePage" class="shop-page"></div>
-
     <!-- MAYORISTA STOREFRONT. Visible cuando body.mayorista-active. -->
-    <div id="mayoPage" class="shop-page" style="display:none"></div>
+    <div id="mayoPage" class="shop-page"></div>
 
     <!-- CHAT MESSAGES. Siempre presente, abajo del storefront. -->
     <div class="messages" id="messages"></div>
@@ -1492,137 +1490,82 @@ function addFromCard(btn) {
   btn.classList.add('done');
 }
 
-// ─── HOME STOREFRONT (B2C ecommerce en #homePage) ────────────────────────────
-async function showStorefront(){
-  const page = document.getElementById('homePage');
-  if (!page) return;
-  if (page.dataset.rendered) return;
-  page.dataset.rendered = '1';
+// ─── VITRINA / STOREFRONT (B2C, dentro del chat) ─────────────────────────────
+function showStorefront() {
+  const flashItems = [
+    { p: prod('Imperio Perdido'),  old: 3290 },
+    { p: prod('Samba'),            old: 3290 },
+    { p: prod('Caurina'),          old: 3290 },
+    { p: prod('Guantánamo Mojito'),old: 4990 },
+  ].filter(x => x.p);
 
-  let products = [];
-  try {
-    const r = await fetch('/api/products?mode=b2c');
-    if (r.ok) {
-      const data = await r.json();
-      products = data.products || [];
-    }
-  } catch (e) { console.warn('home catalog:', e); }
+  const topItems = ['Imperio Perdido','Samba','Caurina','Pepita','Elizabeth Gin Tonic','Frank']
+    .map(prod).filter(Boolean);
 
-  const groups = { kairos:[], firulais:[], banny:[] };
-  for (const p of products) {
-    if (!p.variants || !p.variants.length) continue;
-    const b = detectMpBrand(p);
-    if (b === 'kairos' || b === 'firulais' || b === 'banny') groups[b].push(p);
+  const flashCards = flashItems.map(x => {
+    const off = Math.round((1 - x.p.price / x.old) * 100);
+    return buildCard(x.p, { badge:'-'+off+'%', badgeType:'discount', oldPrice:x.old });
+  }).join('');
+  const topCards = topItems.map(p => buildCard(p, { badge:'MÁS VENDIDO', badgeType:'top' })).join('');
+
+  const html = `
+  <div class="storefront">
+    <div class="game-banner" id="gameBanner" onclick="openGame()">
+      <span class="gb-icon">🎁</span>
+      <div class="gb-txt">
+        <div class="gb-title">10% OFF en tu primera compra</div>
+        <div class="gb-sub">Reclama tu cupón y juega cada día por un descuento extra</div>
+      </div>
+      <span class="gb-cta">RECLAMAR</span>
+    </div>
+    <div class="sf-block">
+      <div class="sf-head">
+        <span class="sf-title">⚡ Ofertas Relámpago</span>
+        <span class="sf-timer" id="flashTimer">--:--:--</span>
+      </div>
+      <div class="cards-row">${flashCards}</div>
+    </div>
+    <div class="sf-block">
+      <div class="sf-head"><span class="sf-title">🏆 Los más pedidos</span></div>
+      <div class="cards-row">${topCards}</div>
+    </div>
+    <div class="sf-block">
+      <div class="sf-head"><span class="sf-title">¿Para qué ocasión?</span></div>
+      <div class="occasion-grid">
+        <button class="occ-btn" onclick="sendQuick('Tengo un asado con amigos, qué me recomiendas?')"><span class="occ-em">🔥</span>Asado</button>
+        <button class="occ-btn" onclick="sendQuick('Es para una previa con amigos, qué llevo?')"><span class="occ-em">🎉</span>Previa</button>
+        <button class="occ-btn" onclick="sendQuick('Quiero hacer un regalo, qué me recomiendas?')"><span class="occ-em">🎁</span>Regalo</button>
+        <button class="occ-btn" onclick="sendQuick('Busco algo refrescante para el calor')"><span class="occ-em">☀️</span>Verano</button>
+        <button class="occ-btn" onclick="sendQuick('Soy dueño de un bar, quiero comprar al por mayor')"><span class="occ-em">🏪</span>Para mi local</button>
+      </div>
+    </div>
+    <div class="sf-brands">
+      <button class="brc" onclick="brandPill('kairos')" aria-label="Kairos Brewing">
+        <span class="brand-circle lg"><img src="brands/kairos.png" alt=""></span>
+        <span class="brc-label">Kairos</span>
+      </button>
+      <button class="brc" onclick="brandPill('firulais')" aria-label="Firulais">
+        <span class="brand-circle lg"><img src="brands/firulais.png" alt=""></span>
+        <span class="brc-label">Firulais</span>
+      </button>
+      <button class="brc" onclick="brandPill('banny')" aria-label="Banny">
+        <span class="brand-circle lg"><img src="brands/banny.png" alt=""></span>
+        <span class="brc-label">Banny</span>
+      </button>
+    </div>
+  </div>`;
+
+  const existing = document.querySelector('.sf-row');
+  if (existing) {
+    existing.querySelector('.msg-col').innerHTML = html;
+  } else {
+    const row = document.createElement('div');
+    row.className = 'row bot sf-row';
+    row.innerHTML = `<div class="avatar">⚡</div><div class="msg-col" style="max-width:100%;width:100%">${html}</div>`;
+    document.getElementById('messages').appendChild(row);
+    scrollBottom();
   }
-
-  const featuredHandles = [
-    'neipa-473cc','apa-american-pale','golden-golden-ale',
-    'samba-ipa','obertura-stout','the-crown-mexican-lager',
-    'whisky-bavaro-dcto-black-rabbit-20','london-dry',
-  ];
-  const featured = featuredHandles
-    .map(h => products.find(p => p.handle === h))
-    .filter(Boolean);
-
-  const nav = `<nav class="mp-nav">
-    ${featured.length        ? '<a data-brand="kairos"   onclick="document.getElementById(\'hp-destacados\').scrollIntoView({behavior:\'smooth\'})">✨ Destacados</a>' : ''}
-    ${groups.kairos.length   ? '<a data-brand="kairos"   onclick="document.getElementById(\'hp-kairos\').scrollIntoView({behavior:\'smooth\'})">🍺 Kairos</a>' : ''}
-    ${groups.firulais.length ? '<a data-brand="firulais" onclick="document.getElementById(\'hp-firulais\').scrollIntoView({behavior:\'smooth\'})">🐶 Firulais</a>' : ''}
-    ${groups.banny.length    ? '<a data-brand="banny"    onclick="document.getElementById(\'hp-banny\').scrollIntoView({behavior:\'smooth\'})">🐇 Banny</a>' : ''}
-  </nav>`;
-
-  const destacados = featured.length ? `
-    <section id="hp-destacados" class="kb">
-      <div class="kb-hd">
-        <img class="kb-hd-logo" src="${KAIROS_LOGO}" alt="Kairos Brewing" onerror="this.style.display='none'">
-        <div class="kb-hd-r">
-          <div class="kb-pills">
-            <span class="kb-pill g">✨ Destacados</span>
-            <span class="kb-pill o">Hand-picked · Temporada 2026</span>
-          </div>
-          <div class="kb-hd-tag">Lo más pedido del marketplace · craft real, sin filtrar</div>
-        </div>
-      </div>
-      <div class="mp-section">
-        <div class="mp-section-t">Destacados de la Casa</div>
-        <div class="mp-section-s">Selección curada · Kairos · Firulais · Banny</div>
-        <div class="mp-grid">${featured.map(buildMpCard).join('')}</div>
-      </div>
-    </section>` : '';
-
-  const kairosSection = groups.kairos.length ? `
-    <section id="hp-kairos" class="kb">
-      <div class="kb-slideshow" data-kb-slideshow>
-        <div class="ss-track">${KAIROS_SLIDES.map(u => `<div class="ss-slide"><img src="${u}" alt="Kairos Brewing" onerror="this.parentElement.parentElement.parentElement.style.display='none'"></div>`).join('')}</div>
-        <div class="ss-dots">${KAIROS_SLIDES.map((_,i)=>`<span class="ss-dot ${i===0?'on':''}"></span>`).join('')}</div>
-      </div>
-      <div class="kb-hd">
-        <img class="kb-hd-logo" src="${KAIROS_LOGO}" alt="Kairos Brewing" onerror="this.style.display='none'">
-        <div class="kb-hd-r">
-          <div class="kb-pills">
-            <span class="kb-pill g">Kairos Brewing</span>
-            <span class="kb-pill o">17 estilos · desde $2.490</span>
-          </div>
-          <div class="kb-hd-tag">Cerveza artesanal con carácter · sin filtrar · sin aditivos</div>
-        </div>
-      </div>
-      <div class="mp-section">
-        <div class="mp-section-t">Cervezas Kairos</div>
-        <div class="mp-section-s">Latas 473cc · Packs · Merch oficial</div>
-        <div class="mp-grid">${groups.kairos.map(buildMpCard).join('')}</div>
-      </div>
-      <div class="mp-note"><strong>Producto vivo:</strong> nuestras cervezas no llevan preservantes ni aditivos. Conservalas refrigeradas y disfrutalas bien frías.</div>
-    </section>` : '';
-
-  const firulaisSection = groups.firulais.length ? `
-    <section id="hp-firulais" class="fr">
-      <div class="fr-banner"><img src="${FIRULAIS_BANNER}" alt="Firulais Craft Mix" onerror="this.parentElement.style.display='none'"></div>
-      <div class="fr-hero">
-        <div>
-          <p class="fr-wt">🐶 Craft Mix · Micheladas</p>
-          <h1 class="fr-title">FIRULAIS</h1>
-          <p class="fr-sub">Free of Lice · Craft Mix · Est. 2025</p>
-          <p class="fr-tag">La michelada más honesta de Chile<br>Latas individuales · Chelada Artesanal</p>
-        </div>
-        <div class="fr-badge"><span>EST</span><span>2025</span><span>Craft Mix</span></div>
-      </div>
-      <div class="mp-section">
-        <div class="mp-section-t">Cheladas Firulais</div>
-        <div class="mp-section-s">Listas para tomar · sin preservantes</div>
-        <div class="mp-grid">${groups.firulais.map(buildMpCard).join('')}</div>
-      </div>
-      <div class="mp-note"><strong>Firulais Craft Mix</strong> — la michelada artesanal hecha con cerveza de verdad. Sin conservantes, sin colorantes. <strong>Mantener refrigerada.</strong></div>
-    </section>` : '';
-
-  const bannySection = groups.banny.length ? `
-    <section id="hp-banny" class="bn">
-      <div class="bn-hero">
-        <div>
-          <p class="bn-wt">🐇 Destilados & Ready To Drink</p>
-          <h1 class="bn-title">BANNY</h1>
-          <p class="bn-by">by Kairos</p>
-          <p class="bn-tag">Craft to be Wild<br>Gin · Whiskey · Ron · Vermut · RTD</p>
-        </div>
-        <div>
-          <div class="bn-dots">
-            <div class="bn-dot" style="background:#77cbbf"></div>
-            <div class="bn-dot" style="background:#94c46b"></div>
-            <div class="bn-dot" style="background:#7da6d8"></div>
-            <div class="bn-dot" style="background:#eeab37"></div>
-          </div>
-        </div>
-      </div>
-      <div class="bn-bar"><span class="lbl">FAMILIA</span><span class="br">BANNY</span></div>
-      <div class="mp-section">
-        <div class="mp-section-t">Destilados & RTD</div>
-        <div class="mp-section-s">Premiados · diseñados desde la barra</div>
-        <div class="mp-grid">${groups.banny.map(buildMpCard).join('')}</div>
-      </div>
-      <div class="mp-note"><strong>BANNY · Craft to be Wild</strong> — gin, ron, whiskey, vermut y cócteles RTD diseñados desde la barra, probados en operación real.</div>
-    </section>` : '';
-
-  page.innerHTML = `${nav}${destacados}${kairosSection}${firulaisSection}${bannySection}`;
-  initKairosSlideshow();
+  startFlashTimer();
 }
 
 let flashEnd = null;
@@ -2017,10 +1960,10 @@ function logoutMayorista(){
   sessionStorage.removeItem('zmayo_customer');
   document.body.classList.remove('mayorista-active');
   hideAccountChip();
-  // Reset del flag de welcome mayorista, así si volvés a loguear se reinyecta
-  const msgs = document.getElementById('messages');
-  if (msgs) delete msgs.dataset.mayoWelcome;
-  showStorefront(); // monta la home B2C si aún no estaba
+  // Limpia el chat (descarta la sesión mayorista) y re-monta el storefront B2C
+  resetChatSession();
+  welcomed = true; // ya no queremos el welcome inicial de Zorbot
+  showStorefront();
   botStatic('Cerraste sesión. Si quieres volver a entrar como mayorista, pulsa MAYORISTAS.');
 }
 
@@ -2329,13 +2272,26 @@ function buildBrandNav(present){
   ].filter(([k]) => present[k]);
   return `<nav class="mp-nav">${items.map(([k,lbl]) => `<a data-brand="${k}" onclick="document.getElementById('mp-sec-${k}').scrollIntoView({behavior:'smooth',block:'start'})">${lbl}</a>`).join('')}</nav>`;
 }
+// Limpia todo el chat y arranca una sesión nueva. Lo usamos cuando un cliente
+// pasa de B2C a B2B (al loguear como mayorista) o al revés, para que el
+// contexto del bot no se cruce entre modos.
+function resetChatSession(){
+  const messagesEl = document.getElementById('messages');
+  if (messagesEl) {
+    messagesEl.innerHTML = '';
+    delete messagesEl.dataset.mayoWelcome;
+  }
+  sessionId = null;
+  try { sessionStorage.removeItem('zsid'); } catch {}
+  welcomed = false;
+}
+
 // Mensaje de bienvenida del bot cuando el mayorista loguea. Aparece en el
-// chat, debajo del catálogo, listo para que el cliente lo encuentre cuando
-// scrollee o cuando empiece a escribir (el input lo lleva ahí).
+// chat (limpio), debajo del catálogo, listo para que el cliente lo encuentre
+// cuando scrollee o cuando empiece a escribir.
 function addMayoristaWelcomeMessage(customer){
   const messagesEl = document.getElementById('messages');
   if (!messagesEl) return;
-  // Evita duplicar el welcome si ya está
   if (messagesEl.dataset.mayoWelcome) return;
   messagesEl.dataset.mayoWelcome = '1';
   const nom = (customer && customer.first_name) || 'colega';
@@ -2781,6 +2737,7 @@ async function mayoLogin(){
       try { sessionStorage.setItem('zmayo_customer', JSON.stringify(data.customer || {})); } catch {}
       markMayoristaActive();
       showAccountChip(data.customer || {});
+      resetChatSession();
       showMayoristaStorefront();
       addMayoristaWelcomeMessage(data.customer || {});
       const nom = (data.customer && data.customer.first_name) || '';
@@ -2859,10 +2816,6 @@ initHeroSlides();
 restoreWelcomeFromStorage();
 restoreMayoristaState();
 updateCart();
-// Renderiza la home ecommerce siempre que estemos en modo B2C (lo más pronto
-// posible, no esperar al welcome message). Si es mayorista, restoreMayoristaState
-// arriba ya monta la página B2B.
-if (!mayoristaMode) showStorefront();
 </script>
 </body>
 </html>
