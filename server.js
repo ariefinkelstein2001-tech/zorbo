@@ -443,14 +443,19 @@ async function shopifyAdminFetch(path, init = {}) {
 
 // Storefront API: para autenticar clientes con email+password sin redirigir
 // a Shopify. Usa un token distinto al Admin (SHOPIFY_STOREFRONT_TOKEN).
+// Tokens públicos (hex) van por X-Shopify-Storefront-Access-Token; tokens
+// privados (shpat_...) del canal Headless van por Shopify-Storefront-Private-Token.
 async function shopifyStorefrontFetch(query, variables) {
   const shop = process.env.SHOPIFY_STORE_DOMAIN;
   const token = process.env.SHOPIFY_STOREFRONT_TOKEN;
   if (!shop || !token) throw new Error('Storefront API no configurado (falta SHOPIFY_STOREFRONT_TOKEN)');
+  const tokenHeader = token.startsWith('shpat_')
+    ? { 'Shopify-Storefront-Private-Token': token }
+    : { 'X-Shopify-Storefront-Access-Token': token };
   const r = await fetch(`https://${shop}/api/${SHOPIFY_API_VERSION}/graphql.json`, {
     method: 'POST',
     headers: {
-      'X-Shopify-Storefront-Access-Token': token,
+      ...tokenHeader,
       'content-type': 'application/json',
       accept: 'application/json',
     },
