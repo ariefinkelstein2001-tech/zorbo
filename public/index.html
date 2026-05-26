@@ -183,110 +183,138 @@ body.mayorista-active .mayoristas-btn{display:none}
    usan, se sustituyeron por #homePage.
 ════════════════════════════════════════════════════════════════════════ */
 .hero-slides,.promo-wrap,.sf-row{display:none!important}
-#homePage{background:#fff;display:block;color:#111}
-#mayoPage{background:#080808;display:none}
+/* Home y mayorista comparten paleta blanca + tipografía Bricolage/DM */
+.shop-page{background:#fff;color:#111;font-family:'Bricolage Grotesque','DM Sans',sans-serif}
+.shop-page *,.shop-page *::before,.shop-page *::after{box-sizing:border-box}
+#homePage{display:block}
+#mayoPage{display:none}
 body.mayorista-active #homePage{display:none}
 body.mayorista-active #mayoPage{display:block}
-.shop-page *,.shop-page *::before,.shop-page *::after{box-sizing:border-box}
 
 /* ── HOME B2C (tema BLANCO con texto negro, accento naranja Kairos) ──────── */
 #homePage{font-family:'DM Sans',sans-serif}
-#homePage .hp-marquee{
+.shop-page .hp-marquee{
   background:#111;color:#fff;overflow:hidden;
   padding:11px 0;font-size:13px;font-weight:600;letter-spacing:.04em;
   border-bottom:1px solid #e5e5e5;
 }
-#homePage .hp-marquee-track{
+.shop-page .hp-marquee-track{
   display:flex;gap:60px;width:max-content;
   animation:hp-marquee 32s linear infinite;
   white-space:nowrap;padding-left:60px;
 }
-#homePage .hp-marquee-track span{display:inline-flex;align-items:center;gap:8px}
+.shop-page .hp-marquee-track span{display:inline-flex;align-items:center;gap:8px}
 @keyframes hp-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-#homePage .hp-hero{position:relative;width:100%;overflow:hidden;background:#000;line-height:0;height:clamp(220px,38vw,480px)}
-#homePage .hp-hero .ht-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1);height:100%}
-#homePage .hp-hero .ht-slide{flex:0 0 100%;line-height:0;height:100%;background:#000}
-#homePage .hp-hero .ht-slide img{width:100%;height:100%;display:block;object-fit:contain;object-position:center;background:#000}
-#homePage .hp-hero .ht-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:5}
-#homePage .hp-hero .ht-dots .d{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.45);transition:all .25s;cursor:pointer;border:none}
-#homePage .hp-hero .ht-dots .d.on{background:#f5a623;width:22px;border-radius:4px}
-#homePage .hp-hero .ht-arr{position:absolute;top:50%;transform:translateY(-50%);z-index:5;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.25);color:#fff;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:background .2s}
-#homePage .hp-hero .ht-arr:hover{background:rgba(245,166,35,.6)}
-#homePage .hp-hero .ht-arr.prev{left:18px}
-#homePage .hp-hero .ht-arr.next{right:18px}
-#homePage .hp-categories{padding:42px clamp(1rem,4vw,3rem) 32px;display:flex;gap:32px;justify-content:center;flex-wrap:wrap}
-#homePage .hp-cat{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:12px;transition:transform .2s}
-#homePage .hp-cat:hover{transform:translateY(-4px)}
-#homePage .hp-cat .circle{
-  width:130px;height:130px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;overflow:hidden;
-  border:3px solid #111;background:#fff;
-  transition:transform .2s,box-shadow .2s,border-color .2s;
+.shop-page .hp-hero{position:relative;width:100%;overflow:hidden;background:#000;line-height:0;height:clamp(220px,38vw,480px)}
+.shop-page .hp-hero .ht-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1);height:100%}
+.shop-page .hp-hero .ht-slide{flex:0 0 100%;line-height:0;height:100%;background:#000}
+.shop-page .hp-hero .ht-slide img{width:100%;height:100%;display:block;object-fit:cover;object-position:center}
+.shop-page .hp-hero .ht-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:5}
+.shop-page .hp-hero .ht-dots .d{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.45);transition:all .25s;cursor:pointer;border:none}
+.shop-page .hp-hero .ht-dots .d.on{background:#f5a623;width:22px;border-radius:4px}
+.shop-page .hp-hero .ht-arr{position:absolute;top:50%;transform:translateY(-50%);z-index:5;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.25);color:#fff;width:44px;height:44px;border-radius:50%;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:background .2s}
+.shop-page .hp-hero .ht-arr:hover{background:rgba(245,166,35,.6)}
+.shop-page .hp-hero .ht-arr.prev{left:18px}
+.shop-page .hp-hero .ht-arr.next{right:18px}
+/* Carrusel infinito de logos */
+.shop-page .hp-circles{
+  overflow:hidden;padding:32px 0 14px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
 }
-#homePage .hp-cat .circle img{width:100%;height:100%;object-fit:cover;display:block}
-#homePage .hp-cat:hover .circle{box-shadow:0 10px 24px rgba(0,0,0,.2);transform:scale(1.06);border-color:#f5a623}
-#homePage .hp-cat.chelas    .circle{background:#fff3d6}
-#homePage .hp-cat.craftmix  .circle{background:#fffae6}
-#homePage .hp-cat.destileria .circle{background:#dff5f1}
-#homePage .hp-cat .lbl{font-family:'Bricolage Grotesque',sans-serif;font-size:18px;letter-spacing:.1em;color:#111;text-transform:uppercase}
-#homePage .hp-section{padding:48px clamp(1rem,4vw,3rem) 24px;border-top:1px solid #e5e5e5}
-#homePage .hp-section:first-of-type{border-top:none}
-#homePage .hp-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin-bottom:24px;flex-wrap:wrap}
-#homePage .hp-section-t{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(34px,5vw,52px);letter-spacing:.02em;line-height:1;color:#111;text-transform:uppercase}
-#homePage .hp-section-s{font-family:'DM Sans',sans-serif;font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:#888;font-weight:600}
-#homePage .hp-row{
+.shop-page .hp-circles-track{
+  display:flex;gap:36px;width:max-content;
+  animation:hp-circles-scroll 18s linear infinite;
+}
+@keyframes hp-circles-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.shop-page .hp-circle{
+  flex-shrink:0;width:110px;height:110px;border-radius:50%;
+  background:#fff;border:3px solid #111;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:transform .2s,border-color .2s,box-shadow .2s;
+}
+.shop-page .hp-circle:hover{transform:scale(1.06);border-color:#f5a623;box-shadow:0 8px 22px rgba(0,0,0,.18)}
+.shop-page .hp-circle img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* Pills debajo del carrusel */
+.shop-page .hp-pillrow{
+  display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+  padding:8px clamp(1rem,4vw,3rem) 36px;
+}
+.shop-page .hp-pill{
+  background:#fff;border:2px solid #111;border-radius:14px;
+  padding:12px 24px;cursor:pointer;
+  font-family:'Bricolage Grotesque',sans-serif;font-size:15px;font-weight:700;
+  color:#111;letter-spacing:.01em;
+  transition:all .15s;
+}
+.shop-page .hp-pill:hover{background:#111;color:#fff;transform:translateY(-2px)}
+.shop-page .hp-pill:active{transform:translateY(0)}
+
+@media(max-width:600px){
+  .shop-page .hp-circle{width:72px;height:72px;border-width:2px}
+  .shop-page .hp-circles-track{gap:22px}
+  .shop-page .hp-pill{padding:10px 18px;font-size:13px}
+  .shop-page .hp-pillrow{gap:8px}
+}
+.shop-page .hp-section{padding:48px clamp(1rem,4vw,3rem) 24px;border-top:1px solid #e5e5e5}
+.shop-page .hp-section:first-of-type{border-top:none}
+.shop-page .hp-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin-bottom:24px;flex-wrap:wrap}
+.shop-page .hp-section-t{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(34px,5vw,52px);letter-spacing:.02em;line-height:1;color:#111;text-transform:uppercase}
+.shop-page .hp-section-s{font-family:'DM Sans',sans-serif;font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:#888;font-weight:600}
+.shop-page .hp-row{
   display:flex;gap:18px;overflow-x:auto;
   scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
   padding-bottom:14px;
   scrollbar-color:#ccc transparent;scrollbar-width:thin;
 }
-#homePage .hp-row::-webkit-scrollbar{height:6px}
-#homePage .hp-row::-webkit-scrollbar-track{background:transparent}
-#homePage .hp-row::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
-#homePage .hp-card{
+.shop-page .hp-row::-webkit-scrollbar{height:6px}
+.shop-page .hp-row::-webkit-scrollbar-track{background:transparent}
+.shop-page .hp-row::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+.shop-page .hp-card{
   flex:0 0 280px;scroll-snap-align:start;
   background:#fff;border:1px solid #e5e5e5;border-radius:6px;
   padding:18px 18px 22px;display:flex;flex-direction:column;gap:12px;
   transition:border-color .2s,transform .2s,box-shadow .2s;
 }
-#homePage .hp-card:hover{border-color:#f5a623;transform:translateY(-3px);box-shadow:0 10px 22px rgba(0,0,0,.08)}
-#homePage .hp-card-img{
+.shop-page .hp-card:hover{border-color:#f5a623;transform:translateY(-3px);box-shadow:0 10px 22px rgba(0,0,0,.08)}
+.shop-page .hp-card-img{
   aspect-ratio:1;background:#f7f7f7;border-radius:4px;
   display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;
 }
-#homePage .hp-card-img img{
+.shop-page .hp-card-img img{
   max-width:100%;max-height:100%;object-fit:contain;
   padding:12px;transition:opacity .25s,transform .25s;
   position:absolute;inset:0;width:100%;height:100%;
 }
-#homePage .hp-card-img img.swap-out{opacity:0}
-#homePage .hp-card-name{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;color:#111;text-align:center;line-height:1.25;min-height:38px}
-#homePage .hp-variants{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
-#homePage .hp-variant{
+.shop-page .hp-card-img img.swap-out{opacity:0}
+.shop-page .hp-card-name{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;color:#111;text-align:center;line-height:1.25;min-height:38px}
+.shop-page .hp-variants{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.shop-page .hp-variant{
   background:#fff;border:1.5px solid #ccc;color:#444;
   font-family:'Bricolage Grotesque',sans-serif;font-size:12px;letter-spacing:.08em;
   padding:7px 12px;border-radius:50px;cursor:pointer;
   transition:all .15s;font-weight:600;
 }
-#homePage .hp-variant:hover{border-color:#f5a623;color:#111}
-#homePage .hp-variant.active{background:#111;color:#fff;border-color:#111}
-#homePage .hp-card-price{font-family:'DM Sans',sans-serif;font-size:20px;font-weight:800;color:#111;text-align:center;letter-spacing:.01em}
-#homePage .hp-card-price .old{color:#999;font-weight:400;font-size:14px;text-decoration:line-through;margin-right:8px}
-#homePage .hp-acts{display:flex;gap:8px;margin-top:auto}
-#homePage .hp-qty{display:flex;border:1.5px solid #ddd;border-radius:4px;overflow:hidden;flex-shrink:0}
-#homePage .hp-qty button{background:#fafafa;color:#111;border:none;width:34px;height:42px;font-size:18px;font-weight:700;cursor:pointer;transition:background .15s}
-#homePage .hp-qty button:hover{background:#f0f0f0;color:#f5a623}
-#homePage .hp-qty .v{width:36px;height:42px;line-height:42px;text-align:center;font-weight:700;font-size:15px;color:#111;background:#fff;border-left:1.5px solid #ddd;border-right:1.5px solid #ddd}
-#homePage button.hp-add{
+.shop-page .hp-variant:hover{border-color:#f5a623;color:#111}
+.shop-page .hp-variant.active{background:#111;color:#fff;border-color:#111}
+.shop-page .hp-card-price{font-family:'DM Sans',sans-serif;font-size:20px;font-weight:800;color:#111;text-align:center;letter-spacing:.01em}
+.shop-page .hp-card-price .old{color:#999;font-weight:400;font-size:14px;text-decoration:line-through;margin-right:8px}
+.shop-page .hp-acts{display:flex;gap:8px;margin-top:auto}
+.shop-page .hp-qty{display:flex;border:1.5px solid #ddd;border-radius:4px;overflow:hidden;flex-shrink:0}
+.shop-page .hp-qty button{background:#fafafa;color:#111;border:none;width:34px;height:42px;font-size:18px;font-weight:700;cursor:pointer;transition:background .15s}
+.shop-page .hp-qty button:hover{background:#f0f0f0;color:#f5a623}
+.shop-page .hp-qty .v{width:36px;height:42px;line-height:42px;text-align:center;font-weight:700;font-size:15px;color:#111;background:#fff;border-left:1.5px solid #ddd;border-right:1.5px solid #ddd}
+.shop-page button.hp-add{
   flex:1;background:#f5a623;border:none;color:#1a1408;
   font-family:'Bricolage Grotesque',sans-serif;font-size:13px;letter-spacing:.12em;
   height:42px;border-radius:4px;cursor:pointer;font-weight:700;
   transition:background .15s,transform .12s;
 }
-#homePage button.hp-add:hover{background:#ffb840}
-#homePage button.hp-add:active{transform:scale(.97)}
-#homePage button.hp-add.done{background:#4caf50!important;color:#fff!important;pointer-events:none}
-#homePage .hp-empty{padding:60px 20px;text-align:center;color:#999;font-size:14px;letter-spacing:.08em}
+.shop-page button.hp-add:hover{background:#ffb840}
+.shop-page button.hp-add:active{transform:scale(.97)}
+.shop-page button.hp-add.done{background:#4caf50!important;color:#fff!important;pointer-events:none}
+.shop-page .hp-empty{padding:60px 20px;text-align:center;color:#999;font-size:14px;letter-spacing:.08em}
 
 /* Popup 10% OFF */
 .hp-promo-popup{position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;padding:1.2rem}
@@ -340,36 +368,36 @@ body.mayorista-active #mayoPage{display:block}
 .hp-promo-popup-skip:hover{color:#111}
 
 /* Welcome bubble dentro del home (entre hero y categorías) */
-#homePage .hp-welcome{
+.shop-page .hp-welcome{
   display:flex;gap:14px;align-items:flex-start;
   max-width:780px;margin:28px auto 0;padding:0 clamp(1rem,4vw,2rem);
 }
-#homePage .hp-welcome-avatar{
+.shop-page .hp-welcome-avatar{
   flex-shrink:0;width:38px;height:38px;border-radius:50%;
   background:#fff3d6;color:#a05f00;
   display:flex;align-items:center;justify-content:center;font-size:18px;
   border:1px solid #f5a623;
 }
-#homePage .hp-welcome-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
-#homePage .hp-welcome-sender{
+.shop-page .hp-welcome-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.shop-page .hp-welcome-sender{
   font-size:.66rem;font-weight:600;color:#666;letter-spacing:.02em;
   display:flex;align-items:center;gap:.4rem;padding-left:.2rem;
 }
-#homePage .hp-welcome-badge{
+.shop-page .hp-welcome-badge{
   font-size:.56rem;font-weight:700;padding:.06rem .4rem;border-radius:20px;
   background:#fff3d6;color:#a05f00;border:1px solid #f5a623;
 }
-#homePage .hp-welcome-bubble{
+.shop-page .hp-welcome-bubble{
   background:#f5f5f5;border:1px solid #e5e5e5;color:#111;
   padding:.85rem 1.1rem;border-radius:14px;border-bottom-left-radius:5px;
   line-height:1.6;font-size:.92rem;
 }
-#homePage .hp-welcome-bubble p{margin-bottom:.45rem}
-#homePage .hp-welcome-bubble p:last-child{margin-bottom:0}
-#homePage .hp-welcome-bubble strong{color:#a05f00;font-weight:700}
+.shop-page .hp-welcome-bubble p{margin-bottom:.45rem}
+.shop-page .hp-welcome-bubble p:last-child{margin-bottom:0}
+.shop-page .hp-welcome-bubble strong{color:#a05f00;font-weight:700}
 
 /* Promo CTA 10% OFF */
-#homePage .hp-promo-cta{
+.shop-page .hp-promo-cta{
   margin:24px clamp(1rem,4vw,3rem) 0;
   padding:18px 22px;border-radius:14px;cursor:pointer;
   background:linear-gradient(120deg,#fff3d6 0%,#ffe4a1 100%);
@@ -377,32 +405,32 @@ body.mayorista-active #mayoPage{display:block}
   display:flex;align-items:center;gap:16px;flex-wrap:wrap;
   transition:transform .15s,box-shadow .2s;
 }
-#homePage .hp-promo-cta:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(245,166,35,.3)}
-#homePage .hp-promo-icon{font-size:2rem;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.1))}
-#homePage .hp-promo-txt{flex:1;min-width:0}
-#homePage .hp-promo-txt strong{font-family:'Bricolage Grotesque',sans-serif;font-size:18px;color:#111;letter-spacing:.06em;display:block;line-height:1.1}
-#homePage .hp-promo-txt small{font-size:13px;color:#5a4a2a;display:block;margin-top:3px;font-family:'DM Sans',sans-serif;font-weight:500}
-#homePage .hp-promo-btn{
+.shop-page .hp-promo-cta:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(245,166,35,.3)}
+.shop-page .hp-promo-icon{font-size:2rem;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.1))}
+.shop-page .hp-promo-txt{flex:1;min-width:0}
+.shop-page .hp-promo-txt strong{font-family:'Bricolage Grotesque',sans-serif;font-size:18px;color:#111;letter-spacing:.06em;display:block;line-height:1.1}
+.shop-page .hp-promo-txt small{font-size:13px;color:#5a4a2a;display:block;margin-top:3px;font-family:'DM Sans',sans-serif;font-weight:500}
+.shop-page .hp-promo-btn{
   flex-shrink:0;font-family:'Bricolage Grotesque',sans-serif;font-size:14px;letter-spacing:.12em;
   background:#111;color:#f5a623;padding:10px 18px;border-radius:6px;font-weight:700;
 }
 
 /* Sección Juegos */
-#homePage .hp-games-grid{
+.shop-page .hp-games-grid{
   display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;
 }
-#homePage .hp-game-card{
+.shop-page .hp-game-card{
   background:linear-gradient(135deg,#1a1408 0%,#2a1f0a 100%);
   border:2px solid #f5a623;border-radius:14px;
   padding:22px 22px 18px;display:flex;flex-direction:column;align-items:center;gap:10px;
   cursor:pointer;text-align:center;
   transition:transform .2s,box-shadow .2s;color:#fff;
 }
-#homePage .hp-game-card:hover{transform:translateY(-4px);box-shadow:0 12px 26px rgba(0,0,0,.2)}
-#homePage .hp-game-card .hg-emoji{font-size:3rem;filter:drop-shadow(0 3px 8px rgba(245,166,35,.5))}
-#homePage .hp-game-card h3{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;letter-spacing:.04em;color:#fff;text-transform:uppercase;line-height:1}
-#homePage .hp-game-card p{font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(255,255,255,.75);line-height:1.45;margin:0}
-#homePage .hp-game-card .hg-cta{
+.shop-page .hp-game-card:hover{transform:translateY(-4px);box-shadow:0 12px 26px rgba(0,0,0,.2)}
+.shop-page .hp-game-card .hg-emoji{font-size:3rem;filter:drop-shadow(0 3px 8px rgba(245,166,35,.5))}
+.shop-page .hp-game-card h3{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;letter-spacing:.04em;color:#fff;text-transform:uppercase;line-height:1}
+.shop-page .hp-game-card p{font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(255,255,255,.75);line-height:1.45;margin:0}
+.shop-page .hp-game-card .hg-cta{
   margin-top:auto;font-family:'Bricolage Grotesque',sans-serif;font-size:13px;letter-spacing:.14em;
   background:#f5a623;color:#1a1408;padding:9px 18px;border-radius:6px;font-weight:700;
 }
@@ -510,177 +538,34 @@ body:not(.mayorista-active) .brand-pills .brand-circle{border-color:#ddd}
 .shop-page .mp-sub-head:first-of-type{margin-top:0}
 .shop-page .mp-sub-head .sub-count{font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:.14em;opacity:.6;font-weight:600}
 
-/* ── KAIROS ─────────────────────────────────────────────────────────── */
-.shop-page .kb{background:#080808;color:#f4f0e8;font-family:'DM Sans',sans-serif}
-.shop-page .kb .mp-section-t,.shop-page .kb .mp-cn{color:#f4f0e8}
-.shop-page .kb .mp-section-s{color:#6e6e6e}
-.shop-page .kb .mp-sub-head{color:#e8a020;border-color:rgba(232,160,32,.25)}
-.shop-page .kb .mp-card{background:#161616;border:1px solid #252525}
-.shop-page .kb .mp-card:hover{border-color:rgba(232,160,32,.45)}
-.shop-page .kb .mp-ci{background:#0c0c0c}
-.shop-page .kb .mp-ctag{background:#e8a020;color:#000;border-radius:1px}
-.shop-page .kb .mp-cst{color:#e8a020}
-.shop-page .kb .mp-cp{color:#f5c147}
-.shop-page .kb .mp-cp small{color:#6e6e6e}
-.shop-page .kb select.mp-sel{background:#0a0a0a;border:1px solid #252525;color:#f4f0e8;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23666' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
-.shop-page .kb .mp-qty{border:1px solid #252525}
-.shop-page .kb .mp-qty button{color:#6e6e6e}
-.shop-page .kb .mp-qty button:hover{color:#e8a020;background:rgba(232,160,32,.08)}
-.shop-page .kb .mp-qv{color:#f4f0e8;border-left:1px solid #252525;border-right:1px solid #252525}
-.shop-page .kb button.mp-add{background:#e8a020;color:#000}
-.shop-page .kb .mp-note{border-left-color:#e8a020;background:rgba(232,160,32,.04);color:#6e6e6e}
-.shop-page .kb .mp-note strong{color:#e8a020}
-.shop-page .kb-slideshow{position:relative;width:100%;overflow:hidden;background:#000;line-height:0}
-.shop-page .kb-slideshow .ss-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1)}
-.shop-page .kb-slideshow .ss-slide{flex:0 0 100%}
-.shop-page .kb-slideshow .ss-slide img{width:100%;display:block;max-height:340px;object-fit:cover;object-position:center top}
-.shop-page .kb-slideshow .ss-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:5}
-.shop-page .kb-slideshow .ss-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.3);transition:background .25s,transform .25s}
-.shop-page .kb-slideshow .ss-dot.on{background:#e8a020;transform:scale(1.3)}
-.shop-page .kb-hd{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:22px clamp(1rem,4vw,3rem);border-bottom:1px solid #252525}
-.shop-page .kb-hd-logo{height:54px;width:auto;object-fit:contain}
-.shop-page .kb-hd-r{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
-.shop-page .kb-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.shop-page .kb-pill{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:5px 14px;border-radius:2px}
-.shop-page .kb-pill.g{background:#e8a020;color:#000}
-.shop-page .kb-pill.o{border:1px solid #252525;color:#6e6e6e}
-.shop-page .kb-hd-tag{font-size:12px;color:#6e6e6e;font-style:italic}
+/* ── MAYORISTA: paleta blanca (mismo look que home B2C) ──────────────────── */
+#mayoPage .mayo-hero{
+  background:linear-gradient(135deg,#fff3d6 0%,#ffe4a1 100%);
+  border-bottom:2px solid #111;padding:32px clamp(1rem,4vw,3rem);
+  display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+}
+#mayoPage .mayo-hero-ico{font-size:2.4rem;flex-shrink:0}
+#mayoPage .mayo-hero-txt{flex:1;min-width:0}
+#mayoPage .mayo-hero-title{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(28px,4vw,42px);font-weight:800;line-height:1.05;color:#111;letter-spacing:-.01em}
+#mayoPage .mayo-hero-sub{font-family:'DM Sans',sans-serif;font-size:14px;color:#5a4a2a;margin-top:6px;line-height:1.5}
 
-/* ── LANÚS ──────────────────────────────────────────────────────────── */
-.shop-page .ln{background:#1a0810;color:#f5eed8;font-family:'DM Sans',sans-serif}
-.shop-page .ln .mp-section-t{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;color:#f5eed8}
-.shop-page .ln .mp-section-s{color:#8a6a7a}
-.shop-page .ln .mp-card{background:#2c0f1c;border:1px solid rgba(201,162,39,.2)}
-.shop-page .ln .mp-card:hover{border-color:rgba(201,162,39,.55)}
-.shop-page .ln .mp-ci{background:#110508}
-.shop-page .ln .mp-ctag{background:#c9a227;color:#1a0810}
-.shop-page .ln .mp-cst{color:#c9a227}
-.shop-page .ln .mp-cn{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:700;color:#f5eed8}
-.shop-page .ln .mp-cp{color:#e8c454}
-.shop-page .ln .mp-cp small{color:#8a6a7a}
-.shop-page .ln select.mp-sel{background:#0f0409;border:1px solid rgba(201,162,39,.2);color:#f5eed8;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%238a6a10' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
-.shop-page .ln .mp-qty{border:1px solid rgba(201,162,39,.2)}
-.shop-page .ln .mp-qty button{color:#8a6a7a}
-.shop-page .ln .mp-qty button:hover{color:#c9a227;background:rgba(201,162,39,.08)}
-.shop-page .ln .mp-qv{color:#f5eed8;border-left:1px solid rgba(201,162,39,.2);border-right:1px solid rgba(201,162,39,.2)}
-.shop-page .ln button.mp-add{background:linear-gradient(135deg,#8a6a10,#c9a227);color:#1a0810}
-.shop-page .ln .mp-note{border-left-color:#c9a227;background:rgba(201,162,39,.04);color:#8a6a7a;font-style:italic}
-.shop-page .ln .mp-note strong{color:#c9a227;font-style:normal}
-.shop-page .ln-hero{position:relative;padding:60px clamp(1rem,4vw,3rem) 48px;border-bottom:1px solid rgba(201,162,39,.2);text-align:center;display:flex;flex-direction:column;align-items:center;overflow:hidden}
-.shop-page .ln-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,#75aadb 33%,#f0ece0 33% 67%,#75aadb 67%)}
-.shop-page .ln-hero::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 50% 50%,rgba(123,31,58,.25) 0%,transparent 70%);pointer-events:none}
-.shop-page .ln-hero > *{position:relative;z-index:1}
-.shop-page .ln-wt{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#c9a227;margin-bottom:12px}
-.shop-page .ln-title{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(60px,9vw,110px);font-weight:900;line-height:.9;color:#f5eed8;margin-bottom:4px}
-.shop-page .ln-title em{font-style:italic;color:#c9a227}
-.shop-page .ln-year{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(28px,4vw,48px);color:#75aadb;letter-spacing:.1em;margin-bottom:14px}
-.shop-page .ln-tag{font-style:italic;font-size:15px;color:#8a6a7a;border-left:2px solid #c9a227;padding-left:14px;text-align:left;line-height:1.5}
-.shop-page .ln-flag{position:absolute;right:clamp(1rem,4vw,3rem);top:48px;display:flex;flex-direction:column;align-items:center;gap:5px;z-index:2}
-.shop-page .ln-flag .flag{width:66px;height:42px;border-radius:3px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.5);display:flex;flex-direction:column}
-.shop-page .ln-flag .flag span{display:block;flex:1}
-.shop-page .ln-flag .flag span:nth-child(odd){background:#75aadb}
-.shop-page .ln-flag .flag span:nth-child(2){background:#f0ece0}
-.shop-page .ln-flag .cap{font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#8a6a7a}
+/* Banderas para World Tour */
+.flag-badge{position:absolute;top:10px;right:10px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none}
+.flag{width:32px;height:22px;border-radius:2px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.25);display:flex;flex-direction:column}
+.flag.flag-ar span{flex:1;display:block}
+.flag.flag-ar span:nth-child(1),.flag.flag-ar span:nth-child(3){background:#75aadb}
+.flag.flag-ar span:nth-child(2){background:#f0ece0}
+.flag.flag-jp{background:#fff;display:flex;align-items:center;justify-content:center}
+.flag.flag-jp::after{content:'';width:10px;height:10px;border-radius:50%;background:#c0241a}
+.flag-cap{font-family:'DM Sans',sans-serif;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#555;background:#fff;padding:1px 4px;border-radius:2px;font-weight:700}
 
-/* ── OSAGUI ─────────────────────────────────────────────────────────── */
-.shop-page .os{background:#0d0a08;color:#f5e6c8;font-family:'DM Sans',sans-serif}
-.shop-page .os .mp-section-t,.shop-page .os .mp-cn{color:#f5e6c8}
-.shop-page .os .mp-section-s{color:#8a7060}
-.shop-page .os .mp-card{background:#1a1208;border:1px solid rgba(180,30,30,.25)}
-.shop-page .os .mp-card:hover{border-color:rgba(192,36,26,.55)}
-.shop-page .os .mp-ci{background:#100c06}
-.shop-page .os .mp-ctag{background:#c0241a;color:#fff}
-.shop-page .os .mp-cst{color:#c0241a}
-.shop-page .os .mp-cp{color:#d4b896}
-.shop-page .os .mp-cp small{color:#8a7060}
-.shop-page .os select.mp-sel{background:#0a0806;border:1px solid rgba(180,30,30,.25);color:#f5e6c8;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23666' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
-.shop-page .os .mp-qty{border:1px solid rgba(180,30,30,.25)}
-.shop-page .os .mp-qty button{color:#8a7060}
-.shop-page .os .mp-qty button:hover{color:#c0241a;background:rgba(192,36,26,.08)}
-.shop-page .os .mp-qv{color:#f5e6c8;border-left:1px solid rgba(180,30,30,.25);border-right:1px solid rgba(180,30,30,.25)}
-.shop-page .os button.mp-add{background:#c0241a;color:#fff}
-.shop-page .os .mp-note{border-left-color:#c0241a;background:rgba(192,36,26,.04);color:#8a7060}
-.shop-page .os .mp-note strong{color:#c0241a}
-.shop-page .os-banner{width:100%;line-height:0;overflow:hidden;max-height:360px}
-.shop-page .os-banner img{width:100%;display:block;object-fit:cover;object-position:center;max-height:360px}
-.shop-page .os-hero{position:relative;padding:48px clamp(1rem,4vw,3rem) 40px;border-bottom:1px solid rgba(180,30,30,.25);display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;overflow:hidden}
-.shop-page .os-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 80% at 30% 50%,rgba(192,36,26,.15) 0%,transparent 70%);pointer-events:none}
-.shop-page .os-hero > *{position:relative;z-index:1}
-.shop-page .os-wt{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#c0241a;margin-bottom:10px}
-.shop-page .os-title{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(60px,9vw,108px);line-height:.9;color:#f5e6c8;margin-bottom:4px;letter-spacing:.02em}
-.shop-page .os-jp{font-size:clamp(18px,3vw,30px);color:#4a90d9;letter-spacing:.15em;margin-bottom:12px;font-weight:300}
-.shop-page .os-tag{font-style:italic;font-size:15px;color:#8a7060;border-left:2px solid #c0241a;padding-left:14px;line-height:1.5}
-.shop-page .os-flag{display:flex;flex-direction:column;align-items:center;gap:5px}
-.shop-page .os-flag .flag-jp{width:66px;height:44px;border-radius:3px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.5);background:#fff;display:flex;align-items:center;justify-content:center}
-.shop-page .os-flag .flag-jp::after{content:'';width:22px;height:22px;border-radius:50%;background:#c0241a}
-.shop-page .os-flag .cap{font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#8a7060}
-
-/* ── FIRULAIS ───────────────────────────────────────────────────────── */
-.shop-page .fr{background:#f5c900;color:#1d3d25;font-family:'DM Sans',sans-serif}
-.shop-page .fr .mp-section-t{color:#1d3d25}
-.shop-page .fr .mp-section-s{color:#5a6e40}
-.shop-page .fr .mp-sub-head{color:#1d3d25;border-color:rgba(29,61,37,.3)}
-.shop-page .fr .mp-card{background:#fffbe6;border:2px solid #1d3d25;border-radius:4px}
-.shop-page .fr .mp-card:hover{box-shadow:4px 4px 0 #1d3d25}
-.shop-page .fr .mp-ci{background:#fef9d0}
-.shop-page .fr .mp-ctag{background:#1d3d25;color:#f5c900}
-.shop-page .fr .mp-cst{color:#3a8c5a;font-weight:600}
-.shop-page .fr .mp-cn{color:#1d3d25}
-.shop-page .fr .mp-cp{color:#1d3d25}
-.shop-page .fr .mp-cp small{color:#5a6e40}
-.shop-page .fr select.mp-sel{background:#fef9d0;border:1.5px solid #1d3d25;color:#1d3d25;font-weight:600;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%231d3d25' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
-.shop-page .fr .mp-qty{border:1.5px solid #1d3d25}
-.shop-page .fr .mp-qty button{color:#5a6e40;font-weight:700}
-.shop-page .fr .mp-qty button:hover{color:#1d3d25;background:rgba(29,61,37,.1)}
-.shop-page .fr .mp-qv{color:#1d3d25;font-weight:700;border-left:1.5px solid #1d3d25;border-right:1.5px solid #1d3d25}
-.shop-page .fr button.mp-add{background:#1d3d25;color:#f5c900;border-radius:3px}
-.shop-page .fr button.mp-add:hover{background:#2d5a3a}
-.shop-page .fr .mp-note{border-left:4px solid #3a8c5a;background:rgba(29,61,37,.06);color:#1d3d25;font-weight:500}
-.shop-page .fr .mp-note strong{color:#3a8c5a;font-weight:700}
-.shop-page .fr-banner{width:100%;line-height:0;overflow:hidden;max-height:360px}
-.shop-page .fr-banner img{width:100%;display:block;object-fit:cover;max-height:360px}
-.shop-page .fr-hero{padding:48px clamp(1rem,4vw,3rem) 40px;border-bottom:3px solid #1d3d25;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
-.shop-page .fr-wt{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#1d3d25;opacity:.6;margin-bottom:8px}
-.shop-page .fr-title{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(60px,9vw,108px);line-height:.88;color:#1d3d25;margin-bottom:4px;letter-spacing:.01em}
-.shop-page .fr-sub{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;letter-spacing:.25em;text-transform:uppercase;color:#5a6e40;margin-bottom:10px}
-.shop-page .fr-tag{font-family:'DM Sans',sans-serif;font-size:15px;color:#1d3d25;border-left:3px solid #1d3d25;padding-left:12px;line-height:1.5;font-weight:600}
-.shop-page .fr-badge{width:104px;height:104px;background:#1d3d25;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;flex-shrink:0}
-.shop-page .fr-badge span:nth-child(1){font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#f5c900;opacity:.7}
-.shop-page .fr-badge span:nth-child(2){font-family:'Bricolage Grotesque',sans-serif;font-size:22px;color:#f5c900;letter-spacing:.05em;line-height:1}
-.shop-page .fr-badge span:nth-child(3){font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#3a8c5a}
-
-/* ── BANNY ──────────────────────────────────────────────────────────── */
-.shop-page .bn{background:#77cbbf;color:#0d0f2a;font-family:'DM Sans',sans-serif}
-.shop-page .bn .mp-section-t,.shop-page .bn .mp-cn{color:#0d0f2a}
-.shop-page .bn .mp-section-s{color:rgba(13,15,42,.55)}
-.shop-page .bn .mp-sub-head{color:#0d0f2a;border-color:rgba(13,15,42,.3)}
-.shop-page .bn .mp-card{background:#fff9f0;border:1.5px solid rgba(13,15,42,.15);border-radius:8px}
-.shop-page .bn .mp-card:hover{box-shadow:0 8px 24px rgba(13,15,42,.18)}
-.shop-page .bn .mp-ci{background:#f0faf8}
-.shop-page .bn .mp-ctag{background:#0d0f2a;color:#77cbbf}
-.shop-page .bn .mp-cst{color:#5ab8aa;font-weight:600}
-.shop-page .bn .mp-cp{color:#0d0f2a}
-.shop-page .bn .mp-cp small{color:rgba(13,15,42,.45)}
-.shop-page .bn select.mp-sel{background:#f0faf8;border:1.5px solid rgba(13,15,42,.15);color:#0d0f2a;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%230d0f2a' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
-.shop-page .bn .mp-qty{border:1.5px solid rgba(13,15,42,.15)}
-.shop-page .bn .mp-qty button{color:rgba(13,15,42,.45)}
-.shop-page .bn .mp-qty button:hover{color:#5ab8aa;background:rgba(119,203,191,.15)}
-.shop-page .bn .mp-qv{color:#0d0f2a;border-left:1.5px solid rgba(13,15,42,.15);border-right:1.5px solid rgba(13,15,42,.15)}
-.shop-page .bn button.mp-add{background:#0d0f2a;color:#77cbbf;border-radius:4px}
-.shop-page .bn .mp-note{border-left:4px solid #0d0f2a;background:rgba(13,15,42,.05);color:#0d0f2a}
-.shop-page .bn .mp-note strong{color:#5ab8aa;font-weight:700}
-.shop-page .bn-hero{padding:60px clamp(1rem,4vw,3rem) 48px;border-bottom:3px solid #0d0f2a;display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap;position:relative;overflow:hidden}
-.shop-page .bn-hero::after{content:'';position:absolute;right:-80px;top:-80px;width:380px;height:380px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none}
-.shop-page .bn-hero > *{position:relative;z-index:1}
-.shop-page .bn-wt{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#0d0f2a;opacity:.55;margin-bottom:10px}
-.shop-page .bn-title{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(70px,11vw,130px);line-height:.85;color:#0d0f2a;letter-spacing:.02em;margin-bottom:4px}
-.shop-page .bn-by{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:#0d0f2a;opacity:.5;letter-spacing:.1em;margin-bottom:14px}
-.shop-page .bn-tag{font-family:'DM Sans',sans-serif;font-size:17px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#0d0f2a;border-left:3px solid #0d0f2a;padding-left:14px;line-height:1.4}
-.shop-page .bn-dots{display:flex;gap:8px;margin-top:10px}
-.shop-page .bn-dot{width:24px;height:24px;border-radius:50%;border:2px solid rgba(13,15,42,.2)}
-.shop-page .bn-bar{background:#0d0f2a;padding:14px clamp(1rem,4vw,3rem);display:flex;align-items:center;gap:16px}
-.shop-page .bn-bar .lbl{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff8e6}
-.shop-page .bn-bar .br{font-family:'DM Sans',sans-serif;font-size:14px;letter-spacing:.15em;text-transform:uppercase;color:#77cbbf}
+/* World Tour card: hace lugar para la bandera */
+.hp-card.wt-card{position:relative}
+.hp-card .wt-country{
+  display:inline-block;font-family:'DM Sans',sans-serif;font-size:10px;
+  letter-spacing:.12em;text-transform:uppercase;color:#888;font-weight:700;
+  text-align:center;margin-top:2px;
+}
 
 .cart-btn{
   flex-shrink:0;position:relative;cursor:pointer;
@@ -1892,7 +1777,7 @@ function hpAdd(btn){
 }
 
 function hpInitHero(){
-  const ss = document.querySelector('#homePage .hp-hero');
+  const ss = document.querySelector('.shop-page .hp-hero');
   if (!ss || ss.dataset.init) return;
   ss.dataset.init = '1';
   const track = ss.querySelector('.ht-track');
@@ -1977,17 +1862,22 @@ async function showStorefront(){
       </div>
     </div>`;
 
+  // Círculos de marca como carrusel infinito (marquee) + pills debajo.
+  // Repetimos los 3 logos varias veces para que el loop sea seamless.
+  const brandLogos = [
+    { src:'brands/kairos.png',   target:'sec-chelas',     alt:'Kairos' },
+    { src:'brands/firulais.png', target:'sec-craftmix',   alt:'Firulais' },
+    { src:'brands/banny.png',    target:'sec-destileria', alt:'Banny' },
+  ];
+  const circleSet = brandLogos.map(b => `<a class="hp-circle" onclick="hpScrollTo('${b.target}')"><img src="${b.src}" alt="${b.alt}"></a>`).join('');
   const categories = `
-    <div class="hp-categories">
-      <button class="hp-cat chelas" onclick="hpScrollTo('sec-chelas')">
-        <span class="circle"><img src="brands/kairos.png" alt="Kairos Brewing"></span><span class="lbl">Chelas</span>
-      </button>
-      <button class="hp-cat craftmix" onclick="hpScrollTo('sec-craftmix')">
-        <span class="circle"><img src="brands/firulais.png" alt="Firulais"></span><span class="lbl">Craft Mix</span>
-      </button>
-      <button class="hp-cat destileria" onclick="hpScrollTo('sec-destileria')">
-        <span class="circle"><img src="brands/banny.png" alt="Banny"></span><span class="lbl">Licores</span>
-      </button>
+    <div class="hp-circles">
+      <div class="hp-circles-track">${circleSet}${circleSet}${circleSet}${circleSet}</div>
+    </div>
+    <div class="hp-pillrow">
+      <button class="hp-pill" onclick="hpScrollTo('sec-chelas')">Cervezas</button>
+      <button class="hp-pill" onclick="hpScrollTo('sec-craftmix')">Craft Mix</button>
+      <button class="hp-pill" onclick="hpScrollTo('sec-destileria')">Destilados</button>
     </div>`;
 
   const section = (id, title, sub, items) => items.length ? `
@@ -2815,40 +2705,84 @@ function scrollToChat(){
   msgs.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
+// ─── MAYORISTA STOREFRONT (paleta blanca igual al home) ───────────────────
+// Secciones: Chelas Kairos (barriles + 24 packs, sin NZ Pils) · Firulais ·
+// Destilados Banny · World Tour (Lanús + Osagui, con bandera de su país)
 async function showMayoristaStorefront(){
   const products = await loadMpCatalog();
-  const groups = { kairos:{barril:[],pack:[]}, lanus:[], osagui:[], firulais:[], banny:[] };
+  const groups = { chelas:[], firulais:[], destileria:[], worldTour:[] };
+
   for (const p of products) {
     if (!p.variants || !p.variants.length) continue;
     const brand = detectMpBrand(p);
+    const t = (p.title || '').toLowerCase();
+
     if (brand === 'kairos') {
       if (!passesKairosMpFilter(p)) continue;
+      if (/nz\s*pils|new\s*zealand|nzpils/.test(t)) continue;
       const fmt = kairosFmt(p);
-      if (fmt === 'barril')   groups.kairos.barril.push(p);
-      else if (fmt === 'pack') groups.kairos.pack.push(p);
-    } else if (groups[brand]) {
-      groups[brand].push(p);
+      if (fmt === 'barril' || fmt === 'pack') groups.chelas.push(p);
+    } else if (brand === 'firulais') {
+      groups.firulais.push(p);
+    } else if (brand === 'banny') {
+      groups.destileria.push(p);
+    } else if (brand === 'lanus') {
+      groups.worldTour.push({ ...p, _flag:'ar', _country:'Argentina' });
+    } else if (brand === 'osagui') {
+      groups.worldTour.push({ ...p, _flag:'jp', _country:'Japón' });
     }
   }
-  const present = {
-    kairos:   groups.kairos.barril.length || groups.kairos.pack.length,
-    lanus:    groups.lanus.length,
-    osagui:   groups.osagui.length,
-    firulais: groups.firulais.length,
-    banny:    groups.banny.length,
-  };
+
+  const customer = (() => { try { return JSON.parse(sessionStorage.getItem('zmayo_customer') || '{}'); } catch { return {}; } })();
+  const nom = customer.first_name || 'colega';
+  const heroMayo = `
+    <div class="mayo-hero">
+      <span class="mayo-hero-ico">🔐</span>
+      <div class="mayo-hero-txt">
+        <div class="mayo-hero-title">Hola ${escapeHtml(nom)} — modo mayorista</div>
+        <div class="mayo-hero-sub">Catálogo wholesale: barriles, 24 packs, destilados y World Tour. Precios negociados directamente con Kairos.</div>
+      </div>
+    </div>`;
+
+  const navPills = `
+    <div class="hp-pillrow" style="padding-top:20px;padding-bottom:8px">
+      ${groups.chelas.length ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-chelas\')">Chelas Kairos</button>' : ''}
+      ${groups.firulais.length ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-firulais\')">Firulais</button>' : ''}
+      ${groups.destileria.length ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-destileria\')">Destilados Banny</button>' : ''}
+      ${groups.worldTour.length ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-worldtour\')">World Tour</button>' : ''}
+    </div>`;
+
+  const sec = (id, title, sub, items, isWorldTour) => items.length ? `
+    <section class="hp-section" id="${id}">
+      <div class="hp-section-head">
+        <h2 class="hp-section-t">${title}</h2>
+        <span class="hp-section-s">${sub}</span>
+      </div>
+      <div class="hp-row">${items.map(p => isWorldTour ? buildMayoWorldTourCard(p) : buildHpCard(p)).join('')}</div>
+    </section>` : '';
+
   const html = `
-    ${buildBrandNav(present)}
-    ${buildKairosSection(groups.kairos.barril, groups.kairos.pack)}
-    ${buildLanusSection(groups.lanus)}
-    ${buildOsaguiSection(groups.osagui)}
-    ${buildFirulaisSection(groups.firulais)}
-    ${buildBannySection(groups.banny)}
+    ${heroMayo}
+    ${navPills}
+    ${sec('sec-mayo-chelas',     'Chelas Kairos',      'Barriles y 24 packs · mayorista',          groups.chelas, false)}
+    ${sec('sec-mayo-firulais',   'Firulais',           'Cheladas craft · mayorista',                groups.firulais, false)}
+    ${sec('sec-mayo-destileria', 'Destilados Banny',   'Gin · whiskey · ron · vermut · mayorista', groups.destileria, false)}
+    ${sec('sec-mayo-worldtour',  'World Tour',         'Cervezas de invitados · selección global', groups.worldTour, true)}
   `;
+
   const page = document.getElementById('mayoPage');
   if (!page) return;
   page.innerHTML = html;
-  initKairosSlideshow();
+}
+
+function buildMayoWorldTourCard(p){
+  const base = buildHpCard(p);
+  const flagHtml = p._flag === 'ar'
+    ? '<div class="flag-badge"><span class="flag flag-ar"><span></span><span></span><span></span></span><span class="flag-cap">'+escapeHtml(p._country)+'</span></div>'
+    : p._flag === 'jp'
+    ? '<div class="flag-badge"><span class="flag flag-jp"></span><span class="flag-cap">'+escapeHtml(p._country)+'</span></div>'
+    : '';
+  return base.replace('<div class="hp-card">', '<div class="hp-card wt-card">' + flagHtml);
 }
 
 function restoreMayoristaState(){
