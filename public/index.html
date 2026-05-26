@@ -408,10 +408,24 @@ body.mayorista-active #mayoPage{display:block}
 .shop-page .hp-welcome-link:hover{text-decoration-color:#a05f00}
 .shop-page .hp-welcome-link strong{color:#a05f00}
 
-/* Cierre: misma welcome bubble que arriba pero con más aire vertical */
-.shop-page .hp-welcome-cierre{margin:48px auto 56px;scroll-margin-top:24px}
+/* Cierre: wordmark ZORBO. + línea fina + bubble del bot */
+.shop-page .hp-cierre-wordmark{
+  scroll-margin-top:24px;
+  margin:64px auto 28px;padding:0 clamp(1rem,4vw,3rem);
+  text-align:center;color:#0a0a0a;
+  font-family:'Bricolage Grotesque','DM Sans',sans-serif;
+  font-weight:800;letter-spacing:-.04em;line-height:.9;
+  font-size:clamp(72px,14vw,180px);
+}
+.shop-page .hp-cierre-rule{
+  border:none;height:1px;background:#e5e5e5;
+  max-width:780px;margin:0 auto 28px;
+}
+.shop-page .hp-welcome-cierre{margin:0 auto 64px}
 @media (max-width:600px){
-  .shop-page .hp-welcome-cierre{margin:36px auto 44px}
+  .shop-page .hp-cierre-wordmark{margin:48px auto 22px;font-size:clamp(56px,18vw,110px)}
+  .shop-page .hp-cierre-rule{margin-bottom:22px}
+  .shop-page .hp-welcome-cierre{margin-bottom:48px}
 }
 
 /* Promo CTA 10% OFF */
@@ -1988,10 +2002,12 @@ async function showStorefront(){
       </div>
     </section>`;
 
-  // Sección de cierre: el manifiesto se muestra como un mensaje de Zorbot
-  // al final de la página (misma estética que el welcome bubble de arriba).
+  // Sección de cierre: wordmark ZORBO. + línea fina + mensaje de Zorbot
+  // (misma estética que el welcome bubble de arriba).
   const cierreHtml = `
-    <div class="hp-welcome hp-welcome-cierre" id="sec-cierre">
+    <div class="hp-cierre-wordmark" id="sec-cierre">ZORBO.</div>
+    <hr class="hp-cierre-rule">
+    <div class="hp-welcome hp-welcome-cierre">
       <div class="hp-welcome-avatar">⚡</div>
       <div class="hp-welcome-col">
         <div class="hp-welcome-sender">Zorbot <span class="hp-welcome-badge">IA</span></div>
