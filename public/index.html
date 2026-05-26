@@ -408,64 +408,10 @@ body.mayorista-active #mayoPage{display:block}
 .shop-page .hp-welcome-link:hover{text-decoration-color:#a05f00}
 .shop-page .hp-welcome-link strong{color:#a05f00}
 
-/* Sección de cierre (manifiesto de marca + chat) — premium, elegante, dorada */
-.shop-page .hp-cierre{
-  padding:80px clamp(1.25rem,5vw,3rem) 96px;
-  border-top:1px solid #e5e5e5;
-  background:linear-gradient(180deg,#fff 0%,#fffaf0 100%);
-  display:flex;flex-direction:column;align-items:center;text-align:center;
-}
-.shop-page .hp-cierre-logo{
-  height:64px;width:auto;object-fit:contain;display:block;
-  margin-bottom:36px;filter:drop-shadow(0 4px 18px rgba(160,95,0,.18));
-}
-.shop-page .hp-cierre-manifest{
-  max-width:640px;margin:0 auto 44px;
-  font-family:'Syne','Bricolage Grotesque',sans-serif;
-  color:#1a1408;letter-spacing:.005em;
-}
-.shop-page .hp-cierre-manifest p{
-  font-size:clamp(17px,2.1vw,21px);
-  line-height:1.65;font-weight:500;
-  margin-bottom:1.4em;
-}
-.shop-page .hp-cierre-manifest p:nth-child(2){
-  font-family:'Syne',sans-serif;font-weight:700;
-  color:#a05f00;letter-spacing:.01em;
-  font-size:clamp(19px,2.4vw,23px);
-}
-.shop-page .hp-cierre-manifest p:last-child{margin-bottom:0;color:#5a4a2a;font-weight:500}
-.shop-page .hp-cierre-chat{
-  display:flex;align-items:flex-end;gap:10px;
-  width:100%;max-width:560px;
-  background:#fff;border:1.5px solid #f5a623;
-  border-radius:18px;padding:10px 10px 10px 18px;
-  box-shadow:0 12px 40px rgba(160,95,0,.10),0 2px 8px rgba(0,0,0,.04);
-  transition:border-color .2s,box-shadow .2s;
-}
-.shop-page .hp-cierre-chat:focus-within{
-  border-color:#a05f00;
-  box-shadow:0 14px 46px rgba(160,95,0,.18),0 2px 10px rgba(0,0,0,.06);
-}
-.shop-page .hp-cierre-input{
-  flex:1;min-width:0;border:none;outline:none;background:transparent;resize:none;
-  font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.5;color:#111;
-  padding:8px 0;max-height:140px;
-}
-.shop-page .hp-cierre-input::placeholder{color:#999;font-weight:400}
-.shop-page .hp-cierre-send{
-  flex-shrink:0;width:42px;height:42px;border-radius:12px;border:none;cursor:pointer;
-  background:linear-gradient(135deg,#f5a623 0%,#a05f00 100%);
-  color:#fff;display:flex;align-items:center;justify-content:center;
-  transition:transform .12s,opacity .2s;
-}
-.shop-page .hp-cierre-send:hover{opacity:.92}
-.shop-page .hp-cierre-send:active{transform:scale(.95)}
+/* Cierre: misma welcome bubble que arriba pero con más aire vertical */
+.shop-page .hp-welcome-cierre{margin:48px auto 56px;scroll-margin-top:24px}
 @media (max-width:600px){
-  .shop-page .hp-cierre{padding:60px 1.25rem 72px}
-  .shop-page .hp-cierre-logo{height:52px;margin-bottom:28px}
-  .shop-page .hp-cierre-manifest{margin-bottom:32px}
-  .shop-page .hp-cierre-input{font-size:16px}
+  .shop-page .hp-welcome-cierre{margin:36px auto 44px}
 }
 
 /* Promo CTA 10% OFF */
@@ -2042,27 +1988,21 @@ async function showStorefront(){
       </div>
     </section>`;
 
-  // Sección de cierre (manifiesto de marca + acceso al chat) — va al final
-  // de la home y desemboca en una conversación con Zorbot.
+  // Sección de cierre: el manifiesto se muestra como un mensaje de Zorbot
+  // al final de la página (misma estética que el welcome bubble de arriba).
   const cierreHtml = `
-    <section class="hp-cierre" id="sec-cierre">
-      <img class="hp-cierre-logo" src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Titulo_secundario-3.png?v=1779814975" alt="ZORBO">
-      <div class="hp-cierre-manifest">
-        <p>La generación que cambió cómo se toma en Chile necesitaba una marca que lo entendiera.</p>
-        <p>ZORBO es la primera curaduría inteligente de bebidas craft del país.</p>
-        <p>El cambio empezó con un zorbo — ¿quieres que te acompañe?</p>
-        <p>Demos nuestro primer ZORBO juntos, cuéntame acá 👇</p>
+    <div class="hp-welcome hp-welcome-cierre" id="sec-cierre">
+      <div class="hp-welcome-avatar">⚡</div>
+      <div class="hp-welcome-col">
+        <div class="hp-welcome-sender">Zorbot <span class="hp-welcome-badge">IA</span></div>
+        <div class="hp-welcome-bubble">
+          <p>La generación que cambió cómo se toma en Chile necesitaba una marca que lo entendiera.</p>
+          <p><strong>ZORBO es la primera curaduría inteligente de bebidas craft del país.</strong></p>
+          <p>El cambio empezó con un zorbo — ¿quieres que te acompañe?</p>
+          <p>Demos nuestro primer ZORBO juntos, cuéntame acá 👇</p>
+        </div>
       </div>
-      <form class="hp-cierre-chat" onsubmit="event.preventDefault();sendFromCierre()">
-        <textarea class="hp-cierre-input" id="cierreIn" rows="1"
-          placeholder="Cuéntale a Zorbot lo que buscas..."
-          onkeydown="onCierreKey(event)"
-          oninput="cierreAutoResize(this)"></textarea>
-        <button type="submit" class="hp-cierre-send" aria-label="Enviar">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
-      </form>
-    </section>`;
+    </div>`;
 
   // Orden: marquee → hero → categorías (logos) → welcome bubble → secciones de
   // producto → juegos → cierre (manifiesto + chat).
@@ -2845,31 +2785,6 @@ function scrollToChat(){
   if (!ca || !msgs) return;
   // Scroll para que las messages queden visibles (la última al fondo)
   msgs.scrollIntoView({ behavior: 'smooth', block: 'end' });
-}
-
-// Input del manifiesto en la sección de cierre: el usuario escribe ahí y la
-// conversación entra al chat principal (mismo flujo que el input fijo).
-function sendFromCierre(){
-  const inp = document.getElementById('cierreIn');
-  if (!inp) return;
-  const text = inp.value.trim();
-  if (!text || streaming) return;
-  const main = document.getElementById('msgIn');
-  if (!main) return;
-  main.value = text;
-  inp.value = '';
-  cierreAutoResize(inp);
-  send();
-}
-function onCierreKey(e){
-  if (e.key === 'Enter' && !e.shiftKey){
-    e.preventDefault();
-    sendFromCierre();
-  }
-}
-function cierreAutoResize(el){
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 140) + 'px';
 }
 
 // ─── MAYORISTA STOREFRONT (paleta blanca igual al home) ───────────────────
