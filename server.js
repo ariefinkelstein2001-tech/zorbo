@@ -197,6 +197,33 @@ function newSession(id, from) {
   };
 }
 
+// Recupera o crea una sesión. Si no está en memoria (server redeploy, TTL),
+// intenta restaurarla desde CONV_LOG. Así el contexto de chat sobrevive a
+// reinicios del proceso.
+function getOrCreateSession(sessionId, from){
+  if (sessions.has(sessionId)) return sessions.get(sessionId);
+  try {
+    const log = readLog(CONV_LOG);
+    const entry = log.find(e => e.sessionId === sessionId);
+    if (entry) {
+      const restored = newSession(sessionId, entry.from || from);
+      restored.startTime          = entry.startTime || restored.startTime;
+      restored.messages           = entry.messages || [];
+      restored.purchaseIntent     = !!entry.purchaseIntent;
+      restored.isB2B              = !!entry.isB2B;
+      restored.brandMentions      = entry.summary && entry.summary.topBrand
+        ? { ...restored.brandMentions, ...(entry.brandMentions || {}) }
+        : restored.brandMentions;
+      restored.recommendedProducts = new Set(entry.recommendedProducts || []);
+      sessions.set(sessionId, restored);
+      return restored;
+    }
+  } catch (e) { console.warn('session restore:', e.message); }
+  const fresh = newSession(sessionId, from);
+  sessions.set(sessionId, fresh);
+  return fresh;
+}
+
 function touchSession(id) {
   const s = sessions.get(id);
   if (!s) return;
@@ -670,10 +697,10 @@ app.post('/chat', async (req, res) => {
     return res.status(500).json({ error: 'Error al cargar el sistema.' });
   }
 
-  // Sesión
+  // Sesión: si no está en memoria, intentamos restaurar desde disco
+  // (sobrevive a redeploys de Railway que limpian la memoria).
   const sessionId = clientId || randomUUID();
-  if (!sessions.has(sessionId)) sessions.set(sessionId, newSession(sessionId, from));
-  const session = sessions.get(sessionId);
+  const session = getOrCreateSession(sessionId, from);
   touchSession(sessionId);
 
   // Detectar flags
