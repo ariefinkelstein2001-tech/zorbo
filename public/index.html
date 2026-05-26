@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ZORBO.AI — Craft Marketplace</title>
 <meta name="description" content="Marketplace de bebidas artesanales. Cervezas Kairos Brewing, cheladas Firulais y destilados Banny.">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Bebas+Neue&family=Barlow:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0a0a0e;
@@ -31,7 +31,7 @@
   --f:#e07a5f;
   --b:#b6a4e6;
   --sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
-  --display:'Syne',var(--sans);
+  --display:'Bricolage Grotesque',var(--sans);
   --radius:16px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -90,6 +90,8 @@ header{
   border-bottom:1px solid var(--border);z-index:20;
 }
 .brand-logo{display:flex;align-items:center;gap:.55rem;flex-shrink:0;user-select:none}
+.brand-logo .logo-img{height:38px;width:auto;object-fit:contain;display:block}
+@media(max-width:600px){.brand-logo .logo-img{height:30px}}
 .logo-mark{
   width:34px;height:34px;border-radius:9px;flex-shrink:0;
   background:linear-gradient(135deg,var(--gold-bright),var(--gold) 60%,var(--gold-deep));
@@ -188,7 +190,7 @@ body.mayorista-active #mayoPage{display:block}
 .shop-page *,.shop-page *::before,.shop-page *::after{box-sizing:border-box}
 
 /* ── HOME B2C (tema BLANCO con texto negro, accento naranja Kairos) ──────── */
-#homePage{font-family:'Barlow',sans-serif}
+#homePage{font-family:'DM Sans',sans-serif}
 #homePage .hp-marquee{
   background:#111;color:#fff;overflow:hidden;
   padding:11px 0;font-size:13px;font-weight:600;letter-spacing:.04em;
@@ -201,10 +203,10 @@ body.mayorista-active #mayoPage{display:block}
 }
 #homePage .hp-marquee-track span{display:inline-flex;align-items:center;gap:8px}
 @keyframes hp-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-#homePage .hp-hero{position:relative;width:100%;overflow:hidden;background:#000;line-height:0}
-#homePage .hp-hero .ht-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1)}
-#homePage .hp-hero .ht-slide{flex:0 0 100%;line-height:0}
-#homePage .hp-hero .ht-slide img{width:100%;display:block;max-height:480px;object-fit:cover;object-position:center}
+#homePage .hp-hero{position:relative;width:100%;overflow:hidden;background:#000;line-height:0;aspect-ratio:2/1;max-height:600px}
+#homePage .hp-hero .ht-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1);height:100%}
+#homePage .hp-hero .ht-slide{flex:0 0 100%;line-height:0;height:100%}
+#homePage .hp-hero .ht-slide img{width:100%;height:100%;display:block;object-fit:contain;object-position:center;background:#000}
 #homePage .hp-hero .ht-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:5}
 #homePage .hp-hero .ht-dots .d{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.45);transition:all .25s;cursor:pointer;border:none}
 #homePage .hp-hero .ht-dots .d.on{background:#f5a623;width:22px;border-radius:4px}
@@ -226,12 +228,12 @@ body.mayorista-active #mayoPage{display:block}
 #homePage .hp-cat.chelas    .circle{background:#fff3d6}
 #homePage .hp-cat.craftmix  .circle{background:#fffae6}
 #homePage .hp-cat.destileria .circle{background:#dff5f1}
-#homePage .hp-cat .lbl{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.1em;color:#111;text-transform:uppercase}
+#homePage .hp-cat .lbl{font-family:'Bricolage Grotesque',sans-serif;font-size:18px;letter-spacing:.1em;color:#111;text-transform:uppercase}
 #homePage .hp-section{padding:48px clamp(1rem,4vw,3rem) 24px;border-top:1px solid #e5e5e5}
 #homePage .hp-section:first-of-type{border-top:none}
 #homePage .hp-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin-bottom:24px;flex-wrap:wrap}
-#homePage .hp-section-t{font-family:'Lalezar','Bebas Neue',sans-serif;font-size:clamp(34px,5vw,52px);letter-spacing:.02em;line-height:1;color:#111;text-transform:uppercase}
-#homePage .hp-section-s{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:#888;font-weight:600}
+#homePage .hp-section-t{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(34px,5vw,52px);letter-spacing:.02em;line-height:1;color:#111;text-transform:uppercase}
+#homePage .hp-section-s{font-family:'DM Sans',sans-serif;font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:#888;font-weight:600}
 #homePage .hp-row{
   display:flex;gap:18px;overflow-x:auto;
   scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
@@ -258,17 +260,17 @@ body.mayorista-active #mayoPage{display:block}
   position:absolute;inset:0;width:100%;height:100%;
 }
 #homePage .hp-card-img img.swap-out{opacity:0}
-#homePage .hp-card-name{font-family:'Barlow',sans-serif;font-size:15px;font-weight:700;color:#111;text-align:center;line-height:1.25;min-height:38px}
+#homePage .hp-card-name{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;color:#111;text-align:center;line-height:1.25;min-height:38px}
 #homePage .hp-variants{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
 #homePage .hp-variant{
   background:#fff;border:1.5px solid #ccc;color:#444;
-  font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.08em;
+  font-family:'Bricolage Grotesque',sans-serif;font-size:12px;letter-spacing:.08em;
   padding:7px 12px;border-radius:50px;cursor:pointer;
   transition:all .15s;font-weight:600;
 }
 #homePage .hp-variant:hover{border-color:#f5a623;color:#111}
 #homePage .hp-variant.active{background:#111;color:#fff;border-color:#111}
-#homePage .hp-card-price{font-family:'Barlow',sans-serif;font-size:20px;font-weight:800;color:#111;text-align:center;letter-spacing:.01em}
+#homePage .hp-card-price{font-family:'DM Sans',sans-serif;font-size:20px;font-weight:800;color:#111;text-align:center;letter-spacing:.01em}
 #homePage .hp-card-price .old{color:#999;font-weight:400;font-size:14px;text-decoration:line-through;margin-right:8px}
 #homePage .hp-acts{display:flex;gap:8px;margin-top:auto}
 #homePage .hp-qty{display:flex;border:1.5px solid #ddd;border-radius:4px;overflow:hidden;flex-shrink:0}
@@ -277,7 +279,7 @@ body.mayorista-active #mayoPage{display:block}
 #homePage .hp-qty .v{width:36px;height:42px;line-height:42px;text-align:center;font-weight:700;font-size:15px;color:#111;background:#fff;border-left:1.5px solid #ddd;border-right:1.5px solid #ddd}
 #homePage button.hp-add{
   flex:1;background:#f5a623;border:none;color:#1a1408;
-  font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.12em;
+  font-family:'Bricolage Grotesque',sans-serif;font-size:13px;letter-spacing:.12em;
   height:42px;border-radius:4px;cursor:pointer;font-weight:700;
   transition:background .15s,transform .12s;
 }
@@ -285,6 +287,35 @@ body.mayorista-active #mayoPage{display:block}
 #homePage button.hp-add:active{transform:scale(.97)}
 #homePage button.hp-add.done{background:#4caf50!important;color:#fff!important;pointer-events:none}
 #homePage .hp-empty{padding:60px 20px;text-align:center;color:#999;font-size:14px;letter-spacing:.08em}
+
+/* Welcome bubble dentro del home (entre hero y categorías) */
+#homePage .hp-welcome{
+  display:flex;gap:14px;align-items:flex-start;
+  max-width:780px;margin:28px auto 0;padding:0 clamp(1rem,4vw,2rem);
+}
+#homePage .hp-welcome-avatar{
+  flex-shrink:0;width:38px;height:38px;border-radius:50%;
+  background:#fff3d6;color:#a05f00;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  border:1px solid #f5a623;
+}
+#homePage .hp-welcome-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+#homePage .hp-welcome-sender{
+  font-size:.66rem;font-weight:600;color:#666;letter-spacing:.02em;
+  display:flex;align-items:center;gap:.4rem;padding-left:.2rem;
+}
+#homePage .hp-welcome-badge{
+  font-size:.56rem;font-weight:700;padding:.06rem .4rem;border-radius:20px;
+  background:#fff3d6;color:#a05f00;border:1px solid #f5a623;
+}
+#homePage .hp-welcome-bubble{
+  background:#f5f5f5;border:1px solid #e5e5e5;color:#111;
+  padding:.85rem 1.1rem;border-radius:14px;border-bottom-left-radius:5px;
+  line-height:1.6;font-size:.92rem;
+}
+#homePage .hp-welcome-bubble p{margin-bottom:.45rem}
+#homePage .hp-welcome-bubble p:last-child{margin-bottom:0}
+#homePage .hp-welcome-bubble strong{color:#a05f00;font-weight:700}
 
 /* Promo CTA 10% OFF */
 #homePage .hp-promo-cta{
@@ -298,10 +329,10 @@ body.mayorista-active #mayoPage{display:block}
 #homePage .hp-promo-cta:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(245,166,35,.3)}
 #homePage .hp-promo-icon{font-size:2rem;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.1))}
 #homePage .hp-promo-txt{flex:1;min-width:0}
-#homePage .hp-promo-txt strong{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#111;letter-spacing:.06em;display:block;line-height:1.1}
-#homePage .hp-promo-txt small{font-size:13px;color:#5a4a2a;display:block;margin-top:3px;font-family:'Barlow',sans-serif;font-weight:500}
+#homePage .hp-promo-txt strong{font-family:'Bricolage Grotesque',sans-serif;font-size:18px;color:#111;letter-spacing:.06em;display:block;line-height:1.1}
+#homePage .hp-promo-txt small{font-size:13px;color:#5a4a2a;display:block;margin-top:3px;font-family:'DM Sans',sans-serif;font-weight:500}
 #homePage .hp-promo-btn{
-  flex-shrink:0;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.12em;
+  flex-shrink:0;font-family:'Bricolage Grotesque',sans-serif;font-size:14px;letter-spacing:.12em;
   background:#111;color:#f5a623;padding:10px 18px;border-radius:6px;font-weight:700;
 }
 
@@ -318,10 +349,10 @@ body.mayorista-active #mayoPage{display:block}
 }
 #homePage .hp-game-card:hover{transform:translateY(-4px);box-shadow:0 12px 26px rgba(0,0,0,.2)}
 #homePage .hp-game-card .hg-emoji{font-size:3rem;filter:drop-shadow(0 3px 8px rgba(245,166,35,.5))}
-#homePage .hp-game-card h3{font-family:'Lalezar','Bebas Neue',sans-serif;font-size:24px;letter-spacing:.04em;color:#fff;text-transform:uppercase;line-height:1}
-#homePage .hp-game-card p{font-family:'Barlow',sans-serif;font-size:13px;color:rgba(255,255,255,.75);line-height:1.45;margin:0}
+#homePage .hp-game-card h3{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;letter-spacing:.04em;color:#fff;text-transform:uppercase;line-height:1}
+#homePage .hp-game-card p{font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(255,255,255,.75);line-height:1.45;margin:0}
 #homePage .hp-game-card .hg-cta{
-  margin-top:auto;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.14em;
+  margin-top:auto;font-family:'Bricolage Grotesque',sans-serif;font-size:13px;letter-spacing:.14em;
   background:#f5a623;color:#1a1408;padding:9px 18px;border-radius:6px;font-weight:700;
 }
 
@@ -382,7 +413,7 @@ body:not(.mayorista-active) .brand-pills .brand-circle{border-color:#ddd}
 .shop-page .mp-nav::-webkit-scrollbar{display:none}
 .shop-page .mp-nav a{
   flex-shrink:0;text-decoration:none;cursor:pointer;
-  font-family:'Barlow Condensed',sans-serif;font-size:.75rem;font-weight:700;
+  font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:700;
   letter-spacing:.12em;text-transform:uppercase;padding:.6rem 1.1rem;border-radius:100px;
   border:2px solid transparent;transition:transform .15s,filter .15s,box-shadow .15s;
   display:inline-flex;align-items:center;gap:.4rem;white-space:nowrap;
@@ -403,18 +434,18 @@ body:not(.mayorista-active) .brand-pills .brand-circle{border-color:#ddd}
 .shop-page .mp-ci img.img2{opacity:0}
 .shop-page .mp-card:hover .mp-ci img.img1{opacity:0;transform:scale(1.04)}
 .shop-page .mp-card:hover .mp-ci img.img2{opacity:1}
-.shop-page .mp-ctag{position:absolute;top:11px;left:0;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:3px 10px 3px 12px;clip-path:polygon(0 0,100% 0,calc(100% - 6px) 100%,0 100%);z-index:3}
+.shop-page .mp-ctag{position:absolute;top:11px;left:0;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:3px 10px 3px 12px;clip-path:polygon(0 0,100% 0,calc(100% - 6px) 100%,0 100%);z-index:3}
 .shop-page .mp-cb{padding:14px 14px 18px;display:flex;flex-direction:column;flex:1;gap:3px}
-.shop-page .mp-cst{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:500;letter-spacing:.16em;text-transform:uppercase}
-.shop-page .mp-cn{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.02em;line-height:1;margin-bottom:3px}
-.shop-page .mp-cp{font-size:19px;font-weight:700;margin-bottom:10px;font-family:'Barlow',sans-serif}
+.shop-page .mp-cst{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:500;letter-spacing:.16em;text-transform:uppercase}
+.shop-page .mp-cn{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;letter-spacing:.02em;line-height:1;margin-bottom:3px}
+.shop-page .mp-cp{font-size:19px;font-weight:700;margin-bottom:10px;font-family:'DM Sans',sans-serif}
 .shop-page .mp-cp small{font-size:11px;font-weight:400;margin-left:4px;opacity:.55}
-.shop-page select.mp-sel{width:100%;border-radius:2px;font-family:'Barlow',sans-serif;font-size:12.5px;padding:8px 28px 8px 11px;appearance:none;-webkit-appearance:none;background-repeat:no-repeat;background-position:right 10px center;cursor:pointer;margin-bottom:9px;transition:border-color .2s}
+.shop-page select.mp-sel{width:100%;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12.5px;padding:8px 28px 8px 11px;appearance:none;-webkit-appearance:none;background-repeat:no-repeat;background-position:right 10px center;cursor:pointer;margin-bottom:9px;transition:border-color .2s}
 .shop-page .mp-acts{display:flex;gap:7px;margin-top:auto}
 .shop-page .mp-qty{display:flex;border-radius:2px;overflow:hidden;flex-shrink:0}
-.shop-page .mp-qty button{background:transparent;border:none;font-size:16px;width:32px;height:40px;cursor:pointer;line-height:1;font-family:'Barlow',sans-serif;font-weight:700;transition:background .15s}
+.shop-page .mp-qty button{background:transparent;border:none;font-size:16px;width:32px;height:40px;cursor:pointer;line-height:1;font-family:'DM Sans',sans-serif;font-weight:700;transition:background .15s}
 .shop-page .mp-qv{width:32px;text-align:center;font-size:14px;font-weight:600;height:40px;line-height:40px;user-select:none}
-.shop-page button.mp-add{flex:1;border:none;border-radius:2px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;height:40px;transition:filter .15s}
+.shop-page button.mp-add{flex:1;border:none;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;height:40px;transition:filter .15s}
 .shop-page button.mp-add:hover{filter:brightness(1.12)}
 .shop-page button.mp-add:active{transform:scale(.98)}
 .shop-page button.mp-add.done{background:#4caf50!important;color:#fff!important;pointer-events:none}
@@ -422,14 +453,14 @@ body:not(.mayorista-active) .brand-pills .brand-circle{border-color:#ddd}
 .shop-page .mp-note{margin:0 clamp(1rem,4vw,3rem) 2rem;padding:14px 18px;border-left:3px solid;background:rgba(255,255,255,.04);font-size:13px;line-height:1.65}
 .shop-page .mp-note strong{font-weight:700}
 .shop-page .mp-section{padding:48px clamp(1rem,4vw,3rem) 12px}
-.shop-page .mp-section-t{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:.04em;line-height:1;margin-bottom:5px}
-.shop-page .mp-section-s{font-family:'Barlow Condensed',sans-serif;font-size:12px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:24px}
-.shop-page .mp-sub-head{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.05em;margin:32px 0 14px;display:flex;align-items:baseline;gap:.5rem;padding-bottom:8px;border-bottom:1px solid currentColor}
+.shop-page .mp-section-t{font-family:'Bricolage Grotesque',sans-serif;font-size:38px;letter-spacing:.04em;line-height:1;margin-bottom:5px}
+.shop-page .mp-section-s{font-family:'DM Sans',sans-serif;font-size:12px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:24px}
+.shop-page .mp-sub-head{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;letter-spacing:.05em;margin:32px 0 14px;display:flex;align-items:baseline;gap:.5rem;padding-bottom:8px;border-bottom:1px solid currentColor}
 .shop-page .mp-sub-head:first-of-type{margin-top:0}
-.shop-page .mp-sub-head .sub-count{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:.14em;opacity:.6;font-weight:600}
+.shop-page .mp-sub-head .sub-count{font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:.14em;opacity:.6;font-weight:600}
 
 /* ── KAIROS ─────────────────────────────────────────────────────────── */
-.shop-page .kb{background:#080808;color:#f4f0e8;font-family:'Barlow',sans-serif}
+.shop-page .kb{background:#080808;color:#f4f0e8;font-family:'DM Sans',sans-serif}
 .shop-page .kb .mp-section-t,.shop-page .kb .mp-cn{color:#f4f0e8}
 .shop-page .kb .mp-section-s{color:#6e6e6e}
 .shop-page .kb .mp-sub-head{color:#e8a020;border-color:rgba(232,160,32,.25)}
@@ -459,21 +490,21 @@ body:not(.mayorista-active) .brand-pills .brand-circle{border-color:#ddd}
 .shop-page .kb-hd-logo{height:54px;width:auto;object-fit:contain}
 .shop-page .kb-hd-r{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .shop-page .kb-pills{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
-.shop-page .kb-pill{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:5px 14px;border-radius:2px}
+.shop-page .kb-pill{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;padding:5px 14px;border-radius:2px}
 .shop-page .kb-pill.g{background:#e8a020;color:#000}
 .shop-page .kb-pill.o{border:1px solid #252525;color:#6e6e6e}
 .shop-page .kb-hd-tag{font-size:12px;color:#6e6e6e;font-style:italic}
 
 /* ── LANÚS ──────────────────────────────────────────────────────────── */
-.shop-page .ln{background:#1a0810;color:#f5eed8;font-family:'Barlow',sans-serif}
-.shop-page .ln .mp-section-t{font-family:'Playfair Display',serif;font-weight:700;color:#f5eed8}
+.shop-page .ln{background:#1a0810;color:#f5eed8;font-family:'DM Sans',sans-serif}
+.shop-page .ln .mp-section-t{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;color:#f5eed8}
 .shop-page .ln .mp-section-s{color:#8a6a7a}
 .shop-page .ln .mp-card{background:#2c0f1c;border:1px solid rgba(201,162,39,.2)}
 .shop-page .ln .mp-card:hover{border-color:rgba(201,162,39,.55)}
 .shop-page .ln .mp-ci{background:#110508}
 .shop-page .ln .mp-ctag{background:#c9a227;color:#1a0810}
 .shop-page .ln .mp-cst{color:#c9a227}
-.shop-page .ln .mp-cn{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#f5eed8}
+.shop-page .ln .mp-cn{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;font-weight:700;color:#f5eed8}
 .shop-page .ln .mp-cp{color:#e8c454}
 .shop-page .ln .mp-cp small{color:#8a6a7a}
 .shop-page .ln select.mp-sel{background:#0f0409;border:1px solid rgba(201,162,39,.2);color:#f5eed8;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%238a6a10' stroke-width='1.4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")}
@@ -488,20 +519,20 @@ body:not(.mayorista-active) .brand-pills .brand-circle{border-color:#ddd}
 .shop-page .ln-hero::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,#75aadb 33%,#f0ece0 33% 67%,#75aadb 67%)}
 .shop-page .ln-hero::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 50% 50%,rgba(123,31,58,.25) 0%,transparent 70%);pointer-events:none}
 .shop-page .ln-hero > *{position:relative;z-index:1}
-.shop-page .ln-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#c9a227;margin-bottom:12px}
-.shop-page .ln-title{font-family:'Playfair Display',serif;font-size:clamp(60px,9vw,110px);font-weight:900;line-height:.9;color:#f5eed8;margin-bottom:4px}
+.shop-page .ln-wt{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#c9a227;margin-bottom:12px}
+.shop-page .ln-title{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(60px,9vw,110px);font-weight:900;line-height:.9;color:#f5eed8;margin-bottom:4px}
 .shop-page .ln-title em{font-style:italic;color:#c9a227}
-.shop-page .ln-year{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,4vw,48px);color:#75aadb;letter-spacing:.1em;margin-bottom:14px}
+.shop-page .ln-year{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(28px,4vw,48px);color:#75aadb;letter-spacing:.1em;margin-bottom:14px}
 .shop-page .ln-tag{font-style:italic;font-size:15px;color:#8a6a7a;border-left:2px solid #c9a227;padding-left:14px;text-align:left;line-height:1.5}
 .shop-page .ln-flag{position:absolute;right:clamp(1rem,4vw,3rem);top:48px;display:flex;flex-direction:column;align-items:center;gap:5px;z-index:2}
 .shop-page .ln-flag .flag{width:66px;height:42px;border-radius:3px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.5);display:flex;flex-direction:column}
 .shop-page .ln-flag .flag span{display:block;flex:1}
 .shop-page .ln-flag .flag span:nth-child(odd){background:#75aadb}
 .shop-page .ln-flag .flag span:nth-child(2){background:#f0ece0}
-.shop-page .ln-flag .cap{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#8a6a7a}
+.shop-page .ln-flag .cap{font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#8a6a7a}
 
 /* ── OSAGUI ─────────────────────────────────────────────────────────── */
-.shop-page .os{background:#0d0a08;color:#f5e6c8;font-family:'Barlow',sans-serif}
+.shop-page .os{background:#0d0a08;color:#f5e6c8;font-family:'DM Sans',sans-serif}
 .shop-page .os .mp-section-t,.shop-page .os .mp-cn{color:#f5e6c8}
 .shop-page .os .mp-section-s{color:#8a7060}
 .shop-page .os .mp-card{background:#1a1208;border:1px solid rgba(180,30,30,.25)}
@@ -524,17 +555,17 @@ body:not(.mayorista-active) .brand-pills .brand-circle{border-color:#ddd}
 .shop-page .os-hero{position:relative;padding:48px clamp(1rem,4vw,3rem) 40px;border-bottom:1px solid rgba(180,30,30,.25);display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;overflow:hidden}
 .shop-page .os-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50% 80% at 30% 50%,rgba(192,36,26,.15) 0%,transparent 70%);pointer-events:none}
 .shop-page .os-hero > *{position:relative;z-index:1}
-.shop-page .os-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#c0241a;margin-bottom:10px}
-.shop-page .os-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(60px,9vw,108px);line-height:.9;color:#f5e6c8;margin-bottom:4px;letter-spacing:.02em}
+.shop-page .os-wt{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#c0241a;margin-bottom:10px}
+.shop-page .os-title{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(60px,9vw,108px);line-height:.9;color:#f5e6c8;margin-bottom:4px;letter-spacing:.02em}
 .shop-page .os-jp{font-size:clamp(18px,3vw,30px);color:#4a90d9;letter-spacing:.15em;margin-bottom:12px;font-weight:300}
 .shop-page .os-tag{font-style:italic;font-size:15px;color:#8a7060;border-left:2px solid #c0241a;padding-left:14px;line-height:1.5}
 .shop-page .os-flag{display:flex;flex-direction:column;align-items:center;gap:5px}
 .shop-page .os-flag .flag-jp{width:66px;height:44px;border-radius:3px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.5);background:#fff;display:flex;align-items:center;justify-content:center}
 .shop-page .os-flag .flag-jp::after{content:'';width:22px;height:22px;border-radius:50%;background:#c0241a}
-.shop-page .os-flag .cap{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#8a7060}
+.shop-page .os-flag .cap{font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#8a7060}
 
 /* ── FIRULAIS ───────────────────────────────────────────────────────── */
-.shop-page .fr{background:#f5c900;color:#1d3d25;font-family:'Barlow',sans-serif}
+.shop-page .fr{background:#f5c900;color:#1d3d25;font-family:'DM Sans',sans-serif}
 .shop-page .fr .mp-section-t{color:#1d3d25}
 .shop-page .fr .mp-section-s{color:#5a6e40}
 .shop-page .fr .mp-sub-head{color:#1d3d25;border-color:rgba(29,61,37,.3)}
@@ -558,17 +589,17 @@ body:not(.mayorista-active) .brand-pills .brand-circle{border-color:#ddd}
 .shop-page .fr-banner{width:100%;line-height:0;overflow:hidden;max-height:360px}
 .shop-page .fr-banner img{width:100%;display:block;object-fit:cover;max-height:360px}
 .shop-page .fr-hero{padding:48px clamp(1rem,4vw,3rem) 40px;border-bottom:3px solid #1d3d25;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
-.shop-page .fr-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#1d3d25;opacity:.6;margin-bottom:8px}
-.shop-page .fr-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(60px,9vw,108px);line-height:.88;color:#1d3d25;margin-bottom:4px;letter-spacing:.01em}
-.shop-page .fr-sub{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:500;letter-spacing:.25em;text-transform:uppercase;color:#5a6e40;margin-bottom:10px}
-.shop-page .fr-tag{font-family:'Barlow',sans-serif;font-size:15px;color:#1d3d25;border-left:3px solid #1d3d25;padding-left:12px;line-height:1.5;font-weight:600}
+.shop-page .fr-wt{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#1d3d25;opacity:.6;margin-bottom:8px}
+.shop-page .fr-title{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(60px,9vw,108px);line-height:.88;color:#1d3d25;margin-bottom:4px;letter-spacing:.01em}
+.shop-page .fr-sub{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;letter-spacing:.25em;text-transform:uppercase;color:#5a6e40;margin-bottom:10px}
+.shop-page .fr-tag{font-family:'DM Sans',sans-serif;font-size:15px;color:#1d3d25;border-left:3px solid #1d3d25;padding-left:12px;line-height:1.5;font-weight:600}
 .shop-page .fr-badge{width:104px;height:104px;background:#1d3d25;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2px;flex-shrink:0}
-.shop-page .fr-badge span:nth-child(1){font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#f5c900;opacity:.7}
-.shop-page .fr-badge span:nth-child(2){font-family:'Bebas Neue',sans-serif;font-size:22px;color:#f5c900;letter-spacing:.05em;line-height:1}
-.shop-page .fr-badge span:nth-child(3){font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#3a8c5a}
+.shop-page .fr-badge span:nth-child(1){font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#f5c900;opacity:.7}
+.shop-page .fr-badge span:nth-child(2){font-family:'Bricolage Grotesque',sans-serif;font-size:22px;color:#f5c900;letter-spacing:.05em;line-height:1}
+.shop-page .fr-badge span:nth-child(3){font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#3a8c5a}
 
 /* ── BANNY ──────────────────────────────────────────────────────────── */
-.shop-page .bn{background:#77cbbf;color:#0d0f2a;font-family:'Barlow',sans-serif}
+.shop-page .bn{background:#77cbbf;color:#0d0f2a;font-family:'DM Sans',sans-serif}
 .shop-page .bn .mp-section-t,.shop-page .bn .mp-cn{color:#0d0f2a}
 .shop-page .bn .mp-section-s{color:rgba(13,15,42,.55)}
 .shop-page .bn .mp-sub-head{color:#0d0f2a;border-color:rgba(13,15,42,.3)}
@@ -590,15 +621,15 @@ body:not(.mayorista-active) .brand-pills .brand-circle{border-color:#ddd}
 .shop-page .bn-hero{padding:60px clamp(1rem,4vw,3rem) 48px;border-bottom:3px solid #0d0f2a;display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap;position:relative;overflow:hidden}
 .shop-page .bn-hero::after{content:'';position:absolute;right:-80px;top:-80px;width:380px;height:380px;border-radius:50%;background:rgba(255,255,255,.08);pointer-events:none}
 .shop-page .bn-hero > *{position:relative;z-index:1}
-.shop-page .bn-wt{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#0d0f2a;opacity:.55;margin-bottom:10px}
-.shop-page .bn-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(70px,11vw,130px);line-height:.85;color:#0d0f2a;letter-spacing:.02em;margin-bottom:4px}
-.shop-page .bn-by{font-family:'Barlow',sans-serif;font-size:15px;font-weight:600;color:#0d0f2a;opacity:.5;letter-spacing:.1em;margin-bottom:14px}
-.shop-page .bn-tag{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#0d0f2a;border-left:3px solid #0d0f2a;padding-left:14px;line-height:1.4}
+.shop-page .bn-wt{font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:#0d0f2a;opacity:.55;margin-bottom:10px}
+.shop-page .bn-title{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(70px,11vw,130px);line-height:.85;color:#0d0f2a;letter-spacing:.02em;margin-bottom:4px}
+.shop-page .bn-by{font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:#0d0f2a;opacity:.5;letter-spacing:.1em;margin-bottom:14px}
+.shop-page .bn-tag{font-family:'DM Sans',sans-serif;font-size:17px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:#0d0f2a;border-left:3px solid #0d0f2a;padding-left:14px;line-height:1.4}
 .shop-page .bn-dots{display:flex;gap:8px;margin-top:10px}
 .shop-page .bn-dot{width:24px;height:24px;border-radius:50%;border:2px solid rgba(13,15,42,.2)}
 .shop-page .bn-bar{background:#0d0f2a;padding:14px clamp(1rem,4vw,3rem);display:flex;align-items:center;gap:16px}
-.shop-page .bn-bar .lbl{font-family:'Barlow',sans-serif;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff8e6}
-.shop-page .bn-bar .br{font-family:'Barlow Condensed',sans-serif;font-size:14px;letter-spacing:.15em;text-transform:uppercase;color:#77cbbf}
+.shop-page .bn-bar .lbl{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#fff8e6}
+.shop-page .bn-bar .br{font-family:'DM Sans',sans-serif;font-size:14px;letter-spacing:.15em;text-transform:uppercase;color:#77cbbf}
 
 .cart-btn{
   flex-shrink:0;position:relative;cursor:pointer;
@@ -1156,11 +1187,7 @@ body.mayorista-active .game-banner{display:none}
   <!-- HEADER -->
   <header>
     <div class="brand-logo">
-      <div class="logo-mark">⚡</div>
-      <div class="logo-txt">
-        <span class="logo-name">ZORBO.AI</span>
-        <span class="logo-sub">Craft Marketplace</span>
-      </div>
+      <img class="logo-img" src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Titulo_secundario-3.png?v=1779814975" alt="Zorbo">
     </div>
     <button class="mayoristas-btn" id="mayoristasBtn" onclick="openMayoristaModal()" aria-label="Acceso mayoristas">
       <span class="mb-ico">🔐</span><span class="mb-txt">Mayoristas</span>
@@ -1268,7 +1295,7 @@ body.mayorista-active .game-banner{display:none}
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
-    <div class="input-hint">ZorboBot puede cometer errores · responde con IA</div>
+    <div class="input-hint">Zorbot puede cometer errores · responde con IA</div>
   </div>
 </div>
 
@@ -1440,7 +1467,7 @@ body.mayorista-active .game-banner{display:none}
       <button class="cart-x" onclick="toggleCart()">✕</button>
     </div>
     <div class="cart-body" id="cartBody">
-      <div class="cart-empty-msg">Tu carro está vacío.<br>Pídele una recomendación a ZorboBot!</div>
+      <div class="cart-empty-msg">Tu carro está vacío.<br>Pídele una recomendación a Zorbot!</div>
     </div>
     <div class="cart-foot">
       <div class="ship-bar"><div class="ship-fill" id="shipFill" style="width:0%"></div></div>
@@ -1549,10 +1576,9 @@ function checkAge() {
 function welcome() {
   if (welcomed) return;
   welcomed = true;
-  botStatic('Hola! bienvenido a ZORBO.AI ✨ Soy ZorboBot, tu sommelier digital del marketplace.\n\nTenemos las 3 marcas de la casa: **Kairos Brewing** (cervezas artesanales), **Firulais** (cheladas craft) y **Banny** (destilados y RTD).\n\nMira lo que tenemos hoy o cuéntame qué se te antoja 👇');
+  // El welcome ahora se renderea como un bubble visual DENTRO del homePage
+  // (entre hero y categorías), no en el chat history. Ver buildWelcomeBubble.
   showStorefront();
-  // El welcome message disparó scrollBottom() — pero queremos que el usuario
-  // arranque viendo los banners arriba del chat. Forzar scroll al top.
   setTimeout(() => {
     const ca = document.getElementById('chatArea');
     if (ca) ca.scrollTop = 0;
@@ -1872,6 +1898,21 @@ async function showStorefront(){
       <span class="hp-promo-btn">RECLAMAR</span>
     </div>`;
 
+  // Welcome bubble visual (entre hero y categorías). Reemplaza al welcome
+  // que antes iba al chat history.
+  const welcomeBubble = `
+    <div class="hp-welcome">
+      <div class="hp-welcome-avatar">⚡</div>
+      <div class="hp-welcome-col">
+        <div class="hp-welcome-sender">Zorbot <span class="hp-welcome-badge">IA</span></div>
+        <div class="hp-welcome-bubble">
+          <p>Hola! bienvenido a ZORBO.AI ✨ Soy Zorbot, tu sommelier digital del marketplace.</p>
+          <p>Tenemos las 3 marcas de la casa: <strong>Kairos Brewing</strong> (cervezas artesanales), <strong>Firulais</strong> (cheladas craft) y <strong>Banny</strong> (destilados y RTD).</p>
+          <p>Mira lo que tenemos hoy o cuéntame qué se te antoja 👇</p>
+        </div>
+      </div>
+    </div>`;
+
   const categories = `
     <div class="hp-categories">
       <button class="hp-cat chelas" onclick="hpScrollTo('sec-chelas')">
@@ -1907,19 +1948,19 @@ async function showStorefront(){
         <span class="hp-section-s">Descuentos extra cada día · una jugada diaria por persona</span>
       </div>
       <div class="hp-games-grid">
-        <div class="hp-game-card" onclick="openGame()">
+        <div class="hp-game-card" onclick="openGame('wheel')">
           <span class="hg-emoji">🎰</span>
           <h3>Ruleta de la Suerte</h3>
           <p>Gira y gana descuentos del 5% al 20% en tu próximo pedido</p>
           <span class="hg-cta">JUGAR AHORA</span>
         </div>
-        <div class="hp-game-card" onclick="openGame()">
+        <div class="hp-game-card" onclick="openGame('scratch')">
           <span class="hg-emoji">🎫</span>
           <h3>Rasca y Gana</h3>
           <p>Raspa el panel y descubre tu premio sorpresa al instante</p>
           <span class="hg-cta">JUGAR AHORA</span>
         </div>
-        <div class="hp-game-card" onclick="openGame()">
+        <div class="hp-game-card" onclick="openGame('slot')">
           <span class="hg-emoji">🎲</span>
           <h3>Slots Craft</h3>
           <p>Tira los rodillos y gana cupones, packs y envío gratis</p>
@@ -1928,7 +1969,7 @@ async function showStorefront(){
       </div>
     </section>`;
 
-  page.innerHTML = `${marquee}${hero}${promoCta}${categories}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${juegosHtml}`;
+  page.innerHTML = `${marquee}${hero}${welcomeBubble}${promoCta}${categories}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${juegosHtml}`;
   hpInitHero();
 }
 
@@ -1960,7 +2001,7 @@ function botRow(innerHTML) {
   const row = document.createElement('div');
   row.className = 'row bot';
   row.innerHTML = `<div class="avatar">⚡</div><div class="msg-col">
-    <div class="sender">ZorboBot <span class="ai-badge">IA</span></div>${innerHTML}</div>`;
+    <div class="sender">Zorbot <span class="ai-badge">IA</span></div>${innerHTML}</div>`;
   document.getElementById('messages').appendChild(row);
   scrollBottom();
   return row;
@@ -1983,7 +2024,7 @@ function typingRow() {
 function finalizeRow(row, fullText) {
   const prods = detectProducts(fullText);
   const col = row.querySelector('.msg-col');
-  col.innerHTML = `<div class="sender">ZorboBot <span class="ai-badge">IA</span></div>
+  col.innerHTML = `<div class="sender">Zorbot <span class="ai-badge">IA</span></div>
     <div class="bubble">${md(fullText)}</div>` +
     (prods.length ? `<div class="cards-row">${prods.map(p=>buildCard(p)).join('')}</div>` : '');
   scrollBottom();
@@ -2117,7 +2158,7 @@ function updateCart() {
 
   const body = document.getElementById('cartBody');
   if (!cart.length) {
-    body.innerHTML = '<div class="cart-empty-msg">Tu carro está vacío.<br>Pídele una recomendación a ZorboBot!</div>';
+    body.innerHTML = '<div class="cart-empty-msg">Tu carro está vacío.<br>Pídele una recomendación a Zorbot!</div>';
   } else {
     body.innerHTML = cart.map((item, idx) => `
       <div class="ci">
@@ -2262,7 +2303,7 @@ let currentGame = 'wheel';
 let wonPrize = null;
 
 // ═══════════════ ABRIR / CERRAR ═══════════════
-function openGame(){
+function openGame(gameType){
   // El juego es exclusivo B2C — los mayoristas tienen sus condiciones negociadas
   if (isMayoristaContext()){
     botStatic('Como mayorista, tienes tus condiciones comerciales propias — el juego es exclusivo para clientes particulares 🍺');
@@ -2272,10 +2313,20 @@ function openGame(){
     botStatic('Ya jugaste hoy. Vuelve mañana para otra oportunidad de ganar un descuento extra!');
     return;
   }
-  // Acceso libre: el juego se puede jugar sin gate de email. El gate sigue
-  // existiendo y se accede por el banner 10% OFF que sí pide email para el
-  // cupón de bienvenida.
   document.getElementById('gameModal').classList.add('open');
+  // Cuando se especifica un juego puntual (wheel/scratch/slot), ocultamos los
+  // tabs y mostramos sólo el panel pedido. Sin parámetro = comportamiento
+  // anterior (3 opciones en tabs).
+  const tabs = document.querySelector('#gameModal .gm-tabs');
+  if (gameType && ['wheel','scratch','slot'].includes(gameType)) {
+    if (tabs) tabs.style.display = 'none';
+    document.querySelectorAll('#gameModal .gm-tab').forEach(t => t.classList.toggle('on', t.dataset.game === gameType));
+    document.querySelectorAll('#gameModal .gm-pane').forEach(p => p.classList.remove('on'));
+    const pane = document.getElementById('pane' + gameType.charAt(0).toUpperCase() + gameType.slice(1));
+    if (pane) pane.classList.add('on');
+  } else {
+    if (tabs) tabs.style.display = '';
+  }
   buildWheel();
   buildSlotStrips();
 }
