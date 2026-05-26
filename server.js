@@ -672,18 +672,21 @@ app.post('/chat', async (req, res) => {
   session.messages.push({ role: 'user', content: message, timestamp: new Date().toISOString() });
   for (const [b, c] of Object.entries(countBrands(message))) session.brandMentions[b] += c;
 
-  // Catálogo live: solo le pasamos al bot los productos que están visibles
-  // hoy en el storefront (b2c o b2b según el modo). Así NO recomienda nada
-  // que no esté en el home / página mayorista.
+  // Catálogo live: el bot SOLO recomienda productos con tag ZORBO (B2C) o
+  // tag MAYORISTA (B2B). Así nunca se le escapa una recomendación de un
+  // producto que no está visible en el storefront.
   let liveCatalog = [];
   if (process.env.SHOPIFY_ADMIN_TOKEN) {
     try {
-      const mode = (mayorista || session.isB2B) ? 'b2b' : 'b2c';
       const all = (productsCache && Date.now() - productsCacheAt < PRODUCTS_TTL_MS)
         ? productsCache.products
         : null;
       if (all) {
-        liveCatalog = filterProducts(all, mode).map(p => ({ title: p.title, type: p.type, vendor: p.vendor }));
+        const isB2B = mayorista || session.isB2B;
+        const tagFilter = isB2B ? 'MAYORISTA' : 'ZORBO';
+        liveCatalog = all
+          .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes(tagFilter))
+          .map(p => ({ title: p.title, type: p.type, vendor: p.vendor }));
       }
     } catch (e) { console.warn('liveCatalog warm:', e.message); }
   }

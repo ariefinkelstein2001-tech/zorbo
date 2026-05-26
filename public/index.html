@@ -1775,26 +1775,24 @@ const HP_HERO_SLIDES = [
   'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/4_ca074e6a-7359-453a-9988-cffbeebc6b60.png?v=1779813534',
 ];
 
+// Solo entran al home los productos que llevan tag ZORBO en Shopify.
+// Luego se clasifican en chelas / craftmix / destileria / packs por título.
+function hasZorboTag(p){
+  const tags = (p.tags || []).map(t => String(t).trim().toUpperCase());
+  return tags.includes('ZORBO');
+}
 function classifyHpProduct(p){
+  if (!hasZorboTag(p)) return null;
   const t = (p.title || '').toLowerCase();
-  // Exclusiones globales: merch, suscripciones, gift cards, productos test, reservas, recargas
-  if (/vaso|jockey|jarra|copa|growler|\bpin\b|gorr|polera|stick|llavero/.test(t)) return null;
-  if (/suscrip|subscription|abono|prueba|gift\s*card|cup[oó]n|reserva|recarga|factura|evento/.test(t)) return null;
-  // Excluir packs no permitidos (solo se aceptan Mix 6 estilos)
-  if (/lupuladas|maltosas|ligeras|favoritas|colecci[oó]n\s*artista/.test(t)) return null;
-  // Excluir The Crown Mexican Lager (no es Cholita ni Pepita)
-  if (/the\s*crown|mexican\s*lager/.test(t)) return null;
-
-  // Packs Mix 6 estilos (6/12/24 pack variado)
+  // Packs Mix 6 estilos
   if (/(6|12|24)\s*pack.*(mix|variado|6\s*estilos)/.test(t)) return 'packs';
   if (/mix\s*6\s*estilos/.test(t)) return 'packs';
-  // Firulais (solo Cholita y Pepita en B2C)
-  if (/cholita|pepita/.test(t)) return 'craftmix';
-  // Destilados Banny B2C
-  if (/london\s*dry|new\s*world\s*gin|gin\s*banny|whisky\s*b[aá]rvaro|whisky\s*bavaro|rey\s*de\s*copas/.test(t)) return 'destileria';
-  // Cervezas Kairos B2C (los 5 estilos)
-  if (/(nada\s*personal|galactic|alerta\s*roja|secret\s*lab|imperio\s*perdido)/.test(t)) return 'chelas';
-  return null;
+  // Firulais
+  if (/cholita|pepita|cachupin|firulais|chelada/.test(t)) return 'craftmix';
+  // Destilados Banny
+  if (/\bgin\b|whisky|whiskey|\bron\b|\brum\b|vermut|bavaro|b[aá]rvaro|rey\s*de\s*copas/.test(t)) return 'destileria';
+  // Por defecto, cualquier otra cosa con tag ZORBO va a Chelas (cervezas Kairos)
+  return 'chelas';
 }
 
 function cleanHpTitle(s){
