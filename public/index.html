@@ -205,10 +205,10 @@ body.mayorista-active #mayoPage{display:block}
 }
 .shop-page .hp-marquee-track span{display:inline-flex;align-items:center;gap:8px}
 @keyframes hp-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.shop-page .hp-hero{position:relative;width:100%;overflow:hidden;background:#000;line-height:0;height:clamp(220px,38vw,480px)}
-.shop-page .hp-hero .ht-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1);height:100%}
-.shop-page .hp-hero .ht-slide{flex:0 0 100%;line-height:0;height:100%;background:#000}
-.shop-page .hp-hero .ht-slide img{width:100%;height:100%;display:block;object-fit:cover;object-position:center}
+.shop-page .hp-hero{position:relative;width:100%;overflow:hidden;background:#000;line-height:0}
+.shop-page .hp-hero .ht-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1)}
+.shop-page .hp-hero .ht-slide{flex:0 0 100%;line-height:0;background:#000}
+.shop-page .hp-hero .ht-slide img{width:100%;height:auto;display:block;object-fit:contain}
 .shop-page .hp-hero .ht-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:5}
 .shop-page .hp-hero .ht-dots .d{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.45);transition:all .25s;cursor:pointer;border:none}
 .shop-page .hp-hero .ht-dots .d.on{background:#f5a623;width:22px;border-radius:4px}
@@ -216,17 +216,24 @@ body.mayorista-active #mayoPage{display:block}
 .shop-page .hp-hero .ht-arr:hover{background:rgba(245,166,35,.6)}
 .shop-page .hp-hero .ht-arr.prev{left:18px}
 .shop-page .hp-hero .ht-arr.next{right:18px}
-/* Carrusel infinito de logos */
-.shop-page .hp-circles{
-  overflow:hidden;padding:32px 0 14px;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
-          mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+/* Logos: estáticos centrados en desktop, marquee animado en mobile */
+.shop-page .hp-circles{overflow:hidden;padding:32px 0 14px}
+.shop-page .hp-circles-track{display:flex;gap:36px;justify-content:center;flex-wrap:nowrap}
+/* Solo mostramos los primeros 3 en desktop */
+.shop-page .hp-circles-track > .hp-circle:nth-child(n+4){display:none}
+
+@media(max-width:768px){
+  .shop-page .hp-circles{
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+            mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+  }
+  .shop-page .hp-circles-track{
+    width:max-content;justify-content:flex-start;
+    animation:hp-circles-scroll 14s linear infinite;
+  }
+  .shop-page .hp-circles-track > .hp-circle:nth-child(n+4){display:flex}
+  @keyframes hp-circles-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 }
-.shop-page .hp-circles-track{
-  display:flex;gap:36px;width:max-content;
-  animation:hp-circles-scroll 18s linear infinite;
-}
-@keyframes hp-circles-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .shop-page .hp-circle{
   flex-shrink:0;width:110px;height:110px;border-radius:50%;
   background:#fff;border:3px solid #111;overflow:hidden;
