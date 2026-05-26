@@ -216,12 +216,13 @@ body.mayorista-active #mayoPage{display:block}
 #homePage .hp-cat{background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:12px;transition:transform .2s}
 #homePage .hp-cat:hover{transform:translateY(-4px)}
 #homePage .hp-cat .circle{
-  width:120px;height:120px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:48px;border:3px solid #111;
-  background:#fff;transition:transform .2s,box-shadow .2s;
+  width:130px;height:130px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;
+  border:3px solid #111;background:#fff;
+  transition:transform .2s,box-shadow .2s,border-color .2s;
 }
-#homePage .hp-cat:hover .circle{box-shadow:0 8px 20px rgba(0,0,0,.18);transform:scale(1.05)}
+#homePage .hp-cat .circle img{width:100%;height:100%;object-fit:cover;display:block}
+#homePage .hp-cat:hover .circle{box-shadow:0 10px 24px rgba(0,0,0,.2);transform:scale(1.06);border-color:#f5a623}
 #homePage .hp-cat.chelas    .circle{background:#fff3d6}
 #homePage .hp-cat.craftmix  .circle{background:#fffae6}
 #homePage .hp-cat.destileria .circle{background:#dff5f1}
@@ -1161,17 +1162,6 @@ body.mayorista-active .game-banner{display:none}
         <span class="logo-sub">Craft Marketplace</span>
       </div>
     </div>
-    <div class="brand-pills">
-      <button class="brand-circle sm" onclick="brandPill('kairos')" aria-label="Kairos Brewing">
-        <img src="brands/kairos.png" alt="Kairos Brewing">
-      </button>
-      <button class="brand-circle sm" onclick="brandPill('firulais')" aria-label="Firulais">
-        <img src="brands/firulais.png" alt="Firulais">
-      </button>
-      <button class="brand-circle sm" onclick="brandPill('banny')" aria-label="Banny">
-        <img src="brands/banny.png" alt="Banny">
-      </button>
-    </div>
     <button class="mayoristas-btn" id="mayoristasBtn" onclick="openMayoristaModal()" aria-label="Acceso mayoristas">
       <span class="mb-ico">🔐</span><span class="mb-txt">Mayoristas</span>
     </button>
@@ -1885,13 +1875,13 @@ async function showStorefront(){
   const categories = `
     <div class="hp-categories">
       <button class="hp-cat chelas" onclick="hpScrollTo('sec-chelas')">
-        <span class="circle">🍺</span><span class="lbl">Chelas</span>
+        <span class="circle"><img src="brands/kairos.png" alt="Kairos Brewing"></span><span class="lbl">Chelas</span>
       </button>
       <button class="hp-cat craftmix" onclick="hpScrollTo('sec-craftmix')">
-        <span class="circle">🐶</span><span class="lbl">Craft Mix</span>
+        <span class="circle"><img src="brands/firulais.png" alt="Firulais"></span><span class="lbl">Craft Mix</span>
       </button>
       <button class="hp-cat destileria" onclick="hpScrollTo('sec-destileria')">
-        <span class="circle">🥃</span><span class="lbl">Licores</span>
+        <span class="circle"><img src="brands/banny.png" alt="Banny"></span><span class="lbl">Licores</span>
       </button>
     </div>`;
 
