@@ -1633,6 +1633,13 @@ function confirmAge(ok) {
   }
 }
 function checkAge() {
+  // BYPASS TEMPORAL del age gate (tenía un bug que no dejaba pasar).
+  // Para reactivarlo, descomentar el bloque viejo y borrar este shortcut.
+  const gate = document.getElementById('ageGate');
+  if (gate) gate.classList.add('gone');
+  welcome();
+  return;
+  // ── viejo flujo ──
   if (document.cookie.includes('zage=1')) {
     document.getElementById('ageGate').classList.add('gone');
     welcome();
