@@ -1224,7 +1224,7 @@ body.mayorista-active .game-banner{display:none}
     </div>
     <div class="send-row">
       <textarea class="msg-in" id="msgIn" rows="1"
-        placeholder="Pregunta por marcas, estilos, maridajes..."
+        placeholder="Conversa lo que quieras con Zorbot..."
         onkeydown="onKey(event)" oninput="autoResize(this)"
         onfocus="scrollToChat()"></textarea>
       <button class="send-btn" id="sendBtn" onclick="send()" aria-label="Enviar">
@@ -1783,24 +1783,25 @@ function hpAdd(btn){
 }
 
 function hpInitHero(){
-  const ss = document.querySelector('.shop-page .hp-hero');
-  if (!ss || ss.dataset.init) return;
-  ss.dataset.init = '1';
-  const track = ss.querySelector('.ht-track');
-  const dots = ss.querySelectorAll('.ht-dots .d');
-  const slides = track.children;
-  if (slides.length <= 1) return;
-  let cur = 0, tmr;
-  function go(n){
-    cur = (n + slides.length) % slides.length;
-    track.style.transform = `translateX(-${cur*100}%)`;
-    dots.forEach((d,i) => d.classList.toggle('on', i === cur));
-    clearInterval(tmr); tmr = setInterval(()=>go(cur+1), 4500);
-  }
-  tmr = setInterval(()=>go(cur+1), 4500);
-  ss.querySelector('.ht-arr.prev').onclick = () => go(cur-1);
-  ss.querySelector('.ht-arr.next').onclick = () => go(cur+1);
-  dots.forEach((d,i) => d.onclick = () => go(i));
+  document.querySelectorAll('.shop-page .hp-hero').forEach(ss => {
+    if (ss.dataset.init) return;
+    ss.dataset.init = '1';
+    const track = ss.querySelector('.ht-track');
+    const dots = ss.querySelectorAll('.ht-dots .d');
+    const slides = track.children;
+    if (slides.length <= 1) return;
+    let cur = 0, tmr;
+    function go(n){
+      cur = (n + slides.length) % slides.length;
+      track.style.transform = `translateX(-${cur*100}%)`;
+      dots.forEach((d,i) => d.classList.toggle('on', i === cur));
+      clearInterval(tmr); tmr = setInterval(()=>go(cur+1), 4500);
+    }
+    tmr = setInterval(()=>go(cur+1), 4500);
+    ss.querySelector('.ht-arr.prev').onclick = () => go(cur-1);
+    ss.querySelector('.ht-arr.next').onclick = () => go(cur+1);
+    dots.forEach((d,i) => d.onclick = () => go(i));
+  });
 }
 
 function hpScrollTo(id){
@@ -2770,12 +2771,16 @@ async function showMayoristaStorefront(){
 
   const customer = (() => { try { return JSON.parse(sessionStorage.getItem('zmayo_customer') || '{}'); } catch { return {}; } })();
   const nom = customer.first_name || 'colega';
-  const heroMayo = `
-    <div class="mayo-hero">
-      <span class="mayo-hero-ico">🔐</span>
-      <div class="mayo-hero-txt">
-        <div class="mayo-hero-title">Hola ${escapeHtml(nom)} — modo mayorista</div>
-        <div class="mayo-hero-sub">Catálogo wholesale: barriles, 24 packs, destilados y World Tour. Precios negociados directamente con Kairos.</div>
+  const welcomeMayo = `
+    <div class="hp-welcome">
+      <div class="hp-welcome-avatar">⚡</div>
+      <div class="hp-welcome-col">
+        <div class="hp-welcome-sender">Zorbot <span class="hp-welcome-badge">IA</span></div>
+        <div class="hp-welcome-bubble">
+          <p>Hola ${escapeHtml(nom)}, soy Zorbot tu <strong>sommelier corporativo</strong> 🍺</p>
+          <p>Estoy acá para ayudarte con lo que necesites!</p>
+          <p>Pídeme lo que necesites (limpieza de línea, despachos, mantenciones, capacitaciones, etc.)</p>
+        </div>
       </div>
     </div>`;
 
@@ -2801,7 +2806,7 @@ async function showMayoristaStorefront(){
   const html = `
     ${hero}
     ${circles}
-    ${heroMayo}
+    ${welcomeMayo}
     ${navPills}
     ${sec('sec-mayo-chelas',          'Chelas',           'Barriles cerveceros · mayorista',           groups.chelas, false)}
     ${sec('sec-mayo-packs',           'Packs',            '24 pack 473cc · mayorista',                 groups.packs, false)}
@@ -3220,7 +3225,7 @@ async function mayoLogin(){
       showAccountChip(data.customer || {});
       resetChatSession();
       showMayoristaStorefront();
-      addMayoristaWelcomeMessage(data.customer || {});
+      // El welcome ahora vive como bubble visual en #mayoPage, no en el chat.
       const nom = (data.customer && data.customer.first_name) || '';
       ok.textContent = `Bienvenido${nom ? ' ' + nom : ''}! Cargamos tu catálogo mayorista.`;
       ok.classList.add('show');
