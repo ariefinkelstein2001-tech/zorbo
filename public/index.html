@@ -1561,6 +1561,12 @@ function welcome() {
   welcomed = true;
   botStatic('Hola! bienvenido a ZORBO.AI ✨ Soy ZorboBot, tu sommelier digital del marketplace.\n\nTenemos las 3 marcas de la casa: **Kairos Brewing** (cervezas artesanales), **Firulais** (cheladas craft) y **Banny** (destilados y RTD).\n\nMira lo que tenemos hoy o cuéntame qué se te antoja 👇');
   showStorefront();
+  // El welcome message disparó scrollBottom() — pero queremos que el usuario
+  // arranque viendo los banners arriba del chat. Forzar scroll al top.
+  setTimeout(() => {
+    const ca = document.getElementById('chatArea');
+    if (ca) ca.scrollTop = 0;
+  }, 50);
 }
 
 // ─── CARRUSEL DE PROMOS ───────────────────────────────────────────────────────
@@ -1681,9 +1687,11 @@ function addFromCard(btn) {
 
 // ─── HOME B2C (#homePage, tema blanco con marquee + 3 círculos + filas) ────
 const HP_HERO_SLIDES = [
-  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-01.png?v=1775154725&width=1600',
-  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-02.png?v=1775154766&width=1600',
-  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-03.png?v=1775154716&width=1600',
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/1_8ca20bf3-d8fa-43d1-baac-bb0ce4d1f48e.png?v=1779813532',
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/2_51051393-9c6b-41f9-8d2d-446b9b1bea97.png?v=1779813532',
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/5_75ea85ed-dd33-4535-858c-e382852639b3.png?v=1779813533',
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/3_4ec879f9-97da-4352-9e39-78fbe43f4091.png?v=1779813533',
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/4_ca074e6a-7359-453a-9988-cffbeebc6b60.png?v=1779813534',
 ];
 
 function classifyHpProduct(p){
@@ -2274,9 +2282,9 @@ function openGame(){
     botStatic('Ya jugaste hoy. Vuelve mañana para otra oportunidad de ganar un descuento extra!');
     return;
   }
-  const user = getGateUser();
-  if (!user) { openGameGate(); return; }
-  // Returning user con datos ya guardados: directo al juego
+  // Acceso libre: el juego se puede jugar sin gate de email. El gate sigue
+  // existiendo y se accede por el banner 10% OFF que sí pide email para el
+  // cupón de bienvenida.
   document.getElementById('gameModal').classList.add('open');
   buildWheel();
   buildSlotStrips();
