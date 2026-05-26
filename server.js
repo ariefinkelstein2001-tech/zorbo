@@ -292,12 +292,18 @@ const FROM_CTX = {
   zorbot:   'El cliente llegó directo a la botillería virtual Zorbot. Sé neutro y amigable, presenta las 3 marcas disponibles: Kairos Brewing, Firulais y Banny.',
 };
 
-function buildSystemPrompt(base, session) {
+function buildSystemPrompt(base, session, liveCatalog) {
   const fromCtx = FROM_CTX[session.from] ?? FROM_CTX.zorbot;
   const b2bCtx  = session.isB2B
     ? '\n\nMODO B2B ACTIVO: El cliente es un negocio (restaurante, bar, etc.). Ofrece condiciones mayoristas, menciona que puedes preparar una cotización formal y pregunta cuántas cajas necesita por semana.'
     : '';
-  return `${base}\n\n## CONTEXTO DE ESTA SESIÓN\n${fromCtx}${b2bCtx}`;
+  // Lista cerrada de productos: el bot SOLO puede mencionar/recomendar de acá.
+  let catCtx = '';
+  if (liveCatalog && liveCatalog.length) {
+    const list = liveCatalog.map(p => `- ${p.title}`).join('\n');
+    catCtx = `\n\n## CATÁLOGO ACTUAL DEL SITIO (ÚNICOS PRODUCTOS QUE PUEDES RECOMENDAR)\nEstas son las ÚNICAS bebidas/productos disponibles para venta hoy en el marketplace. NUNCA recomiendes cervezas, destilados o cualquier producto que no esté en esta lista exacta. Si el usuario pregunta por algo fuera de esta lista, dile amablemente que por ahora no lo tenemos disponible y ofrécele una alternativa de la lista:\n${list}`;
+  }
+  return `${base}\n\n## CONTEXTO DE ESTA SESIÓN\n${fromCtx}${b2bCtx}${catCtx}`;
 }
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -666,6 +672,22 @@ app.post('/chat', async (req, res) => {
   session.messages.push({ role: 'user', content: message, timestamp: new Date().toISOString() });
   for (const [b, c] of Object.entries(countBrands(message))) session.brandMentions[b] += c;
 
+  // Catálogo live: solo le pasamos al bot los productos que están visibles
+  // hoy en el storefront (b2c o b2b según el modo). Así NO recomienda nada
+  // que no esté en el home / página mayorista.
+  let liveCatalog = [];
+  if (process.env.SHOPIFY_ADMIN_TOKEN) {
+    try {
+      const mode = (mayorista || session.isB2B) ? 'b2b' : 'b2c';
+      const all = (productsCache && Date.now() - productsCacheAt < PRODUCTS_TTL_MS)
+        ? productsCache.products
+        : null;
+      if (all) {
+        liveCatalog = filterProducts(all, mode).map(p => ({ title: p.title, type: p.type, vendor: p.vendor }));
+      }
+    } catch (e) { console.warn('liveCatalog warm:', e.message); }
+  }
+
   // SSE
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -677,7 +699,7 @@ app.post('/chat', async (req, res) => {
     const stream = client.messages.stream({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: buildSystemPrompt(promptBase, session),
+      system: buildSystemPrompt(promptBase, session, liveCatalog),
       messages: apiMessages,
     });
 

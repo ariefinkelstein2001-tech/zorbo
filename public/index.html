@@ -1621,9 +1621,10 @@ const FREE_SHIP  = 50000;
 // ─── AGE GATE ─────────────────────────────────────────────────────────────────
 function confirmAge(ok) {
   if (ok) {
-    document.cookie = 'zage=1; max-age=86400; path=/';
-    document.getElementById('ageGate').classList.add('gone');
-    welcome();
+    try { document.cookie = 'zage=1; max-age=86400; path=/'; } catch {}
+    const gate = document.getElementById('ageGate');
+    if (gate) gate.classList.add('gone');
+    try { welcome(); } catch (e) { console.error('welcome error:', e); }
   } else {
     document.getElementById('ageGate').innerHTML =
       '<div class="age-card"><span class="age-icon">🙁</span>' +
@@ -1930,7 +1931,11 @@ async function showStorefront(){
   for (const p of products) {
     if (!p.variants || !p.variants.length) continue;
     const cat = classifyHpProduct(p);
-    if (cat && groups[cat]) groups[cat].push(p);
+    if (!cat || !groups[cat]) continue;
+    // Chelas y Craft Mix: solo productos con variantes 6/12/24 (>1 variant).
+    // Los singles viejos ("Lata 473cc" sin variantes) quedan fuera.
+    if ((cat === 'chelas' || cat === 'craftmix') && p.variants.length < 2) continue;
+    groups[cat].push(p);
   }
 
   const promos = [
@@ -3326,6 +3331,12 @@ initHeroSlides();
 restoreWelcomeFromStorage();
 restoreMayoristaState();
 updateCart();
+// Render eager del home: aunque el age gate esté visible arriba, el home
+// abajo va renderizando productos. Cuando el usuario pasa el gate, ya está
+// todo listo.
+if (!mayoristaMode) {
+  try { showStorefront(); } catch (e) { console.warn('eager showStorefront:', e); }
+}
 </script>
 </body>
 </html>
