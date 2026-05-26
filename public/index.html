@@ -285,6 +285,93 @@ body.mayorista-active #mayoPage{display:block}
 #homePage button.hp-add.done{background:#4caf50!important;color:#fff!important;pointer-events:none}
 #homePage .hp-empty{padding:60px 20px;text-align:center;color:#999;font-size:14px;letter-spacing:.08em}
 
+/* Promo CTA 10% OFF */
+#homePage .hp-promo-cta{
+  margin:24px clamp(1rem,4vw,3rem) 0;
+  padding:18px 22px;border-radius:14px;cursor:pointer;
+  background:linear-gradient(120deg,#fff3d6 0%,#ffe4a1 100%);
+  border:2px solid #f5a623;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  transition:transform .15s,box-shadow .2s;
+}
+#homePage .hp-promo-cta:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(245,166,35,.3)}
+#homePage .hp-promo-icon{font-size:2rem;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.1))}
+#homePage .hp-promo-txt{flex:1;min-width:0}
+#homePage .hp-promo-txt strong{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#111;letter-spacing:.06em;display:block;line-height:1.1}
+#homePage .hp-promo-txt small{font-size:13px;color:#5a4a2a;display:block;margin-top:3px;font-family:'Barlow',sans-serif;font-weight:500}
+#homePage .hp-promo-btn{
+  flex-shrink:0;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:.12em;
+  background:#111;color:#f5a623;padding:10px 18px;border-radius:6px;font-weight:700;
+}
+
+/* Sección Juegos */
+#homePage .hp-games-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;
+}
+#homePage .hp-game-card{
+  background:linear-gradient(135deg,#1a1408 0%,#2a1f0a 100%);
+  border:2px solid #f5a623;border-radius:14px;
+  padding:22px 22px 18px;display:flex;flex-direction:column;align-items:center;gap:10px;
+  cursor:pointer;text-align:center;
+  transition:transform .2s,box-shadow .2s;color:#fff;
+}
+#homePage .hp-game-card:hover{transform:translateY(-4px);box-shadow:0 12px 26px rgba(0,0,0,.2)}
+#homePage .hp-game-card .hg-emoji{font-size:3rem;filter:drop-shadow(0 3px 8px rgba(245,166,35,.5))}
+#homePage .hp-game-card h3{font-family:'Lalezar','Bebas Neue',sans-serif;font-size:24px;letter-spacing:.04em;color:#fff;text-transform:uppercase;line-height:1}
+#homePage .hp-game-card p{font-family:'Barlow',sans-serif;font-size:13px;color:rgba(255,255,255,.75);line-height:1.45;margin:0}
+#homePage .hp-game-card .hg-cta{
+  margin-top:auto;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.14em;
+  background:#f5a623;color:#1a1408;padding:9px 18px;border-radius:6px;font-weight:700;
+}
+
+/* CHAT BLANCO (cuando no es mayorista) */
+body:not(.mayorista-active){background:#fff}
+body:not(.mayorista-active) .chat-area{background:#fff;color:#111}
+body:not(.mayorista-active) .messages{padding:1.4rem 1rem 1rem}
+body:not(.mayorista-active) .row.bot .sender{color:#666}
+body:not(.mayorista-active) .row.bot .ai-badge{background:#fff3d6;color:#a05f00;border-color:#f5a623}
+body:not(.mayorista-active) .row.bot .bubble{
+  background:#f5f5f5;border:1px solid #e5e5e5;color:#111;
+}
+body:not(.mayorista-active) .row.user .bubble{
+  background:linear-gradient(135deg,#fff3d6,#ffe4a1);
+  border:1px solid #f5a623;color:#111;
+}
+body:not(.mayorista-active) .row.bot .bubble strong,
+body:not(.mayorista-active) .row.user .bubble strong{color:#a05f00}
+body:not(.mayorista-active) .row.bot .bubble em{color:#5a4a2a}
+body:not(.mayorista-active) .row.bot .bubble h3{color:#a05f00}
+body:not(.mayorista-active) .row.bot .bubble li{color:#444}
+body:not(.mayorista-active) .row.bot .bubble li strong{color:#111}
+body:not(.mayorista-active) .row.bot .bubble blockquote{border-left-color:#f5a623;color:#666}
+body:not(.mayorista-active) .row.bot .bubble th{background:#f5f5f5;color:#a05f00;border-bottom-color:#e5e5e5}
+body:not(.mayorista-active) .row.bot .bubble td{color:#444;border-bottom-color:rgba(0,0,0,.05)}
+body:not(.mayorista-active) .row.bot .bubble td:first-child{color:#111}
+body:not(.mayorista-active) .row.bot .avatar{background:#fff3d6;color:#a05f00}
+body:not(.mayorista-active) .typing .tdot{background:#bbb}
+body:not(.mayorista-active) .input-wrap{background:#fff;border-top:1px solid #e5e5e5}
+body:not(.mayorista-active) .msg-in{
+  background:#f5f5f5;border:1px solid #ddd;color:#111;
+}
+body:not(.mayorista-active) .msg-in:focus{border-color:#f5a623}
+body:not(.mayorista-active) .msg-in::placeholder{color:#999}
+body:not(.mayorista-active) .input-hint{color:#999}
+body:not(.mayorista-active) .qr{
+  background:#fff;border:1px solid #ddd;color:#444;
+}
+body:not(.mayorista-active) .qr:hover{border-color:#f5a623;color:#111;background:#fff8e8}
+body:not(.mayorista-active) .send-btn{
+  background:linear-gradient(135deg,#ffb840,#f5a623,#d88f15);
+  color:#1a1408;
+}
+body:not(.mayorista-active) .app{background:#fff}
+body:not(.mayorista-active) header{background:#fff;border-bottom:1px solid #e5e5e5}
+body:not(.mayorista-active) .cart-btn{background:#f5f5f5;border-color:#ddd;color:#111}
+body:not(.mayorista-active) .cart-btn:hover{border-color:#f5a623}
+body:not(.mayorista-active) .mayoristas-btn{background:#fff;border-color:#ddd;color:#444}
+body:not(.mayorista-active) .mayoristas-btn:hover{border-color:#f5a623;color:#111;background:#fff8e8}
+body:not(.mayorista-active) .brand-pills .brand-circle{border-color:#ddd}
+
 /* Brand nav sticky */
 .shop-page .mp-nav{
   position:sticky;top:0;z-index:50;background:rgba(8,8,8,.94);backdrop-filter:blur(10px);
@@ -1601,10 +1688,23 @@ const HP_HERO_SLIDES = [
 
 function classifyHpProduct(p){
   const t = (p.title || '').toLowerCase();
-  if (/pack.*mix|mix.*pack|6\s*estilos|12\s*estilos|24\s*estilos|pack.*variado|variado.*pack/.test(t)) return 'packs';
-  if (/cholita|pepita|caurina|firulais|chelada/.test(t)) return 'craftmix';
-  if (/\bgin\b|whisky|whiskey|\bron\b|\brum\b|vermut|bavaro|bárvaro|barvaro|rey\s*de\s*copas/.test(t)) return 'destileria';
-  if (/nada\s*personal|galactic|alerta\s*roja|secret\s*lab|imperio\s*perdido|\bpils\b|golden|\bapa\b|red\s*ale|neipa/.test(t)) return 'chelas';
+  // Exclusiones globales: merch, suscripciones, gift cards, productos test, reservas, recargas
+  if (/vaso|jockey|jarra|copa|growler|\bpin\b|gorr|polera|stick|llavero/.test(t)) return null;
+  if (/suscrip|subscription|abono|prueba|gift\s*card|cup[oó]n|reserva|recarga|factura|evento/.test(t)) return null;
+  // Excluir packs no permitidos (solo se aceptan Mix 6 estilos)
+  if (/lupuladas|maltosas|ligeras|favoritas|colecci[oó]n\s*artista/.test(t)) return null;
+  // Excluir The Crown Mexican Lager (no es Cholita ni Pepita)
+  if (/the\s*crown|mexican\s*lager/.test(t)) return null;
+
+  // Packs Mix 6 estilos (6/12/24 pack variado)
+  if (/(6|12|24)\s*pack.*(mix|variado|6\s*estilos)/.test(t)) return 'packs';
+  if (/mix\s*6\s*estilos/.test(t)) return 'packs';
+  // Firulais (solo Cholita y Pepita en B2C)
+  if (/cholita|pepita/.test(t)) return 'craftmix';
+  // Destilados Banny B2C
+  if (/london\s*dry|new\s*world\s*gin|gin\s*banny|whisky\s*b[aá]rvaro|whisky\s*bavaro|rey\s*de\s*copas/.test(t)) return 'destileria';
+  // Cervezas Kairos B2C (los 5 estilos)
+  if (/(nada\s*personal|galactic|alerta\s*roja|secret\s*lab|imperio\s*perdido)/.test(t)) return 'chelas';
   return null;
 }
 
@@ -1763,6 +1863,17 @@ async function showStorefront(){
       <div class="ht-dots">${HP_HERO_SLIDES.map((_,i)=>`<span class="d ${i===0?'on':''}"></span>`).join('')}</div>
     </div>`;
 
+  // 10% OFF promo (entrada al gate del juego de bienvenida)
+  const promoCta = `
+    <div class="hp-promo-cta" onclick="openGameGate()">
+      <span class="hp-promo-icon">🎁</span>
+      <div class="hp-promo-txt">
+        <strong>10% OFF EN TU PRIMERA COMPRA</strong>
+        <small>Suscríbete con tu correo y recibe tu cupón al instante</small>
+      </div>
+      <span class="hp-promo-btn">RECLAMAR</span>
+    </div>`;
+
   const categories = `
     <div class="hp-categories">
       <button class="hp-cat chelas" onclick="hpScrollTo('sec-chelas')">
@@ -1790,7 +1901,36 @@ async function showStorefront(){
   const destileriaHtml = section('sec-destileria', 'Licores',         'Banny · gin · whiskey · ron',                       groups.destileria);
   const packsHtml      = section('sec-packs',      'Nuestros Packs',  'Mix 6 estilos · 6/12/24 latas',                     groups.packs);
 
-  page.innerHTML = `${marquee}${hero}${categories}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}`;
+  // Sección Juegos (separada del CTA 10% OFF)
+  const juegosHtml = `
+    <section class="hp-section" id="sec-juegos">
+      <div class="hp-section-head">
+        <h2 class="hp-section-t">Juega y Gana</h2>
+        <span class="hp-section-s">Descuentos extra cada día · una jugada diaria por persona</span>
+      </div>
+      <div class="hp-games-grid">
+        <div class="hp-game-card" onclick="openGame()">
+          <span class="hg-emoji">🎰</span>
+          <h3>Ruleta de la Suerte</h3>
+          <p>Gira y gana descuentos del 5% al 20% en tu próximo pedido</p>
+          <span class="hg-cta">JUGAR AHORA</span>
+        </div>
+        <div class="hp-game-card" onclick="openGame()">
+          <span class="hg-emoji">🎫</span>
+          <h3>Rasca y Gana</h3>
+          <p>Raspa el panel y descubre tu premio sorpresa al instante</p>
+          <span class="hg-cta">JUGAR AHORA</span>
+        </div>
+        <div class="hp-game-card" onclick="openGame()">
+          <span class="hg-emoji">🎲</span>
+          <h3>Slots Craft</h3>
+          <p>Tira los rodillos y gana cupones, packs y envío gratis</p>
+          <span class="hg-cta">JUGAR AHORA</span>
+        </div>
+      </div>
+    </section>`;
+
+  page.innerHTML = `${marquee}${hero}${promoCta}${categories}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${juegosHtml}`;
   hpInitHero();
 }
 
