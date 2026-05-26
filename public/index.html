@@ -409,6 +409,82 @@ body.mayorista-active #mayoPage{display:block}
 .shop-page .hp-welcome-link:hover{text-decoration-color:#a05f00}
 .shop-page .hp-welcome-link strong{color:#a05f00}
 
+/* Cursor pointer en cards de producto (el click abre el PDP) */
+.shop-page .hp-card{cursor:pointer}
+.shop-page .hp-card .hp-acts,
+.shop-page .hp-card .hp-variants{cursor:auto}
+
+/* ── PRODUCT DETAIL POPUP (PDP) ── */
+.pdp-modal{position:fixed;inset:0;z-index:1200;display:none;align-items:center;justify-content:center;padding:1.2rem}
+.pdp-modal.open{display:flex;animation:hpPopupIn .25s ease}
+body.pdp-open{overflow:hidden}
+.pdp-overlay{position:absolute;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(4px);cursor:pointer}
+.pdp-card{
+  position:relative;z-index:1;
+  background:#fff;color:#111;border:1px solid #e5e5e5;border-radius:10px;
+  max-width:900px;width:100%;max-height:92vh;overflow-y:auto;
+  box-shadow:0 30px 80px rgba(0,0,0,.4);
+  padding:0;cursor:auto;
+  animation:popIn .35s cubic-bezier(.34,1.56,.64,1);
+  /* anula estilos heredados de .hp-card */
+  display:block;flex:initial;scroll-snap-align:initial;gap:0;
+}
+.pdp-card:hover{transform:none;border-color:#e5e5e5;box-shadow:0 30px 80px rgba(0,0,0,.4)}
+.pdp-x{
+  position:absolute;top:14px;right:14px;z-index:3;
+  width:36px;height:36px;border-radius:50%;border:none;cursor:pointer;
+  background:rgba(255,255,255,.95);color:#111;font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 4px 14px rgba(0,0,0,.18);transition:background .15s;
+}
+.pdp-x:hover{background:#fff;color:#a05f00}
+.pdp-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.pdp-card .pdp-img{
+  aspect-ratio:1;background:#f7f7f7;border-radius:0;
+  display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;
+  border-top-left-radius:10px;border-bottom-left-radius:10px;
+}
+.pdp-card .pdp-img img{
+  position:absolute;inset:0;width:100%;height:100%;
+  max-width:100%;max-height:100%;object-fit:contain;padding:32px;
+}
+.pdp-body{
+  padding:42px 40px 36px;display:flex;flex-direction:column;gap:14px;
+  text-align:left;
+}
+.pdp-brand{
+  font-family:'Bricolage Grotesque',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.18em;text-transform:uppercase;color:#a05f00;
+}
+.pdp-name{
+  font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(26px,3.4vw,38px);
+  font-weight:800;letter-spacing:-.01em;line-height:1.05;color:#111;
+}
+.pdp-card .pdp-price{
+  font-size:26px;text-align:left;margin-top:2px;
+}
+.pdp-desc{
+  font-family:'DM Sans',sans-serif;font-size:15px;line-height:1.65;
+  color:#444;margin-top:6px;
+}
+.pdp-desc p{margin-bottom:.85em}
+.pdp-desc p:last-child{margin-bottom:0}
+.pdp-desc-empty{color:#999;font-style:italic}
+.pdp-card .hp-variants{justify-content:flex-start;margin-top:4px}
+.pdp-acts{margin-top:10px}
+
+@media (max-width:720px){
+  .pdp-modal{padding:0;align-items:stretch}
+  .pdp-card{max-width:100%;max-height:100vh;height:100vh;border-radius:0;border:none}
+  .pdp-card .pdp-img{border-radius:0}
+  .pdp-grid{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .pdp-body{padding:28px 22px 32px}
+  .pdp-card .pdp-img{aspect-ratio:1;max-height:46vh}
+  .pdp-card .pdp-img img{padding:22px}
+  .pdp-name{font-size:24px}
+  .pdp-card .pdp-price{font-size:22px}
+}
+
 /* Cierre: wordmark ZORBO. + línea fina + bubble del bot */
 .shop-page .hp-cierre-wordmark{
   scroll-margin-top:24px;
@@ -1434,6 +1510,9 @@ body.mayorista-active .game-banner{display:none}
   </div>
 </div>
 
+<!-- PRODUCT DETAIL POPUP (PDP) — se llena dinámicamente al click en una card -->
+<div class="pdp-modal" id="pdpModal" aria-hidden="true"></div>
+
 <!-- POPUP 10% OFF (aparece 5s después de cargar la home) -->
 <div class="hp-promo-popup" id="hpPromoPopup">
   <div class="hp-promo-popup-overlay" onclick="closePromoPopup()"></div>
@@ -1641,6 +1720,10 @@ function escapeHtml(s) {
 // detectProducts() y las cards del chat lo usan para SOLO mostrar productos
 // del catálogo activo, no los hardcodeados en CATALOG.
 let ZORBO_LIVE = [];
+// Mapa global de productos (id → producto completo) usado por el popup PDP.
+// Se llena al renderizar cualquier card (buildHpCard) y crece a medida que
+// aparecen productos de la home, mayorista o del chat.
+const HP_PRODUCT_MAP = new Map();
 
 function detectProducts(text) {
   const lower = text.toLowerCase();
@@ -1790,7 +1873,8 @@ function buildHpCard(p){
     variantId: v0.id,
     image: img1,
   };
-  return `<div class="hp-card">
+  if (p && p.id) HP_PRODUCT_MAP.set(String(p.id), p);
+  return `<div class="hp-card" data-pid="${p.id||''}" onclick="hpCardClick(this,event)">
     <div class="hp-card-img"><img src="${img1 || ''}" alt="${escapeHtml(p.title)}" loading="lazy"></div>
     <div class="hp-card-name">${escapeHtml(cleanHpTitle(p.title))}</div>
     ${variantPills}
@@ -1801,6 +1885,86 @@ function buildHpCard(p){
     </div>
   </div>`;
 }
+
+// Click en la card de producto: si tocaron un control interactivo (variante,
+// qty, añadir al carro), no hacemos nada — los handlers ya se encargan. Caso
+// contrario, abrimos el popup con la descripción completa del producto.
+function hpCardClick(card, ev){
+  if (ev && ev.target && ev.target.closest('button, .hp-qty, .hp-variants, .hp-variant')) return;
+  const pid = card.dataset.pid;
+  if (pid) hpOpenProduct(pid);
+}
+
+function hpOpenProduct(pid){
+  const p = HP_PRODUCT_MAP.get(String(pid));
+  if (!p) return;
+  const variants = p.variants || [];
+  const v0 = variants[0] || {};
+  const price = parseFloat(v0.price || 0);
+  const compareAt = parseFloat(v0.compareAtPrice || 0);
+  const oldP = (compareAt && compareAt > price) ? `<span class="old">$${compareAt.toLocaleString('es-CL')}</span>` : '';
+  const img1 = (v0.image) || p.image || (p.images && p.images[0]) || '';
+  const brand = (p.vendor || detectMpBrand(p) || '').toString();
+  const desc = (p.description || '').trim();
+  const descHtml = desc
+    ? desc.split(/\n{2,}/).map(par => `<p>${escapeHtml(par).replace(/\n/g,'<br>')}</p>`).join('')
+    : '<p class="pdp-desc-empty">Sin descripción disponible.</p>';
+  const variantPills = variants.length > 1 ? `
+    <div class="hp-variants">
+      ${variants.map((v,i) => `
+        <button class="hp-variant ${i===0?'active':''}"
+                data-vid="${v.id}"
+                data-price="${v.price}"
+                data-image="${v.image || ''}"
+                onclick="hpSelectVariant(this)">${escapeHtml(v.title)}</button>
+      `).join('')}
+    </div>` : '';
+  const productData = {
+    name: cleanHpTitle(p.title),
+    brand: detectMpBrand(p),
+    emoji: '🍺',
+    style: '',
+    desc: '',
+    price,
+    variantId: v0.id,
+    image: img1,
+  };
+  const modal = document.getElementById('pdpModal');
+  if (!modal) return;
+  modal.innerHTML = `
+    <div class="pdp-overlay" onclick="closePdp()"></div>
+    <div class="pdp-card hp-card">
+      <button class="pdp-x" onclick="closePdp()" aria-label="Cerrar">✕</button>
+      <div class="pdp-grid">
+        <div class="hp-card-img pdp-img">
+          <img src="${img1}" alt="${escapeHtml(p.title)}">
+        </div>
+        <div class="pdp-body">
+          ${brand ? `<span class="pdp-brand">${escapeHtml(brand)}</span>` : ''}
+          <h2 class="pdp-name">${escapeHtml(cleanHpTitle(p.title))}</h2>
+          <div class="hp-card-price pdp-price">${oldP}$${price.toLocaleString('es-CL')}</div>
+          <div class="pdp-desc">${descHtml}</div>
+          ${variantPills}
+          <div class="hp-acts pdp-acts">
+            <div class="hp-qty"><button onclick="hpQty(this,-1)">−</button><span class="v">1</span><button onclick="hpQty(this,1)">+</button></div>
+            <button class="hp-add" data-product='${JSON.stringify(productData).replace(/'/g,"&#39;")}' onclick="hpAdd(this)">AÑADIR AL CARRITO</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  modal.classList.add('open');
+  document.body.classList.add('pdp-open');
+}
+
+function closePdp(){
+  const modal = document.getElementById('pdpModal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  document.body.classList.remove('pdp-open');
+  // limpio contenido para soltar referencias y descargar la imagen grande
+  setTimeout(() => { if (!modal.classList.contains('open')) modal.innerHTML = ''; }, 250);
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePdp(); });
 
 function hpSelectVariant(btn){
   const card = btn.closest('.hp-card'); if (!card) return;
@@ -2926,7 +3090,7 @@ function buildMayoWorldTourCard(p){
     : p._flag === 'jp'
     ? '<div class="flag-badge"><span class="flag flag-jp"></span><span class="flag-cap">'+escapeHtml(p._country)+'</span></div>'
     : '';
-  return base.replace('<div class="hp-card">', '<div class="hp-card wt-card">' + flagHtml);
+  return base.replace('<div class="hp-card"', '<div class="hp-card wt-card"').replace(/(<div class="hp-card wt-card"[^>]*>)/, '$1' + flagHtml);
 }
 
 function restoreMayoristaState(){
