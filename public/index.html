@@ -1981,7 +1981,7 @@ async function showStorefront(){
 
   // Orden: marquee → hero → categorías (logos) → welcome bubble → secciones → juegos.
   // El 10% OFF ya no va inline acá — aparece como popup a los 5s (maybeShowPromoPopup).
-  page.innerHTML = `${marquee}${hero}${categories}${welcomeBubble}${juegosHtml}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}`;
+  page.innerHTML = `${marquee}${hero}${categories}${welcomeBubble}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${juegosHtml}`;
   hpInitHero();
   maybeShowPromoPopup();
 }
