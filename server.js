@@ -520,6 +520,7 @@ const PRODUCTS_QUERY = `{
             node {
               id title price compareAtPrice sku
               availableForSale inventoryQuantity
+              image { url }
             }
           }
         }
@@ -565,6 +566,7 @@ app.get('/api/products', async (req, res) => {
         sku:            v.sku,
         available:      v.availableForSale,
         stock:          v.inventoryQuantity,
+        image:          v.image && v.image.url ? v.image.url : null,
       })),
     }));
 
