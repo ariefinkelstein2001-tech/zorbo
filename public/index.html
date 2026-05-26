@@ -2724,30 +2724,41 @@ function scrollToChat(){
 // Firulais · Destilados Banny · World Tour (Lanús + Osagui con bandera)
 async function showMayoristaStorefront(){
   const products = await loadMpCatalog();
-  const groups = { chelas:[], packs:[], firulais:[], destileria:[], worldTourBarril:[], worldTourPack:[] };
+  // 5 secciones nuevas (sin World Tour separado: los barriles invitados
+  // entran a CHELAS, los packs invitados entran a PACKS):
+  //   chelasBarril    → Kairos + Lanús + Osagui barriles
+  //   packs           → Kairos + Lanús + Osagui 24 packs
+  //   craftmixBarril  → Firulais barriles
+  //   licoresBidon    → Banny en bidón
+  //   licoresBotella  → Banny en botella
+  const groups = { chelasBarril:[], packs:[], craftmixBarril:[], licoresBidon:[], licoresBotella:[] };
 
   for (const p of products) {
     if (!p.variants || !p.variants.length) continue;
     const brand = detectMpBrand(p);
     const t = (p.title || '').toLowerCase();
 
-    if (brand === 'kairos') {
-      if (!passesKairosMpFilter(p)) continue;
-      if (/nz\s*pils|new\s*zealand|nzpils/.test(t)) continue;
+    // Cervezas (Kairos / Lanús / Osagui) → CHELAS o PACKS según formato
+    if (brand === 'kairos' || brand === 'lanus' || brand === 'osagui') {
+      if (brand === 'kairos') {
+        if (!passesKairosMpFilter(p)) continue;
+        if (/nz\s*pils|new\s*zealand|nzpils/.test(t)) continue;
+      }
       const fmt = kairosFmt(p);
-      if (fmt === 'barril') groups.chelas.push(p);
-      else if (fmt === 'pack') groups.packs.push(p);
-    } else if (brand === 'firulais') {
-      groups.firulais.push(p);
-    } else if (brand === 'banny') {
-      groups.destileria.push(p);
-    } else if (brand === 'lanus' || brand === 'osagui') {
-      const flag = brand === 'lanus' ? 'ar' : 'jp';
-      const country = brand === 'lanus' ? 'Argentina' : 'Japón';
-      const fmt = kairosFmt(p);
-      const enriched = { ...p, _flag:flag, _country:country };
-      if (fmt === 'barril')   groups.worldTourBarril.push(enriched);
-      else if (fmt === 'pack') groups.worldTourPack.push(enriched);
+      const enriched = brand === 'lanus'  ? { ...p, _flag:'ar', _country:'Argentina' }
+                     : brand === 'osagui' ? { ...p, _flag:'jp', _country:'Japón' }
+                     : p;
+      if (fmt === 'barril')   groups.chelasBarril.push(enriched);
+      else if (fmt === 'pack') groups.packs.push(enriched);
+    }
+    // Firulais → solo barriles a Craft Mix
+    else if (brand === 'firulais') {
+      if (/barril/.test(t)) groups.craftmixBarril.push(p);
+    }
+    // Banny → bidón o botella
+    else if (brand === 'banny') {
+      if (/bid[oó]n/.test(t)) groups.licoresBidon.push(p);
+      else groups.licoresBotella.push(p);
     }
   }
 
@@ -2760,9 +2771,9 @@ async function showMayoristaStorefront(){
     </div>`;
 
   const circleSet = [
-    { src:'brands/kairos.png',   target:'sec-mayo-chelas',     alt:'Kairos' },
-    { src:'brands/firulais.png', target:'sec-mayo-firulais',   alt:'Firulais' },
-    { src:'brands/banny.png',    target:'sec-mayo-destileria', alt:'Banny' },
+    { src:'brands/kairos.png',   target:'sec-mayo-chelas',    alt:'Kairos' },
+    { src:'brands/firulais.png', target:'sec-mayo-craftmix',  alt:'Firulais' },
+    { src:'brands/banny.png',    target:'sec-mayo-licores-bidon', alt:'Banny' },
   ].map(b => `<a class="hp-circle" onclick="hpScrollTo('${b.target}')"><img src="${b.src}" alt="${b.alt}"></a>`).join('');
   const circles = `
     <div class="hp-circles">
@@ -2787,20 +2798,23 @@ async function showMayoristaStorefront(){
   const hasWorldTour = groups.worldTourBarril.length || groups.worldTourPack.length;
   const navPills = `
     <div class="hp-pillrow" style="padding-top:8px;padding-bottom:14px">
-      ${groups.chelas.length      ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-chelas\')">Chelas</button>' : ''}
-      ${groups.packs.length       ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-packs\')">Packs</button>' : ''}
-      ${groups.firulais.length    ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-firulais\')">Firulais</button>' : ''}
-      ${groups.destileria.length  ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-destileria\')">Destilados</button>' : ''}
-      ${hasWorldTour              ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-worldtour-barril\')">World Tour</button>' : ''}
+      ${groups.chelasBarril.length    ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-chelas\')">Chelas · Barriles</button>' : ''}
+      ${groups.packs.length           ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-packs\')">Packs</button>' : ''}
+      ${groups.craftmixBarril.length  ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-craftmix\')">Craft Mix · Barril</button>' : ''}
+      ${groups.licoresBidon.length    ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-licores-bidon\')">Licores · Bidón</button>' : ''}
+      ${groups.licoresBotella.length  ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-licores-botella\')">Licores · Botella</button>' : ''}
     </div>`;
 
-  const sec = (id, title, sub, items, isWorldTour) => items.length ? `
+  // Render con bandera para Lanús/Osagui (los que tienen _flag), normal el resto
+  const renderCard = (p) => p._flag ? buildMayoWorldTourCard(p) : buildHpCard(p);
+
+  const sec = (id, title, sub, items) => items.length ? `
     <section class="hp-section" id="${id}">
       <div class="hp-section-head">
         <h2 class="hp-section-t">${title}</h2>
         <span class="hp-section-s">${sub}</span>
       </div>
-      <div class="hp-row">${items.map(p => isWorldTour ? buildMayoWorldTourCard(p) : buildHpCard(p)).join('')}</div>
+      <div class="hp-row">${items.map(renderCard).join('')}</div>
     </section>` : '';
 
   const html = `
@@ -2808,12 +2822,11 @@ async function showMayoristaStorefront(){
     ${circles}
     ${welcomeMayo}
     ${navPills}
-    ${sec('sec-mayo-chelas',          'Chelas',           'Barriles cerveceros · mayorista',           groups.chelas, false)}
-    ${sec('sec-mayo-packs',           'Packs',            '24 pack 473cc · mayorista',                 groups.packs, false)}
-    ${sec('sec-mayo-firulais',        'Firulais',         'Cheladas craft · mayorista',                groups.firulais, false)}
-    ${sec('sec-mayo-destileria',      'Destilados Banny', 'Gin · whiskey · ron · vermut · mayorista', groups.destileria, false)}
-    ${sec('sec-mayo-worldtour-barril','World Tour · Barriles', 'Barriles de invitados con bandera de su país', groups.worldTourBarril, true)}
-    ${sec('sec-mayo-worldtour-pack',  'World Tour · Packs',    '24 pack invitados con bandera de su país',     groups.worldTourPack, true)}
+    ${sec('sec-mayo-chelas',          'Chelas · Barriles',  'Barriles cerveceros · mayorista',     groups.chelasBarril)}
+    ${sec('sec-mayo-packs',           'Packs',              '24 pack 473cc · mayorista',           groups.packs)}
+    ${sec('sec-mayo-craftmix',        'Craft Mix · Barril', 'Cheladas Firulais en barril',          groups.craftmixBarril)}
+    ${sec('sec-mayo-licores-bidon',   'Licores · Bidón',    'Banny en bidón · gin, ron y más',     groups.licoresBidon)}
+    ${sec('sec-mayo-licores-botella', 'Licores · Botella',  'Banny en botella · gin, whiskey, ron', groups.licoresBotella)}
   `;
 
   const page = document.getElementById('mayoPage');
