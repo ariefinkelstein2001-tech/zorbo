@@ -1967,6 +1967,21 @@ async function showStorefront(){
       </div>
     </div>`;
 
+  // Welcome bubble visual (entre hero y categorías). Reemplaza al welcome
+  // que antes iba al chat history.
+  const welcomeBubble = `
+    <div class="hp-welcome">
+      <div class="hp-welcome-avatar">⚡</div>
+      <div class="hp-welcome-col">
+        <div class="hp-welcome-sender">Zorbot <span class="hp-welcome-badge">IA</span></div>
+        <div class="hp-welcome-bubble">
+          <p>Hola! bienvenido a ZORBO.AI ✨ Soy Zorbot, tu sommelier digital del marketplace.</p>
+          <p>Tenemos las 3 marcas de la casa: <strong>Kairos Brewing</strong> (cervezas artesanales), <strong>Firulais</strong> (cheladas craft) y <strong>Banny</strong> (destilados y RTD).</p>
+          <p>Mira lo que tenemos hoy o cuéntame qué se te antoja 👇</p>
+        </div>
+      </div>
+    </div>`;
+
   const categories = `
     <div class="hp-categories">
       <button class="hp-cat chelas" onclick="hpScrollTo('sec-chelas')">
