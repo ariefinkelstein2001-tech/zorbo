@@ -207,10 +207,10 @@ body.mayorista-active #mayoPage{display:block}
 }
 .shop-page .hp-marquee-track span{display:inline-flex;align-items:center;gap:8px}
 @keyframes hp-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.shop-page .hp-hero{position:relative;width:100%;overflow:hidden;background:#000;line-height:0;max-height:clamp(180px,32vw,440px)}
-.shop-page .hp-hero .ht-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1);max-height:inherit}
-.shop-page .hp-hero .ht-slide{flex:0 0 100%;line-height:0;background:#000;max-height:inherit}
-.shop-page .hp-hero .ht-slide img{width:100%;height:100%;max-height:inherit;display:block;object-fit:cover;object-position:center}
+.shop-page .hp-hero{position:relative;width:100%;overflow:hidden;background:#000;line-height:0}
+.shop-page .hp-hero .ht-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1)}
+.shop-page .hp-hero .ht-slide{flex:0 0 100%;line-height:0;background:#000}
+.shop-page .hp-hero .ht-slide img{width:100%;height:auto;display:block;object-fit:contain}
 .shop-page .hp-hero .ht-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:5}
 .shop-page .hp-hero .ht-dots .d{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.45);transition:all .25s;cursor:pointer;border:none}
 .shop-page .hp-hero .ht-dots .d.on{background:#f5a623;width:22px;border-radius:4px}
