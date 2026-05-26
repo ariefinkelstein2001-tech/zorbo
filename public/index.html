@@ -1659,13 +1659,25 @@ function addFromCard(btn) {
 }
 
 // ─── HOME B2C (#homePage, tema blanco con marquee + 3 círculos + filas) ────
-const HP_HERO_SLIDES = [
+// Banners home B2C: set distinto para desktop vs mobile (los desktop son
+// más anchos y diseñados para pantallas grandes; los mobile siguen siendo
+// los originales).
+const HP_HERO_SLIDES_DESKTOP = [
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/1_5a4ab50c-e085-4a74-9a63-3f98dcd5915a.png?v=1779826590',
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/4_75f94942-5ec8-4cc6-9188-a8c6b1b25f98.png?v=1779826590',
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/3_d085707a-36c7-4de6-8242-a39879cc04d0.png?v=1779826590',
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/2_10b2213e-463f-4fdd-8d01-eee969ff035e.png?v=1779826590',
+];
+const HP_HERO_SLIDES_MOBILE = [
   'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/1_8ca20bf3-d8fa-43d1-baac-bb0ce4d1f48e.png?v=1779813532',
   'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/2_51051393-9c6b-41f9-8d2d-446b9b1bea97.png?v=1779813532',
   'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/5_75ea85ed-dd33-4535-858c-e382852639b3.png?v=1779813533',
   'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/3_4ec879f9-97da-4352-9e39-78fbe43f4091.png?v=1779813533',
   'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/4_ca074e6a-7359-453a-9988-cffbeebc6b60.png?v=1779813534',
 ];
+const HP_HERO_SLIDES = (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(min-width: 769px)').matches)
+  ? HP_HERO_SLIDES_DESKTOP
+  : HP_HERO_SLIDES_MOBILE;
 // Banners EXCLUSIVOS de mayorista (los 3 Kairos PageFly).
 const MP_HERO_SLIDES = [
   'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-03.png?v=1775154716&width=1280',
