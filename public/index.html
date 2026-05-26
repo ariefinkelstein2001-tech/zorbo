@@ -203,9 +203,9 @@ body.mayorista-active #mayoPage{display:block}
 }
 #homePage .hp-marquee-track span{display:inline-flex;align-items:center;gap:8px}
 @keyframes hp-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-#homePage .hp-hero{position:relative;width:100%;overflow:hidden;background:#000;line-height:0;aspect-ratio:2/1;max-height:600px}
+#homePage .hp-hero{position:relative;width:100%;overflow:hidden;background:#000;line-height:0;height:clamp(220px,38vw,480px)}
 #homePage .hp-hero .ht-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1);height:100%}
-#homePage .hp-hero .ht-slide{flex:0 0 100%;line-height:0;height:100%}
+#homePage .hp-hero .ht-slide{flex:0 0 100%;line-height:0;height:100%;background:#000}
 #homePage .hp-hero .ht-slide img{width:100%;height:100%;display:block;object-fit:contain;object-position:center;background:#000}
 #homePage .hp-hero .ht-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:5}
 #homePage .hp-hero .ht-dots .d{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.45);transition:all .25s;cursor:pointer;border:none}
@@ -287,6 +287,57 @@ body.mayorista-active #mayoPage{display:block}
 #homePage button.hp-add:active{transform:scale(.97)}
 #homePage button.hp-add.done{background:#4caf50!important;color:#fff!important;pointer-events:none}
 #homePage .hp-empty{padding:60px 20px;text-align:center;color:#999;font-size:14px;letter-spacing:.08em}
+
+/* Popup 10% OFF */
+.hp-promo-popup{position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;padding:1.2rem}
+.hp-promo-popup.open{display:flex;animation:hpPopupIn .3s ease}
+@keyframes hpPopupIn{from{opacity:0}to{opacity:1}}
+.hp-promo-popup-overlay{position:absolute;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);cursor:pointer}
+.hp-promo-popup-card{
+  position:relative;z-index:2;
+  background:linear-gradient(135deg,#fff3d6 0%,#ffe4a1 100%);
+  border:3px solid #111;border-radius:18px;
+  padding:36px 32px 28px;max-width:420px;width:100%;
+  text-align:center;
+  box-shadow:0 30px 80px rgba(0,0,0,.55);
+  animation:hpPopupPop .45s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes hpPopupPop{
+  from{opacity:0;transform:scale(.85) translateY(20px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+.hp-promo-popup-x{
+  position:absolute;top:12px;right:14px;
+  background:none;border:none;color:#111;font-size:18px;cursor:pointer;
+  width:32px;height:32px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s;
+}
+.hp-promo-popup-x:hover{background:rgba(0,0,0,.08)}
+.hp-promo-popup-icon{font-size:3rem;display:inline-block;margin-bottom:8px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.18))}
+.hp-promo-popup-title{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-size:1.7rem;font-weight:700;color:#111;
+  line-height:1.1;margin-bottom:10px;letter-spacing:-.01em;
+}
+.hp-promo-popup-sub{
+  font-size:.92rem;color:#5a4a2a;line-height:1.5;margin-bottom:22px;
+  font-family:'DM Sans',sans-serif;
+}
+.hp-promo-popup-cta{
+  width:100%;background:#111;color:#f5a623;cursor:pointer;
+  font-family:'Bricolage Grotesque',sans-serif;font-size:1rem;font-weight:700;
+  letter-spacing:.08em;padding:14px;border-radius:8px;border:none;
+  transition:transform .12s,background .15s;
+}
+.hp-promo-popup-cta:hover{background:#222}
+.hp-promo-popup-cta:active{transform:scale(.97)}
+.hp-promo-popup-skip{
+  background:none;border:none;color:#5a4a2a;cursor:pointer;
+  margin-top:14px;font-size:.85rem;text-decoration:underline;
+  font-family:'DM Sans',sans-serif;
+}
+.hp-promo-popup-skip:hover{color:#111}
 
 /* Welcome bubble dentro del home (entre hero y categorías) */
 #homePage .hp-welcome{
@@ -1458,6 +1509,19 @@ body.mayorista-active .game-banner{display:none}
   </div>
 </div>
 
+<!-- POPUP 10% OFF (aparece 5s después de cargar la home) -->
+<div class="hp-promo-popup" id="hpPromoPopup">
+  <div class="hp-promo-popup-overlay" onclick="closePromoPopup()"></div>
+  <div class="hp-promo-popup-card">
+    <button class="hp-promo-popup-x" onclick="closePromoPopup()" aria-label="Cerrar">✕</button>
+    <span class="hp-promo-popup-icon">🎁</span>
+    <h2 class="hp-promo-popup-title">10% OFF en tu primera compra</h2>
+    <p class="hp-promo-popup-sub">Suscríbete con tu correo y recibe tu cupón al instante. Además podrás jugar cada día para ganar descuentos extra.</p>
+    <button class="hp-promo-popup-cta" onclick="popupReclamar()">RECLAMAR AHORA</button>
+    <button class="hp-promo-popup-skip" onclick="closePromoPopup()">No, gracias</button>
+  </div>
+</div>
+
 <!-- CART DRAWER -->
 <div class="cart-panel" id="cartPanel">
   <div class="cart-overlay" onclick="toggleCart()"></div>
@@ -1887,16 +1951,6 @@ async function showStorefront(){
       <div class="ht-dots">${HP_HERO_SLIDES.map((_,i)=>`<span class="d ${i===0?'on':''}"></span>`).join('')}</div>
     </div>`;
 
-  // 10% OFF promo (entrada al gate del juego de bienvenida)
-  const promoCta = `
-    <div class="hp-promo-cta" onclick="openGameGate()">
-      <span class="hp-promo-icon">🎁</span>
-      <div class="hp-promo-txt">
-        <strong>10% OFF EN TU PRIMERA COMPRA</strong>
-        <small>Suscríbete con tu correo y recibe tu cupón al instante</small>
-      </div>
-      <span class="hp-promo-btn">RECLAMAR</span>
-    </div>`;
 
   // Welcome bubble visual (entre hero y categorías). Reemplaza al welcome
   // que antes iba al chat history.
@@ -1969,8 +2023,34 @@ async function showStorefront(){
       </div>
     </section>`;
 
-  page.innerHTML = `${marquee}${hero}${welcomeBubble}${promoCta}${categories}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${juegosHtml}`;
+  // Orden: marquee → hero → categorías (logos) → welcome bubble → secciones → juegos.
+  // El 10% OFF ya no va inline acá — aparece como popup a los 5s (maybeShowPromoPopup).
+  page.innerHTML = `${marquee}${hero}${categories}${welcomeBubble}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${juegosHtml}`;
   hpInitHero();
+  maybeShowPromoPopup();
+}
+
+// ─── POPUP 10% OFF ──────────────────────────────────────────────────────────
+// Aparece 5s después de cargar la home, una vez por sesión, solo si el cliente
+// no es mayorista. Cierra al click X o overlay; al click RECLAMAR abre el
+// gate del juego (donde se registra el email para el cupón).
+function maybeShowPromoPopup(){
+  if (isMayoristaContext && isMayoristaContext()) return;
+  if (sessionStorage.getItem('zorbo-promo-popup-seen')) return;
+  setTimeout(() => {
+    const el = document.getElementById('hpPromoPopup');
+    if (!el) return;
+    el.classList.add('open');
+    try { sessionStorage.setItem('zorbo-promo-popup-seen', '1'); } catch {}
+  }, 5000);
+}
+function closePromoPopup(){
+  const el = document.getElementById('hpPromoPopup');
+  if (el) el.classList.remove('open');
+}
+function popupReclamar(){
+  closePromoPopup();
+  if (typeof openGameGate === 'function') openGameGate();
 }
 
 let flashEnd = null;
