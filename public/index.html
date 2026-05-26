@@ -444,53 +444,44 @@ body.mayorista-active #mayoPage{display:block}
   background:#f5a623;color:#1a1408;padding:9px 18px;border-radius:6px;font-weight:700;
 }
 
-/* CHAT BLANCO (cuando no es mayorista) */
-body:not(.mayorista-active){background:#fff}
-body:not(.mayorista-active) .chat-area{background:#fff;color:#111}
-body:not(.mayorista-active) .messages{padding:1.4rem 1rem 1rem}
-body:not(.mayorista-active) .row.bot .sender{color:#666}
-body:not(.mayorista-active) .row.bot .ai-badge{background:#fff3d6;color:#a05f00;border-color:#f5a623}
-body:not(.mayorista-active) .row.bot .bubble{
-  background:#f5f5f5;border:1px solid #e5e5e5;color:#111;
-}
-body:not(.mayorista-active) .row.user .bubble{
-  background:linear-gradient(135deg,#fff3d6,#ffe4a1);
-  border:1px solid #f5a623;color:#111;
-}
-body:not(.mayorista-active) .row.bot .bubble strong,
-body:not(.mayorista-active) .row.user .bubble strong{color:#a05f00}
-body:not(.mayorista-active) .row.bot .bubble em{color:#5a4a2a}
-body:not(.mayorista-active) .row.bot .bubble h3{color:#a05f00}
-body:not(.mayorista-active) .row.bot .bubble li{color:#444}
-body:not(.mayorista-active) .row.bot .bubble li strong{color:#111}
-body:not(.mayorista-active) .row.bot .bubble blockquote{border-left-color:#f5a623;color:#666}
-body:not(.mayorista-active) .row.bot .bubble th{background:#f5f5f5;color:#a05f00;border-bottom-color:#e5e5e5}
-body:not(.mayorista-active) .row.bot .bubble td{color:#444;border-bottom-color:rgba(0,0,0,.05)}
-body:not(.mayorista-active) .row.bot .bubble td:first-child{color:#111}
-body:not(.mayorista-active) .row.bot .avatar{background:#fff3d6;color:#a05f00}
-body:not(.mayorista-active) .typing .tdot{background:#bbb}
-body:not(.mayorista-active) .input-wrap{background:#fff;border-top:1px solid #e5e5e5}
-body:not(.mayorista-active) .msg-in{
-  background:#f5f5f5;border:1px solid #ddd;color:#111;
-}
-body:not(.mayorista-active) .msg-in:focus{border-color:#f5a623}
-body:not(.mayorista-active) .msg-in::placeholder{color:#999}
-body:not(.mayorista-active) .input-hint{color:#999}
-body:not(.mayorista-active) .qr{
-  background:#fff;border:1px solid #ddd;color:#444;
-}
-body:not(.mayorista-active) .qr:hover{border-color:#f5a623;color:#111;background:#fff8e8}
-body:not(.mayorista-active) .send-btn{
-  background:linear-gradient(135deg,#ffb840,#f5a623,#d88f15);
-  color:#1a1408;
-}
-body:not(.mayorista-active) .app{background:#fff}
-body:not(.mayorista-active) header{background:#fff;border-bottom:1px solid #e5e5e5}
-body:not(.mayorista-active) .cart-btn{background:#f5f5f5;border-color:#ddd;color:#111}
-body:not(.mayorista-active) .cart-btn:hover{border-color:#f5a623}
-body:not(.mayorista-active) .mayoristas-btn{background:#fff;border-color:#ddd;color:#444}
-body:not(.mayorista-active) .mayoristas-btn:hover{border-color:#f5a623;color:#111;background:#fff8e8}
-body:not(.mayorista-active) .brand-pills .brand-circle{border-color:#ddd}
+/* CHAT BLANCO (B2C y mayorista) — paleta blanca unificada */
+body{background:#fff}
+body .chat-area{background:#fff;color:#111}
+body .messages{padding:1.4rem 1rem 1rem}
+body .row.bot .sender{color:#666}
+body .row.bot .ai-badge{background:#fff3d6;color:#a05f00;border-color:#f5a623}
+body .row.bot .bubble{background:#f5f5f5;border:1px solid #e5e5e5;color:#111}
+body .row.user .bubble{background:linear-gradient(135deg,#fff3d6,#ffe4a1);border:1px solid #f5a623;color:#111}
+body .row.bot .bubble strong,body .row.user .bubble strong{color:#a05f00}
+body .row.bot .bubble em{color:#5a4a2a}
+body .row.bot .bubble h3{color:#a05f00}
+body .row.bot .bubble li{color:#444}
+body .row.bot .bubble li strong{color:#111}
+body .row.bot .bubble blockquote{border-left-color:#f5a623;color:#666}
+body .row.bot .bubble th{background:#f5f5f5;color:#a05f00;border-bottom-color:#e5e5e5}
+body .row.bot .bubble td{color:#444;border-bottom-color:rgba(0,0,0,.05)}
+body .row.bot .bubble td:first-child{color:#111}
+body .row.bot .avatar{background:#fff3d6;color:#a05f00}
+body .typing .tdot{background:#bbb}
+body .input-wrap{background:#fff;border-top:1px solid #e5e5e5}
+body .msg-in{background:#f5f5f5;border:1px solid #ddd;color:#111}
+body .msg-in:focus{border-color:#f5a623}
+body .msg-in::placeholder{color:#999}
+body .input-hint{color:#999}
+body .qr{background:#fff;border:1px solid #ddd;color:#444}
+body .qr:hover{border-color:#f5a623;color:#111;background:#fff8e8}
+body .send-btn{background:linear-gradient(135deg,#ffb840,#f5a623,#d88f15);color:#1a1408}
+body .app{background:#fff}
+body header{background:#fff;border-bottom:1px solid #e5e5e5}
+body .cart-btn{background:#f5f5f5;border-color:#ddd;color:#111}
+body .cart-btn:hover{border-color:#f5a623}
+body .mayoristas-btn{background:#fff;border-color:#ddd;color:#444}
+body .mayoristas-btn:hover{border-color:#f5a623;color:#111;background:#fff8e8}
+body .brand-pills .brand-circle{border-color:#ddd}
+
+/* Account chip y carrito empujados a la derecha (cuando mayoristas-btn está oculto en mayo mode) */
+header .mayoristas-btn,
+header .account-chip{margin-left:auto}
 
 /* Brand nav sticky */
 .shop-page .mp-nav{
@@ -1675,6 +1666,12 @@ const HP_HERO_SLIDES = [
   'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/3_4ec879f9-97da-4352-9e39-78fbe43f4091.png?v=1779813533',
   'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/4_ca074e6a-7359-453a-9988-cffbeebc6b60.png?v=1779813534',
 ];
+// Banners EXCLUSIVOS de mayorista (los 3 Kairos PageFly).
+const MP_HERO_SLIDES = [
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-03.png?v=1775154716&width=1280',
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-01.png?v=1775154725&width=1280',
+  'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-02.png?v=1775154766&width=1280',
+];
 
 // Solo entran al home los productos que llevan tag ZORBO en Shopify.
 // Luego se clasifican en chelas / craftmix / destileria / packs por título.
@@ -1871,9 +1868,9 @@ async function showStorefront(){
       <div class="hp-welcome-col">
         <div class="hp-welcome-sender">Zorbot <span class="hp-welcome-badge">IA</span></div>
         <div class="hp-welcome-bubble">
-          <p>Hola! Bienvenido a <strong>ZORBO.AI</strong> ✨ Soy Zorbot, tu sommelier digital.</p>
-          <p>👇 <strong>Sigue bajando</strong> y vas a ver todos nuestros productos: cervezas Kairos, cheladas Firulais y destilados Banny.</p>
-          <p>💬 Si quieres conversar conmigo, pedirme una recomendación o hacerme cualquier pregunta, escríbeme en el chat que está <strong>al final de la página</strong>.</p>
+          <p>Hola! Soy Zorbot, tu sommelier digital.</p>
+          <p>👇 <strong>Sigue bajando</strong> y vas a ver todos nuestros productos.</p>
+          <p>💬 Si quieres conversar conmigo, escríbeme en el chat que está <strong>al final de la página</strong>.</p>
         </div>
       </div>
     </div>`;
@@ -2726,7 +2723,7 @@ function scrollToChat(){
 // Firulais · Destilados Banny · World Tour (Lanús + Osagui con bandera)
 async function showMayoristaStorefront(){
   const products = await loadMpCatalog();
-  const groups = { chelas:[], packs:[], firulais:[], destileria:[], worldTour:[] };
+  const groups = { chelas:[], packs:[], firulais:[], destileria:[], worldTourBarril:[], worldTourPack:[] };
 
   for (const p of products) {
     if (!p.variants || !p.variants.length) continue;
@@ -2743,19 +2740,22 @@ async function showMayoristaStorefront(){
       groups.firulais.push(p);
     } else if (brand === 'banny') {
       groups.destileria.push(p);
-    } else if (brand === 'lanus') {
-      groups.worldTour.push({ ...p, _flag:'ar', _country:'Argentina' });
-    } else if (brand === 'osagui') {
-      groups.worldTour.push({ ...p, _flag:'jp', _country:'Japón' });
+    } else if (brand === 'lanus' || brand === 'osagui') {
+      const flag = brand === 'lanus' ? 'ar' : 'jp';
+      const country = brand === 'lanus' ? 'Argentina' : 'Japón';
+      const fmt = kairosFmt(p);
+      const enriched = { ...p, _flag:flag, _country:country };
+      if (fmt === 'barril')   groups.worldTourBarril.push(enriched);
+      else if (fmt === 'pack') groups.worldTourPack.push(enriched);
     }
   }
 
   const hero = `
     <div class="hp-hero">
-      <div class="ht-track">${HP_HERO_SLIDES.map(u => `<div class="ht-slide"><img src="${u}" alt="Zorbo" onerror="this.parentElement.parentElement.parentElement.parentElement.style.display='none'"></div>`).join('')}</div>
+      <div class="ht-track">${MP_HERO_SLIDES.map(u => `<div class="ht-slide"><img src="${u}" alt="Kairos Brewing" onerror="this.parentElement.parentElement.parentElement.parentElement.style.display='none'"></div>`).join('')}</div>
       <button class="ht-arr prev" aria-label="Anterior">‹</button>
       <button class="ht-arr next" aria-label="Siguiente">›</button>
-      <div class="ht-dots">${HP_HERO_SLIDES.map((_,i)=>`<span class="d ${i===0?'on':''}"></span>`).join('')}</div>
+      <div class="ht-dots">${MP_HERO_SLIDES.map((_,i)=>`<span class="d ${i===0?'on':''}"></span>`).join('')}</div>
     </div>`;
 
   const circleSet = [
@@ -2779,13 +2779,14 @@ async function showMayoristaStorefront(){
       </div>
     </div>`;
 
+  const hasWorldTour = groups.worldTourBarril.length || groups.worldTourPack.length;
   const navPills = `
     <div class="hp-pillrow" style="padding-top:8px;padding-bottom:14px">
       ${groups.chelas.length      ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-chelas\')">Chelas</button>' : ''}
       ${groups.packs.length       ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-packs\')">Packs</button>' : ''}
       ${groups.firulais.length    ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-firulais\')">Firulais</button>' : ''}
       ${groups.destileria.length  ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-destileria\')">Destilados</button>' : ''}
-      ${groups.worldTour.length   ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-worldtour\')">World Tour</button>' : ''}
+      ${hasWorldTour              ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-worldtour-barril\')">World Tour</button>' : ''}
     </div>`;
 
   const sec = (id, title, sub, items, isWorldTour) => items.length ? `
@@ -2802,11 +2803,12 @@ async function showMayoristaStorefront(){
     ${circles}
     ${heroMayo}
     ${navPills}
-    ${sec('sec-mayo-chelas',     'Chelas',           'Barriles cerveceros · mayorista',           groups.chelas, false)}
-    ${sec('sec-mayo-packs',      'Packs',            '24 pack 473cc · mayorista',                 groups.packs, false)}
-    ${sec('sec-mayo-firulais',   'Firulais',         'Cheladas craft · mayorista',                groups.firulais, false)}
-    ${sec('sec-mayo-destileria', 'Destilados Banny', 'Gin · whiskey · ron · vermut · mayorista', groups.destileria, false)}
-    ${sec('sec-mayo-worldtour',  'World Tour',       'Cervezas de invitados · selección global', groups.worldTour, true)}
+    ${sec('sec-mayo-chelas',          'Chelas',           'Barriles cerveceros · mayorista',           groups.chelas, false)}
+    ${sec('sec-mayo-packs',           'Packs',            '24 pack 473cc · mayorista',                 groups.packs, false)}
+    ${sec('sec-mayo-firulais',        'Firulais',         'Cheladas craft · mayorista',                groups.firulais, false)}
+    ${sec('sec-mayo-destileria',      'Destilados Banny', 'Gin · whiskey · ron · vermut · mayorista', groups.destileria, false)}
+    ${sec('sec-mayo-worldtour-barril','World Tour · Barriles', 'Barriles de invitados con bandera de su país', groups.worldTourBarril, true)}
+    ${sec('sec-mayo-worldtour-pack',  'World Tour · Packs',    '24 pack invitados con bandera de su país',     groups.worldTourPack, true)}
   `;
 
   const page = document.getElementById('mayoPage');
