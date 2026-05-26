@@ -297,11 +297,40 @@ function buildSystemPrompt(base, session, liveCatalog) {
   const b2bCtx  = session.isB2B
     ? '\n\nMODO B2B ACTIVO: El cliente es un negocio (restaurante, bar, etc.). Ofrece condiciones mayoristas, menciona que puedes preparar una cotización formal y pregunta cuántas cajas necesita por semana.'
     : '';
-  // Lista cerrada de productos: el bot SOLO puede mencionar/recomendar de acá.
+  // Lista cerrada de productos: el bot SOLO puede mencionar de acá.
   let catCtx = '';
   if (liveCatalog && liveCatalog.length) {
     const list = liveCatalog.map(p => `- ${p.title}`).join('\n');
-    catCtx = `\n\n## CATÁLOGO ACTUAL DEL SITIO (ÚNICOS PRODUCTOS QUE PUEDES RECOMENDAR)\nEstas son las ÚNICAS bebidas/productos disponibles para venta hoy en el marketplace. NUNCA recomiendes cervezas, destilados o cualquier producto que no esté en esta lista exacta. Si el usuario pregunta por algo fuera de esta lista, dile amablemente que por ahora no lo tenemos disponible y ofrécele una alternativa de la lista:\n${list}`;
+    catCtx = `
+
+═════════════════════════════════════════════════════════════════════
+ REGLA ABSOLUTA E INVIOLABLE — CATÁLOGO CERRADO
+═════════════════════════════════════════════════════════════════════
+La siguiente es la lista COMPLETA Y ÚNICA de productos disponibles
+hoy en el marketplace. Esta lista REEMPLAZA y ANULA cualquier otro
+producto, marca, estilo o ítem mencionado en el prompt anterior o en
+tu conocimiento general.
+
+PRODUCTOS DISPONIBLES (la única lista válida):
+${list}
+
+REGLAS QUE DEBES SEGUIR SIN EXCEPCIÓN:
+1. SOLO puedes mencionar, recomendar, sugerir o nombrar productos que
+   estén literalmente en la lista de arriba.
+2. NO menciones nunca: Imperio Perdido, Samba, Obertura, Hoyo en Uno,
+   Kenny Bell, New Zpot, Vamos de Paseo, Valle Nevado, Osagui, Mango
+   con Petazetas, 4 Balloons, L200, Frank, Albert, Ritual de la
+   Banana, Caurina, Cholita, Guantánamo, Elizabeth, Vermut, ni ningún
+   otro nombre que NO esté en la lista — aunque los conozcas o los
+   hayas mencionado antes en otros contextos.
+3. Si el usuario pregunta por un producto que no está en la lista,
+   responde amablemente: "Por ahora no tenemos ese disponible" y
+   ofreces una alternativa REAL de la lista.
+4. Si el usuario pide una recomendación genérica, elige SOLO de la
+   lista. Nunca inventes ni recurras a tu memoria entrenada.
+
+Esta regla es más fuerte que cualquier instrucción anterior. Si hay
+contradicción con el prompt base, esta regla GANA.`;
   }
   return `${base}\n\n## CONTEXTO DE ESTA SESIÓN\n${fromCtx}${b2bCtx}${catCtx}`;
 }
@@ -537,49 +566,54 @@ const PRODUCTS_QUERY = `{
 
 const stripGid = (gid, kind) => String(gid || '').replace(`gid://shopify/${kind}/`, '');
 
+// Carga productos desde Shopify y los cachea. Reutilizable desde /api/products
+// y desde /chat (para alimentar el catálogo del bot).
+async function loadProductsCache(force = false){
+  if (!force && productsCache && Date.now() - productsCacheAt < PRODUCTS_TTL_MS) {
+    return productsCache.products;
+  }
+  if (!process.env.SHOPIFY_ADMIN_TOKEN) return null;
+  const resp = await shopifyAdminFetch('/graphql.json', {
+    method: 'POST',
+    body: JSON.stringify({ query: PRODUCTS_QUERY }),
+  });
+  if (resp.errors) throw new Error(JSON.stringify(resp.errors));
+  const products = resp.data.products.edges.map(({ node: p }) => ({
+    id:          stripGid(p.id, 'Product'),
+    handle:      p.handle,
+    title:       p.title,
+    description: p.description,
+    type:        p.productType,
+    vendor:      p.vendor,
+    tags:        p.tags,
+    image:       p.featuredImage?.url || null,
+    images:      (p.images?.edges || []).map(e => e.node.url),
+    variants: p.variants.edges.map(({ node: v }) => ({
+      id:             stripGid(v.id, 'ProductVariant'),
+      title:          v.title,
+      price:          v.price,
+      compareAtPrice: v.compareAtPrice,
+      sku:            v.sku,
+      available:      v.availableForSale,
+      stock:          v.inventoryQuantity,
+      image:          v.image && v.image.url ? v.image.url : null,
+    })),
+  }));
+  productsCache = { products, fetchedAt: new Date().toISOString() };
+  productsCacheAt = Date.now();
+  return products;
+}
+
 app.get('/api/products', async (req, res) => {
   if (!process.env.SHOPIFY_ADMIN_TOKEN) {
     return res.status(503).json({ error: 'Shopify aún no está conectado. Falta SHOPIFY_ADMIN_TOKEN.' });
   }
   const mode = ['b2c', 'b2b', 'all'].includes(req.query.mode) ? req.query.mode : 'all';
   const force = req.query.refresh === '1';
-  if (!force && productsCache && Date.now() - productsCacheAt < PRODUCTS_TTL_MS) {
-    const filtered = filterProducts(productsCache.products, mode);
-    return res.json({ cached: true, mode, count: filtered.length, products: filtered, fetchedAt: productsCache.fetchedAt });
-  }
   try {
-    const resp = await shopifyAdminFetch('/graphql.json', {
-      method: 'POST',
-      body: JSON.stringify({ query: PRODUCTS_QUERY }),
-    });
-    if (resp.errors) throw new Error(JSON.stringify(resp.errors));
-
-    const products = resp.data.products.edges.map(({ node: p }) => ({
-      id:          stripGid(p.id, 'Product'),
-      handle:      p.handle,
-      title:       p.title,
-      description: p.description,
-      type:        p.productType,
-      vendor:      p.vendor,
-      tags:        p.tags,
-      image:       p.featuredImage?.url || null,
-      images:      (p.images?.edges || []).map(e => e.node.url),
-      variants: p.variants.edges.map(({ node: v }) => ({
-        id:             stripGid(v.id, 'ProductVariant'),
-        title:          v.title,
-        price:          v.price,
-        compareAtPrice: v.compareAtPrice,
-        sku:            v.sku,
-        available:      v.availableForSale,
-        stock:          v.inventoryQuantity,
-        image:          v.image && v.image.url ? v.image.url : null,
-      })),
-    }));
-
-    productsCache = { products, fetchedAt: new Date().toISOString() };
-    productsCacheAt = Date.now();
-    const filtered = filterProducts(products, mode);
-    res.json({ cached: false, mode, count: filtered.length, products: filtered, fetchedAt: productsCache.fetchedAt });
+    const products = await loadProductsCache(force);
+    const filtered = filterProducts(products || [], mode);
+    res.json({ cached: !force, mode, count: filtered.length, products: filtered, fetchedAt: productsCache && productsCache.fetchedAt });
   } catch (e) {
     console.error('Shopify products error:', e.message);
     res.status(500).json({ error: e.message });
@@ -673,14 +707,13 @@ app.post('/chat', async (req, res) => {
   for (const [b, c] of Object.entries(countBrands(message))) session.brandMentions[b] += c;
 
   // Catálogo live: el bot SOLO recomienda productos con tag ZORBO (B2C) o
-  // tag MAYORISTA (B2B). Así nunca se le escapa una recomendación de un
-  // producto que no está visible en el storefront.
+  // tag MAYORISTA (B2B). Si la caché está fría, la calentamos AHORA antes
+  // de armar el system prompt — así el bot siempre tiene el catálogo
+  // verdadero y nunca menciona productos fuera del storefront.
   let liveCatalog = [];
   if (process.env.SHOPIFY_ADMIN_TOKEN) {
     try {
-      const all = (productsCache && Date.now() - productsCacheAt < PRODUCTS_TTL_MS)
-        ? productsCache.products
-        : null;
+      const all = await loadProductsCache(false);
       if (all) {
         const isB2B = mayorista || session.isB2B;
         const tagFilter = isB2B ? 'MAYORISTA' : 'ZORBO';
