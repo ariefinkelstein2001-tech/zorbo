@@ -425,23 +425,39 @@ body.mayorista-active #mayoPage{display:block}
 }
 
 /* Sección Juegos */
+/* Cards de productos dentro del chat (cuando el bot recomienda) — más chicas */
+.shop-page.chat-cards{margin-top:.6rem;padding:0;background:transparent}
+.shop-page.chat-cards .hp-row{padding-bottom:8px}
+.shop-page.chat-cards .hp-card{flex:0 0 200px;padding:12px}
+.shop-page.chat-cards .hp-card-name{font-size:13px;min-height:32px}
+.shop-page.chat-cards .hp-card-price{font-size:16px}
+.shop-page.chat-cards .hp-variant{font-size:10px;padding:5px 9px}
+.shop-page.chat-cards .hp-qty button{width:28px;height:34px;font-size:15px}
+.shop-page.chat-cards .hp-qty .v{width:30px;height:34px;line-height:34px;font-size:13px}
+.shop-page.chat-cards button.hp-add{font-size:11px;height:34px}
+
+.shop-page .hp-games-section{padding:24px clamp(1rem,4vw,3rem) 32px}
+.shop-page .hp-games-section .hp-section-t{text-align:center;width:100%}
+.shop-page .hp-games-section .hp-section-s{text-align:center;width:100%;display:block}
+.shop-page .hp-games-section .hp-section-head{flex-direction:column;gap:6px;text-align:center;margin-bottom:18px}
 .shop-page .hp-games-grid{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;
+  max-width:760px;margin:0 auto;
 }
 .shop-page .hp-game-card{
   background:linear-gradient(135deg,#1a1408 0%,#2a1f0a 100%);
-  border:2px solid #f5a623;border-radius:14px;
-  padding:22px 22px 18px;display:flex;flex-direction:column;align-items:center;gap:10px;
+  border:1.5px solid #f5a623;border-radius:10px;
+  padding:14px 12px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;
   cursor:pointer;text-align:center;
   transition:transform .2s,box-shadow .2s;color:#fff;
 }
-.shop-page .hp-game-card:hover{transform:translateY(-4px);box-shadow:0 12px 26px rgba(0,0,0,.2)}
-.shop-page .hp-game-card .hg-emoji{font-size:3rem;filter:drop-shadow(0 3px 8px rgba(245,166,35,.5))}
-.shop-page .hp-game-card h3{font-family:'Bricolage Grotesque',sans-serif;font-size:24px;letter-spacing:.04em;color:#fff;text-transform:uppercase;line-height:1}
-.shop-page .hp-game-card p{font-family:'DM Sans',sans-serif;font-size:13px;color:rgba(255,255,255,.75);line-height:1.45;margin:0}
+.shop-page .hp-game-card:hover{transform:translateY(-3px);box-shadow:0 8px 20px rgba(0,0,0,.18)}
+.shop-page .hp-game-card .hg-emoji{font-size:1.8rem;filter:drop-shadow(0 2px 6px rgba(245,166,35,.5))}
+.shop-page .hp-game-card h3{font-family:'Bricolage Grotesque',sans-serif;font-size:15px;letter-spacing:.02em;color:#fff;text-transform:uppercase;line-height:1.1;font-weight:700}
+.shop-page .hp-game-card p{font-family:'DM Sans',sans-serif;font-size:11px;color:rgba(255,255,255,.7);line-height:1.35;margin:0}
 .shop-page .hp-game-card .hg-cta{
-  margin-top:auto;font-family:'Bricolage Grotesque',sans-serif;font-size:13px;letter-spacing:.14em;
-  background:#f5a623;color:#1a1408;padding:9px 18px;border-radius:6px;font-weight:700;
+  margin-top:6px;font-family:'Bricolage Grotesque',sans-serif;font-size:10px;letter-spacing:.12em;
+  background:#f5a623;color:#1a1408;padding:6px 12px;border-radius:5px;font-weight:700;
 }
 
 /* CHAT BLANCO (B2C y mayorista) — paleta blanca unificada */
@@ -1597,11 +1613,21 @@ function escapeHtml(s) {
 }
 
 // ─── DETECCIÓN DE PRODUCTOS + TARJETAS ────────────────────────────────────────
+// Cache global de productos B2C con tag ZORBO (poblado por showStorefront).
+// detectProducts() y las cards del chat lo usan para SOLO mostrar productos
+// del catálogo activo, no los hardcodeados en CATALOG.
+let ZORBO_LIVE = [];
+
 function detectProducts(text) {
   const lower = text.toLowerCase();
   const found = [];
-  for (const [key, p] of PMAP) {
-    if (lower.includes(key) && !found.includes(p)) found.push(p);
+  // Solo del catálogo live ZORBO. Si está vacío (caché fría), no devuelve nada.
+  for (const p of ZORBO_LIVE) {
+    const name = (p.title || '').toLowerCase();
+    if (!name) continue;
+    // Busca por nombre principal (sin sufijo de lata/ml)
+    const cleanName = name.replace(/\s*-?\s*(lata\s*\d+\s*cc?|\d+\s*ml|\d+\s*cc)/gi,'').trim();
+    if (lower.includes(cleanName) && !found.includes(p)) found.push(p);
     if (found.length >= 4) break;
   }
   return found;
@@ -1843,6 +1869,10 @@ async function showStorefront(){
     }
   } catch (e) { console.warn('home catalog:', e); }
 
+  // Popula la caché global con productos tag ZORBO (la usa detectProducts
+  // del chat para SOLO mostrar cards de productos visibles en el home).
+  ZORBO_LIVE = products.filter(p => hasZorboTag(p));
+
   const groups = { chelas:[], craftmix:[], destileria:[], packs:[] };
   for (const p of products) {
     if (!p.variants || !p.variants.length) continue;
@@ -1922,7 +1952,7 @@ async function showStorefront(){
 
   // Sección Juegos (separada del CTA 10% OFF)
   const juegosHtml = `
-    <section class="hp-section" id="sec-juegos">
+    <section class="hp-section hp-games-section" id="sec-juegos">
       <div class="hp-section-head">
         <h2 class="hp-section-t">Juega y Gana</h2>
         <span class="hp-section-s">Descuentos extra cada día · una jugada diaria por persona</span>
@@ -1951,7 +1981,7 @@ async function showStorefront(){
 
   // Orden: marquee → hero → categorías (logos) → welcome bubble → secciones → juegos.
   // El 10% OFF ya no va inline acá — aparece como popup a los 5s (maybeShowPromoPopup).
-  page.innerHTML = `${marquee}${hero}${categories}${welcomeBubble}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${juegosHtml}`;
+  page.innerHTML = `${marquee}${hero}${categories}${welcomeBubble}${juegosHtml}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}`;
   hpInitHero();
   maybeShowPromoPopup();
 }
@@ -2015,7 +2045,7 @@ function botRow(innerHTML) {
 function botStatic(text) {
   const prods = detectProducts(text);
   botRow(`<div class="bubble">${md(text)}</div>` +
-    (prods.length ? `<div class="cards-row">${prods.map(p=>buildCard(p)).join('')}</div>` : ''));
+    (prods.length ? `<div class="shop-page chat-cards"><div class="hp-row">${prods.map(p=>buildHpCard(p)).join('')}</div></div>` : ''));
 }
 function userMsg(text) {
   const row = document.createElement('div');
@@ -2032,7 +2062,7 @@ function finalizeRow(row, fullText) {
   const col = row.querySelector('.msg-col');
   col.innerHTML = `<div class="sender">Zorbot <span class="ai-badge">IA</span></div>
     <div class="bubble">${md(fullText)}</div>` +
-    (prods.length ? `<div class="cards-row">${prods.map(p=>buildCard(p)).join('')}</div>` : '');
+    (prods.length ? `<div class="shop-page chat-cards"><div class="hp-row">${prods.map(p=>buildHpCard(p)).join('')}</div></div>` : '');
   scrollBottom();
 }
 
