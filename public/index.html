@@ -90,6 +90,8 @@ header{
   border-bottom:1px solid var(--border);z-index:20;
 }
 .brand-logo{display:flex;align-items:center;gap:.55rem;flex-shrink:0;user-select:none}
+.brand-logo .logo-img{height:38px;width:auto;object-fit:contain;display:block}
+@media(max-width:600px){.brand-logo .logo-img{height:30px}}
 .logo-mark{
   width:34px;height:34px;border-radius:9px;flex-shrink:0;
   background:linear-gradient(135deg,var(--gold-bright),var(--gold) 60%,var(--gold-deep));
@@ -201,10 +203,10 @@ body.mayorista-active #mayoPage{display:block}
 }
 #homePage .hp-marquee-track span{display:inline-flex;align-items:center;gap:8px}
 @keyframes hp-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-#homePage .hp-hero{position:relative;width:100%;overflow:hidden;background:#000;line-height:0}
-#homePage .hp-hero .ht-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1)}
-#homePage .hp-hero .ht-slide{flex:0 0 100%;line-height:0}
-#homePage .hp-hero .ht-slide img{width:100%;display:block;max-height:480px;object-fit:cover;object-position:center}
+#homePage .hp-hero{position:relative;width:100%;overflow:hidden;background:#000;line-height:0;aspect-ratio:2/1;max-height:600px}
+#homePage .hp-hero .ht-track{display:flex;transition:transform .7s cubic-bezier(.4,0,.2,1);height:100%}
+#homePage .hp-hero .ht-slide{flex:0 0 100%;line-height:0;height:100%}
+#homePage .hp-hero .ht-slide img{width:100%;height:100%;display:block;object-fit:contain;object-position:center;background:#000}
 #homePage .hp-hero .ht-dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:5}
 #homePage .hp-hero .ht-dots .d{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.45);transition:all .25s;cursor:pointer;border:none}
 #homePage .hp-hero .ht-dots .d.on{background:#f5a623;width:22px;border-radius:4px}
@@ -285,6 +287,35 @@ body.mayorista-active #mayoPage{display:block}
 #homePage button.hp-add:active{transform:scale(.97)}
 #homePage button.hp-add.done{background:#4caf50!important;color:#fff!important;pointer-events:none}
 #homePage .hp-empty{padding:60px 20px;text-align:center;color:#999;font-size:14px;letter-spacing:.08em}
+
+/* Welcome bubble dentro del home (entre hero y categorías) */
+#homePage .hp-welcome{
+  display:flex;gap:14px;align-items:flex-start;
+  max-width:780px;margin:28px auto 0;padding:0 clamp(1rem,4vw,2rem);
+}
+#homePage .hp-welcome-avatar{
+  flex-shrink:0;width:38px;height:38px;border-radius:50%;
+  background:#fff3d6;color:#a05f00;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  border:1px solid #f5a623;
+}
+#homePage .hp-welcome-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+#homePage .hp-welcome-sender{
+  font-size:.66rem;font-weight:600;color:#666;letter-spacing:.02em;
+  display:flex;align-items:center;gap:.4rem;padding-left:.2rem;
+}
+#homePage .hp-welcome-badge{
+  font-size:.56rem;font-weight:700;padding:.06rem .4rem;border-radius:20px;
+  background:#fff3d6;color:#a05f00;border:1px solid #f5a623;
+}
+#homePage .hp-welcome-bubble{
+  background:#f5f5f5;border:1px solid #e5e5e5;color:#111;
+  padding:.85rem 1.1rem;border-radius:14px;border-bottom-left-radius:5px;
+  line-height:1.6;font-size:.92rem;
+}
+#homePage .hp-welcome-bubble p{margin-bottom:.45rem}
+#homePage .hp-welcome-bubble p:last-child{margin-bottom:0}
+#homePage .hp-welcome-bubble strong{color:#a05f00;font-weight:700}
 
 /* Promo CTA 10% OFF */
 #homePage .hp-promo-cta{
@@ -1156,11 +1187,7 @@ body.mayorista-active .game-banner{display:none}
   <!-- HEADER -->
   <header>
     <div class="brand-logo">
-      <div class="logo-mark">⚡</div>
-      <div class="logo-txt">
-        <span class="logo-name">ZORBO.AI</span>
-        <span class="logo-sub">Craft Marketplace</span>
-      </div>
+      <img class="logo-img" src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Titulo_secundario-3.png?v=1779814975" alt="Zorbo">
     </div>
     <button class="mayoristas-btn" id="mayoristasBtn" onclick="openMayoristaModal()" aria-label="Acceso mayoristas">
       <span class="mb-ico">🔐</span><span class="mb-txt">Mayoristas</span>
@@ -1268,7 +1295,7 @@ body.mayorista-active .game-banner{display:none}
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
-    <div class="input-hint">ZorboBot puede cometer errores · responde con IA</div>
+    <div class="input-hint">Zorbot puede cometer errores · responde con IA</div>
   </div>
 </div>
 
@@ -1440,7 +1467,7 @@ body.mayorista-active .game-banner{display:none}
       <button class="cart-x" onclick="toggleCart()">✕</button>
     </div>
     <div class="cart-body" id="cartBody">
-      <div class="cart-empty-msg">Tu carro está vacío.<br>Pídele una recomendación a ZorboBot!</div>
+      <div class="cart-empty-msg">Tu carro está vacío.<br>Pídele una recomendación a Zorbot!</div>
     </div>
     <div class="cart-foot">
       <div class="ship-bar"><div class="ship-fill" id="shipFill" style="width:0%"></div></div>
@@ -1549,10 +1576,9 @@ function checkAge() {
 function welcome() {
   if (welcomed) return;
   welcomed = true;
-  botStatic('Hola! bienvenido a ZORBO.AI ✨ Soy ZorboBot, tu sommelier digital del marketplace.\n\nTenemos las 3 marcas de la casa: **Kairos Brewing** (cervezas artesanales), **Firulais** (cheladas craft) y **Banny** (destilados y RTD).\n\nMira lo que tenemos hoy o cuéntame qué se te antoja 👇');
+  // El welcome ahora se renderea como un bubble visual DENTRO del homePage
+  // (entre hero y categorías), no en el chat history. Ver buildWelcomeBubble.
   showStorefront();
-  // El welcome message disparó scrollBottom() — pero queremos que el usuario
-  // arranque viendo los banners arriba del chat. Forzar scroll al top.
   setTimeout(() => {
     const ca = document.getElementById('chatArea');
     if (ca) ca.scrollTop = 0;
@@ -1872,6 +1898,21 @@ async function showStorefront(){
       <span class="hp-promo-btn">RECLAMAR</span>
     </div>`;
 
+  // Welcome bubble visual (entre hero y categorías). Reemplaza al welcome
+  // que antes iba al chat history.
+  const welcomeBubble = `
+    <div class="hp-welcome">
+      <div class="hp-welcome-avatar">⚡</div>
+      <div class="hp-welcome-col">
+        <div class="hp-welcome-sender">Zorbot <span class="hp-welcome-badge">IA</span></div>
+        <div class="hp-welcome-bubble">
+          <p>Hola! bienvenido a ZORBO.AI ✨ Soy Zorbot, tu sommelier digital del marketplace.</p>
+          <p>Tenemos las 3 marcas de la casa: <strong>Kairos Brewing</strong> (cervezas artesanales), <strong>Firulais</strong> (cheladas craft) y <strong>Banny</strong> (destilados y RTD).</p>
+          <p>Mira lo que tenemos hoy o cuéntame qué se te antoja 👇</p>
+        </div>
+      </div>
+    </div>`;
+
   const categories = `
     <div class="hp-categories">
       <button class="hp-cat chelas" onclick="hpScrollTo('sec-chelas')">
@@ -1907,19 +1948,19 @@ async function showStorefront(){
         <span class="hp-section-s">Descuentos extra cada día · una jugada diaria por persona</span>
       </div>
       <div class="hp-games-grid">
-        <div class="hp-game-card" onclick="openGame()">
+        <div class="hp-game-card" onclick="openGame('wheel')">
           <span class="hg-emoji">🎰</span>
           <h3>Ruleta de la Suerte</h3>
           <p>Gira y gana descuentos del 5% al 20% en tu próximo pedido</p>
           <span class="hg-cta">JUGAR AHORA</span>
         </div>
-        <div class="hp-game-card" onclick="openGame()">
+        <div class="hp-game-card" onclick="openGame('scratch')">
           <span class="hg-emoji">🎫</span>
           <h3>Rasca y Gana</h3>
           <p>Raspa el panel y descubre tu premio sorpresa al instante</p>
           <span class="hg-cta">JUGAR AHORA</span>
         </div>
-        <div class="hp-game-card" onclick="openGame()">
+        <div class="hp-game-card" onclick="openGame('slot')">
           <span class="hg-emoji">🎲</span>
           <h3>Slots Craft</h3>
           <p>Tira los rodillos y gana cupones, packs y envío gratis</p>
@@ -1928,7 +1969,7 @@ async function showStorefront(){
       </div>
     </section>`;
 
-  page.innerHTML = `${marquee}${hero}${promoCta}${categories}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${juegosHtml}`;
+  page.innerHTML = `${marquee}${hero}${welcomeBubble}${promoCta}${categories}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${juegosHtml}`;
   hpInitHero();
 }
 
@@ -1960,7 +2001,7 @@ function botRow(innerHTML) {
   const row = document.createElement('div');
   row.className = 'row bot';
   row.innerHTML = `<div class="avatar">⚡</div><div class="msg-col">
-    <div class="sender">ZorboBot <span class="ai-badge">IA</span></div>${innerHTML}</div>`;
+    <div class="sender">Zorbot <span class="ai-badge">IA</span></div>${innerHTML}</div>`;
   document.getElementById('messages').appendChild(row);
   scrollBottom();
   return row;
@@ -1983,7 +2024,7 @@ function typingRow() {
 function finalizeRow(row, fullText) {
   const prods = detectProducts(fullText);
   const col = row.querySelector('.msg-col');
-  col.innerHTML = `<div class="sender">ZorboBot <span class="ai-badge">IA</span></div>
+  col.innerHTML = `<div class="sender">Zorbot <span class="ai-badge">IA</span></div>
     <div class="bubble">${md(fullText)}</div>` +
     (prods.length ? `<div class="cards-row">${prods.map(p=>buildCard(p)).join('')}</div>` : '');
   scrollBottom();
@@ -2117,7 +2158,7 @@ function updateCart() {
 
   const body = document.getElementById('cartBody');
   if (!cart.length) {
-    body.innerHTML = '<div class="cart-empty-msg">Tu carro está vacío.<br>Pídele una recomendación a ZorboBot!</div>';
+    body.innerHTML = '<div class="cart-empty-msg">Tu carro está vacío.<br>Pídele una recomendación a Zorbot!</div>';
   } else {
     body.innerHTML = cart.map((item, idx) => `
       <div class="ci">
@@ -2262,7 +2303,7 @@ let currentGame = 'wheel';
 let wonPrize = null;
 
 // ═══════════════ ABRIR / CERRAR ═══════════════
-function openGame(){
+function openGame(gameType){
   // El juego es exclusivo B2C — los mayoristas tienen sus condiciones negociadas
   if (isMayoristaContext()){
     botStatic('Como mayorista, tienes tus condiciones comerciales propias — el juego es exclusivo para clientes particulares 🍺');
@@ -2272,10 +2313,20 @@ function openGame(){
     botStatic('Ya jugaste hoy. Vuelve mañana para otra oportunidad de ganar un descuento extra!');
     return;
   }
-  // Acceso libre: el juego se puede jugar sin gate de email. El gate sigue
-  // existiendo y se accede por el banner 10% OFF que sí pide email para el
-  // cupón de bienvenida.
   document.getElementById('gameModal').classList.add('open');
+  // Cuando se especifica un juego puntual (wheel/scratch/slot), ocultamos los
+  // tabs y mostramos sólo el panel pedido. Sin parámetro = comportamiento
+  // anterior (3 opciones en tabs).
+  const tabs = document.querySelector('#gameModal .gm-tabs');
+  if (gameType && ['wheel','scratch','slot'].includes(gameType)) {
+    if (tabs) tabs.style.display = 'none';
+    document.querySelectorAll('#gameModal .gm-tab').forEach(t => t.classList.toggle('on', t.dataset.game === gameType));
+    document.querySelectorAll('#gameModal .gm-pane').forEach(p => p.classList.remove('on'));
+    const pane = document.getElementById('pane' + gameType.charAt(0).toUpperCase() + gameType.slice(1));
+    if (pane) pane.classList.add('on');
+  } else {
+    if (tabs) tabs.style.display = '';
+  }
   buildWheel();
   buildSlotStrips();
 }
