@@ -383,10 +383,11 @@ body.mayorista-active #mayoPage{display:block}
 }
 .shop-page .hp-welcome-avatar{
   flex-shrink:0;width:38px;height:38px;border-radius:50%;
-  background:#fff3d6;color:#a05f00;
+  background:#fff3d6;color:#a05f00;overflow:hidden;
   display:flex;align-items:center;justify-content:center;font-size:18px;
   border:1px solid #f5a623;
 }
+.shop-page .hp-welcome-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 .shop-page .hp-welcome-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
 .shop-page .hp-welcome-sender{
   font-size:.66rem;font-weight:600;color:#666;letter-spacing:.02em;
@@ -1930,7 +1931,7 @@ async function showStorefront(){
   // explicar a cualquier persona (incluso no tecnológica) cómo usar la página.
   const welcomeBubble = `
     <div class="hp-welcome">
-      <div class="hp-welcome-avatar">⚡</div>
+      <div class="hp-welcome-avatar"><img src="/zorbot-avatar.jpg" alt="Zorbot"></div>
       <div class="hp-welcome-col">
         <div class="hp-welcome-sender">Zorbot <span class="hp-welcome-badge">IA</span></div>
         <div class="hp-welcome-bubble">
@@ -2008,7 +2009,7 @@ async function showStorefront(){
     <div class="hp-cierre-wordmark" id="sec-cierre">ZORBO.</div>
     <hr class="hp-cierre-rule">
     <div class="hp-welcome hp-welcome-cierre">
-      <div class="hp-welcome-avatar">⚡</div>
+      <div class="hp-welcome-avatar"><img src="/zorbot-avatar.jpg" alt="Zorbot"></div>
       <div class="hp-welcome-col">
         <div class="hp-welcome-sender">Zorbot <span class="hp-welcome-badge">IA</span></div>
         <div class="hp-welcome-bubble">
@@ -2868,7 +2869,7 @@ async function showMayoristaStorefront(){
   const nom = customer.first_name || 'colega';
   const welcomeMayo = `
     <div class="hp-welcome">
-      <div class="hp-welcome-avatar">⚡</div>
+      <div class="hp-welcome-avatar"><img src="/zorbot-avatar.jpg" alt="Zorbot"></div>
       <div class="hp-welcome-col">
         <div class="hp-welcome-sender">Zorbot <span class="hp-welcome-badge">IA</span></div>
         <div class="hp-welcome-bubble">
