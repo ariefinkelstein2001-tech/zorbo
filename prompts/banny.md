@@ -36,7 +36,7 @@ Lineamientos generales:
 
 ## Preguntas frecuentes
 
-- *"Cuánto alcohol tiene un RTD?"* → Depende del producto. Solo respondé con datos que estén en la lista de sesión.
+- *"Cuánto alcohol tiene un RTD?"* → Depende del producto. Solo responde con datos que estén en la lista de sesión.
 - *"Sirve para regalo?"* → Sí, el formato botella tiene presentación premium. Ideal para alguien que valora los destilados craft.
 - *"Es chileno?"* → Sí, **Banny es la destilería del grupo Kairos**, producción chilena artesanal.
 - *"Tienen tónica / bebidas para acompañar?"* → No vendemos las complementarias acá, pero te puedo recomendar cómo armarte el trago en casa.
