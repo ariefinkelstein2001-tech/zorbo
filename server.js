@@ -446,7 +446,9 @@ function buildSystemPrompt(base, session, liveCatalog) {
   let tutorialsCtx = '';
   try {
     const all = loadTutorials();
-    const filtered = all.filter(t => session.isB2B || t.scope === 'general');
+    // Solo inyectamos tutoriales CON videoUrl. Los que están sin link son
+    // placeholders pendientes de grabar — no los menciona el bot.
+    const filtered = all.filter(t => t.videoUrl && t.videoUrl.trim() && (session.isB2B || t.scope === 'general'));
     if (filtered.length) {
       const list = filtered.map(t => {
         const kw = t.keywords ? ` · keywords: ${t.keywords}` : '';
@@ -1362,9 +1364,9 @@ app.get('/admin/tutoriales', requireAdmin, (_req, res) => {
 function validateTutorialBody(body){
   const { title, videoUrl, keywords, description, scope } = body || {};
   if (typeof title !== 'string' || !title.trim()) return { error: 'Falta el título.' };
-  if (typeof videoUrl !== 'string' || !videoUrl.trim()) return { error: 'Falta el video URL.' };
+  if (videoUrl != null && typeof videoUrl !== 'string') return { error: 'URL inválida.' };
   if (title.length > 200)        return { error: 'Título demasiado largo.' };
-  if (videoUrl.length > 1000)    return { error: 'URL demasiado larga.' };
+  if (videoUrl && videoUrl.length > 1000) return { error: 'URL demasiado larga.' };
   if (description && typeof description !== 'string') return { error: 'Descripción inválida.' };
   if (description && description.length > 4000) return { error: 'Descripción demasiado larga.' };
   if (keywords && typeof keywords !== 'string') return { error: 'Keywords inválidas.' };
@@ -1381,7 +1383,7 @@ app.post('/admin/tutoriales', requireAdmin, (req, res) => {
   const entry = {
     id:          randomUUID(),
     title:       req.body.title.trim(),
-    videoUrl:    req.body.videoUrl.trim(),
+    videoUrl:    (req.body.videoUrl || '').trim(),
     keywords:    (req.body.keywords || '').trim(),
     description: (req.body.description || '').trim(),
     scope:       req.body.scope,
@@ -1401,7 +1403,7 @@ app.put('/admin/tutoriales/:id', requireAdmin, (req, res) => {
   all[idx] = {
     ...all[idx],
     title:       req.body.title.trim(),
-    videoUrl:    req.body.videoUrl.trim(),
+    videoUrl:    (req.body.videoUrl || '').trim(),
     keywords:    (req.body.keywords || '').trim(),
     description: (req.body.description || '').trim(),
     scope:       req.body.scope,
@@ -1418,6 +1420,129 @@ app.delete('/admin/tutoriales/:id', requireAdmin, (req, res) => {
   all.splice(idx, 1);
   saveTutorials(all);
   res.json({ ok: true, total: all.length });
+});
+
+// Plantilla de tutoriales: temas que el equipo debería grabar. El admin
+// dispara POST /admin/tutoriales/seed y se agregan a la biblioteca sin
+// duplicar (matchea por título normalizado contra los ya existentes).
+const DEFAULT_TUTORIALS = [
+  // ── Mayorista (operación / técnico) ──
+  { scope:'mayorista', title:'Pinchado del barril paso a paso',
+    description:'Cómo conectar correctamente un barril Kairos (slim 20/30L, válvula tipo G) — temperatura recomendada, reposo tras transporte, presión inicial 14–20 PSI.',
+    keywords:'pinchar barril, conectar barril, instalar barril, pinchador, tipo G, válvula barril' },
+  { scope:'mayorista', title:'Limpieza alcalina y ácida de schopperas',
+    description:'Protocolo obligatorio mensual: alcalina cada 15 días + ácida cada 30 días. Diluciones, tiempos, enjuague y limpieza de grifos y líneas.',
+    keywords:'limpieza schoppera, limpieza líneas, alcalina, ácida, sanitizar, lavar máquina' },
+  { scope:'mayorista', title:'Diagnóstico de espuma excesiva',
+    description:'Causas más comunes: temperatura fuera de rango, presión alta, líneas calientes, grifo sucio, barril movido recién, sistema sin frío adecuado. Checklist de qué revisar.',
+    keywords:'mucha espuma, espumosa, espuma, no servir, foaming, exceso espuma' },
+  { scope:'mayorista', title:'Cerveza plana / poco gas — qué revisar',
+    description:'Diagnóstico cuando la cerveza sale sin carbonatación: presión baja, fuga de CO2, regulador mal calibrado, pérdida de carbonatación.',
+    keywords:'cerveza plana, poco gas, sin carbonatación, sin gas, baja presión' },
+  { scope:'mayorista', title:'Sale solo gas y no cerveza',
+    description:'Posibles causas: barril vacío, conexión incorrecta, acople mal puesto, línea obstruida, error en pinchado.',
+    keywords:'sale gas, no sale cerveza, solo espuma, no tira, barril vacío' },
+  { scope:'mayorista', title:'No tira cerveza — diagnóstico',
+    description:'Cilindro CO2 vacío, llaves cerradas, fuga de presión, barril vacío, acople mal conectado, sistema obstruido, línea congelada.',
+    keywords:'no tira, no sale nada, schoppera no funciona, sin flujo' },
+  { scope:'mayorista', title:'Detección y solución de fugas de CO2',
+    description:'Señales (cilindro se vacía rápido, silbido, presión cae sola). Test con agua jabonosa en conexiones. Qué cambiar primero.',
+    keywords:'fuga CO2, escape CO2, pierde gas, cilindro se vacía, silbido' },
+  { scope:'mayorista', title:'Manejo seguro del CO2',
+    description:'Cilindro vertical bien afirmado, lejos de calor. Abrir/cerrar válvulas lentamente. CO2 nunca debe estar en frío. Seguridad operativa.',
+    keywords:'CO2 seguridad, cilindro CO2, manejar CO2, válvula CO2, regulador' },
+  { scope:'mayorista', title:'Configurar presión de CO2 por largo de línea',
+    description:'Sistema corto (<6m): no debiera ser mayor a 1.4 bar. Sistema largo (>6m): no debiera exceder 2.5 bar. Cómo ajustar y qué dejar como base.',
+    keywords:'presión CO2, configurar presión, bar PSI, regulador presión, línea schoppera' },
+  { scope:'mayorista', title:'Cadena de frío y conservación del barril',
+    description:'Cadena de frío completa producción → envasado → despacho → local. Sin sistema refrigerado integral: rotar en 5–7 días, nunca > 25°C. Dónde NO ubicar el barril.',
+    keywords:'cadena de frío, conservar barril, temperatura barril, refrigeración, almacenar barril' },
+  { scope:'mayorista', title:'Defectos sensoriales y cómo identificarlos',
+    description:'Asociaciones: cartón mojado → oxidación, mantequilla → diacetilo, agrio → contaminación, químico → residuo de limpieza, etc. Cómo levantar el caso.',
+    keywords:'defecto sensorial, sabor raro, off-flavor, cartón, diacetilo, oxidación, contaminación' },
+  { scope:'mayorista', title:'Líneas congeladas — causas y solución',
+    description:'Síntomas, causas en cámaras de frío / refrigeradores / schopperas refrigeradas. Cuándo es operativo y cuándo derivar a maestro cervecero.',
+    keywords:'línea congelada, hielo en línea, schoppera fría, refrigerador problema' },
+  { scope:'mayorista', title:'Turbidez en cerveza: normal vs problema',
+    description:'Cuándo es esperable (sin filtrar, levadura en suspensión, estilo turbio, cerveza muy fría) y cuándo es señal de problema (olor o sabor raro).',
+    keywords:'turbio, cerveza turbia, opaca, levadura en suspensión, turbidez' },
+  { scope:'mayorista', title:'Distinguir problema de línea vs problema de producto',
+    description:'Línea: se repite en distintos barriles, mejora con limpieza. Producto: solo un barril, viene mal desde el primer servido, no se replica en otras líneas.',
+    keywords:'línea o producto, defecto cerveza, problema barril, distinguir defecto' },
+  { scope:'mayorista', title:'Mermas en latas y proceso de cambio',
+    description:'Latas golpeadas o con fecha vencida → considerar merma. Cómo levantar el caso para revisión.',
+    keywords:'merma, latas dañadas, lata golpeada, lata vencida, cambio lata' },
+  { scope:'mayorista', title:'Servido perfecto del barril',
+    description:'Inclinar vaso 45°, grifo completamente abierto, enderezar al final para formar espuma. Errores comunes y cómo enseñar al staff.',
+    keywords:'servido, servir cerveza, técnica servido, espuma cremosa, vaso 45' },
+  { scope:'mayorista', title:'Aplicar código de descuento mayorista',
+    description:'Dónde se aplica (celular: arriba de Pagar ahora; computador: al lado del carrito). Respetar mayúsculas, sin espacios.',
+    keywords:'código descuento, cupón mayorista, aplicar descuento, código pedido' },
+  { scope:'mayorista', title:'Crear cuenta mayorista y recuperar contraseña',
+    description:'Cómo crear usuario, dónde iniciar sesión (computador: persona arriba derecha; celular: menú 3 líneas). Recuperar contraseña.',
+    keywords:'crear cuenta, registro mayorista, recuperar contraseña, login mayorista, olvidé contraseña' },
+  { scope:'mayorista', title:'Plazos de pedido y despacho mayorista',
+    description:'Pedido máximo hasta las 16:00 del día anterior al despacho. No se despacha sábados ni domingos.',
+    keywords:'plazo pedido, horario despacho, cierre pedido, hora corte' },
+
+  // ── General (B2C + B2B) ──
+  { scope:'general', title:'Cómo guardar y conservar cerveza craft en casa',
+    description:'Cerveza viva sin filtrar: mantener en frío, evitar luz directa, consumir fresca. Cuánto dura bien conservada.',
+    keywords:'guardar cerveza, conservar cerveza, refrigerar cerveza, cuánto dura, almacenar craft' },
+  { scope:'general', title:'Vaso y temperatura ideal para cada estilo',
+    description:'Qué vaso usar (pinta, weizen, snifter), a qué temperatura servir (lager fría / ales más templadas / stouts casi ambiente).',
+    keywords:'vaso cerveza, temperatura cerveza, copa cerveza, servir cerveza, cómo tomar' },
+  { scope:'general', title:'Maridajes con cervezas Kairos',
+    description:'Asados → red ales y estilos maltosos. Comida liviana → pilsner/golden. Picantes → APAs y NEIPAs. Quesos cremosos → estilos jugosos.',
+    keywords:'maridaje cerveza, qué tomar con asado, qué tomar con comida picante, maridar craft' },
+  { scope:'general', title:'Maridajes con Firulais (cheladas)',
+    description:'Mexicano, tex-mex, asados intensos, tablas y picoteo. Ideal para quien no toma cerveza pura.',
+    keywords:'maridaje chelada, chelada con tacos, chelada con comida, maridar firulais' },
+  { scope:'general', title:'Cócteles en casa con Banny',
+    description:'Gin tonic, mojito con ron, whiskey sour, negroni con vermut. Proporciones básicas y trucos.',
+    keywords:'cocteles, gin tonic, mojito, whiskey sour, negroni, banny coctel, recetas trago' },
+  { scope:'general', title:'Historia y filosofía Kairos Brewing',
+    description:'Cervecería artesanal chilena nacida en 2017. Cervezas vivas, sin filtrar, sin aditivos. Los 4 pilares: calidad, innovación, alta tomabilidad, experiencia integral.',
+    keywords:'historia kairos, quienes somos, sobre kairos, kairos brewing historia, filosofía' },
+  { scope:'general', title:'Recorrido por los estilos Kairos',
+    description:'APA, Golden Ale, Red Ale, Pilsner, NEIPA, Weizen, Stout y más. A qué saben, cuándo conviene cada uno.',
+    keywords:'estilos kairos, qué cervezas hay, tipos de cerveza, estilos craft, neipa, ipa, pilsner' },
+  { scope:'general', title:'Firulais: la chelada artesanal explicada',
+    description:'Cheladas 100% naturales, 4.5% ABV, latas 473cc. Perfiles cítricos, frutales y con toque picante. Por qué son "perrísimas".',
+    keywords:'firulais, chelada craft, qué es firulais, ingredientes firulais, sabor chelada' },
+  { scope:'general', title:'Banny: destilados craft del grupo Kairos',
+    description:'Gin, ron, whiskey, vermut y RTD. Premium pero accesible, "craft to be wild". Cómo elegir entre destilado en botella y RTD en lata.',
+    keywords:'banny, destilados banny, gin banny, ron banny, qué es banny, rtd banny' },
+];
+
+function normalizeTitle(s){
+  return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^\w]+/g,' ').trim();
+}
+
+app.post('/admin/tutoriales/seed', requireAdmin, (_req, res) => {
+  try {
+    const all = loadTutorials();
+    const existingTitles = new Set(all.map(t => normalizeTitle(t.title)));
+    let added = 0;
+    for (const t of DEFAULT_TUTORIALS) {
+      if (existingTitles.has(normalizeTitle(t.title))) continue;
+      all.push({
+        id: randomUUID(),
+        title: t.title,
+        videoUrl: '',
+        keywords: t.keywords,
+        description: t.description,
+        scope: t.scope,
+        createdAt: new Date().toISOString(),
+        seeded: true,
+      });
+      added++;
+    }
+    saveTutorials(all);
+    res.json({ ok: true, added, total: all.length });
+  } catch (e) {
+    res.status(500).json({ error: 'Error sembrando: ' + e.message });
+  }
 });
 
 // ─── Analítica (dashboard interno) ──────────────────────────────────────────

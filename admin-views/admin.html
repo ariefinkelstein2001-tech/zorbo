@@ -553,6 +553,12 @@ body.drawer-open{overflow:hidden}
 }
 .adm-tut-kw-label{color:var(--gold-deep);font-weight:700;margin-right:.3rem}
 .adm-chat-tag.general{background:#fff3d6;color:var(--gold-deep);border-color:#f1c97b}
+.adm-tut-item.pending{border-color:#e5e5e5;background:#fafafa}
+.adm-tut-item.pending .adm-tut-icon{background:#eaeaea;color:#888}
+.adm-tut-pending{
+  font-family:var(--sans);font-size:.78rem;color:#888;font-style:italic;
+  background:#fff;border:1px dashed #d8d8d8;border-radius:6px;padding:.45rem .65rem;
+}
 .adm-drawer-tags{
   padding:.7rem 1.2rem;border-bottom:1px solid var(--border);
   display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;
@@ -986,6 +992,7 @@ body.drawer-open{overflow:hidden}
         </div>
         <div class="adm-actions">
           <button class="adm-btn adm-btn-ghost" id="btnReloadTut" type="button">Recargar</button>
+          <button class="adm-btn adm-btn-ghost" id="btnSeedTut"   type="button">Cargar plantilla</button>
           <button class="adm-btn adm-btn-gold"  id="btnNewTut"    type="button">+ Nuevo tutorial</button>
         </div>
       </div>
@@ -1008,7 +1015,7 @@ body.drawer-open{overflow:hidden}
           <input class="adm-input" id="tutTitle" type="text" placeholder="Ej: Pinchado del barril paso a paso">
         </div>
         <div class="adm-fb-col">
-          <label class="adm-fb-label">URL del video</label>
+          <label class="adm-fb-label">URL del video (podés dejarlo vacío y completarlo cuando lo graben)</label>
           <input class="adm-input" id="tutVideo" type="url" placeholder="https://youtu.be/… o https://vimeo.com/…">
         </div>
         <div class="adm-fb-col">
@@ -2235,8 +2242,12 @@ async function loadTutorials(){
 function tutItemHtml(t){
   const scopeLabel = t.scope === 'general' ? 'GENERAL · TODOS' : 'B2B · MAYORISTA';
   const scopeClass = t.scope === 'general' ? 'general' : 'mayo';
+  const hasVideo = !!(t.videoUrl && t.videoUrl.trim());
+  const linkHtml = hasVideo
+    ? `<a class="adm-tut-link" href="${escapeAttr(t.videoUrl)}" target="_blank" rel="noopener">${escapeHtml(t.videoUrl)} ↗</a>`
+    : `<div class="adm-tut-pending">⏳ pendiente de grabar · sin link aún (el bot no lo va a mencionar hasta que cargues la URL)</div>`;
   return `
-    <article class="adm-tut-item">
+    <article class="adm-tut-item ${hasVideo ? '' : 'pending'}">
       <div class="adm-tut-item-head">
         <div class="adm-tut-item-title">
           <span class="adm-tut-icon">▶</span>
@@ -2248,7 +2259,7 @@ function tutItemHtml(t){
           <button type="button" class="adm-fb-item-del  adm-tut-del"  data-id="${escapeAttr(t.id)}">Eliminar</button>
         </div>
       </div>
-      <a class="adm-tut-link" href="${escapeAttr(t.videoUrl)}" target="_blank" rel="noopener">${escapeHtml(t.videoUrl)} ↗</a>
+      ${linkHtml}
       ${t.description ? `<div class="adm-tut-desc">${escapeHtml(t.description)}</div>` : ''}
       ${t.keywords ? `<div class="adm-tut-keywords"><span class="adm-tut-kw-label">keywords:</span> ${escapeHtml(t.keywords)}</div>` : ''}
     </article>`;
@@ -2278,6 +2289,18 @@ function closeTutModal(){
 
 document.getElementById('btnReloadTut').onclick = () => loadTutorials();
 document.getElementById('btnNewTut').onclick    = () => openTutModal(null);
+document.getElementById('btnSeedTut').onclick   = async () => {
+  if (!confirm('Cargar la plantilla con todos los temas de tutorial recomendados? No reemplaza los que ya existan (matchea por título).')) return;
+  try {
+    const r = await fetch('/admin/tutoriales/seed', { method:'POST' });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    showToast(`Plantilla cargada ✓ — ${d.added} nuevo${d.added===1?'':'s'} · ${d.total} total`, 'ok');
+    loadTutorials();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'err');
+  }
+};
 document.getElementById('tutModal').addEventListener('click', (e) => {
   if (e.target.dataset.act === 'close-tut') closeTutModal();
 });
@@ -2299,8 +2322,8 @@ document.getElementById('tutSubmit').onclick = async () => {
     description: document.getElementById('tutDesc').value,
     scope:       tutScope,
   };
-  if (!body.title.trim() || !body.videoUrl.trim()) {
-    showToast('Necesito al menos título y URL del video.', 'err');
+  if (!body.title.trim()) {
+    showToast('Necesito al menos el título.', 'err');
     return;
   }
   const btn = document.getElementById('tutSubmit');
