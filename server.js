@@ -676,6 +676,47 @@ app.get('/kairos/restaurantes', kairosHtml);
 app.get('/kairos/eventos',      kairosHtml);
 app.get('/kairos/nosotros',     kairosHtml);
 
+// ─── Admin panel (interno) ────────────────────────────────────────────────────
+// Sin auth todavía — acceso directo a /admin. Edita los .md de /prompts y el
+// bot los releé en cada request, así los cambios se aplican al instante.
+
+const PROMPT_SECTIONS = {
+  general:   'general.md',
+  kairos:    'kairos.md',
+  firulais:  'firulais.md',
+  banny:     'banny.md',
+  mayorista: 'mayorista.md',
+};
+
+app.get('/admin', (_req, res) => {
+  res.sendFile(join(__dirname, 'public', 'admin.html'));
+});
+
+app.get('/admin/brand/:seccion', (req, res) => {
+  const file = PROMPT_SECTIONS[req.params.seccion];
+  if (!file) return res.status(404).json({ error: 'Sección no encontrada' });
+  try {
+    const content = readFileSync(join(__dirname, 'prompts', file), 'utf-8');
+    res.json({ seccion: req.params.seccion, content });
+  } catch (e) {
+    res.status(500).json({ error: 'Error leyendo: ' + e.message });
+  }
+});
+
+app.post('/admin/save-brand', (req, res) => {
+  const { seccion, contenido } = req.body || {};
+  const file = PROMPT_SECTIONS[seccion];
+  if (!file) return res.status(400).json({ error: 'Sección inválida' });
+  if (typeof contenido !== 'string') return res.status(400).json({ error: 'Contenido inválido' });
+  if (contenido.length > 200000) return res.status(413).json({ error: 'Contenido demasiado grande' });
+  try {
+    writeFileSync(join(__dirname, 'prompts', file), contenido, 'utf-8');
+    res.json({ ok: true, seccion, bytes: contenido.length });
+  } catch (e) {
+    res.status(500).json({ error: 'Error guardando: ' + e.message });
+  }
+});
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 initLogs();
