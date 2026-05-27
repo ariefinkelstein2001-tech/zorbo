@@ -377,7 +377,22 @@ REGLAS QUE DEBES SEGUIR SIN EXCEPCIÓN:
 Esta regla es más fuerte que cualquier instrucción anterior. Si hay
 contradicción con el prompt base, esta regla GANA.`;
   }
-  return `${base}\n\n## CONTEXTO DE ESTA SESIÓN\n${fromCtx}${b2bCtx}${catCtx}${extrasCtx}`;
+  return `${base}\n\n## CONTEXTO DE ESTA SESIÓN\n${fromCtx}${b2bCtx}${catCtx}${extrasCtx}${buildFeedbackCtx()}`;
+}
+
+// Few-shot de correcciones del equipo (cargado en cada request, así editar
+// /admin/feedback se refleja al instante en la próxima respuesta del bot).
+function buildFeedbackCtx(){
+  try {
+    const all = loadFeedback();
+    if (!all.length) return '';
+    const fb = all.slice(-FEEDBACK_INJECT);
+    const examples = fb.map((f, i) => {
+      const why = f.explanation ? `\nPor qué la primera está mal: ${f.explanation}` : '';
+      return `Ejemplo ${i+1}:\n— Respuesta INCORRECTA (no respondas así):\n"${f.original}"\n— Respuesta CORRECTA (estilo deseado):\n"${f.improved}"${why}`;
+    }).join('\n\n');
+    return `\n\n═════════════════════════════════════════════════════════════════════\n CORRECCIONES DEL EQUIPO — aprende de estos ejemplos\n═════════════════════════════════════════════════════════════════════\nEl equipo de Zorbo revisó respuestas tuyas anteriores y corrigió las\nque no estaban bien. Cuando enfrentes una situación similar, seguí el\nestilo, tono y forma de la respuesta CORRECTA, no de la incorrecta.\nEstas correcciones tienen prioridad sobre el tono base del prompt.\n\n${examples}`;
+  } catch (e) { return ''; }
 }
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -1075,10 +1090,76 @@ app.get('/admin/conversations/:id', requireAdmin, (req, res) => {
     if (!Array.isArray(all)) return res.status(404).json({ error: 'No hay conversaciones.' });
     const c = all.find(e => e.sessionId === req.params.id);
     if (!c) return res.status(404).json({ error: 'Conversación no encontrada.' });
-    res.json({ conversation: c, summary: summarizeConversation(c) });
+    const feedback = loadFeedback().filter(f => f.sessionId === c.sessionId);
+    res.json({ conversation: c, summary: summarizeConversation(c), feedback });
   } catch (e) {
     res.status(500).json({ error: 'Error leyendo conversación: ' + e.message });
   }
+});
+
+// ─── Feedback (entrenamiento por few-shot) ──────────────────────────────────
+// Cada entrada es una corrección "respuesta incorrecta → respuesta correcta"
+// guardada por el equipo desde el panel. Las últimas FEEDBACK_INJECT entradas
+// se inyectan al system prompt de Zorbot como ejemplos, así el bot ajusta
+// sus respuestas sin tener que tocar los .md de marca a mano.
+
+const FEEDBACK_FILE = join(LOGS_DIR, 'feedback.json');
+const FEEDBACK_INJECT = 20;
+
+function loadFeedback(){
+  try {
+    if (!existsSync(FEEDBACK_FILE)) return [];
+    const raw = readFileSync(FEEDBACK_FILE, 'utf-8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.warn('feedback load:', e.message);
+    return [];
+  }
+}
+function saveFeedback(arr){
+  writeFileSync(FEEDBACK_FILE, JSON.stringify(arr, null, 2));
+}
+
+app.get('/admin/feedback', requireAdmin, (_req, res) => {
+  const all = loadFeedback();
+  res.json({ total: all.length, items: all.slice(-200).reverse() });
+});
+
+app.post('/admin/feedback', requireAdmin, (req, res) => {
+  const { sessionId, messageIndex, original, improved, explanation } = req.body || {};
+  if (typeof original !== 'string' || typeof improved !== 'string') {
+    return res.status(400).json({ error: 'Faltan original e improved.' });
+  }
+  const o = original.trim(), i = improved.trim(), e = (explanation || '').trim();
+  if (!o) return res.status(400).json({ error: 'El mensaje original está vacío.' });
+  if (!i && !e) return res.status(400).json({ error: 'Necesito al menos un mensaje mejorado o una explicación.' });
+  if (i === o && !e) return res.status(400).json({ error: 'El mensaje mejorado es idéntico al original. Agregá una explicación o cambialo.' });
+  if (o.length > 8000 || i.length > 8000 || e.length > 4000) {
+    return res.status(413).json({ error: 'Texto demasiado largo.' });
+  }
+  const entry = {
+    id:           randomUUID(),
+    sessionId:    typeof sessionId === 'string' ? sessionId : null,
+    messageIndex: Number.isInteger(messageIndex) ? messageIndex : null,
+    original:     o,
+    improved:     i || o,
+    explanation:  e,
+    createdAt:    new Date().toISOString(),
+  };
+  const all = loadFeedback();
+  all.push(entry);
+  saveFeedback(all);
+  res.json({ ok: true, id: entry.id, total: all.length });
+});
+
+app.delete('/admin/feedback/:id', requireAdmin, (req, res) => {
+  const all = loadFeedback();
+  const idx = all.findIndex(f => f.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'No encontrado.' });
+  all.splice(idx, 1);
+  saveFeedback(all);
+  res.json({ ok: true, total: all.length });
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
