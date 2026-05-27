@@ -382,6 +382,12 @@ body{
   background:linear-gradient(135deg,var(--gold-bright),var(--gold) 60%,var(--gold-deep));
   color:#1a1408;
 }
+.adm-pillgroup .adm-pill-sub{
+  font-family:var(--mono);font-size:.55rem;font-weight:600;
+  margin-left:.35rem;padding:.08rem .35rem;border-radius:4px;letter-spacing:.06em;
+  background:rgba(255,255,255,.08);color:inherit;opacity:.7;
+}
+.adm-pillgroup button.on .adm-pill-sub{background:rgba(26,20,8,.18);opacity:.85}
 
 .adm-chats-count{
   font-family:var(--mono);font-size:.7rem;color:var(--dim);
@@ -868,9 +874,13 @@ body.drawer-open{overflow:hidden}
       <div class="adm-panel-head">
         <div>
           <div class="adm-panel-title">Productos</div>
-          <div class="adm-panel-meta">sync Shopify · las notas extra solo viajan a Zorbot</div>
+          <div class="adm-panel-meta" id="prodMeta">sync Shopify · las notas extra solo viajan a Zorbot</div>
         </div>
         <div class="adm-actions">
+          <div class="adm-pillgroup" data-filter="prodSection">
+            <button data-v="minorista" class="on" type="button">Minorista <span class="adm-pill-sub">ZORBO</span></button>
+            <button data-v="mayorista"        type="button">Mayorista <span class="adm-pill-sub">MAYORISTA</span></button>
+          </div>
           <button class="adm-btn adm-btn-ghost" id="btnReloadProd" type="button">Recargar catálogo</button>
         </div>
       </div>
@@ -1037,6 +1047,7 @@ const BRANDS = [
   { id:'banny',    label:'Banny'           },
 ];
 let activeBrand = 'all';
+let activeProdSection = 'minorista';
 let productsCache = [];
 let openProductId = null;
 
@@ -1254,8 +1265,12 @@ document.getElementById('btnReload').onclick = () => {
 async function loadProductos(){
   document.getElementById('productGrid').innerHTML = '<div class="adm-loading">Cargando catálogo desde Shopify…</div>';
   document.getElementById('brandTabs').innerHTML = '';
+  const metaEl = document.getElementById('prodMeta');
+  if (metaEl) metaEl.textContent = activeProdSection === 'mayorista'
+    ? 'sync Shopify · solo productos con tag MAYORISTA · notas extra solo para Zorbot'
+    : 'sync Shopify · solo productos con tag ZORBO (minorista) · notas extra solo para Zorbot';
   try {
-    const r = await fetch('/admin/products');
+    const r = await fetch('/admin/products?section=' + encodeURIComponent(activeProdSection));
     if (!r.ok) {
       const e = await r.json().catch(() => ({}));
       throw new Error(e.error || 'HTTP ' + r.status);
@@ -1269,6 +1284,19 @@ async function loadProductos(){
       `<div class="adm-empty" style="color:var(--red)">Error cargando productos: ${escapeHtml(e.message)}</div>`;
   }
 }
+
+// Toggle Minorista / Mayorista — recarga el grid completo
+document.querySelectorAll('.adm-pillgroup[data-filter="prodSection"] button').forEach(b => {
+  b.onclick = () => {
+    if (b.dataset.v === activeProdSection) return;
+    activeProdSection = b.dataset.v;
+    activeBrand = 'all';
+    openProductId = null;
+    document.querySelectorAll('.adm-pillgroup[data-filter="prodSection"] button')
+      .forEach(x => x.classList.toggle('on', x === b));
+    loadProductos();
+  };
+});
 
 function renderBrandTabs(){
   const wrap = document.getElementById('brandTabs');

@@ -14,9 +14,23 @@ const client = new Anthropic();
 app.use(cors());
 app.use(express.json());
 
-// ─── Logs ─────────────────────────────────────────────────────────────────────
+// ─── Storage paths (con soporte Railway Volume) ──────────────────────────────
+// DATA_DIR (env var) apunta a un volumen persistente. Sin él, todo vive en el
+// contenedor efímero y se pierde en cada redeploy. En Railway:
+//   1. Service → Settings → Volumes → mount /data
+//   2. Variables → DATA_DIR=/data
+// Cuando DATA_DIR está seteado:
+//   - Logs (conversaciones, feedback, juegos, leads) → $DATA_DIR/logs/
+//   - Overrides editables del panel (.md de marca + products.json) →
+//     $DATA_DIR/prompts/. Los .md del repo (prompts/*.md) actúan como seed:
+//     si no hay override en disco, se usa el del repo.
 
-const LOGS_DIR  = join(__dirname, 'logs');
+const DATA_DIR = process.env.DATA_DIR || null;
+const LOGS_DIR = DATA_DIR ? join(DATA_DIR, 'logs') : join(__dirname, 'logs');
+const PROMPTS_BASE_DIR     = join(__dirname, 'prompts');
+const PROMPTS_OVERRIDE_DIR = DATA_DIR ? join(DATA_DIR, 'prompts') : null;
+const PROMPTS_EFFECTIVE_DIR = PROMPTS_OVERRIDE_DIR || PROMPTS_BASE_DIR;
+
 const CONV_LOG  = join(LOGS_DIR, 'conversations.json');
 const ERR_LOG   = join(LOGS_DIR, 'errors.json');
 const GAMES_LOG = join(LOGS_DIR, 'games.json');
@@ -24,10 +38,31 @@ const LEADS_LOG = join(LOGS_DIR, 'mayoristas_leads.json');
 
 function initLogs() {
   if (!existsSync(LOGS_DIR))   mkdirSync(LOGS_DIR, { recursive: true });
+  if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) {
+    mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true });
+  }
   if (!existsSync(CONV_LOG))   writeFileSync(CONV_LOG,  '[]');
   if (!existsSync(ERR_LOG))    writeFileSync(ERR_LOG,   '[]');
   if (!existsSync(GAMES_LOG))  writeFileSync(GAMES_LOG, '[]');
   if (!existsSync(LEADS_LOG))  writeFileSync(LEADS_LOG, '[]');
+  console.log('[storage] DATA_DIR=' + (DATA_DIR || '(no seteado · efímero)'));
+}
+
+// Lee un prompt: prioriza el override del volumen; si no, usa el del repo.
+function readPromptFile(filename) {
+  if (PROMPTS_OVERRIDE_DIR) {
+    const o = join(PROMPTS_OVERRIDE_DIR, filename);
+    if (existsSync(o)) return readFileSync(o, 'utf-8');
+  }
+  return readFileSync(join(PROMPTS_BASE_DIR, filename), 'utf-8');
+}
+// Guarda un prompt: si hay override dir, escribe ahí (no toca el repo).
+function writePromptFile(filename, content) {
+  const target = join(PROMPTS_EFFECTIVE_DIR, filename);
+  if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) {
+    mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true });
+  }
+  writeFileSync(target, content, 'utf-8');
 }
 
 function readLog(file) {
@@ -856,7 +891,7 @@ app.get('/admin/brand/:seccion', requireAdmin, (req, res) => {
   const file = PROMPT_SECTIONS[req.params.seccion];
   if (!file) return res.status(404).json({ error: 'Sección no encontrada' });
   try {
-    const content = readFileSync(join(__dirname, 'prompts', file), 'utf-8');
+    const content = readPromptFile(file);
     res.json({ seccion: req.params.seccion, content });
   } catch (e) {
     res.status(500).json({ error: 'Error leyendo: ' + e.message });
@@ -870,7 +905,7 @@ app.post('/admin/save-brand', requireAdmin, (req, res) => {
   if (typeof contenido !== 'string') return res.status(400).json({ error: 'Contenido inválido' });
   if (contenido.length > 200000) return res.status(413).json({ error: 'Contenido demasiado grande' });
   try {
-    writeFileSync(join(__dirname, 'prompts', file), contenido, 'utf-8');
+    writePromptFile(file, contenido);
     res.json({ ok: true, seccion, bytes: contenido.length });
   } catch (e) {
     res.status(500).json({ error: 'Error guardando: ' + e.message });
@@ -882,7 +917,8 @@ app.post('/admin/save-brand', requireAdmin, (req, res) => {
 // Las "notas extra" se guardan en prompts/products.json y se inyectan SOLO al
 // system prompt de Zorbot, sin tocar Shopify.
 
-const PRODUCTS_EXTRAS_FILE = join(__dirname, 'prompts', 'products.json');
+// Las extras de productos también se editan desde el panel → van al volumen.
+const PRODUCTS_EXTRAS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'products.json');
 
 function loadProductExtras(){
   try {
@@ -909,35 +945,42 @@ function brandFromProduct(p){
   return 'otros';
 }
 
-app.get('/admin/products', requireAdmin, async (_req, res) => {
+app.get('/admin/products', requireAdmin, async (req, res) => {
   if (!process.env.SHOPIFY_ADMIN_TOKEN) {
     return res.status(503).json({ error: 'Shopify no está conectado (falta SHOPIFY_ADMIN_TOKEN).' });
   }
+  // Sección: minorista = solo productos con tag ZORBO; mayorista = solo MAYORISTA.
+  // Default minorista (lo que ve el público en la home).
+  const section = String(req.query.section || 'minorista').toLowerCase();
+  const requiredTag = section === 'mayorista' ? 'MAYORISTA' : 'ZORBO';
   try {
     const all = await loadProductsCache(false);
-    if (!all) return res.json({ products: [] });
+    if (!all) return res.json({ products: [], section, requiredTag });
     const extras = loadProductExtras();
-    const products = all.map(p => {
-      const ex = extras.items[String(p.id)] || null;
-      const isMayorista = (p.tags || []).map(t => String(t).toUpperCase()).includes('MAYORISTA');
-      const isZorbo     = (p.tags || []).map(t => String(t).toUpperCase()).includes('ZORBO');
-      return {
-        id:         String(p.id),
-        title:      p.title,
-        handle:     p.handle,
-        vendor:     p.vendor,
-        brand:      brandFromProduct(p),
-        image:      ex?.image || p.image || null,
-        price:      p.variants?.[0]?.price ? Number(p.variants[0].price) : null,
-        compareAt:  p.variants?.[0]?.compareAtPrice ? Number(p.variants[0].compareAtPrice) : null,
-        variants:   (p.variants || []).length,
-        isMayorista, isZorbo,
-        extra:      ex?.extra || '',
-        hasExtra:   !!(ex && ex.extra && ex.extra.trim()),
-        updatedAt:  ex?.updatedAt || null,
-      };
-    });
-    res.json({ products });
+    const products = all
+      .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes(requiredTag))
+      .map(p => {
+        const ex = extras.items[String(p.id)] || null;
+        const tagsUpper = (p.tags || []).map(t => String(t).toUpperCase());
+        const isMayorista = tagsUpper.includes('MAYORISTA');
+        const isZorbo     = tagsUpper.includes('ZORBO');
+        return {
+          id:         String(p.id),
+          title:      p.title,
+          handle:     p.handle,
+          vendor:     p.vendor,
+          brand:      brandFromProduct(p),
+          image:      ex?.image || p.image || null,
+          price:      p.variants?.[0]?.price ? Number(p.variants[0].price) : null,
+          compareAt:  p.variants?.[0]?.compareAtPrice ? Number(p.variants[0].compareAtPrice) : null,
+          variants:   (p.variants || []).length,
+          isMayorista, isZorbo,
+          extra:      ex?.extra || '',
+          hasExtra:   !!(ex && ex.extra && ex.extra.trim()),
+          updatedAt:  ex?.updatedAt || null,
+        };
+      });
+    res.json({ section, requiredTag, products });
   } catch (e) {
     res.status(500).json({ error: 'Error cargando productos: ' + e.message });
   }
@@ -1379,15 +1422,15 @@ app.post('/chat', async (req, res) => {
   // - B2C: combinamos general.md + las 3 marcas (kairos, firulais, banny).
   let promptBase;
   try {
-    const promptDir = join(__dirname, 'prompts');
     if (mayorista) {
-      promptBase = readFileSync(join(promptDir, 'mayorista.md'), 'utf-8');
+      promptBase = readPromptFile('mayorista.md');
     } else {
-      const general  = readFileSync(join(promptDir, 'general.md'),  'utf-8');
-      const kairos   = readFileSync(join(promptDir, 'kairos.md'),   'utf-8');
-      const firulais = readFileSync(join(promptDir, 'firulais.md'), 'utf-8');
-      const banny    = readFileSync(join(promptDir, 'banny.md'),    'utf-8');
-      promptBase = [general, kairos, firulais, banny].join('\n\n---\n\n');
+      promptBase = [
+        readPromptFile('general.md'),
+        readPromptFile('kairos.md'),
+        readPromptFile('firulais.md'),
+        readPromptFile('banny.md'),
+      ].join('\n\n---\n\n');
     }
   } catch (e) {
     console.error('prompt load:', e.message);
