@@ -1818,11 +1818,14 @@ function detectProducts(text) {
   const found = [];
   // Solo del catálogo live ZORBO. Si está vacío (caché fría), no devuelve nada.
   for (const p of ZORBO_LIVE) {
-    const name = (p.title || '').toLowerCase();
-    if (!name) continue;
-    // Busca por nombre principal (sin sufijo de lata/ml)
-    const cleanName = name.replace(/\s*-?\s*(lata\s*\d+\s*cc?|\d+\s*ml|\d+\s*cc)/gi,'').trim();
-    if (lower.includes(cleanName) && !found.includes(p)) found.push(p);
+    const raw = (p.title || '').toLowerCase();
+    if (!raw) continue;
+    // Variantes de matching: el bot puede mencionar el producto de varias formas
+    // (sin marca, sin tamaño, sin estilo, etc.).
+    const noSize  = raw.replace(/\s*-?\s*(lata\s*\d+\s*cc?|\d+\s*ml|\d+\s*cc|\d+\s*pack)/gi,'').trim();
+    const noBrand = noSize.replace(/^(firulais|kairos\s+brewing|kairos|banny\s+by\s+kairos|banny)\s+/i, '').trim();
+    const candidates = [raw, noSize, noBrand].filter(c => c && c.length >= 4);
+    if (candidates.some(c => lower.includes(c)) && !found.includes(p)) found.push(p);
     if (found.length >= 4) break;
   }
   return found;
@@ -2421,6 +2424,13 @@ async function send(opts) {
           full += obj.delta;
           tRow.querySelector('.bubble').innerHTML = mdStream(full);
           scrollBottom();
+        }
+        // Acciones que el server emite junto con el mensaje (ej. abrir el carrito)
+        if (obj.action === 'openCart') {
+          setTimeout(() => {
+            const cp = document.getElementById('cartPanel');
+            if (cp && !cp.classList.contains('open')) toggleCart();
+          }, 400);
         }
       }
     }

@@ -298,9 +298,17 @@ function serializeSession(s) {
 // ─── Detection ────────────────────────────────────────────────────────────────
 
 const PURCHASE_KW = [
+  // intención explícita de comprar
   'quiero pagar', 'confirmar pedido', 'lo llevo', 'dale pídelo', 'dale, pídelo',
   'me lo llevo', 'quiero comprar', 'lo quiero todo', 'lo compro', 'hacer el pedido',
   'arma el pedido', 'checkout', 'quiero pedir', 'listo lo llevo',
+  'voy a pagar', 'paguemos', 'pagamos',
+  // pedidos del link / checkout (variantes comunes)
+  'link', 'el link', 'pasame el link', 'pásame el link', 'mandame el link',
+  'mándame el link', 'envíame el link', 'enviame el link', 'manda el link',
+  'pásamelo', 'pasamelo', 'mándamelo', 'mandamelo',
+  'link de pago', 'link de checkout', 'link para pagar',
+  'donde pago', 'dónde pago', 'cómo pago', 'como pago',
 ];
 
 const B2B_KW = [
@@ -483,7 +491,7 @@ function buildFeedbackCtx(){
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
-const CHECKOUT_MSG = 'Perfecto! 🛒 Te paso el link para cerrar tu pedido: https://zorbot.cl/checkout — si quieres revisar qué llevas antes de pagar, dime y lo vemos juntos!';
+const CHECKOUT_MSG = 'Perfecto! 🛒 Te abro el carrito ahora — ahí ves todo lo que llevas y arriba a la derecha aprietas **Pagar** para ir directo al checkout con tus datos.';
 const ERROR_MSG    = 'Disculpa, tuve un problema técnico, dame un segundo e intenta de nuevo 🍺';
 
 // ─── Shopify OAuth + Catálogo ─────────────────────────────────────────────────
@@ -1566,6 +1574,8 @@ app.post('/chat', async (req, res) => {
     res.setHeader('Connection', 'keep-alive');
     res.write(`data: ${JSON.stringify({ sessionId })}\n\n`);
     res.write(`data: ${JSON.stringify({ delta: CHECKOUT_MSG })}\n\n`);
+    // Marca para que el frontend auto-abra el carrito tras esta respuesta.
+    res.write(`data: ${JSON.stringify({ action: 'openCart' })}\n\n`);
     res.write('data: [DONE]\n\n');
     return res.end();
   }

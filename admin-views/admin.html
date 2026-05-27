@@ -1700,12 +1700,15 @@ document.getElementById('btnClearFilters').onclick = () => {
   document.getElementById('fFrom').value  = '';
   document.getElementById('fTo').value    = '';
   document.getElementById('fQ').value     = '';
-  document.querySelectorAll('.adm-pillgroup').forEach(g => {
+  document.querySelectorAll('#chatsView .adm-pillgroup').forEach(g => {
     g.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === 'all'));
   });
   loadConversations();
 };
-document.querySelectorAll('.adm-pillgroup').forEach(g => {
+// IMPORTANTE: este loop se restringe a #chatsView. Antes era global y
+// sobrescribía los onclick del toggle Minorista/Mayorista (productos) y
+// del range (analytics) porque corría después de sus handlers específicos.
+document.querySelectorAll('#chatsView .adm-pillgroup').forEach(g => {
   g.querySelectorAll('button').forEach(b => {
     b.onclick = () => {
       const key = g.dataset.filter;
