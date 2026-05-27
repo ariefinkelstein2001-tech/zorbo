@@ -743,7 +743,11 @@ function wantsHtml(req){
   return accept.includes('text/html');
 }
 
+// Login deshabilitado temporalmente — /admin queda abierto. La infraestructura
+// de sesiones queda intacta (constantes, /admin/login, /admin/logout, cookies)
+// para poder reactivar el gate más adelante seteando ADMIN_AUTH_ENABLED=1.
 function requireAdmin(req, res, next){
+  if (process.env.ADMIN_AUTH_ENABLED !== '1') return next();
   if (!isAdminConfigured()) {
     if (wantsHtml(req)) return res.status(503).send(
       '<h1>Panel admin no configurado</h1><p>Falta ADMIN_USER / ADMIN_PASSWORD en el entorno.</p>'
