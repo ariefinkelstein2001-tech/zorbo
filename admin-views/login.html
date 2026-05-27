@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zorbo Admin — Iniciar sesión</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0a0e;
+  --surface:#121219;
+  --surface2:#1a1a24;
+  --surface3:#24242f;
+  --gold:#e9c46a;
+  --gold-bright:#f7e3a7;
+  --gold-deep:#bf9b48;
+  --gold-dim:rgba(233,196,106,.12);
+  --gold-bd:rgba(233,196,106,.22);
+  --gold-bd-h:rgba(233,196,106,.48);
+  --text:#f1ede5;
+  --muted:rgba(241,237,229,.6);
+  --dim:rgba(241,237,229,.32);
+  --border:rgba(255,255,255,.08);
+  --red:#e0654f;
+  --red-dim:rgba(224,101,79,.14);
+  --sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  --display:'Bricolage Grotesque',var(--sans);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:var(--sans);background:var(--bg);color:var(--text);
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem;
+  background-image:
+    radial-gradient(60rem 40rem at 80% -10%,rgba(233,196,106,.10),transparent),
+    radial-gradient(50rem 35rem at -10% 110%,rgba(182,164,230,.05),transparent);
+}
+
+.lg-card{
+  width:100%;max-width:400px;
+  background:var(--surface);border:1px solid var(--gold-bd);border-radius:18px;
+  padding:2.4rem 2rem 2rem;
+  box-shadow:0 30px 80px rgba(0,0,0,.55);
+  position:relative;overflow:hidden;
+}
+.lg-card::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(135deg,rgba(233,196,106,.08),transparent 60%);
+}
+
+.lg-brand{text-align:center;margin-bottom:1.6rem;position:relative}
+.lg-mark{
+  width:56px;height:56px;border-radius:13px;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));
+  display:inline-flex;align-items:center;justify-content:center;
+  color:#1a1408;font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.02em;
+  margin:0 auto .85rem;
+  box-shadow:0 8px 24px rgba(233,196,106,.32);
+}
+.lg-name{
+  font-family:var(--display);font-size:1.45rem;font-weight:800;letter-spacing:.02em;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,#fff8e6);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.lg-sub{font-size:.65rem;color:var(--dim);letter-spacing:.22em;text-transform:uppercase;margin-top:6px}
+.lg-tag{
+  display:inline-block;margin-top:1rem;font-size:.7rem;color:var(--muted);
+  background:var(--surface2);border:1px solid var(--border);padding:.32rem .65rem;border-radius:20px;
+}
+
+.lg-form{position:relative;display:flex;flex-direction:column;gap:.85rem;margin-top:.6rem}
+.lg-field{display:flex;flex-direction:column;gap:.32rem}
+.lg-label{font-size:.7rem;font-weight:600;color:var(--muted);letter-spacing:.04em;padding-left:.2rem}
+.lg-input{
+  background:var(--surface2);border:1px solid var(--border);border-radius:11px;
+  padding:.78rem .95rem;color:var(--text);font-family:var(--sans);font-size:.92rem;
+  outline:none;transition:border-color .18s,background .18s;
+}
+.lg-input::placeholder{color:var(--dim)}
+.lg-input:focus{border-color:var(--gold-bd-h);background:var(--surface)}
+
+.lg-err{
+  display:none;align-items:center;gap:.4rem;
+  background:var(--red-dim);border:1px solid rgba(224,101,79,.28);color:var(--red);
+  padding:.55rem .8rem;border-radius:9px;
+  font-size:.78rem;font-weight:600;
+}
+.lg-err.show{display:flex}
+
+.lg-submit{
+  margin-top:.4rem;width:100%;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));
+  color:#1a1408;border:none;border-radius:12px;
+  padding:.85rem 1rem;font-family:var(--sans);font-size:.92rem;font-weight:700;letter-spacing:.02em;
+  cursor:pointer;transition:opacity .2s,transform .1s;
+}
+.lg-submit:hover{opacity:.92}
+.lg-submit:active{transform:scale(.98)}
+.lg-submit:disabled{opacity:.55;cursor:not-allowed}
+
+.lg-foot{
+  margin-top:1.2rem;font-size:.7rem;color:var(--dim);text-align:center;letter-spacing:.02em;
+}
+
+@media (max-width:480px){
+  .lg-card{padding:2rem 1.3rem 1.5rem}
+  .lg-name{font-size:1.25rem}
+}
+</style>
+</head>
+<body>
+<div class="lg-card">
+  <div class="lg-brand">
+    <div class="lg-mark">Z</div>
+    <div class="lg-name">ZORBO ADMIN</div>
+    <span class="lg-sub">panel interno</span>
+    <div class="lg-tag">Acceso restringido</div>
+  </div>
+
+  <form class="lg-form" id="loginForm" autocomplete="on">
+    <div class="lg-err" id="err" role="alert">
+      <span>⚠</span><span id="errMsg">Credenciales inválidas</span>
+    </div>
+
+    <div class="lg-field">
+      <label class="lg-label" for="username">Correo</label>
+      <input class="lg-input" type="email" id="username" name="username"
+             placeholder="tu@kairosdrinks.com" autocomplete="email" autofocus required>
+    </div>
+
+    <div class="lg-field">
+      <label class="lg-label" for="password">Contraseña</label>
+      <input class="lg-input" type="password" id="password" name="password"
+             placeholder="••••••••" autocomplete="current-password" required>
+    </div>
+
+    <button class="lg-submit" id="btn" type="submit">Iniciar sesión</button>
+  </form>
+
+  <div class="lg-foot">Sesión válida por 12 horas</div>
+</div>
+
+<script>
+const form = document.getElementById('loginForm');
+const btn  = document.getElementById('btn');
+const err  = document.getElementById('err');
+const errMsg = document.getElementById('errMsg');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  err.classList.remove('show');
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Validando…';
+  try {
+    const r = await fetch('/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value,
+      }),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || 'Error de autenticación');
+    // Cookie ya seteada, vamos al panel
+    window.location.href = '/admin';
+  } catch (e2) {
+    errMsg.textContent = e2.message;
+    err.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = original;
+    document.getElementById('password').focus();
+    document.getElementById('password').select();
+  }
+});
+</script>
+</body>
+</html>

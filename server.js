@@ -5,7 +5,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { randomUUID, createHmac, timingSafeEqual } from 'crypto';
+import { randomUUID, createHmac, timingSafeEqual, randomBytes } from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -677,8 +677,10 @@ app.get('/kairos/eventos',      kairosHtml);
 app.get('/kairos/nosotros',     kairosHtml);
 
 // ─── Admin panel (interno) ────────────────────────────────────────────────────
-// Sin auth todavía — acceso directo a /admin. Edita los .md de /prompts y el
-// bot los releé en cada request, así los cambios se aplican al instante.
+// Login con cookie de sesión (12h). Credenciales en ADMIN_USER / ADMIN_PASSWORD
+// (env vars). Sin esas dos variables, el panel queda desactivado.
+// Edita los .md de /prompts y el bot los releé en cada request, así los cambios
+// se aplican al instante.
 
 const PROMPT_SECTIONS = {
   general:   'general.md',
@@ -688,11 +690,132 @@ const PROMPT_SECTIONS = {
   mayorista: 'mayorista.md',
 };
 
-app.get('/admin', (_req, res) => {
-  res.sendFile(join(__dirname, 'public', 'admin.html'));
+const ADMIN_COOKIE = 'zadm';
+const ADMIN_TTL_MS = 12 * 60 * 60 * 1000; // 12 horas
+const ADMIN_SESSIONS = new Map(); // token → { username, expiresAt }
+
+function parseCookies(req){
+  const header = req.headers.cookie || '';
+  const out = {};
+  for (const part of header.split(';')) {
+    const i = part.indexOf('=');
+    if (i < 0) continue;
+    const k = part.slice(0, i).trim();
+    const v = part.slice(i + 1).trim();
+    if (k) out[k] = decodeURIComponent(v);
+  }
+  return out;
+}
+
+function adminSessionFor(req){
+  const token = parseCookies(req)[ADMIN_COOKIE];
+  if (!token) return null;
+  const s = ADMIN_SESSIONS.get(token);
+  if (!s) return null;
+  if (s.expiresAt < Date.now()) { ADMIN_SESSIONS.delete(token); return null; }
+  return { token, ...s };
+}
+
+function isAdminConfigured(){
+  return !!(process.env.ADMIN_USER && process.env.ADMIN_PASSWORD);
+}
+
+function wantsHtml(req){
+  const accept = String(req.headers.accept || '');
+  return accept.includes('text/html');
+}
+
+function requireAdmin(req, res, next){
+  if (!isAdminConfigured()) {
+    if (wantsHtml(req)) return res.status(503).send(
+      '<h1>Panel admin no configurado</h1><p>Falta ADMIN_USER / ADMIN_PASSWORD en el entorno.</p>'
+    );
+    return res.status(503).json({ error: 'Panel admin no configurado en el server.' });
+  }
+  if (adminSessionFor(req)) return next();
+  if (wantsHtml(req)) return res.redirect(302, '/admin/login');
+  return res.status(401).json({ error: 'No autorizado. Iniciá sesión en /admin/login.' });
+}
+
+// Limpieza periódica de sesiones expiradas (cada hora)
+setInterval(() => {
+  const now = Date.now();
+  for (const [t, s] of ADMIN_SESSIONS) if (s.expiresAt < now) ADMIN_SESSIONS.delete(t);
+}, 60 * 60 * 1000).unref?.();
+
+// ─── Rutas de login ─────────────────────────────────────────────────────────
+
+app.get('/admin/login', (req, res) => {
+  // Si ya hay sesión válida, redirige al panel
+  if (isAdminConfigured() && adminSessionFor(req)) return res.redirect(302, '/admin');
+  res.sendFile(join(__dirname, 'admin-views', 'login.html'));
 });
 
-app.get('/admin/brand/:seccion', (req, res) => {
+app.post('/admin/login', async (req, res) => {
+  if (!isAdminConfigured()) return res.status(503).json({ error: 'Panel admin no configurado.' });
+  const { username, password } = req.body || {};
+  if (typeof username !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ error: 'Faltan credenciales.' });
+  }
+
+  // Comparación constante en tiempo para evitar timing attacks
+  const eqUser = safeStrEq(username.trim().toLowerCase(), String(process.env.ADMIN_USER).trim().toLowerCase());
+  const eqPass = safeStrEq(password, String(process.env.ADMIN_PASSWORD));
+
+  // Pequeño delay artificial para frenar fuerza bruta
+  await new Promise(r => setTimeout(r, 250));
+
+  if (!eqUser || !eqPass) {
+    return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
+  }
+
+  const token = randomBytes(32).toString('hex');
+  const expiresAt = Date.now() + ADMIN_TTL_MS;
+  ADMIN_SESSIONS.set(token, { username: process.env.ADMIN_USER, expiresAt });
+
+  const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  const parts = [
+    `${ADMIN_COOKIE}=${encodeURIComponent(token)}`,
+    'HttpOnly',
+    'Path=/',
+    'SameSite=Lax',
+    `Max-Age=${Math.floor(ADMIN_TTL_MS / 1000)}`,
+  ];
+  if (secure) parts.push('Secure');
+  res.setHeader('Set-Cookie', parts.join('; '));
+  res.json({ ok: true, expiresAt });
+});
+
+app.post('/admin/logout', (req, res) => {
+  const s = adminSessionFor(req);
+  if (s) ADMIN_SESSIONS.delete(s.token);
+  res.setHeader('Set-Cookie', `${ADMIN_COOKIE}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`);
+  res.json({ ok: true });
+});
+
+function safeStrEq(a, b){
+  const A = Buffer.from(a, 'utf-8');
+  const B = Buffer.from(b, 'utf-8');
+  if (A.length !== B.length) {
+    // Igualar longitudes para que timingSafeEqual no tire
+    timingSafeEqual(A, A);
+    return false;
+  }
+  return timingSafeEqual(A, B);
+}
+
+// ─── Rutas protegidas ───────────────────────────────────────────────────────
+
+app.get('/admin', requireAdmin, (_req, res) => {
+  res.sendFile(join(__dirname, 'admin-views', 'admin.html'));
+});
+
+app.get('/admin/me', requireAdmin, (req, res) => {
+  const s = adminSessionFor(req);
+  res.json({ username: s.username, expiresAt: s.expiresAt });
+});
+
+app.get('/admin/brand/:seccion', requireAdmin, (req, res) => {
   const file = PROMPT_SECTIONS[req.params.seccion];
   if (!file) return res.status(404).json({ error: 'Sección no encontrada' });
   try {
@@ -703,7 +826,7 @@ app.get('/admin/brand/:seccion', (req, res) => {
   }
 });
 
-app.post('/admin/save-brand', (req, res) => {
+app.post('/admin/save-brand', requireAdmin, (req, res) => {
   const { seccion, contenido } = req.body || {};
   const file = PROMPT_SECTIONS[seccion];
   if (!file) return res.status(400).json({ error: 'Sección inválida' });
