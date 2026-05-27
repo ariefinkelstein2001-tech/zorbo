@@ -8,25 +8,25 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root{
-  --bg:#0a0a0e;
-  --surface:#121219;
-  --surface2:#1a1a24;
-  --surface3:#24242f;
-  --gold:#e9c46a;
-  --gold-bright:#f7e3a7;
-  --gold-deep:#bf9b48;
-  --gold-dim:rgba(233,196,106,.10);
-  --gold-glow:rgba(233,196,106,.07);
-  --gold-bd:rgba(233,196,106,.20);
-  --gold-bd-h:rgba(233,196,106,.46);
-  --text:#f1ede5;
-  --muted:rgba(241,237,229,.58);
-  --dim:rgba(241,237,229,.32);
-  --border:rgba(255,255,255,.07);
-  --green:#5cc98f;
-  --green-dim:rgba(92,201,143,.12);
-  --red:#e0654f;
-  --red-dim:rgba(224,101,79,.14);
+  --bg:#fff;
+  --surface:#fff;
+  --surface2:#fafafa;
+  --surface3:#f0f0f0;
+  --gold:#f5a623;
+  --gold-bright:#ffb840;
+  --gold-deep:#a05f00;
+  --gold-dim:#fff3d6;
+  --gold-glow:rgba(245,166,35,.10);
+  --gold-bd:#f1c97b;
+  --gold-bd-h:#f5a623;
+  --text:#111;
+  --muted:#666;
+  --dim:#999;
+  --border:#e5e5e5;
+  --green:#2e9c5a;
+  --green-dim:#e8f7ee;
+  --red:#d33;
+  --red-dim:#fdecec;
   --sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
   --display:'Syne',var(--sans);
   --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -37,24 +37,21 @@ html,body{min-height:100%}
 body{
   font-family:var(--sans);background:var(--bg);color:var(--text);
   min-height:100vh;
-  background-image:
-    radial-gradient(60rem 40rem at 80% -10%,var(--gold-glow),transparent),
-    radial-gradient(50rem 35rem at -10% 110%,rgba(182,164,230,.05),transparent);
 }
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
-::-webkit-scrollbar-thumb:hover{background:#33333f}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:#bbb}
 
 /* ── HEADER ── */
 .adm-header{
   display:flex;align-items:center;gap:1rem;
   padding:.75rem 1.4rem;border-bottom:1px solid var(--border);
-  background:rgba(18,18,25,.85);backdrop-filter:blur(14px);
+  background:rgba(255,255,255,.92);backdrop-filter:blur(14px);
   position:sticky;top:0;z-index:30;
 }
 .adm-brand{display:flex;align-items:center;gap:.65rem;text-decoration:none;color:inherit}
-.adm-brand img{height:34px;width:auto;object-fit:contain;display:block;filter:drop-shadow(0 2px 10px rgba(233,196,106,.18))}
+.adm-brand img{height:34px;width:auto;object-fit:contain;display:block;filter:drop-shadow(0 2px 8px rgba(245,166,35,.18))}
 @media(max-width:600px){.adm-brand img{height:28px}}
 .adm-pipe{
   width:1px;height:22px;background:var(--border);margin:0 .15rem;flex-shrink:0;
@@ -126,8 +123,7 @@ body{
 }
 .adm-panel-title{
   font-family:var(--display);font-size:1.55rem;font-weight:800;letter-spacing:-.005em;line-height:1;
-  background:linear-gradient(135deg,#fff8e6,var(--gold-bright) 60%,var(--gold));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  color:var(--gold-deep);
 }
 .adm-panel-meta{font-family:var(--mono);font-size:.7rem;color:var(--dim);margin-top:6px}
 .adm-actions{display:flex;gap:.5rem;flex-shrink:0;align-items:center;flex-wrap:wrap}
@@ -200,13 +196,13 @@ body{
 .adm-block-del:hover{color:var(--red);background:var(--red-dim)}
 .adm-block-body{
   width:100%;min-height:90px;
-  background:#0c0c12;color:var(--text);
+  background:#fafafa;color:var(--text);
   border:1px solid var(--border);border-radius:9px;
   font-family:var(--mono);font-size:13px;line-height:1.65;
   padding:.75rem .9rem;resize:vertical;outline:none;
   transition:border-color .15s;
 }
-.adm-block-body:focus{border-color:var(--gold-bd-h);background:#0e0e16}
+.adm-block-body:focus{border-color:var(--gold-bd-h);background:#fff}
 .adm-block-body::placeholder{color:var(--dim)}
 
 .adm-add-block{
@@ -279,7 +275,7 @@ body{
   font-family:var(--mono);font-size:.58rem;font-weight:600;letter-spacing:.06em;
   padding:.12rem .38rem;border-radius:4px;text-transform:uppercase;
 }
-.adm-prod-tag.mayo{background:rgba(182,164,230,.14);color:#b6a4e6;border:1px solid rgba(182,164,230,.28)}
+.adm-prod-tag.mayo{background:#efeafa;color:#5e4ea3;border:1px solid #c8bee5}
 .adm-prod-tag.zorbo{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-bd)}
 .adm-prod-tag.note{background:var(--green-dim);color:var(--green);border:1px solid rgba(92,201,143,.28)}
 .adm-prod-brand{
@@ -306,7 +302,7 @@ body{
 
 .adm-prod-editor{
   border-top:1px solid var(--gold-bd);padding:1rem 1.1rem 1.1rem;display:flex;flex-direction:column;gap:.65rem;
-  background:linear-gradient(180deg,var(--surface2) 0%,#15151d 100%);
+  background:linear-gradient(180deg,var(--surface2) 0%,#f3f3f3 100%);
 }
 .adm-prod-label{
   font-size:.62rem;font-weight:700;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;
@@ -314,7 +310,7 @@ body{
 }
 .adm-prod-extra{
   width:100%;min-height:140px;
-  background:#0c0c12;color:var(--text);
+  background:#fafafa;color:var(--text);
   border:1px solid var(--border);border-radius:9px;
   font-family:var(--mono);font-size:13px;line-height:1.65;
   padding:.75rem .9rem;resize:vertical;outline:none;
@@ -346,15 +342,12 @@ body{
 .adm-stat-k{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;color:var(--dim)}
 .adm-stat-v{font-family:var(--display);font-size:1.7rem;font-weight:800;color:var(--text);line-height:1;letter-spacing:-.01em}
 .adm-stat-s{font-size:.66rem;color:var(--muted);font-weight:500}
-.adm-stat.tone-gold .adm-stat-v{
-  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 60%,#fff8e6);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-}
+.adm-stat.tone-gold .adm-stat-v{color:var(--gold-deep)}
 .adm-stat.tone-gold{border-color:var(--gold-bd)}
 .adm-stat.tone-green{border-color:rgba(92,201,143,.25)}
 .adm-stat.tone-green .adm-stat-v{color:var(--green)}
-.adm-stat.tone-purple{border-color:rgba(182,164,230,.25)}
-.adm-stat.tone-purple .adm-stat-v{color:#b6a4e6}
+.adm-stat.tone-purple{border-color:#c8bee5}
+.adm-stat.tone-purple .adm-stat-v{color:#5e4ea3}
 
 .adm-filters{
   display:flex;flex-wrap:wrap;gap:.7rem;align-items:flex-end;
@@ -400,7 +393,7 @@ body{
   padding:.8rem 1rem;cursor:pointer;display:flex;flex-direction:column;gap:.5rem;
   transition:border-color .18s,transform .12s,background .18s;
 }
-.adm-chat-card:hover{border-color:var(--gold-bd-h);background:#1c1c27;transform:translateY(-1px)}
+.adm-chat-card:hover{border-color:var(--gold-bd-h);background:#fffaf0;transform:translateY(-1px)}
 .adm-chat-card-top{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap}
 .adm-chat-tags{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center}
 .adm-chat-tag{
@@ -409,7 +402,7 @@ body{
   border:1px solid transparent;
 }
 .adm-chat-tag.b2c{background:var(--gold-dim);color:var(--gold);border-color:var(--gold-bd)}
-.adm-chat-tag.mayo{background:rgba(182,164,230,.14);color:#b6a4e6;border-color:rgba(182,164,230,.28)}
+.adm-chat-tag.mayo{background:#efeafa;color:#5e4ea3;border-color:#c8bee5}
 .adm-chat-tag.intent{background:var(--green-dim);color:var(--green);border-color:rgba(92,201,143,.32)}
 .adm-chat-tag.brand{background:var(--surface3);color:var(--text);border-color:var(--border)}
 .adm-chat-tag.from{background:transparent;color:var(--dim);border-color:var(--border);font-weight:500;letter-spacing:.04em;text-transform:none}
@@ -519,7 +512,7 @@ body.drawer-open{overflow:hidden}
 .adm-fb-item-label{font-family:var(--sans);font-size:.6rem;font-weight:700;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;padding-left:.15rem}
 .adm-fb-item-text{
   font-family:var(--sans);font-size:.86rem;line-height:1.5;color:var(--text);
-  background:#0c0c12;border:1px solid var(--border);border-radius:8px;
+  background:#fafafa;border:1px solid var(--border);border-radius:8px;
   padding:.6rem .8rem;white-space:pre-wrap;word-wrap:break-word;
 }
 .adm-fb-item-text.bad{border-color:rgba(224,101,79,.28);color:rgba(241,237,229,.72)}
@@ -547,6 +540,37 @@ body.drawer-open{overflow:hidden}
   transition:color .15s,border-color .15s,background .15s;
 }
 .adm-msg-fb:hover{color:var(--gold);border-color:var(--gold-bd-h);background:var(--gold-dim)}
+/* Cards de producto en el preview chat (admin testing) */
+.adm-preview-prods{
+  display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.5rem;padding-left:.2rem;
+}
+.adm-preview-prod{
+  display:flex;align-items:center;gap:.6rem;
+  background:#fff;border:1px solid var(--gold-bd);border-radius:10px;
+  padding:.5rem .7rem .5rem .5rem;min-width:0;max-width:280px;flex:1 1 200px;
+  transition:border-color .15s,box-shadow .15s;
+}
+.adm-preview-prod:hover{border-color:var(--gold-bd-h);box-shadow:0 4px 10px rgba(245,166,35,.12)}
+.adm-preview-prod-img{
+  width:42px;height:42px;border-radius:7px;background:#f7f7f7;
+  flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;
+}
+.adm-preview-prod-img img{width:100%;height:100%;object-fit:contain}
+.adm-preview-prod-body{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.adm-preview-prod-title{
+  font-family:var(--display);font-size:.78rem;font-weight:700;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.adm-preview-prod-price{
+  font-family:var(--mono);font-size:.78rem;font-weight:700;color:var(--gold-deep);
+  display:flex;align-items:center;gap:.35rem;
+}
+.adm-preview-prod-old{color:var(--red);font-size:.65rem;font-weight:500;text-decoration:line-through}
+.adm-preview-prod-cta{
+  font-family:var(--sans);font-size:.55rem;font-weight:800;letter-spacing:.06em;
+  color:var(--gold-deep);margin-top:1px;
+}
+
 .adm-msg-fb-tag{
   font-family:var(--mono);font-size:.6rem;font-weight:700;letter-spacing:.06em;
   color:var(--green);background:var(--green-dim);border:1px solid rgba(92,201,143,.28);
@@ -577,8 +601,7 @@ body.drawer-open{overflow:hidden}
 .adm-fb-head{display:flex;flex-direction:column;gap:6px;padding-right:2rem}
 .adm-fb-title{
   font-family:var(--display);font-size:1.3rem;font-weight:800;letter-spacing:-.005em;
-  background:linear-gradient(135deg,#fff8e6,var(--gold-bright) 60%,var(--gold));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  color:var(--gold-deep);
 }
 .adm-fb-sub{font-family:var(--sans);font-size:.82rem;color:var(--muted);line-height:1.5}
 .adm-fb-cols{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
@@ -589,13 +612,13 @@ body.drawer-open{overflow:hidden}
   letter-spacing:.14em;text-transform:uppercase;padding-left:.15rem;
 }
 .adm-fb-textarea{
-  width:100%;background:#0c0c12;color:var(--text);
+  width:100%;background:#fafafa;color:var(--text);
   border:1px solid var(--border);border-radius:10px;
   font-family:var(--mono);font-size:13px;line-height:1.6;
   padding:.75rem .9rem;outline:none;resize:vertical;min-height:120px;
   transition:border-color .15s;
 }
-.adm-fb-textarea:focus{border-color:var(--gold-bd-h);background:#0e0e16}
+.adm-fb-textarea:focus{border-color:var(--gold-bd-h);background:#fff}
 .adm-fb-textarea.readonly{background:var(--surface2);color:var(--muted)}
 .adm-fb-acts{display:flex;justify-content:flex-end;gap:.5rem;margin-top:.3rem}
 
@@ -1141,6 +1164,9 @@ let dirty = false;
 let chatMode = 'b2c';
 let chatSessionId = null;
 let chatStreaming = false;
+// Catálogo para mostrar cards de producto cuando el bot mencione algo en el
+// preview. Se carga lazy al usar el preview por primera vez.
+let previewCatalog = { minorista: null, mayorista: null };
 
 // ─── Tabs ───────────────────────────────────────────────────────────────────
 function renderTabs(){
@@ -2139,6 +2165,11 @@ async function chatSend(){
       }
     }
     if (!started) bubble.textContent = '(sin respuesta)';
+    // Render Markdown básico (bold) en la burbuja final
+    bubble.innerHTML = mdInline(bubble.textContent);
+    // Cards de producto mencionado por el bot — para que el admin vea
+    // cómo se vería en el chat real.
+    await attachPreviewProductCards(tRow, bubble.textContent);
     // Una vez que la respuesta termina, agrego botón "Dar feedback" debajo.
     attachPreviewFeedback(tRow, bubble);
   } catch (e) {
@@ -2149,6 +2180,67 @@ async function chatSend(){
     chatStreaming = false;
     document.getElementById('chatSend').disabled = false;
   }
+}
+
+function mdInline(text){
+  return escapeHtml(text)
+    .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+async function ensurePreviewCatalog(){
+  const key = chatMode === 'b2b' ? 'mayorista' : 'minorista';
+  if (previewCatalog[key]) return previewCatalog[key];
+  try {
+    const r = await fetch('/admin/products?section=' + key);
+    if (!r.ok) return [];
+    const data = await r.json();
+    previewCatalog[key] = data.products || [];
+    return previewCatalog[key];
+  } catch { return []; }
+}
+
+function detectPreviewProducts(text, catalog){
+  const lower = String(text || '').toLowerCase();
+  const found = [];
+  for (const p of catalog) {
+    const raw = String(p.title || '').toLowerCase();
+    if (!raw) continue;
+    const noSize  = raw.replace(/\s*-?\s*(lata\s*\d+\s*cc?|\d+\s*ml|\d+\s*cc|\d+\s*pack)/gi,'').trim();
+    const noBrand = noSize.replace(/^(firulais|kairos\s+brewing|kairos|banny\s+by\s+kairos|banny)\s+/i,'').trim();
+    const candidates = [raw, noSize, noBrand].filter(c => c && c.length >= 4);
+    if (candidates.some(c => lower.includes(c)) && !found.includes(p)) found.push(p);
+    if (found.length >= 4) break;
+  }
+  return found;
+}
+
+async function attachPreviewProductCards(row, text){
+  if (!text || !text.trim()) return;
+  const catalog = await ensurePreviewCatalog();
+  if (!catalog || !catalog.length) return;
+  const matches = detectPreviewProducts(text, catalog);
+  if (!matches.length) return;
+  const col = row.querySelector('.adm-msg-col');
+  if (!col) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'adm-preview-prods';
+  wrap.innerHTML = matches.map(p => {
+    const price = p.price != null ? `$${Math.round(p.price).toLocaleString('es-CL')}` : '—';
+    const compare = (p.compareAt && p.compareAt > p.price)
+      ? `<span class="adm-preview-prod-old">$${Math.round(p.compareAt).toLocaleString('es-CL')}</span>` : '';
+    return `
+      <div class="adm-preview-prod">
+        <div class="adm-preview-prod-img">${p.image ? `<img src="${escapeAttr(p.image)}" alt="${escapeAttr(p.title)}">` : ''}</div>
+        <div class="adm-preview-prod-body">
+          <div class="adm-preview-prod-title">${escapeHtml(p.title)}</div>
+          <div class="adm-preview-prod-price">${compare}${price}</div>
+          <div class="adm-preview-prod-cta">AÑADIR AL CARRITO</div>
+        </div>
+      </div>`;
+  }).join('');
+  col.appendChild(wrap);
+  document.getElementById('chatBody').scrollTop = document.getElementById('chatBody').scrollHeight;
 }
 
 let _previewRowSeq = 0;
@@ -2196,6 +2288,8 @@ document.querySelectorAll('.adm-mode').forEach(b => {
     if (chatStreaming) return;
     chatMode = b.dataset.mode;
     chatSessionId = null;
+    // El catálogo cambia entre B2C/B2B — no es necesario reset, ensurePreviewCatalog
+    // lo carga lazy por sección. Solo limpiamos la UI.
     document.querySelectorAll('.adm-mode').forEach(x => x.classList.toggle('on', x === b));
     updateChatModeLabel();
     document.getElementById('chatBody').innerHTML =
@@ -2250,29 +2344,29 @@ const anaCharts = {}; // instancias Chart.js para destruir entre renders
 
 // Chart.js defaults dorados sobre fondo oscuro
 if (window.Chart) {
-  Chart.defaults.color = 'rgba(241,237,229,.6)';
-  Chart.defaults.borderColor = 'rgba(255,255,255,.07)';
+  Chart.defaults.color = '#666';
+  Chart.defaults.borderColor = '#e5e5e5';
   Chart.defaults.font.family = "'DM Sans', sans-serif";
   Chart.defaults.font.size = 11;
 }
 const ANA_COLORS = {
-  gold:        '#e9c46a',
-  goldBright:  '#f7e3a7',
-  goldDeep:    '#bf9b48',
-  goldDim:     'rgba(233,196,106,.18)',
-  goldFill:    'rgba(233,196,106,.10)',
-  green:       '#5cc98f',
-  red:         '#e0654f',
-  purple:      '#b6a4e6',
-  text:        '#f1ede5',
-  muted:       'rgba(241,237,229,.6)',
-  grid:        'rgba(255,255,255,.05)',
+  gold:        '#f5a623',
+  goldBright:  '#ffb840',
+  goldDeep:    '#a05f00',
+  goldDim:     '#fff3d6',
+  goldFill:    'rgba(245,166,35,.10)',
+  green:       '#2e9c5a',
+  red:         '#d33',
+  purple:      '#7c6bb8',
+  text:        '#111',
+  muted:       '#666',
+  grid:        'rgba(0,0,0,.06)',
   brand: {
-    'Kairos Brewing':'#e9c46a',
+    'Kairos Brewing':'#f5a623',
     'Firulais':      '#e07a5f',
-    'Banny':         '#b6a4e6',
-    'Mixto':         '#5cc98f',
-    'Sin marca':     '#5a5a6a',
+    'Banny':         '#7c6bb8',
+    'Mixto':         '#2e9c5a',
+    'Sin marca':     '#aaa',
   },
 };
 
@@ -2367,8 +2461,8 @@ function renderChartByDay(byDay){
   const intent = byDay.map(d => d.withIntent);
   const ctx = document.getElementById('chartByDay').getContext('2d');
   const grad = ctx.createLinearGradient(0,0,0,260);
-  grad.addColorStop(0, 'rgba(233,196,106,.35)');
-  grad.addColorStop(1, 'rgba(233,196,106,0)');
+  grad.addColorStop(0, 'rgba(245,166,35,.25)');
+  grad.addColorStop(1, 'rgba(245,166,35,0)');
   anaCharts.byDay = new Chart(ctx, {
     type:'line',
     data: { labels, datasets: [
@@ -2392,7 +2486,7 @@ function renderChartBrands(dist){
       datasets:[{
         data: dist.map(x => x.count),
         backgroundColor: dist.map(x => ANA_COLORS.brand[x.brand] || ANA_COLORS.gold),
-        borderColor:'#121219', borderWidth:2,
+        borderColor:'#fff', borderWidth:2,
       }],
     },
     options:{
@@ -2518,8 +2612,8 @@ function chartOptions({ horizontal=false, legend=false } = {}){
 }
 function tooltipBase(){
   return {
-    backgroundColor:'#121219', borderColor:'rgba(233,196,106,.4)', borderWidth:1,
-    titleColor: ANA_COLORS.gold, bodyColor: ANA_COLORS.text,
+    backgroundColor:'#fff', borderColor:'#f5a623', borderWidth:1,
+    titleColor: ANA_COLORS.goldDeep, bodyColor: ANA_COLORS.text,
     titleFont:{ family:"'Syne'", weight:'700', size:12 },
     bodyFont:{ size:12 }, padding:10, cornerRadius:8, displayColors:false,
   };
