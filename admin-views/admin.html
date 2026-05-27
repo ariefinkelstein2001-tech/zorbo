@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Zorbo Admin — Panel interno</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0a0a0e;
@@ -14,65 +14,71 @@
   --gold:#e9c46a;
   --gold-bright:#f7e3a7;
   --gold-deep:#bf9b48;
-  --gold-dim:rgba(233,196,106,.12);
-  --gold-bd:rgba(233,196,106,.22);
-  --gold-bd-h:rgba(233,196,106,.48);
+  --gold-dim:rgba(233,196,106,.10);
+  --gold-glow:rgba(233,196,106,.07);
+  --gold-bd:rgba(233,196,106,.20);
+  --gold-bd-h:rgba(233,196,106,.46);
   --text:#f1ede5;
-  --muted:rgba(241,237,229,.6);
+  --muted:rgba(241,237,229,.58);
   --dim:rgba(241,237,229,.32);
-  --border:rgba(255,255,255,.08);
+  --border:rgba(255,255,255,.07);
   --green:#5cc98f;
-  --green-dim:rgba(92,201,143,.14);
+  --green-dim:rgba(92,201,143,.12);
   --red:#e0654f;
   --red-dim:rgba(224,101,79,.14);
   --sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
-  --display:'Bricolage Grotesque',var(--sans);
+  --display:'Syne',var(--sans);
   --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius:14px;
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{min-height:100%}
 body{
   font-family:var(--sans);background:var(--bg);color:var(--text);
-  background-image:
-    radial-gradient(60rem 40rem at 80% -10%,rgba(233,196,106,.08),transparent),
-    radial-gradient(50rem 35rem at -10% 110%,rgba(182,164,230,.05),transparent);
   min-height:100vh;
+  background-image:
+    radial-gradient(60rem 40rem at 80% -10%,var(--gold-glow),transparent),
+    radial-gradient(50rem 35rem at -10% 110%,rgba(182,164,230,.05),transparent);
 }
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:#33333f}
 
-/* ── Header ── */
+/* ── HEADER ── */
 .adm-header{
   display:flex;align-items:center;gap:1rem;
-  padding:.85rem 1.4rem;border-bottom:1px solid var(--border);
-  background:rgba(18,18,25,.85);backdrop-filter:blur(12px);
+  padding:.75rem 1.4rem;border-bottom:1px solid var(--border);
+  background:rgba(18,18,25,.85);backdrop-filter:blur(14px);
   position:sticky;top:0;z-index:30;
 }
-.adm-brand{display:flex;align-items:center;gap:.55rem}
-.adm-brand-mark{
-  width:34px;height:34px;border-radius:9px;
-  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));
-  color:#1a1408;display:flex;align-items:center;justify-content:center;
-  font-family:var(--display);font-weight:800;font-size:14px;letter-spacing:-.02em;
-  box-shadow:0 4px 14px rgba(233,196,106,.25);
+.adm-brand{display:flex;align-items:center;gap:.65rem;text-decoration:none;color:inherit}
+.adm-brand img{height:34px;width:auto;object-fit:contain;display:block;filter:drop-shadow(0 2px 10px rgba(233,196,106,.18))}
+@media(max-width:600px){.adm-brand img{height:28px}}
+.adm-pipe{
+  width:1px;height:22px;background:var(--border);margin:0 .15rem;flex-shrink:0;
 }
-.adm-brand-name{
-  font-family:var(--display);font-size:1.05rem;font-weight:800;letter-spacing:.02em;
-  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,#fff8e6);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+.adm-sub{
+  font-family:var(--display);font-size:.7rem;font-weight:600;
+  color:var(--gold);letter-spacing:.22em;text-transform:uppercase;
 }
-.adm-brand-sub{
-  font-size:.58rem;color:var(--dim);letter-spacing:.18em;text-transform:uppercase;
-  display:block;margin-top:2px;
-}
+@media(max-width:600px){.adm-sub{display:none}}
 .adm-tag{
-  margin-left:auto;font-family:var(--mono);font-size:.7rem;color:var(--muted);
-  background:var(--surface2);border:1px solid var(--border);padding:.32rem .6rem;border-radius:8px;
+  margin-left:auto;font-family:var(--mono);font-size:.68rem;color:var(--muted);
+  background:var(--surface2);border:1px solid var(--border);padding:.3rem .65rem;border-radius:20px;
+  white-space:nowrap;
 }
+@media(max-width:540px){.adm-tag{display:none}}
+.adm-out{
+  flex-shrink:0;cursor:pointer;
+  background:var(--surface2);border:1px solid var(--gold-bd);color:var(--gold);
+  font-family:var(--sans);font-size:.72rem;font-weight:700;letter-spacing:.06em;
+  padding:.42rem .85rem;border-radius:20px;
+  transition:border-color .2s,background .2s,color .2s;
+}
+.adm-out:hover{border-color:var(--gold-bd-h);background:var(--gold-dim)}
 
-/* ── Layout ── */
+/* ── LAYOUT ── */
 .adm-shell{
   display:grid;grid-template-columns:1fr 380px;gap:1.4rem;
   padding:1.4rem;max-width:1480px;margin:0 auto;
@@ -81,170 +87,214 @@ body{
   .adm-shell{grid-template-columns:1fr;gap:1rem;padding:1rem}
 }
 
-/* ── Section tabs ── */
+/* ── TABS PILLS ── */
 .adm-tabs{
-  display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1.1rem;
+  display:flex;gap:.45rem;flex-wrap:wrap;margin-bottom:1.1rem;
+}
+@media(max-width:600px){
+  .adm-tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:-.2rem -1rem 1rem;padding:.2rem 1rem}
+  .adm-tabs::-webkit-scrollbar{display:none}
 }
 .adm-tab{
-  font-family:var(--sans);font-size:.78rem;font-weight:600;
-  background:var(--surface2);color:var(--muted);border:1px solid var(--border);
-  padding:.55rem .95rem;border-radius:10px;cursor:pointer;
-  display:inline-flex;align-items:center;gap:.4rem;
+  flex-shrink:0;display:inline-flex;align-items:center;gap:.45rem;white-space:nowrap;
+  font-family:var(--sans);font-size:.78rem;font-weight:700;letter-spacing:.02em;
+  background:transparent;color:var(--muted);border:1px solid var(--border);
+  padding:.55rem 1rem;border-radius:22px;cursor:pointer;
   transition:border-color .18s,color .18s,background .18s,transform .12s;
 }
-.adm-tab:hover{border-color:var(--gold-bd);color:var(--text)}
+.adm-tab .dot{width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.55}
+.adm-tab:hover{border-color:var(--gold-bd-h);color:var(--text);background:var(--gold-dim)}
 .adm-tab.on{
-  background:linear-gradient(135deg,var(--gold-dim),rgba(233,196,106,.04));
-  border-color:var(--gold-bd-h);color:var(--gold);
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 60%,var(--gold-deep));
+  color:#1a1408;border-color:transparent;
+  box-shadow:0 6px 18px rgba(233,196,106,.28);
 }
-.adm-tab .dot{width:6px;height:6px;border-radius:50%;background:var(--gold);opacity:.7}
-.adm-tab.on .dot{opacity:1;box-shadow:0 0 8px var(--gold)}
+.adm-tab.on .dot{background:#1a1408;opacity:.85}
 
-/* ── Editor panel ── */
+/* ── EDITOR PANEL ── */
 .adm-panel{
-  background:var(--surface);border:1px solid var(--border);border-radius:14px;
-  padding:1.3rem;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:1.3rem;position:relative;
+  transition:border-color .2s;
 }
+.adm-panel:hover{border-color:rgba(255,255,255,.10)}
 .adm-panel-head{
-  display:flex;align-items:center;justify-content:space-between;gap:1rem;
-  margin-bottom:1.1rem;flex-wrap:wrap;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;
+  margin-bottom:1.2rem;padding-bottom:1.1rem;border-bottom:1px solid var(--border);
+  flex-wrap:wrap;
 }
 .adm-panel-title{
-  font-family:var(--display);font-size:1.4rem;font-weight:800;letter-spacing:-.01em;
+  font-family:var(--display);font-size:1.55rem;font-weight:800;letter-spacing:-.005em;line-height:1;
+  background:linear-gradient(135deg,#fff8e6,var(--gold-bright) 60%,var(--gold));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }
-.adm-panel-meta{font-family:var(--mono);font-size:.7rem;color:var(--dim)}
-.adm-actions{display:flex;gap:.5rem;flex-shrink:0}
+.adm-panel-meta{font-family:var(--mono);font-size:.7rem;color:var(--dim);margin-top:6px}
+.adm-actions{display:flex;gap:.5rem;flex-shrink:0;align-items:center;flex-wrap:wrap}
 .adm-btn{
-  font-family:var(--sans);font-size:.8rem;font-weight:700;letter-spacing:.02em;
-  border:none;cursor:pointer;padding:.65rem 1.05rem;border-radius:10px;
-  display:inline-flex;align-items:center;gap:.45rem;
+  font-family:var(--sans);font-size:.78rem;font-weight:700;letter-spacing:.04em;
+  border:none;cursor:pointer;padding:.6rem 1rem;border-radius:11px;
+  display:inline-flex;align-items:center;gap:.45rem;white-space:nowrap;
   transition:opacity .2s,transform .1s,background .2s,border-color .2s;
 }
 .adm-btn-gold{
   background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));
-  color:#1a1408;
+  color:#1a1408;box-shadow:0 6px 18px rgba(233,196,106,.20);
 }
-.adm-btn-gold:hover{opacity:.92}
-.adm-btn-gold:active{transform:scale(.98)}
-.adm-btn-gold:disabled{opacity:.5;cursor:not-allowed}
+.adm-btn-gold:hover{opacity:.93}
+.adm-btn-gold:active{transform:scale(.97)}
+.adm-btn-gold:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 .adm-btn-ghost{
-  background:var(--surface2);color:var(--muted);border:1px solid var(--border);
+  background:transparent;color:var(--muted);border:1px solid var(--border);
 }
-.adm-btn-ghost:hover{border-color:var(--gold-bd);color:var(--text)}
+.adm-btn-ghost:hover{border-color:var(--gold-bd-h);color:var(--gold);background:var(--gold-dim)}
 
-/* ── Blocks ── */
-.adm-blocks{display:flex;flex-direction:column;gap:.9rem}
-.adm-block{
-  background:var(--surface2);border:1px solid var(--border);border-radius:11px;
-  padding:.85rem 1rem 1rem;
-  transition:border-color .2s;
+.adm-status{
+  font-family:var(--mono);font-size:.7rem;
+  display:inline-flex;align-items:center;gap:.4rem;
+  padding:.4rem .6rem;border-radius:8px;
 }
-.adm-block:hover{border-color:rgba(255,255,255,.12)}
-.adm-block.dirty{border-color:var(--gold-bd-h)}
+.adm-status.ok{color:var(--green);background:var(--green-dim);border:1px solid rgba(92,201,143,.25)}
+.adm-status.err{color:var(--red);background:var(--red-dim);border:1px solid rgba(224,101,79,.25)}
+.adm-status.loading{color:var(--muted);background:var(--surface3)}
+.adm-status.hidden{display:none}
+
+/* ── BLOCKS ── */
+.adm-blocks{display:flex;flex-direction:column;gap:.95rem}
+.adm-block{
+  background:var(--surface2);border:1px solid var(--gold-bd);border-radius:12px;
+  padding:.95rem 1.05rem 1.1rem;
+  transition:border-color .2s,box-shadow .2s;
+}
+.adm-block:hover{border-color:var(--gold-bd-h)}
+.adm-block.dirty{
+  border-color:var(--gold-bd-h);
+  box-shadow:0 0 0 3px var(--gold-dim);
+}
 .adm-block-head{
-  display:flex;align-items:center;gap:.6rem;margin-bottom:.55rem;
+  display:flex;align-items:center;gap:.65rem;margin-bottom:.65rem;
 }
 .adm-block-num{
-  font-family:var(--mono);font-size:.65rem;color:var(--dim);
-  background:var(--surface3);padding:.18rem .45rem;border-radius:5px;flex-shrink:0;
+  font-family:var(--mono);font-size:.62rem;color:var(--gold);
+  background:var(--gold-dim);border:1px solid var(--gold-bd);
+  padding:.22rem .5rem;border-radius:6px;flex-shrink:0;
+  letter-spacing:.06em;
 }
 .adm-block-heading{
-  flex:1;background:transparent;border:none;outline:none;color:var(--text);
-  font-family:var(--display);font-size:1.05rem;font-weight:700;letter-spacing:-.01em;
+  flex:1;min-width:0;background:transparent;border:none;outline:none;color:var(--text);
+  font-family:var(--display);font-size:1.08rem;font-weight:700;letter-spacing:-.005em;
   padding:.2rem 0;
 }
 .adm-block-heading:focus{color:var(--gold)}
-.adm-block-heading.intro{color:var(--dim);font-style:italic;font-weight:500;font-size:.85rem;pointer-events:none}
+.adm-block-heading::placeholder{color:var(--dim);font-style:italic;font-weight:500}
+.adm-block-heading.intro{
+  color:var(--dim);font-style:italic;font-weight:500;font-size:.85rem;
+  pointer-events:none;font-family:var(--sans);
+}
 .adm-block-del{
   background:transparent;border:none;color:var(--dim);cursor:pointer;
-  width:28px;height:28px;border-radius:7px;font-size:1rem;
+  width:28px;height:28px;border-radius:7px;font-size:.95rem;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
   transition:color .15s,background .15s;
 }
 .adm-block-del:hover{color:var(--red);background:var(--red-dim)}
 .adm-block-body{
   width:100%;min-height:90px;
-  background:#0d0d14;color:var(--text);
-  border:1px solid var(--border);border-radius:8px;
-  font-family:var(--mono);font-size:13px;line-height:1.6;
-  padding:.7rem .85rem;resize:vertical;outline:none;
+  background:#0c0c12;color:var(--text);
+  border:1px solid var(--border);border-radius:9px;
+  font-family:var(--mono);font-size:13px;line-height:1.65;
+  padding:.75rem .9rem;resize:vertical;outline:none;
   transition:border-color .15s;
 }
-.adm-block-body:focus{border-color:var(--gold-bd-h)}
+.adm-block-body:focus{border-color:var(--gold-bd-h);background:#0e0e16}
 .adm-block-body::placeholder{color:var(--dim)}
 
 .adm-add-block{
-  margin-top:.4rem;background:transparent;border:1px dashed var(--border);
-  color:var(--muted);font-family:var(--sans);font-size:.78rem;font-weight:600;
-  padding:.7rem 1rem;border-radius:10px;cursor:pointer;
+  margin-top:.6rem;background:transparent;border:1px dashed var(--gold-bd);
+  color:var(--muted);font-family:var(--sans);font-size:.78rem;font-weight:700;letter-spacing:.04em;
+  padding:.75rem 1rem;border-radius:11px;cursor:pointer;width:100%;
   transition:border-color .15s,color .15s,background .15s;
 }
 .adm-add-block:hover{border-color:var(--gold-bd-h);color:var(--gold);background:var(--gold-dim)}
 
-.adm-status{
-  font-family:var(--mono);font-size:.72rem;
-  display:inline-flex;align-items:center;gap:.4rem;
-  padding:.35rem .55rem;border-radius:6px;margin-left:.4rem;
-}
-.adm-status.ok{color:var(--green);background:var(--green-dim)}
-.adm-status.err{color:var(--red);background:var(--red-dim)}
-.adm-status.loading{color:var(--muted);background:var(--surface3)}
-.adm-status.hidden{display:none}
-
-.adm-loading{padding:2rem;text-align:center;color:var(--muted);font-size:.85rem}
+.adm-loading{padding:2.5rem;text-align:center;color:var(--muted);font-size:.85rem;font-family:var(--mono)}
 .adm-empty{padding:1.5rem;text-align:center;color:var(--dim);font-size:.85rem}
 
-/* ── Chat preview panel ── */
+/* ── CHAT PREVIEW ── */
 .adm-chat{
-  position:sticky;top:5rem;align-self:start;
-  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  position:sticky;top:5.2rem;align-self:start;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
   display:flex;flex-direction:column;
-  height:calc(100vh - 7rem);max-height:760px;min-height:480px;
+  height:calc(100vh - 7.5rem);max-height:760px;min-height:500px;
+  overflow:hidden;
 }
 @media(max-width:1080px){
-  .adm-chat{position:static;height:auto;max-height:none;min-height:0}
+  .adm-chat{position:static;height:auto;max-height:none;min-height:520px}
 }
 .adm-chat-head{
-  padding:.95rem 1.1rem;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:.6rem;
+  padding:1rem 1.1rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;
 }
+.adm-chat-av{
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;overflow:hidden;
+  border:1px solid var(--gold-bd);background:var(--surface3);
+}
+.adm-chat-av img{width:100%;height:100%;object-fit:cover;display:block}
+.adm-chat-title-col{display:flex;flex-direction:column;gap:2px;min-width:0}
 .adm-chat-title{
-  font-family:var(--display);font-size:.95rem;font-weight:800;letter-spacing:-.01em;
+  font-family:var(--display);font-size:.95rem;font-weight:800;letter-spacing:-.005em;
   display:flex;align-items:center;gap:.4rem;
 }
 .adm-chat-title .live{
   width:8px;height:8px;border-radius:50%;background:var(--green);
   box-shadow:0 0 8px var(--green);
 }
-.adm-chat-mode{margin-left:auto;display:flex;gap:.3rem;background:var(--surface3);padding:3px;border-radius:8px}
-.adm-mode{
-  font-family:var(--sans);font-size:.66rem;font-weight:700;letter-spacing:.06em;
-  background:transparent;border:none;color:var(--muted);cursor:pointer;
-  padding:.32rem .6rem;border-radius:6px;transition:all .15s;
+.adm-chat-sub{font-family:var(--mono);font-size:.62rem;color:var(--dim);letter-spacing:.06em}
+.adm-chat-mode{
+  margin-left:auto;display:flex;gap:.25rem;
+  background:var(--surface3);padding:3px;border-radius:9px;
 }
-.adm-mode.on{background:var(--gold);color:#1a1408}
+.adm-mode{
+  font-family:var(--sans);font-size:.65rem;font-weight:800;letter-spacing:.08em;
+  background:transparent;border:none;color:var(--muted);cursor:pointer;
+  padding:.38rem .7rem;border-radius:7px;transition:all .15s;
+}
+.adm-mode.on{
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 60%,var(--gold-deep));
+  color:#1a1408;
+}
 
 .adm-chat-body{
-  flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.7rem;
+  flex:1;overflow-y:auto;padding:1.1rem;display:flex;flex-direction:column;gap:.9rem;
 }
-.adm-msg{display:flex;gap:.55rem;align-items:flex-start;max-width:90%}
+.adm-msg{display:flex;gap:.6rem;align-items:flex-start;max-width:92%}
 .adm-msg.user{margin-left:auto;flex-direction:row-reverse}
 .adm-msg-av{
-  width:28px;height:28px;border-radius:50%;flex-shrink:0;
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;overflow:hidden;
   display:flex;align-items:center;justify-content:center;font-size:.85rem;
+  border:1px solid var(--gold-bd);background:var(--surface3);
 }
-.adm-msg.bot .adm-msg-av{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-bd)}
-.adm-msg.user .adm-msg-av{background:var(--surface3);color:var(--muted)}
+.adm-msg-av img{width:100%;height:100%;object-fit:cover;display:block}
+.adm-msg.user .adm-msg-av{
+  background:linear-gradient(135deg,var(--gold-dim),rgba(233,196,106,.04));
+  border-color:var(--gold-bd-h);color:var(--gold);font-weight:700;
+}
+.adm-msg-col{display:flex;flex-direction:column;gap:4px;min-width:0;max-width:100%}
+.adm-msg-sender{
+  font-size:.62rem;color:var(--dim);letter-spacing:.06em;font-weight:600;
+  padding:0 .2rem;
+}
+.adm-msg.user .adm-msg-sender{text-align:right}
 .adm-msg-bubble{
-  background:var(--surface2);border:1px solid var(--border);border-radius:11px;
-  padding:.55rem .8rem;font-size:.85rem;line-height:1.55;color:var(--text);
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:13px;border-bottom-left-radius:5px;
+  padding:.6rem .85rem;font-size:.86rem;line-height:1.55;color:var(--text);
   white-space:pre-wrap;word-wrap:break-word;
 }
 .adm-msg.user .adm-msg-bubble{
-  background:linear-gradient(135deg,var(--gold-dim),rgba(233,196,106,.05));
-  border-color:var(--gold-bd);
+  background:linear-gradient(135deg,var(--gold-dim),rgba(233,196,106,.04));
+  border-color:var(--gold-bd);border-bottom-left-radius:13px;border-bottom-right-radius:5px;
 }
-.adm-typing .adm-msg-bubble{display:flex;gap:4px;padding:.7rem .9rem}
+.adm-typing .adm-msg-bubble{display:flex;gap:5px;padding:.75rem .95rem;align-items:center}
 .adm-typing-dot{
   width:6px;height:6px;border-radius:50%;background:var(--dim);
   animation:tDot 1.2s infinite ease-in-out;
@@ -253,66 +303,74 @@ body{
 .adm-typing-dot:nth-child(3){animation-delay:.4s}
 @keyframes tDot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
 
-.adm-chat-empty{text-align:center;color:var(--dim);font-size:.78rem;padding:2rem 1rem}
+.adm-chat-empty{
+  text-align:center;color:var(--dim);font-size:.78rem;padding:2rem 1rem;
+  font-family:var(--sans);font-style:italic;line-height:1.5;
+}
 
 .adm-chat-foot{
   padding:.7rem;border-top:1px solid var(--border);
-  display:flex;gap:.5rem;align-items:flex-end;
+  display:flex;gap:.5rem;align-items:flex-end;background:var(--surface);
 }
 .adm-chat-in{
-  flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;
-  color:var(--text);font-family:var(--sans);font-size:.85rem;line-height:1.5;
-  padding:.55rem .75rem;resize:none;outline:none;
-  min-height:38px;max-height:120px;
+  flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:11px;
+  color:var(--text);font-family:var(--sans);font-size:.88rem;line-height:1.5;
+  padding:.6rem .8rem;resize:none;outline:none;
+  min-height:42px;max-height:120px;
   transition:border-color .15s;
 }
 .adm-chat-in:focus{border-color:var(--gold-bd-h)}
 .adm-chat-in::placeholder{color:var(--dim)}
 .adm-chat-send{
   background:linear-gradient(135deg,var(--gold-bright),var(--gold) 60%,var(--gold-deep));
-  color:#1a1408;border:none;border-radius:10px;cursor:pointer;
+  color:#1a1408;border:none;border-radius:11px;cursor:pointer;
   width:42px;height:42px;display:flex;align-items:center;justify-content:center;
   transition:opacity .2s,transform .1s;flex-shrink:0;
+  box-shadow:0 4px 14px rgba(233,196,106,.22);
 }
-.adm-chat-send:hover{opacity:.92}
+.adm-chat-send:hover{opacity:.93}
 .adm-chat-send:active{transform:scale(.95)}
-.adm-chat-send:disabled{opacity:.4;cursor:not-allowed}
+.adm-chat-send:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
 .adm-chat-clear{
   background:transparent;border:none;color:var(--dim);cursor:pointer;
-  font-size:.7rem;font-family:var(--sans);padding:.55rem .65rem;border-radius:8px;
+  font-size:.68rem;font-family:var(--sans);font-weight:600;letter-spacing:.04em;
+  padding:.55rem .65rem;border-radius:8px;
   transition:color .15s,background .15s;
 }
 .adm-chat-clear:hover{color:var(--red);background:var(--red-dim)}
 
-/* ── Toast ── */
+/* ── TOAST ── */
 .adm-toast{
   position:fixed;bottom:1.4rem;right:1.4rem;z-index:50;
   display:flex;align-items:center;gap:.6rem;
-  background:var(--surface2);border:1px solid var(--gold-bd-h);
-  padding:.75rem 1.05rem;border-radius:11px;
-  box-shadow:0 14px 36px rgba(0,0,0,.4);
+  background:var(--surface);border:1px solid var(--gold-bd-h);
+  padding:.8rem 1.1rem;border-radius:12px;
+  box-shadow:0 18px 44px rgba(0,0,0,.5);
   font-family:var(--sans);font-size:.85rem;color:var(--text);
   transform:translateY(20px) scale(.95);opacity:0;pointer-events:none;
   transition:transform .25s cubic-bezier(.34,1.56,.64,1),opacity .2s;
+  max-width:90vw;
 }
 .adm-toast.show{transform:translateY(0) scale(1);opacity:1}
-.adm-toast.ok .adm-toast-ico{color:var(--green)}
+.adm-toast .adm-toast-ico{
+  width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-weight:700;font-size:.85rem;flex-shrink:0;
+}
+.adm-toast.ok .adm-toast-ico{background:var(--green-dim);color:var(--green)}
 .adm-toast.err{border-color:var(--red)}
-.adm-toast.err .adm-toast-ico{color:var(--red)}
+.adm-toast.err .adm-toast-ico{background:var(--red-dim);color:var(--red)}
 </style>
 </head>
 <body>
 
 <header class="adm-header">
-  <div class="adm-brand">
-    <div class="adm-brand-mark">Z</div>
-    <div>
-      <div class="adm-brand-name">ZORBO ADMIN</div>
-      <span class="adm-brand-sub">panel interno</span>
-    </div>
-  </div>
+  <a class="adm-brand" href="/admin" aria-label="ZORBO Admin">
+    <img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Titulo_secundario-3.png?v=1779814975" alt="ZORBO">
+  </a>
+  <span class="adm-pipe"></span>
+  <span class="adm-sub">Admin</span>
   <div class="adm-tag" id="tagBuild">cargando…</div>
-  <button type="button" id="btnLogout" class="adm-btn adm-btn-ghost" title="Cerrar sesión">Salir</button>
+  <button type="button" class="adm-out" id="btnLogout" title="Cerrar sesión">Salir</button>
 </header>
 
 <main class="adm-shell">
@@ -341,20 +399,24 @@ body{
   <!-- Mini chat -->
   <aside class="adm-chat">
     <div class="adm-chat-head">
-      <div class="adm-chat-title"><span class="live"></span> Preview · Zorbot</div>
+      <div class="adm-chat-av"><img src="/zorbot-avatar.jpg" alt="Zorbot"></div>
+      <div class="adm-chat-title-col">
+        <div class="adm-chat-title"><span class="live"></span> Zorbot · Preview</div>
+        <div class="adm-chat-sub" id="chatModeLabel">MODO B2C · CATÁLOGO LIVE</div>
+      </div>
       <div class="adm-chat-mode" role="tablist" aria-label="Modo de chat">
         <button class="adm-mode on" data-mode="b2c" type="button">B2C</button>
         <button class="adm-mode" data-mode="b2b" type="button">B2B</button>
       </div>
     </div>
     <div class="adm-chat-body" id="chatBody">
-      <div class="adm-chat-empty">Probá un cambio en los bloques y conversá con Zorbot acá para validar antes de soltarlo a producción.</div>
+      <div class="adm-chat-empty">Editá un bloque, guardá los cambios y conversá con Zorbot acá para validar antes de soltarlo a producción.</div>
     </div>
     <div class="adm-chat-foot">
-      <textarea class="adm-chat-in" id="chatIn" rows="1" placeholder="Escribe un mensaje…"></textarea>
+      <textarea class="adm-chat-in" id="chatIn" rows="1" placeholder="Conversa con Zorbot…"></textarea>
       <button class="adm-chat-clear" id="chatClear" type="button" title="Limpiar conversación">Limpiar</button>
       <button class="adm-chat-send" id="chatSend" type="button" aria-label="Enviar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
     </div>
   </aside>
@@ -376,7 +438,7 @@ const SECCIONES = [
 ];
 
 let activeSeccion = 'general';
-let originalContent = '';     // contenido tal como vino del server
+let originalContent = '';
 let dirty = false;
 let chatMode = 'b2c';
 let chatSessionId = null;
@@ -402,8 +464,6 @@ async function selectSeccion(id){
 }
 
 // ─── Parse / serialize markdown ─────────────────────────────────────────────
-// Bloque 0 = todo lo previo al primer `## ` (incluye el `# Título` + intro).
-// Cada `## Encabezado` arranca un bloque siguiente.
 function parseMd(md){
   const lines = md.split('\n');
   const blocks = [{ heading:'', body:'', intro:true }];
@@ -416,7 +476,6 @@ function parseMd(md){
       cur.body += (cur.body ? '\n' : '') + line;
     }
   }
-  // Limpio whitespace al final de cada body
   for (const b of blocks) b.body = b.body.replace(/[\s\n]+$/, '');
   return blocks;
 }
@@ -454,7 +513,6 @@ function renderBlocks(){
       </div>`;
   }).join('');
 
-  // bind inputs
   wrap.querySelectorAll('.adm-block-heading[data-idx]').forEach(inp => {
     inp.oninput = () => {
       blocks[+inp.dataset.idx].heading = inp.value;
@@ -558,7 +616,6 @@ document.getElementById('btnAddBlock').onclick = () => {
   blocks.push({ heading:'Nuevo bloque', body:'', intro:false });
   setDirty(true);
   renderBlocks();
-  // foco al nuevo
   const inputs = document.querySelectorAll('.adm-block-heading[data-idx]');
   const last = inputs[inputs.length-1];
   if (last) { last.focus(); last.select(); }
@@ -571,16 +628,25 @@ document.getElementById('btnReload').onclick = () => {
 };
 
 // ─── Chat preview ───────────────────────────────────────────────────────────
+function botAvatarHtml(){
+  return `<div class="adm-msg-av"><img src="/zorbot-avatar.jpg" alt="Zorbot"></div>`;
+}
+function userAvatarHtml(){
+  return `<div class="adm-msg-av">tú</div>`;
+}
+
 function chatRow(role, text){
   const body = document.getElementById('chatBody');
-  // limpiar empty si existe
   const empty = body.querySelector('.adm-chat-empty');
   if (empty) empty.remove();
   const row = document.createElement('div');
   row.className = 'adm-msg ' + role;
   row.innerHTML = `
-    <div class="adm-msg-av">${role==='bot' ? '⚡' : '🧑'}</div>
-    <div class="adm-msg-bubble"></div>`;
+    ${role==='bot' ? botAvatarHtml() : userAvatarHtml()}
+    <div class="adm-msg-col">
+      <div class="adm-msg-sender">${role==='bot' ? 'Zorbot' : 'Vos'}</div>
+      <div class="adm-msg-bubble"></div>
+    </div>`;
   row.querySelector('.adm-msg-bubble').textContent = text;
   body.appendChild(row);
   body.scrollTop = body.scrollHeight;
@@ -593,11 +659,14 @@ function typingRow(){
   const row = document.createElement('div');
   row.className = 'adm-msg bot adm-typing';
   row.innerHTML = `
-    <div class="adm-msg-av">⚡</div>
-    <div class="adm-msg-bubble">
-      <span class="adm-typing-dot"></span>
-      <span class="adm-typing-dot"></span>
-      <span class="adm-typing-dot"></span>
+    ${botAvatarHtml()}
+    <div class="adm-msg-col">
+      <div class="adm-msg-sender">Zorbot</div>
+      <div class="adm-msg-bubble">
+        <span class="adm-typing-dot"></span>
+        <span class="adm-typing-dot"></span>
+        <span class="adm-typing-dot"></span>
+      </div>
     </div>`;
   body.appendChild(row);
   body.scrollTop = body.scrollHeight;
@@ -662,6 +731,11 @@ async function chatSend(){
   }
 }
 
+function updateChatModeLabel(){
+  document.getElementById('chatModeLabel').textContent =
+    chatMode === 'b2b' ? 'MODO B2B · KNOWLEDGE MAYORISTAS' : 'MODO B2C · CATÁLOGO LIVE';
+}
+
 document.getElementById('chatSend').onclick = chatSend;
 document.getElementById('chatIn').addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSend(); }
@@ -681,6 +755,7 @@ document.querySelectorAll('.adm-mode').forEach(b => {
     chatMode = b.dataset.mode;
     chatSessionId = null;
     document.querySelectorAll('.adm-mode').forEach(x => x.classList.toggle('on', x === b));
+    updateChatModeLabel();
     document.getElementById('chatBody').innerHTML =
       `<div class="adm-chat-empty">Modo ${chatMode.toUpperCase()} activo · sesión nueva. ${chatMode==='b2b'?'Probando knowledge de mayoristas.':'Probando knowledge B2C (general + 3 marcas).'}</div>`;
   };
@@ -728,6 +803,7 @@ window.fetch = async (...args) => {
 };
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
+updateChatModeLabel();
 renderTabs();
 loadSeccion();
 </script>

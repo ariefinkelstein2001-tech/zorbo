@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Zorbo Admin — Iniciar sesión</title>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0a0a0e;
@@ -14,107 +14,116 @@
   --gold:#e9c46a;
   --gold-bright:#f7e3a7;
   --gold-deep:#bf9b48;
-  --gold-dim:rgba(233,196,106,.12);
-  --gold-bd:rgba(233,196,106,.22);
-  --gold-bd-h:rgba(233,196,106,.48);
+  --gold-dim:rgba(233,196,106,.10);
+  --gold-glow:rgba(233,196,106,.07);
+  --gold-bd:rgba(233,196,106,.20);
+  --gold-bd-h:rgba(233,196,106,.46);
   --text:#f1ede5;
-  --muted:rgba(241,237,229,.6);
+  --muted:rgba(241,237,229,.58);
   --dim:rgba(241,237,229,.32);
-  --border:rgba(255,255,255,.08);
+  --border:rgba(255,255,255,.07);
   --red:#e0654f;
   --red-dim:rgba(224,101,79,.14);
   --sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
-  --display:'Bricolage Grotesque',var(--sans);
+  --display:'Syne',var(--sans);
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%}
 body{
   font-family:var(--sans);background:var(--bg);color:var(--text);
   min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem;
   background-image:
-    radial-gradient(60rem 40rem at 80% -10%,rgba(233,196,106,.10),transparent),
+    radial-gradient(60rem 40rem at 80% -10%,var(--gold-glow),transparent),
     radial-gradient(50rem 35rem at -10% 110%,rgba(182,164,230,.05),transparent);
 }
 
 .lg-card{
-  width:100%;max-width:400px;
+  width:100%;max-width:410px;
   background:var(--surface);border:1px solid var(--gold-bd);border-radius:18px;
   padding:2.4rem 2rem 2rem;
   box-shadow:0 30px 80px rgba(0,0,0,.55);
   position:relative;overflow:hidden;
+  animation:popIn .45s cubic-bezier(.34,1.56,.64,1);
 }
 .lg-card::before{
   content:'';position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(135deg,rgba(233,196,106,.08),transparent 60%);
 }
+@keyframes popIn{
+  0%{opacity:0;transform:scale(.96) translateY(8px)}
+  100%{opacity:1;transform:scale(1) translateY(0)}
+}
 
-.lg-brand{text-align:center;margin-bottom:1.6rem;position:relative}
-.lg-mark{
-  width:56px;height:56px;border-radius:13px;
-  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));
-  display:inline-flex;align-items:center;justify-content:center;
-  color:#1a1408;font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:-.02em;
-  margin:0 auto .85rem;
-  box-shadow:0 8px 24px rgba(233,196,106,.32);
+.lg-brand{
+  text-align:center;margin-bottom:1.6rem;position:relative;
+  display:flex;flex-direction:column;align-items:center;gap:6px;
 }
-.lg-name{
-  font-family:var(--display);font-size:1.45rem;font-weight:800;letter-spacing:.02em;
-  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,#fff8e6);
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+.lg-logo{
+  height:50px;width:auto;object-fit:contain;display:block;
+  filter:drop-shadow(0 4px 14px rgba(233,196,106,.22));
+  margin-bottom:8px;
 }
-.lg-sub{font-size:.65rem;color:var(--dim);letter-spacing:.22em;text-transform:uppercase;margin-top:6px}
 .lg-tag{
-  display:inline-block;margin-top:1rem;font-size:.7rem;color:var(--muted);
-  background:var(--surface2);border:1px solid var(--border);padding:.32rem .65rem;border-radius:20px;
+  font-family:var(--display);font-size:.7rem;font-weight:700;color:var(--gold);
+  letter-spacing:.32em;text-transform:uppercase;
+  background:var(--gold-dim);border:1px solid var(--gold-bd);
+  padding:.32rem .8rem;border-radius:20px;
+}
+.lg-hint{
+  font-size:.7rem;color:var(--dim);letter-spacing:.04em;margin-top:.5rem;
 }
 
-.lg-form{position:relative;display:flex;flex-direction:column;gap:.85rem;margin-top:.6rem}
-.lg-field{display:flex;flex-direction:column;gap:.32rem}
-.lg-label{font-size:.7rem;font-weight:600;color:var(--muted);letter-spacing:.04em;padding-left:.2rem}
+.lg-form{position:relative;display:flex;flex-direction:column;gap:.95rem;margin-top:.4rem}
+.lg-field{display:flex;flex-direction:column;gap:.35rem}
+.lg-label{
+  font-size:.62rem;font-weight:700;color:var(--muted);letter-spacing:.14em;
+  text-transform:uppercase;padding-left:.2rem;font-family:var(--sans);
+}
 .lg-input{
   background:var(--surface2);border:1px solid var(--border);border-radius:11px;
-  padding:.78rem .95rem;color:var(--text);font-family:var(--sans);font-size:.92rem;
+  padding:.8rem 1rem;color:var(--text);font-family:var(--sans);font-size:.92rem;
   outline:none;transition:border-color .18s,background .18s;
 }
 .lg-input::placeholder{color:var(--dim)}
-.lg-input:focus{border-color:var(--gold-bd-h);background:var(--surface)}
+.lg-input:focus{border-color:var(--gold-bd-h);background:#15151e}
 
 .lg-err{
-  display:none;align-items:center;gap:.4rem;
+  display:none;align-items:center;gap:.5rem;
   background:var(--red-dim);border:1px solid rgba(224,101,79,.28);color:var(--red);
-  padding:.55rem .8rem;border-radius:9px;
+  padding:.6rem .85rem;border-radius:9px;
   font-size:.78rem;font-weight:600;
 }
 .lg-err.show{display:flex}
 
 .lg-submit{
-  margin-top:.4rem;width:100%;
+  margin-top:.5rem;width:100%;
   background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));
   color:#1a1408;border:none;border-radius:12px;
-  padding:.85rem 1rem;font-family:var(--sans);font-size:.92rem;font-weight:700;letter-spacing:.02em;
+  padding:.9rem 1rem;font-family:var(--sans);font-size:.92rem;font-weight:700;letter-spacing:.04em;
   cursor:pointer;transition:opacity .2s,transform .1s;
+  box-shadow:0 8px 24px rgba(233,196,106,.22);
 }
-.lg-submit:hover{opacity:.92}
+.lg-submit:hover{opacity:.93}
 .lg-submit:active{transform:scale(.98)}
-.lg-submit:disabled{opacity:.55;cursor:not-allowed}
+.lg-submit:disabled{opacity:.55;cursor:not-allowed;box-shadow:none}
 
 .lg-foot{
-  margin-top:1.2rem;font-size:.7rem;color:var(--dim);text-align:center;letter-spacing:.02em;
+  margin-top:1.3rem;font-size:.66rem;color:var(--dim);text-align:center;letter-spacing:.06em;
+  font-family:var(--display);font-weight:500;text-transform:uppercase;
 }
 
 @media (max-width:480px){
   .lg-card{padding:2rem 1.3rem 1.5rem}
-  .lg-name{font-size:1.25rem}
+  .lg-logo{height:42px}
 }
 </style>
 </head>
 <body>
 <div class="lg-card">
   <div class="lg-brand">
-    <div class="lg-mark">Z</div>
-    <div class="lg-name">ZORBO ADMIN</div>
-    <span class="lg-sub">panel interno</span>
-    <div class="lg-tag">Acceso restringido</div>
+    <img class="lg-logo" src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Titulo_secundario-3.png?v=1779814975" alt="ZORBO">
+    <span class="lg-tag">Admin · panel interno</span>
+    <span class="lg-hint">Acceso restringido al equipo Zorbo</span>
   </div>
 
   <form class="lg-form" id="loginForm" autocomplete="on">
@@ -137,7 +146,7 @@ body{
     <button class="lg-submit" id="btn" type="submit">Iniciar sesión</button>
   </form>
 
-  <div class="lg-foot">Sesión válida por 12 horas</div>
+  <div class="lg-foot">Sesión válida · 12 horas</div>
 </div>
 
 <script>
@@ -163,7 +172,6 @@ form.addEventListener('submit', async (e) => {
     });
     const data = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(data.error || 'Error de autenticación');
-    // Cookie ya seteada, vamos al panel
     window.location.href = '/admin';
   } catch (e2) {
     errMsg.textContent = e2.message;
