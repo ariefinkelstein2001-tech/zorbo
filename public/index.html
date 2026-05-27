@@ -410,9 +410,22 @@ body.mayorista-active #mayoPage{display:block}
 .shop-page .hp-welcome-link strong{color:#a05f00}
 
 /* Cursor pointer en cards de producto (el click abre el PDP) */
-.shop-page .hp-card{cursor:pointer}
+.shop-page .hp-card{cursor:pointer;position:relative}
 .shop-page .hp-card .hp-acts,
 .shop-page .hp-card .hp-variants{cursor:auto}
+
+/* Lupita en la esquina de cada card: pista visual de que se puede ampliar */
+.shop-page .hp-card-zoom{
+  position:absolute;top:10px;right:10px;z-index:2;
+  width:26px;height:26px;border-radius:50%;
+  background:rgba(255,255,255,.92);color:#111;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid #e5e5e5;
+  box-shadow:0 2px 6px rgba(0,0,0,.06);
+  pointer-events:none;transition:background .15s,color .15s,transform .15s;
+}
+.shop-page .hp-card:hover .hp-card-zoom{background:#f5a623;color:#fff;border-color:#f5a623;transform:scale(1.06)}
+.pdp-card .hp-card-zoom{display:none}
 
 /* ── PRODUCT DETAIL POPUP (PDP) ── */
 .pdp-modal{position:fixed;inset:0;z-index:1200;display:none;align-items:center;justify-content:center;padding:1.2rem}
@@ -470,19 +483,59 @@ body.pdp-open{overflow:hidden}
 .pdp-desc p{margin-bottom:.85em}
 .pdp-desc p:last-child{margin-bottom:0}
 .pdp-desc-empty{color:#999;font-style:italic}
-.pdp-card .hp-variants{justify-content:flex-start;margin-top:4px}
-.pdp-acts{margin-top:10px}
+.pdp-card .hp-variants{justify-content:flex-start;margin-top:4px;flex-wrap:wrap}
+.pdp-card .hp-variant{
+  background:#fff;border:1.5px solid #ccc;color:#444;
+  font-family:'Bricolage Grotesque',sans-serif;font-size:12px;letter-spacing:.08em;
+  padding:7px 12px;border-radius:50px;cursor:pointer;
+  transition:all .15s;font-weight:600;
+}
+.pdp-card .hp-variant:hover{border-color:#f5a623;color:#111}
+.pdp-card .hp-variant.active{background:#111;color:#fff;border-color:#111}
+
+/* Controles de compra del PDP — replican los de la card porque el modal vive
+   fuera de .shop-page, así que las reglas .shop-page .hp-* no aplican acá. */
+.pdp-acts{display:flex;gap:8px;margin-top:14px;align-items:stretch}
+.pdp-card .hp-qty{display:flex;border:1.5px solid #ddd;border-radius:4px;overflow:hidden;flex-shrink:0}
+.pdp-card .hp-qty button{
+  background:#fafafa;color:#111;border:none;width:34px;height:42px;
+  font-size:18px;font-weight:700;cursor:pointer;transition:background .15s;
+  font-family:'DM Sans',sans-serif;
+}
+.pdp-card .hp-qty button:hover{background:#f0f0f0;color:#f5a623}
+.pdp-card .hp-qty .v{width:36px;height:42px;line-height:42px;text-align:center;font-weight:700;font-size:15px;color:#111;background:#fff;border-left:1.5px solid #ddd;border-right:1.5px solid #ddd}
+.pdp-card button.hp-add{
+  flex:1;border:none;cursor:pointer;background:#f5a623;color:#111;
+  font-family:'Bricolage Grotesque',sans-serif;font-size:13px;font-weight:700;
+  letter-spacing:.12em;border-radius:4px;height:42px;padding:0 18px;
+  transition:background .15s,transform .1s;
+}
+.pdp-card button.hp-add:hover{background:#ffb840}
+.pdp-card button.hp-add:active{transform:scale(.97)}
+.pdp-card button.hp-add.done{background:#4caf50!important;color:#fff!important;pointer-events:none}
+
+/* Precio tachado (compare-at) más chico y en rojo — refuerza que hay descuento */
+.pdp-card .pdp-price .old{
+  color:#d33;font-weight:500;font-size:15px;text-decoration:line-through;margin-right:10px;
+}
 
 @media (max-width:720px){
-  .pdp-modal{padding:0;align-items:stretch}
-  .pdp-card{max-width:100%;max-height:100vh;height:100vh;border-radius:0;border:none}
-  .pdp-card .pdp-img{border-radius:0}
+  .pdp-modal{padding:.75rem;align-items:center}
+  .pdp-card{max-width:100%;max-height:88vh;border-radius:10px}
+  .pdp-card .pdp-img{border-top-left-radius:10px;border-top-right-radius:10px;border-bottom-left-radius:0}
   .pdp-grid{grid-template-columns:1fr;grid-template-rows:auto 1fr}
-  .pdp-body{padding:28px 22px 32px}
-  .pdp-card .pdp-img{aspect-ratio:1;max-height:46vh}
-  .pdp-card .pdp-img img{padding:22px}
-  .pdp-name{font-size:24px}
-  .pdp-card .pdp-price{font-size:22px}
+  .pdp-body{padding:22px 20px 24px;gap:10px}
+  .pdp-card .pdp-img{aspect-ratio:auto;height:38vh}
+  .pdp-card .pdp-img img{padding:18px}
+  .pdp-name{font-size:22px}
+  .pdp-card .pdp-price{font-size:20px}
+  .pdp-card .pdp-price .old{font-size:13px}
+  .pdp-desc{font-size:14px;line-height:1.55}
+  .pdp-acts{gap:6px;margin-top:10px}
+  .pdp-card .hp-qty button{width:28px;height:36px;font-size:15px}
+  .pdp-card .hp-qty .v{width:30px;height:36px;line-height:36px;font-size:13px}
+  .pdp-card button.hp-add{height:36px;font-size:11px;padding:0 12px;letter-spacing:.08em}
+  .pdp-card .hp-variant{font-size:11px;padding:6px 10px}
 }
 
 /* Cierre: wordmark ZORBO. + línea fina + bubble del bot */
@@ -1341,8 +1394,7 @@ body.mayorista-active .game-banner{display:none}
     <div class="send-row">
       <textarea class="msg-in" id="msgIn" rows="1"
         placeholder="Conversa lo que quieras con Zorbot..."
-        onkeydown="onKey(event)" oninput="autoResize(this)"
-        onfocus="scrollToChat()"></textarea>
+        onkeydown="onKey(event)" oninput="autoResize(this)"></textarea>
       <button class="send-btn" id="sendBtn" onclick="send()" aria-label="Enviar">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
@@ -1875,6 +1927,9 @@ function buildHpCard(p){
   };
   if (p && p.id) HP_PRODUCT_MAP.set(String(p.id), p);
   return `<div class="hp-card" data-pid="${p.id||''}" onclick="hpCardClick(this,event)">
+    <span class="hp-card-zoom" aria-hidden="true">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+    </span>
     <div class="hp-card-img"><img src="${img1 || ''}" alt="${escapeHtml(p.title)}" loading="lazy"></div>
     <div class="hp-card-name">${escapeHtml(cleanHpTitle(p.title))}</div>
     ${variantPills}
