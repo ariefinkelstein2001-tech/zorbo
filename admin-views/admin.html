@@ -883,6 +883,136 @@ body.drawer-open{overflow:hidden}
 .adm-toast.ok .adm-toast-ico{background:var(--green-dim);color:var(--green)}
 .adm-toast.err{border-color:var(--red)}
 .adm-toast.err .adm-toast-ico{background:var(--red-dim);color:var(--red)}
+
+/* ════════════════════════════════════════════════════════════════════════
+   RESPONSIVE — celulares (≤ 600px)
+   Polish global del panel para que entre todo bien en mobile.
+   ════════════════════════════════════════════════════════════════════════ */
+@media (max-width:600px){
+  /* Header tighter */
+  .adm-header{padding:.6rem .85rem;gap:.55rem}
+  .adm-pipe{display:none}
+  .adm-out{padding:.35rem .7rem;font-size:.65rem}
+
+  /* Shell */
+  .adm-shell{padding:.75rem;gap:.85rem}
+
+  /* Panels */
+  .adm-panel{padding:1rem .85rem;border-radius:12px}
+  .adm-panel-head{gap:.6rem;padding-bottom:.85rem;margin-bottom:.85rem;flex-direction:column;align-items:stretch}
+  .adm-panel-title{font-size:1.25rem}
+  .adm-panel-meta{font-size:.62rem;line-height:1.4}
+  .adm-actions{width:100%;justify-content:flex-start;flex-wrap:wrap}
+  .adm-btn{padding:.55rem .8rem;font-size:.72rem}
+  .adm-status{flex-basis:100%}
+
+  /* Tabs */
+  .adm-tab{padding:.5rem .8rem;font-size:.7rem}
+
+  /* Stats: 2 col en celular */
+  .adm-stats{grid-template-columns:repeat(2,1fr);gap:.55rem}
+  .adm-stat{padding:.65rem .7rem}
+  .adm-stat-v{font-size:1.35rem}
+  .adm-stat-s{font-size:.6rem;line-height:1.35}
+  .adm-stat-k{font-size:.55rem}
+
+  /* Charts */
+  .adm-charts{gap:.7rem}
+  .adm-chart-card{padding:.85rem}
+  .adm-chart-canvas-wrap{height:220px}
+  .adm-chart-canvas-wrap.small{height:200px}
+  .adm-chart-wide .adm-chart-canvas-wrap{height:240px}
+  .adm-chart-title{font-size:.9rem}
+  .adm-chart-sub{font-size:.58rem}
+
+  /* Chat preview compact */
+  .adm-chat{min-height:440px}
+  .adm-chat-head{padding:.7rem .85rem;gap:.5rem;flex-wrap:wrap}
+  .adm-chat-mode{margin-left:auto}
+  .adm-chat-title{font-size:.88rem}
+  .adm-chat-body{padding:.85rem}
+  .adm-chat-foot{padding:.55rem;gap:.4rem}
+  .adm-chat-in{font-size:16px;min-height:38px}
+  .adm-chat-send{width:38px;height:38px}
+
+  /* Conversation filters */
+  .adm-filters{padding:.65rem;gap:.55rem}
+  .adm-filter{min-width:100px}
+  .adm-filter.grow{min-width:100%}
+  .adm-input,.adm-select{padding:.45rem .6rem;font-size:.82rem}
+  .adm-pillgroup button{padding:.3rem .55rem;font-size:.65rem}
+
+  /* Chat cards */
+  .adm-chat-card{padding:.7rem .85rem}
+  .adm-chat-card-top{gap:.5rem}
+  .adm-chat-preview{font-size:.82rem}
+
+  /* Brand sub-tabs mantienen scroll horizontal (ya está) */
+  .adm-subtab{font-size:.66rem;padding:.36rem .7rem}
+
+  /* Productos */
+  .adm-prod-head{padding:.65rem .75rem;gap:.65rem;grid-template-columns:70px 1fr 24px}
+  .adm-prod-img-wrap{width:70px;height:70px}
+  .adm-prod-title{font-size:.88rem}
+  .adm-prod-price{font-size:.78rem}
+  .adm-prod-vars{font-size:.58rem}
+  .adm-prod-editor{padding:.85rem}
+  .adm-prod-extra{font-size:12.5px;min-height:110px}
+
+  /* Bloques (editor markdown) */
+  .adm-block{padding:.75rem .85rem .9rem}
+  .adm-block-heading{font-size:.95rem}
+  .adm-block-body{font-size:12.5px;padding:.6rem .75rem;min-height:80px}
+
+  /* Feedback items */
+  .adm-fb-item{padding:.75rem}
+  .adm-fb-item-text{font-size:.82rem;padding:.55rem .7rem}
+  .adm-fb-item-head{flex-direction:column;align-items:flex-start;gap:.5rem}
+  .adm-fb-item-acts{width:100%;justify-content:flex-end}
+
+  /* Tutoriales */
+  .adm-tut-item{padding:.75rem}
+  .adm-tut-item-title{font-size:.9rem;min-width:0;flex:1}
+  .adm-tut-item-head{flex-direction:column;align-items:flex-start;gap:.5rem}
+  .adm-tut-item-acts{width:100%;justify-content:flex-start;flex-wrap:wrap}
+  .adm-tut-link{font-size:.7rem}
+  .adm-tut-desc{font-size:.8rem}
+
+  /* Modales Vambe-style + Tutoriales */
+  .adm-fb-card{padding:1.1rem 1rem 1rem;max-height:94vh;border-radius:14px}
+  .adm-fb-title{font-size:1.1rem}
+  .adm-fb-sub{font-size:.76rem}
+  .adm-fb-textarea{min-height:100px;font-size:12.5px;padding:.6rem .75rem}
+
+  /* Drawer detalle de conversación */
+  .adm-drawer-head{padding:.85rem 1rem}
+  .adm-drawer-title{font-size:1.05rem}
+  .adm-drawer-meta{font-size:.6rem}
+  .adm-drawer-body{padding:.85rem 1rem}
+  .adm-msg-bubble{font-size:.84rem}
+
+  /* Toast a todo ancho */
+  .adm-toast{right:.75rem;left:.75rem;bottom:.75rem;max-width:none;padding:.65rem .85rem}
+  .adm-toast .adm-toast-ico{width:22px;height:22px;font-size:.75rem}
+
+  /* Preview product cards más chicas */
+  .adm-preview-prod{padding:.45rem .55rem .45rem .45rem;max-width:100%}
+  .adm-preview-prod-img{width:38px;height:38px}
+  .adm-preview-prod-title{font-size:.72rem}
+  .adm-preview-prod-price{font-size:.72rem}
+
+  /* Video embed más cómodo */
+  .adm-msg-video{max-width:100%}
+}
+
+/* iPhone SE / pantallas muy chicas (≤ 380px) */
+@media (max-width:380px){
+  .adm-stats{grid-template-columns:1fr 1fr;gap:.45rem}
+  .adm-stat-v{font-size:1.2rem}
+  .adm-tut-item-acts{gap:.3rem}
+  .adm-fb-item-acts{gap:.3rem}
+  .adm-btn{padding:.5rem .65rem;font-size:.68rem}
+}
 </style>
 </head>
 <body>
