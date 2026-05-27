@@ -623,6 +623,15 @@ body.pdp-open{overflow:hidden}
 /* Sección Juegos */
 /* Cards de productos dentro del chat (cuando el bot recomienda) — más chicas */
 .shop-page.chat-cards{margin-top:.6rem;padding:0;background:transparent}
+.chat-video{
+  position:relative;width:100%;max-width:560px;margin:.7rem 0 0;
+  border-radius:12px;overflow:hidden;background:#000;
+  aspect-ratio:16/9;border:1px solid #e5e5e5;
+}
+.chat-video iframe,.chat-video video{
+  position:absolute;inset:0;width:100%;height:100%;border:0;display:block;
+}
+@media (max-width:600px){.chat-video{max-width:100%;border-radius:10px}}
 .shop-page.chat-cards .hp-row{padding-bottom:8px}
 .shop-page.chat-cards .hp-card{flex:0 0 200px;padding:12px}
 .shop-page.chat-cards .hp-card-name{font-size:13px;min-height:32px}
@@ -2371,11 +2380,56 @@ function userMsg(text) {
 function typingRow() {
   return botRow('<div class="bubble"><div class="typing"><div class="tdot"></div><div class="tdot"></div><div class="tdot"></div></div></div>');
 }
+// Detecta URLs de video (YouTube, Vimeo, MP4) en el texto del bot y devuelve
+// el texto sin las URLs + la lista de embeds para renderizar abajo del bubble.
+function extractVideoEmbeds(text) {
+  const pattern = /(https?:\/\/(?:www\.)?(?:m\.)?(?:youtube\.com\/watch\?v=[\w-]{11}(?:[&?][^\s]*)?|youtu\.be\/[\w-]{11}(?:\?[^\s]*)?|youtube\.com\/embed\/[\w-]{11}(?:\?[^\s]*)?|youtube\.com\/shorts\/[\w-]{11}(?:\?[^\s]*)?|vimeo\.com\/(?:video\/)?\d+(?:\/[\w-]+)?))|(https?:\/\/[^\s)]+\.(?:mp4|webm|mov)(?:\?[^\s)]*)?)/gi;
+  const embeds = [];
+  const seen = new Set();
+  const cleaned = String(text || '').replace(pattern, (m) => {
+    const e = parseVideoUrl(m);
+    if (!e) return m;
+    const k = e.embedUrl || e.url;
+    if (seen.has(k)) return '';
+    seen.add(k);
+    embeds.push(e);
+    return '';
+  })
+  // Limpio espacios duplicados y signos sueltos que quedan al sacar la URL
+  .replace(/[ \t]+/g, ' ')
+  .replace(/\s+([.,;:])/g, '$1')
+  .replace(/^\s*[:\-—]+\s*$/gm, '')
+  .replace(/\n{3,}/g, '\n\n')
+  .trim();
+  return { cleanedText: cleaned, embeds };
+}
+function parseVideoUrl(url) {
+  let m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([\w-]{11})/i);
+  if (m) return { type:'youtube', id:m[1], embedUrl:`https://www.youtube.com/embed/${m[1]}`, original:url };
+  m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
+  if (m) return { type:'vimeo', id:m[1], embedUrl:`https://player.vimeo.com/video/${m[1]}`, original:url };
+  if (/\.(mp4|webm|mov)(\?|$)/i.test(url)) return { type:'mp4', url, original:url };
+  return null;
+}
+function buildVideoEmbed(e) {
+  if (e.type === 'youtube' || e.type === 'vimeo') {
+    return `<div class="chat-video"><iframe src="${e.embedUrl}" frameborder="0" allowfullscreen
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      loading="lazy"></iframe></div>`;
+  }
+  if (e.type === 'mp4') {
+    return `<div class="chat-video"><video controls preload="metadata" src="${e.url}"></video></div>`;
+  }
+  return '';
+}
+
 function finalizeRow(row, fullText) {
-  const prods = detectProducts(fullText);
+  const { cleanedText, embeds } = extractVideoEmbeds(fullText);
+  const prods = detectProducts(cleanedText);
   const col = row.querySelector('.msg-col');
   col.innerHTML = `<div class="sender">Zorbot <span class="ai-badge">IA</span></div>
-    <div class="bubble">${md(fullText)}</div>` +
+    <div class="bubble">${md(cleanedText)}</div>` +
+    embeds.map(buildVideoEmbed).join('') +
     (prods.length ? `<div class="shop-page chat-cards"><div class="hp-row">${prods.map(p=>buildHpCard(p)).join('')}</div></div>` : '');
   scrollBottom();
 }

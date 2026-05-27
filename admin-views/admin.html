@@ -574,6 +574,16 @@ body.drawer-open{overflow:hidden}
   transition:color .15s,border-color .15s,background .15s;
 }
 .adm-msg-fb:hover{color:var(--gold);border-color:var(--gold-bd-h);background:var(--gold-dim)}
+/* Video embebido en el preview chat (cuando el bot manda link de YouTube/Vimeo) */
+.adm-msg-videos{display:flex;flex-direction:column;gap:.5rem;margin-top:.5rem}
+.adm-msg-video{
+  position:relative;width:100%;max-width:360px;aspect-ratio:16/9;
+  border-radius:10px;overflow:hidden;background:#000;border:1px solid var(--border);
+}
+.adm-msg-video iframe,.adm-msg-video video{
+  position:absolute;inset:0;width:100%;height:100%;border:0;display:block;
+}
+
 /* Cards de producto en el preview chat (admin testing) */
 .adm-preview-prods{
   display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.5rem;padding-left:.2rem;
@@ -2408,11 +2418,15 @@ async function chatSend(){
       }
     }
     if (!started) bubble.textContent = '(sin respuesta)';
-    // Render Markdown básico (bold) en la burbuja final
-    bubble.innerHTML = mdInline(bubble.textContent);
+    const fullText = bubble.textContent;
+    // Extrae URLs de video (YouTube/Vimeo/MP4) del bubble y las monta como
+    // iframes responsive debajo del mensaje (igual que el chat público).
+    const { cleanedText, embeds } = previewExtractVideos(fullText);
+    bubble.innerHTML = mdInline(cleanedText);
+    if (embeds.length) attachPreviewVideos(tRow, embeds);
     // Cards de producto mencionado por el bot — para que el admin vea
     // cómo se vería en el chat real.
-    await attachPreviewProductCards(tRow, bubble.textContent);
+    await attachPreviewProductCards(tRow, cleanedText);
     // Una vez que la respuesta termina, agrego botón "Dar feedback" debajo.
     attachPreviewFeedback(tRow, bubble);
   } catch (e) {
@@ -2456,6 +2470,51 @@ function detectPreviewProducts(text, catalog){
     if (found.length >= 4) break;
   }
   return found;
+}
+
+// Detección/embed de videos en el preview chat (idéntico al chat público).
+function previewExtractVideos(text){
+  const pattern = /(https?:\/\/(?:www\.)?(?:m\.)?(?:youtube\.com\/watch\?v=[\w-]{11}(?:[&?][^\s]*)?|youtu\.be\/[\w-]{11}(?:\?[^\s]*)?|youtube\.com\/embed\/[\w-]{11}(?:\?[^\s]*)?|youtube\.com\/shorts\/[\w-]{11}(?:\?[^\s]*)?|vimeo\.com\/(?:video\/)?\d+(?:\/[\w-]+)?))|(https?:\/\/[^\s)]+\.(?:mp4|webm|mov)(?:\?[^\s)]*)?)/gi;
+  const embeds = [];
+  const seen = new Set();
+  const cleaned = String(text || '').replace(pattern, (m) => {
+    const e = previewParseVideo(m);
+    if (!e) return m;
+    const k = e.embedUrl || e.url;
+    if (seen.has(k)) return '';
+    seen.add(k);
+    embeds.push(e);
+    return '';
+  })
+  .replace(/[ \t]+/g, ' ')
+  .replace(/\s+([.,;:])/g, '$1')
+  .replace(/^\s*[:\-—]+\s*$/gm, '')
+  .replace(/\n{3,}/g, '\n\n')
+  .trim();
+  return { cleanedText: cleaned, embeds };
+}
+function previewParseVideo(url){
+  let m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([\w-]{11})/i);
+  if (m) return { type:'youtube', id:m[1], embedUrl:`https://www.youtube.com/embed/${m[1]}` };
+  m = url.match(/vimeo\.com\/(?:video\/)?(\d+)/i);
+  if (m) return { type:'vimeo', id:m[1], embedUrl:`https://player.vimeo.com/video/${m[1]}` };
+  if (/\.(mp4|webm|mov)(\?|$)/i.test(url)) return { type:'mp4', url };
+  return null;
+}
+function attachPreviewVideos(row, embeds){
+  const col = row.querySelector('.adm-msg-col');
+  if (!col) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'adm-msg-videos';
+  wrap.innerHTML = embeds.map(e => {
+    if (e.type === 'youtube' || e.type === 'vimeo') {
+      return `<div class="adm-msg-video"><iframe src="${escapeAttr(e.embedUrl)}" frameborder="0" allowfullscreen
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" loading="lazy"></iframe></div>`;
+    }
+    return `<div class="adm-msg-video"><video controls preload="metadata" src="${escapeAttr(e.url)}"></video></div>`;
+  }).join('');
+  col.appendChild(wrap);
+  document.getElementById('chatBody').scrollTop = document.getElementById('chatBody').scrollHeight;
 }
 
 async function attachPreviewProductCards(row, text){
