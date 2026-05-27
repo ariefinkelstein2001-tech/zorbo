@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Zorbo Admin — Panel interno</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root{
   --bg:#0a0a0e;
@@ -532,6 +533,77 @@ body.drawer-open{overflow:hidden}
 .adm-fb-textarea.readonly{background:var(--surface2);color:var(--muted)}
 .adm-fb-acts{display:flex;justify-content:flex-end;gap:.5rem;margin-top:.3rem}
 
+/* ── ANALÍTICA (dashboard) ── */
+#analyticsView{display:flex;flex-direction:column;gap:1rem}
+.adm-charts{
+  display:grid;grid-template-columns:repeat(2, 1fr);gap:1rem;
+}
+@media (max-width:900px){.adm-charts{grid-template-columns:1fr}}
+.adm-chart-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:1.1rem 1.15rem 1.15rem;display:flex;flex-direction:column;gap:.85rem;
+  transition:border-color .2s;
+}
+.adm-chart-card:hover{border-color:rgba(255,255,255,.10)}
+.adm-chart-wide{grid-column:1 / -1}
+.adm-chart-head{display:flex;flex-direction:column;gap:3px}
+.adm-chart-title{
+  font-family:var(--display);font-size:1rem;font-weight:700;letter-spacing:-.005em;color:var(--text);
+}
+.adm-chart-sub{font-family:var(--mono);font-size:.62rem;color:var(--dim);letter-spacing:.06em}
+.adm-chart-canvas-wrap{
+  position:relative;width:100%;height:260px;
+}
+.adm-chart-canvas-wrap.small{height:220px}
+.adm-chart-canvas-wrap canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+.adm-chart-empty{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--sans);font-style:italic;color:var(--dim);font-size:.82rem;
+  text-align:center;padding:1rem;
+}
+
+/* topics list */
+.adm-topics{display:flex;flex-direction:column;gap:.55rem;max-height:280px;overflow-y:auto}
+.adm-topic{display:flex;flex-direction:column;gap:4px}
+.adm-topic-row{display:flex;align-items:center;justify-content:space-between;gap:.6rem}
+.adm-topic-label{font-family:var(--sans);font-size:.85rem;color:var(--text);font-weight:500}
+.adm-topic-count{font-family:var(--mono);font-size:.72rem;color:var(--gold);font-weight:700}
+.adm-topic-bar{
+  height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;position:relative;
+}
+.adm-topic-bar span{
+  display:block;height:100%;
+  background:linear-gradient(90deg,var(--gold-deep),var(--gold) 60%,var(--gold-bright));
+  border-radius:3px;transition:width .4s ease;
+}
+
+/* opportunities */
+.adm-opps{display:flex;flex-direction:column;gap:.5rem;max-height:280px;overflow-y:auto}
+.adm-opp{
+  background:var(--surface2);border:1px solid var(--gold-bd);border-radius:9px;
+  padding:.6rem .8rem;display:flex;flex-direction:column;gap:4px;
+}
+.adm-opp-name{
+  font-family:var(--display);font-size:.85rem;font-weight:700;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.adm-opp-meta{
+  display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;
+  font-family:var(--mono);font-size:.7rem;color:var(--muted);
+}
+.adm-opp-pair{display:flex;align-items:center;gap:.25rem}
+.adm-opp-pair b{color:var(--text);font-weight:700}
+.adm-opp-pair.recommend b{color:var(--green)}
+.adm-opp-arrow{color:var(--dim)}
+.adm-opp-gap{
+  margin-left:auto;font-family:var(--mono);font-size:.65rem;font-weight:700;
+  color:var(--red);background:var(--red-dim);padding:.15rem .45rem;border-radius:5px;
+  letter-spacing:.04em;
+}
+
+/* range pillgroup en el header del panel */
+#analyticsView .adm-pillgroup{margin-right:.4rem}
+
 /* ── CHAT PREVIEW ── */
 .adm-chat{
   position:sticky;top:5.2rem;align-self:start;
@@ -690,6 +762,87 @@ body.drawer-open{overflow:hidden}
   <!-- Editor -->
   <section>
     <div class="adm-tabs" id="tabs"></div>
+
+    <!-- Vista de analítica (dashboard) -->
+    <div id="analyticsView" style="display:none">
+      <div class="adm-panel">
+        <div class="adm-panel-head">
+          <div>
+            <div class="adm-panel-title">Analítica</div>
+            <div class="adm-panel-meta" id="anaRangeMeta">foto general del negocio</div>
+          </div>
+          <div class="adm-actions">
+            <div class="adm-pillgroup" data-filter="range">
+              <button data-v="today" type="button">Hoy</button>
+              <button data-v="7d"    type="button">7 días</button>
+              <button data-v="30d"   class="on" type="button">30 días</button>
+              <button data-v="all"   type="button">Todo</button>
+            </div>
+            <button class="adm-btn adm-btn-ghost" id="btnReloadAna" type="button">Recargar</button>
+          </div>
+        </div>
+
+        <div class="adm-stats" id="anaStats"></div>
+      </div>
+
+      <div class="adm-charts">
+        <div class="adm-chart-card adm-chart-wide">
+          <div class="adm-chart-head">
+            <div class="adm-chart-title">Conversaciones por día</div>
+            <div class="adm-chart-sub" id="anaByDaySub">tendencia en el rango</div>
+          </div>
+          <div class="adm-chart-canvas-wrap"><canvas id="chartByDay"></canvas></div>
+        </div>
+
+        <div class="adm-chart-card">
+          <div class="adm-chart-head">
+            <div class="adm-chart-title">Marcas más consultadas</div>
+            <div class="adm-chart-sub">distribución del topBrand por conversación</div>
+          </div>
+          <div class="adm-chart-canvas-wrap small"><canvas id="chartBrands"></canvas></div>
+        </div>
+
+        <div class="adm-chart-card">
+          <div class="adm-chart-head">
+            <div class="adm-chart-title">Top productos recomendados</div>
+            <div class="adm-chart-sub">por menciones de Zorbot</div>
+          </div>
+          <div class="adm-chart-canvas-wrap"><canvas id="chartProducts"></canvas></div>
+        </div>
+
+        <div class="adm-chart-card">
+          <div class="adm-chart-head">
+            <div class="adm-chart-title">Origen del cliente</div>
+            <div class="adm-chart-sub">de qué landing llegó</div>
+          </div>
+          <div class="adm-chart-canvas-wrap small"><canvas id="chartFrom"></canvas></div>
+        </div>
+
+        <div class="adm-chart-card adm-chart-wide">
+          <div class="adm-chart-head">
+            <div class="adm-chart-title">Actividad por hora del día</div>
+            <div class="adm-chart-sub">cuándo conversa más la gente</div>
+          </div>
+          <div class="adm-chart-canvas-wrap"><canvas id="chartHourly"></canvas></div>
+        </div>
+
+        <div class="adm-chart-card">
+          <div class="adm-chart-head">
+            <div class="adm-chart-title">Temas más frecuentes</div>
+            <div class="adm-chart-sub">según primer mensaje del usuario</div>
+          </div>
+          <div class="adm-topics" id="anaTopics"></div>
+        </div>
+
+        <div class="adm-chart-card">
+          <div class="adm-chart-head">
+            <div class="adm-chart-title">Oportunidades</div>
+            <div class="adm-chart-sub">productos preguntados que Zorbot recomienda poco</div>
+          </div>
+          <div class="adm-opps" id="anaOpps"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- Vista de markdown (general/kairos/firulais/banny/mayorista) -->
     <div class="adm-panel" id="mdView">
@@ -868,13 +1021,14 @@ body.drawer-open{overflow:hidden}
 <script>
 // ─── Secciones disponibles ──────────────────────────────────────────────────
 const SECCIONES = [
+  { id:'analytics', kind:'analytics',label:'Analítica',       desc:'foto general del negocio · números y gráficos' },
+  { id:'chats',     kind:'chats',    label:'Conversaciones',  desc:'historial completo · filtros y embudo' },
+  { id:'productos', kind:'products', label:'Productos',       desc:'catálogo Shopify · notas extra para Zorbot' },
   { id:'general',   kind:'md',       label:'General',         desc:'identidad · tono · reglas globales' },
   { id:'kairos',    kind:'md',       label:'Kairos Brewing',  desc:'cervezas artesanales' },
   { id:'firulais',  kind:'md',       label:'Firulais',        desc:'cheladas craft' },
   { id:'banny',     kind:'md',       label:'Banny',           desc:'destilados · RTD' },
   { id:'mayorista', kind:'md',       label:'Mayoristas (B2B)',desc:'restaurantes · botillerías · eventos' },
-  { id:'productos', kind:'products', label:'Productos',       desc:'catálogo Shopify · notas extra para Zorbot' },
-  { id:'chats',     kind:'chats',    label:'Conversaciones',  desc:'historial completo · filtros y embudo' },
 ];
 const BRANDS = [
   { id:'all',      label:'Todos'           },
@@ -886,7 +1040,7 @@ let activeBrand = 'all';
 let productsCache = [];
 let openProductId = null;
 
-let activeSeccion = 'general';
+let activeSeccion = 'analytics';
 let originalContent = '';
 let dirty = false;
 let chatMode = 'b2c';
@@ -910,7 +1064,10 @@ async function selectSeccion(id){
   activeSeccion = id;
   renderTabs();
   const sec = SECCIONES.find(s => s.id === id);
-  if (sec.kind === 'products') {
+  if (sec.kind === 'analytics') {
+    showView('analytics');
+    await loadAnalytics();
+  } else if (sec.kind === 'products') {
     showView('products');
     await loadProductos();
   } else if (sec.kind === 'chats') {
@@ -923,9 +1080,10 @@ async function selectSeccion(id){
 }
 
 function showView(kind){
-  document.getElementById('mdView').style.display       = kind === 'md'       ? '' : 'none';
-  document.getElementById('productsView').style.display = kind === 'products' ? '' : 'none';
-  document.getElementById('chatsView').style.display    = kind === 'chats'    ? '' : 'none';
+  document.getElementById('mdView').style.display        = kind === 'md'        ? '' : 'none';
+  document.getElementById('productsView').style.display  = kind === 'products'  ? '' : 'none';
+  document.getElementById('chatsView').style.display     = kind === 'chats'     ? '' : 'none';
+  document.getElementById('analyticsView').style.display = kind === 'analytics' ? '' : 'none';
 }
 
 // ─── Parse / serialize markdown ─────────────────────────────────────────────
@@ -1762,10 +1920,298 @@ window.fetch = async (...args) => {
   return r;
 };
 
+// ─── Analítica (dashboard) ──────────────────────────────────────────────────
+let anaRange = '30d';
+const anaCharts = {}; // instancias Chart.js para destruir entre renders
+
+// Chart.js defaults dorados sobre fondo oscuro
+if (window.Chart) {
+  Chart.defaults.color = 'rgba(241,237,229,.6)';
+  Chart.defaults.borderColor = 'rgba(255,255,255,.07)';
+  Chart.defaults.font.family = "'DM Sans', sans-serif";
+  Chart.defaults.font.size = 11;
+}
+const ANA_COLORS = {
+  gold:        '#e9c46a',
+  goldBright:  '#f7e3a7',
+  goldDeep:    '#bf9b48',
+  goldDim:     'rgba(233,196,106,.18)',
+  goldFill:    'rgba(233,196,106,.10)',
+  green:       '#5cc98f',
+  red:         '#e0654f',
+  purple:      '#b6a4e6',
+  text:        '#f1ede5',
+  muted:       'rgba(241,237,229,.6)',
+  grid:        'rgba(255,255,255,.05)',
+  brand: {
+    'Kairos Brewing':'#e9c46a',
+    'Firulais':      '#e07a5f',
+    'Banny':         '#b6a4e6',
+  },
+};
+
+async function loadAnalytics(){
+  document.getElementById('anaStats').innerHTML = '<div class="adm-loading">Cargando métricas…</div>';
+  try {
+    const r = await fetch('/admin/analytics?range=' + encodeURIComponent(anaRange));
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.error || 'HTTP ' + r.status);
+    }
+    const data = await r.json();
+    renderAnalytics(data);
+  } catch (e) {
+    document.getElementById('anaStats').innerHTML =
+      `<div class="adm-empty" style="color:var(--red)">Error cargando analítica: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderAnalytics(d){
+  document.getElementById('anaRangeMeta').textContent = `rango: ${d.range.label} · ${d.totals.conversations} conversación${d.totals.conversations===1?'':'es'} en este rango`;
+  document.getElementById('anaByDaySub').textContent  = `tendencia en ${d.range.label}`;
+  renderStats(d);
+  renderChartByDay(d.byDay);
+  renderChartBrands(d.brandDistribution);
+  renderChartProducts(d.topProducts);
+  renderChartFrom(d.fromDistribution);
+  renderChartHourly(d.hourly);
+  renderTopics(d.topics);
+  renderOpportunities(d.underutilized);
+}
+
+function renderStats(d){
+  const t = d.totals;
+  const cards = [
+    { k:'CONVERSACIONES', v: t.conversations,                 sub: d.range.label },
+    { k:'INTENCIÓN DE COMPRA', v: t.intentRate + '%',        sub: `${t.withIntent} llegaron a checkout`, tone:'gold' },
+    { k:'B2C',             v: t.b2c,                          sub: 'clientes finales' },
+    { k:'B2B',             v: t.b2b,                          sub: 'mayoristas',                           tone:'purple' },
+    { k:'PROMEDIO MSG',    v: t.avgMessages,                  sub: 'mensajes por chat' },
+    { k:'PROMEDIO DURACIÓN', v: fmtDuration(t.avgDuration),   sub: 'por conversación' },
+    { k:'MARCA TOP',       v: shortBrand(t.topBrand),         sub: 'más consultada',                       tone: brandTone(t.topBrand) },
+    { k:'HOY',             v: d.counts.today,                 sub: `7d: ${d.counts.last7} · 30d: ${d.counts.last30} · total: ${d.counts.all}` },
+  ];
+  document.getElementById('anaStats').innerHTML = cards.map(c => `
+    <div class="adm-stat ${c.tone ? 'tone-'+c.tone : ''}">
+      <div class="adm-stat-k">${c.k}</div>
+      <div class="adm-stat-v">${typeof c.v === 'number' ? c.v.toLocaleString('es-CL') : escapeHtml(c.v)}</div>
+      <div class="adm-stat-s">${escapeHtml(c.sub)}</div>
+    </div>`).join('');
+}
+
+function shortBrand(b){
+  if (!b || b === '—') return '—';
+  return b.replace(/\s*Brewing$/i, '');
+}
+function brandTone(b){
+  if (!b) return null;
+  if (b.includes('Kairos'))  return 'gold';
+  if (b.includes('Banny'))   return 'purple';
+  if (b.includes('Firulais'))return null;
+  return null;
+}
+
+function destroyChart(key){
+  if (anaCharts[key]) { anaCharts[key].destroy(); delete anaCharts[key]; }
+}
+
+function emptyChartIfNoData(canvasId, arr){
+  const c = document.getElementById(canvasId);
+  if (!c) return false;
+  const parent = c.parentElement;
+  parent.querySelectorAll('.adm-chart-empty').forEach(e => e.remove());
+  c.style.display = '';
+  if (!arr || !arr.length) {
+    c.style.display = 'none';
+    const ph = document.createElement('div');
+    ph.className = 'adm-chart-empty';
+    ph.textContent = 'Aún no hay suficientes datos para este rango.';
+    parent.appendChild(ph);
+    return true;
+  }
+  return false;
+}
+
+function renderChartByDay(byDay){
+  destroyChart('byDay');
+  if (emptyChartIfNoData('chartByDay', byDay)) return;
+  const labels = byDay.map(d => d.date.slice(5)); // MM-DD
+  const totals = byDay.map(d => d.total);
+  const intent = byDay.map(d => d.withIntent);
+  const ctx = document.getElementById('chartByDay').getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,260);
+  grad.addColorStop(0, 'rgba(233,196,106,.35)');
+  grad.addColorStop(1, 'rgba(233,196,106,0)');
+  anaCharts.byDay = new Chart(ctx, {
+    type:'line',
+    data: { labels, datasets: [
+      { label:'Total',            data: totals, borderColor: ANA_COLORS.gold,  backgroundColor: grad,
+        tension:.35, fill:true, pointRadius:2.5, pointBackgroundColor: ANA_COLORS.gold, borderWidth:2 },
+      { label:'Con intención',    data: intent, borderColor: ANA_COLORS.green, backgroundColor:'transparent',
+        tension:.35, fill:false, pointRadius:2.5, pointBackgroundColor: ANA_COLORS.green, borderDash:[4,4], borderWidth:1.5 },
+    ]},
+    options: chartOptions({ legend:true }),
+  });
+}
+
+function renderChartBrands(dist){
+  destroyChart('brands');
+  if (emptyChartIfNoData('chartBrands', dist.filter(x=>x.count>0))) return;
+  const ctx = document.getElementById('chartBrands').getContext('2d');
+  anaCharts.brands = new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels: dist.map(x => x.brand),
+      datasets:[{
+        data: dist.map(x => x.count),
+        backgroundColor: dist.map(x => ANA_COLORS.brand[x.brand] || ANA_COLORS.gold),
+        borderColor:'#121219', borderWidth:2,
+      }],
+    },
+    options:{
+      cutout:'62%', responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ position:'bottom', labels:{ boxWidth:10, padding:14, font:{ family:"'DM Sans'", size:11 } } },
+        tooltip:{ ...tooltipBase(), callbacks:{ label: ctx => `${ctx.label}: ${ctx.parsed} (${dist[ctx.dataIndex].pct}%)` } },
+      },
+    },
+  });
+}
+
+function renderChartProducts(top){
+  destroyChart('products');
+  if (emptyChartIfNoData('chartProducts', top)) return;
+  const ctx = document.getElementById('chartProducts').getContext('2d');
+  anaCharts.products = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: top.map(x => x.name),
+      datasets:[{
+        data: top.map(x => x.count),
+        backgroundColor: ANA_COLORS.goldDim,
+        borderColor: ANA_COLORS.gold,
+        borderWidth:1, borderRadius:5,
+      }],
+    },
+    options: chartOptions({ horizontal:true, legend:false }),
+  });
+}
+
+function renderChartFrom(dist){
+  destroyChart('from');
+  if (emptyChartIfNoData('chartFrom', dist)) return;
+  const ctx = document.getElementById('chartFrom').getContext('2d');
+  const labels = dist.map(x => labelFrom(x.from));
+  anaCharts.from = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{
+      data: dist.map(x => x.count),
+      backgroundColor: dist.map(x => {
+        if (x.from === 'firulais') return ANA_COLORS.red;
+        if (x.from === 'banny')    return ANA_COLORS.purple;
+        return ANA_COLORS.gold;
+      }),
+      borderRadius:5, borderSkipped:false,
+    }] },
+    options: chartOptions({ horizontal:true, legend:false }),
+  });
+}
+function labelFrom(k){
+  if (k === 'firulais') return 'Firulais';
+  if (k === 'banny')    return 'Banny';
+  return 'Directo (Zorbot)';
+}
+
+function renderChartHourly(hourly){
+  destroyChart('hourly');
+  if (emptyChartIfNoData('chartHourly', hourly.filter(h=>h.count>0))) return;
+  const ctx = document.getElementById('chartHourly').getContext('2d');
+  anaCharts.hourly = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: hourly.map(h => String(h.hour).padStart(2,'0') + 'h'),
+      datasets:[{
+        data: hourly.map(h => h.count),
+        backgroundColor: hourly.map(h => h.count ? ANA_COLORS.goldDim : 'rgba(255,255,255,.04)'),
+        borderColor: ANA_COLORS.gold, borderWidth:1, borderRadius:4,
+      }],
+    },
+    options: chartOptions({ legend:false }),
+  });
+}
+
+function renderTopics(topics){
+  const wrap = document.getElementById('anaTopics');
+  if (!topics || !topics.length) {
+    wrap.innerHTML = '<div class="adm-empty">Aún no hay suficientes datos para este rango.</div>';
+    return;
+  }
+  const max = topics[0].count;
+  wrap.innerHTML = topics.map(t => `
+    <div class="adm-topic" title="${escapeAttr((t.samples || []).join('\n'))}">
+      <div class="adm-topic-row">
+        <span class="adm-topic-label">${escapeHtml(t.label)}</span>
+        <span class="adm-topic-count">${t.count}</span>
+      </div>
+      <div class="adm-topic-bar"><span style="width:${Math.round(t.count/max*100)}%"></span></div>
+    </div>`).join('');
+}
+
+function renderOpportunities(opps){
+  const wrap = document.getElementById('anaOpps');
+  if (!opps || !opps.length) {
+    wrap.innerHTML = '<div class="adm-empty">No detectamos brechas aún — Zorbot está recomendando lo que la gente pregunta.</div>';
+    return;
+  }
+  wrap.innerHTML = opps.map(o => `
+    <div class="adm-opp">
+      <div class="adm-opp-name">${escapeHtml(o.name)}</div>
+      <div class="adm-opp-meta">
+        <span class="adm-opp-pair"><b>${o.asked}</b> preguntas</span>
+        <span class="adm-opp-arrow">→</span>
+        <span class="adm-opp-pair recommend"><b>${o.recommended}</b> recomendaciones</span>
+        <span class="adm-opp-gap">brecha: +${o.gap}</span>
+      </div>
+    </div>`).join('');
+}
+
+function chartOptions({ horizontal=false, legend=false } = {}){
+  return {
+    indexAxis: horizontal ? 'y' : 'x',
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend: legend ? { display:true, labels:{ boxWidth:10, padding:12, font:{ size:11 } } } : { display:false },
+      tooltip: tooltipBase(),
+    },
+    scales:{
+      x:{ grid:{ color: ANA_COLORS.grid, drawBorder:false }, ticks:{ color: ANA_COLORS.muted } },
+      y:{ grid:{ color: ANA_COLORS.grid, drawBorder:false }, ticks:{ color: ANA_COLORS.muted, precision:0 } },
+    },
+  };
+}
+function tooltipBase(){
+  return {
+    backgroundColor:'#121219', borderColor:'rgba(233,196,106,.4)', borderWidth:1,
+    titleColor: ANA_COLORS.gold, bodyColor: ANA_COLORS.text,
+    titleFont:{ family:"'Syne'", weight:'700', size:12 },
+    bodyFont:{ size:12 }, padding:10, cornerRadius:8, displayColors:false,
+  };
+}
+
+// Bind range pills
+document.querySelectorAll('.adm-pillgroup[data-filter="range"] button').forEach(b => {
+  b.onclick = () => {
+    anaRange = b.dataset.v;
+    document.querySelectorAll('.adm-pillgroup[data-filter="range"] button').forEach(x => x.classList.toggle('on', x === b));
+    loadAnalytics();
+  };
+});
+document.getElementById('btnReloadAna').onclick = loadAnalytics;
+
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();
 renderTabs();
-loadSeccion();
+selectSeccion(activeSeccion);
 </script>
 </body>
 </html>

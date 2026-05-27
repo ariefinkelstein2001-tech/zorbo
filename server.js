@@ -1162,6 +1162,204 @@ app.delete('/admin/feedback/:id', requireAdmin, (req, res) => {
   res.json({ ok: true, total: all.length });
 });
 
+// ─── Analítica (dashboard interno) ──────────────────────────────────────────
+// Lee logs/conversations.json + cache Shopify y devuelve métricas para el tab
+// "Analítica" del panel. Todo calculado on-the-fly — el dataset es chico.
+
+function rangeFor(rangeId){
+  const now = Date.now();
+  const dayStart = new Date(); dayStart.setHours(0,0,0,0);
+  if (rangeId === 'today') return { id:'today', label:'hoy',                 from: dayStart.getTime(), to: now };
+  if (rangeId === '7d')    return { id:'7d',    label:'últimos 7 días',      from: now - 7*86400e3,  to: now };
+  if (rangeId === '30d')   return { id:'30d',   label:'últimos 30 días',     from: now - 30*86400e3, to: now };
+  return                          { id:'all',   label:'todo el histórico',   from: 0, to: now };
+}
+
+const ANALYTICS_TOPICS = [
+  { id:'asado',     label:'asado / parrilla',   rx: /\b(asado|parrilla|parril|costill|carnes?)\b/i },
+  { id:'regalo',    label:'regalo',             rx: /\b(regalo|present|cumple|aniversario)\b/i },
+  { id:'verano',    label:'verano / patio',     rx: /\b(verano|piscina|playa|patio|terraza)\b/i },
+  { id:'previa',    label:'previa / carrete',   rx: /\b(previa|carrete|juntad?a|reuni[oó]n)\b/i },
+  { id:'sin_alc',   label:'sin alcohol',        rx: /sin\s+alcoh|0[\s.]*0|cero\s+alcoh/i },
+  { id:'precio',    label:'precio',             rx: /\b(precio|cu[aá]nto\s+(cuesta|sale|vale|es)|valor|barat[oa]|car[oa])\b/i },
+  { id:'pack',      label:'packs / cajas',      rx: /\b(pack|6[\s-]*pack|12[\s-]*pack|24[\s-]*pack|caja|cajas)\b/i },
+  { id:'maridaje',  label:'maridaje / con qué', rx: /\b(marida|acompa[ñn]|combina|va\s+bien|que\s+tomar\s+con)/i },
+  { id:'envio',     label:'envío / despacho',   rx: /\b(env[ií]o|despacho|domicilio|retir[oa]|llega(r|me|n)?)\b/i },
+  { id:'recomenda', label:'recomendación',      rx: /\b(recomien|recomenda|sugier|sugerencia|qu[eé]\s+me\s+recomienda)/i },
+  { id:'cerveza',   label:'cervezas en general',rx: /\b(cerveza|cheve|chela|chelita|chop|schop)\b/i },
+  { id:'chelada',   label:'cheladas',           rx: /\b(chelada|cheladas)\b/i },
+  { id:'gin',       label:'gin / cócteles',     rx: /\b(gin|tonic|c[oó]ctel|coctel|mojito|negroni|c[ií]tric)\b/i },
+  { id:'whisky',    label:'whisky',             rx: /\b(whisk(e)?y|whisky|bourbon)\b/i },
+  { id:'mayorista', label:'mayorista / B2B',    rx: /\b(mayorista|por\s+volumen|por\s+mayor|botiller[ií]a|restaurant?e|bar\s+|local|barril)\b/i },
+];
+
+app.get('/admin/analytics', requireAdmin, async (req, res) => {
+  try {
+    const r = rangeFor(String(req.query.range || '30d'));
+    const all = Array.isArray(readLog(CONV_LOG)) ? readLog(CONV_LOG) : [];
+
+    const tOf = c => new Date(c.endTime || c.startTime || 0).getTime();
+    const subset = all.filter(c => {
+      const t = tOf(c);
+      return t >= r.from && t <= r.to;
+    });
+
+    // Globales (no afectados por rango — sirven para los chips de cabecera)
+    const now = Date.now();
+    const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
+    const counts = {
+      all:    all.length,
+      today:  all.filter(c => tOf(c) >= startOfToday.getTime()).length,
+      last7:  all.filter(c => now - tOf(c) <= 7*86400e3).length,
+      last30: all.filter(c => now - tOf(c) <= 30*86400e3).length,
+    };
+
+    const withIntent   = subset.filter(c => c.purchaseIntent).length;
+    const withProducts = subset.filter(c => Array.isArray(c.recommendedProducts) && c.recommendedProducts.length).length;
+    const b2c = subset.filter(c => !c.isB2B).length;
+    const b2b = subset.filter(c =>  c.isB2B).length;
+    const intentRate = subset.length ? Math.round(withIntent / subset.length * 1000) / 10 : 0;
+    const totalMessages = subset.reduce((s,c) => s + (Array.isArray(c.messages) ? c.messages.length : 0), 0);
+    const avgMessages = subset.length ? Math.round(totalMessages / subset.length * 10) / 10 : 0;
+    const totalDuration = subset.reduce((s,c) => s + (Number(c.duration) || 0), 0);
+    const avgDuration = subset.length ? Math.round(totalDuration / subset.length) : 0;
+
+    // Distribución por marca (topBrand de cada conversación)
+    const brandCounts = { 'Kairos Brewing':0, 'Firulais':0, 'Banny':0 };
+    for (const c of subset) {
+      const b = c.topBrand;
+      if (b && brandCounts[b] != null) brandCounts[b]++;
+    }
+    const brandTotal = Object.values(brandCounts).reduce((a,b)=>a+b,0);
+    const brandDistribution = Object.entries(brandCounts).map(([brand,count]) => ({
+      brand, count, pct: brandTotal ? Math.round(count/brandTotal*1000)/10 : 0
+    })).sort((a,b)=>b.count-a.count);
+    const topBrand = brandDistribution[0]?.count ? brandDistribution[0].brand : '—';
+
+    // Distribución por origen (from)
+    const fromMap = {};
+    for (const c of subset) {
+      const k = c.from || 'zorbot';
+      fromMap[k] = (fromMap[k] || 0) + 1;
+    }
+    const fromDistribution = Object.entries(fromMap)
+      .map(([from,count]) => ({ from, count }))
+      .sort((a,b) => b.count - a.count);
+
+    // Serie diaria: cubre todo el rango con días vacíos = 0
+    const days = Math.min(120, Math.max(1, Math.ceil((r.to - r.from) / 86400e3)));
+    const byDayMap = new Map();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(r.to - i * 86400e3);
+      d.setHours(0,0,0,0);
+      byDayMap.set(d.toISOString().slice(0,10), { date: d.toISOString().slice(0,10), total: 0, withIntent: 0 });
+    }
+    for (const c of subset) {
+      const t = new Date(tOf(c));
+      if (!isFinite(t)) continue;
+      const key = t.toISOString().slice(0,10);
+      if (!byDayMap.has(key)) byDayMap.set(key, { date: key, total: 0, withIntent: 0 });
+      const e = byDayMap.get(key);
+      e.total++;
+      if (c.purchaseIntent) e.withIntent++;
+    }
+    const byDay = [...byDayMap.values()].sort((a,b) => a.date.localeCompare(b.date));
+
+    // Top productos recomendados por Zorbot
+    const prodCounts = new Map();
+    for (const c of subset) {
+      for (const p of (c.recommendedProducts || [])) {
+        if (!p) continue;
+        prodCounts.set(p, (prodCounts.get(p) || 0) + 1);
+      }
+    }
+    const topProducts = [...prodCounts.entries()]
+      .map(([name,count]) => ({ name, count }))
+      .sort((a,b) => b.count - a.count)
+      .slice(0, 10);
+
+    // Distribución por hora / día de la semana (en el rango)
+    const hourly  = Array.from({length:24}, (_,h) => ({ hour: h,  count: 0 }));
+    const weekday = Array.from({length:7},  (_,d) => ({ day:  d,  count: 0 }));
+    for (const c of subset) {
+      const t = new Date(c.startTime || c.endTime || 0);
+      if (!isFinite(t)) continue;
+      hourly[t.getHours()].count++;
+      weekday[t.getDay()].count++;
+    }
+
+    // Topics: matchea regex sobre primer mensaje del usuario
+    const topicMap = ANALYTICS_TOPICS.map(t => ({ ...t, count: 0, samples: [] }));
+    for (const c of subset) {
+      const firstUser = (c.messages || []).find(m => m.role === 'user');
+      const txt = String(firstUser?.content || '');
+      if (!txt) continue;
+      for (const t of topicMap) {
+        if (t.rx.test(txt)) {
+          t.count++;
+          if (t.samples.length < 3) t.samples.push(txt.replace(/\s+/g,' ').trim().slice(0,140));
+        }
+      }
+    }
+    const topics = topicMap
+      .filter(t => t.count > 0)
+      .map(({ id, label, count, samples }) => ({ id, label, count, samples }))
+      .sort((a,b) => b.count - a.count);
+
+    // Oportunidades: productos preguntados por usuarios pero poco recomendados
+    let underutilized = [];
+    try {
+      const cache = await loadProductsCache(false);
+      if (Array.isArray(cache)) {
+        const products = cache
+          .map(p => ({ id: String(p.id), title: String(p.title || '').trim() }))
+          .filter(p => p.title.length > 3);
+        const askMap = new Map();
+        for (const c of subset) {
+          for (const m of (c.messages || [])) {
+            if (m.role !== 'user') continue;
+            const txt = String(m.content || '').toLowerCase();
+            if (!txt) continue;
+            for (const p of products) {
+              const needle = p.title.toLowerCase();
+              if (needle.length > 3 && txt.includes(needle)) {
+                askMap.set(p.title, (askMap.get(p.title) || 0) + 1);
+              }
+            }
+          }
+        }
+        underutilized = [...askMap.entries()]
+          .map(([name, asked]) => {
+            const rec = prodCounts.get(name) || 0;
+            return { name, asked, recommended: rec, gap: asked - rec };
+          })
+          .filter(x => x.asked >= 2 && x.gap >= 1)
+          .sort((a,b) => b.gap - a.gap)
+          .slice(0, 8);
+      }
+    } catch (e) { /* opcional, ignorar */ }
+
+    res.json({
+      range: r,
+      counts,
+      totals: {
+        conversations: subset.length,
+        withIntent, withProducts, b2c, b2b,
+        intentRate, avgMessages, avgDuration, topBrand,
+      },
+      byDay,
+      topProducts,
+      brandDistribution,
+      fromDistribution,
+      hourly, weekday,
+      topics,
+      underutilized,
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Error generando analítica: ' + e.message });
+  }
+});
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 initLogs();
