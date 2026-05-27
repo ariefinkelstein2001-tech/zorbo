@@ -331,6 +331,146 @@ body{
 .adm-prod-acts{display:flex;gap:.5rem;justify-content:flex-end;margin-top:.3rem}
 .adm-prod-meta{font-family:var(--mono);font-size:.65rem;color:var(--dim);margin-top:.1rem}
 
+/* ── CONVERSACIONES (embudo) ── */
+.adm-stats{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;
+  margin-bottom:1.1rem;
+}
+.adm-stat{
+  background:var(--surface2);border:1px solid var(--border);border-radius:11px;
+  padding:.75rem .9rem;display:flex;flex-direction:column;gap:2px;
+  transition:border-color .2s;
+}
+.adm-stat:hover{border-color:var(--gold-bd-h)}
+.adm-stat-k{font-family:var(--mono);font-size:.6rem;letter-spacing:.14em;color:var(--dim)}
+.adm-stat-v{font-family:var(--display);font-size:1.7rem;font-weight:800;color:var(--text);line-height:1;letter-spacing:-.01em}
+.adm-stat-s{font-size:.66rem;color:var(--muted);font-weight:500}
+.adm-stat.tone-gold .adm-stat-v{
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 60%,#fff8e6);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.adm-stat.tone-gold{border-color:var(--gold-bd)}
+.adm-stat.tone-green{border-color:rgba(92,201,143,.25)}
+.adm-stat.tone-green .adm-stat-v{color:var(--green)}
+.adm-stat.tone-purple{border-color:rgba(182,164,230,.25)}
+.adm-stat.tone-purple .adm-stat-v{color:#b6a4e6}
+
+.adm-filters{
+  display:flex;flex-wrap:wrap;gap:.7rem;align-items:flex-end;
+  background:var(--surface2);border:1px solid var(--border);border-radius:11px;
+  padding:.85rem;margin-bottom:.9rem;
+}
+.adm-filter{display:flex;flex-direction:column;gap:4px;min-width:120px}
+.adm-filter.grow{flex:1;min-width:180px}
+.adm-filter label{font-family:var(--sans);font-size:.6rem;font-weight:700;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+.adm-select, .adm-input{
+  background:var(--surface);color:var(--text);
+  border:1px solid var(--border);border-radius:9px;
+  padding:.5rem .7rem;font-family:var(--sans);font-size:.82rem;
+  outline:none;transition:border-color .15s;
+}
+.adm-input:focus, .adm-select:focus{border-color:var(--gold-bd-h)}
+.adm-select{cursor:pointer}
+.adm-pillgroup{display:inline-flex;gap:3px;background:var(--surface3);padding:3px;border-radius:9px}
+.adm-pillgroup button{
+  background:transparent;border:none;color:var(--muted);cursor:pointer;
+  font-family:var(--sans);font-size:.7rem;font-weight:700;letter-spacing:.06em;
+  padding:.35rem .7rem;border-radius:6px;transition:all .15s;
+}
+.adm-pillgroup button.on{
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 60%,var(--gold-deep));
+  color:#1a1408;
+}
+
+.adm-chats-count{
+  font-family:var(--mono);font-size:.7rem;color:var(--dim);
+  padding:.2rem .15rem .65rem;letter-spacing:.04em;
+}
+.adm-chats{display:flex;flex-direction:column;gap:.6rem}
+
+.adm-chat-card{
+  background:var(--surface2);border:1px solid var(--border);border-radius:11px;
+  padding:.8rem 1rem;cursor:pointer;display:flex;flex-direction:column;gap:.5rem;
+  transition:border-color .18s,transform .12s,background .18s;
+}
+.adm-chat-card:hover{border-color:var(--gold-bd-h);background:#1c1c27;transform:translateY(-1px)}
+.adm-chat-card-top{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap}
+.adm-chat-tags{display:flex;flex-wrap:wrap;gap:.3rem;align-items:center}
+.adm-chat-tag{
+  font-family:var(--mono);font-size:.58rem;font-weight:700;letter-spacing:.08em;
+  padding:.16rem .45rem;border-radius:5px;text-transform:uppercase;
+  border:1px solid transparent;
+}
+.adm-chat-tag.b2c{background:var(--gold-dim);color:var(--gold);border-color:var(--gold-bd)}
+.adm-chat-tag.mayo{background:rgba(182,164,230,.14);color:#b6a4e6;border-color:rgba(182,164,230,.28)}
+.adm-chat-tag.intent{background:var(--green-dim);color:var(--green);border-color:rgba(92,201,143,.32)}
+.adm-chat-tag.brand{background:var(--surface3);color:var(--text);border-color:var(--border)}
+.adm-chat-tag.from{background:transparent;color:var(--dim);border-color:var(--border);font-weight:500;letter-spacing:.04em;text-transform:none}
+.adm-chat-when{font-family:var(--mono);font-size:.7rem;color:var(--muted);flex-shrink:0}
+
+.adm-chat-preview{
+  font-family:var(--sans);font-size:.86rem;line-height:1.5;color:var(--text);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;text-overflow:ellipsis;
+}
+
+.adm-chat-card-bottom{display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap}
+.adm-chat-prods{display:flex;flex-wrap:wrap;gap:.3rem}
+.adm-chat-prod{
+  font-family:var(--mono);font-size:.62rem;color:var(--gold);
+  background:var(--gold-dim);border:1px solid var(--gold-bd);
+  padding:.18rem .45rem;border-radius:4px;letter-spacing:.02em;
+}
+.adm-chat-prod.more{background:var(--surface3);color:var(--dim);border-color:var(--border)}
+.adm-chat-meta{font-family:var(--mono);font-size:.65rem;color:var(--dim);display:flex;gap:.4rem}
+
+/* ── DRAWER detalle ── */
+.adm-drawer{
+  position:fixed;inset:0;z-index:60;display:none;
+}
+.adm-drawer.open{display:block}
+body.drawer-open{overflow:hidden}
+.adm-drawer-bg{
+  position:absolute;inset:0;background:rgba(5,5,8,.7);backdrop-filter:blur(6px);
+  animation:bgIn .25s ease;
+}
+@keyframes bgIn{from{opacity:0}to{opacity:1}}
+.adm-drawer-panel{
+  position:absolute;top:0;right:0;bottom:0;width:100%;max-width:640px;
+  background:var(--surface);border-left:1px solid var(--gold-bd);
+  display:flex;flex-direction:column;
+  box-shadow:-20px 0 60px rgba(0,0,0,.5);
+  animation:slideIn .3s cubic-bezier(.16,1,.3,1);
+}
+@keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+.adm-drawer-head{
+  padding:1.1rem 1.2rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:flex-start;justify-content:space-between;gap:.8rem;
+  background:var(--surface);
+}
+.adm-drawer-title{
+  font-family:var(--display);font-size:1.15rem;font-weight:800;letter-spacing:-.005em;line-height:1.2;
+}
+.adm-drawer-meta{font-family:var(--mono);font-size:.65rem;color:var(--dim);margin-top:4px;line-height:1.4;word-break:break-all}
+.adm-drawer-x{
+  background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+  width:34px;height:34px;border-radius:9px;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:1rem;
+  transition:color .15s,border-color .15s,background .15s;
+}
+.adm-drawer-x:hover{color:var(--gold);border-color:var(--gold-bd-h);background:var(--gold-dim)}
+.adm-drawer-tags{
+  padding:.7rem 1.2rem;border-bottom:1px solid var(--border);
+  display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;
+}
+.adm-drawer-body{
+  flex:1;overflow-y:auto;padding:1.1rem 1.2rem;
+  display:flex;flex-direction:column;gap:.85rem;
+}
+@media (max-width:600px){
+  .adm-drawer-panel{max-width:100%}
+}
+
 /* ── CHAT PREVIEW ── */
 .adm-chat{
   position:sticky;top:5.2rem;align-self:start;
@@ -525,7 +665,82 @@ body{
         <div class="adm-loading">Cargando productos…</div>
       </div>
     </div>
+
+    <!-- Vista de conversaciones (embudo) -->
+    <div class="adm-panel" id="chatsView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Conversaciones</div>
+          <div class="adm-panel-meta">historial completo de Zorbot · filtros y embudo de venta</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="btnReloadChats" type="button">Recargar</button>
+        </div>
+      </div>
+      <div class="adm-stats" id="chatStats"></div>
+      <div class="adm-filters">
+        <div class="adm-filter">
+          <label>Marca</label>
+          <select class="adm-select" id="fBrand">
+            <option value="all">Todas</option>
+            <option value="kairos">Kairos</option>
+            <option value="firulais">Firulais</option>
+            <option value="banny">Banny</option>
+          </select>
+        </div>
+        <div class="adm-filter">
+          <label>Modo</label>
+          <div class="adm-pillgroup" data-filter="mode">
+            <button data-v="all" class="on" type="button">Todos</button>
+            <button data-v="b2c"        type="button">B2C</button>
+            <button data-v="b2b"        type="button">B2B</button>
+          </div>
+        </div>
+        <div class="adm-filter">
+          <label>Intención de compra</label>
+          <div class="adm-pillgroup" data-filter="intent">
+            <button data-v="all" class="on" type="button">Todas</button>
+            <button data-v="yes"        type="button">Sí</button>
+          </div>
+        </div>
+        <div class="adm-filter">
+          <label>Desde</label>
+          <input class="adm-input" type="date" id="fFrom">
+        </div>
+        <div class="adm-filter">
+          <label>Hasta</label>
+          <input class="adm-input" type="date" id="fTo">
+        </div>
+        <div class="adm-filter grow">
+          <label>Buscar texto o producto</label>
+          <input class="adm-input" type="search" id="fQ" placeholder="ej. asado, gin, Pepita…">
+        </div>
+        <button type="button" class="adm-btn adm-btn-ghost" id="btnClearFilters">Limpiar</button>
+      </div>
+      <div class="adm-chats-count" id="chatsCount"></div>
+      <div class="adm-chats" id="chatsList">
+        <div class="adm-loading">Cargando conversaciones…</div>
+      </div>
+    </div>
   </section>
+
+  <!-- Drawer de detalle de conversación -->
+  <div class="adm-drawer" id="chatDrawer" aria-hidden="true">
+    <div class="adm-drawer-bg" data-act="close-drawer"></div>
+    <div class="adm-drawer-panel">
+      <div class="adm-drawer-head">
+        <div>
+          <div class="adm-drawer-title" id="drawerTitle">Conversación</div>
+          <div class="adm-drawer-meta"  id="drawerMeta">—</div>
+        </div>
+        <button type="button" class="adm-drawer-x" data-act="close-drawer" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="adm-drawer-tags" id="drawerTags"></div>
+      <div class="adm-drawer-body" id="drawerBody">
+        <div class="adm-loading">Cargando…</div>
+      </div>
+    </div>
+  </div>
 
   <!-- Mini chat -->
   <aside class="adm-chat">
@@ -567,6 +782,7 @@ const SECCIONES = [
   { id:'banny',     kind:'md',       label:'Banny',           desc:'destilados · RTD' },
   { id:'mayorista', kind:'md',       label:'Mayoristas (B2B)',desc:'restaurantes · botillerías · eventos' },
   { id:'productos', kind:'products', label:'Productos',       desc:'catálogo Shopify · notas extra para Zorbot' },
+  { id:'chats',     kind:'chats',    label:'Conversaciones',  desc:'historial completo · filtros y embudo' },
 ];
 const BRANDS = [
   { id:'all',      label:'Todos'           },
@@ -603,21 +819,21 @@ async function selectSeccion(id){
   renderTabs();
   const sec = SECCIONES.find(s => s.id === id);
   if (sec.kind === 'products') {
-    showProductsView();
+    showView('products');
     await loadProductos();
+  } else if (sec.kind === 'chats') {
+    showView('chats');
+    await loadConversations();
   } else {
-    showMdView();
+    showView('md');
     await loadSeccion();
   }
 }
 
-function showMdView(){
-  document.getElementById('mdView').style.display = '';
-  document.getElementById('productsView').style.display = 'none';
-}
-function showProductsView(){
-  document.getElementById('mdView').style.display = 'none';
-  document.getElementById('productsView').style.display = '';
+function showView(kind){
+  document.getElementById('mdView').style.display       = kind === 'md'       ? '' : 'none';
+  document.getElementById('productsView').style.display = kind === 'products' ? '' : 'none';
+  document.getElementById('chatsView').style.display    = kind === 'chats'    ? '' : 'none';
 }
 
 // ─── Parse / serialize markdown ─────────────────────────────────────────────
@@ -942,6 +1158,249 @@ function bindProductCards(){
 }
 
 document.getElementById('btnReloadProd').onclick = () => { openProductId = null; loadProductos(); };
+
+// ─── Conversaciones (embudo) ────────────────────────────────────────────────
+let chatFilters = { brand:'all', mode:'all', intent:'all', from:'', to:'', q:'' };
+let chatsCache = [];
+let chatsStats = null;
+let chatFilterTmr = null;
+
+function chatsQuery(){
+  const p = new URLSearchParams();
+  if (chatFilters.brand  && chatFilters.brand  !== 'all') p.set('brand',  chatFilters.brand);
+  if (chatFilters.mode   && chatFilters.mode   !== 'all') p.set('mode',   chatFilters.mode);
+  if (chatFilters.intent && chatFilters.intent !== 'all') p.set('intent', chatFilters.intent);
+  if (chatFilters.from) p.set('from', chatFilters.from);
+  if (chatFilters.to)   p.set('to',   chatFilters.to);
+  if (chatFilters.q)    p.set('q',    chatFilters.q);
+  return p.toString();
+}
+
+async function loadConversations(){
+  const list = document.getElementById('chatsList');
+  list.innerHTML = '<div class="adm-loading">Cargando conversaciones…</div>';
+  document.getElementById('chatsCount').textContent = '';
+  try {
+    const r = await fetch('/admin/conversations?' + chatsQuery());
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.error || 'HTTP ' + r.status);
+    }
+    const data = await r.json();
+    chatsCache  = data.items || [];
+    chatsStats  = data.stats || {};
+    renderChatStats();
+    renderChatsList(data.total);
+  } catch (e) {
+    list.innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderChatStats(){
+  const s = chatsStats || {};
+  const wrap = document.getElementById('chatStats');
+  const cards = [
+    { k:'TOTAL',           v: s.total || 0,        sub:'conversaciones registradas' },
+    { k:'CON INTENCIÓN',   v: s.withIntent || 0,   sub:'pasaron a checkout',          tone:'gold' },
+    { k:'CON PRODUCTOS',   v: s.withProducts || 0, sub:'Zorbot recomendó algo' },
+    { k:'B2C',             v: s.b2c || 0,          sub:'clientes finales' },
+    { k:'B2B',             v: s.b2b || 0,          sub:'mayoristas',                  tone:'purple' },
+    { k:'ÚLTIMAS 24H',     v: s.last24h || 0,      sub:'actividad reciente',          tone:'green' },
+  ];
+  wrap.innerHTML = cards.map(c => `
+    <div class="adm-stat ${c.tone ? 'tone-'+c.tone : ''}">
+      <div class="adm-stat-k">${c.k}</div>
+      <div class="adm-stat-v">${c.v.toLocaleString('es-CL')}</div>
+      <div class="adm-stat-s">${c.sub}</div>
+    </div>`).join('');
+}
+
+function renderChatsList(filteredTotal){
+  const list = document.getElementById('chatsList');
+  const cnt = document.getElementById('chatsCount');
+  if (!chatsCache.length) {
+    list.innerHTML = '<div class="adm-empty">No hay conversaciones que coincidan con los filtros.</div>';
+    cnt.textContent = '0 resultados';
+    return;
+  }
+  cnt.textContent = (filteredTotal ?? chatsCache.length) + ' resultado' + (filteredTotal === 1 ? '' : 's');
+  list.innerHTML = chatsCache.map(c => chatCardHtml(c)).join('');
+  list.querySelectorAll('.adm-chat-card').forEach(el => {
+    el.onclick = () => openConversation(el.dataset.id);
+  });
+}
+
+function chatCardHtml(c){
+  const dur = fmtDuration(c.duration);
+  const when = fmtRelative(c.lastActivity || c.startTime);
+  const brand = c.topBrand || '—';
+  const fromLabel = fromLabelFor(c.from);
+  const intent = c.purchaseIntent
+    ? `<span class="adm-chat-tag intent">CHECKOUT</span>` : '';
+  const mode = c.isB2B
+    ? `<span class="adm-chat-tag mayo">B2B</span>`
+    : `<span class="adm-chat-tag b2c">B2C</span>`;
+  const products = (c.products || []).slice(0, 3).map(p =>
+    `<span class="adm-chat-prod">${escapeHtml(p)}</span>`).join('');
+  const extraProd = (c.products || []).length > 3
+    ? `<span class="adm-chat-prod more">+${c.products.length - 3}</span>` : '';
+  const preview = escapeHtml(c.firstUserMsg || '(sin mensaje del usuario)');
+  return `
+    <article class="adm-chat-card" data-id="${escapeAttr(c.sessionId)}">
+      <div class="adm-chat-card-top">
+        <div class="adm-chat-tags">
+          ${mode}${intent}
+          <span class="adm-chat-tag brand">${escapeHtml(brand)}</span>
+          <span class="adm-chat-tag from">${escapeHtml(fromLabel)}</span>
+        </div>
+        <div class="adm-chat-when" title="${escapeAttr(c.lastActivity || '')}">${when}</div>
+      </div>
+      <div class="adm-chat-preview">${preview}</div>
+      <div class="adm-chat-card-bottom">
+        <div class="adm-chat-prods">${products}${extraProd || ''}</div>
+        <div class="adm-chat-meta">
+          <span>${c.msgCount} msg</span>
+          <span>·</span>
+          <span>${dur}</span>
+        </div>
+      </div>
+    </article>`;
+}
+
+function fromLabelFor(k){
+  if (k === 'firulais') return 'desde Firulais';
+  if (k === 'banny')    return 'desde Banny';
+  return 'desde Zorbot';
+}
+function fmtDuration(sec){
+  sec = Number(sec) || 0;
+  if (sec < 60) return sec + 's';
+  const m = Math.floor(sec/60), s = sec % 60;
+  if (m < 60) return `${m}m ${s}s`;
+  const h = Math.floor(m/60), mm = m % 60;
+  return `${h}h ${mm}m`;
+}
+function fmtRelative(iso){
+  if (!iso) return '—';
+  const t = new Date(iso).getTime();
+  if (!t) return '—';
+  const diff = (Date.now() - t) / 1000;
+  if (diff < 60)   return 'hace ' + Math.round(diff) + 's';
+  if (diff < 3600) return 'hace ' + Math.round(diff/60) + ' min';
+  if (diff < 86400) return 'hace ' + Math.round(diff/3600) + ' h';
+  if (diff < 86400 * 7) return 'hace ' + Math.round(diff/86400) + ' d';
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-CL', { day:'2-digit', month:'short' });
+}
+
+// ─── Filtros ────────────────────────────────────────────────────────────────
+document.getElementById('fBrand').onchange = (e) => { chatFilters.brand = e.target.value; debouncedLoadChats(); };
+document.getElementById('fFrom').onchange  = (e) => { chatFilters.from  = e.target.value; debouncedLoadChats(); };
+document.getElementById('fTo').onchange    = (e) => { chatFilters.to    = e.target.value; debouncedLoadChats(); };
+document.getElementById('fQ').oninput      = (e) => { chatFilters.q     = e.target.value.trim(); debouncedLoadChats(); };
+document.getElementById('btnReloadChats').onclick = () => loadConversations();
+document.getElementById('btnClearFilters').onclick = () => {
+  chatFilters = { brand:'all', mode:'all', intent:'all', from:'', to:'', q:'' };
+  document.getElementById('fBrand').value = 'all';
+  document.getElementById('fFrom').value  = '';
+  document.getElementById('fTo').value    = '';
+  document.getElementById('fQ').value     = '';
+  document.querySelectorAll('.adm-pillgroup').forEach(g => {
+    g.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === 'all'));
+  });
+  loadConversations();
+};
+document.querySelectorAll('.adm-pillgroup').forEach(g => {
+  g.querySelectorAll('button').forEach(b => {
+    b.onclick = () => {
+      const key = g.dataset.filter;
+      chatFilters[key] = b.dataset.v;
+      g.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      debouncedLoadChats();
+    };
+  });
+});
+
+function debouncedLoadChats(){
+  clearTimeout(chatFilterTmr);
+  chatFilterTmr = setTimeout(loadConversations, 250);
+}
+
+// ─── Drawer de detalle ──────────────────────────────────────────────────────
+async function openConversation(id){
+  const drawer = document.getElementById('chatDrawer');
+  drawer.classList.add('open');
+  document.body.classList.add('drawer-open');
+  document.getElementById('drawerTitle').textContent = 'Conversación';
+  document.getElementById('drawerMeta').textContent  = id;
+  document.getElementById('drawerTags').innerHTML    = '';
+  document.getElementById('drawerBody').innerHTML    = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const r = await fetch('/admin/conversations/' + encodeURIComponent(id));
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.error || 'HTTP ' + r.status);
+    }
+    const { conversation: c, summary: s } = await r.json();
+    renderDrawer(c, s);
+  } catch (e) {
+    document.getElementById('drawerBody').innerHTML =
+      `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+function closeDrawer(){
+  document.getElementById('chatDrawer').classList.remove('open');
+  document.body.classList.remove('drawer-open');
+}
+document.getElementById('chatDrawer').addEventListener('click', (e) => {
+  if (e.target.dataset.act === 'close-drawer') closeDrawer();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDrawer();
+});
+
+function renderDrawer(c, s){
+  const title = `Conversación · ${fromLabelFor(s.from)}`;
+  document.getElementById('drawerTitle').textContent = title;
+  const start = c.startTime ? new Date(c.startTime).toLocaleString('es-CL') : '—';
+  const end   = c.endTime   ? new Date(c.endTime).toLocaleString('es-CL')   : '—';
+  document.getElementById('drawerMeta').innerHTML =
+    `inicio ${escapeHtml(start)} · fin ${escapeHtml(end)} · ${s.msgCount} mensajes · ${fmtDuration(s.duration)} · <span style="font-family:var(--mono);color:var(--dim)">${escapeHtml(c.sessionId)}</span>`;
+
+  const tags = [
+    s.isB2B ? '<span class="adm-chat-tag mayo">B2B</span>' : '<span class="adm-chat-tag b2c">B2C</span>',
+    s.purchaseIntent ? '<span class="adm-chat-tag intent">CHECKOUT</span>' : '',
+    s.topBrand ? `<span class="adm-chat-tag brand">${escapeHtml(s.topBrand)}</span>` : '',
+    `<span class="adm-chat-tag from">${escapeHtml(fromLabelFor(s.from))}</span>`,
+    ...(s.products || []).map(p => `<span class="adm-chat-prod">${escapeHtml(p)}</span>`),
+  ].filter(Boolean).join('');
+  document.getElementById('drawerTags').innerHTML = tags;
+
+  const messages = Array.isArray(c.messages) ? c.messages : [];
+  if (!messages.length) {
+    document.getElementById('drawerBody').innerHTML = '<div class="adm-empty">Esta conversación no tiene mensajes registrados.</div>';
+    return;
+  }
+  document.getElementById('drawerBody').innerHTML = messages.map(m => {
+    const role = m.role === 'assistant' ? 'bot' : 'user';
+    const ts = m.timestamp ? new Date(m.timestamp).toLocaleString('es-CL') : '';
+    const av = role === 'bot'
+      ? `<div class="adm-msg-av"><img src="/zorbot-avatar.jpg" alt="Zorbot"></div>`
+      : `<div class="adm-msg-av">tú</div>`;
+    return `
+      <div class="adm-msg ${role}">
+        ${av}
+        <div class="adm-msg-col">
+          <div class="adm-msg-sender">${role === 'bot' ? 'Zorbot' : 'Usuario'}${ts ? ' · ' + escapeHtml(ts) : ''}</div>
+          <div class="adm-msg-bubble"></div>
+        </div>
+      </div>`;
+  }).join('');
+  // Llenar bubbles por textContent para evitar XSS
+  const bubbles = document.querySelectorAll('#drawerBody .adm-msg-bubble');
+  bubbles.forEach((b, i) => b.textContent = messages[i].content || '');
+  document.getElementById('drawerBody').scrollTop = 0;
+}
 
 // ─── Chat preview ───────────────────────────────────────────────────────────
 function botAvatarHtml(){

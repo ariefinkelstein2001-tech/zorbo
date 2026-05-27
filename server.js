@@ -953,6 +953,130 @@ app.post('/admin/products/:id', requireAdmin, (req, res) => {
   }
 });
 
+// ─── Conversaciones (embudo) ────────────────────────────────────────────────
+// Listado y detalle de las sesiones de chat ya persistidas en CONV_LOG. El
+// listado va liviano (resumen + primer/último mensaje); el detalle trae la
+// transcripción completa.
+
+function convPreviewText(messages, role){
+  if (!Array.isArray(messages)) return '';
+  for (const m of messages) {
+    if (m.role !== role) continue;
+    const t = String(m.content || '').replace(/\s+/g, ' ').trim();
+    if (t) return t;
+  }
+  return '';
+}
+
+function summarizeConversation(c){
+  const messages = Array.isArray(c.messages) ? c.messages : [];
+  const userMsgCount = messages.filter(m => m.role === 'user').length;
+  const botMsgCount  = messages.filter(m => m.role === 'assistant').length;
+  const lastTs = messages.length ? (messages[messages.length-1].timestamp || c.endTime) : c.endTime;
+  return {
+    sessionId:       c.sessionId,
+    startTime:       c.startTime || null,
+    endTime:         c.endTime   || null,
+    lastActivity:    lastTs      || c.endTime || c.startTime || null,
+    from:            c.from || 'zorbot',
+    isB2B:           !!c.isB2B,
+    purchaseIntent:  !!c.purchaseIntent,
+    topBrand:        c.topBrand || (c.summary && c.summary.topBrand) || null,
+    duration:        Number(c.duration) || 0,
+    products:        Array.isArray(c.recommendedProducts) ? c.recommendedProducts : [],
+    msgCount:        messages.length,
+    userMsgCount, botMsgCount,
+    firstUserMsg:    convPreviewText(messages, 'user').slice(0, 240),
+    lastBotMsg:      [...messages].reverse().find(m => m.role === 'assistant')
+                       ? String([...messages].reverse().find(m => m.role === 'assistant').content || '').replace(/\s+/g,' ').trim().slice(0, 240)
+                       : '',
+  };
+}
+
+function brandKey(label){
+  const s = String(label || '').toLowerCase();
+  if (s.includes('kairos'))   return 'kairos';
+  if (s.includes('firulais')) return 'firulais';
+  if (s.includes('banny'))    return 'banny';
+  return null;
+}
+
+app.get('/admin/conversations', requireAdmin, (req, res) => {
+  try {
+    const all = readLog(CONV_LOG);
+    if (!Array.isArray(all)) return res.json({ total: 0, stats: {}, items: [] });
+
+    // Filtros (todos opcionales)
+    const fBrand  = String(req.query.brand  || 'all').toLowerCase(); // all | kairos | firulais | banny
+    const fMode   = String(req.query.mode   || 'all').toLowerCase(); // all | b2c | b2b
+    const fIntent = String(req.query.intent || 'all').toLowerCase(); // all | yes
+    const fFrom   = req.query.from ? new Date(req.query.from).getTime() : null;
+    const fTo     = req.query.to   ? new Date(req.query.to).getTime()   : null;
+    const fQ      = String(req.query.q || '').trim().toLowerCase();
+    const limit   = Math.max(1, Math.min(500, parseInt(req.query.limit || '200', 10) || 200));
+
+    // Stats sobre TODA la base (no afectadas por filtros), más útiles que sobre el subset
+    const stats = {
+      total:        all.length,
+      withIntent:   all.filter(c => !!c.purchaseIntent).length,
+      b2c:          all.filter(c => !c.isB2B).length,
+      b2b:          all.filter(c => !!c.isB2B).length,
+      last24h:      all.filter(c => {
+        const t = new Date(c.endTime || c.startTime || 0).getTime();
+        return t && (Date.now() - t < 24 * 60 * 60 * 1000);
+      }).length,
+      withProducts: all.filter(c => Array.isArray(c.recommendedProducts) && c.recommendedProducts.length).length,
+    };
+
+    let items = all.map(summarizeConversation);
+
+    if (fBrand !== 'all') items = items.filter(c => brandKey(c.topBrand) === fBrand);
+    if (fMode === 'b2c')  items = items.filter(c => !c.isB2B);
+    if (fMode === 'b2b')  items = items.filter(c =>  c.isB2B);
+    if (fIntent === 'yes') items = items.filter(c => c.purchaseIntent);
+    if (fFrom)   items = items.filter(c => {
+      const t = new Date(c.lastActivity || c.startTime || 0).getTime();
+      return t && t >= fFrom;
+    });
+    if (fTo)     items = items.filter(c => {
+      const t = new Date(c.lastActivity || c.startTime || 0).getTime();
+      return t && t <= fTo;
+    });
+    if (fQ)      items = items.filter(c =>
+      (c.firstUserMsg || '').toLowerCase().includes(fQ) ||
+      (c.lastBotMsg   || '').toLowerCase().includes(fQ) ||
+      (c.sessionId    || '').toLowerCase().includes(fQ) ||
+      (c.products || []).some(p => String(p).toLowerCase().includes(fQ))
+    );
+
+    // Ordenar por última actividad descendente
+    items.sort((a, b) => {
+      const ta = new Date(a.lastActivity || a.startTime || 0).getTime();
+      const tb = new Date(b.lastActivity || b.startTime || 0).getTime();
+      return tb - ta;
+    });
+
+    const filteredCount = items.length;
+    items = items.slice(0, limit);
+
+    res.json({ total: filteredCount, stats, items });
+  } catch (e) {
+    res.status(500).json({ error: 'Error leyendo conversaciones: ' + e.message });
+  }
+});
+
+app.get('/admin/conversations/:id', requireAdmin, (req, res) => {
+  try {
+    const all = readLog(CONV_LOG);
+    if (!Array.isArray(all)) return res.status(404).json({ error: 'No hay conversaciones.' });
+    const c = all.find(e => e.sessionId === req.params.id);
+    if (!c) return res.status(404).json({ error: 'Conversación no encontrada.' });
+    res.json({ conversation: c, summary: summarizeConversation(c) });
+  } catch (e) {
+    res.status(500).json({ error: 'Error leyendo conversación: ' + e.message });
+  }
+});
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 initLogs();
