@@ -33,10 +33,10 @@
   --radius:14px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{min-height:100%}
+html,body{min-height:100%;overflow-x:hidden}
 body{
   font-family:var(--sans);background:var(--bg);color:var(--text);
-  min-height:100vh;
+  min-height:100vh;max-width:100vw;
 }
 ::-webkit-scrollbar{width:8px;height:8px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -894,11 +894,12 @@ body.drawer-open{overflow:hidden}
   .adm-pipe{display:none}
   .adm-out{padding:.35rem .7rem;font-size:.65rem}
 
-  /* Shell */
-  .adm-shell{padding:.75rem;gap:.85rem}
+  /* Shell — clave: min-width:0 para que los grids no fuercen overflow */
+  .adm-shell{padding:.65rem;gap:.85rem;min-width:0;max-width:100vw}
+  .adm-shell > section,.adm-shell > aside{min-width:0;max-width:100%}
 
   /* Panels */
-  .adm-panel{padding:1rem .85rem;border-radius:12px}
+  .adm-panel{padding:.95rem .8rem;border-radius:12px;min-width:0;max-width:100%}
   .adm-panel-head{gap:.6rem;padding-bottom:.85rem;margin-bottom:.85rem;flex-direction:column;align-items:stretch}
   .adm-panel-title{font-size:1.25rem}
   .adm-panel-meta{font-size:.62rem;line-height:1.4}
@@ -909,12 +910,12 @@ body.drawer-open{overflow:hidden}
   /* Tabs */
   .adm-tab{padding:.5rem .8rem;font-size:.7rem}
 
-  /* Stats: 2 col en celular */
-  .adm-stats{grid-template-columns:repeat(2,1fr);gap:.55rem}
-  .adm-stat{padding:.65rem .7rem}
-  .adm-stat-v{font-size:1.35rem}
-  .adm-stat-s{font-size:.6rem;line-height:1.35}
-  .adm-stat-k{font-size:.55rem}
+  /* Stats: 1 columna en celular para que todo entre cómodo y legible */
+  .adm-stats{grid-template-columns:1fr;gap:.5rem}
+  .adm-stat{padding:.7rem .85rem;min-width:0}
+  .adm-stat-v{font-size:1.5rem}
+  .adm-stat-s{font-size:.66rem;line-height:1.35}
+  .adm-stat-k{font-size:.58rem}
 
   /* Charts */
   .adm-charts{gap:.7rem}
@@ -1007,11 +1008,12 @@ body.drawer-open{overflow:hidden}
 
 /* iPhone SE / pantallas muy chicas (≤ 380px) */
 @media (max-width:380px){
-  .adm-stats{grid-template-columns:1fr 1fr;gap:.45rem}
-  .adm-stat-v{font-size:1.2rem}
+  .adm-stat-v{font-size:1.35rem}
   .adm-tut-item-acts{gap:.3rem}
   .adm-fb-item-acts{gap:.3rem}
   .adm-btn{padding:.5rem .65rem;font-size:.68rem}
+  .adm-shell{padding:.5rem}
+  .adm-panel{padding:.85rem .65rem}
 }
 </style>
 </head>
