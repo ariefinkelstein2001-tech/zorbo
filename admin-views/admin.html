@@ -277,7 +277,8 @@ body{
 }
 .adm-prod-tag.mayo{background:#efeafa;color:#5e4ea3;border:1px solid #c8bee5}
 .adm-prod-tag.zorbo{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-bd)}
-.adm-prod-tag.note{background:var(--green-dim);color:var(--green);border:1px solid rgba(92,201,143,.28)}
+.adm-prod-tag.note{background:var(--green-dim);color:var(--green);border:1px solid rgba(46,156,90,.32)}
+.adm-prod-tag.video{background:#fdecec;color:#d33;border:1px solid #f5c2c2}
 .adm-prod-brand{
   margin-left:auto;font-family:var(--display);font-size:.62rem;font-weight:600;
   color:var(--dim);letter-spacing:.12em;text-transform:uppercase;
@@ -519,6 +520,39 @@ body.drawer-open{overflow:hidden}
 .adm-fb-item-text.good{border-color:rgba(92,201,143,.32);color:var(--text)}
 .adm-fb-item-explain{margin-top:.7rem;display:flex;flex-direction:column;gap:.3rem}
 .adm-fb-item-explain .adm-fb-item-text{background:transparent;border:1px dashed var(--border);color:var(--muted);font-style:italic}
+
+/* ── Tutoriales (videos técnicos) ── */
+.adm-tut-list{display:flex;flex-direction:column;gap:.7rem}
+.adm-tut-item{
+  background:var(--surface);border:1px solid var(--gold-bd);border-radius:11px;
+  padding:.85rem 1rem;display:flex;flex-direction:column;gap:.45rem;
+  transition:border-color .2s,box-shadow .15s;
+}
+.adm-tut-item:hover{border-color:var(--gold-bd-h);box-shadow:0 4px 14px rgba(245,166,35,.10)}
+.adm-tut-item-head{display:flex;align-items:center;justify-content:space-between;gap:.7rem;flex-wrap:wrap}
+.adm-tut-item-title{
+  font-family:var(--display);font-size:1rem;font-weight:700;color:var(--text);
+  display:flex;align-items:center;gap:.5rem;min-width:0;
+}
+.adm-tut-icon{
+  width:24px;height:24px;border-radius:50%;background:var(--red-dim);color:var(--red);
+  display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;
+}
+.adm-tut-item-acts{display:flex;align-items:center;gap:.4rem;flex-shrink:0;flex-wrap:wrap}
+.adm-tut-link{
+  font-family:var(--mono);font-size:.78rem;color:var(--gold-deep);
+  text-decoration:underline;text-underline-offset:3px;text-decoration-color:#f1c97b;
+  word-break:break-all;transition:text-decoration-color .15s,color .15s;
+}
+.adm-tut-link:hover{color:var(--text);text-decoration-color:var(--gold-deep)}
+.adm-tut-desc{font-family:var(--sans);font-size:.85rem;color:var(--muted);line-height:1.5}
+.adm-tut-keywords{
+  font-family:var(--mono);font-size:.72rem;color:#777;
+  background:#f7f7f7;border:1px solid #ececec;border-radius:6px;padding:.35rem .55rem;
+  word-break:break-word;
+}
+.adm-tut-kw-label{color:var(--gold-deep);font-weight:700;margin-right:.3rem}
+.adm-chat-tag.general{background:#fff3d6;color:var(--gold-deep);border-color:#f1c97b}
 .adm-drawer-tags{
   padding:.7rem 1.2rem;border-bottom:1px solid var(--border);
   display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;
@@ -933,6 +967,63 @@ body.drawer-open{overflow:hidden}
       </div>
     </div>
 
+    <!-- Vista de tutoriales (videos técnicos) -->
+    <div class="adm-panel" id="tutorialsView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Tutoriales</div>
+          <div class="adm-panel-meta" id="tutMeta">videos que Zorbot comparte cuando el cliente pregunta por temas técnicos</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="btnReloadTut" type="button">Recargar</button>
+          <button class="adm-btn adm-btn-gold"  id="btnNewTut"    type="button">+ Nuevo tutorial</button>
+        </div>
+      </div>
+      <div class="adm-tut-list" id="tutList">
+        <div class="adm-loading">Cargando…</div>
+      </div>
+    </div>
+
+    <!-- Modal de tutorial (alta / edición) -->
+    <div class="adm-fb" id="tutModal" aria-hidden="true">
+      <div class="adm-fb-bg" data-act="close-tut"></div>
+      <div class="adm-fb-card">
+        <button type="button" class="adm-fb-x" data-act="close-tut" aria-label="Cerrar">✕</button>
+        <div class="adm-fb-head">
+          <div class="adm-fb-title" id="tutModalTitle">Nuevo tutorial</div>
+          <div class="adm-fb-sub">Zorbot va a mencionar este video cuando el cliente pregunte por algo que matchea las keywords o el título.</div>
+        </div>
+        <div class="adm-fb-col">
+          <label class="adm-fb-label">Título</label>
+          <input class="adm-input" id="tutTitle" type="text" placeholder="Ej: Pinchado del barril paso a paso">
+        </div>
+        <div class="adm-fb-col">
+          <label class="adm-fb-label">URL del video</label>
+          <input class="adm-input" id="tutVideo" type="url" placeholder="https://youtu.be/… o https://vimeo.com/…">
+        </div>
+        <div class="adm-fb-col">
+          <label class="adm-fb-label">Keywords (palabras o frases separadas por coma)</label>
+          <input class="adm-input" id="tutKeywords" type="text" placeholder="pinchar barril, conectar barril, instalar barril">
+        </div>
+        <div class="adm-fb-col">
+          <label class="adm-fb-label">Descripción corta (cómo se lo explicamos al bot)</label>
+          <textarea class="adm-fb-textarea" id="tutDesc" rows="3"
+            placeholder="Tutorial técnico de Kairos sobre cómo pinchar correctamente un barril slim de 20/30L con válvula tipo G."></textarea>
+        </div>
+        <div class="adm-fb-col">
+          <label class="adm-fb-label">Scope (quién recibe el video)</label>
+          <div class="adm-pillgroup" id="tutScopeGroup" data-filter="tutScope">
+            <button data-v="mayorista" class="on" type="button">Mayorista (B2B)</button>
+            <button data-v="general"          type="button">General (todos)</button>
+          </div>
+        </div>
+        <div class="adm-fb-acts">
+          <button type="button" class="adm-btn adm-btn-ghost" data-act="close-tut">Cancelar</button>
+          <button type="button" class="adm-btn adm-btn-gold"  id="tutSubmit">Guardar</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Vista de feedback (lista + edición de correcciones del bot) -->
     <div class="adm-panel" id="feedbackView" style="display:none">
       <div class="adm-panel-head">
@@ -1138,8 +1229,9 @@ body.drawer-open{overflow:hidden}
 const SECCIONES = [
   { id:'analytics', kind:'analytics',label:'Analítica',       desc:'foto general del negocio · números y gráficos' },
   { id:'chats',     kind:'chats',    label:'Conversaciones',  desc:'historial completo · filtros y embudo' },
-  { id:'feedback',  kind:'feedback', label:'Feedback',        desc:'correcciones para entrenar a Zorbot' },
-  { id:'productos', kind:'products', label:'Productos',       desc:'catálogo Shopify · notas extra para Zorbot' },
+  { id:'feedback',   kind:'feedback', label:'Feedback',        desc:'correcciones para entrenar a Zorbot' },
+  { id:'productos',  kind:'products', label:'Productos',       desc:'catálogo Shopify · notas extra para Zorbot' },
+  { id:'tutoriales', kind:'tutorials',label:'Tutoriales',      desc:'videos técnicos que Zorbot comparte cuando aplica' },
   { id:'general',   kind:'md',       label:'General',         desc:'identidad · tono · reglas globales' },
   { id:'kairos',    kind:'md',       label:'Kairos Brewing',  desc:'cervezas artesanales' },
   { id:'firulais',  kind:'md',       label:'Firulais',        desc:'cheladas craft' },
@@ -1197,6 +1289,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'feedback') {
     showView('feedback');
     await loadFeedbackList();
+  } else if (sec.kind === 'tutorials') {
+    showView('tutorials');
+    await loadTutorials();
   } else {
     showView('md');
     await loadSeccion();
@@ -1204,11 +1299,12 @@ async function selectSeccion(id){
 }
 
 function showView(kind){
-  document.getElementById('mdView').style.display        = kind === 'md'        ? '' : 'none';
-  document.getElementById('productsView').style.display  = kind === 'products'  ? '' : 'none';
-  document.getElementById('chatsView').style.display     = kind === 'chats'     ? '' : 'none';
-  document.getElementById('analyticsView').style.display = kind === 'analytics' ? '' : 'none';
-  document.getElementById('feedbackView').style.display  = kind === 'feedback'  ? '' : 'none';
+  document.getElementById('mdView').style.display         = kind === 'md'         ? '' : 'none';
+  document.getElementById('productsView').style.display   = kind === 'products'   ? '' : 'none';
+  document.getElementById('chatsView').style.display      = kind === 'chats'      ? '' : 'none';
+  document.getElementById('analyticsView').style.display  = kind === 'analytics'  ? '' : 'none';
+  document.getElementById('feedbackView').style.display   = kind === 'feedback'   ? '' : 'none';
+  document.getElementById('tutorialsView').style.display  = kind === 'tutorials'  ? '' : 'none';
 }
 
 // ─── Parse / serialize markdown ─────────────────────────────────────────────
@@ -1453,6 +1549,7 @@ function productCardHtml(p){
     p.isMayorista ? '<span class="adm-prod-tag mayo">B2B</span>' : '',
     p.isZorbo     ? '<span class="adm-prod-tag zorbo">ZORBO</span>' : '',
     p.hasExtra    ? '<span class="adm-prod-tag note">notas</span>' : '',
+    p.video       ? '<span class="adm-prod-tag video">▶ video</span>' : '',
   ].filter(Boolean).join('');
   const editor = isOpen ? `
     <div class="adm-prod-editor">
@@ -1463,6 +1560,10 @@ function productCardHtml(p){
       <input class="adm-prod-img" data-pid="${p.id}" type="url"
         placeholder="https://… (vacío = usa la imagen de Shopify)"
         value="${escapeAttr(p.image && p.image !== getShopifyImage(p) ? p.image : '')}">
+      <label class="adm-prod-label">Video del producto (URL · opcional)</label>
+      <input class="adm-prod-video" data-pid="${p.id}" type="url"
+        placeholder="https://youtu.be/… o https://vimeo.com/…"
+        value="${escapeAttr(p.video || '')}">
       <div class="adm-prod-acts">
         <button class="adm-btn adm-btn-ghost" data-act="cancel" data-pid="${p.id}" type="button">Cerrar</button>
         <button class="adm-btn adm-btn-gold"  data-act="save"   data-pid="${p.id}" type="button">Guardar notas</button>
@@ -1519,6 +1620,7 @@ function bindProductCards(){
       const card = document.querySelector(`.adm-prod[data-pid="${CSS.escape(pid)}"]`);
       const extra = card.querySelector('.adm-prod-extra').value;
       const image = card.querySelector('.adm-prod-img').value;
+      const video = card.querySelector('.adm-prod-video').value;
       el.disabled = true;
       const original = el.textContent;
       el.textContent = 'Guardando…';
@@ -1526,14 +1628,15 @@ function bindProductCards(){
         const r = await fetch('/admin/products/' + encodeURIComponent(pid), {
           method:'POST',
           headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ extra, image }),
+          body: JSON.stringify({ extra, image, video }),
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
         const idx = productsCache.findIndex(x => x.id === pid);
         if (idx >= 0) {
           productsCache[idx].extra = extra.trim();
-          productsCache[idx].hasExtra = !!extra.trim();
+          productsCache[idx].video = video.trim() || null;
+          productsCache[idx].hasExtra = !!(extra.trim() || video.trim());
           productsCache[idx].updatedAt = new Date().toISOString();
           if (image && image.trim()) productsCache[idx].image = image.trim();
         }
@@ -2070,6 +2173,146 @@ function fbItemHtml(f){
 }
 
 document.getElementById('btnReloadFb').onclick = () => loadFeedbackList();
+
+// ─── Tutoriales / videos técnicos ───────────────────────────────────────────
+let tutCache = [];
+let tutScope = 'mayorista';
+let tutEditId = null;
+
+async function loadTutorials(){
+  const list = document.getElementById('tutList');
+  list.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const r = await fetch('/admin/tutoriales');
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.error || 'HTTP ' + r.status);
+    }
+    const { items, total } = await r.json();
+    tutCache = items || [];
+    document.getElementById('tutMeta').textContent =
+      `${total} tutorial${total === 1 ? '' : 'es'} guardado${total === 1 ? '' : 's'} · el bot los menciona cuando el cliente pregunta por algo que matchea`;
+    if (!tutCache.length) {
+      list.innerHTML = '<div class="adm-empty">Todavía no hay tutoriales cargados. Apretá <strong>+ Nuevo tutorial</strong> arriba para empezar.</div>';
+      return;
+    }
+    list.innerHTML = tutCache.map(tutItemHtml).join('');
+    list.querySelectorAll('.adm-tut-edit').forEach(b => {
+      b.onclick = () => {
+        const t = tutCache.find(x => x.id === b.dataset.id);
+        if (t) openTutModal(t);
+      };
+    });
+    list.querySelectorAll('.adm-tut-del').forEach(b => {
+      b.onclick = async () => {
+        if (!confirm('Eliminar este tutorial? Zorbot dejará de mencionarlo.')) return;
+        try {
+          const r = await fetch('/admin/tutoriales/' + encodeURIComponent(b.dataset.id), { method:'DELETE' });
+          const d = await r.json();
+          if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+          showToast('Tutorial eliminado ✓', 'ok');
+          loadTutorials();
+        } catch (e) {
+          showToast('Error: ' + e.message, 'err');
+        }
+      };
+    });
+  } catch (e) {
+    list.innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function tutItemHtml(t){
+  const scopeLabel = t.scope === 'general' ? 'GENERAL · TODOS' : 'B2B · MAYORISTA';
+  const scopeClass = t.scope === 'general' ? 'general' : 'mayo';
+  return `
+    <article class="adm-tut-item">
+      <div class="adm-tut-item-head">
+        <div class="adm-tut-item-title">
+          <span class="adm-tut-icon">▶</span>
+          ${escapeHtml(t.title)}
+        </div>
+        <div class="adm-tut-item-acts">
+          <span class="adm-chat-tag ${scopeClass}">${scopeLabel}</span>
+          <button type="button" class="adm-fb-item-edit adm-tut-edit" data-id="${escapeAttr(t.id)}">Editar</button>
+          <button type="button" class="adm-fb-item-del  adm-tut-del"  data-id="${escapeAttr(t.id)}">Eliminar</button>
+        </div>
+      </div>
+      <a class="adm-tut-link" href="${escapeAttr(t.videoUrl)}" target="_blank" rel="noopener">${escapeHtml(t.videoUrl)} ↗</a>
+      ${t.description ? `<div class="adm-tut-desc">${escapeHtml(t.description)}</div>` : ''}
+      ${t.keywords ? `<div class="adm-tut-keywords"><span class="adm-tut-kw-label">keywords:</span> ${escapeHtml(t.keywords)}</div>` : ''}
+    </article>`;
+}
+
+function openTutModal(entry){
+  tutEditId = entry ? entry.id : null;
+  document.getElementById('tutModalTitle').textContent = entry ? 'Editar tutorial' : 'Nuevo tutorial';
+  document.getElementById('tutTitle').value    = entry?.title    || '';
+  document.getElementById('tutVideo').value    = entry?.videoUrl || '';
+  document.getElementById('tutKeywords').value = entry?.keywords || '';
+  document.getElementById('tutDesc').value     = entry?.description || '';
+  tutScope = entry?.scope || 'mayorista';
+  document.querySelectorAll('#tutScopeGroup button').forEach(b => b.classList.toggle('on', b.dataset.v === tutScope));
+  document.getElementById('tutSubmit').textContent = entry ? 'Guardar cambios' : 'Crear tutorial';
+  document.getElementById('tutModal').classList.add('open');
+  document.body.classList.add('drawer-open');
+  setTimeout(() => document.getElementById('tutTitle').focus(), 50);
+}
+function closeTutModal(){
+  document.getElementById('tutModal').classList.remove('open');
+  if (!document.getElementById('chatDrawer').classList.contains('open')) {
+    document.body.classList.remove('drawer-open');
+  }
+  tutEditId = null;
+}
+
+document.getElementById('btnReloadTut').onclick = () => loadTutorials();
+document.getElementById('btnNewTut').onclick    = () => openTutModal(null);
+document.getElementById('tutModal').addEventListener('click', (e) => {
+  if (e.target.dataset.act === 'close-tut') closeTutModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('tutModal').classList.contains('open')) closeTutModal();
+});
+document.querySelectorAll('#tutScopeGroup button').forEach(b => {
+  b.onclick = () => {
+    tutScope = b.dataset.v;
+    document.querySelectorAll('#tutScopeGroup button').forEach(x => x.classList.toggle('on', x === b));
+  };
+});
+
+document.getElementById('tutSubmit').onclick = async () => {
+  const body = {
+    title:       document.getElementById('tutTitle').value,
+    videoUrl:    document.getElementById('tutVideo').value,
+    keywords:    document.getElementById('tutKeywords').value,
+    description: document.getElementById('tutDesc').value,
+    scope:       tutScope,
+  };
+  if (!body.title.trim() || !body.videoUrl.trim()) {
+    showToast('Necesito al menos título y URL del video.', 'err');
+    return;
+  }
+  const btn = document.getElementById('tutSubmit');
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = tutEditId ? 'Guardando…' : 'Creando…';
+  try {
+    const url = tutEditId ? '/admin/tutoriales/' + encodeURIComponent(tutEditId) : '/admin/tutoriales';
+    const method = tutEditId ? 'PUT' : 'POST';
+    const r = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+    showToast(tutEditId ? 'Tutorial actualizado ✓' : 'Tutorial creado ✓ — Zorbot ya lo conoce', 'ok');
+    closeTutModal();
+    loadTutorials();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+};
 
 // ─── Chat preview ───────────────────────────────────────────────────────────
 function botAvatarHtml(){

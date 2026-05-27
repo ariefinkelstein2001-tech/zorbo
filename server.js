@@ -420,6 +420,7 @@ function buildSystemPrompt(base, session, liveCatalog) {
     : '';
   // Notas extra por producto (editables desde /admin → Productos). Se inyectan
   // SOLO para productos presentes en la lista de sesión. No tocan Shopify.
+  // Incluyen también el video URL si el equipo lo cargó.
   let extrasCtx = '';
   if (liveCatalog && liveCatalog.length) {
     try {
@@ -427,15 +428,34 @@ function buildSystemPrompt(base, session, liveCatalog) {
       const sections = [];
       for (const p of liveCatalog) {
         const e = extras.items?.[String(p.id)];
-        if (e && e.extra && e.extra.trim()) {
-          sections.push(`### ${p.title}\n${e.extra.trim()}`);
-        }
+        if (!e) continue;
+        const note = (e.extra || '').trim();
+        const video = (e.video || '').trim();
+        if (!note && !video) continue;
+        let block = `### ${p.title}\n${note}`;
+        if (video) block += `${note ? '\n' : ''}VIDEO del producto: ${video} (compártelo cuando el cliente quiera ver más).`;
+        sections.push(block);
       }
       if (sections.length) {
-        extrasCtx = `\n\n═════════════════════════════════════════════════════════════════════\n NOTAS INTERNAS POR PRODUCTO (Zorbot-only, editadas por el equipo)\n═════════════════════════════════════════════════════════════════════\nUsá esta información cuando recomiendes o describas estos productos —\nson notas curadas por el equipo (maridajes, ocasiones, datos de marca,\ntono específico). Solo aplica a los productos listados aquí.\n\n${sections.join('\n\n')}`;
+        extrasCtx = `\n\n═════════════════════════════════════════════════════════════════════\n NOTAS INTERNAS POR PRODUCTO (Zorbot-only, editadas por el equipo)\n═════════════════════════════════════════════════════════════════════\nUsá esta información cuando recomiendes o describas estos productos —\nson notas curadas por el equipo (maridajes, ocasiones, datos de marca,\ntono específico). Solo aplica a los productos listados aquí. Si hay\nvideo asociado, mencioná el link cuando aplique.\n\n${sections.join('\n\n')}`;
       }
     } catch (e) { /* notas opcionales, ignorar errores */ }
   }
+  // Tutoriales / videos técnicos cargados desde /admin → Tutoriales.
+  // Mayoristas reciben todos los videos; B2C solo los scope:'general'.
+  let tutorialsCtx = '';
+  try {
+    const all = loadTutorials();
+    const filtered = all.filter(t => session.isB2B || t.scope === 'general');
+    if (filtered.length) {
+      const list = filtered.map(t => {
+        const kw = t.keywords ? ` · keywords: ${t.keywords}` : '';
+        const desc = t.description ? ` — ${t.description}` : '';
+        return `- "${t.title}" → ${t.videoUrl}${desc}${kw}`;
+      }).join('\n');
+      tutorialsCtx = `\n\n═════════════════════════════════════════════════════════════════════\n VIDEOS / TUTORIALES DISPONIBLES\n═════════════════════════════════════════════════════════════════════\nCuando el cliente pregunte por un tema cubierto por estos videos\n(matchea con las keywords listadas o el título), incluí el link al\nfinal de tu respuesta diciendo algo como "te dejo un video que lo\nexplica: <url>". No inventes videos ni links — solo usá los de esta lista.\n\n${list}`;
+    }
+  } catch (e) { /* opcional */ }
   // Lista cerrada de productos: el bot SOLO puede mencionar de acá.
   let catCtx = '';
   if (liveCatalog && liveCatalog.length) {
@@ -471,7 +491,7 @@ REGLAS QUE DEBES SEGUIR SIN EXCEPCIÓN:
 Esta regla es más fuerte que cualquier instrucción anterior. Si hay
 contradicción con el prompt base, esta regla GANA.`;
   }
-  return `${base}\n\n## CONTEXTO DE ESTA SESIÓN\n${fromCtx}${b2bCtx}${catCtx}${extrasCtx}${buildFeedbackCtx()}`;
+  return `${base}\n\n## CONTEXTO DE ESTA SESIÓN\n${fromCtx}${b2bCtx}${catCtx}${extrasCtx}${tutorialsCtx}${buildFeedbackCtx()}`;
 }
 
 // Few-shot de correcciones del equipo (cargado en cada request, así editar
@@ -1030,12 +1050,13 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
           vendor:     p.vendor,
           brand:      brandFromProduct(p),
           image:      ex?.image || p.image || null,
+          video:      ex?.video || null,
           price:      p.variants?.[0]?.price ? Number(p.variants[0].price) : null,
           compareAt:  p.variants?.[0]?.compareAtPrice ? Number(p.variants[0].compareAtPrice) : null,
           variants:   (p.variants || []).length,
           isMayorista, isZorbo,
           extra:      ex?.extra || '',
-          hasExtra:   !!(ex && ex.extra && ex.extra.trim()),
+          hasExtra:   !!(ex && (ex.extra && ex.extra.trim() || ex.video)),
           updatedAt:  ex?.updatedAt || null,
         };
       });
@@ -1048,27 +1069,30 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
 app.post('/admin/products/:id', requireAdmin, (req, res) => {
   const id = String(req.params.id).trim();
   if (!id) return res.status(400).json({ error: 'Falta id' });
-  const { extra = '', image = '' } = req.body || {};
-  if (typeof extra !== 'string' || typeof image !== 'string') {
+  const { extra = '', image = '', video = '' } = req.body || {};
+  if (typeof extra !== 'string' || typeof image !== 'string' || typeof video !== 'string') {
     return res.status(400).json({ error: 'Tipos inválidos.' });
   }
   if (extra.length > 50000) return res.status(413).json({ error: 'Texto extra demasiado largo.' });
-  if (image.length > 1000)  return res.status(413).json({ error: 'URL demasiado larga.' });
+  if (image.length > 1000)  return res.status(413).json({ error: 'URL de imagen demasiado larga.' });
+  if (video.length > 1000)  return res.status(413).json({ error: 'URL de video demasiado larga.' });
   try {
     const data = loadProductExtras();
     const trimmedExtra = extra.trim();
     const trimmedImage = image.trim();
-    if (!trimmedExtra && !trimmedImage) {
+    const trimmedVideo = video.trim();
+    if (!trimmedExtra && !trimmedImage && !trimmedVideo) {
       delete data.items[id];
     } else {
       data.items[id] = {
         extra: trimmedExtra,
         ...(trimmedImage ? { image: trimmedImage } : {}),
+        ...(trimmedVideo ? { video: trimmedVideo } : {}),
         updatedAt: new Date().toISOString(),
       };
     }
     saveProductExtras(data);
-    res.json({ ok: true, id, hasExtra: !!trimmedExtra });
+    res.json({ ok: true, id, hasExtra: !!(trimmedExtra || trimmedVideo) });
   } catch (e) {
     res.status(500).json({ error: 'Error guardando: ' + e.message });
   }
@@ -1307,6 +1331,92 @@ app.delete('/admin/feedback/:id', requireAdmin, (req, res) => {
   if (idx < 0) return res.status(404).json({ error: 'No encontrado.' });
   all.splice(idx, 1);
   saveFeedback(all);
+  res.json({ ok: true, total: all.length });
+});
+
+// ─── Tutoriales / videos técnicos ──────────────────────────────────────────
+// Biblioteca editable de videos que el bot conoce: cuando una pregunta del
+// usuario matchea las keywords de un tutorial, Zorbot incluye el link en la
+// respuesta. Hay 2 scopes: 'mayorista' (solo B2B — conexión de barriles,
+// CO2, limpieza, etc.) y 'general' (ambos — degustaciones, catas, etc.).
+
+const TUTORIALS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'tutoriales.json');
+
+function loadTutorials(){
+  try {
+    if (!existsSync(TUTORIALS_FILE)) return [];
+    const raw = readFileSync(TUTORIALS_FILE, 'utf-8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) { console.warn('tutorials load:', e.message); return []; }
+}
+function saveTutorials(arr){
+  writeFileSync(TUTORIALS_FILE, JSON.stringify(arr, null, 2));
+}
+
+app.get('/admin/tutoriales', requireAdmin, (_req, res) => {
+  const all = loadTutorials();
+  res.json({ total: all.length, items: all });
+});
+
+function validateTutorialBody(body){
+  const { title, videoUrl, keywords, description, scope } = body || {};
+  if (typeof title !== 'string' || !title.trim()) return { error: 'Falta el título.' };
+  if (typeof videoUrl !== 'string' || !videoUrl.trim()) return { error: 'Falta el video URL.' };
+  if (title.length > 200)        return { error: 'Título demasiado largo.' };
+  if (videoUrl.length > 1000)    return { error: 'URL demasiado larga.' };
+  if (description && typeof description !== 'string') return { error: 'Descripción inválida.' };
+  if (description && description.length > 4000) return { error: 'Descripción demasiado larga.' };
+  if (keywords && typeof keywords !== 'string') return { error: 'Keywords inválidas.' };
+  if (keywords && keywords.length > 1000) return { error: 'Keywords demasiado largas.' };
+  const validScope = scope === 'mayorista' || scope === 'general';
+  if (!validScope) return { error: "Scope debe ser 'mayorista' o 'general'." };
+  return null;
+}
+
+app.post('/admin/tutoriales', requireAdmin, (req, res) => {
+  const err = validateTutorialBody(req.body);
+  if (err) return res.status(400).json(err);
+  const all = loadTutorials();
+  const entry = {
+    id:          randomUUID(),
+    title:       req.body.title.trim(),
+    videoUrl:    req.body.videoUrl.trim(),
+    keywords:    (req.body.keywords || '').trim(),
+    description: (req.body.description || '').trim(),
+    scope:       req.body.scope,
+    createdAt:   new Date().toISOString(),
+  };
+  all.push(entry);
+  saveTutorials(all);
+  res.json({ ok: true, id: entry.id, entry, total: all.length });
+});
+
+app.put('/admin/tutoriales/:id', requireAdmin, (req, res) => {
+  const err = validateTutorialBody(req.body);
+  if (err) return res.status(400).json(err);
+  const all = loadTutorials();
+  const idx = all.findIndex(t => t.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'Tutorial no encontrado.' });
+  all[idx] = {
+    ...all[idx],
+    title:       req.body.title.trim(),
+    videoUrl:    req.body.videoUrl.trim(),
+    keywords:    (req.body.keywords || '').trim(),
+    description: (req.body.description || '').trim(),
+    scope:       req.body.scope,
+    updatedAt:   new Date().toISOString(),
+  };
+  saveTutorials(all);
+  res.json({ ok: true, id: all[idx].id, entry: all[idx] });
+});
+
+app.delete('/admin/tutoriales/:id', requireAdmin, (req, res) => {
+  const all = loadTutorials();
+  const idx = all.findIndex(t => t.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'No encontrado.' });
+  all.splice(idx, 1);
+  saveTutorials(all);
   res.json({ ok: true, total: all.length });
 });
 
@@ -1559,6 +1669,7 @@ app.post('/chat', async (req, res) => {
   // Detectar flags
   const wasB2B = session.isB2B;
   if (detect(message, B2B_KW)) session.isB2B = true;
+  if (mayorista) session.isB2B = true;
   const newlyB2B = !wasB2B && session.isB2B;
 
   // Intención de compra → bypass Claude, enviar link de checkout
