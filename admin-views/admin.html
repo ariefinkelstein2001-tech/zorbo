@@ -884,6 +884,10 @@ body.drawer-open{overflow:hidden}
 .adm-toast.err{border-color:var(--red)}
 .adm-toast.err .adm-toast-ico{background:var(--red-dim);color:var(--red)}
 
+/* FAB del preview chat — solo se muestra en móvil */
+.adm-chat-fab{display:none}
+.adm-chat-x{display:none}
+
 /* ════════════════════════════════════════════════════════════════════════
    RESPONSIVE — celulares (≤ 600px)
    Polish global del panel para que entre todo bien en mobile.
@@ -926,15 +930,59 @@ body.drawer-open{overflow:hidden}
   .adm-chart-title{font-size:.9rem}
   .adm-chart-sub{font-size:.58rem}
 
-  /* Chat preview compact */
-  .adm-chat{min-height:440px}
-  .adm-chat-head{padding:.7rem .85rem;gap:.5rem;flex-wrap:wrap}
+  /* Preview chat en mobile: NO inline, sino burbuja flotante + popup */
+  .adm-chat{
+    display:none!important;
+    position:fixed;inset:0;z-index:75;
+    border-radius:0;border:none;height:100vh;max-height:none;min-height:0;
+    background:var(--surface);
+  }
+  .adm-chat.popup-open{
+    display:flex!important;
+    animation:chatPopIn .25s cubic-bezier(.16,1,.3,1);
+  }
+  .adm-chat-head{padding:.85rem 1rem;gap:.55rem;flex-wrap:wrap;border-bottom:1px solid var(--border)}
   .adm-chat-mode{margin-left:auto}
-  .adm-chat-title{font-size:.88rem}
-  .adm-chat-body{padding:.85rem}
-  .adm-chat-foot{padding:.55rem;gap:.4rem}
-  .adm-chat-in{font-size:16px;min-height:38px}
-  .adm-chat-send{width:38px;height:38px}
+  .adm-chat-title{font-size:.95rem}
+  .adm-chat-body{padding:1rem;flex:1}
+  .adm-chat-foot{padding:.65rem;gap:.4rem}
+  .adm-chat-in{font-size:16px;min-height:40px}
+  .adm-chat-send{width:42px;height:42px}
+  .adm-chat-x{
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+    width:34px;height:34px;border-radius:9px;
+    background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+    font-size:1rem;cursor:pointer;
+    transition:color .15s,border-color .15s,background .15s;
+  }
+  .adm-chat-x:hover{color:var(--gold);border-color:var(--gold-bd-h);background:var(--gold-dim)}
+
+  /* FAB: bola flotante abajo-derecha con avatar Zorbot */
+  .adm-chat-fab{
+    display:flex;align-items:center;justify-content:center;
+    position:fixed;bottom:1rem;right:1rem;z-index:60;
+    width:60px;height:60px;border-radius:50%;
+    border:2px solid var(--gold);background:#fff;cursor:pointer;
+    box-shadow:0 12px 28px rgba(245,166,35,.32),0 4px 10px rgba(0,0,0,.12);
+    overflow:hidden;padding:0;
+    transition:transform .15s,box-shadow .2s;
+  }
+  .adm-chat-fab:active{transform:scale(.94)}
+  .adm-chat-fab img{width:100%;height:100%;object-fit:cover;display:block}
+  .adm-chat-fab-dot{
+    position:absolute;top:4px;right:4px;width:12px;height:12px;border-radius:50%;
+    background:var(--green);border:2px solid #fff;box-shadow:0 0 8px var(--green);
+  }
+  .adm-chat-fab.hidden{display:none}
+  /* Cuando un drawer/modal está abierto, ocultamos la FAB para no estorbar */
+  body.drawer-open .adm-chat-fab{display:none}
+  body.chat-popup-open{overflow:hidden}
+}
+@keyframes chatPopIn{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@media (max-width:600px){
 
   /* Conversation filters */
   .adm-filters{padding:.65rem;gap:.55rem}
@@ -1343,7 +1391,7 @@ body.drawer-open{overflow:hidden}
   </div>
 
   <!-- Mini chat -->
-  <aside class="adm-chat">
+  <aside class="adm-chat" id="chatAside">
     <div class="adm-chat-head">
       <div class="adm-chat-av"><img src="/zorbot-avatar.jpg" alt="Zorbot"></div>
       <div class="adm-chat-title-col">
@@ -1354,6 +1402,7 @@ body.drawer-open{overflow:hidden}
         <button class="adm-mode on" data-mode="b2c" type="button">B2C</button>
         <button class="adm-mode" data-mode="b2b" type="button">B2B</button>
       </div>
+      <button type="button" class="adm-chat-x" id="chatPopupClose" aria-label="Cerrar">✕</button>
     </div>
     <div class="adm-chat-body" id="chatBody">
       <div class="adm-chat-empty">Editá un bloque, guardá los cambios y conversá con Zorbot acá para validar antes de soltarlo a producción.</div>
@@ -1367,6 +1416,13 @@ body.drawer-open{overflow:hidden}
     </div>
   </aside>
 </main>
+
+<!-- FAB del preview chat (solo móvil): bola flotante con avatar de Zorbot.
+     Tap → abre el preview chat como popup fullscreen. -->
+<button type="button" class="adm-chat-fab" id="chatFab" aria-label="Abrir Zorbot Preview">
+  <img src="/zorbot-avatar.jpg" alt="Zorbot">
+  <span class="adm-chat-fab-dot"></span>
+</button>
 
 <div class="adm-toast" id="toast">
   <span class="adm-toast-ico" id="toastIco">✓</span>
@@ -2726,6 +2782,36 @@ function updateChatModeLabel(){
   document.getElementById('chatModeLabel').textContent =
     chatMode === 'b2b' ? 'MODO B2B · KNOWLEDGE MAYORISTAS' : 'MODO B2C · CATÁLOGO LIVE';
 }
+
+// ─── FAB del preview chat (solo móvil) ─────────────────────────────────────
+function openChatPopup(){
+  const a = document.getElementById('chatAside');
+  const f = document.getElementById('chatFab');
+  if (!a) return;
+  a.classList.add('popup-open');
+  if (f) f.classList.add('hidden');
+  document.body.classList.add('chat-popup-open');
+  // Auto-foco al input al abrir
+  setTimeout(() => {
+    const inp = document.getElementById('chatIn');
+    if (inp) inp.focus();
+  }, 200);
+}
+function closeChatPopup(){
+  const a = document.getElementById('chatAside');
+  const f = document.getElementById('chatFab');
+  if (!a) return;
+  a.classList.remove('popup-open');
+  if (f) f.classList.remove('hidden');
+  document.body.classList.remove('chat-popup-open');
+}
+document.getElementById('chatFab').addEventListener('click', openChatPopup);
+document.getElementById('chatPopupClose').addEventListener('click', closeChatPopup);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('chatAside').classList.contains('popup-open')) {
+    closeChatPopup();
+  }
+});
 
 document.getElementById('chatSend').onclick = chatSend;
 document.getElementById('chatIn').addEventListener('keydown', e => {
