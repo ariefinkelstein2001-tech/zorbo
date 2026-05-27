@@ -910,6 +910,8 @@ body.drawer-open{overflow:hidden}
             <option value="kairos">Kairos</option>
             <option value="firulais">Firulais</option>
             <option value="banny">Banny</option>
+            <option value="mixto">Mixto (varias)</option>
+            <option value="none">Sin marca clara</option>
           </select>
         </div>
         <div class="adm-filter">
@@ -1511,7 +1513,7 @@ function renderChatsList(filteredTotal){
 function chatCardHtml(c){
   const dur = fmtDuration(c.duration);
   const when = fmtRelative(c.lastActivity || c.startTime);
-  const brand = c.topBrand || '—';
+  const brand = c.topBrand || 'Sin marca';
   const fromLabel = fromLabelFor(c.from);
   const intent = c.purchaseIntent
     ? `<span class="adm-chat-tag intent">CHECKOUT</span>` : '';
@@ -1975,6 +1977,8 @@ const ANA_COLORS = {
     'Kairos Brewing':'#e9c46a',
     'Firulais':      '#e07a5f',
     'Banny':         '#b6a4e6',
+    'Mixto':         '#5cc98f',
+    'Sin marca':     '#5a5a6a',
   },
 };
 
@@ -2035,7 +2039,8 @@ function brandTone(b){
   if (!b) return null;
   if (b.includes('Kairos'))  return 'gold';
   if (b.includes('Banny'))   return 'purple';
-  if (b.includes('Firulais'))return null;
+  if (b === 'Mixto')         return 'green';
+  if (b === 'Sin marca')     return null;
   return null;
 }
 

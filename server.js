@@ -270,7 +270,9 @@ function touchSession(id) {
 }
 
 function serializeSession(s) {
-  const topBrand = Object.entries(s.brandMentions).sort((a, b) => b[1] - a[1])[0][0];
+  // topBrand siempre recomputado desde los mensajes con la lógica nueva
+  // (usuario pesa 3x, empates → "Mixto", todos en 0 → null).
+  const topBrand = pickTopBrand(computeBrandMentions(s.messages));
   const products  = [...s.recommendedProducts];
   return {
     sessionId:           s.id,
@@ -308,19 +310,25 @@ const B2B_KW = [
 ];
 
 const BRAND_KW = {
+  // Solo keywords ESPECÍFICOS de cada marca. Términos genéricos como "cerveza"
+  // o "artesanal" se evitan a propósito — no atribuyen a nadie. La intención
+  // se infiere de menciones de marca + productos.
   'Kairos Brewing': [
-    'kairos', 'secret lab', 'galactic mission', 'alerta roja', 'nada personal',
+    'kairos',
+    'secret lab', 'galactic mission', 'alerta roja', 'nada personal',
     'imperio perdido', 'ritual de la banana', 'obertura', 'samba', 'hoyo en uno',
     'kenny bell', 'new zpot', 'vamos de paseo', 'valle nevado', 'osagui',
     'mango con petazetas', '4 balloons', 'l200', 'frank', 'albert',
-    'cerveza', 'cerv', 'ipa', 'neipa', 'pils', 'stout', 'ale', 'lager',
-    'weizen', 'märzen', 'bock', 'golden', 'artesanal',
   ],
-  'Firulais': ['firulais', 'chelada', 'michelada', 'caurina', 'pepita', 'cholita'],
+  'Firulais': [
+    'firulais', 'chelada', 'cheladas', 'michelada',
+    'caurina', 'pepita', 'cholita', 'cachupin', 'cachupín',
+  ],
   'Banny': [
-    'banny', 'gin ', 'ron ', 'rum ', 'whiskey', 'vermut', 'mojito',
-    'guantánamo', 'elizabeth', 'destilado', 'rtd', 'ready to drink',
-    'rey de copas', 'bárvaro',
+    'banny', 'gin', 'whisky', 'whiskey', 'bourbon', 'ron', 'rum',
+    'vermut', 'mojito', 'gin tonic', 'gintonic',
+    'guantánamo', 'elizabeth', 'destilado', 'destilados', 'rtd',
+    'rey de copas', 'bárvaro', 'barvaro',
   ],
 };
 
@@ -337,10 +345,53 @@ const PRODUCT_LIST = [
 const detect = (text, kws) => kws.some(k => text.toLowerCase().includes(k));
 
 function countBrands(text) {
-  const t = text.toLowerCase();
+  const t = String(text || '').toLowerCase();
   return Object.fromEntries(
     Object.entries(BRAND_KW).map(([b, kws]) => [b, kws.filter(k => t.includes(k)).length])
   );
+}
+
+// Recalcula el peso de cada marca desde el historial completo de mensajes de
+// una conversación. Lo del usuario pesa 3x lo del bot (lo que pide el cliente
+// importa más que lo que menciona el bot en su bienvenida/recomendación).
+function computeBrandMentions(messages) {
+  const mentions = { 'Kairos Brewing': 0, 'Firulais': 0, 'Banny': 0 };
+  for (const m of (messages || [])) {
+    if (!m || !m.content) continue;
+    const weight = m.role === 'user' ? 3 : 1;
+    const c = countBrands(m.content);
+    for (const [b, v] of Object.entries(c)) mentions[b] += v * weight;
+  }
+  return mentions;
+}
+
+// Elige la "marca top" con tolerancia a empates y conversaciones genéricas:
+// - 0 menciones totales → null (Sin marca).
+// - 2+ marcas en empate al máximo → "Mixto".
+// - 2+ marcas con menciones y la top tiene < 60% del total → "Mixto".
+// - Caso restante → marca con más menciones.
+function pickTopBrand(mentions) {
+  const entries = Object.entries(mentions);
+  const total = entries.reduce((s, e) => s + e[1], 0);
+  if (total === 0) return null;
+  const sorted = entries.slice().sort((a, b) => b[1] - a[1]);
+  const max = sorted[0][1];
+  const tied = sorted.filter(e => e[1] === max);
+  if (tied.length > 1) return 'Mixto';
+  const withMentions = sorted.filter(e => e[1] > 0).length;
+  const share = max / total;
+  if (withMentions >= 2 && share < 0.6) return 'Mixto';
+  return sorted[0][0];
+}
+
+// Versión "lazy" que se usa al leer conversaciones del log — recomputa desde
+// los mensajes para que las conversaciones viejas (con topBrand calculado por
+// la vieja lógica) también queden bien.
+function effectiveTopBrand(c) {
+  if (Array.isArray(c.messages) && c.messages.length) {
+    return pickTopBrand(computeBrandMentions(c.messages));
+  }
+  return c.topBrand || null;
 }
 
 const findProducts = text =>
@@ -1043,7 +1094,7 @@ function summarizeConversation(c){
     from:            c.from || 'zorbot',
     isB2B:           !!c.isB2B,
     purchaseIntent:  !!c.purchaseIntent,
-    topBrand:        c.topBrand || (c.summary && c.summary.topBrand) || null,
+    topBrand:        effectiveTopBrand(c),
     duration:        Number(c.duration) || 0,
     products:        Array.isArray(c.recommendedProducts) ? c.recommendedProducts : [],
     msgCount:        messages.length,
@@ -1092,7 +1143,11 @@ app.get('/admin/conversations', requireAdmin, (req, res) => {
 
     let items = all.map(summarizeConversation);
 
-    if (fBrand !== 'all') items = items.filter(c => brandKey(c.topBrand) === fBrand);
+    if (fBrand !== 'all') {
+      if (fBrand === 'mixto')   items = items.filter(c => c.topBrand === 'Mixto');
+      else if (fBrand === 'none') items = items.filter(c => !c.topBrand);
+      else items = items.filter(c => brandKey(c.topBrand) === fBrand);
+    }
     if (fMode === 'b2c')  items = items.filter(c => !c.isB2B);
     if (fMode === 'b2b')  items = items.filter(c =>  c.isB2B);
     if (fIntent === 'yes') items = items.filter(c => c.purchaseIntent);
@@ -1267,16 +1322,24 @@ app.get('/admin/analytics', requireAdmin, async (req, res) => {
     const totalDuration = subset.reduce((s,c) => s + (Number(c.duration) || 0), 0);
     const avgDuration = subset.length ? Math.round(totalDuration / subset.length) : 0;
 
-    // Distribución por marca (topBrand de cada conversación)
-    const brandCounts = { 'Kairos Brewing':0, 'Firulais':0, 'Banny':0 };
+    // Distribución por marca: recomputo topBrand desde los mensajes para que
+    // las conversaciones viejas (con topBrand mal calculado) queden bien.
+    // 5 buckets posibles: las 3 marcas + "Mixto" (varias marcas con peso
+    // parejo) + "Sin marca" (ninguna marca mencionada).
+    const brandCounts = { 'Kairos Brewing':0, 'Firulais':0, 'Banny':0, 'Mixto':0, 'Sin marca':0 };
     for (const c of subset) {
-      const b = c.topBrand;
-      if (b && brandCounts[b] != null) brandCounts[b]++;
+      const b = effectiveTopBrand(c);
+      if (b === 'Mixto')                      brandCounts['Mixto']++;
+      else if (b && brandCounts[b] != null)   brandCounts[b]++;
+      else                                    brandCounts['Sin marca']++;
     }
     const brandTotal = Object.values(brandCounts).reduce((a,b)=>a+b,0);
-    const brandDistribution = Object.entries(brandCounts).map(([brand,count]) => ({
-      brand, count, pct: brandTotal ? Math.round(count/brandTotal*1000)/10 : 0
-    })).sort((a,b)=>b.count-a.count);
+    const brandDistribution = Object.entries(brandCounts)
+      .map(([brand,count]) => ({ brand, count, pct: brandTotal ? Math.round(count/brandTotal*1000)/10 : 0 }))
+      .filter(b => b.count > 0)
+      .sort((a,b) => b.count - a.count);
+    // "Marca top" para el stat card: solo si una de las 3 marcas reales
+    // domina; si es Mixto o Sin marca el ganador, lo mostramos como tal.
     const topBrand = brandDistribution[0]?.count ? brandDistribution[0].brand : '—';
 
     // Distribución por origen (from)
