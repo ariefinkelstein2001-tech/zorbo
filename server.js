@@ -689,11 +689,24 @@ app.post('/chat', async (req, res) => {
 
   if (!message) return res.status(400).json({ error: 'El campo "message" es requerido.' });
 
+  // Carga el system prompt en cada request — así editar cualquier archivo
+  // de /prompts se refleja en la siguiente conversación sin reiniciar.
+  // - B2B (mayorista): un solo archivo (mayorista.md).
+  // - B2C: combinamos general.md + las 3 marcas (kairos, firulais, banny).
   let promptBase;
   try {
-    const promptFile = mayorista ? 'mayorista.md' : 'master.md';
-    promptBase = readFileSync(join(__dirname, 'prompts', promptFile), 'utf-8');
-  } catch {
+    const promptDir = join(__dirname, 'prompts');
+    if (mayorista) {
+      promptBase = readFileSync(join(promptDir, 'mayorista.md'), 'utf-8');
+    } else {
+      const general  = readFileSync(join(promptDir, 'general.md'),  'utf-8');
+      const kairos   = readFileSync(join(promptDir, 'kairos.md'),   'utf-8');
+      const firulais = readFileSync(join(promptDir, 'firulais.md'), 'utf-8');
+      const banny    = readFileSync(join(promptDir, 'banny.md'),    'utf-8');
+      promptBase = [general, kairos, firulais, banny].join('\n\n---\n\n');
+    }
+  } catch (e) {
+    console.error('prompt load:', e.message);
     return res.status(500).json({ error: 'Error al cargar el sistema.' });
   }
 
