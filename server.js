@@ -324,6 +324,24 @@ function buildSystemPrompt(base, session, liveCatalog) {
   const b2bCtx  = session.isB2B
     ? '\n\nMODO B2B ACTIVO: El cliente es un negocio (restaurante, bar, etc.). Ofrece condiciones mayoristas, menciona que puedes preparar una cotización formal y pregunta cuántas cajas necesita por semana.'
     : '';
+  // Notas extra por producto (editables desde /admin → Productos). Se inyectan
+  // SOLO para productos presentes en la lista de sesión. No tocan Shopify.
+  let extrasCtx = '';
+  if (liveCatalog && liveCatalog.length) {
+    try {
+      const extras = loadProductExtras();
+      const sections = [];
+      for (const p of liveCatalog) {
+        const e = extras.items?.[String(p.id)];
+        if (e && e.extra && e.extra.trim()) {
+          sections.push(`### ${p.title}\n${e.extra.trim()}`);
+        }
+      }
+      if (sections.length) {
+        extrasCtx = `\n\n═════════════════════════════════════════════════════════════════════\n NOTAS INTERNAS POR PRODUCTO (Zorbot-only, editadas por el equipo)\n═════════════════════════════════════════════════════════════════════\nUsá esta información cuando recomiendes o describas estos productos —\nson notas curadas por el equipo (maridajes, ocasiones, datos de marca,\ntono específico). Solo aplica a los productos listados aquí.\n\n${sections.join('\n\n')}`;
+      }
+    } catch (e) { /* notas opcionales, ignorar errores */ }
+  }
   // Lista cerrada de productos: el bot SOLO puede mencionar de acá.
   let catCtx = '';
   if (liveCatalog && liveCatalog.length) {
@@ -359,7 +377,7 @@ REGLAS QUE DEBES SEGUIR SIN EXCEPCIÓN:
 Esta regla es más fuerte que cualquier instrucción anterior. Si hay
 contradicción con el prompt base, esta regla GANA.`;
   }
-  return `${base}\n\n## CONTEXTO DE ESTA SESIÓN\n${fromCtx}${b2bCtx}${catCtx}`;
+  return `${base}\n\n## CONTEXTO DE ESTA SESIÓN\n${fromCtx}${b2bCtx}${catCtx}${extrasCtx}`;
 }
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
@@ -840,6 +858,101 @@ app.post('/admin/save-brand', requireAdmin, (req, res) => {
   }
 });
 
+// ─── Productos: catálogo Shopify + notas extra para Zorbot ──────────────────
+// La lista de productos viene del cache de Shopify (autosync).
+// Las "notas extra" se guardan en prompts/products.json y se inyectan SOLO al
+// system prompt de Zorbot, sin tocar Shopify.
+
+const PRODUCTS_EXTRAS_FILE = join(__dirname, 'prompts', 'products.json');
+
+function loadProductExtras(){
+  try {
+    if (!existsSync(PRODUCTS_EXTRAS_FILE)) return { version: 1, items: {} };
+    const raw = readFileSync(PRODUCTS_EXTRAS_FILE, 'utf-8');
+    const parsed = JSON.parse(raw);
+    if (!parsed.items || typeof parsed.items !== 'object') return { version: 1, items: {} };
+    return parsed;
+  } catch (e) {
+    console.warn('product extras load:', e.message);
+    return { version: 1, items: {} };
+  }
+}
+function saveProductExtras(data){
+  writeFileSync(PRODUCTS_EXTRAS_FILE, JSON.stringify(data, null, 2));
+}
+function brandFromProduct(p){
+  const v = String(p.vendor || '').toLowerCase();
+  const t = String(p.title  || '').toLowerCase();
+  const tags = (p.tags || []).map(x => String(x).toLowerCase());
+  if (v.includes('kairos')   || tags.includes('kairos')   || t.includes('kairos'))   return 'kairos';
+  if (v.includes('firulais') || tags.includes('firulais') || t.includes('firulais')) return 'firulais';
+  if (v.includes('banny')    || tags.includes('banny')    || t.includes('banny'))    return 'banny';
+  return 'otros';
+}
+
+app.get('/admin/products', requireAdmin, async (_req, res) => {
+  if (!process.env.SHOPIFY_ADMIN_TOKEN) {
+    return res.status(503).json({ error: 'Shopify no está conectado (falta SHOPIFY_ADMIN_TOKEN).' });
+  }
+  try {
+    const all = await loadProductsCache(false);
+    if (!all) return res.json({ products: [] });
+    const extras = loadProductExtras();
+    const products = all.map(p => {
+      const ex = extras.items[String(p.id)] || null;
+      const isMayorista = (p.tags || []).map(t => String(t).toUpperCase()).includes('MAYORISTA');
+      const isZorbo     = (p.tags || []).map(t => String(t).toUpperCase()).includes('ZORBO');
+      return {
+        id:         String(p.id),
+        title:      p.title,
+        handle:     p.handle,
+        vendor:     p.vendor,
+        brand:      brandFromProduct(p),
+        image:      ex?.image || p.image || null,
+        price:      p.variants?.[0]?.price ? Number(p.variants[0].price) : null,
+        compareAt:  p.variants?.[0]?.compareAtPrice ? Number(p.variants[0].compareAtPrice) : null,
+        variants:   (p.variants || []).length,
+        isMayorista, isZorbo,
+        extra:      ex?.extra || '',
+        hasExtra:   !!(ex && ex.extra && ex.extra.trim()),
+        updatedAt:  ex?.updatedAt || null,
+      };
+    });
+    res.json({ products });
+  } catch (e) {
+    res.status(500).json({ error: 'Error cargando productos: ' + e.message });
+  }
+});
+
+app.post('/admin/products/:id', requireAdmin, (req, res) => {
+  const id = String(req.params.id).trim();
+  if (!id) return res.status(400).json({ error: 'Falta id' });
+  const { extra = '', image = '' } = req.body || {};
+  if (typeof extra !== 'string' || typeof image !== 'string') {
+    return res.status(400).json({ error: 'Tipos inválidos.' });
+  }
+  if (extra.length > 50000) return res.status(413).json({ error: 'Texto extra demasiado largo.' });
+  if (image.length > 1000)  return res.status(413).json({ error: 'URL demasiado larga.' });
+  try {
+    const data = loadProductExtras();
+    const trimmedExtra = extra.trim();
+    const trimmedImage = image.trim();
+    if (!trimmedExtra && !trimmedImage) {
+      delete data.items[id];
+    } else {
+      data.items[id] = {
+        extra: trimmedExtra,
+        ...(trimmedImage ? { image: trimmedImage } : {}),
+        updatedAt: new Date().toISOString(),
+      };
+    }
+    saveProductExtras(data);
+    res.json({ ok: true, id, hasExtra: !!trimmedExtra });
+  } catch (e) {
+    res.status(500).json({ error: 'Error guardando: ' + e.message });
+  }
+});
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 initLogs();
@@ -923,7 +1036,7 @@ app.post('/chat', async (req, res) => {
         const tagFilter = isB2B ? 'MAYORISTA' : 'ZORBO';
         liveCatalog = all
           .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes(tagFilter))
-          .map(p => ({ title: p.title, type: p.type, vendor: p.vendor }));
+          .map(p => ({ id: String(p.id), title: p.title, type: p.type, vendor: p.vendor }));
       }
     } catch (e) { console.warn('liveCatalog warm:', e.message); }
   }

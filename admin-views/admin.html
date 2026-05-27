@@ -219,6 +219,118 @@ body{
 .adm-loading{padding:2.5rem;text-align:center;color:var(--muted);font-size:.85rem;font-family:var(--mono)}
 .adm-empty{padding:1.5rem;text-align:center;color:var(--dim);font-size:.85rem}
 
+/* ── PRODUCTOS ── */
+.adm-subtabs{
+  display:flex;gap:.4rem;margin-bottom:1.1rem;flex-wrap:wrap;
+}
+@media(max-width:600px){
+  .adm-subtabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .adm-subtabs::-webkit-scrollbar{display:none}
+}
+.adm-subtab{
+  flex-shrink:0;display:inline-flex;align-items:center;gap:.45rem;white-space:nowrap;
+  font-family:var(--sans);font-size:.72rem;font-weight:700;letter-spacing:.04em;
+  background:transparent;color:var(--muted);border:1px solid var(--border);
+  padding:.42rem .85rem;border-radius:18px;cursor:pointer;
+  transition:border-color .18s,color .18s,background .18s;
+}
+.adm-subtab:hover{border-color:var(--gold-bd-h);color:var(--text)}
+.adm-subtab.on{
+  background:var(--gold-dim);border-color:var(--gold-bd-h);color:var(--gold);
+}
+.adm-subtab-n{
+  font-family:var(--mono);font-size:.62rem;padding:.06rem .35rem;border-radius:5px;
+  background:var(--surface3);color:var(--dim);
+}
+.adm-subtab.on .adm-subtab-n{background:var(--gold-bd);color:var(--gold)}
+
+.adm-prod-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:.9rem;
+}
+@media (max-width:760px){
+  .adm-prod-grid{grid-template-columns:1fr}
+}
+
+.adm-prod{
+  background:var(--surface2);border:1px solid var(--gold-bd);border-radius:12px;
+  overflow:hidden;transition:border-color .2s,box-shadow .2s;
+  align-self:start;
+}
+.adm-prod:hover{border-color:var(--gold-bd-h)}
+.adm-prod.open{
+  grid-column:1 / -1;border-color:var(--gold-bd-h);
+  box-shadow:0 0 0 3px var(--gold-dim);
+}
+.adm-prod-head{
+  display:grid;grid-template-columns:84px 1fr 28px;gap:.85rem;
+  padding:.75rem .9rem;cursor:pointer;align-items:center;
+}
+.adm-prod-img-wrap{
+  width:84px;height:84px;border-radius:8px;background:var(--surface3);
+  overflow:hidden;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--border);
+}
+.adm-prod-img-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+.adm-prod-img-empty{font-family:var(--mono);font-size:.62rem;color:var(--dim);letter-spacing:.04em}
+.adm-prod-body{min-width:0;display:flex;flex-direction:column;gap:4px}
+.adm-prod-tags{display:flex;align-items:center;gap:.35rem;flex-wrap:wrap}
+.adm-prod-tag{
+  font-family:var(--mono);font-size:.58rem;font-weight:600;letter-spacing:.06em;
+  padding:.12rem .38rem;border-radius:4px;text-transform:uppercase;
+}
+.adm-prod-tag.mayo{background:rgba(182,164,230,.14);color:#b6a4e6;border:1px solid rgba(182,164,230,.28)}
+.adm-prod-tag.zorbo{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-bd)}
+.adm-prod-tag.note{background:var(--green-dim);color:var(--green);border:1px solid rgba(92,201,143,.28)}
+.adm-prod-brand{
+  margin-left:auto;font-family:var(--display);font-size:.62rem;font-weight:600;
+  color:var(--dim);letter-spacing:.12em;text-transform:uppercase;
+}
+.adm-prod-title{
+  font-family:var(--display);font-size:.95rem;font-weight:700;line-height:1.25;color:var(--text);
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+}
+.adm-prod-price{
+  font-family:var(--mono);font-size:.85rem;font-weight:600;color:var(--gold);
+  display:flex;align-items:baseline;gap:.5rem;
+}
+.adm-prod-old{color:var(--red);font-size:.7rem;text-decoration:line-through;font-weight:400}
+.adm-prod-vars{font-size:.62rem;color:var(--dim);font-weight:400;margin-left:auto}
+.adm-prod-toggle{
+  width:28px;height:28px;display:flex;align-items:center;justify-content:center;
+  background:var(--surface3);border:1px solid var(--border);border-radius:8px;
+  font-family:var(--mono);font-size:1.05rem;color:var(--muted);user-select:none;
+  transition:background .15s,color .15s,border-color .15s;
+}
+.adm-prod:hover .adm-prod-toggle{background:var(--gold-dim);color:var(--gold);border-color:var(--gold-bd-h)}
+
+.adm-prod-editor{
+  border-top:1px solid var(--gold-bd);padding:1rem 1.1rem 1.1rem;display:flex;flex-direction:column;gap:.65rem;
+  background:linear-gradient(180deg,var(--surface2) 0%,#15151d 100%);
+}
+.adm-prod-label{
+  font-size:.62rem;font-weight:700;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;
+  font-family:var(--sans);padding-left:.15rem;
+}
+.adm-prod-extra{
+  width:100%;min-height:140px;
+  background:#0c0c12;color:var(--text);
+  border:1px solid var(--border);border-radius:9px;
+  font-family:var(--mono);font-size:13px;line-height:1.65;
+  padding:.75rem .9rem;resize:vertical;outline:none;
+  transition:border-color .15s;
+}
+.adm-prod-extra:focus{border-color:var(--gold-bd-h)}
+.adm-prod-img{
+  width:100%;background:var(--surface);color:var(--text);
+  border:1px solid var(--border);border-radius:9px;
+  font-family:var(--mono);font-size:.82rem;
+  padding:.55rem .8rem;outline:none;
+  transition:border-color .15s;
+}
+.adm-prod-img:focus{border-color:var(--gold-bd-h)}
+.adm-prod-acts{display:flex;gap:.5rem;justify-content:flex-end;margin-top:.3rem}
+.adm-prod-meta{font-family:var(--mono);font-size:.65rem;color:var(--dim);margin-top:.1rem}
+
 /* ── CHAT PREVIEW ── */
 .adm-chat{
   position:sticky;top:5.2rem;align-self:start;
@@ -377,7 +489,9 @@ body{
   <!-- Editor -->
   <section>
     <div class="adm-tabs" id="tabs"></div>
-    <div class="adm-panel" id="panel">
+
+    <!-- Vista de markdown (general/kairos/firulais/banny/mayorista) -->
+    <div class="adm-panel" id="mdView">
       <div class="adm-panel-head">
         <div>
           <div class="adm-panel-title" id="panelTitle">—</div>
@@ -393,6 +507,23 @@ body{
         <div class="adm-loading">Cargando contenido…</div>
       </div>
       <button class="adm-add-block" id="btnAddBlock" type="button" style="display:none">+ Agregar bloque</button>
+    </div>
+
+    <!-- Vista de productos (sync con Shopify + notas Zorbot) -->
+    <div class="adm-panel" id="productsView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Productos</div>
+          <div class="adm-panel-meta">sync Shopify · las notas extra solo viajan a Zorbot</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="btnReloadProd" type="button">Recargar catálogo</button>
+        </div>
+      </div>
+      <div class="adm-subtabs" id="brandTabs"></div>
+      <div class="adm-prod-grid" id="productGrid">
+        <div class="adm-loading">Cargando productos…</div>
+      </div>
     </div>
   </section>
 
@@ -430,12 +561,22 @@ body{
 <script>
 // ─── Secciones disponibles ──────────────────────────────────────────────────
 const SECCIONES = [
-  { id:'general',   label:'General',         desc:'identidad · tono · reglas globales' },
-  { id:'kairos',    label:'Kairos Brewing',  desc:'cervezas artesanales' },
-  { id:'firulais',  label:'Firulais',        desc:'cheladas craft' },
-  { id:'banny',     label:'Banny',           desc:'destilados · RTD' },
-  { id:'mayorista', label:'Mayoristas (B2B)',desc:'restaurantes · botillerías · eventos' },
+  { id:'general',   kind:'md',       label:'General',         desc:'identidad · tono · reglas globales' },
+  { id:'kairos',    kind:'md',       label:'Kairos Brewing',  desc:'cervezas artesanales' },
+  { id:'firulais',  kind:'md',       label:'Firulais',        desc:'cheladas craft' },
+  { id:'banny',     kind:'md',       label:'Banny',           desc:'destilados · RTD' },
+  { id:'mayorista', kind:'md',       label:'Mayoristas (B2B)',desc:'restaurantes · botillerías · eventos' },
+  { id:'productos', kind:'products', label:'Productos',       desc:'catálogo Shopify · notas extra para Zorbot' },
 ];
+const BRANDS = [
+  { id:'all',      label:'Todos'           },
+  { id:'kairos',   label:'Kairos Brewing'  },
+  { id:'firulais', label:'Firulais'        },
+  { id:'banny',    label:'Banny'           },
+];
+let activeBrand = 'all';
+let productsCache = [];
+let openProductId = null;
 
 let activeSeccion = 'general';
 let originalContent = '';
@@ -460,7 +601,23 @@ async function selectSeccion(id){
   if (dirty && !confirm('Tenés cambios sin guardar en esta sección. Descartar?')) return;
   activeSeccion = id;
   renderTabs();
-  await loadSeccion();
+  const sec = SECCIONES.find(s => s.id === id);
+  if (sec.kind === 'products') {
+    showProductsView();
+    await loadProductos();
+  } else {
+    showMdView();
+    await loadSeccion();
+  }
+}
+
+function showMdView(){
+  document.getElementById('mdView').style.display = '';
+  document.getElementById('productsView').style.display = 'none';
+}
+function showProductsView(){
+  document.getElementById('mdView').style.display = 'none';
+  document.getElementById('productsView').style.display = '';
 }
 
 // ─── Parse / serialize markdown ─────────────────────────────────────────────
@@ -626,6 +783,165 @@ document.getElementById('btnReload').onclick = () => {
   if (dirty && !confirm('Hay cambios sin guardar. Descartar y recargar?')) return;
   loadSeccion();
 };
+
+// ─── Productos: catálogo Shopify + notas extra para Zorbot ──────────────────
+async function loadProductos(){
+  document.getElementById('productGrid').innerHTML = '<div class="adm-loading">Cargando catálogo desde Shopify…</div>';
+  document.getElementById('brandTabs').innerHTML = '';
+  try {
+    const r = await fetch('/admin/products');
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.error || 'HTTP ' + r.status);
+    }
+    const data = await r.json();
+    productsCache = data.products || [];
+    renderBrandTabs();
+    renderProductGrid();
+  } catch (e) {
+    document.getElementById('productGrid').innerHTML =
+      `<div class="adm-empty" style="color:var(--red)">Error cargando productos: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderBrandTabs(){
+  const wrap = document.getElementById('brandTabs');
+  wrap.innerHTML = BRANDS.map(b => {
+    const count = b.id === 'all'
+      ? productsCache.length
+      : productsCache.filter(p => p.brand === b.id).length;
+    return `<button type="button" class="adm-subtab ${b.id===activeBrand?'on':''}" data-id="${b.id}">
+      ${escapeHtml(b.label)}<span class="adm-subtab-n">${count}</span>
+    </button>`;
+  }).join('');
+  wrap.querySelectorAll('.adm-subtab').forEach(b => {
+    b.onclick = () => { activeBrand = b.dataset.id; renderBrandTabs(); renderProductGrid(); };
+  });
+}
+
+function renderProductGrid(){
+  const wrap = document.getElementById('productGrid');
+  const list = activeBrand === 'all' ? productsCache : productsCache.filter(p => p.brand === activeBrand);
+  if (!list.length) {
+    wrap.innerHTML = '<div class="adm-empty">No hay productos para esta marca en Shopify.</div>';
+    return;
+  }
+  // Orden: con notas primero, luego mayoristas al final
+  list.sort((a, b) => {
+    if (a.hasExtra !== b.hasExtra) return a.hasExtra ? -1 : 1;
+    if (a.isMayorista !== b.isMayorista) return a.isMayorista ? 1 : -1;
+    return (a.title || '').localeCompare(b.title || '');
+  });
+  wrap.innerHTML = list.map(p => productCardHtml(p)).join('');
+  bindProductCards();
+}
+
+function productCardHtml(p){
+  const isOpen = openProductId === p.id;
+  const price = p.price != null ? `$${Math.round(p.price).toLocaleString('es-CL')}` : '—';
+  const compare = (p.compareAt && p.compareAt > p.price)
+    ? `<span class="adm-prod-old">$${Math.round(p.compareAt).toLocaleString('es-CL')}</span>` : '';
+  const tagDots = [
+    p.isMayorista ? '<span class="adm-prod-tag mayo">B2B</span>' : '',
+    p.isZorbo     ? '<span class="adm-prod-tag zorbo">ZORBO</span>' : '',
+    p.hasExtra    ? '<span class="adm-prod-tag note">notas</span>' : '',
+  ].filter(Boolean).join('');
+  const editor = isOpen ? `
+    <div class="adm-prod-editor">
+      <label class="adm-prod-label">Notas para Zorbot (Markdown soportado)</label>
+      <textarea class="adm-prod-extra" data-pid="${p.id}" rows="8"
+        placeholder="Descripción extendida, maridajes, ocasiones, tono que querés que use el bot al hablar de este producto…">${escapeHtml(p.extra || '')}</textarea>
+      <label class="adm-prod-label">Imagen override (URL · opcional)</label>
+      <input class="adm-prod-img" data-pid="${p.id}" type="url"
+        placeholder="https://… (vacío = usa la imagen de Shopify)"
+        value="${escapeAttr(p.image && p.image !== getShopifyImage(p) ? p.image : '')}">
+      <div class="adm-prod-acts">
+        <button class="adm-btn adm-btn-ghost" data-act="cancel" data-pid="${p.id}" type="button">Cerrar</button>
+        <button class="adm-btn adm-btn-gold"  data-act="save"   data-pid="${p.id}" type="button">Guardar notas</button>
+      </div>
+      <div class="adm-prod-meta">${p.updatedAt ? 'Última edición: ' + new Date(p.updatedAt).toLocaleString('es-CL') : 'Sin notas guardadas aún'}</div>
+    </div>` : '';
+  return `
+    <div class="adm-prod ${isOpen ? 'open':''}" data-pid="${p.id}">
+      <div class="adm-prod-head" data-act="toggle" data-pid="${p.id}">
+        <div class="adm-prod-img-wrap">
+          ${p.image ? `<img src="${escapeAttr(p.image)}" alt="${escapeAttr(p.title)}" loading="lazy">` : `<div class="adm-prod-img-empty">sin foto</div>`}
+        </div>
+        <div class="adm-prod-body">
+          <div class="adm-prod-tags">${tagDots}<span class="adm-prod-brand">${escapeHtml(brandLabel(p.brand))}</span></div>
+          <div class="adm-prod-title">${escapeHtml(p.title)}</div>
+          <div class="adm-prod-price">${compare}${price}<span class="adm-prod-vars">${p.variants} variante${p.variants===1?'':'s'}</span></div>
+        </div>
+        <div class="adm-prod-toggle">${isOpen ? '−' : '+'}</div>
+      </div>
+      ${editor}
+    </div>`;
+}
+
+function brandLabel(id){
+  if (id === 'kairos')   return 'Kairos Brewing';
+  if (id === 'firulais') return 'Firulais';
+  if (id === 'banny')    return 'Banny';
+  return 'Otros';
+}
+function getShopifyImage(p){ return p.image; }
+
+function bindProductCards(){
+  document.querySelectorAll('.adm-prod [data-act="toggle"]').forEach(el => {
+    el.onclick = () => {
+      const pid = el.dataset.pid;
+      openProductId = (openProductId === pid) ? null : pid;
+      renderProductGrid();
+      const card = document.querySelector(`.adm-prod[data-pid="${CSS.escape(pid)}"]`);
+      if (card && openProductId === pid) card.scrollIntoView({ behavior:'smooth', block:'center' });
+    };
+  });
+  document.querySelectorAll('.adm-prod [data-act="cancel"]').forEach(el => {
+    el.onclick = (ev) => {
+      ev.stopPropagation();
+      openProductId = null;
+      renderProductGrid();
+    };
+  });
+  document.querySelectorAll('.adm-prod [data-act="save"]').forEach(el => {
+    el.onclick = async (ev) => {
+      ev.stopPropagation();
+      const pid = el.dataset.pid;
+      const card = document.querySelector(`.adm-prod[data-pid="${CSS.escape(pid)}"]`);
+      const extra = card.querySelector('.adm-prod-extra').value;
+      const image = card.querySelector('.adm-prod-img').value;
+      el.disabled = true;
+      const original = el.textContent;
+      el.textContent = 'Guardando…';
+      try {
+        const r = await fetch('/admin/products/' + encodeURIComponent(pid), {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ extra, image }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+        const idx = productsCache.findIndex(x => x.id === pid);
+        if (idx >= 0) {
+          productsCache[idx].extra = extra.trim();
+          productsCache[idx].hasExtra = !!extra.trim();
+          productsCache[idx].updatedAt = new Date().toISOString();
+          if (image && image.trim()) productsCache[idx].image = image.trim();
+        }
+        showToast(`Notas guardadas ✓ — el bot ya las está usando`, 'ok');
+        openProductId = null;
+        renderProductGrid();
+        renderBrandTabs();
+      } catch (e) {
+        showToast('Error al guardar: ' + e.message, 'err');
+        el.disabled = false;
+        el.textContent = original;
+      }
+    };
+  });
+}
+
+document.getElementById('btnReloadProd').onclick = () => { openProductId = null; loadProductos(); };
 
 // ─── Chat preview ───────────────────────────────────────────────────────────
 function botAvatarHtml(){
