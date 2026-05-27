@@ -1699,28 +1699,39 @@ function renderDrawer(c, s){
 }
 
 // ─── Modal Feedback (Vambe-style) ──────────────────────────────────────────
-let feedbackMsgIndex = null;
-function openFeedback(idx){
-  if (!drawerConv) return;
-  const m = drawerConv.messages[idx];
-  if (!m) return;
-  feedbackMsgIndex = idx;
-  const text = String(m.content || '');
-  document.getElementById('fbOriginal').value = text;
-  document.getElementById('fbImproved').value = text;
+// El modal sirve tanto para mensajes de conversaciones guardadas (drawer) como
+// para mensajes en vivo del preview chat. El contexto (sessionId y
+// messageIndex) se pasa al abrir.
+let feedbackCtx = { sessionId: null, messageIndex: null };
+
+function openFeedbackForText(text, sessionId, messageIndex){
+  feedbackCtx = {
+    sessionId:    sessionId || null,
+    messageIndex: Number.isInteger(messageIndex) ? messageIndex : null,
+  };
+  const t = String(text || '');
+  document.getElementById('fbOriginal').value = t;
+  document.getElementById('fbImproved').value = t;
   document.getElementById('fbExplain').value  = '';
   const modal = document.getElementById('feedbackModal');
   modal.classList.add('open');
   document.body.classList.add('drawer-open');
   setTimeout(() => document.getElementById('fbImproved').focus(), 50);
 }
+
+function openFeedback(idx){
+  if (!drawerConv) return;
+  const m = drawerConv.messages[idx];
+  if (!m) return;
+  openFeedbackForText(m.content, drawerConv.sessionId, idx);
+}
+
 function closeFeedback(){
   document.getElementById('feedbackModal').classList.remove('open');
-  // si el drawer sigue abierto mantenemos overflow:hidden
   if (!document.getElementById('chatDrawer').classList.contains('open')) {
     document.body.classList.remove('drawer-open');
   }
-  feedbackMsgIndex = null;
+  feedbackCtx = { sessionId: null, messageIndex: null };
 }
 document.getElementById('feedbackModal').addEventListener('click', (e) => {
   if (e.target.dataset.act === 'close-fb') closeFeedback();
@@ -1730,10 +1741,10 @@ document.addEventListener('keydown', (e) => {
 });
 
 document.getElementById('fbSubmit').onclick = async () => {
-  if (!drawerConv || feedbackMsgIndex == null) return;
   const original    = document.getElementById('fbOriginal').value;
   const improved    = document.getElementById('fbImproved').value;
   const explanation = document.getElementById('fbExplain').value;
+  if (!original.trim()) return;
   if (improved.trim() === original.trim() && !explanation.trim()) {
     showToast('Cambiá el mensaje mejorado o agregá una explicación.', 'err');
     return;
@@ -1747,26 +1758,44 @@ document.getElementById('fbSubmit').onclick = async () => {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        sessionId:    drawerConv.sessionId,
-        messageIndex: feedbackMsgIndex,
+        sessionId:    feedbackCtx.sessionId,
+        messageIndex: feedbackCtx.messageIndex,
         original, improved, explanation,
       }),
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
-    drawerFeedback.push({
-      id: data.id, sessionId: drawerConv.sessionId, messageIndex: feedbackMsgIndex,
-      original: original.trim(), improved: improved.trim(), explanation: explanation.trim(),
-      createdAt: new Date().toISOString(),
-    });
+    // Si el feedback proviene del drawer y la sesión coincide, actualizo el
+    // chip "✓ entrenado" sobre ese mensaje.
+    if (drawerConv && feedbackCtx.sessionId === drawerConv.sessionId && Number.isInteger(feedbackCtx.messageIndex)) {
+      drawerFeedback.push({
+        id: data.id, sessionId: drawerConv.sessionId, messageIndex: feedbackCtx.messageIndex,
+        original: original.trim(), improved: improved.trim(), explanation: explanation.trim(),
+        createdAt: new Date().toISOString(),
+      });
+      const summary = {
+        msgCount: drawerConv.messages.length, duration: drawerConv.duration || 0,
+        isB2B: !!drawerConv.isB2B, purchaseIntent: !!drawerConv.purchaseIntent,
+        topBrand: drawerConv.topBrand || null, from: drawerConv.from || 'zorbot',
+        products: drawerConv.recommendedProducts || [],
+      };
+      renderDrawer(drawerConv, summary);
+    }
+    // Si el feedback proviene del preview chat, marco la fila con el chip.
+    const fbRowId = window._pendingPreviewFbRow;
+    if (fbRowId) {
+      const row = document.getElementById(fbRowId);
+      if (row && !row.querySelector('.adm-msg-fb-tag')) {
+        const tag = document.createElement('span');
+        tag.className = 'adm-msg-fb-tag';
+        tag.textContent = '✓ entrenado';
+        const actions = row.querySelector('.adm-msg-actions');
+        if (actions) actions.insertBefore(tag, actions.firstChild);
+      }
+      window._pendingPreviewFbRow = null;
+    }
     showToast(`Entrenado ✓ — Zorbot lo va a tener en cuenta (${data.total} feedback total)`, 'ok');
     closeFeedback();
-    // re-render para mostrar el chip "✓ entrenado"
-    const summary = { msgCount: drawerConv.messages.length, duration: drawerConv.duration || 0,
-                      isB2B: !!drawerConv.isB2B, purchaseIntent: !!drawerConv.purchaseIntent,
-                      topBrand: drawerConv.topBrand || null, from: drawerConv.from || 'zorbot',
-                      products: drawerConv.recommendedProducts || [] };
-    renderDrawer(drawerConv, summary);
   } catch (e) {
     showToast('Error: ' + e.message, 'err');
   } finally {
@@ -1869,6 +1898,8 @@ async function chatSend(){
       }
     }
     if (!started) bubble.textContent = '(sin respuesta)';
+    // Una vez que la respuesta termina, agrego botón "Dar feedback" debajo.
+    attachPreviewFeedback(tRow, bubble);
   } catch (e) {
     tRow.classList.remove('adm-typing');
     bubble.textContent = 'Error: ' + e.message;
@@ -1877,6 +1908,28 @@ async function chatSend(){
     chatStreaming = false;
     document.getElementById('chatSend').disabled = false;
   }
+}
+
+let _previewRowSeq = 0;
+function attachPreviewFeedback(row, bubble){
+  const text = bubble.textContent || '';
+  if (!text.trim()) return;
+  // ID estable por fila para poder marcarla con "✓ entrenado" al guardar.
+  if (!row.id) row.id = 'previewRow_' + (++_previewRowSeq);
+  const col = row.querySelector('.adm-msg-col');
+  if (!col || col.querySelector('.adm-msg-actions')) return;
+  const actions = document.createElement('div');
+  actions.className = 'adm-msg-actions';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'adm-msg-fb';
+  btn.textContent = 'Dar feedback';
+  btn.onclick = () => {
+    window._pendingPreviewFbRow = row.id;
+    openFeedbackForText(bubble.textContent, chatSessionId, null);
+  };
+  actions.appendChild(btn);
+  col.appendChild(actions);
 }
 
 function updateChatModeLabel(){
