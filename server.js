@@ -1195,6 +1195,22 @@ app.get('/admin/conversations/:id', requireAdmin, (req, res) => {
   }
 });
 
+app.delete('/admin/conversations/:id', requireAdmin, (req, res) => {
+  try {
+    const all = readLog(CONV_LOG);
+    if (!Array.isArray(all)) return res.status(404).json({ error: 'No hay conversaciones.' });
+    const idx = all.findIndex(e => e.sessionId === req.params.id);
+    if (idx < 0) return res.status(404).json({ error: 'Conversación no encontrada.' });
+    all.splice(idx, 1);
+    writeFileSync(CONV_LOG, JSON.stringify(all, null, 2));
+    // También limpiamos la sesión activa en memoria si existe
+    sessions.delete(req.params.id);
+    res.json({ ok: true, total: all.length });
+  } catch (e) {
+    res.status(500).json({ error: 'Error eliminando: ' + e.message });
+  }
+});
+
 // ─── Feedback (entrenamiento por few-shot) ──────────────────────────────────
 // Cada entrada es una corrección "respuesta incorrecta → respuesta correcta"
 // guardada por el equipo desde el panel. Las últimas FEEDBACK_INJECT entradas
@@ -1249,6 +1265,32 @@ app.post('/admin/feedback', requireAdmin, (req, res) => {
   all.push(entry);
   saveFeedback(all);
   res.json({ ok: true, id: entry.id, total: all.length });
+});
+
+app.put('/admin/feedback/:id', requireAdmin, (req, res) => {
+  const all = loadFeedback();
+  const idx = all.findIndex(f => f.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'No encontrado.' });
+  const { original, improved, explanation } = req.body || {};
+  if (typeof original !== 'string' || typeof improved !== 'string') {
+    return res.status(400).json({ error: 'Faltan original e improved.' });
+  }
+  const o = original.trim(), i = improved.trim(), e = (explanation || '').trim();
+  if (!o) return res.status(400).json({ error: 'El mensaje original está vacío.' });
+  if (!i && !e) return res.status(400).json({ error: 'Necesito al menos un mensaje mejorado o una explicación.' });
+  if (i === o && !e) return res.status(400).json({ error: 'El mensaje mejorado es idéntico al original. Agregá una explicación o cambialo.' });
+  if (o.length > 8000 || i.length > 8000 || e.length > 4000) {
+    return res.status(413).json({ error: 'Texto demasiado largo.' });
+  }
+  all[idx] = {
+    ...all[idx],
+    original: o,
+    improved: i || o,
+    explanation: e,
+    updatedAt: new Date().toISOString(),
+  };
+  saveFeedback(all);
+  res.json({ ok: true, id: all[idx].id, entry: all[idx] });
 });
 
 app.delete('/admin/feedback/:id', requireAdmin, (req, res) => {

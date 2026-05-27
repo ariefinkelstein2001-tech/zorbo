@@ -459,6 +459,14 @@ body.drawer-open{overflow:hidden}
   font-family:var(--display);font-size:1.15rem;font-weight:800;letter-spacing:-.005em;line-height:1.2;
 }
 .adm-drawer-meta{font-family:var(--mono);font-size:.65rem;color:var(--dim);margin-top:4px;line-height:1.4;word-break:break-all}
+.adm-drawer-head-acts{display:flex;align-items:center;gap:.4rem;flex-shrink:0}
+.adm-drawer-del{
+  background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+  font-family:var(--sans);font-size:.72rem;font-weight:600;letter-spacing:.04em;
+  padding:.42rem .75rem;border-radius:9px;cursor:pointer;
+  transition:color .15s,border-color .15s,background .15s;
+}
+.adm-drawer-del:hover{color:var(--red);border-color:rgba(224,101,79,.5);background:var(--red-dim)}
 .adm-drawer-x{
   background:var(--surface2);border:1px solid var(--border);color:var(--muted);
   width:34px;height:34px;border-radius:9px;cursor:pointer;flex-shrink:0;
@@ -466,6 +474,58 @@ body.drawer-open{overflow:hidden}
   transition:color .15s,border-color .15s,background .15s;
 }
 .adm-drawer-x:hover{color:var(--gold);border-color:var(--gold-bd-h);background:var(--gold-dim)}
+
+.adm-chat-top-right{display:flex;align-items:center;gap:.5rem;flex-shrink:0}
+.adm-chat-del{
+  width:24px;height:24px;border-radius:6px;border:1px solid var(--border);
+  background:transparent;color:var(--dim);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:.7rem;
+  transition:color .15s,border-color .15s,background .15s;
+}
+.adm-chat-del:hover{color:var(--red);border-color:rgba(224,101,79,.5);background:var(--red-dim)}
+
+/* ── Lista de Feedback ── */
+.adm-fb-list{display:flex;flex-direction:column;gap:.7rem}
+.adm-fb-item{
+  background:var(--surface2);border:1px solid var(--gold-bd);border-radius:11px;
+  padding:.85rem 1rem;
+  transition:border-color .2s;
+}
+.adm-fb-item:hover{border-color:var(--gold-bd-h)}
+.adm-fb-item-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.7rem;flex-wrap:wrap}
+.adm-fb-item-meta{display:flex;align-items:center;gap:.55rem;font-family:var(--mono);font-size:.7rem;color:var(--dim);flex-wrap:wrap}
+.adm-fb-item-when{letter-spacing:.04em}
+.adm-fb-item-link{
+  background:transparent;border:none;color:var(--gold);cursor:pointer;
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.04em;
+  padding:.1rem .2rem;text-decoration:underline;text-underline-offset:3px;
+  text-decoration-color:rgba(233,196,106,.3);transition:text-decoration-color .15s;
+}
+.adm-fb-item-link:hover{text-decoration-color:var(--gold)}
+.adm-fb-item-acts{display:flex;gap:.35rem;flex-shrink:0}
+.adm-fb-item-edit, .adm-fb-item-del{
+  background:transparent;border:1px solid var(--border);cursor:pointer;
+  font-family:var(--sans);font-size:.7rem;font-weight:600;letter-spacing:.04em;
+  padding:.35rem .65rem;border-radius:7px;
+  transition:color .15s,border-color .15s,background .15s;
+}
+.adm-fb-item-edit{color:var(--muted)}
+.adm-fb-item-edit:hover{color:var(--gold);border-color:var(--gold-bd-h);background:var(--gold-dim)}
+.adm-fb-item-del{color:var(--muted)}
+.adm-fb-item-del:hover{color:var(--red);border-color:rgba(224,101,79,.5);background:var(--red-dim)}
+.adm-fb-item-cols{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+@media(max-width:680px){.adm-fb-item-cols{grid-template-columns:1fr}}
+.adm-fb-item-col{display:flex;flex-direction:column;gap:.3rem;min-width:0}
+.adm-fb-item-label{font-family:var(--sans);font-size:.6rem;font-weight:700;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;padding-left:.15rem}
+.adm-fb-item-text{
+  font-family:var(--sans);font-size:.86rem;line-height:1.5;color:var(--text);
+  background:#0c0c12;border:1px solid var(--border);border-radius:8px;
+  padding:.6rem .8rem;white-space:pre-wrap;word-wrap:break-word;
+}
+.adm-fb-item-text.bad{border-color:rgba(224,101,79,.28);color:rgba(241,237,229,.72)}
+.adm-fb-item-text.good{border-color:rgba(92,201,143,.32);color:var(--text)}
+.adm-fb-item-explain{margin-top:.7rem;display:flex;flex-direction:column;gap:.3rem}
+.adm-fb-item-explain .adm-fb-item-text{background:transparent;border:1px dashed var(--border);color:var(--muted);font-style:italic}
 .adm-drawer-tags{
   padding:.7rem 1.2rem;border-bottom:1px solid var(--border);
   display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;
@@ -850,6 +910,23 @@ body.drawer-open{overflow:hidden}
       </div>
     </div>
 
+    <!-- Vista de feedback (lista + edición de correcciones del bot) -->
+    <div class="adm-panel" id="feedbackView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Feedback</div>
+          <div class="adm-panel-meta" id="fbCountMeta">correcciones que entrenan a Zorbot</div>
+        </div>
+        <div class="adm-actions">
+          <span class="adm-status hidden" id="fbInjectInfo"></span>
+          <button class="adm-btn adm-btn-ghost" id="btnReloadFb" type="button">Recargar</button>
+        </div>
+      </div>
+      <div class="adm-fb-list" id="fbList">
+        <div class="adm-loading">Cargando feedback…</div>
+      </div>
+    </div>
+
     <!-- Vista de markdown (general/kairos/firulais/banny/mayorista) -->
     <div class="adm-panel" id="mdView">
       <div class="adm-panel-head">
@@ -955,11 +1032,14 @@ body.drawer-open{overflow:hidden}
     <div class="adm-drawer-bg" data-act="close-drawer"></div>
     <div class="adm-drawer-panel">
       <div class="adm-drawer-head">
-        <div>
+        <div style="min-width:0;flex:1">
           <div class="adm-drawer-title" id="drawerTitle">Conversación</div>
           <div class="adm-drawer-meta"  id="drawerMeta">—</div>
         </div>
-        <button type="button" class="adm-drawer-x" data-act="close-drawer" aria-label="Cerrar">✕</button>
+        <div class="adm-drawer-head-acts">
+          <button type="button" class="adm-drawer-del" id="btnDeleteConv" title="Eliminar conversación">Eliminar</button>
+          <button type="button" class="adm-drawer-x" data-act="close-drawer" aria-label="Cerrar">✕</button>
+        </div>
       </div>
       <div class="adm-drawer-tags" id="drawerTags"></div>
       <div class="adm-drawer-body" id="drawerBody">
@@ -1035,6 +1115,7 @@ body.drawer-open{overflow:hidden}
 const SECCIONES = [
   { id:'analytics', kind:'analytics',label:'Analítica',       desc:'foto general del negocio · números y gráficos' },
   { id:'chats',     kind:'chats',    label:'Conversaciones',  desc:'historial completo · filtros y embudo' },
+  { id:'feedback',  kind:'feedback', label:'Feedback',        desc:'correcciones para entrenar a Zorbot' },
   { id:'productos', kind:'products', label:'Productos',       desc:'catálogo Shopify · notas extra para Zorbot' },
   { id:'general',   kind:'md',       label:'General',         desc:'identidad · tono · reglas globales' },
   { id:'kairos',    kind:'md',       label:'Kairos Brewing',  desc:'cervezas artesanales' },
@@ -1047,6 +1128,7 @@ const BRANDS = [
   { id:'kairos',   label:'Kairos Brewing'  },
   { id:'firulais', label:'Firulais'        },
   { id:'banny',    label:'Banny'           },
+  { id:'otros',    label:'Otros'           },
 ];
 let activeBrand = 'all';
 let activeProdSection = 'minorista';
@@ -1086,6 +1168,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'chats') {
     showView('chats');
     await loadConversations();
+  } else if (sec.kind === 'feedback') {
+    showView('feedback');
+    await loadFeedbackList();
   } else {
     showView('md');
     await loadSeccion();
@@ -1097,6 +1182,7 @@ function showView(kind){
   document.getElementById('productsView').style.display  = kind === 'products'  ? '' : 'none';
   document.getElementById('chatsView').style.display     = kind === 'chats'     ? '' : 'none';
   document.getElementById('analyticsView').style.display = kind === 'analytics' ? '' : 'none';
+  document.getElementById('feedbackView').style.display  = kind === 'feedback'  ? '' : 'none';
 }
 
 // ─── Parse / serialize markdown ─────────────────────────────────────────────
@@ -1378,6 +1464,7 @@ function brandLabel(id){
   if (id === 'kairos')   return 'Kairos Brewing';
   if (id === 'firulais') return 'Firulais';
   if (id === 'banny')    return 'Banny';
+  if (id === 'otros')    return 'Otros';
   return 'Otros';
 }
 function getShopifyImage(p){ return p.image; }
@@ -1506,8 +1593,33 @@ function renderChatsList(filteredTotal){
   cnt.textContent = (filteredTotal ?? chatsCache.length) + ' resultado' + (filteredTotal === 1 ? '' : 's');
   list.innerHTML = chatsCache.map(c => chatCardHtml(c)).join('');
   list.querySelectorAll('.adm-chat-card').forEach(el => {
-    el.onclick = () => openConversation(el.dataset.id);
+    el.onclick = (ev) => {
+      if (ev.target.closest('.adm-chat-del')) return;
+      openConversation(el.dataset.id);
+    };
   });
+  list.querySelectorAll('.adm-chat-del').forEach(btn => {
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      deleteConversation(btn.dataset.id);
+    };
+  });
+}
+
+async function deleteConversation(id){
+  if (!confirm('Eliminar esta conversación? No se puede deshacer.')) return;
+  try {
+    const r = await fetch('/admin/conversations/' + encodeURIComponent(id), { method:'DELETE' });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+    chatsCache = chatsCache.filter(c => c.sessionId !== id);
+    renderChatsList(chatsCache.length);
+    showToast('Conversación eliminada ✓', 'ok');
+    // si el drawer estaba abierto en esta conv, cerrarlo
+    if (drawerConv && drawerConv.sessionId === id) closeDrawer();
+  } catch (e) {
+    showToast('Error al eliminar: ' + e.message, 'err');
+  }
 }
 
 function chatCardHtml(c){
@@ -1533,7 +1645,10 @@ function chatCardHtml(c){
           <span class="adm-chat-tag brand">${escapeHtml(brand)}</span>
           <span class="adm-chat-tag from">${escapeHtml(fromLabel)}</span>
         </div>
-        <div class="adm-chat-when" title="${escapeAttr(c.lastActivity || '')}">${when}</div>
+        <div class="adm-chat-top-right">
+          <div class="adm-chat-when" title="${escapeAttr(c.lastActivity || '')}">${when}</div>
+          <button type="button" class="adm-chat-del" data-id="${escapeAttr(c.sessionId)}" title="Eliminar conversación" aria-label="Eliminar">✕</button>
+        </div>
       </div>
       <div class="adm-chat-preview">${preview}</div>
       <div class="adm-chat-card-bottom">
@@ -1633,6 +1748,12 @@ async function openConversation(id){
       `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`;
   }
 }
+
+// Botón Eliminar del drawer
+document.getElementById('btnDeleteConv').onclick = () => {
+  if (!drawerConv) return;
+  deleteConversation(drawerConv.sessionId);
+};
 function closeDrawer(){
   document.getElementById('chatDrawer').classList.remove('open');
   document.body.classList.remove('drawer-open');
@@ -1699,20 +1820,37 @@ function renderDrawer(c, s){
 }
 
 // ─── Modal Feedback (Vambe-style) ──────────────────────────────────────────
-// El modal sirve tanto para mensajes de conversaciones guardadas (drawer) como
-// para mensajes en vivo del preview chat. El contexto (sessionId y
-// messageIndex) se pasa al abrir.
-let feedbackCtx = { sessionId: null, messageIndex: null };
+// El modal sirve para 3 casos: nuevo desde el drawer, nuevo desde el preview,
+// o edición de un feedback ya guardado. Se setea feedbackCtx con el modo.
+let feedbackCtx = { sessionId: null, messageIndex: null, editId: null };
 
 function openFeedbackForText(text, sessionId, messageIndex){
   feedbackCtx = {
     sessionId:    sessionId || null,
     messageIndex: Number.isInteger(messageIndex) ? messageIndex : null,
+    editId:       null,
   };
   const t = String(text || '');
   document.getElementById('fbOriginal').value = t;
   document.getElementById('fbImproved').value = t;
   document.getElementById('fbExplain').value  = '';
+  document.getElementById('fbSubmit').textContent = 'Entrenar';
+  const modal = document.getElementById('feedbackModal');
+  modal.classList.add('open');
+  document.body.classList.add('drawer-open');
+  setTimeout(() => document.getElementById('fbImproved').focus(), 50);
+}
+
+function openFeedbackEdit(entry){
+  feedbackCtx = {
+    sessionId:    entry.sessionId || null,
+    messageIndex: Number.isInteger(entry.messageIndex) ? entry.messageIndex : null,
+    editId:       entry.id,
+  };
+  document.getElementById('fbOriginal').value = entry.original || '';
+  document.getElementById('fbImproved').value = entry.improved || '';
+  document.getElementById('fbExplain').value  = entry.explanation || '';
+  document.getElementById('fbSubmit').textContent = 'Guardar cambios';
   const modal = document.getElementById('feedbackModal');
   modal.classList.add('open');
   document.body.classList.add('drawer-open');
@@ -1731,7 +1869,7 @@ function closeFeedback(){
   if (!document.getElementById('chatDrawer').classList.contains('open')) {
     document.body.classList.remove('drawer-open');
   }
-  feedbackCtx = { sessionId: null, messageIndex: null };
+  feedbackCtx = { sessionId: null, messageIndex: null, editId: null };
 }
 document.getElementById('feedbackModal').addEventListener('click', (e) => {
   if (e.target.dataset.act === 'close-fb') closeFeedback();
@@ -1752,49 +1890,59 @@ document.getElementById('fbSubmit').onclick = async () => {
   const btn = document.getElementById('fbSubmit');
   btn.disabled = true;
   const orig = btn.textContent;
-  btn.textContent = 'Entrenando…';
+  const isEdit = !!feedbackCtx.editId;
+  btn.textContent = isEdit ? 'Guardando…' : 'Entrenando…';
   try {
-    const r = await fetch('/admin/feedback', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        sessionId:    feedbackCtx.sessionId,
-        messageIndex: feedbackCtx.messageIndex,
-        original, improved, explanation,
-      }),
+    const url = isEdit ? '/admin/feedback/' + encodeURIComponent(feedbackCtx.editId) : '/admin/feedback';
+    const method = isEdit ? 'PUT' : 'POST';
+    const body = isEdit
+      ? { original, improved, explanation }
+      : { sessionId: feedbackCtx.sessionId, messageIndex: feedbackCtx.messageIndex, original, improved, explanation };
+    const r = await fetch(url, {
+      method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(body),
     });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
-    // Si el feedback proviene del drawer y la sesión coincide, actualizo el
-    // chip "✓ entrenado" sobre ese mensaje.
-    if (drawerConv && feedbackCtx.sessionId === drawerConv.sessionId && Number.isInteger(feedbackCtx.messageIndex)) {
-      drawerFeedback.push({
-        id: data.id, sessionId: drawerConv.sessionId, messageIndex: feedbackCtx.messageIndex,
-        original: original.trim(), improved: improved.trim(), explanation: explanation.trim(),
-        createdAt: new Date().toISOString(),
-      });
-      const summary = {
-        msgCount: drawerConv.messages.length, duration: drawerConv.duration || 0,
-        isB2B: !!drawerConv.isB2B, purchaseIntent: !!drawerConv.purchaseIntent,
-        topBrand: drawerConv.topBrand || null, from: drawerConv.from || 'zorbot',
-        products: drawerConv.recommendedProducts || [],
-      };
-      renderDrawer(drawerConv, summary);
-    }
-    // Si el feedback proviene del preview chat, marco la fila con el chip.
-    const fbRowId = window._pendingPreviewFbRow;
-    if (fbRowId) {
-      const row = document.getElementById(fbRowId);
-      if (row && !row.querySelector('.adm-msg-fb-tag')) {
-        const tag = document.createElement('span');
-        tag.className = 'adm-msg-fb-tag';
-        tag.textContent = '✓ entrenado';
-        const actions = row.querySelector('.adm-msg-actions');
-        if (actions) actions.insertBefore(tag, actions.firstChild);
+
+    if (!isEdit) {
+      // Chip "✓ entrenado" en el drawer si aplica
+      if (drawerConv && feedbackCtx.sessionId === drawerConv.sessionId && Number.isInteger(feedbackCtx.messageIndex)) {
+        drawerFeedback.push({
+          id: data.id, sessionId: drawerConv.sessionId, messageIndex: feedbackCtx.messageIndex,
+          original: original.trim(), improved: improved.trim(), explanation: explanation.trim(),
+          createdAt: new Date().toISOString(),
+        });
+        const summary = {
+          msgCount: drawerConv.messages.length, duration: drawerConv.duration || 0,
+          isB2B: !!drawerConv.isB2B, purchaseIntent: !!drawerConv.purchaseIntent,
+          topBrand: drawerConv.topBrand || null, from: drawerConv.from || 'zorbot',
+          products: drawerConv.recommendedProducts || [],
+        };
+        renderDrawer(drawerConv, summary);
       }
-      window._pendingPreviewFbRow = null;
+      // Marcar fila del preview chat si vino de ahí
+      const fbRowId = window._pendingPreviewFbRow;
+      if (fbRowId) {
+        const row = document.getElementById(fbRowId);
+        if (row && !row.querySelector('.adm-msg-fb-tag')) {
+          const tag = document.createElement('span');
+          tag.className = 'adm-msg-fb-tag';
+          tag.textContent = '✓ entrenado';
+          const actions = row.querySelector('.adm-msg-actions');
+          if (actions) actions.insertBefore(tag, actions.firstChild);
+        }
+        window._pendingPreviewFbRow = null;
+      }
     }
-    showToast(`Entrenado ✓ — Zorbot lo va a tener en cuenta (${data.total} feedback total)`, 'ok');
+
+    // Si la vista Feedback está abierta, refrescamos su lista
+    if (document.getElementById('feedbackView').style.display !== 'none') {
+      loadFeedbackList();
+    }
+
+    showToast(isEdit
+      ? 'Cambios guardados ✓ — Zorbot ya está usando la versión nueva'
+      : `Entrenado ✓ — Zorbot lo va a tener en cuenta (${data.total} feedback total)`, 'ok');
     closeFeedback();
   } catch (e) {
     showToast('Error: ' + e.message, 'err');
@@ -1803,6 +1951,96 @@ document.getElementById('fbSubmit').onclick = async () => {
     btn.textContent = orig;
   }
 };
+
+// ─── Lista de Feedback (sección dedicada) ───────────────────────────────────
+async function loadFeedbackList(){
+  const list = document.getElementById('fbList');
+  list.innerHTML = '<div class="adm-loading">Cargando feedback…</div>';
+  try {
+    const r = await fetch('/admin/feedback');
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.error || 'HTTP ' + r.status);
+    }
+    const { items, total } = await r.json();
+    document.getElementById('fbCountMeta').textContent =
+      `${total} corrección${total === 1 ? '' : 'es'} guardadas · Zorbot inyecta las últimas 20 como few-shot en cada respuesta`;
+    if (!items.length) {
+      list.innerHTML = '<div class="adm-empty">Todavía no hay feedback. Andá a Conversaciones o al preview chat y apretá "Dar feedback" en cualquier mensaje del bot.</div>';
+      return;
+    }
+    list.innerHTML = items.map(fbItemHtml).join('');
+    list.querySelectorAll('.adm-fb-item-edit').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.dataset.id;
+        const entry = items.find(x => x.id === id);
+        if (entry) openFeedbackEdit(entry);
+      };
+    });
+    list.querySelectorAll('.adm-fb-item-del').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        if (!confirm('Eliminar esta corrección? Zorbot dejará de usarla.')) return;
+        try {
+          const r = await fetch('/admin/feedback/' + encodeURIComponent(id), { method:'DELETE' });
+          const data = await r.json();
+          if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+          showToast('Corrección eliminada ✓', 'ok');
+          loadFeedbackList();
+        } catch (e) {
+          showToast('Error al eliminar: ' + e.message, 'err');
+        }
+      };
+    });
+    list.querySelectorAll('.adm-fb-item-open').forEach(btn => {
+      btn.onclick = () => {
+        const sid = btn.dataset.sid;
+        if (sid) {
+          activeSeccion = 'chats';
+          renderTabs();
+          selectSeccion('chats').then(() => openConversation(sid));
+        }
+      };
+    });
+  } catch (e) {
+    list.innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function fbItemHtml(f){
+  const when = fmtRelative(f.updatedAt || f.createdAt);
+  const idxLabel = Number.isInteger(f.messageIndex) ? `#${f.messageIndex}` : '';
+  return `
+    <article class="adm-fb-item">
+      <div class="adm-fb-item-head">
+        <div class="adm-fb-item-meta">
+          <span class="adm-fb-item-when">${when}</span>
+          ${f.sessionId ? `<button type="button" class="adm-fb-item-link adm-fb-item-open" data-sid="${escapeAttr(f.sessionId)}">ver conversación ${escapeHtml(idxLabel)}</button>` : ''}
+        </div>
+        <div class="adm-fb-item-acts">
+          <button type="button" class="adm-fb-item-edit" data-id="${escapeAttr(f.id)}">Editar</button>
+          <button type="button" class="adm-fb-item-del"  data-id="${escapeAttr(f.id)}">Eliminar</button>
+        </div>
+      </div>
+      <div class="adm-fb-item-cols">
+        <div class="adm-fb-item-col">
+          <div class="adm-fb-item-label">Respuesta incorrecta</div>
+          <div class="adm-fb-item-text bad">${escapeHtml(f.original || '')}</div>
+        </div>
+        <div class="adm-fb-item-col">
+          <div class="adm-fb-item-label">Respuesta correcta</div>
+          <div class="adm-fb-item-text good">${escapeHtml(f.improved || '')}</div>
+        </div>
+      </div>
+      ${f.explanation ? `
+      <div class="adm-fb-item-explain">
+        <div class="adm-fb-item-label">Por qué la primera está mal</div>
+        <div class="adm-fb-item-text">${escapeHtml(f.explanation)}</div>
+      </div>` : ''}
+    </article>`;
+}
+
+document.getElementById('btnReloadFb').onclick = () => loadFeedbackList();
 
 // ─── Chat preview ───────────────────────────────────────────────────────────
 function botAvatarHtml(){
