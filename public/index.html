@@ -322,6 +322,29 @@ body.mayorista-active #mayoPage{display:block}
 @media (max-width:720px){
   .pdp-card .pdp-price .off{font-size:11px;padding:2px 7px;margin-left:6px}
 }
+
+/* Cards de producto en mobile: más chicas para que entren ~2.2 por viewport.
+   Stack vertical de qty + AÑADIR porque no caben lado a lado a este ancho. */
+@media (max-width:600px){
+  .shop-page .hp-row{gap:10px;padding:0 1rem 14px}
+  .shop-page .hp-card{flex:0 0 165px;padding:12px;gap:8px;border-radius:6px}
+  .shop-page .hp-card-name{font-size:12.5px;min-height:30px}
+  .shop-page .hp-card-img img{padding:6px}
+  .shop-page .hp-card-price{font-size:17px}
+  .shop-page .hp-card-price .old{font-size:11px;margin-right:5px}
+  .shop-page .hp-card-price .off{font-size:10px;padding:1px 5px;margin-left:5px}
+  .shop-page .hp-variant{font-size:10px;padding:5px 9px}
+  .shop-page .hp-card-zoom{width:22px;height:22px;top:6px;right:6px}
+  .shop-page .hp-card-zoom svg{width:12px;height:12px}
+  .shop-page .hp-acts{flex-direction:column;gap:6px}
+  .shop-page .hp-qty{align-self:center}
+  .shop-page .hp-qty button{height:32px;width:30px;font-size:15px}
+  .shop-page .hp-qty .v{height:32px;width:32px;line-height:32px;font-size:13px}
+  .shop-page button.hp-add{height:34px;font-size:10px;letter-spacing:.05em;padding:0 8px;width:100%}
+  .shop-page .hp-section{padding:32px 0 18px}
+  .shop-page .hp-section-head{padding:0 1rem;margin-bottom:14px}
+  .shop-page .hp-section-t{font-size:clamp(26px,7vw,32px)}
+}
 .shop-page .hp-acts{display:flex;gap:8px;margin-top:auto}
 .shop-page .hp-qty{display:flex;border:1.5px solid #ddd;border-radius:4px;overflow:hidden;flex-shrink:0}
 .shop-page .hp-qty button{background:#fafafa;color:#111;border:none;width:34px;height:42px;font-size:18px;font-weight:700;cursor:pointer;transition:background .15s}
