@@ -308,7 +308,20 @@ body.mayorista-active #mayoPage{display:block}
 .shop-page .hp-variant:hover{border-color:#f5a623;color:#111}
 .shop-page .hp-variant.active{background:#111;color:#fff;border-color:#111}
 .shop-page .hp-card-price{font-family:'DM Sans',sans-serif;font-size:20px;font-weight:800;color:#111;text-align:center;letter-spacing:.01em}
-.shop-page .hp-card-price .old{color:#999;font-weight:400;font-size:14px;text-decoration:line-through;margin-right:8px}
+.shop-page .hp-card-price .old{color:#d33;font-weight:500;font-size:13px;text-decoration:line-through;margin-right:8px}
+.shop-page .hp-card-price .off{
+  display:inline-block;margin-left:8px;padding:2px 7px;border-radius:4px;
+  background:#fdecec;color:#d33;font-size:12px;font-weight:700;letter-spacing:.02em;
+  font-family:'DM Sans',sans-serif;vertical-align:middle;
+}
+.pdp-card .pdp-price .off{
+  display:inline-block;margin-left:10px;padding:3px 9px;border-radius:5px;
+  background:#fdecec;color:#d33;font-size:13px;font-weight:700;
+  font-family:'DM Sans',sans-serif;vertical-align:middle;
+}
+@media (max-width:720px){
+  .pdp-card .pdp-price .off{font-size:11px;padding:2px 7px;margin-left:6px}
+}
 .shop-page .hp-acts{display:flex;gap:8px;margin-top:auto}
 .shop-page .hp-qty{display:flex;border:1.5px solid #ddd;border-radius:4px;overflow:hidden;flex-shrink:0}
 .shop-page .hp-qty button{background:#fafafa;color:#111;border:none;width:34px;height:42px;font-size:18px;font-weight:700;cursor:pointer;transition:background .15s}
@@ -1903,7 +1916,9 @@ function buildHpCard(p){
   const v0 = variants[0] || {};
   const price = parseFloat(v0.price || 0);
   const compareAt = parseFloat(v0.compareAtPrice || 0);
-  const oldP = (compareAt && compareAt > price) ? `<span class="old">$${compareAt.toLocaleString('es-CL')}</span>` : '';
+  const offPct = (compareAt && compareAt > price) ? Math.round((compareAt - price) / compareAt * 100) : 0;
+  const oldP = offPct ? `<span class="old">$${compareAt.toLocaleString('es-CL')}</span>` : '';
+  const offTag = offPct ? `<span class="off">-${offPct}%</span>` : '';
   const img1 = (v0.image) || p.image || (p.images && p.images[0]) || null;
   const variantPills = variants.length > 1 ? `
     <div class="hp-variants">
@@ -1933,7 +1948,7 @@ function buildHpCard(p){
     <div class="hp-card-img"><img src="${img1 || ''}" alt="${escapeHtml(p.title)}" loading="lazy"></div>
     <div class="hp-card-name">${escapeHtml(cleanHpTitle(p.title))}</div>
     ${variantPills}
-    <div class="hp-card-price">${oldP}$${price.toLocaleString('es-CL')}</div>
+    <div class="hp-card-price">${oldP}$${price.toLocaleString('es-CL')}${offTag}</div>
     <div class="hp-acts">
       <div class="hp-qty"><button onclick="hpQty(this,-1)">−</button><span class="v">1</span><button onclick="hpQty(this,1)">+</button></div>
       <button class="hp-add" data-product='${JSON.stringify(productData).replace(/'/g,"&#39;")}' onclick="hpAdd(this)">AÑADIR AL CARRITO</button>
@@ -1957,7 +1972,9 @@ function hpOpenProduct(pid){
   const v0 = variants[0] || {};
   const price = parseFloat(v0.price || 0);
   const compareAt = parseFloat(v0.compareAtPrice || 0);
-  const oldP = (compareAt && compareAt > price) ? `<span class="old">$${compareAt.toLocaleString('es-CL')}</span>` : '';
+  const offPct = (compareAt && compareAt > price) ? Math.round((compareAt - price) / compareAt * 100) : 0;
+  const oldP = offPct ? `<span class="old">$${compareAt.toLocaleString('es-CL')}</span>` : '';
+  const offTag = offPct ? `<span class="off">-${offPct}%</span>` : '';
   const img1 = (v0.image) || p.image || (p.images && p.images[0]) || '';
   const brand = (p.vendor || detectMpBrand(p) || '').toString();
   const desc = (p.description || '').trim();
@@ -1997,7 +2014,7 @@ function hpOpenProduct(pid){
         <div class="pdp-body">
           ${brand ? `<span class="pdp-brand">${escapeHtml(brand)}</span>` : ''}
           <h2 class="pdp-name">${escapeHtml(cleanHpTitle(p.title))}</h2>
-          <div class="hp-card-price pdp-price">${oldP}$${price.toLocaleString('es-CL')}</div>
+          <div class="hp-card-price pdp-price">${oldP}$${price.toLocaleString('es-CL')}${offTag}</div>
           <div class="pdp-desc">${descHtml}</div>
           ${variantPills}
           <div class="hp-acts pdp-acts">
