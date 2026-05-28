@@ -771,6 +771,69 @@ body.drawer-open{overflow:hidden}
 /* range pillgroup en el header del panel */
 #analyticsView .adm-pillgroup{margin-right:.4rem}
 
+/* Divisor de sección dentro de Analítica */
+.adm-section-divider{display:flex;align-items:center;gap:.8rem;margin:.6rem 0 .2rem}
+.adm-section-divider::before,.adm-section-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.adm-section-divider span{
+  font-family:var(--display);font-size:.72rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--gold-deep);white-space:nowrap;
+}
+
+/* Estado vacío (sales/pixis) */
+.adm-empty-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:2rem 1.5rem;text-align:center;display:flex;flex-direction:column;align-items:center;gap:.5rem;
+}
+.adm-empty-ico{font-size:2.2rem}
+.adm-empty-title{font-family:var(--display);font-size:1.1rem;font-weight:800;color:var(--text)}
+.adm-empty-text{font-size:.86rem;color:var(--muted);line-height:1.55;max-width:560px}
+.adm-empty-hint{font-size:.78rem;color:var(--dim);line-height:1.55;max-width:560px;margin-top:.3rem;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:.7rem .9rem}
+.adm-empty-hint code{font-family:var(--mono);font-size:.92em;color:var(--gold-deep);background:var(--gold-dim);padding:.05rem .3rem;border-radius:4px}
+
+/* Crecimiento mes vs mes */
+.adm-growth{display:flex;flex-direction:column;gap:.4rem;max-height:320px;overflow-y:auto}
+.adm-growth-row{display:grid;grid-template-columns:1fr auto auto;gap:.6rem;align-items:center;padding:.4rem .2rem;border-bottom:1px solid var(--border)}
+.adm-growth-name{font-size:.82rem;color:var(--text);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adm-growth-vals{font-family:var(--mono);font-size:.7rem;color:var(--dim)}
+.adm-growth-pct{font-family:var(--mono);font-size:.74rem;font-weight:700;padding:.15rem .45rem;border-radius:5px}
+.adm-growth-pct.up{color:var(--green);background:var(--green-dim)}
+.adm-growth-pct.down{color:var(--red);background:var(--red-dim)}
+.adm-growth-pct.new{color:var(--gold-deep);background:var(--gold-dim)}
+
+/* Mejores días del mes */
+.adm-bestdays{display:flex;flex-direction:column;gap:.55rem}
+.adm-bestday{display:grid;grid-template-columns:32px 1fr auto;gap:.6rem;align-items:center}
+.adm-bestday-num{font-family:var(--display);font-size:1.1rem;font-weight:800;color:var(--gold-deep);text-align:center}
+.adm-bestday-bar{height:8px;background:var(--surface3);border-radius:4px;overflow:hidden}
+.adm-bestday-bar span{display:block;height:100%;background:linear-gradient(90deg,var(--gold-deep),var(--gold) 60%,var(--gold-bright));border-radius:4px}
+.adm-bestday-val{font-family:var(--mono);font-size:.74rem;color:var(--muted)}
+
+/* Combinaciones */
+.adm-combos{display:flex;flex-direction:column;gap:.4rem;max-height:320px;overflow-y:auto}
+.adm-combo{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.45rem .6rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px}
+.adm-combo-pair{font-size:.8rem;color:var(--text);line-height:1.3}
+.adm-combo-plus{color:var(--gold-deep);font-weight:700;margin:0 .15rem}
+.adm-combo-count{font-family:var(--mono);font-size:.74rem;font-weight:700;color:var(--gold-deep);flex-shrink:0}
+
+/* Heatmap día × hora */
+.adm-heatmap{overflow-x:auto}
+.adm-heat-grid{display:grid;grid-template-columns:34px repeat(24,1fr);gap:2px;min-width:520px}
+.adm-heat-corner{}
+.adm-heat-hh{font-family:var(--mono);font-size:.5rem;color:var(--dim);text-align:center;align-self:end}
+.adm-heat-day{font-family:var(--mono);font-size:.62rem;color:var(--muted);display:flex;align-items:center;padding-right:.3rem}
+.adm-heat-cell{aspect-ratio:1;border-radius:3px;min-height:16px;cursor:default}
+
+/* Returning */
+.adm-returning{display:flex;flex-direction:column;gap:.6rem;align-items:center;justify-content:center;padding:.5rem 0;height:100%}
+.adm-ret-big{display:flex;flex-direction:column;align-items:center;gap:.1rem}
+.adm-ret-num{font-family:var(--display);font-size:2.4rem;font-weight:800;color:var(--gold-deep);line-height:1}
+.adm-ret-lbl{font-size:.78rem;color:var(--muted)}
+.adm-ret-sub{font-size:.72rem;color:var(--dim);text-align:center}
+.adm-ret-gaps{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;margin-top:.3rem}
+.adm-ret-gap{display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.4rem .65rem;min-width:54px}
+.adm-ret-gap span{font-family:var(--mono);font-size:.6rem;color:var(--dim)}
+.adm-ret-gap b{font-family:var(--display);font-size:1rem;color:var(--text)}
+
 /* ── CHAT PREVIEW ── */
 .adm-chat{
   position:sticky;top:5.2rem;align-self:start;
@@ -1120,9 +1183,10 @@ body.drawer-open{overflow:hidden}
           </div>
           <div class="adm-actions">
             <div class="adm-pillgroup" data-filter="range">
-              <button data-v="today" type="button">Hoy</button>
-              <button data-v="7d"    type="button">7 días</button>
-              <button data-v="30d"   class="on" type="button">30 días</button>
+              <button data-v="7d"    type="button">7d</button>
+              <button data-v="30d"   class="on" type="button">30d</button>
+              <button data-v="90d"   type="button">90d</button>
+              <button data-v="year"  type="button">Año</button>
               <button data-v="all"   type="button">Todo</button>
             </div>
             <button class="adm-btn adm-btn-ghost" id="btnReloadAna" type="button">Recargar</button>
@@ -1189,6 +1253,80 @@ body.drawer-open{overflow:hidden}
           <div class="adm-opps" id="anaOpps"></div>
         </div>
       </div>
+
+      <!-- ── SELL-OUT MAYORISTA (Shopify orders) ── -->
+      <div class="adm-section-divider"><span>Sell-out mayorista · ventas reales</span></div>
+      <div id="salesAvailable">
+        <div class="adm-stats" id="salesStats"></div>
+        <div class="adm-charts">
+          <div class="adm-chart-card">
+            <div class="adm-chart-head">
+              <div class="adm-chart-title">Top 10 en plata</div>
+              <div class="adm-chart-sub">recaudación por producto (solo MAYORISTA)</div>
+            </div>
+            <div class="adm-chart-canvas-wrap"><canvas id="chartTopMoney"></canvas></div>
+          </div>
+          <div class="adm-chart-card">
+            <div class="adm-chart-head">
+              <div class="adm-chart-title">Top 10 en cantidad</div>
+              <div class="adm-chart-sub">unidades vendidas</div>
+            </div>
+            <div class="adm-chart-canvas-wrap"><canvas id="chartTopQty"></canvas></div>
+          </div>
+          <div class="adm-chart-card adm-chart-wide">
+            <div class="adm-chart-head">
+              <div class="adm-chart-title">Crecimiento mes vs mes anterior</div>
+              <div class="adm-chart-sub" id="growthSub">por producto</div>
+            </div>
+            <div class="adm-growth" id="salesGrowth"></div>
+          </div>
+          <div class="adm-chart-card">
+            <div class="adm-chart-head">
+              <div class="adm-chart-title">Mejores días del mes</div>
+              <div class="adm-chart-sub">venta promedio por número de día</div>
+            </div>
+            <div class="adm-bestdays" id="salesBestDays"></div>
+          </div>
+          <div class="adm-chart-card">
+            <div class="adm-chart-head">
+              <div class="adm-chart-title">Combinaciones más pedidas</div>
+              <div class="adm-chart-sub">productos comprados juntos</div>
+            </div>
+            <div class="adm-combos" id="salesCombos"></div>
+          </div>
+          <div class="adm-chart-card adm-chart-wide">
+            <div class="adm-chart-head">
+              <div class="adm-chart-title">Mapa de calor · día × hora</div>
+              <div class="adm-chart-sub">cuándo se vende más (venta en $)</div>
+            </div>
+            <div class="adm-heatmap" id="salesHeat"></div>
+          </div>
+        </div>
+      </div>
+      <div id="salesEmpty" class="adm-empty-card" style="display:none"></div>
+
+      <!-- ── USO DEL BOT ── -->
+      <div class="adm-section-divider"><span>Funciones del bot</span></div>
+      <div class="adm-charts">
+        <div class="adm-chart-card">
+          <div class="adm-chart-head">
+            <div class="adm-chart-title">Para qué usan a Zorbot</div>
+            <div class="adm-chart-sub">categoría por conversación</div>
+          </div>
+          <div class="adm-chart-canvas-wrap small"><canvas id="chartBotUsage"></canvas></div>
+        </div>
+        <div class="adm-chart-card">
+          <div class="adm-chart-head">
+            <div class="adm-chart-title">Por qué vuelven</div>
+            <div class="adm-chart-sub">sesiones con actividad en más de un día</div>
+          </div>
+          <div class="adm-returning" id="botReturning"></div>
+        </div>
+      </div>
+
+      <!-- ── PIXIS (data de cadena externa) ── -->
+      <div class="adm-section-divider"><span>Pixis · data de mercado (cadena externa)</span></div>
+      <div id="pixisBox" class="adm-empty-card"></div>
     </div>
 
     <!-- Vista de tutoriales (videos técnicos) -->
@@ -3059,6 +3197,179 @@ async function loadAnalytics(){
     document.getElementById('anaStats').innerHTML =
       `<div class="adm-empty" style="color:var(--red)">Error cargando analítica: ${escapeHtml(e.message)}</div>`;
   }
+  // En paralelo: ventas (Shopify), uso del bot, pixis
+  loadSalesAnalytics();
+  loadBotAnalytics();
+  loadPixis();
+}
+
+async function loadSalesAnalytics(){
+  const box = document.getElementById('salesStats');
+  if (box) box.innerHTML = '<div class="adm-loading">Cargando ventas…</div>';
+  try {
+    const r = await fetch('/admin/analytics/sales?range=' + encodeURIComponent(anaRange));
+    const d = await r.json();
+    if (!d.available) { renderSalesEmpty(d.reason); return; }
+    renderSales(d);
+  } catch (e) {
+    renderSalesEmpty('Error cargando ventas: ' + e.message);
+  }
+}
+async function loadBotAnalytics(){
+  try {
+    const r = await fetch('/admin/analytics/bot?range=' + encodeURIComponent(anaRange));
+    const d = await r.json();
+    if (d.available) renderBotAnalytics(d);
+  } catch (e) { /* silencioso */ }
+}
+async function loadPixis(){
+  try {
+    const r = await fetch('/admin/analytics/pixis');
+    const d = await r.json();
+    renderPixis(d);
+  } catch (e) { renderPixis({ available:false, reason:'No se pudo consultar Pixis.' }); }
+}
+
+function renderSalesEmpty(reason){
+  document.getElementById('salesAvailable').style.display = 'none';
+  const el = document.getElementById('salesEmpty');
+  el.style.display = '';
+  el.innerHTML = `
+    <div class="adm-empty-ico">📊</div>
+    <div class="adm-empty-title">Ventas no disponibles todavía</div>
+    <div class="adm-empty-text">${escapeHtml(reason || 'No hay data de ventas.')}</div>
+    <div class="adm-empty-hint">Para ver el sell-out mayorista, el token de Shopify necesita el permiso <code>read_orders</code>. Pedile al equipo que re-autorice la app de Zorbot en Shopify (Settings → Apps → re-instalar con el nuevo scope).</div>`;
+}
+
+function renderSales(d){
+  document.getElementById('salesAvailable').style.display = '';
+  document.getElementById('salesEmpty').style.display = 'none';
+  const s = d.summary || {};
+  document.getElementById('salesStats').innerHTML = [
+    { k:'ÓRDENES MAYORISTAS', v: (s.orders||0).toLocaleString('es-CL'), sub: d.range.label },
+    { k:'RECAUDACIÓN', v: '$'+(s.revenue||0).toLocaleString('es-CL'), sub: 'solo productos MAYORISTA', tone:'gold' },
+    { k:'TICKET PROMEDIO', v: '$'+(s.avgTicket||0).toLocaleString('es-CL'), sub: 'por orden mayorista' },
+  ].map(c => `<div class="adm-stat ${c.tone?'tone-'+c.tone:''}"><div class="adm-stat-k">${c.k}</div><div class="adm-stat-v">${escapeHtml(c.v)}</div><div class="adm-stat-s">${escapeHtml(c.sub)}</div></div>`).join('');
+
+  renderBarChart('chartTopMoney', d.topMoney, { money:true, key:'salesMoney' });
+  renderBarChart('chartTopQty',   d.topQty,   { money:false, key:'salesQty' });
+  renderGrowth(d.growth);
+  renderBestDays(d.bestDays);
+  renderCombos(d.combos);
+  renderHeatmap(d.heat);
+}
+
+function renderBarChart(canvasId, items, opts){
+  destroyChart(opts.key);
+  if (emptyChartIfNoData(canvasId, items)) return;
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  anaCharts[opts.key] = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: items.map(i=>i.name), datasets:[{
+      data: items.map(i=>i.value),
+      backgroundColor: ANA_COLORS.goldDim, borderColor: ANA_COLORS.gold, borderWidth:1, borderRadius:5,
+    }]},
+    options: chartOptions({ horizontal:true, legend:false, money:opts.money }),
+  });
+}
+
+function renderGrowth(g){
+  const el = document.getElementById('salesGrowth');
+  document.getElementById('growthSub').textContent = g ? `${g.thisMonthLabel} vs ${g.prevMonthLabel}` : 'por producto';
+  if (!g || !g.items.length) { el.innerHTML = '<div class="adm-empty">Sin datos de los últimos 2 meses.</div>'; return; }
+  el.innerHTML = g.items.map(it => {
+    const pctTxt = it.pct === null ? 'NUEVO' : (it.pct>0?'+':'')+it.pct+'%';
+    const cls = it.pct === null ? 'new' : (it.pct>=0?'up':'down');
+    return `<div class="adm-growth-row">
+      <span class="adm-growth-name">${escapeHtml(it.name)}</span>
+      <span class="adm-growth-vals">$${it.previous.toLocaleString('es-CL')} → $${it.current.toLocaleString('es-CL')}</span>
+      <span class="adm-growth-pct ${cls}">${pctTxt}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderBestDays(days){
+  const el = document.getElementById('salesBestDays');
+  if (!days || !days.length) { el.innerHTML = '<div class="adm-empty">Sin datos.</div>'; return; }
+  const max = days[0].avg || 1;
+  el.innerHTML = days.map(d => `
+    <div class="adm-bestday">
+      <span class="adm-bestday-num">${d.day}</span>
+      <div class="adm-bestday-bar"><span style="width:${Math.round(d.avg/max*100)}%"></span></div>
+      <span class="adm-bestday-val">$${d.avg.toLocaleString('es-CL')}</span>
+    </div>`).join('');
+}
+
+function renderCombos(combos){
+  const el = document.getElementById('salesCombos');
+  if (!combos || !combos.length) { el.innerHTML = '<div class="adm-empty">Sin combinaciones aún.</div>'; return; }
+  el.innerHTML = combos.map(c => `
+    <div class="adm-combo">
+      <span class="adm-combo-pair">${escapeHtml(c.a)} <span class="adm-combo-plus">+</span> ${escapeHtml(c.b)}</span>
+      <span class="adm-combo-count">${c.count}×</span>
+    </div>`).join('');
+}
+
+function renderHeatmap(heat){
+  const el = document.getElementById('salesHeat');
+  if (!heat || !heat.length) { el.innerHTML = '<div class="adm-empty">Sin datos.</div>'; return; }
+  let max = 0;
+  for (const row of heat) for (const v of row) if (v > max) max = v;
+  const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  let html = '<div class="adm-heat-grid">';
+  html += '<div class="adm-heat-corner"></div>';
+  for (let h=0; h<24; h++) html += `<div class="adm-heat-hh">${h%3===0?h:''}</div>`;
+  for (let d=0; d<7; d++){
+    html += `<div class="adm-heat-day">${dayNames[d]}</div>`;
+    for (let h=0; h<24; h++){
+      const v = heat[d][h];
+      const intensity = max ? v/max : 0;
+      const bg = v ? `rgba(245,166,35,${(0.12+intensity*0.78).toFixed(2)})` : 'rgba(0,0,0,.03)';
+      html += `<div class="adm-heat-cell" style="background:${bg}" title="${dayNames[d]} ${h}:00 · $${Math.round(v).toLocaleString('es-CL')}"></div>`;
+    }
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderBotAnalytics(d){
+  // pie de usos
+  destroyChart('botUsage');
+  const items = (d.usage||[]).filter(u=>u.count>0);
+  if (!emptyChartIfNoData('chartBotUsage', items)) {
+    const ctx = document.getElementById('chartBotUsage').getContext('2d');
+    const palette = [ANA_COLORS.gold, ANA_COLORS.red, ANA_COLORS.purple, ANA_COLORS.green, '#5b8def', '#aaa'];
+    anaCharts.botUsage = new Chart(ctx, {
+      type:'doughnut',
+      data:{ labels: items.map(u=>u.label), datasets:[{ data: items.map(u=>u.count),
+        backgroundColor: items.map((_,i)=>palette[i%palette.length]), borderColor:'#fff', borderWidth:2 }]},
+      options:{ cutout:'60%', responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, padding:12, font:{ size:11 } } }, tooltip: tooltipBase() } },
+    });
+  }
+  // returning
+  const ret = d.returning || {};
+  const el = document.getElementById('botReturning');
+  el.innerHTML = `
+    <div class="adm-ret-big"><span class="adm-ret-num">${ret.rate||0}%</span><span class="adm-ret-lbl">de las sesiones volvieron otro día</span></div>
+    <div class="adm-ret-sub">${ret.multiDay||0} de ${ret.total||0} conversaciones · promedio ${ret.avgSpanDays||0} días entre visitas</div>
+    <div class="adm-ret-gaps">
+      ${Object.entries(ret.byGap||{}).map(([k,v])=>`<div class="adm-ret-gap"><span>${k}</span><b>${v}</b></div>`).join('')}
+    </div>`;
+}
+
+function renderPixis(d){
+  const el = document.getElementById('pixisBox');
+  if (d.available) {
+    el.innerHTML = '<div class="adm-empty">Pixis conectado.</div>';
+    return;
+  }
+  const needs = (d.needs||[]).map(n=>`<code>${n}</code>`).join(' y ');
+  el.innerHTML = `
+    <div class="adm-empty-ico">🔌</div>
+    <div class="adm-empty-title">Conectá tu cuenta de Pixis</div>
+    <div class="adm-empty-text">${escapeHtml(d.reason||'Pixis no está conectado.')} Con Pixis vas a ver sell-out de toda la cadena, competencia y puntos de mayor crecimiento — data que no está en Shopify.</div>
+    <div class="adm-empty-hint">Para conectarlo necesitás cargar en Railway las variables ${needs||'<code>PIXIS_API_BASE</code> y <code>PIXIS_API_KEY</code>'} con los datos de tu cuenta Pixis (API base URL + API key). Una vez cargadas, esta sección se activa sola.</div>`;
 }
 
 function renderAnalytics(d){
@@ -3271,19 +3582,26 @@ function renderOpportunities(opps){
     </div>`).join('');
 }
 
-function chartOptions({ horizontal=false, legend=false } = {}){
-  return {
+function chartOptions({ horizontal=false, legend=false, money=false } = {}){
+  const valAxis = horizontal ? 'x' : 'y';
+  const opts = {
     indexAxis: horizontal ? 'y' : 'x',
     responsive:true, maintainAspectRatio:false,
     plugins:{
       legend: legend ? { display:true, labels:{ boxWidth:10, padding:12, font:{ size:11 } } } : { display:false },
-      tooltip: tooltipBase(),
+      tooltip: { ...tooltipBase(), callbacks: money ? {
+        label: (ctx) => ' $' + Number(ctx.parsed[valAxis] ?? ctx.parsed).toLocaleString('es-CL'),
+      } : {} },
     },
     scales:{
       x:{ grid:{ color: ANA_COLORS.grid, drawBorder:false }, ticks:{ color: ANA_COLORS.muted } },
       y:{ grid:{ color: ANA_COLORS.grid, drawBorder:false }, ticks:{ color: ANA_COLORS.muted, precision:0 } },
     },
   };
+  if (money) {
+    opts.scales[valAxis].ticks.callback = (v) => '$' + Number(v).toLocaleString('es-CL');
+  }
+  return opts;
 }
 function tooltipBase(){
   return {

@@ -532,7 +532,7 @@ const SHOPIFY_API_VERSION = '2026-04';
 // Solo scopes Admin van por OAuth. Los unauthenticated_* (Storefront API) son
 // config a nivel de app (Dev Dashboard → Alcances opcionales) y se aplican
 // automáticamente al crear el storefront_access_token.
-const SHOPIFY_SCOPES = 'read_products,read_inventory,read_locations,read_customers,write_customers';
+const SHOPIFY_SCOPES = 'read_products,read_inventory,read_locations,read_customers,write_customers,read_orders';
 const SHOPIFY_SHOP_REGEX = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i;
 
 function verifyShopifyHmac(query, secret) {
@@ -788,6 +788,90 @@ async function loadProductsCache(force = false){
   productsCache = { products, fetchedAt: new Date().toISOString() };
   productsCacheAt = Date.now();
   return products;
+}
+
+// ─── Órdenes Shopify (para analítica de ventas) ─────────────────────────────
+// Requiere el scope read_orders. Si el token no lo tiene, Shopify responde
+// 401/403 y devolvemos { available:false } para que el panel muestre estado
+// vacío con instrucciones, sin romper.
+let ordersCache = null;
+let ordersCacheAt = 0;
+const ORDERS_TTL_MS = 10 * 60 * 1000;
+
+const ORDERS_QUERY = `query($cursor: String) {
+  orders(first: 100, after: $cursor, query: "status:any", sortKey: CREATED_AT, reverse: true) {
+    edges {
+      cursor
+      node {
+        id
+        createdAt
+        currentTotalPriceSet { shopMoney { amount } }
+        lineItems(first: 50) {
+          edges { node {
+            quantity
+            originalTotalSet { shopMoney { amount } }
+            product { id title vendor tags }
+          } }
+        }
+      }
+    }
+    pageInfo { hasNextPage }
+  }
+}`;
+
+// Carga hasta ~maxOrders órdenes recientes. Devuelve { available, orders, reason }.
+async function loadOrders(force = false){
+  if (!force && ordersCache && Date.now() - ordersCacheAt < ORDERS_TTL_MS) {
+    return { available: true, orders: ordersCache };
+  }
+  if (!process.env.SHOPIFY_ADMIN_TOKEN) {
+    return { available: false, reason: 'Shopify no conectado (falta SHOPIFY_ADMIN_TOKEN).' };
+  }
+  try {
+    const orders = [];
+    let cursor = null;
+    for (let page = 0; page < 12; page++) { // hasta ~1200 órdenes
+      const resp = await shopifyAdminFetch('/graphql.json', {
+        method: 'POST',
+        body: JSON.stringify({ query: ORDERS_QUERY, variables: { cursor } }),
+      });
+      if (resp.errors) {
+        const msg = JSON.stringify(resp.errors);
+        if (/access denied|read_orders|not approved|scope/i.test(msg)) {
+          return { available: false, reason: 'El token de Shopify no tiene el permiso read_orders. Hay que re-autorizar la app.' };
+        }
+        throw new Error(msg);
+      }
+      const conn = resp.data.orders;
+      for (const e of conn.edges) {
+        const n = e.node;
+        orders.push({
+          id: stripGid(n.id, 'Order'),
+          createdAt: n.createdAt,
+          total: parseFloat(n.currentTotalPriceSet?.shopMoney?.amount || 0),
+          lineItems: (n.lineItems?.edges || []).map(le => ({
+            qty: le.node.quantity,
+            amount: parseFloat(le.node.originalTotalSet?.shopMoney?.amount || 0),
+            productId: le.node.product ? stripGid(le.node.product.id, 'Product') : null,
+            title: le.node.product?.title || '(producto eliminado)',
+            vendor: le.node.product?.vendor || '',
+            tags: le.node.product?.tags || [],
+          })),
+        });
+      }
+      if (!conn.pageInfo.hasNextPage) break;
+      cursor = conn.edges[conn.edges.length - 1].cursor;
+    }
+    ordersCache = orders;
+    ordersCacheAt = Date.now();
+    return { available: true, orders };
+  } catch (e) {
+    const msg = String(e.message || e);
+    if (/\b40[13]\b|access denied|read_orders|scope/i.test(msg)) {
+      return { available: false, reason: 'El token de Shopify no tiene el permiso read_orders. Hay que re-autorizar la app.' };
+    }
+    return { available: false, reason: 'Error consultando órdenes: ' + msg.slice(0, 200) };
+  }
 }
 
 app.get('/api/products', async (req, res) => {
@@ -1647,6 +1731,8 @@ function rangeFor(rangeId){
   if (rangeId === 'today') return { id:'today', label:'hoy',                 from: dayStart.getTime(), to: now };
   if (rangeId === '7d')    return { id:'7d',    label:'últimos 7 días',      from: now - 7*86400e3,  to: now };
   if (rangeId === '30d')   return { id:'30d',   label:'últimos 30 días',     from: now - 30*86400e3, to: now };
+  if (rangeId === '90d')   return { id:'90d',   label:'últimos 90 días',     from: now - 90*86400e3, to: now };
+  if (rangeId === 'year')  return { id:'year',  label:'último año',          from: now - 365*86400e3, to: now };
   return                          { id:'all',   label:'todo el histórico',   from: 0, to: now };
 }
 
@@ -1841,6 +1927,192 @@ app.get('/admin/analytics', requireAdmin, async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Error generando analítica: ' + e.message });
   }
+});
+
+// ─── Analítica de VENTAS mayoristas (Shopify orders) ────────────────────────
+// SOLO productos con tag MAYORISTA. Requiere read_orders.
+const isMayoristaLine = (li) => (li.tags || []).map(t => String(t).toUpperCase()).includes('MAYORISTA');
+
+app.get('/admin/analytics/sales', requireAdmin, async (req, res) => {
+  const r = rangeFor(String(req.query.range || '30d'));
+  const result = await loadOrders(String(req.query.refresh || '') === '1');
+  if (!result.available) {
+    return res.json({ available: false, reason: result.reason, range: r });
+  }
+  try {
+    const orders = result.orders.filter(o => {
+      const t = new Date(o.createdAt).getTime();
+      return t >= r.from && t <= r.to;
+    });
+
+    // Solo líneas de productos mayoristas
+    const moneyByProduct = new Map();   // title → $
+    const qtyByProduct   = new Map();   // title → unidades
+    let mayoOrderCount = 0, mayoRevenue = 0;
+    const comboCounts = new Map();      // "A|||B" → veces
+    const dayOfMonth = {};              // 1..31 → { sum, count(días distintos) }
+    const heat = Array.from({length:7}, () => Array(24).fill(0)); // [weekday][hour] = $
+    const seenDates = {};               // para contar días distintos por day-of-month
+
+    for (const o of orders) {
+      const mayoLines = (o.lineItems || []).filter(isMayoristaLine);
+      if (!mayoLines.length) continue;
+      mayoOrderCount++;
+      let orderMayoTotal = 0;
+      const titlesInOrder = new Set();
+      for (const li of mayoLines) {
+        moneyByProduct.set(li.title, (moneyByProduct.get(li.title) || 0) + li.amount);
+        qtyByProduct.set(li.title, (qtyByProduct.get(li.title) || 0) + li.qty);
+        orderMayoTotal += li.amount;
+        titlesInOrder.add(li.title);
+      }
+      mayoRevenue += orderMayoTotal;
+
+      // combinaciones (pares distintos dentro de la orden)
+      const titles = [...titlesInOrder].sort();
+      for (let i = 0; i < titles.length; i++)
+        for (let j = i+1; j < titles.length; j++)
+          comboCounts.set(`${titles[i]}|||${titles[j]}`, (comboCounts.get(`${titles[i]}|||${titles[j]}`) || 0) + 1);
+
+      // day-of-month + heatmap
+      const d = new Date(o.createdAt);
+      const dom = d.getDate();
+      const dateKey = d.toISOString().slice(0,10);
+      if (!dayOfMonth[dom]) dayOfMonth[dom] = { sum: 0, dates: new Set() };
+      dayOfMonth[dom].sum += orderMayoTotal;
+      dayOfMonth[dom].dates.add(dateKey);
+      heat[d.getDay()][d.getHours()] += orderMayoTotal;
+    }
+
+    const topMoney = [...moneyByProduct.entries()].map(([name, v]) => ({ name, value: Math.round(v) }))
+      .sort((a,b)=>b.value-a.value).slice(0,10);
+    const topQty = [...qtyByProduct.entries()].map(([name, v]) => ({ name, value: v }))
+      .sort((a,b)=>b.value-a.value).slice(0,10);
+    const avgTicket = mayoOrderCount ? Math.round(mayoRevenue / mayoOrderCount) : 0;
+    const combos = [...comboCounts.entries()].map(([k, v]) => {
+      const [a,b] = k.split('|||'); return { a, b, count: v };
+    }).sort((x,y)=>y.count-x.count).slice(0,10);
+
+    // Top 5 días del mes por venta promedio
+    const bestDays = Object.entries(dayOfMonth).map(([dom, o]) => ({
+      day: Number(dom), avg: Math.round(o.sum / o.dates.size), total: Math.round(o.sum),
+    })).sort((a,b)=>b.avg-a.avg).slice(0,5);
+
+    // Mes vs mes anterior por producto (usa TODO el cache, no el rango)
+    const now = new Date();
+    const thisM = now.getMonth(), thisY = now.getFullYear();
+    const prevDate = new Date(thisY, thisM-1, 1);
+    const prevM = prevDate.getMonth(), prevY = prevDate.getFullYear();
+    const cur = new Map(), prev = new Map();
+    for (const o of result.orders) {
+      const d = new Date(o.createdAt);
+      const inCur  = d.getMonth()===thisM && d.getFullYear()===thisY;
+      const inPrev = d.getMonth()===prevM && d.getFullYear()===prevY;
+      if (!inCur && !inPrev) continue;
+      for (const li of (o.lineItems||[]).filter(isMayoristaLine)) {
+        const m = inCur ? cur : prev;
+        m.set(li.title, (m.get(li.title) || 0) + li.amount);
+      }
+    }
+    const growthNames = new Set([...cur.keys(), ...prev.keys()]);
+    const growth = [...growthNames].map(name => {
+      const c = Math.round(cur.get(name)||0), p = Math.round(prev.get(name)||0);
+      const pct = p > 0 ? Math.round((c-p)/p*100) : (c > 0 ? null : 0); // null = nuevo (sin base)
+      return { name, current: c, previous: p, pct };
+    }).filter(x => x.current || x.previous)
+      .sort((a,b)=> (b.current - b.previous) - (a.current - a.previous)).slice(0,10);
+
+    res.json({
+      available: true, range: r,
+      summary: { orders: mayoOrderCount, revenue: Math.round(mayoRevenue), avgTicket },
+      topMoney, topQty, combos, bestDays, heat,
+      growth: { thisMonthLabel: monthLabel(thisM), prevMonthLabel: monthLabel(prevM), items: growth },
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Error en analítica de ventas: ' + e.message });
+  }
+});
+
+function monthLabel(m){
+  return ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][m] || '';
+}
+
+// ─── Analítica del BOT (uso desde conversations.json) ───────────────────────
+// Orden = prioridad de clasificación (la primera que matchea gana). Reclamos
+// y envío van primero para que "mi pedido no llegó" caiga en reclamo, no en
+// armado de pedido.
+const BOT_USE_CATEGORIES = [
+  { id:'reclamo',       label:'Atención / reclamos', rx: /\b(problema|reclamo|queja|no\s+lleg|lleg[oó]\s+mal|defect|roto|rota|devoluci|cambio|equivoca|tard[oó]|nunca\s+lleg)\b/i },
+  { id:'envio',         label:'Consulta de envío',   rx: /\b(env[ií]o|despacho|domicilio|retir[oa]|cu[aá]ndo\s+lleg|direcci[oó]n|comuna|reparto|seguimiento|tracking)\b/i },
+  { id:'precio',        label:'Consulta de precios', rx: /\b(precio|cu[aá]nto\s+(cuesta|sale|vale|es)|valor|barat[oa]|car[oa]|descuento|oferta)\b/i },
+  { id:'pedido',        label:'Armado de pedido',    rx: /\b(pedido|comprar|carrito|carro|llevar|quiero\s+\d|pack|caja|link|pagar|checkout)\b/i },
+  { id:'recomendacion', label:'Recomendación',       rx: /\b(recomien|recomenda|sugier|sugerenc|qu[eé]\s+me\s+(das|sirve|conviene)|para\s+un\s+asado|para\s+regalo|qu[eé]\s+tomar)\b/i },
+];
+
+app.get('/admin/analytics/bot', requireAdmin, (req, res) => {
+  try {
+    const r = rangeFor(String(req.query.range || '30d'));
+    const all = Array.isArray(readLog(CONV_LOG)) ? readLog(CONV_LOG) : [];
+    const subset = all.filter(c => {
+      const t = new Date(c.endTime || c.startTime || 0).getTime();
+      return t >= r.from && t <= r.to;
+    });
+
+    // Para qué usan a Zorbot — clasifica cada conversación por el primer y
+    // segundo mensaje del usuario (la intención dominante). 1 categoría por chat.
+    const usage = Object.fromEntries(BOT_USE_CATEGORIES.map(c => [c.id, { id:c.id, label:c.label, count:0 }]));
+    usage.otros = { id:'otros', label:'Otros', count:0 };
+    for (const c of subset) {
+      const userText = (c.messages || []).filter(m => m.role==='user').map(m => m.content).join(' \n ');
+      const cat = BOT_USE_CATEGORIES.find(k => k.rx.test(userText));
+      usage[cat ? cat.id : 'otros'].count++;
+    }
+    const usageList = Object.values(usage).sort((a,b)=>b.count-a.count);
+
+    // Por qué vuelven — sesiones con actividad en más de 1 día distinto.
+    let multiDay = 0, totalSpanDays = 0;
+    const returnByGap = { '1d':0, '2-7d':0, '8-30d':0, '30d+':0 };
+    for (const c of subset) {
+      const ts = (c.messages || []).map(m => m.timestamp ? new Date(m.timestamp).getTime() : null).filter(Boolean);
+      if (ts.length < 2) continue;
+      const days = new Set(ts.map(t => new Date(t).toISOString().slice(0,10)));
+      if (days.size > 1) {
+        multiDay++;
+        const spanDays = Math.round((Math.max(...ts) - Math.min(...ts)) / 86400e3);
+        totalSpanDays += spanDays;
+        if (spanDays <= 1) returnByGap['1d']++;
+        else if (spanDays <= 7) returnByGap['2-7d']++;
+        else if (spanDays <= 30) returnByGap['8-30d']++;
+        else returnByGap['30d+']++;
+      }
+    }
+    const returning = {
+      total: subset.length,
+      multiDay,
+      rate: subset.length ? Math.round(multiDay / subset.length * 1000)/10 : 0,
+      avgSpanDays: multiDay ? Math.round(totalSpanDays / multiDay) : 0,
+      byGap: returnByGap,
+    };
+
+    res.json({ available: true, range: r, usage: usageList, returning });
+  } catch (e) {
+    res.status(500).json({ error: 'Error en analítica del bot: ' + e.message });
+  }
+});
+
+// ─── Pixis (data de mercado externa) — placeholder hasta tener credenciales ──
+app.get('/admin/analytics/pixis', requireAdmin, (_req, res) => {
+  const configured = !!(process.env.PIXIS_API_KEY && process.env.PIXIS_API_BASE);
+  if (!configured) {
+    return res.json({
+      available: false,
+      reason: 'Pixis no está conectado.',
+      needs: ['PIXIS_API_BASE', 'PIXIS_API_KEY'],
+    });
+  }
+  // TODO: cuando tengamos doc de la API de Pixis, implementar las llamadas
+  // reales (sell-out cadena, competencia, top licores, crecimiento por local).
+  res.json({ available: false, reason: 'Pixis configurado pero la integración aún no está implementada (falta doc de endpoints).' });
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
