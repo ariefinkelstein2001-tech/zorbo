@@ -591,6 +591,55 @@ body.drawer-open{overflow:hidden}
   padding:.7rem 1.2rem;border-bottom:1px solid var(--border);
   display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;
 }
+/* Barra de marcado manual en el drawer */
+.adm-mark-bar{
+  padding:.6rem 1.2rem;border-bottom:1px solid var(--border);
+  display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;background:var(--surface2);
+}
+.adm-mark{
+  font-family:var(--sans);font-size:.7rem;font-weight:700;letter-spacing:.02em;
+  background:#fff;border:1px solid var(--border);color:var(--muted);cursor:pointer;
+  padding:.4rem .7rem;border-radius:20px;transition:all .15s;
+}
+.adm-mark:hover{border-color:var(--gold-bd-h);color:var(--gold-deep)}
+.adm-mark.on{background:var(--gold-dim);border-color:var(--gold-bd-h);color:var(--gold-deep)}
+.adm-mark.on-ok{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+
+/* NIVEL 1: B2C / B2B */
+.adm-l1tabs{display:flex;gap:.5rem;margin-bottom:.8rem}
+.adm-l1tabs button{
+  flex:1;font-family:var(--display);font-size:.92rem;font-weight:700;letter-spacing:.01em;
+  background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;
+  padding:.7rem 1rem;border-radius:11px;transition:all .18s;
+}
+.adm-l1tabs button:hover{border-color:var(--gold-bd-h);color:var(--text)}
+.adm-l1tabs button.on{
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold) 60%,var(--gold-deep));
+  color:#1a1408;border-color:transparent;box-shadow:0 6px 16px rgba(245,166,35,.25);
+}
+
+/* NIVEL 2: módulos */
+.adm-modtabs{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.9rem}
+@media(max-width:600px){.adm-modtabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -1rem .9rem;padding:0 1rem}.adm-modtabs::-webkit-scrollbar{display:none}}
+.adm-modtab{
+  flex-shrink:0;display:inline-flex;align-items:center;gap:.4rem;white-space:nowrap;
+  font-family:var(--sans);font-size:.74rem;font-weight:600;
+  background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;
+  padding:.45rem .8rem;border-radius:18px;transition:all .15s;
+}
+.adm-modtab:hover{border-color:var(--gold-bd-h);color:var(--text)}
+.adm-modtab.on{background:var(--gold-dim);border-color:var(--gold-bd-h);color:var(--gold-deep);font-weight:700}
+.adm-modtab-n{font-family:var(--mono);font-size:.62rem;padding:.06rem .35rem;border-radius:5px;background:var(--surface3);color:var(--dim)}
+.adm-modtab.on .adm-modtab-n{background:var(--gold-bd);color:var(--gold-deep)}
+
+/* Badges de módulo en cards */
+.adm-chat-tag.reclamo{background:#fdecec;color:#d33;border-color:#f5c2c2}
+.adm-chat-tag.agenda{background:#eef4ff;color:#2c5fb8;border-color:#c2d4f5}
+.adm-chat-tag.sinresp{background:#fff4e5;color:#b8702c;border-color:#f5dcc2}
+.adm-chat-tag.aband{background:#f3eefa;color:#7c4db3;border-color:#ddc8f0}
+.adm-chat-tag.faq{background:#e8f7ee;color:#2e9c5a;border-color:#bce5cd}
+.adm-chat-tag.resuelto{background:var(--green-dim);color:var(--green);border-color:rgba(46,156,90,.4)}
+.adm-chat-card.is-resolved{opacity:.72}
 .adm-drawer-body{
   flex:1;overflow-y:auto;padding:1.1rem 1.2rem;
   display:flex;flex-direction:column;gap:.85rem;
@@ -1551,6 +1600,16 @@ body.drawer-open{overflow:hidden}
         </div>
       </div>
       <div class="adm-stats" id="chatStats"></div>
+
+      <!-- NIVEL 1: B2C / B2B -->
+      <div class="adm-l1tabs" id="convModeTabs">
+        <button data-v="b2c" class="on" type="button">B2C · clientes finales</button>
+        <button data-v="b2b"        type="button">B2B · mayoristas</button>
+      </div>
+
+      <!-- NIVEL 2: módulos -->
+      <div class="adm-modtabs" id="convModuleTabs"></div>
+
       <div class="adm-filters">
         <div class="adm-filter">
           <label>Marca</label>
@@ -1562,21 +1621,6 @@ body.drawer-open{overflow:hidden}
             <option value="mixto">Mixto (varias)</option>
             <option value="none">Sin marca clara</option>
           </select>
-        </div>
-        <div class="adm-filter">
-          <label>Modo</label>
-          <div class="adm-pillgroup" data-filter="mode">
-            <button data-v="all" class="on" type="button">Todos</button>
-            <button data-v="b2c"        type="button">B2C</button>
-            <button data-v="b2b"        type="button">B2B</button>
-          </div>
-        </div>
-        <div class="adm-filter">
-          <label>Intención de compra</label>
-          <div class="adm-pillgroup" data-filter="intent">
-            <button data-v="all" class="on" type="button">Todas</button>
-            <button data-v="yes"        type="button">Sí</button>
-          </div>
         </div>
         <div class="adm-filter">
           <label>Desde</label>
@@ -1614,6 +1658,7 @@ body.drawer-open{overflow:hidden}
         </div>
       </div>
       <div class="adm-drawer-tags" id="drawerTags"></div>
+      <div class="adm-mark-bar" id="drawerLabelBar"></div>
       <div class="adm-drawer-body" id="drawerBody">
         <div class="adm-loading">Cargando…</div>
       </div>
@@ -2226,16 +2271,26 @@ function bindProductCards(){
 document.getElementById('btnReloadProd').onclick = () => { openProductId = null; loadProductos(); };
 
 // ─── Conversaciones (embudo) ────────────────────────────────────────────────
-let chatFilters = { brand:'all', mode:'all', intent:'all', from:'', to:'', q:'' };
+let chatFilters = { brand:'all', mode:'b2c', module:'todos', from:'', to:'', q:'' };
 let chatsCache = [];
 let chatsStats = null;
 let chatFilterTmr = null;
 
+const CONV_MODULE_DEFS = [
+  { id:'todos',         label:'Todos' },
+  { id:'intent',        label:'Con intención' },
+  { id:'reclamos',      label:'Reclamos' },
+  { id:'sin_respuesta', label:'Sin respuesta' },
+  { id:'agendamientos', label:'Agendamientos' },
+  { id:'abandonados',   label:'Abandonados' },
+  { id:'faq',           label:'Preguntas frecuentes' },
+];
+
 function chatsQuery(){
   const p = new URLSearchParams();
   if (chatFilters.brand  && chatFilters.brand  !== 'all') p.set('brand',  chatFilters.brand);
-  if (chatFilters.mode   && chatFilters.mode   !== 'all') p.set('mode',   chatFilters.mode);
-  if (chatFilters.intent && chatFilters.intent !== 'all') p.set('intent', chatFilters.intent);
+  p.set('mode',   chatFilters.mode || 'b2c');
+  p.set('module', chatFilters.module || 'todos');
   if (chatFilters.from) p.set('from', chatFilters.from);
   if (chatFilters.to)   p.set('to',   chatFilters.to);
   if (chatFilters.q)    p.set('q',    chatFilters.q);
@@ -2256,10 +2311,22 @@ async function loadConversations(){
     chatsCache  = data.items || [];
     chatsStats  = data.stats || {};
     renderChatStats();
+    renderModuleTabs(data.moduleCounts || {});
     renderChatsList(data.total);
   } catch (e) {
     list.innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`;
   }
+}
+
+function renderModuleTabs(counts){
+  const wrap = document.getElementById('convModuleTabs');
+  wrap.innerHTML = CONV_MODULE_DEFS.map(m => `
+    <button type="button" class="adm-modtab ${m.id===chatFilters.module?'on':''}" data-v="${m.id}">
+      ${m.label}<span class="adm-modtab-n">${counts[m.id] ?? 0}</span>
+    </button>`).join('');
+  wrap.querySelectorAll('.adm-modtab').forEach(b => {
+    b.onclick = () => { chatFilters.module = b.dataset.v; loadConversations(); };
+  });
 }
 
 function renderChatStats(){
@@ -2336,11 +2403,21 @@ function chatCardHtml(c){
   const extraProd = (c.products || []).length > 3
     ? `<span class="adm-chat-prod more">+${c.products.length - 3}</span>` : '';
   const preview = escapeHtml(c.firstUserMsg || '(sin mensaje del usuario)');
+  // Badges de módulo auto + etiquetas manuales + resuelto
+  const f = c.flags || {};
+  const modBadges = [
+    f.reclamo      ? '<span class="adm-chat-tag reclamo">reclamo</span>' : '',
+    f.agendamiento ? '<span class="adm-chat-tag agenda">agenda</span>' : '',
+    f.sinRespuesta ? '<span class="adm-chat-tag sinresp">sin respuesta</span>' : '',
+    f.abandonado   ? '<span class="adm-chat-tag aband">abandonado</span>' : '',
+    f.faq          ? '<span class="adm-chat-tag faq">FAQ</span>' : '',
+  ].filter(Boolean).join('');
+  const resolvedBadge = c.resolved ? '<span class="adm-chat-tag resuelto">✓ resuelto</span>' : '';
   return `
-    <article class="adm-chat-card" data-id="${escapeAttr(c.sessionId)}">
+    <article class="adm-chat-card${c.resolved?' is-resolved':''}" data-id="${escapeAttr(c.sessionId)}">
       <div class="adm-chat-card-top">
         <div class="adm-chat-tags">
-          ${mode}${intent}
+          ${mode}${intent}${resolvedBadge}${modBadges}
           <span class="adm-chat-tag brand">${escapeHtml(brand)}</span>
           <span class="adm-chat-tag from">${escapeHtml(fromLabel)}</span>
         </div>
@@ -2394,28 +2471,22 @@ document.getElementById('fTo').onchange    = (e) => { chatFilters.to    = e.targ
 document.getElementById('fQ').oninput      = (e) => { chatFilters.q     = e.target.value.trim(); debouncedLoadChats(); };
 document.getElementById('btnReloadChats').onclick = () => loadConversations();
 document.getElementById('btnClearFilters').onclick = () => {
-  chatFilters = { brand:'all', mode:'all', intent:'all', from:'', to:'', q:'' };
+  chatFilters.brand = 'all'; chatFilters.from=''; chatFilters.to=''; chatFilters.q='';
   document.getElementById('fBrand').value = 'all';
   document.getElementById('fFrom').value  = '';
   document.getElementById('fTo').value    = '';
   document.getElementById('fQ').value     = '';
-  document.querySelectorAll('#chatsView .adm-pillgroup').forEach(g => {
-    g.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === 'all'));
-  });
   loadConversations();
 };
-// IMPORTANTE: este loop se restringe a #chatsView. Antes era global y
-// sobrescribía los onclick del toggle Minorista/Mayorista (productos) y
-// del range (analytics) porque corría después de sus handlers específicos.
-document.querySelectorAll('#chatsView .adm-pillgroup').forEach(g => {
-  g.querySelectorAll('button').forEach(b => {
-    b.onclick = () => {
-      const key = g.dataset.filter;
-      chatFilters[key] = b.dataset.v;
-      g.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-      debouncedLoadChats();
-    };
-  });
+// NIVEL 1: B2C / B2B — al cambiar reseteo el módulo a "todos"
+document.querySelectorAll('#convModeTabs button').forEach(b => {
+  b.onclick = () => {
+    if (b.dataset.v === chatFilters.mode) return;
+    chatFilters.mode = b.dataset.v;
+    chatFilters.module = 'todos';
+    document.querySelectorAll('#convModeTabs button').forEach(x => x.classList.toggle('on', x === b));
+    loadConversations();
+  };
 });
 
 function debouncedLoadChats(){
@@ -2426,6 +2497,51 @@ function debouncedLoadChats(){
 // ─── Drawer de detalle ──────────────────────────────────────────────────────
 let drawerConv = null;       // conversación abierta actualmente
 let drawerFeedback = [];     // feedback ya guardado para esta conversación
+let drawerLabel = { tags: [], resolved: false };
+
+// Guarda el estado de etiquetas/resuelto de la conversación abierta.
+async function saveConvLabel(){
+  if (!drawerConv) return;
+  try {
+    const r = await fetch('/admin/conversations/' + encodeURIComponent(drawerConv.sessionId) + '/label', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ tags: drawerLabel.tags, resolved: drawerLabel.resolved }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    showToast('Conversación actualizada ✓', 'ok');
+    // Refrescar el badge en la lista si está cargada
+    const ci = chatsCache.findIndex(x => x.sessionId === drawerConv.sessionId);
+    if (ci >= 0) { chatsCache[ci].tags = drawerLabel.tags.slice(); chatsCache[ci].resolved = drawerLabel.resolved; }
+  } catch (e) { showToast('Error: ' + e.message, 'err'); }
+}
+function toggleConvTag(tag){
+  const i = drawerLabel.tags.indexOf(tag);
+  if (i >= 0) drawerLabel.tags.splice(i,1); else drawerLabel.tags.push(tag);
+  renderLabelBar();
+  saveConvLabel();
+}
+function toggleResolved(){
+  drawerLabel.resolved = !drawerLabel.resolved;
+  renderLabelBar();
+  saveConvLabel();
+}
+function renderLabelBar(){
+  const bar = document.getElementById('drawerLabelBar');
+  if (!bar) return;
+  const tagBtns = [
+    { t:'reclamo',      l:'Reclamo' },
+    { t:'agendamiento', l:'Agendamiento' },
+    { t:'seguimiento',  l:'Seguimiento' },
+    { t:'intent',       l:'Interés de compra' },
+    { t:'faq',          l:'FAQ' },
+  ];
+  bar.innerHTML = `
+    <button type="button" class="adm-mark ${drawerLabel.resolved?'on-ok':''}" data-resolved>${drawerLabel.resolved?'✓ Resuelto':'Marcar resuelto'}</button>
+    ${tagBtns.map(b=>`<button type="button" class="adm-mark ${drawerLabel.tags.includes(b.t)?'on':''}" data-tag="${b.t}">${b.l}</button>`).join('')}`;
+  bar.querySelector('[data-resolved]').onclick = toggleResolved;
+  bar.querySelectorAll('[data-tag]').forEach(b => b.onclick = () => toggleConvTag(b.dataset.tag));
+}
 
 async function openConversation(id){
   const drawer = document.getElementById('chatDrawer');
@@ -2441,9 +2557,10 @@ async function openConversation(id){
       const e = await r.json().catch(() => ({}));
       throw new Error(e.error || 'HTTP ' + r.status);
     }
-    const { conversation: c, summary: s, feedback } = await r.json();
+    const { conversation: c, summary: s, feedback, label } = await r.json();
     drawerConv = c;
     drawerFeedback = Array.isArray(feedback) ? feedback : [];
+    drawerLabel = label || { tags: [], resolved: false };
     renderDrawer(c, s);
   } catch (e) {
     document.getElementById('drawerBody').innerHTML =
@@ -2483,6 +2600,7 @@ function renderDrawer(c, s){
     ...(s.products || []).map(p => `<span class="adm-chat-prod">${escapeHtml(p)}</span>`),
   ].filter(Boolean).join('');
   document.getElementById('drawerTags').innerHTML = tags;
+  renderLabelBar();
 
   const messages = Array.isArray(c.messages) ? c.messages : [];
   if (!messages.length) {

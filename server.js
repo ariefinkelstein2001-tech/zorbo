@@ -1331,21 +1331,73 @@ function brandKey(label){
   return null;
 }
 
+// ── Etiquetas manuales de conversaciones (gestión del equipo) ──
+const CONV_LABELS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'conv-labels.json');
+function loadConvLabels(){
+  try {
+    if (!existsSync(CONV_LABELS_FILE)) return {};
+    const p = JSON.parse(readFileSync(CONV_LABELS_FILE, 'utf-8'));
+    return (p && typeof p === 'object') ? p : {};
+  } catch { return {}; }
+}
+function saveConvLabels(d){ writeFileSync(CONV_LABELS_FILE, JSON.stringify(d, null, 2)); }
+const CONV_VALID_TAGS = ['reclamo','agendamiento','intent','faq','seguimiento'];
+
+// ── Clasificación automática en módulos ──
+const CONV_MODULE_RX = {
+  reclamo:      /\b(problema|reclamo|queja|no\s+lleg|nunca\s+lleg|lleg[oó]\s+mal|mal\s+estado|en\s+mal|defect|roto|rota|devoluci|reembols|equivoc|cobr[oó]\s+mal|me\s+cobraron|tard[oó]|p[eé]sim|mala\s+atenci|estafa|horrible)\b/i,
+  agendamiento: /\b(agendar|agenda|coordina|coordinemos|reuni[oó]n|visita|qu[eé]\s+d[ií]a|qu[eé]\s+hora|nos\s+juntamos|pasar\s+a\s+(dejar|buscar|retirar)|fecha\s+de\s+entrega|cu[aá]ndo\s+(pueden|pasan|vienen)|programar)\b/i,
+  faq:          /\b(horario|a\s+qu[eé]\s+hora\s+(abren|cierran)|abren|cierran|d[oó]nde\s+(est[aá]n|queda|retiro)|ubicaci|direcci[oó]n\s+del\s+local|formas?\s+de\s+pago|medios?\s+de\s+pago|hacen\s+env[ií]o|tienen\s+local|c[oó]mo\s+(compro|funciona|pido)|aceptan)\b/i,
+};
+const CONV_BOT_FALLBACK_RX = /(no\s+tengo\s+esa\s+info|no\s+s[eé]\b|no\s+estoy\s+seguro|no\s+puedo\s+ayudar(te)?\s+con|no\s+manejo\s+esa|disculp[ae].*(problema\s+t[eé]cnico)|tuve\s+un\s+problema\s+t[eé]cnico|intenta\s+de\s+nuevo|no\s+entend[ií]|no\s+s[eé]\s+(c[oó]mo|qu[eé]))/i;
+
+function classifyConversation(c){
+  const msgs = Array.isArray(c.messages) ? c.messages : [];
+  const userText = msgs.filter(m => m.role === 'user').map(m => m.content || '').join(' \n ');
+  const botText  = msgs.filter(m => m.role === 'assistant').map(m => m.content || '').join(' \n ');
+  const products = Array.isArray(c.recommendedProducts) ? c.recommendedProducts : [];
+  const intentWords = /\b(quiero\s+(comprar|llevar|\d)|me\s+lo\s+llevo|agreg|al\s+carrito|arma\s+el?\s+pedido|p[áa]same\s+el\s+link)\b/i.test(userText);
+  return {
+    // reclamo y faq se detectan SOLO en lo que dice el usuario (el bot puede
+    // decir "tuve un problema técnico" y eso no es un reclamo del cliente).
+    reclamo:      CONV_MODULE_RX.reclamo.test(userText),
+    agendamiento: CONV_MODULE_RX.agendamiento.test(userText + ' ' + botText),
+    faq:          CONV_MODULE_RX.faq.test(userText) && !c.purchaseIntent,
+    sinRespuesta: CONV_BOT_FALLBACK_RX.test(botText),
+    abandonado:   !c.purchaseIntent && (products.length > 0 || intentWords) && msgs.length >= 2,
+  };
+}
+
+// Membresía en módulo combinando auto + etiqueta manual.
+function inModule(mod, c, flags, manualTags){
+  const has = t => manualTags.includes(t);
+  switch (mod) {
+    case 'todos':        return true;
+    case 'intent':       return !!c.purchaseIntent || has('intent');
+    case 'reclamos':     return flags.reclamo || has('reclamo');
+    case 'sin_respuesta':return flags.sinRespuesta;
+    case 'agendamientos':return flags.agendamiento || has('agendamiento');
+    case 'abandonados':  return flags.abandonado;
+    case 'faq':          return flags.faq || has('faq');
+    default:             return true;
+  }
+}
+const CONV_MODULES = ['todos','intent','reclamos','sin_respuesta','agendamientos','abandonados','faq'];
+
 app.get('/admin/conversations', requireAdmin, (req, res) => {
   try {
     const all = readLog(CONV_LOG);
-    if (!Array.isArray(all)) return res.json({ total: 0, stats: {}, items: [] });
+    if (!Array.isArray(all)) return res.json({ total: 0, stats: {}, moduleCounts: {}, items: [] });
+    const labels = loadConvLabels();
 
-    // Filtros (todos opcionales)
-    const fBrand  = String(req.query.brand  || 'all').toLowerCase(); // all | kairos | firulais | banny
-    const fMode   = String(req.query.mode   || 'all').toLowerCase(); // all | b2c | b2b
-    const fIntent = String(req.query.intent || 'all').toLowerCase(); // all | yes
+    const fBrand  = String(req.query.brand  || 'all').toLowerCase();
+    const fMode   = String(req.query.mode   || 'b2c').toLowerCase();  // b2c | b2b
+    const fModule = String(req.query.module || 'todos').toLowerCase();
     const fFrom   = req.query.from ? new Date(req.query.from).getTime() : null;
     const fTo     = req.query.to   ? new Date(req.query.to).getTime()   : null;
     const fQ      = String(req.query.q || '').trim().toLowerCase();
     const limit   = Math.max(1, Math.min(500, parseInt(req.query.limit || '200', 10) || 200));
 
-    // Stats sobre TODA la base (no afectadas por filtros), más útiles que sobre el subset
     const stats = {
       total:        all.length,
       withIntent:   all.filter(c => !!c.purchaseIntent).length,
@@ -1358,44 +1410,79 @@ app.get('/admin/conversations', requireAdmin, (req, res) => {
       withProducts: all.filter(c => Array.isArray(c.recommendedProducts) && c.recommendedProducts.length).length,
     };
 
-    let items = all.map(summarizeConversation);
-
-    if (fBrand !== 'all') {
-      if (fBrand === 'mixto')   items = items.filter(c => c.topBrand === 'Mixto');
-      else if (fBrand === 'none') items = items.filter(c => !c.topBrand);
-      else items = items.filter(c => brandKey(c.topBrand) === fBrand);
-    }
-    if (fMode === 'b2c')  items = items.filter(c => !c.isB2B);
-    if (fMode === 'b2b')  items = items.filter(c =>  c.isB2B);
-    if (fIntent === 'yes') items = items.filter(c => c.purchaseIntent);
-    if (fFrom)   items = items.filter(c => {
-      const t = new Date(c.lastActivity || c.startTime || 0).getTime();
-      return t && t >= fFrom;
+    // Enriquecemos cada conversación con summary + flags + label manual
+    let enriched = all.map(c => {
+      const s = summarizeConversation(c);
+      const flags = classifyConversation(c);
+      const lab = labels[c.sessionId] || {};
+      return { c, s, flags, tags: Array.isArray(lab.tags) ? lab.tags : [], resolved: !!lab.resolved };
     });
-    if (fTo)     items = items.filter(c => {
-      const t = new Date(c.lastActivity || c.startTime || 0).getTime();
-      return t && t <= fTo;
-    });
-    if (fQ)      items = items.filter(c =>
-      (c.firstUserMsg || '').toLowerCase().includes(fQ) ||
-      (c.lastBotMsg   || '').toLowerCase().includes(fQ) ||
-      (c.sessionId    || '').toLowerCase().includes(fQ) ||
-      (c.products || []).some(p => String(p).toLowerCase().includes(fQ))
-    );
 
-    // Ordenar por última actividad descendente
+    // Filtros base (mode + brand + fecha + búsqueda) — SIN el módulo todavía,
+    // para poder contar cada módulo sobre el mismo subset.
+    const base = enriched.filter(x => {
+      if (fMode === 'b2c' && x.s.isB2B) return false;
+      if (fMode === 'b2b' && !x.s.isB2B) return false;
+      if (fBrand !== 'all') {
+        if (fBrand === 'mixto')      { if (x.s.topBrand !== 'Mixto') return false; }
+        else if (fBrand === 'none')  { if (x.s.topBrand) return false; }
+        else if (brandKey(x.s.topBrand) !== fBrand) return false;
+      }
+      const t = new Date(x.s.lastActivity || x.s.startTime || 0).getTime();
+      if (fFrom && !(t >= fFrom)) return false;
+      if (fTo && !(t <= fTo)) return false;
+      if (fQ) {
+        const hay = (x.s.firstUserMsg||'').toLowerCase().includes(fQ)
+          || (x.s.lastBotMsg||'').toLowerCase().includes(fQ)
+          || (x.s.sessionId||'').toLowerCase().includes(fQ)
+          || (x.s.products||[]).some(p => String(p).toLowerCase().includes(fQ));
+        if (!hay) return false;
+      }
+      return true;
+    });
+
+    // Conteo por módulo sobre el subset base
+    const moduleCounts = {};
+    for (const m of CONV_MODULES) moduleCounts[m] = base.filter(x => inModule(m, x.c, x.flags, x.tags)).length;
+
+    // Aplicar módulo seleccionado
+    let items = base.filter(x => inModule(fModule, x.c, x.flags, x.tags));
+
     items.sort((a, b) => {
-      const ta = new Date(a.lastActivity || a.startTime || 0).getTime();
-      const tb = new Date(b.lastActivity || b.startTime || 0).getTime();
+      const ta = new Date(a.s.lastActivity || a.s.startTime || 0).getTime();
+      const tb = new Date(b.s.lastActivity || b.s.startTime || 0).getTime();
       return tb - ta;
     });
 
     const filteredCount = items.length;
-    items = items.slice(0, limit);
+    const out = items.slice(0, limit).map(x => ({
+      ...x.s,
+      flags: x.flags,
+      tags: x.tags,
+      resolved: x.resolved,
+    }));
 
-    res.json({ total: filteredCount, stats, items });
+    res.json({ total: filteredCount, stats, moduleCounts, items: out });
   } catch (e) {
     res.status(500).json({ error: 'Error leyendo conversaciones: ' + e.message });
+  }
+});
+
+// Marcado manual de una conversación (status resuelto + tags de gestión)
+app.post('/admin/conversations/:id/label', requireAdmin, (req, res) => {
+  const id = String(req.params.id);
+  const { tags, resolved } = req.body || {};
+  if (tags != null && !Array.isArray(tags)) return res.status(400).json({ error: 'tags inválido.' });
+  try {
+    const data = loadConvLabels();
+    const clean = (tags || []).filter(t => CONV_VALID_TAGS.includes(t));
+    const entry = { tags: clean, resolved: !!resolved, updatedAt: new Date().toISOString() };
+    if (!clean.length && !entry.resolved) delete data[id];
+    else data[id] = entry;
+    saveConvLabels(data);
+    res.json({ ok: true, tags: clean, resolved: entry.resolved });
+  } catch (e) {
+    res.status(500).json({ error: 'Error guardando etiqueta: ' + e.message });
   }
 });
 
@@ -1406,7 +1493,14 @@ app.get('/admin/conversations/:id', requireAdmin, (req, res) => {
     const c = all.find(e => e.sessionId === req.params.id);
     if (!c) return res.status(404).json({ error: 'Conversación no encontrada.' });
     const feedback = loadFeedback().filter(f => f.sessionId === c.sessionId);
-    res.json({ conversation: c, summary: summarizeConversation(c), feedback });
+    const lab = loadConvLabels()[c.sessionId] || {};
+    res.json({
+      conversation: c,
+      summary: summarizeConversation(c),
+      flags: classifyConversation(c),
+      label: { tags: Array.isArray(lab.tags) ? lab.tags : [], resolved: !!lab.resolved },
+      feedback,
+    });
   } catch (e) {
     res.status(500).json({ error: 'Error leyendo conversación: ' + e.message });
   }
