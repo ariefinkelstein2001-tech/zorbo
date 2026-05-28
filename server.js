@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import Anthropic from '@anthropic-ai/sdk';
-import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID, createHmac, timingSafeEqual, randomBytes } from 'crypto';
@@ -12,7 +12,7 @@ const app = express();
 const client = new Anthropic();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '12mb' })); // 12mb para permitir uploads base64 (PDF/imagen) desde el admin
 
 // ─── Storage paths (con soporte Railway Volume) ──────────────────────────────
 // DATA_DIR (env var) apunta a un volumen persistente. Sin él, todo vive en el
@@ -35,9 +35,13 @@ const CONV_LOG  = join(LOGS_DIR, 'conversations.json');
 const ERR_LOG   = join(LOGS_DIR, 'errors.json');
 const GAMES_LOG = join(LOGS_DIR, 'games.json');
 const LEADS_LOG = join(LOGS_DIR, 'mayoristas_leads.json');
+// Archivos subidos desde el admin (PDF/imágenes de producto). En el volumen
+// si DATA_DIR está seteado; servidos en /uploads.
+const UPLOADS_DIR = DATA_DIR ? join(DATA_DIR, 'uploads') : join(__dirname, 'public', 'uploads');
 
 function initLogs() {
   if (!existsSync(LOGS_DIR))   mkdirSync(LOGS_DIR, { recursive: true });
+  if (!existsSync(UPLOADS_DIR)) mkdirSync(UPLOADS_DIR, { recursive: true });
   if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) {
     mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true });
   }
@@ -431,9 +435,15 @@ function buildSystemPrompt(base, session, liveCatalog) {
         if (!e) continue;
         const note = (e.extra || '').trim();
         const video = (e.video || '').trim();
-        if (!note && !video) continue;
+        const files = Array.isArray(e.files) ? e.files : [];
+        if (!note && !video && !files.length) continue;
         let block = `### ${p.title}\n${note}`;
         if (video) block += `${note ? '\n' : ''}VIDEO del producto: ${video} (compártelo cuando el cliente quiera ver más).`;
+        if (files.length) {
+          const base = process.env.PUBLIC_BASE_URL || '';
+          const fileLines = files.map(f => `${f.type === 'pdf' ? 'PDF' : 'Imagen'} "${f.name}": ${base}${f.url}`).join('\n');
+          block += `${(note||video) ? '\n' : ''}ARCHIVOS/FICHAS del producto (compártelos cuando el cliente pida ficha técnica, especificaciones o más info):\n${fileLines}`;
+        }
         sections.push(block);
       }
       if (sections.length) {
@@ -810,6 +820,9 @@ app.get('/api/cart-link', (req, res) => {
 // ─── Static frontend ──────────────────────────────────────────────────────────
 
 app.use(express.static(join(__dirname, 'public')));
+// Archivos subidos (PDF/imágenes de producto). Cuando DATA_DIR está seteado
+// viven en el volumen, así que necesitan su propia ruta estática.
+app.use('/uploads', express.static(UPLOADS_DIR, { maxAge: '7d' }));
 
 // Clon de kairos-brewing.com servido en /kairos y sub-rutas (cervezas, packs,
 // destileria, merch, restaurantes, eventos, nosotros). Todas resuelven al
@@ -1058,7 +1071,8 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
           variants:   (p.variants || []).length,
           isMayorista, isZorbo,
           extra:      ex?.extra || '',
-          hasExtra:   !!(ex && (ex.extra && ex.extra.trim() || ex.video)),
+          files:      Array.isArray(ex?.files) ? ex.files : [],
+          hasExtra:   !!(ex && (ex.extra && ex.extra.trim() || ex.video || (ex.files && ex.files.length))),
           updatedAt:  ex?.updatedAt || null,
         };
       });
@@ -1083,20 +1097,98 @@ app.post('/admin/products/:id', requireAdmin, (req, res) => {
     const trimmedExtra = extra.trim();
     const trimmedImage = image.trim();
     const trimmedVideo = video.trim();
-    if (!trimmedExtra && !trimmedImage && !trimmedVideo) {
+    // Preservamos los archivos ya subidos (se gestionan en endpoints aparte).
+    const existingFiles = Array.isArray(data.items[id]?.files) ? data.items[id].files : [];
+    if (!trimmedExtra && !trimmedImage && !trimmedVideo && !existingFiles.length) {
       delete data.items[id];
     } else {
       data.items[id] = {
         extra: trimmedExtra,
         ...(trimmedImage ? { image: trimmedImage } : {}),
         ...(trimmedVideo ? { video: trimmedVideo } : {}),
+        ...(existingFiles.length ? { files: existingFiles } : {}),
         updatedAt: new Date().toISOString(),
       };
     }
     saveProductExtras(data);
-    res.json({ ok: true, id, hasExtra: !!(trimmedExtra || trimmedVideo) });
+    res.json({ ok: true, id, hasExtra: !!(trimmedExtra || trimmedVideo || existingFiles.length) });
   } catch (e) {
     res.status(500).json({ error: 'Error guardando: ' + e.message });
+  }
+});
+
+// Subida de archivo (PDF o imagen) para un producto. El admin manda el archivo
+// en base64. Lo guardamos en UPLOADS_DIR y lo agregamos a files[] del producto.
+const UPLOAD_TYPES = {
+  'application/pdf':  'pdf',
+  'image/png':        'png',
+  'image/jpeg':       'jpg',
+  'image/jpg':        'jpg',
+  'image/webp':       'webp',
+  'image/gif':        'gif',
+};
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // 8 MB
+
+app.post('/admin/products/:id/upload', requireAdmin, (req, res) => {
+  const id = String(req.params.id).trim();
+  if (!id) return res.status(400).json({ error: 'Falta id.' });
+  const { filename = '', contentType = '', dataBase64 = '' } = req.body || {};
+  if (typeof dataBase64 !== 'string' || !dataBase64) {
+    return res.status(400).json({ error: 'Falta el archivo.' });
+  }
+  const ext = UPLOAD_TYPES[String(contentType).toLowerCase()];
+  if (!ext) return res.status(415).json({ error: 'Solo se permiten PDF o imágenes (png, jpg, webp, gif).' });
+  let buf;
+  try { buf = Buffer.from(dataBase64, 'base64'); }
+  catch { return res.status(400).json({ error: 'Archivo inválido.' }); }
+  if (!buf.length)              return res.status(400).json({ error: 'Archivo vacío.' });
+  if (buf.length > MAX_UPLOAD_BYTES) return res.status(413).json({ error: 'Máximo 8 MB por archivo.' });
+  try {
+    const safeName = randomUUID() + '.' + ext;
+    writeFileSync(join(UPLOADS_DIR, safeName), buf);
+    const fileInfo = {
+      url:        '/uploads/' + safeName,
+      name:       String(filename || ('archivo.' + ext)).slice(0, 200),
+      type:       ext === 'pdf' ? 'pdf' : 'image',
+      size:       buf.length,
+      uploadedAt: new Date().toISOString(),
+    };
+    const data = loadProductExtras();
+    const item = data.items[id] || { extra: '' };
+    item.files = Array.isArray(item.files) ? item.files : [];
+    item.files.push(fileInfo);
+    item.updatedAt = new Date().toISOString();
+    data.items[id] = item;
+    saveProductExtras(data);
+    res.json({ ok: true, file: fileInfo });
+  } catch (e) {
+    res.status(500).json({ error: 'Error guardando archivo: ' + e.message });
+  }
+});
+
+app.delete('/admin/products/:id/file', requireAdmin, (req, res) => {
+  const id = String(req.params.id).trim();
+  const { url = '' } = req.body || {};
+  if (!id || !url) return res.status(400).json({ error: 'Falta id o url.' });
+  try {
+    const data = loadProductExtras();
+    const item = data.items[id];
+    if (!item || !Array.isArray(item.files)) return res.status(404).json({ error: 'Sin archivos.' });
+    const idx = item.files.findIndex(f => f.url === url);
+    if (idx < 0) return res.status(404).json({ error: 'Archivo no encontrado.' });
+    const [removed] = item.files.splice(idx, 1);
+    // Borrar del disco (solo si la url está dentro de /uploads/ — anti path traversal)
+    if (removed && /^\/uploads\/[\w.-]+$/.test(removed.url)) {
+      const p = join(UPLOADS_DIR, removed.url.replace('/uploads/', ''));
+      try { if (existsSync(p)) unlinkSync(p); } catch {}
+    }
+    if (!item.files.length) delete item.files;
+    if (!item.extra && !item.image && !item.video && !item.files) delete data.items[id];
+    else { item.updatedAt = new Date().toISOString(); data.items[id] = item; }
+    saveProductExtras(data);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error eliminando archivo: ' + e.message });
   }
 });
 
