@@ -2034,8 +2034,27 @@ app.get('/admin/analytics', requireAdmin, async (req, res) => {
 // SOLO productos con tag MAYORISTA. Requiere read_orders.
 const isMayoristaLine = (li) => (li.tags || []).map(t => String(t).toUpperCase()).includes('MAYORISTA');
 
-app.get('/admin/analytics/sales', requireAdmin, async (req, res) => {
-  const r = rangeFor(String(req.query.range || '30d'));
+// Diagnóstico: qué scopes tiene REALMENTE el token actual de Shopify.
+app.get('/admin/shopify/scopes', requireAdmin, async (_req, res) => {
+  if (!process.env.SHOPIFY_ADMIN_TOKEN || !process.env.SHOPIFY_STORE_DOMAIN) {
+    return res.json({ ok:false, reason:'Falta SHOPIFY_ADMIN_TOKEN o SHOPIFY_STORE_DOMAIN.' });
+  }
+  try {
+    const r = await shopifyAdminFetch('/oauth/access_scopes.json');
+    const granted = (r.access_scopes || []).map(s => s.handle);
+    res.json({
+      ok: true,
+      shop: process.env.SHOPIFY_STORE_DOMAIN,
+      granted,
+      hasReadOrders:    granted.includes('read_orders'),
+      hasReadCustomers: granted.includes('read_customers'),
+    });
+  } catch (e) {
+    res.json({ ok:false, reason: String(e.message || e).slice(0, 300) });
+  }
+});
+
+app.get('/admin/analytics/sales', requireAdmin, async (req, res) => {  const r = rangeFor(String(req.query.range || '30d'));
   const result = await loadOrders(String(req.query.refresh || '') === '1');
   if (!result.available) {
     return res.json({ available: false, reason: result.reason, range: r });
