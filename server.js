@@ -804,8 +804,11 @@ const ORDERS_QUERY = `query($cursor: String) {
       cursor
       node {
         id
+        name
         createdAt
+        displayFulfillmentStatus
         currentTotalPriceSet { shopMoney { amount } }
+        customer { id email }
         lineItems(first: 50) {
           edges { node {
             quantity
@@ -847,8 +850,12 @@ async function loadOrders(force = false){
         const n = e.node;
         orders.push({
           id: stripGid(n.id, 'Order'),
+          name: n.name || null,
           createdAt: n.createdAt,
+          status: n.displayFulfillmentStatus || null,
           total: parseFloat(n.currentTotalPriceSet?.shopMoney?.amount || 0),
+          customerId: n.customer ? stripGid(n.customer.id, 'Customer') : null,
+          customerEmail: n.customer?.email || null,
           lineItems: (n.lineItems?.edges || []).map(le => ({
             qty: le.node.quantity,
             amount: parseFloat(le.node.originalTotalSet?.shopMoney?.amount || 0),
@@ -2113,6 +2120,221 @@ app.get('/admin/analytics/pixis', requireAdmin, (_req, res) => {
   // TODO: cuando tengamos doc de la API de Pixis, implementar las llamadas
   // reales (sell-out cadena, competencia, top licores, crecimiento por local).
   res.json({ available: false, reason: 'Pixis configurado pero la integración aún no está implementada (falta doc de endpoints).' });
+});
+
+// ─── Clientes mayoristas ────────────────────────────────────────────────────
+// Lista de clientes Shopify con tag que contenga "mayorista" (case-insensitive),
+// enriquecidos con métricas de sus órdenes. Notas internas en JSON propio.
+
+const CUSTOMER_NOTES_FILE = join(PROMPTS_EFFECTIVE_DIR, 'customer-notes.json');
+function loadCustomerNotes(){
+  try {
+    if (!existsSync(CUSTOMER_NOTES_FILE)) return {};
+    const p = JSON.parse(readFileSync(CUSTOMER_NOTES_FILE, 'utf-8'));
+    return (p && typeof p === 'object') ? p : {};
+  } catch { return {}; }
+}
+function saveCustomerNotes(data){ writeFileSync(CUSTOMER_NOTES_FILE, JSON.stringify(data, null, 2)); }
+
+const CUSTOMERS_QUERY = `query($cursor: String) {
+  customers(first: 100, after: $cursor, query: "tag:mayorista") {
+    edges { cursor node {
+      id firstName lastName email phone note createdAt numberOfOrders tags
+      amountSpent { amount }
+      defaultAddress { address1 address2 city province company phone }
+    } }
+    pageInfo { hasNextPage }
+  }
+}`;
+
+let wholesaleCache = null, wholesaleCacheAt = 0;
+const WHOLESALE_TTL_MS = 10 * 60 * 1000;
+
+function hasMayoristaTagArr(tags){
+  return (tags || []).some(t => String(t).toLowerCase().includes('mayorista'));
+}
+
+async function loadWholesaleCustomers(force = false){
+  if (!force && wholesaleCache && Date.now() - wholesaleCacheAt < WHOLESALE_TTL_MS) {
+    return { available: true, customers: wholesaleCache };
+  }
+  if (!process.env.SHOPIFY_ADMIN_TOKEN) {
+    return { available: false, reason: 'Shopify no conectado (falta SHOPIFY_ADMIN_TOKEN).' };
+  }
+  try {
+    const customers = [];
+    let cursor = null;
+    for (let page = 0; page < 10; page++) {
+      const resp = await shopifyAdminFetch('/graphql.json', {
+        method: 'POST',
+        body: JSON.stringify({ query: CUSTOMERS_QUERY, variables: { cursor } }),
+      });
+      if (resp.errors) {
+        const msg = JSON.stringify(resp.errors);
+        if (/access denied|read_customers|scope/i.test(msg)) {
+          return { available: false, reason: 'El token de Shopify no tiene read_customers. Re-autorizá la app.' };
+        }
+        throw new Error(msg);
+      }
+      const conn = resp.data.customers;
+      for (const e of conn.edges) {
+        const n = e.node;
+        const tags = n.tags || [];
+        if (!hasMayoristaTagArr(tags)) continue; // doble check case-insensitive
+        const addr = n.defaultAddress || {};
+        customers.push({
+          id: stripGid(n.id, 'Customer'),
+          name: [n.firstName, n.lastName].filter(Boolean).join(' ').trim() || addr.company || '(sin nombre)',
+          company: addr.company || null,
+          email: n.email || null,
+          phone: n.phone || addr.phone || null,
+          address: [addr.address1, addr.address2, addr.city, addr.province].filter(Boolean).join(', ') || null,
+          shopifyNote: n.note || null,
+          createdAt: n.createdAt,
+          numberOfOrders: Number(n.numberOfOrders || 0),
+          amountSpent: parseFloat(n.amountSpent?.amount || 0),
+          tags,
+        });
+      }
+      if (!conn.pageInfo.hasNextPage) break;
+      cursor = conn.edges[conn.edges.length - 1].cursor;
+    }
+    wholesaleCache = customers;
+    wholesaleCacheAt = Date.now();
+    return { available: true, customers };
+  } catch (e) {
+    const msg = String(e.message || e);
+    if (/\b40[13]\b|access denied|read_customers/i.test(msg)) {
+      return { available: false, reason: 'El token de Shopify no tiene read_customers. Re-autorizá la app.' };
+    }
+    return { available: false, reason: 'Error consultando clientes: ' + msg.slice(0, 200) };
+  }
+}
+
+// Agrega métricas de órdenes a cada cliente (total, count, last, top product).
+function ordersByCustomer(orders){
+  const map = new Map();
+  for (const o of orders) {
+    if (!o.customerId) continue;
+    if (!map.has(o.customerId)) map.set(o.customerId, []);
+    map.get(o.customerId).push(o);
+  }
+  return map;
+}
+
+app.get('/admin/customers/wholesale', requireAdmin, async (req, res) => {
+  const cust = await loadWholesaleCustomers(String(req.query.refresh||'')==='1');
+  if (!cust.available) return res.json({ available: false, reason: cust.reason });
+  const ord = await loadOrders(false);
+  const byCust = ord.available ? ordersByCustomer(ord.orders) : new Map();
+  const notes = loadCustomerNotes();
+
+  const list = cust.customers.map(c => {
+    const cOrders = byCust.get(c.id) || [];
+    let total = 0, lastDate = null;
+    const prodQty = new Map();
+    for (const o of cOrders) {
+      total += o.total;
+      if (!lastDate || new Date(o.createdAt) > new Date(lastDate)) lastDate = o.createdAt;
+      for (const li of o.lineItems) prodQty.set(li.title, (prodQty.get(li.title)||0) + li.qty);
+    }
+    // Si Shopify ya da amountSpent/numberOfOrders, preferimos eso para total
+    // histórico; las órdenes del cache sirven para "última compra" y top.
+    const topProduct = [...prodQty.entries()].sort((a,b)=>b[1]-a[1])[0];
+    return {
+      id: c.id, name: c.name, email: c.email, phone: c.phone,
+      totalSpent: Math.round(c.amountSpent || total),
+      orders: c.numberOfOrders || cOrders.length,
+      lastOrder: lastDate,
+      topProduct: topProduct ? topProduct[0] : null,
+      hasNote: !!(notes[c.id] && notes[c.id].note),
+    };
+  });
+
+  res.json({ available: true, total: list.length, customers: list });
+});
+
+app.get('/admin/customers/:id', requireAdmin, async (req, res) => {
+  const id = String(req.params.id);
+  const cust = await loadWholesaleCustomers(false);
+  if (!cust.available) return res.json({ available: false, reason: cust.reason });
+  const c = cust.customers.find(x => x.id === id);
+  if (!c) return res.status(404).json({ error: 'Cliente no encontrado.' });
+
+  const ord = await loadOrders(false);
+  const cOrders = (ord.available ? ord.orders.filter(o => o.customerId === id) : [])
+    .sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
+
+  // Métricas
+  let total = 0; const prodQty = new Map(); const monthly = {};
+  for (const o of cOrders) {
+    total += o.total;
+    const mk = String(o.createdAt).slice(0,7); // YYYY-MM
+    monthly[mk] = (monthly[mk] || 0) + o.total;
+    for (const li of o.lineItems) prodQty.set(li.title, (prodQty.get(li.title)||0) + li.qty);
+  }
+  const orderCount = cOrders.length;
+  const firstOrder = orderCount ? cOrders[cOrders.length-1].createdAt : null;
+  const lastOrder  = orderCount ? cOrders[0].createdAt : null;
+  const avgTicket  = orderCount ? Math.round(total / orderCount) : 0;
+  // Frecuencia: días promedio entre órdenes
+  let freqDays = null;
+  if (orderCount >= 2) {
+    const span = (new Date(lastOrder) - new Date(firstOrder)) / 86400e3;
+    freqDays = Math.round(span / (orderCount - 1));
+  }
+  const topProducts = [...prodQty.entries()].map(([name,qty])=>({name,qty})).sort((a,b)=>b.qty-a.qty).slice(0,5);
+  const monthlySpend = Object.entries(monthly).map(([month,amount])=>({month, amount: Math.round(amount)})).sort((a,b)=>a.month.localeCompare(b.month));
+
+  // Conversaciones asociadas (match por email o teléfono en los mensajes)
+  let conversations = [];
+  try {
+    const allConv = Array.isArray(readLog(CONV_LOG)) ? readLog(CONV_LOG) : [];
+    const needles = [c.email, c.phone].filter(Boolean).map(s => String(s).toLowerCase());
+    if (needles.length) {
+      conversations = allConv.filter(cv => {
+        const txt = (cv.messages||[]).map(m => String(m.content||'').toLowerCase()).join(' ');
+        return needles.some(n => txt.includes(n));
+      }).map(summarizeConversation).slice(0, 50);
+    }
+  } catch {}
+
+  const notes = loadCustomerNotes();
+  res.json({
+    available: true,
+    customer: {
+      ...c,
+      metrics: {
+        totalSpent: Math.round(c.amountSpent || total),
+        ordersCount: c.numberOfOrders || orderCount,
+        avgTicket, freqDays, firstOrder, lastOrder,
+      },
+      orders: cOrders.map(o => ({
+        id: o.id, name: o.name, createdAt: o.createdAt, total: Math.round(o.total),
+        status: o.status,
+        items: o.lineItems.map(li => ({ title: li.title, qty: li.qty })),
+      })),
+      topProducts, monthlySpend, conversations,
+      note: notes[id]?.note || '',
+      noteUpdatedAt: notes[id]?.updatedAt || null,
+    },
+  });
+});
+
+app.post('/admin/customers/:id/note', requireAdmin, (req, res) => {
+  const id = String(req.params.id);
+  const { note = '' } = req.body || {};
+  if (typeof note !== 'string') return res.status(400).json({ error: 'Nota inválida.' });
+  if (note.length > 10000) return res.status(413).json({ error: 'Nota demasiado larga.' });
+  try {
+    const data = loadCustomerNotes();
+    if (!note.trim()) delete data[id];
+    else data[id] = { note: note.trim(), updatedAt: new Date().toISOString() };
+    saveCustomerNotes(data);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Error guardando nota: ' + e.message });
+  }
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────

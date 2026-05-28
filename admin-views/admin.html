@@ -834,6 +834,66 @@ body.drawer-open{overflow:hidden}
 .adm-ret-gap span{font-family:var(--mono);font-size:.6rem;color:var(--dim)}
 .adm-ret-gap b{font-family:var(--display);font-size:1rem;color:var(--text)}
 
+/* Clientes mayoristas — lista */
+.adm-ws-controls{display:flex;gap:.6rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.8rem}
+.adm-ws-search{flex:1;min-width:200px}
+.adm-ws-sort{display:flex;flex-direction:column;gap:4px}
+.adm-ws-sort label{font-size:.6rem;font-weight:700;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}
+.adm-ws-count{font-family:var(--mono);font-size:.7rem;color:var(--dim);margin-bottom:.5rem}
+.adm-ws-list{display:flex;flex-direction:column;gap:2px}
+.adm-ws-row{
+  display:grid;grid-template-columns:2.2fr 1fr .7fr 1.1fr 1.4fr;gap:.7rem;align-items:center;
+  padding:.6rem .7rem;border-radius:8px;cursor:pointer;transition:background .15s,border-color .15s;
+  border:1px solid transparent;
+}
+.adm-ws-row:hover{background:#fffaf0;border-color:var(--gold-bd)}
+.adm-ws-th{
+  cursor:default;background:transparent;border:none;
+  font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+}
+.adm-ws-th:hover{background:transparent;border-color:transparent}
+.adm-ws-name{display:flex;flex-direction:column;gap:1px;min-width:0;font-weight:600;color:var(--text);font-size:.85rem}
+.adm-ws-name small{font-family:var(--mono);font-size:.66rem;color:var(--dim);font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.adm-ws-noteflag{font-size:.7rem}
+.adm-ws-money{font-family:var(--mono);font-weight:700;color:var(--gold-deep);font-size:.82rem}
+.adm-ws-top{font-size:.76rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:760px){
+  .adm-ws-row{grid-template-columns:1.6fr 1fr 1fr;}
+  .adm-ws-row span:nth-child(4),.adm-ws-row span:nth-child(5){display:none}
+}
+
+/* Ficha cliente (drawer) */
+.cust-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem}
+.cust-metric{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:.55rem .65rem}
+.cust-metric-k{font-family:var(--mono);font-size:.55rem;letter-spacing:.1em;color:var(--dim)}
+.cust-metric-v{font-family:var(--display);font-size:1.05rem;font-weight:800;color:var(--text);line-height:1.2}
+.cust-sect{margin-bottom:1.1rem}
+.cust-sect-t{font-family:var(--display);font-size:.85rem;font-weight:700;color:var(--gold-deep);letter-spacing:.04em;margin-bottom:.5rem;text-transform:uppercase}
+.cust-top{display:grid;grid-template-columns:1fr 80px auto;gap:.5rem;align-items:center;margin-bottom:.35rem}
+.cust-top-name{font-size:.8rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cust-top-bar{height:7px;background:var(--surface3);border-radius:4px;overflow:hidden}
+.cust-top-bar span{display:block;height:100%;background:linear-gradient(90deg,var(--gold-deep),var(--gold) 60%,var(--gold-bright))}
+.cust-top-q{font-family:var(--mono);font-size:.72rem;color:var(--muted)}
+.cust-evo{display:flex;gap:3px;align-items:flex-end;height:110px;padding-top:.3rem}
+.cust-evo-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;justify-content:flex-end;height:100%}
+.cust-evo-bar{width:100%;max-width:26px;background:linear-gradient(180deg,var(--gold) 0%,var(--gold-deep) 100%);border-radius:3px 3px 0 0;min-height:4px}
+.cust-evo-col span{font-family:var(--mono);font-size:.55rem;color:var(--dim)}
+.cust-order{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:.55rem .7rem;margin-bottom:.4rem}
+.cust-order-head{display:flex;align-items:center;gap:.6rem;font-size:.8rem;color:var(--text)}
+.cust-order-head span{font-family:var(--mono);font-size:.7rem;color:var(--muted)}
+.cust-order-total{margin-left:auto;color:var(--gold-deep)!important;font-weight:700}
+.cust-order-items{font-size:.74rem;color:var(--muted);margin-top:.25rem;line-height:1.4}
+.cust-order-status{display:inline-block;margin-top:.3rem;font-family:var(--mono);font-size:.6rem;color:var(--muted);background:var(--surface3);padding:.1rem .4rem;border-radius:4px}
+.cust-conv{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.5rem .65rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:.35rem;cursor:pointer;transition:border-color .15s,background .15s}
+.cust-conv:hover{border-color:var(--gold-bd-h);background:#fffaf0}
+.cust-conv-prev{font-size:.78rem;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cust-conv-when{font-family:var(--mono);font-size:.66rem;color:var(--dim);flex-shrink:0}
+.cust-note{width:100%;background:#fafafa;color:var(--text);border:1px solid var(--border);border-radius:9px;font-family:var(--sans);font-size:.85rem;line-height:1.5;padding:.6rem .75rem;outline:none;resize:vertical}
+.cust-note:focus{border-color:var(--gold-bd-h)}
+.cust-note-acts{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-top:.5rem}
+.cust-note-meta{font-family:var(--mono);font-size:.66rem;color:var(--dim)}
+@media(max-width:600px){.cust-metrics{grid-template-columns:repeat(2,1fr)}}
+
 /* ── CHAT PREVIEW ── */
 .adm-chat{
   position:sticky;top:5.2rem;align-self:start;
@@ -1324,9 +1384,44 @@ body.drawer-open{overflow:hidden}
         </div>
       </div>
 
+      <!-- ── CLIENTES MAYORISTAS ── -->
+      <div class="adm-section-divider"><span>Clientes mayoristas</span></div>
+      <div class="adm-panel" id="wsBox">
+        <div class="adm-ws-controls">
+          <input class="adm-input adm-ws-search" id="wsSearch" type="search" placeholder="Buscar por nombre o email…">
+          <div class="adm-ws-sort">
+            <label>Ordenar</label>
+            <select class="adm-select" id="wsSort">
+              <option value="recent">Más reciente</option>
+              <option value="spent">Más comprado</option>
+              <option value="inactive">Sin actividad reciente</option>
+              <option value="orders">Más pedidos</option>
+            </select>
+          </div>
+          <button class="adm-btn adm-btn-ghost" id="wsReload" type="button">Recargar</button>
+        </div>
+        <div class="adm-ws-count" id="wsCount"></div>
+        <div class="adm-ws-list" id="wsList"><div class="adm-loading">Cargando clientes…</div></div>
+      </div>
+
       <!-- ── PIXIS (data de cadena externa) ── -->
       <div class="adm-section-divider"><span>Pixis · data de mercado (cadena externa)</span></div>
       <div id="pixisBox" class="adm-empty-card"></div>
+    </div>
+
+    <!-- Drawer ficha de cliente mayorista -->
+    <div class="adm-drawer" id="custDrawer" aria-hidden="true">
+      <div class="adm-drawer-bg" data-act="close-cust"></div>
+      <div class="adm-drawer-panel">
+        <div class="adm-drawer-head">
+          <div style="min-width:0;flex:1">
+            <div class="adm-drawer-title" id="custName">Cliente</div>
+            <div class="adm-drawer-meta" id="custContact">—</div>
+          </div>
+          <button type="button" class="adm-drawer-x" data-act="close-cust" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="adm-drawer-body" id="custBody"><div class="adm-loading">Cargando…</div></div>
+      </div>
     </div>
 
     <!-- Vista de tutoriales (videos técnicos) -->
@@ -3197,10 +3292,11 @@ async function loadAnalytics(){
     document.getElementById('anaStats').innerHTML =
       `<div class="adm-empty" style="color:var(--red)">Error cargando analítica: ${escapeHtml(e.message)}</div>`;
   }
-  // En paralelo: ventas (Shopify), uso del bot, pixis
+  // En paralelo: ventas (Shopify), uso del bot, pixis, clientes mayoristas
   loadSalesAnalytics();
   loadBotAnalytics();
   loadPixis();
+  loadWholesale();
 }
 
 async function loadSalesAnalytics(){
@@ -3370,6 +3466,170 @@ function renderPixis(d){
     <div class="adm-empty-title">Conectá tu cuenta de Pixis</div>
     <div class="adm-empty-text">${escapeHtml(d.reason||'Pixis no está conectado.')} Con Pixis vas a ver sell-out de toda la cadena, competencia y puntos de mayor crecimiento — data que no está en Shopify.</div>
     <div class="adm-empty-hint">Para conectarlo necesitás cargar en Railway las variables ${needs||'<code>PIXIS_API_BASE</code> y <code>PIXIS_API_KEY</code>'} con los datos de tu cuenta Pixis (API base URL + API key). Una vez cargadas, esta sección se activa sola.</div>`;
+}
+
+// ─── Clientes mayoristas ────────────────────────────────────────────────────
+let wsCache = [];
+function fmtMoney(n){ return '$' + Math.round(Number(n)||0).toLocaleString('es-CL'); }
+function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso); return isFinite(d)?d.toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}):'—'; }
+
+async function loadWholesale(force){
+  const list = document.getElementById('wsList');
+  list.innerHTML = '<div class="adm-loading">Cargando clientes…</div>';
+  try {
+    const r = await fetch('/admin/customers/wholesale' + (force?'?refresh=1':''));
+    const d = await r.json();
+    if (!d.available) {
+      list.innerHTML = `<div class="adm-empty">${escapeHtml(d.reason||'No disponible.')} ${/read_customers|read_orders/.test(d.reason||'')?'Re-autorizá la app de Shopify con el permiso de clientes.':''}</div>`;
+      document.getElementById('wsCount').textContent = '';
+      return;
+    }
+    wsCache = d.customers || [];
+    renderWholesale();
+  } catch (e) {
+    list.innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderWholesale(){
+  const q = (document.getElementById('wsSearch').value || '').toLowerCase().trim();
+  const sort = document.getElementById('wsSort').value;
+  let list = wsCache.slice();
+  if (q) list = list.filter(c => (c.name||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q));
+  list.sort((a,b) => {
+    if (sort === 'spent')    return b.totalSpent - a.totalSpent;
+    if (sort === 'orders')   return b.orders - a.orders;
+    if (sort === 'inactive') return (new Date(a.lastOrder||0)) - (new Date(b.lastOrder||0));
+    return (new Date(b.lastOrder||0)) - (new Date(a.lastOrder||0)); // recent
+  });
+  document.getElementById('wsCount').textContent = `${list.length} cliente${list.length===1?'':'s'} mayorista${list.length===1?'':'s'}`;
+  const el = document.getElementById('wsList');
+  if (!list.length) { el.innerHTML = '<div class="adm-empty">No hay clientes que coincidan.</div>'; return; }
+  el.innerHTML = `
+    <div class="adm-ws-row adm-ws-th">
+      <span>Cliente</span><span>Total</span><span>Pedidos</span><span>Última compra</span><span>Más pedido</span>
+    </div>` + list.map(c => `
+    <div class="adm-ws-row" data-id="${escapeAttr(c.id)}">
+      <span class="adm-ws-name">${escapeHtml(c.name)}${c.hasNote?' <span class="adm-ws-noteflag" title="Tiene nota interna">📝</span>':''}<small>${escapeHtml(c.email||c.phone||'')}</small></span>
+      <span class="adm-ws-money">${fmtMoney(c.totalSpent)}</span>
+      <span>${c.orders}</span>
+      <span>${fmtDate(c.lastOrder)}</span>
+      <span class="adm-ws-top">${escapeHtml(c.topProduct||'—')}</span>
+    </div>`).join('');
+  el.querySelectorAll('.adm-ws-row[data-id]').forEach(row => {
+    row.onclick = () => openCustomer(row.dataset.id);
+  });
+}
+
+document.getElementById('wsSearch').oninput = renderWholesale;
+document.getElementById('wsSort').onchange = renderWholesale;
+document.getElementById('wsReload').onclick = () => loadWholesale(true);
+
+// ── Ficha del cliente (drawer) ──
+let custCurrentId = null;
+async function openCustomer(id){
+  custCurrentId = id;
+  const dr = document.getElementById('custDrawer');
+  dr.classList.add('open'); document.body.classList.add('drawer-open');
+  document.getElementById('custName').textContent = 'Cliente';
+  document.getElementById('custContact').textContent = '—';
+  document.getElementById('custBody').innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const r = await fetch('/admin/customers/' + encodeURIComponent(id));
+    const d = await r.json();
+    if (!d.available || !d.customer) throw new Error(d.reason || d.error || 'No disponible');
+    renderCustomer(d.customer);
+  } catch (e) {
+    document.getElementById('custBody').innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+function closeCustomer(){
+  document.getElementById('custDrawer').classList.remove('open');
+  if (!document.getElementById('chatDrawer').classList.contains('open')) document.body.classList.remove('drawer-open');
+  custCurrentId = null;
+}
+document.getElementById('custDrawer').addEventListener('click', (e) => { if (e.target.dataset.act === 'close-cust') closeCustomer(); });
+document.addEventListener('keydown', (e) => { if (e.key==='Escape' && document.getElementById('custDrawer').classList.contains('open')) closeCustomer(); });
+
+function renderCustomer(c){
+  document.getElementById('custName').textContent = c.name;
+  document.getElementById('custContact').innerHTML = [c.email, c.phone, c.address].filter(Boolean).map(escapeHtml).join(' · ') || '—';
+  const m = c.metrics || {};
+  const metricCards = [
+    { k:'TOTAL GASTADO', v: fmtMoney(m.totalSpent) },
+    { k:'PEDIDOS', v: m.ordersCount || 0 },
+    { k:'TICKET PROM.', v: fmtMoney(m.avgTicket) },
+    { k:'FRECUENCIA', v: m.freqDays != null ? m.freqDays + ' días' : '—' },
+    { k:'1ª COMPRA', v: fmtDate(m.firstOrder) },
+    { k:'ÚLTIMA', v: fmtDate(m.lastOrder) },
+  ];
+  const top = (c.topProducts||[]);
+  const maxTop = top.length ? top[0].qty : 1;
+  const monthly = (c.monthlySpend||[]);
+  const maxMonth = monthly.reduce((mx,x)=>Math.max(mx,x.amount),0) || 1;
+
+  document.getElementById('custBody').innerHTML = `
+    <div class="cust-metrics">${metricCards.map(x=>`<div class="cust-metric"><div class="cust-metric-k">${x.k}</div><div class="cust-metric-v">${escapeHtml(String(x.v))}</div></div>`).join('')}</div>
+
+    <div class="cust-sect">
+      <div class="cust-sect-t">Top 5 productos</div>
+      ${top.length ? top.map(p=>`<div class="cust-top"><span class="cust-top-name">${escapeHtml(p.name)}</span><div class="cust-top-bar"><span style="width:${Math.round(p.qty/maxTop*100)}%"></span></div><span class="cust-top-q">${p.qty}u</span></div>`).join('') : '<div class="adm-empty">Sin órdenes en el rango cargado.</div>'}
+    </div>
+
+    <div class="cust-sect">
+      <div class="cust-sect-t">Evolución de compras (mensual)</div>
+      ${monthly.length ? `<div class="cust-evo">${monthly.map(x=>`<div class="cust-evo-col" title="${x.month}: ${fmtMoney(x.amount)}"><div class="cust-evo-bar" style="height:${Math.max(4,Math.round(x.amount/maxMonth*90))}%"></div><span>${x.month.slice(5)}</span></div>`).join('')}</div>` : '<div class="adm-empty">Sin datos.</div>'}
+    </div>
+
+    <div class="cust-sect">
+      <div class="cust-sect-t">Historial de pedidos (${(c.orders||[]).length})</div>
+      ${(c.orders||[]).length ? c.orders.map(o=>`
+        <div class="cust-order">
+          <div class="cust-order-head"><b>${escapeHtml(o.name||('#'+o.id))}</b><span>${fmtDate(o.createdAt)}</span><span class="cust-order-total">${fmtMoney(o.total)}</span></div>
+          <div class="cust-order-items">${o.items.map(it=>`${escapeHtml(it.title)} ×${it.qty}`).join(' · ')}</div>
+          ${o.status?`<span class="cust-order-status">${escapeHtml(o.status)}</span>`:''}
+        </div>`).join('') : '<div class="adm-empty">Sin pedidos en el cache.</div>'}
+    </div>
+
+    <div class="cust-sect">
+      <div class="cust-sect-t">Conversaciones con Zorbot (${(c.conversations||[]).length})</div>
+      ${(c.conversations||[]).length ? c.conversations.map(cv=>`
+        <div class="cust-conv" data-sid="${escapeAttr(cv.sessionId)}">
+          <span class="cust-conv-prev">${escapeHtml(cv.firstUserMsg||'(sin mensaje)')}</span>
+          <span class="cust-conv-when">${escapeHtml(fmtRelative(cv.lastActivity||cv.startTime))}</span>
+        </div>`).join('') : '<div class="adm-empty">Sin chats asociados (se matchea por email/teléfono en los mensajes).</div>'}
+    </div>
+
+    <div class="cust-sect">
+      <div class="cust-sect-t">Notas internas</div>
+      <textarea class="cust-note" id="custNote" rows="4" placeholder="Observaciones del equipo sobre este cliente…">${escapeHtml(c.note||'')}</textarea>
+      <div class="cust-note-acts">
+        <span class="cust-note-meta">${c.noteUpdatedAt?('Última edición: '+fmtDate(c.noteUpdatedAt)):''}</span>
+        <button class="adm-btn adm-btn-gold" id="custNoteSave" type="button">Guardar nota</button>
+      </div>
+    </div>`;
+
+  // bind conversaciones → abrir el drawer de chat (reusa openConversation)
+  document.querySelectorAll('#custBody .cust-conv[data-sid]').forEach(el => {
+    el.onclick = () => { closeCustomer(); openConversation(el.dataset.sid); };
+  });
+  // bind guardar nota
+  document.getElementById('custNoteSave').onclick = async () => {
+    const note = document.getElementById('custNote').value;
+    const btn = document.getElementById('custNoteSave');
+    btn.disabled = true; const o = btn.textContent; btn.textContent = 'Guardando…';
+    try {
+      const r = await fetch('/admin/customers/' + encodeURIComponent(custCurrentId) + '/note', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ note }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+      showToast('Nota guardada ✓', 'ok');
+      const ci = wsCache.findIndex(x => x.id === custCurrentId);
+      if (ci >= 0) wsCache[ci].hasNote = !!note.trim();
+    } catch (e) { showToast('Error: ' + e.message, 'err'); }
+    finally { btn.disabled = false; btn.textContent = o; }
+  };
 }
 
 function renderAnalytics(d){
