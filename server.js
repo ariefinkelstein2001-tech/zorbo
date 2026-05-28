@@ -645,8 +645,8 @@ ${storefrontToken
 // ─── Shopify Catalog API ──────────────────────────────────────────────────────
 
 async function shopifyAdminFetch(path, init = {}) {
-  const shop = process.env.SHOPIFY_STORE_DOMAIN;
-  const token = process.env.SHOPIFY_ADMIN_TOKEN;
+  const shop = (process.env.SHOPIFY_STORE_DOMAIN || '').trim();
+  const token = (process.env.SHOPIFY_ADMIN_TOKEN || '').trim();
   if (!shop || !token) throw new Error('Shopify no configurado (faltan SHOPIFY_STORE_DOMAIN o SHOPIFY_ADMIN_TOKEN)');
   const r = await fetch(`https://${shop}/admin/api/${SHOPIFY_API_VERSION}${path}`, {
     ...init,
