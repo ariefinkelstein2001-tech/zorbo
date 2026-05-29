@@ -274,18 +274,18 @@ body.mayorista-active #mayoPage{display:block}
 .shop-page .hp-hero .ht-arr.next{right:18px}
 /* Logos: estáticos centrados en desktop, girando (marquee) solo en cel */
 .shop-page .hp-circles{overflow:hidden;padding:6px 0 4px;width:100%}
-.shop-page .hp-circles-track{display:flex;gap:36px;justify-content:center;flex-wrap:nowrap}
-.shop-page .hp-circles-track > .hp-circle:nth-child(n+4){display:none}
+.shop-page .hp-circles-track{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+.shop-page .hp-circle-dup{display:none}
 @media(max-width:768px){
   .shop-page .hp-circles{
     -webkit-mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);
             mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);
   }
   .shop-page .hp-circles-track{
-    width:max-content;justify-content:flex-start;
+    width:max-content;justify-content:flex-start;flex-wrap:nowrap;
     animation:hp-circles-scroll 16s linear infinite;
   }
-  .shop-page .hp-circles-track > .hp-circle:nth-child(n+4){display:flex}
+  .shop-page .hp-circle-dup{display:flex}
 }
 @keyframes hp-circles-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .shop-page .hp-circle{
@@ -2308,7 +2308,14 @@ function resolveHomeConfig(cfg){
   const categories = (Array.isArray(cfg.categories) ? cfg.categories : [])
     .filter(c => c && c.key && !HOME_BASE_CATEGORIES[c.key]);
   const isDesk = !!(window.matchMedia && window.matchMedia('(min-width: 769px)').matches);
-  return { promos, heroDesktop, heroMobile, pills, brands, categories,
+  // Orden de las secciones del catálogo: base + custom, respetando el orden
+  // guardado y agregando al final las que falten.
+  const knownKeys = [...Object.keys(HOME_BASE_CATEGORIES), ...categories.map(c => c.key)];
+  const saved = Array.isArray(cfg.categoryOrder) ? cfg.categoryOrder : [];
+  const categoryOrder = [];
+  for (const k of saved) if (knownKeys.includes(k) && !categoryOrder.includes(k)) categoryOrder.push(k);
+  for (const k of knownKeys) if (!categoryOrder.includes(k)) categoryOrder.push(k);
+  return { promos, heroDesktop, heroMobile, pills, brands, categories, categoryOrder,
            heroSlides: isDesk ? heroDesktop : heroMobile };
 }
 
@@ -2386,14 +2393,16 @@ async function showStorefront(){
   const brandLogos = home.brands.map(b => ({ src:b.logo, target:b.target, alt:b.label }));
   // Los círculos vuelven al cuerpo, debajo de las pills. Orden del bloque:
   // "Ver productos" → pills → círculos de marca girando.
-  const circleSet = brandLogos.map(b => `<a class="hp-circle" onclick="hpScrollTo('${b.target}')"><img src="${b.src}" alt="${escapeHtml(b.alt)}"></a>`).join('');
+  const mkCircle = (b, dup) => `<a class="hp-circle${dup ? ' hp-circle-dup' : ''}" onclick="hpScrollTo('${b.target}')"><img src="${b.src}" alt="${escapeHtml(b.alt)}"></a>`;
+  const circleSet = brandLogos.map(b => mkCircle(b, false)).join('');
+  const circleDup = brandLogos.map(b => mkCircle(b, true)).join('');
   const pillsHtml = home.pills.map(p => `<button class="hp-pill" onclick="hpScrollTo('${p.target}')">${escapeHtml(p.label)}</button>`).join('');
   const categories = `
     <div class="hp-verprod">
       <span class="hp-verprod-label">Ver productos</span>
       <div class="hp-pillrow">${pillsHtml}</div>
       <div class="hp-circles">
-        <div class="hp-circles-track">${circleSet}${circleSet}${circleSet}${circleSet}</div>
+        <div class="hp-circles-track">${circleSet}${circleDup}${circleDup}${circleDup}</div>
       </div>
     </div>`;
 
@@ -2406,14 +2415,17 @@ async function showStorefront(){
       <div class="hp-row">${items.map(buildHpCard).join('')}</div>
     </section>` : '';
 
-  const chelasHtml     = section('sec-chelas',     'Chelas',          'Kairos Brewing · 5 estilos · 473cc · 6/12/24 pack', groups.chelas);
-  const craftmixHtml   = section('sec-craftmix',   'Craft Mix',       'Firulais · cheladas honestas',                      groups.craftmix);
-  const destileriaHtml = section('sec-destileria', 'Licores',         'Banny · gin · whiskey · ron',                       groups.destileria);
-  const packsHtml      = section('sec-packs',      'Nuestros Packs',  'Mix 6 estilos · 6/12/24 latas',                     groups.packs);
-  // Secciones de categorías custom creadas desde el panel.
-  const customHtml = home.categories
-    .map(c => section('sec-' + c.key, escapeHtml(c.title), escapeHtml(c.sub || ''), groups[c.key] || []))
-    .join('');
+  // Mapa categoría → HTML de su sección (base + custom), luego se ordena.
+  const secMap = {
+    chelas:     section('sec-chelas',     'Chelas',          'Kairos Brewing · 5 estilos · 473cc · 6/12/24 pack', groups.chelas),
+    craftmix:   section('sec-craftmix',   'Craft Mix',       'Firulais · cheladas honestas',                      groups.craftmix),
+    destileria: section('sec-destileria', 'Licores',         'Banny · gin · whiskey · ron',                       groups.destileria),
+    packs:      section('sec-packs',      'Nuestros Packs',  'Mix 6 estilos · 6/12/24 latas',                     groups.packs),
+  };
+  for (const c of home.categories) {
+    secMap[c.key] = section('sec-' + c.key, escapeHtml(c.title), escapeHtml(c.sub || ''), groups[c.key] || []);
+  }
+  const orderedSectionsHtml = home.categoryOrder.map(k => secMap[k] || '').join('');
 
   // Sección Juegos (separada del CTA 10% OFF)
   const juegosHtml = `
@@ -2467,7 +2479,7 @@ async function showStorefront(){
   if (topbar) topbar.innerHTML = marquee;
   // Orden del home: "Ver productos" + pills + círculos → hero → welcome →
   // secciones → juegos → cierre.
-  page.innerHTML = `${categories}${hero}${welcomeBubble}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${customHtml}${juegosHtml}${cierreHtml}`;
+  page.innerHTML = `${categories}${hero}${welcomeBubble}${orderedSectionsHtml}${juegosHtml}${cierreHtml}`;
   hpInitHero();
   renderSidebarCatalog(groups, home);
   maybeShowPromoPopup();
@@ -3409,14 +3421,17 @@ async function showMayoristaStorefront(){
       <div class="ht-dots">${MP_HERO_SLIDES.map((_,i)=>`<span class="d ${i===0?'on':''}"></span>`).join('')}</div>
     </div>`;
 
-  const circleSet = [
+  const mpBrands = [
     { src:'brands/kairos.png',   target:'sec-mayo-chelas',    alt:'Kairos' },
     { src:'brands/firulais.png', target:'sec-mayo-craftmix',  alt:'Firulais' },
     { src:'brands/banny.png',    target:'sec-mayo-licores-bidon', alt:'Banny' },
-  ].map(b => `<a class="hp-circle" onclick="hpScrollTo('${b.target}')"><img src="${b.src}" alt="${b.alt}"></a>`).join('');
+  ];
+  const mpCircle = (b, dup) => `<a class="hp-circle${dup ? ' hp-circle-dup' : ''}" onclick="hpScrollTo('${b.target}')"><img src="${b.src}" alt="${b.alt}"></a>`;
+  const circleSet = mpBrands.map(b => mpCircle(b, false)).join('');
+  const circleDup = mpBrands.map(b => mpCircle(b, true)).join('');
   const circles = `
     <div class="hp-circles">
-      <div class="hp-circles-track">${circleSet}${circleSet}${circleSet}${circleSet}</div>
+      <div class="hp-circles-track">${circleSet}${circleDup}${circleDup}${circleDup}</div>
     </div>`;
 
   const customer = (() => { try { return JSON.parse(sessionStorage.getItem('zmayo_customer') || '{}'); } catch { return {}; } })();

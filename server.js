@@ -1087,11 +1087,17 @@ app.get('/admin/me', requireAdmin, (req, res) => {
 });
 
 app.get('/admin/brand/:seccion', requireAdmin, (req, res) => {
-  const file = PROMPT_SECTIONS[req.params.seccion];
-  if (!file) return res.status(404).json({ error: 'Sección no encontrada' });
+  const key = req.params.seccion;
+  let file = PROMPT_SECTIONS[key];
+  let custom = false;
+  if (!file) {
+    if (!isValidBrandKey(key) || !getCustomBrands().some(b => b.key === key))
+      return res.status(404).json({ error: 'Sección no encontrada' });
+    file = customBrandFile(key); custom = true;
+  }
   try {
-    const content = readPromptFile(file);
-    res.json({ seccion: req.params.seccion, content });
+    const content = custom ? readPromptFileSafe(file) : readPromptFile(file);
+    res.json({ seccion: key, content, custom });
   } catch (e) {
     res.status(500).json({ error: 'Error leyendo: ' + e.message });
   }
@@ -1099,8 +1105,12 @@ app.get('/admin/brand/:seccion', requireAdmin, (req, res) => {
 
 app.post('/admin/save-brand', requireAdmin, (req, res) => {
   const { seccion, contenido } = req.body || {};
-  const file = PROMPT_SECTIONS[seccion];
-  if (!file) return res.status(400).json({ error: 'Sección inválida' });
+  let file = PROMPT_SECTIONS[seccion];
+  if (!file) {
+    if (!isValidBrandKey(seccion) || !getCustomBrands().some(b => b.key === seccion))
+      return res.status(400).json({ error: 'Sección inválida' });
+    file = customBrandFile(seccion);
+  }
   if (typeof contenido !== 'string') return res.status(400).json({ error: 'Contenido inválido' });
   if (contenido.length > 200000) return res.status(413).json({ error: 'Contenido demasiado grande' });
   try {
@@ -1108,6 +1118,39 @@ app.post('/admin/save-brand', requireAdmin, (req, res) => {
     res.json({ ok: true, seccion, bytes: contenido.length });
   } catch (e) {
     res.status(500).json({ error: 'Error guardando: ' + e.message });
+  }
+});
+
+// Genera el knowledge .md de una marca custom a partir de un cuestionario,
+// usando el mismo tono/estructura que las marcas existentes.
+app.post('/admin/brand/:key/generate', requireAdmin, async (req, res) => {
+  const key = req.params.key;
+  if (!isValidBrandKey(key)) return res.status(400).json({ error: 'Marca inválida.' });
+  const brand = getCustomBrands().find(b => b.key === key);
+  if (!brand) return res.status(404).json({ error: 'Marca no encontrada. Creala primero en Página web → Marcas.' });
+  const a = req.body || {};
+  const about    = String(a.about || '').slice(0, 4000);
+  const products = String(a.products || '').slice(0, 4000);
+  const audience = String(a.audience || '').slice(0, 1500);
+  const extra    = String(a.extra || '').slice(0, 4000);
+  if (!about && !products && !extra) return res.status(400).json({ error: 'Contanos algo de la marca para poder generar.' });
+
+  const ref = readPromptFileSafe('firulais.md') || readPromptFileSafe('kairos.md') || '';
+  const sys = `Sos redactor de Zorbo, una botillería virtual artesanal chilena. Escribí el "knowledge" de UNA marca para que el asistente Zorbot la conozca y la venda. Reglas de tono: español de Chile, cercano y juvenil chileno, profesional, sin tecnicismos excesivos; NUNCA uses signos de apertura (¿ ¡), solo los de cierre. Devolvé SOLO Markdown, con secciones encabezadas por "## ". Cubrí: identidad e historia, personalidad y tono, línea de productos (estilos y formatos), ocasiones de consumo y maridajes, cómo recomendarla y hacer cross-sell con las otras marcas, y datos clave. NO inventes precios ni productos puntuales que el usuario no haya mencionado; si falta info, escribí en general. Empezá con un encabezado "## ${brand.label}".`;
+  const userMsg = `Marca: ${brand.label}\nVendor en Shopify: ${brand.vendor}\n\n¿De qué se trata la marca?\n${about}\n\n¿Qué productos tiene?\n${products}\n\nPúblico / ocasiones de consumo:\n${audience}\n\nMás contexto libre:\n${extra}\n\n--- Ejemplo de estructura y tono de otra marca (NO copies el contenido, solo el formato) ---\n${ref.slice(0, 4000)}`;
+  try {
+    const msg = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 3000,
+      system: sys,
+      messages: [{ role: 'user', content: userMsg }],
+    });
+    const md = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('\n').trim();
+    if (!md) throw new Error('La IA no devolvió contenido.');
+    writePromptFile(customBrandFile(key), md + '\n');
+    res.json({ ok: true, content: md + '\n' });
+  } catch (e) {
+    res.status(500).json({ error: 'Error generando: ' + String(e.message || e).slice(0, 300) });
   }
 });
 
@@ -1134,14 +1177,38 @@ function loadProductExtras(){
 function saveProductExtras(data){
   writeFileSync(PRODUCTS_EXTRAS_FILE, JSON.stringify(data, null, 2));
 }
-function brandFromProduct(p){
+function brandFromProduct(p, customBrands){
   const v = String(p.vendor || '').toLowerCase();
   const t = String(p.title  || '').toLowerCase();
   const tags = (p.tags || []).map(x => String(x).toLowerCase());
+  // Marcas custom (creadas desde el panel) ganan por coincidencia de vendor.
+  if (Array.isArray(customBrands)) {
+    const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+    const nv = norm(p.vendor);
+    if (nv) for (const b of customBrands) {
+      const bv = norm(b.vendor);
+      if (bv && (nv === bv || nv.includes(bv) || bv.includes(nv))) return b.key;
+    }
+  }
   if (v.includes('kairos')   || tags.includes('kairos')   || t.includes('kairos'))   return 'kairos';
   if (v.includes('firulais') || tags.includes('firulais') || t.includes('firulais')) return 'firulais';
   if (v.includes('banny')    || tags.includes('banny')    || t.includes('banny'))    return 'banny';
   return 'otros';
+}
+
+// ─── Marcas custom (definidas en Página web → Marcas) ─────────────────────────
+const BASE_BRAND_KEYS = ['kairos', 'firulais', 'banny'];
+function getCustomBrands(){
+  const cfg = loadSiteConfig();
+  if (!Array.isArray(cfg.brands)) return [];
+  return cfg.brands
+    .filter(b => b && b.key && !BASE_BRAND_KEYS.includes(b.key))
+    .map(b => ({ key:String(b.key), label:String(b.label || b.key), vendor:String(b.vendor || ''), category:String(b.category || '') }));
+}
+function isValidBrandKey(k){ return /^[a-z0-9-]{1,40}$/.test(String(k || '')); }
+function customBrandFile(key){ return 'brand-' + key + '.md'; }
+function readPromptFileSafe(filename){
+  try { return readPromptFile(filename); } catch { return ''; }
 }
 
 // ─── Config editable del home (franja, banner, botones, marcas) ───────────────
@@ -1200,6 +1267,8 @@ function sanitizeSiteConfig(input){
     vendor:   str(b?.vendor, 80),
     target:   str(b?.target, 60),
   })).filter(b => b.label) : [];
+  out.categoryOrder = Array.isArray(c.categoryOrder)
+    ? c.categoryOrder.map(k => slug(k)).filter(Boolean).slice(0, 40) : [];
   return out;
 }
 
@@ -1257,6 +1326,7 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
     const all = await loadProductsCache(String(req.query.refresh || '') === '1');
     if (!all) return res.json({ products: [], section, requiredTag });
     const extras = loadProductExtras();
+    const customBrands = getCustomBrands();
     const products = all
       .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes(requiredTag))
       .map(p => {
@@ -1269,7 +1339,7 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
           title:      p.title,
           handle:     p.handle,
           vendor:     p.vendor,
-          brand:      brandFromProduct(p),
+          brand:      brandFromProduct(p, customBrands),
           status:     String(p.status || 'ACTIVE').toUpperCase(),
           image:      ex?.image || p.image || null,
           video:      ex?.video || null,
@@ -2679,6 +2749,7 @@ app.post('/chat', async (req, res) => {
         readPromptFile('kairos.md'),
         readPromptFile('firulais.md'),
         readPromptFile('banny.md'),
+        ...getCustomBrands().map(b => readPromptFileSafe(customBrandFile(b.key))).filter(Boolean),
       ].join('\n\n---\n\n');
     }
   } catch (e) {

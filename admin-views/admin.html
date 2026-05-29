@@ -1306,6 +1306,10 @@ body.drawer-open{overflow:hidden}
 .web-img[draggable]:active{cursor:grabbing}
 .web-img.dragging{opacity:.35}
 .web-img.drop-target{outline:2px solid var(--gold);outline-offset:2px}
+.web-cat{cursor:grab;background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:.5rem .6rem;gap:.5rem}
+.web-cat:active{cursor:grabbing}
+.web-cat.dragging{opacity:.4}
+.web-cat.drop-target{outline:2px solid var(--gold);outline-offset:2px}
 .web-img-grip{position:absolute;left:4px;bottom:4px;color:#fff;background:rgba(0,0,0,.5);
   border-radius:5px;font-size:.7rem;line-height:1;padding:2px 4px;pointer-events:none;letter-spacing:1px}
 .web-brand{border:1px solid var(--border);border-radius:11px;padding:.7rem;margin-bottom:.6rem;background:var(--surface)}
@@ -1315,6 +1319,14 @@ body.drawer-open{overflow:hidden}
 @media(max-width:600px){.web-brand-grid{grid-template-columns:1fr}}
 .web-mini{font-size:.66rem;color:var(--dim);margin:.15rem 0 .3rem;display:block;letter-spacing:.02em}
 .web-subhead{font-size:.78rem;font-weight:700;color:var(--muted);margin:.7rem 0 .4rem;letter-spacing:.03em}
+
+/* ── Cuestionario de marca nueva ───────────────────────────────── */
+.bq-card{border:1px solid var(--gold-bd);border-radius:14px;padding:1.3rem 1.3rem 1.1rem;background:var(--surface2)}
+.bq-title{font-family:var(--display,inherit);font-size:1.2rem;font-weight:800;color:var(--text)}
+.bq-sub{font-size:.82rem;color:var(--muted);margin:.3rem 0 1rem;line-height:1.5}
+.bq-label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:.9rem 0 .35rem}
+.bq-ta{width:100%;min-height:84px;resize:vertical;line-height:1.5}
+.bq-actions{display:flex;align-items:center;gap:.7rem;margin-top:1.1rem;flex-wrap:wrap}
 </style>
 </head>
 <body>
@@ -1881,7 +1893,7 @@ body.drawer-open{overflow:hidden}
 
 <script>
 // ─── Secciones disponibles ──────────────────────────────────────────────────
-const SECCIONES = [
+const BASE_SECCIONES = [
   { id:'analytics', kind:'analytics',label:'Analítica',       desc:'foto general del negocio · números y gráficos' },
   { id:'chats',     kind:'chats',    label:'Conversaciones',  desc:'historial completo · filtros y embudo' },
   { id:'feedback',   kind:'feedback', label:'Feedback',        desc:'correcciones para entrenar a Zorbot' },
@@ -1894,14 +1906,62 @@ const SECCIONES = [
   { id:'banny',     kind:'md',       label:'Banny',           desc:'destilados · RTD' },
   { id:'mayorista', kind:'md',       label:'Mayoristas (B2B)',desc:'restaurantes · botillerías · eventos' },
 ];
-const BRANDS = [
+const BASE_BRANDS = [
   { id:'all',      label:'Todos'           },
   { id:'kairos',   label:'Kairos Brewing'  },
   { id:'firulais', label:'Firulais'        },
   { id:'banny',    label:'Banny'           },
   { id:'otros',    label:'Otros'           },
 ];
+// SECCIONES y BRANDS se recalculan al cargar las marcas custom (Página web).
+let SECCIONES = BASE_SECCIONES.slice();
+let BRANDS = BASE_BRANDS.slice();
+let CUSTOM_BRANDS = [];
 let activeBrand = 'all';
+
+// Carga las marcas custom desde site-config y reconstruye tabs / filtros / vendor.
+async function loadCustomBrands(){
+  try {
+    const r = await fetch('/admin/site-config');
+    if (r.ok) {
+      const cfg = await r.json();
+      const base = ['kairos','firulais','banny'];
+      CUSTOM_BRANDS = Array.isArray(cfg.brands)
+        ? cfg.brands.filter(b => b && b.key && !base.includes(b.key))
+            .map(b => ({ key:b.key, label:b.label||b.key, vendor:b.vendor||'', category:b.category||'' }))
+        : [];
+    }
+  } catch { CUSTOM_BRANDS = []; }
+  applyCustomBrands();
+}
+function applyCustomBrands(){
+  const brandTabs = CUSTOM_BRANDS.map(b => ({
+    id:b.key, kind:'md', label:b.label, desc:'conocimiento de ' + b.label + ' para Zorbot',
+    custom:true, vendor:b.vendor,
+  }));
+  // Tabs de marca custom: justo después de Banny.
+  const secOut = [];
+  for (const s of BASE_SECCIONES) { secOut.push(s); if (s.id === 'banny') secOut.push(...brandTabs); }
+  SECCIONES = secOut;
+  // Filtro de productos: marcas custom antes de "Otros".
+  const cb = CUSTOM_BRANDS.map(b => ({ id:b.key, label:b.label }));
+  const brOut = [];
+  for (const b of BASE_BRANDS) { if (b.id === 'otros') brOut.push(...cb); brOut.push(b); }
+  BRANDS = brOut;
+  rebuildVendorOptions();
+}
+function rebuildVendorOptions(){
+  const sel = document.getElementById('npVendor');
+  if (!sel) return;
+  const cur = sel.value;
+  const opts = [
+    ['Kairos Brewing','Kairos Brewing'], ['Firulais','Firulais'], ['Banny','Banny'],
+    ...CUSTOM_BRANDS.map(b => [b.vendor || b.label, b.label]),
+    ['Otros','Otros'],
+  ];
+  sel.innerHTML = opts.map(([v,l]) => `<option value="${escapeAttr(v)}">${escapeHtml(l)}</option>`).join('');
+  if (cur && opts.some(o => o[0] === cur)) sel.value = cur;
+}
 let activeProdSection = 'minorista';
 let productsCache = [];
 let openProductId = null;
@@ -2061,7 +2121,8 @@ function setDirty(v){
 async function loadSeccion(){
   const seccion = SECCIONES.find(s => s.id === activeSeccion);
   document.getElementById('panelTitle').textContent = seccion.label;
-  document.getElementById('panelMeta').textContent  = `prompts/${seccion.id}.md · ${seccion.desc}`;
+  document.getElementById('panelMeta').textContent  =
+    `prompts/${seccion.custom ? 'brand-' + seccion.id : seccion.id}.md · ${seccion.desc}`;
   document.getElementById('blocks').innerHTML = '<div class="adm-loading">Cargando contenido…</div>';
   setDirty(false);
   try {
@@ -2069,12 +2130,76 @@ async function loadSeccion(){
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
     originalContent = data.content || '';
+    // Marca custom sin conocimiento todavía → mostrar el cuestionario.
+    if (seccion.custom && !originalContent.trim()) {
+      renderBrandQuestionnaire(seccion);
+      return;
+    }
     blocks = parseMd(originalContent);
     renderBlocks();
     updateBuildTag();
   } catch (e) {
     document.getElementById('blocks').innerHTML =
       `<div class="adm-empty" style="color:var(--red)">Error cargando: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+// Cuestionario inicial de una marca nueva. Con las respuestas, la IA arma todos
+// los bloques del bot y después se pueden editar como cualquier otra marca.
+function renderBrandQuestionnaire(seccion){
+  const wrap = document.getElementById('blocks');
+  document.getElementById('btnAddBlock').style.display = 'none';
+  document.getElementById('btnSave').disabled = true;
+  wrap.innerHTML = `
+    <div class="bq-card">
+      <div class="bq-title">Contanos de ${escapeHtml(seccion.label)} 🍻</div>
+      <div class="bq-sub">Respondé lo que sepas y Zorbot arma todo su conocimiento solo. Después podés editar cada bloque.</div>
+      <label class="bq-label">¿De qué se trata la marca? (historia, personalidad, qué la hace distinta)</label>
+      <textarea class="adm-input bq-ta" id="bqAbout" placeholder="Ej: marca nacida en el sur, foco en cervezas lager fáciles de tomar, vibra de barrio…"></textarea>
+      <label class="bq-label">¿Qué productos tiene? (estilos, formatos, lo que vendan)</label>
+      <textarea class="adm-input bq-ta" id="bqProducts" placeholder="Ej: Lager 470cc, IPA en lata, growler 1L, pack 6…"></textarea>
+      <label class="bq-label">Público y ocasiones de consumo</label>
+      <input class="adm-input" id="bqAudience" placeholder="Ej: jóvenes 25-35, after office, asados, previas">
+      <label class="bq-label">Algo más que quieras que sepa (párrafo libre)</label>
+      <textarea class="adm-input bq-ta" id="bqExtra" placeholder="Cualquier dato extra: maridajes, tono al hablar, mensajes clave…"></textarea>
+      <div class="bq-actions">
+        <button class="adm-btn adm-btn-gold" id="bqGenerate" type="button">✨ Generar conocimiento con IA</button>
+        <span class="adm-status hidden" id="bqStatus"></span>
+      </div>
+    </div>`;
+  document.getElementById('bqGenerate').onclick = () => generateBrandKnowledge(seccion.id);
+}
+
+async function generateBrandKnowledge(key){
+  const st  = document.getElementById('bqStatus');
+  const btn = document.getElementById('bqGenerate');
+  const body = {
+    about:    document.getElementById('bqAbout').value,
+    products: document.getElementById('bqProducts').value,
+    audience: document.getElementById('bqAudience').value,
+    extra:    document.getElementById('bqExtra').value,
+  };
+  if (!body.about.trim() && !body.products.trim() && !body.extra.trim()) {
+    st.className = 'adm-status err'; st.textContent = 'Escribí al menos algo de la marca.'; st.classList.remove('hidden'); return;
+  }
+  btn.disabled = true;
+  st.className = 'adm-status loading'; st.textContent = 'Generando con IA… (unos segundos)'; st.classList.remove('hidden');
+  try {
+    const r = await fetch('/admin/brand/' + encodeURIComponent(key) + '/generate', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error generando');
+    originalContent = d.content || '';
+    blocks = parseMd(originalContent);
+    document.getElementById('btnAddBlock').style.display = '';
+    renderBlocks();
+    updateBuildTag();
+    setDirty(false);
+    showToast('Conocimiento generado ✓ — revisalo y guardá', 'ok');
+  } catch (e) {
+    btn.disabled = false;
+    st.className = 'adm-status err'; st.textContent = e.message;
   }
 }
 
@@ -4440,9 +4565,19 @@ function normalizeWebConfig(cfg){
     pills:       webHas(cfg.pills)    ? cfg.pills.map(p=>({label:p.label||'',target:p.target||'sec-chelas'})) : WEB_DEFAULTS.pills.map(p=>({...p})),
     brands:      webHas(cfg.brands)   ? cfg.brands.map(b=>({key:b.key||'',label:b.label||'',logo:b.logo||'',category:b.category||'chelas',vendor:b.vendor||''})) : WEB_DEFAULTS.brands.map(b=>({...b})),
     categories:  Array.isArray(cfg.categories) ? cfg.categories.map(c=>({key:c.key||webSlug(c.title),title:c.title||'',sub:c.sub||''})).filter(c=>c.title) : [],
+    categoryOrder: Array.isArray(cfg.categoryOrder) ? cfg.categoryOrder.slice() : [],
   };
 }
 function webAllCats(){ return [...WEB_BASE_CATS, ...webConfig.categories.map(c=>({key:c.key,title:c.title}))]; }
+// Categorías en su orden actual (guardado + las nuevas al final).
+function webOrderedCats(){
+  const all = webAllCats();
+  const byKey = new Map(all.map(c=>[c.key,c]));
+  const out = [];
+  for (const k of (webConfig.categoryOrder||[])) if (byKey.has(k)) { out.push(byKey.get(k)); byKey.delete(k); }
+  for (const c of byKey.values()) out.push(c);
+  return out;
+}
 
 async function loadWeb(){
   const body = document.getElementById('webBody');
@@ -4466,12 +4601,18 @@ function renderWeb(){
     </div>`).join('');
 
   const heroImgs = (arr,kind)=>arr.map((u,i)=>`
-    <div class="web-img" draggable="true" data-imgkind="${kind}" data-i="${i}" title="Arrastrá para reordenar">
+    <div class="web-img" draggable="true" data-dragitem data-group="${kind}" data-i="${i}" title="Arrastrá para reordenar">
       <img src="${escA(u)}" alt="" draggable="false">
       <span class="web-img-grip">⠿</span>
       <button data-delimg="${kind}" data-i="${i}" title="Quitar">✕</button>
     </div>`).join('')
     || '<div class="web-mini">Sin fotos.</div>';
+
+  const orderHtml = webOrderedCats().map((cat,i)=>`
+    <div class="web-row web-cat" draggable="true" data-dragitem data-group="cats" data-i="${i}">
+      <span class="web-img-grip" style="position:static;background:none;color:var(--dim);font-size:1rem">⠿</span>
+      <span style="flex:1">${esc(cat.title)}</span>
+    </div>`).join('');
 
   const pillTargetOpts = (sel)=>webAllCats().map(x=>`<option value="sec-${escA(x.key)}"${('sec-'+x.key)===sel?' selected':''}>${esc(x.title)}</option>`).join('')
     + `<option value="sec-juegos"${sel==='sec-juegos'?' selected':''}>Juega y Gana</option>`;
@@ -4531,6 +4672,11 @@ function renderWeb(){
       <div class="web-group-d">Logos que giran en la portada y aparecen en el catálogo lateral. Logo recomendado: <b>cuadrado 400 × 400 px</b>, PNG con fondo transparente. Elegí una categoría existente o creá una nueva — si creás una, se genera su sección en el catálogo y se llena con los productos cuyo vendor en Shopify coincida (deben tener el tag ZORBO).</div>
       <div>${brandsHtml}</div>
       <button class="web-add" id="webAddBrand" type="button">+ Agregar marca</button>
+    </div>
+    <div class="web-group">
+      <div class="web-group-t">Orden de las secciones</div>
+      <div class="web-group-d">El orden en que aparecen las categorías en el catálogo del home. <b>Arrastrá para reordenar.</b></div>
+      <div>${orderHtml}</div>
     </div>`;
 
   wireWeb();
@@ -4607,35 +4753,42 @@ function wireWeb(){
     else if (id==='webAddHeroD') { webUploadImage(url => { webConfig.heroDesktop.push(url); renderWeb(); }); }
     else if (id==='webAddHeroM') { webUploadImage(url => { webConfig.heroMobile.push(url); renderWeb(); }); }
   };
-  // Arrastrar fotos del banner para reordenarlas (solo dentro del mismo grupo).
-  const heroArr = (kind) => kind==='desktop' ? webConfig.heroDesktop : webConfig.heroMobile;
-  const clearDrop = () => body.querySelectorAll('.web-img.drop-target,.web-img.dragging')
+  // Arrastrar para reordenar: fotos del banner (desktop/mobile) y categorías.
+  const clearDrop = () => body.querySelectorAll('.drop-target,.dragging')
     .forEach(x => x.classList.remove('drop-target','dragging'));
+  const reorder = (group, from, to) => {
+    if (from === to || isNaN(from) || isNaN(to)) return;
+    if (group === 'cats') {
+      const keys = webOrderedCats().map(c => c.key);
+      const [m] = keys.splice(from, 1); keys.splice(to, 0, m);
+      webConfig.categoryOrder = keys;
+    } else {
+      const arr = group === 'desktop' ? webConfig.heroDesktop : webConfig.heroMobile;
+      const [m] = arr.splice(from, 1); arr.splice(to, 0, m);
+    }
+  };
   body.ondragstart = (e) => {
-    const el = e.target.closest('.web-img[draggable]');
+    const el = e.target.closest('[data-dragitem]');
     if (!el) return;
-    webDrag = { kind: el.dataset.imgkind, i: +el.dataset.i };
+    webDrag = { group: el.dataset.group, i: +el.dataset.i };
     el.classList.add('dragging');
     if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', ''); } catch {} }
   };
   body.ondragover = (e) => {
-    const el = e.target.closest('.web-img[draggable]');
-    if (!el || !webDrag || el.dataset.imgkind !== webDrag.kind) return;
+    const el = e.target.closest('[data-dragitem]');
+    if (!el || !webDrag || el.dataset.group !== webDrag.group) return;
     e.preventDefault();
     if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-    body.querySelectorAll('.web-img.drop-target').forEach(x => x.classList.remove('drop-target'));
+    body.querySelectorAll('.drop-target').forEach(x => x.classList.remove('drop-target'));
     el.classList.add('drop-target');
   };
   body.ondrop = (e) => {
-    const el = e.target.closest('.web-img[draggable]');
-    if (!el || !webDrag || el.dataset.imgkind !== webDrag.kind) { clearDrop(); webDrag = null; return; }
+    const el = e.target.closest('[data-dragitem]');
+    if (!el || !webDrag || el.dataset.group !== webDrag.group) { clearDrop(); webDrag = null; return; }
     e.preventDefault();
-    const arr = heroArr(webDrag.kind);
-    const from = webDrag.i, to = +el.dataset.i;
+    const g = webDrag.group, from = webDrag.i, to = +el.dataset.i;
     clearDrop(); webDrag = null;
-    if (from === to || isNaN(from) || isNaN(to)) return;
-    const [moved] = arr.splice(from, 1);
-    arr.splice(to, 0, moved);
+    reorder(g, from, to);
     renderWeb();
   };
   body.ondragend = () => { clearDrop(); webDrag = null; };
@@ -4655,6 +4808,7 @@ async function saveWeb(){
       key: b.key || webSlug(b.label), label: b.label.trim(), logo: b.logo,
       category: b.category, vendor: b.vendor, target: 'sec-' + b.category,
     })),
+    categoryOrder: webOrderedCats().map(x=>x.key),
   };
   const st = document.getElementById('webStatus');
   st.className = 'adm-status loading'; st.textContent = 'Guardando…'; st.classList.remove('hidden');
@@ -4664,6 +4818,9 @@ async function saveWeb(){
     if (!r.ok) throw new Error(d.error || 'Error guardando');
     webConfig = normalizeWebConfig(d.config);
     renderWeb();
+    // Reconstruye tabs/filtros: si se agregó una marca, su botón aparece arriba.
+    await loadCustomBrands();
+    renderTabs();
     st.className = 'adm-status ok'; st.textContent = 'Guardado ✓ — recargá el home para verlo';
     setTimeout(()=>st.classList.add('hidden'), 3500);
   } catch (err) {
@@ -4675,8 +4832,10 @@ document.getElementById('btnWebReload').onclick = loadWeb;
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();
-renderTabs();
-selectSeccion(activeSeccion);
+loadCustomBrands().then(() => {
+  renderTabs();
+  selectSeccion(activeSeccion);
+});
 </script>
 </body>
 </html>
