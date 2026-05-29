@@ -4608,11 +4608,15 @@ function renderWeb(){
     </div>`).join('')
     || '<div class="web-mini">Sin fotos.</div>';
 
-  const orderHtml = webOrderedCats().map((cat,i)=>`
+  const orderHtml = webOrderedCats().map((cat,i)=>{
+    const isCustom = !WEB_BASE_CATS.some(b=>b.key===cat.key);
+    return `
     <div class="web-row web-cat" draggable="true" data-dragitem data-group="cats" data-i="${i}">
       <span class="web-img-grip" style="position:static;background:none;color:var(--dim);font-size:1rem">⠿</span>
       <span style="flex:1">${esc(cat.title)}</span>
-    </div>`).join('');
+      ${isCustom ? `<button class="web-del" data-delcat="${escA(cat.key)}" title="Quitar categoría">✕</button>` : '<span class="web-mini" style="margin:0">fija</span>'}
+    </div>`;
+  }).join('');
 
   const pillTargetOpts = (sel)=>webAllCats().map(x=>`<option value="sec-${escA(x.key)}"${('sec-'+x.key)===sel?' selected':''}>${esc(x.title)}</option>`).join('')
     + `<option value="sec-juegos"${sel==='sec-juegos'?' selected':''}>Juega y Gana</option>`;
@@ -4742,6 +4746,15 @@ function wireWeb(){
     const dimg = e.target.closest('[data-delimg]');
     if (dimg) {
       (dimg.dataset.delimg==='desktop' ? webConfig.heroDesktop : webConfig.heroMobile).splice(+dimg.dataset.i, 1);
+      renderWeb(); return;
+    }
+    const delcat = e.target.closest('[data-delcat]');
+    if (delcat) {
+      const key = delcat.dataset.delcat;
+      if (!confirm('Quitar esta categoría? Las marcas que la usen pasan a Chelas.')) return;
+      webConfig.categories = webConfig.categories.filter(c => c.key !== key);
+      webConfig.categoryOrder = (webConfig.categoryOrder || []).filter(k => k !== key);
+      webConfig.brands.forEach(b => { if (b.category === key) b.category = 'chelas'; });
       renderWeb(); return;
     }
     const logo = e.target.closest('[data-logo]');
