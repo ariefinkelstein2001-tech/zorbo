@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Zorbo Admin — Panel interno</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root{
@@ -280,6 +280,10 @@ body{
 .adm-prod-tag.note{background:var(--green-dim);color:var(--green);border:1px solid rgba(46,156,90,.32)}
 .adm-prod-tag.video{background:#fdecec;color:#d33;border:1px solid #f5c2c2}
 .adm-prod-tag.file{background:#eef4ff;color:#2c5fb8;border:1px solid #c2d4f5}
+.adm-prod-tag.active{background:var(--green-dim);color:var(--green);border:1px solid rgba(46,156,90,.3)}
+.adm-prod-tag.draft{background:#f0f0f0;color:#888;border:1px solid #ddd}
+.adm-prod-status{display:flex;align-items:center;justify-content:space-between;gap:.6rem;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:.5rem .7rem;margin-bottom:.2rem}
+.adm-prod-status-now{font-size:.78rem;color:var(--muted)}
 .adm-prod-brand{
   margin-left:auto;font-family:var(--display);font-size:.62rem;font-weight:600;
   color:var(--dim);letter-spacing:.12em;text-transform:uppercase;
@@ -1615,11 +1619,20 @@ body.drawer-open{overflow:hidden}
         </div>
         <div class="adm-np-grid">
           <div class="adm-np-form">
-            <div class="adm-fb-col">
-              <label class="adm-fb-label">Sección</label>
-              <div class="adm-pillgroup" id="npSection">
-                <button data-v="minorista" class="on" type="button">Minorista · ZORBO</button>
-                <button data-v="mayorista"        type="button">Mayorista · MAYORISTA</button>
+            <div class="adm-np-row2">
+              <div class="adm-fb-col">
+                <label class="adm-fb-label">Sección</label>
+                <div class="adm-pillgroup" id="npSection">
+                  <button data-v="minorista" class="on" type="button">Minorista · ZORBO</button>
+                  <button data-v="mayorista"        type="button">Mayorista · MAYORISTA</button>
+                </div>
+              </div>
+              <div class="adm-fb-col">
+                <label class="adm-fb-label">Estado</label>
+                <div class="adm-pillgroup" id="npStatus">
+                  <button data-v="active" class="on" type="button">Activo</button>
+                  <button data-v="draft"         type="button">Borrador</button>
+                </div>
               </div>
             </div>
             <div class="adm-np-row2">
@@ -2139,7 +2152,9 @@ function productCardHtml(p){
   const compare = (p.compareAt && p.compareAt > p.price)
     ? `<span class="adm-prod-old">$${Math.round(p.compareAt).toLocaleString('es-CL')}</span>` : '';
   const fileCount = (p.files || []).length;
+  const isDraft = String(p.status||'ACTIVE').toUpperCase() === 'DRAFT';
   const tagDots = [
+    isDraft                ? '<span class="adm-prod-tag draft">borrador</span>' : '<span class="adm-prod-tag active">activo</span>',
     p.isMayorista          ? '<span class="adm-prod-tag mayo">B2B</span>' : '',
     p.isZorbo              ? '<span class="adm-prod-tag zorbo">ZORBO</span>' : '',
     (p.extra && p.extra.trim()) ? '<span class="adm-prod-tag note">notas</span>' : '',
@@ -2165,6 +2180,13 @@ function productCardHtml(p){
         <input type="file" accept=".pdf,image/png,image/jpeg,image/webp,image/gif" data-pid="${p.id}" class="adm-prod-fileinput" hidden>
         <span>+ Subir PDF o imagen</span>
       </label>
+      <label class="adm-prod-label">Estado en Shopify</label>
+      <div class="adm-prod-status">
+        <span class="adm-prod-status-now">${isDraft ? 'Borrador (oculto al público)' : 'Activo (visible)'}</span>
+        <button class="adm-btn adm-btn-ghost" data-act="togglestatus" data-pid="${p.id}" data-to="${isDraft?'active':'draft'}" type="button">
+          ${isDraft ? 'Activar' : 'Pasar a borrador'}
+        </button>
+      </div>
       <div class="adm-prod-acts">
         <button class="adm-btn adm-btn-ghost" data-act="cancel" data-pid="${p.id}" type="button">Cerrar</button>
         <button class="adm-btn adm-btn-gold"  data-act="save"   data-pid="${p.id}" type="button">Guardar notas</button>
@@ -2343,6 +2365,28 @@ function bindProductCards(){
       }
     };
   });
+  // Toggle activo/borrador
+  document.querySelectorAll('.adm-prod [data-act="togglestatus"]').forEach(el => {
+    el.onclick = async (ev) => {
+      ev.stopPropagation();
+      const pid = el.dataset.pid, to = el.dataset.to;
+      el.disabled = true; const o = el.textContent; el.textContent = '…';
+      try {
+        const r = await fetch('/admin/products/' + encodeURIComponent(pid) + '/status', {
+          method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ status: to }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+        const i = productsCache.findIndex(x => x.id === pid);
+        if (i >= 0) productsCache[i].status = data.status;
+        showToast(to === 'draft' ? 'Pasado a borrador ✓' : 'Producto activado ✓', 'ok');
+        renderProductGrid();
+      } catch (e) {
+        showToast('Error: ' + e.message, 'err');
+        el.disabled = false; el.textContent = o;
+      }
+    };
+  });
   // Bind del input de archivos + chips de la card abierta
   if (openProductId) {
     const card = document.querySelector(`.adm-prod[data-pid="${CSS.escape(openProductId)}"]`);
@@ -2372,10 +2416,15 @@ document.querySelectorAll('#npSection button').forEach(b => b.onclick = () => {
   npSection = b.dataset.v;
   document.querySelectorAll('#npSection button').forEach(x => x.classList.toggle('on', x === b));
 });
+let npStatus = 'active';
+document.querySelectorAll('#npStatus button').forEach(b => b.onclick = () => {
+  npStatus = b.dataset.v;
+  document.querySelectorAll('#npStatus button').forEach(x => x.classList.toggle('on', x === b));
+});
 
 // Inputs que re-dibujan la maqueta
 ['npName','npDesc','npAbv','npSize','npColor','npType'].forEach(id => {
-  document.getElementById(id).addEventListener('input', () => drawMaqueta());
+  document.getElementById(id).addEventListener('input', () => drawMaquetaWhenReady());
 });
 document.getElementById('npCan').addEventListener('change', (e) => {
   const f = e.target.files && e.target.files[0];
@@ -2383,65 +2432,92 @@ document.getElementById('npCan').addEventListener('change', (e) => {
   const reader = new FileReader();
   reader.onload = () => {
     const img = new Image();
-    img.onload = () => { npCanImg = img; document.getElementById('npHint').style.display='none'; drawMaqueta(); };
+    img.onload = () => { npCanImg = img; document.getElementById('npHint').style.display='none'; drawMaquetaWhenReady(); };
     img.src = reader.result;
   };
   reader.readAsDataURL(f);
 });
 
 // Dibuja la maqueta para un pack dado (o "6 Pack" por defecto en el preview)
+// Replica el formato real Kairos/Zorbo: lata a la izquierda + tarjeta con
+// banda de color (N + PACK), nombre, descriptores, ABV, y barra de tamaño.
 function drawMaqueta(packLabel){
   const cv = document.getElementById('npCanvas');
+  if (!cv) return;
   const ctx = cv.getContext('2d');
   const W = cv.width, H = cv.height;
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,W,H);
+
   // Lata a la izquierda
   if (npCanImg){
-    const boxW = W*0.5, boxH = H*0.86, bx = W*0.03, by = H*0.07;
+    const boxW = W*0.46, boxH = H*0.78, bx = W*0.02, by = (H-boxH)/2;
     const r = Math.min(boxW/npCanImg.width, boxH/npCanImg.height);
     const iw = npCanImg.width*r, ih = npCanImg.height*r;
     ctx.drawImage(npCanImg, bx + (boxW-iw)/2, by + (boxH-ih)/2, iw, ih);
   }
-  // Panel de info a la derecha
+
   const color = document.getElementById('npColor').value || '#f3a9a0';
   const name = (document.getElementById('npName').value || 'PRODUCTO').toUpperCase();
   const desc = document.getElementById('npDesc').value || '';
-  const abv  = (document.getElementById('npAbv').value || '0').replace('%','') + '%';
+  const abv  = (document.getElementById('npAbv').value || '0').replace('%','').trim() + '%';
   const size = document.getElementById('npSize').value || '473ml';
   const pk   = packLabel || '6 Pack';
   const pkNum = (pk.match(/\d+/) || ['6'])[0];
 
-  const px = W*0.56, py = H*0.14, pw = W*0.40, ph = H*0.62;
-  // marco
-  ctx.strokeStyle = '#111'; ctx.lineWidth = 4;
-  ctx.strokeRect(px, py, pw, ph);
-  // header color con número de pack
-  const hh = ph*0.34;
-  ctx.fillStyle = color; ctx.fillRect(px, py, pw, hh);
-  ctx.fillStyle = '#111'; ctx.textBaseline = 'middle';
-  ctx.font = `800 ${hh*0.72}px 'Bricolage Grotesque', sans-serif`;
-  ctx.textAlign = 'left';
-  ctx.fillText(pkNum, px + pw*0.12, py + hh*0.52);
-  ctx.font = `700 ${hh*0.22}px 'DM Sans', sans-serif`;
-  ctx.fillText('PACK', px + pw*0.12 + ctx.measureText(pkNum).width + 12, py + hh*0.62);
-  // cuerpo blanco: nombre, desc, abv
+  // Tarjeta a la derecha (vertical), centrada
+  const pw = W*0.42, ph = H*0.58, px = W*0.52, py = (H-ph)/2;
+  const D = 'Bricolage Grotesque';        // display
+  const S = 'DM Sans';                     // sans
+  const headH = ph*0.30, footH = ph*0.13;
+
+  // marco exterior
+  ctx.fillStyle = '#fff'; ctx.fillRect(px, py, pw, ph);
+  // banda superior color
+  ctx.fillStyle = color; ctx.fillRect(px, py, pw, headH);
+  // número grande + PACK chico (superíndice arriba-derecha del número)
+  ctx.fillStyle = '#111'; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  const numSize = headH*0.86;
+  ctx.font = `800 ${numSize}px '${D}', sans-serif`;
+  const numX = px + pw*0.13, numY = py + headH*0.78;
+  ctx.fillText(pkNum, numX, numY);
+  const numW = ctx.measureText(pkNum).width;
+  ctx.font = `700 ${headH*0.2}px '${S}', sans-serif`;
+  ctx.fillText('PACK', numX + numW + 8, py + headH*0.40);
+
+  // líneas divisorias
+  ctx.strokeStyle = '#111'; ctx.lineWidth = Math.max(2, pw*0.012);
+  ctx.beginPath(); ctx.moveTo(px, py+headH); ctx.lineTo(px+pw, py+headH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px, py+ph-footH); ctx.lineTo(px+pw, py+ph-footH); ctx.stroke();
+
+  // cuerpo blanco: nombre, descriptores, ABV
+  const midTop = py + headH, midH = ph - headH - footH;
   ctx.textAlign = 'center';
   ctx.fillStyle = '#111';
-  ctx.font = `800 ${pw*0.11}px 'Bricolage Grotesque', sans-serif`;
-  ctx.fillText(name, px + pw/2, py + hh + ph*0.16);
-  ctx.fillStyle = '#555';
-  ctx.font = `500 ${pw*0.055}px 'DM Sans', sans-serif`;
-  ctx.fillText(desc, px + pw/2, py + hh + ph*0.30);
+  ctx.font = `800 ${pw*0.105}px '${D}', sans-serif`;
+  ctx.fillText(name, px + pw/2, midTop + midH*0.26);
+  ctx.fillStyle = '#666';
+  ctx.font = `400 ${pw*0.052}px '${S}', sans-serif`;
+  ctx.fillText(desc, px + pw/2, midTop + midH*0.46);
   ctx.fillStyle = '#111';
-  ctx.font = `800 ${pw*0.16}px 'Bricolage Grotesque', sans-serif`;
-  ctx.fillText(abv, px + pw/2, py + hh + ph*0.50);
-  // footer color con tamaño
-  const fh = ph*0.13;
-  ctx.fillStyle = color; ctx.fillRect(px, py + ph - fh, pw, fh);
-  ctx.fillStyle = '#fff';
-  ctx.font = `700 ${fh*0.5}px 'DM Sans', sans-serif`;
-  ctx.fillText(size, px + pw/2, py + ph - fh/2);
+  ctx.font = `800 ${pw*0.165}px '${D}', sans-serif`;
+  ctx.fillText(abv, px + pw/2, midTop + midH*0.82);
+
+  // barra inferior color con tamaño
+  ctx.fillStyle = color; ctx.fillRect(px, py+ph-footH, pw, footH);
+  ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle';
+  ctx.font = `700 ${footH*0.5}px '${S}', sans-serif`;
+  ctx.fillText(size, px + pw/2, py + ph - footH/2 + 1);
+  ctx.textBaseline = 'alphabetic';
+}
+
+// Asegura que las fuentes de marca estén cargadas antes de dibujar (canvas
+// usa fallback si la fuente no terminó de cargar).
+function drawMaquetaWhenReady(packLabel){
+  drawMaqueta(packLabel);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.load("800 80px 'Bricolage Grotesque'").then(() => document.fonts.ready).then(() => drawMaqueta(packLabel)).catch(()=>{});
+  }
 }
 
 function getSelectedPacks(){
@@ -2463,6 +2539,11 @@ document.getElementById('npCreate').onclick = async () => {
   const btn = document.getElementById('npCreate');
   btn.disabled = true; const o = btn.textContent; btn.textContent = 'Creando…';
   try {
+    // Esperar a que la fuente de marca esté cargada para que las maquetas
+    // salgan con la tipografía correcta (no el fallback).
+    if (document.fonts && document.fonts.ready) {
+      try { await document.fonts.load("800 80px 'Bricolage Grotesque'"); await document.fonts.ready; } catch {}
+    }
     // Generar una maqueta por pack
     const cv = document.getElementById('npCanvas');
     const images = packs.map(p => {
@@ -2472,6 +2553,7 @@ document.getElementById('npCreate').onclick = async () => {
     drawMaqueta(); // volver al preview default
     const body = {
       section: npSection,
+      status: npStatus,
       vendor: document.getElementById('npVendor').value,
       title,
       productType: document.getElementById('npType').value.trim(),

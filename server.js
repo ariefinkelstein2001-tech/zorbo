@@ -722,6 +722,8 @@ function filterProducts(products, mode) {
   return products.filter(p => {
     if (HIDE_HANDLES.has(p.handle)) return false;
     if (HIDE_TITLE_RX.test(p.title || '')) return false;
+    // El público SOLO ve productos activos (los borradores quedan ocultos).
+    if (String(p.status || 'ACTIVE').toUpperCase() !== 'ACTIVE') return false;
     const isB2B = isMayoristaProduct(p);
     if (mode === 'b2b') return isB2B;
     if (mode === 'b2c') return !isB2B;
@@ -730,10 +732,10 @@ function filterProducts(products, mode) {
 }
 
 const PRODUCTS_QUERY = `{
-  products(first: 100, query: "status:active") {
+  products(first: 100, query: "status:active OR status:draft") {
     edges {
       node {
-        id title handle description productType vendor tags
+        id title handle description productType vendor tags status
         featuredImage { url altText }
         images(first: 5) { edges { node { url altText } } }
         variants(first: 25) {
@@ -772,6 +774,7 @@ async function loadProductsCache(force = false){
     type:        p.productType,
     vendor:      p.vendor,
     tags:        p.tags,
+    status:      p.status || 'ACTIVE',
     image:       p.featuredImage?.url || null,
     images:      (p.images?.edges || []).map(e => e.node.url),
     variants: p.variants.edges.map(({ node: v }) => ({
@@ -1155,6 +1158,7 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
           handle:     p.handle,
           vendor:     p.vendor,
           brand:      brandFromProduct(p),
+          status:     String(p.status || 'ACTIVE').toUpperCase(),
           image:      ex?.image || p.image || null,
           video:      ex?.video || null,
           price:      p.variants?.[0]?.price ? Number(p.variants[0].price) : null,
@@ -1170,6 +1174,26 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
     res.json({ section, requiredTag, products });
   } catch (e) {
     res.status(500).json({ error: 'Error cargando productos: ' + e.message });
+  }
+});
+
+// Cambiar estado activo/borrador de un producto existente en Shopify.
+app.put('/admin/products/:id/status', requireAdmin, async (req, res) => {
+  const id = String(req.params.id).trim();
+  const status = String((req.body || {}).status || '').toLowerCase() === 'draft' ? 'draft' : 'active';
+  if (!process.env.SHOPIFY_ADMIN_TOKEN) return res.status(503).json({ error: 'Shopify no conectado.' });
+  try {
+    await shopifyAdminFetch(`/products/${id}.json`, {
+      method: 'PUT', body: JSON.stringify({ product: { id: Number(id), status } }),
+    });
+    productsCache = null; productsCacheAt = 0;
+    res.json({ ok: true, id, status: status.toUpperCase() });
+  } catch (e) {
+    const msg = String(e.message || e);
+    if (/\b40[13]\b|write_products|access denied|scope/i.test(msg)) {
+      return res.status(403).json({ error: 'El token no tiene write_products. Re-autorizá la app.' });
+    }
+    res.status(500).json({ error: 'Error cambiando estado: ' + msg.slice(0,200) });
   }
 });
 
@@ -1202,8 +1226,9 @@ app.post('/admin/products/create', requireAdmin, async (req, res) => {
     .filter(im => im && im.dataBase64)
     .map(im => ({ attachment: String(im.dataBase64), alt: String(im.alt || '').slice(0,120) }));
 
+  const status = String(b.status || 'active').toLowerCase() === 'draft' ? 'draft' : 'active';
   const payload = { product: {
-    title, vendor, status: 'active', tags,
+    title, vendor, status, tags,
     ...(productType ? { product_type: productType } : {}),
     ...(options ? { options } : {}),
     variants,
@@ -2600,6 +2625,7 @@ app.post('/chat', async (req, res) => {
         const isB2B = mayorista || session.isB2B;
         const tagFilter = isB2B ? 'MAYORISTA' : 'ZORBO';
         liveCatalog = all
+          .filter(p => String(p.status || 'ACTIVE').toUpperCase() === 'ACTIVE')
           .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes(tagFilter))
           .map(p => ({ id: String(p.id), title: p.title, type: p.type, vendor: p.vendor }));
       }
