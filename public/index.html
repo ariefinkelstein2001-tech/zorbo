@@ -3860,11 +3860,26 @@ async function submitGameGate(){
 
 // ═══════════════ MAYORISTAS MODAL ═══════════════════════════════════════════
 function openMayoristaModal(){
+  // ── Login mayorista DESACTIVADO temporalmente (volvemos después) ──
+  // Acceso directo al catálogo B2B sin pedir cuenta. Para reactivar el login,
+  // descomentar el bloque de abajo y borrar la llamada a enterMayoristaSinLogin().
+  enterMayoristaSinLogin();
+  /*
   ['mayoLoginErr','mayoLoginOk','mayoLeadErr','mayoLeadOk'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.classList.remove('show'); el.textContent = ''; }
   });
   document.getElementById('mayoristaModal').classList.add('open');
+  */
+}
+function enterMayoristaSinLogin(){
+  mayoristaMode = true;
+  try { sessionStorage.setItem('zmayo', '1'); } catch {}
+  markMayoristaActive();
+  showAccountChip({});
+  resetChatSession();
+  showMayoristaStorefront();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function closeMayoristaModal(){
   document.getElementById('mayoristaModal').classList.remove('open');
