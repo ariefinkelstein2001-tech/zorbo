@@ -83,72 +83,51 @@ body{
 .app{display:flex;flex-direction:column;height:100vh;height:100dvh}
 .app-main{display:flex;flex:1;min-height:0}
 .app-col{display:flex;flex-direction:column;flex:1;min-width:0}
+.hp-topbar{flex-shrink:0;line-height:0}
+.hp-topbar:empty{display:none}
 
-/* ── SIDEBAR catálogo por marca (estilo IA) ── */
+/* ── SIDEBAR catálogo por marca (estilo IA) — drawer en TODAS las pantallas,
+      se abre con el botón ☰ (también en computador) ── */
 .hp-sidebar{
-  width:248px;flex-shrink:0;background:#fafafa;border-right:1px solid #e5e5e5;
+  position:fixed;top:0;left:0;bottom:0;z-index:40;width:300px;max-width:85vw;
+  background:#fafafa;border-right:1px solid #e5e5e5;
   display:flex;flex-direction:column;overflow:hidden;
+  transform:translateX(-100%);transition:transform .25s ease;
+  box-shadow:6px 0 24px rgba(0,0,0,.18);
 }
+.hp-sidebar.open{transform:translateX(0)}
 .hp-sb-head{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1rem;border-bottom:1px solid #e5e5e5}
 .hp-sb-title{font-family:'Bricolage Grotesque','DM Sans',sans-serif;font-weight:800;font-size:.95rem;color:#111;letter-spacing:.02em}
-.hp-sb-close{display:none;background:none;border:none;font-size:1.1rem;color:#888;cursor:pointer}
+.hp-sb-close{display:block;background:none;border:none;font-size:1.1rem;color:#888;cursor:pointer}
 .hp-sb-body{flex:1;overflow-y:auto;padding:.6rem .5rem 1.2rem}
 .hp-sb-empty{padding:1rem;color:#999;font-size:.82rem;text-align:center}
-.hp-sb-brand{margin-bottom:.4rem}
+.hp-sb-brand{margin-bottom:.3rem;border-bottom:1px solid #efefef;padding-bottom:.3rem}
 .hp-sb-brand-h{
   display:flex;align-items:center;gap:.5rem;width:100%;
   background:none;border:none;cursor:pointer;text-align:left;
-  padding:.5rem .6rem;border-radius:9px;font-family:'DM Sans',sans-serif;
-  font-size:.82rem;font-weight:700;color:#111;transition:background .15s;
+  padding:.6rem .6rem;border-radius:9px;font-family:'DM Sans',sans-serif;
+  font-size:.86rem;font-weight:700;color:#111;transition:background .15s;
 }
 .hp-sb-brand-h:hover{background:#f0f0f0}
-.hp-sb-brand-h img{width:26px;height:26px;border-radius:50%;object-fit:cover;background:#fff;border:1px solid #e5e5e5;flex-shrink:0}
-.hp-sb-brand-h .n{margin-left:auto;font-size:.66rem;color:#aaa;font-weight:600}
-.hp-sb-prods{display:flex;flex-direction:column;gap:1px;padding:.1rem 0 .3rem .55rem}
+.hp-sb-brand-h img{width:30px;height:30px;border-radius:50%;object-fit:cover;background:#fff;border:1px solid #e5e5e5;flex-shrink:0}
+.hp-sb-brand-h .n{font-size:.66rem;color:#aaa;font-weight:600}
+.hp-sb-arrow{margin-left:auto;color:#bbb;font-size:.7rem;transition:transform .2s}
+.hp-sb-brand.open .hp-sb-arrow{transform:rotate(90deg);color:#a05f00}
+.hp-sb-prods{display:none;flex-direction:column;gap:1px;padding:.1rem 0 .4rem .55rem}
+.hp-sb-brand.open .hp-sb-prods{display:flex}
 .hp-sb-prod{
   background:none;border:none;cursor:pointer;text-align:left;
-  padding:.4rem .55rem;border-radius:7px;font-family:'DM Sans',sans-serif;
+  padding:.42rem .55rem;border-radius:7px;font-family:'DM Sans',sans-serif;
   font-size:.78rem;color:#555;transition:background .15s,color .15s;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 .hp-sb-prod:hover{background:#fff3d6;color:#a05f00}
 .hp-sb-toggle{
-  display:none;background:none;border:none;color:inherit;cursor:pointer;
+  display:inline-flex;background:none;border:none;color:inherit;cursor:pointer;
   padding:.2rem;margin-right:.1rem;flex-shrink:0;align-items:center;
 }
-.hp-sidebar-overlay{
-  display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:39;
-}
-
-/* Círculos de marca centrados en el header */
-.header-circles{
-  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  display:flex;gap:.7rem;align-items:center;
-}
-.hdr-circle{cursor:pointer;display:block;width:40px;height:40px;border-radius:50%;
-  overflow:hidden;background:#fff;border:1.5px solid #e5e5e5;transition:transform .15s,border-color .2s}
-.hdr-circle:hover{transform:scale(1.08);border-color:#f5a623}
-.hdr-circle img{width:100%;height:100%;object-fit:cover;display:block}
-@media(max-width:600px){
-  .header-circles{gap:.45rem}
-  .hdr-circle{width:30px;height:30px}
-}
-/* En mobile el sidebar es un drawer */
-@media(max-width:860px){
-  .hp-sb-toggle{display:inline-flex}
-  .hp-sidebar{
-    position:fixed;top:0;left:0;bottom:0;z-index:40;width:80vw;max-width:300px;
-    transform:translateX(-100%);transition:transform .25s ease;box-shadow:6px 0 24px rgba(0,0,0,.18);
-  }
-  .hp-sidebar.open{transform:translateX(0)}
-  .hp-sb-close{display:block}
-  .hp-sidebar-overlay.open{display:block}
-}
-@media(max-width:520px){
-  /* en pantallas muy chicas los círculos podrían chocar con el logo/cart:
-     los escondemos del header (siguen accesibles desde el sidebar) */
-  .header-circles{display:none}
-}
+.hp-sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:39}
+.hp-sidebar-overlay.open{display:block}
 
 /* ── HEADER ── */
 header{
@@ -293,27 +272,20 @@ body.mayorista-active #mayoPage{display:block}
 .shop-page .hp-hero .ht-arr:hover{background:rgba(245,166,35,.6)}
 .shop-page .hp-hero .ht-arr.prev{left:18px}
 .shop-page .hp-hero .ht-arr.next{right:18px}
-/* Logos: estáticos centrados en desktop, marquee animado en mobile */
-.shop-page .hp-circles{overflow:hidden;padding:32px 0 14px}
-.shop-page .hp-circles-track{display:flex;gap:36px;justify-content:center;flex-wrap:nowrap}
-/* Solo mostramos los primeros 3 en desktop */
-.shop-page .hp-circles-track > .hp-circle:nth-child(n+4){display:none}
-
-@media(max-width:768px){
-  .shop-page .hp-circles{
-    -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
-            mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
-  }
-  .shop-page .hp-circles-track{
-    width:max-content;justify-content:flex-start;
-    animation:hp-circles-scroll 14s linear infinite;
-  }
-  .shop-page .hp-circles-track > .hp-circle:nth-child(n+4){display:flex}
-  @keyframes hp-circles-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+/* Logos: carrusel girando en todas las pantallas (desktop + cel) */
+.shop-page .hp-circles{
+  overflow:hidden;padding:6px 0 4px;width:100%;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);
 }
+.shop-page .hp-circles-track{
+  display:flex;gap:36px;width:max-content;flex-wrap:nowrap;
+  animation:hp-circles-scroll 18s linear infinite;
+}
+@keyframes hp-circles-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 .shop-page .hp-circle{
-  flex-shrink:0;width:110px;height:110px;border-radius:50%;
-  background:#fff;border:3px solid #111;overflow:hidden;
+  flex-shrink:0;width:72px;height:72px;border-radius:50%;
+  background:#fff;border:2.5px solid #111;overflow:hidden;
   display:flex;align-items:center;justify-content:center;cursor:pointer;
   transition:transform .2s,border-color .2s,box-shadow .2s;
 }
@@ -1418,6 +1390,9 @@ body.mayorista-active .game-banner{display:none}
 
 <div class="app">
 
+  <!-- BARRA SUPERIOR (marquee Retiro/envío) — arriba de todo -->
+  <div class="hp-topbar shop-page" id="hpTopbar"></div>
+
   <!-- HEADER -->
   <header>
     <button class="hp-sb-toggle" id="hpSbToggle" onclick="toggleSidebar()" aria-label="Catálogo">
@@ -1426,11 +1401,6 @@ body.mayorista-active .game-banner{display:none}
     <a class="brand-logo" onclick="goHomeTop()" aria-label="Volver al inicio">
       <img class="logo-img" src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Titulo_secundario-3.png?v=1779814975" alt="Zorbo">
     </a>
-    <div class="header-circles" aria-label="Marcas">
-      <a class="hdr-circle" onclick="hpScrollTo('sec-chelas')" title="Kairos Brewing"><img src="brands/kairos.png" alt="Kairos"></a>
-      <a class="hdr-circle" onclick="hpScrollTo('sec-craftmix')" title="Firulais"><img src="brands/firulais.png" alt="Firulais"></a>
-      <a class="hdr-circle" onclick="hpScrollTo('sec-destileria')" title="Banny"><img src="brands/banny.png" alt="Banny"></a>
-    </div>
     <button class="mayoristas-btn" id="mayoristasBtn" onclick="openMayoristaModal()" aria-label="Acceso mayoristas">
       <span class="mb-ico">🔐</span><span class="mb-txt">Mayoristas</span>
     </button>
@@ -2330,8 +2300,9 @@ async function showStorefront(){
     { src:'brands/firulais.png', target:'sec-craftmix',   alt:'Firulais' },
     { src:'brands/banny.png',    target:'sec-destileria', alt:'Banny' },
   ];
-  // Los círculos de marca ahora viven en el header. Acá arriba dejamos un
-  // bloque "Ver productos" + los botones de categoría como primer elemento.
+  // Los círculos vuelven al cuerpo, debajo de las pills. Orden del bloque:
+  // "Ver productos" → pills (Cerveza/Craft Mix/Destilados) → 3 círculos girando.
+  const circleSet = brandLogos.map(b => `<a class="hp-circle" onclick="hpScrollTo('${b.target}')"><img src="${b.src}" alt="${b.alt}"></a>`).join('');
   const categories = `
     <div class="hp-verprod">
       <span class="hp-verprod-label">Ver productos</span>
@@ -2339,6 +2310,9 @@ async function showStorefront(){
         <button class="hp-pill" onclick="hpScrollTo('sec-chelas')">Cerveza</button>
         <button class="hp-pill" onclick="hpScrollTo('sec-craftmix')">Craft Mix</button>
         <button class="hp-pill" onclick="hpScrollTo('sec-destileria')">Destilados</button>
+      </div>
+      <div class="hp-circles">
+        <div class="hp-circles-track">${circleSet}${circleSet}${circleSet}${circleSet}</div>
       </div>
     </div>`;
 
@@ -2403,9 +2377,12 @@ async function showStorefront(){
       </div>
     </div>`;
 
-  // Orden: "Ver productos" + categorías (lo más arriba) → marquee → hero →
-  // welcome bubble → secciones de producto → juegos → cierre.
-  page.innerHTML = `${categories}${marquee}${hero}${welcomeBubble}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${juegosHtml}${cierreHtml}`;
+  // El marquee (Retiro/envío) va en la barra superior, arriba del header.
+  const topbar = document.getElementById('hpTopbar');
+  if (topbar) topbar.innerHTML = marquee;
+  // Orden del home: "Ver productos" + pills + círculos → hero → welcome →
+  // secciones → juegos → cierre.
+  page.innerHTML = `${categories}${hero}${welcomeBubble}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${juegosHtml}${cierreHtml}`;
   hpInitHero();
   renderSidebarCatalog(groups);
   maybeShowPromoPopup();
@@ -2421,20 +2398,27 @@ function renderSidebarCatalog(groups){
     { key:'banny',    label:'Banny',          img:'brands/banny.png',    target:'sec-destileria', items:(groups.destileria||[]) },
   ].filter(b => b.items.length);
   if (!brands.length) { el.innerHTML = '<div class="hp-sb-empty">Sin productos por ahora.</div>'; return; }
+  // Solo las 3 marcas, colapsadas. Flecha para desplegar sus productos.
   el.innerHTML = brands.map(b => `
-    <div class="hp-sb-brand">
-      <button class="hp-sb-brand-h" onclick="hpScrollTo('${b.target}'); if(window.innerWidth<=860) toggleSidebar(false)">
-        <img src="${b.img}" alt="${b.label}"><span>${b.label}</span><span class="n">${b.items.length}</span>
+    <div class="hp-sb-brand" data-brand="${b.key}">
+      <button class="hp-sb-brand-h" data-acc>
+        <img src="${b.img}" alt="${b.label}"><span>${b.label}</span>
+        <span class="n">${b.items.length}</span><span class="hp-sb-arrow">▸</span>
       </button>
       <div class="hp-sb-prods">
-        ${b.items.slice(0,40).map(p => `<button class="hp-sb-prod" data-pid="${p.id||''}" title="${escapeHtml(cleanHpTitle(p.title))}">${escapeHtml(cleanHpTitle(p.title))}</button>`).join('')}
+        ${b.items.slice(0,60).map(p => `<button class="hp-sb-prod" data-pid="${p.id||''}" title="${escapeHtml(cleanHpTitle(p.title))}">${escapeHtml(cleanHpTitle(p.title))}</button>`).join('')}
       </div>
     </div>`).join('');
+  // Acordeón: click en la marca despliega/colapsa sus productos
+  el.querySelectorAll('.hp-sb-brand-h[data-acc]').forEach(h => {
+    h.onclick = () => h.closest('.hp-sb-brand').classList.toggle('open');
+  });
+  // Click en un producto abre su popup
   el.querySelectorAll('.hp-sb-prod[data-pid]').forEach(btn => {
     btn.onclick = () => {
       const pid = btn.dataset.pid;
       if (pid && typeof hpOpenProduct === 'function') hpOpenProduct(pid);
-      if (window.innerWidth <= 860) toggleSidebar(false);
+      toggleSidebar(false);
     };
   });
 }
