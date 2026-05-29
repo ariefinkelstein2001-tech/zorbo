@@ -731,9 +731,10 @@ function filterProducts(products, mode) {
   });
 }
 
-const PRODUCTS_QUERY = `{
-  products(first: 100, query: "status:active OR status:draft") {
+const PRODUCTS_QUERY = `query($cursor: String) {
+  products(first: 100, after: $cursor, query: "status:active OR status:draft") {
     edges {
+      cursor
       node {
         id title handle description productType vendor tags status
         featuredImage { url altText }
@@ -749,45 +750,55 @@ const PRODUCTS_QUERY = `{
         }
       }
     }
+    pageInfo { hasNextPage }
   }
 }`;
 
 const stripGid = (gid, kind) => String(gid || '').replace(`gid://shopify/${kind}/`, '');
 
-// Carga productos desde Shopify y los cachea. Reutilizable desde /api/products
-// y desde /chat (para alimentar el catálogo del bot).
+// Carga TODOS los productos desde Shopify (paginado) y los cachea. Reutilizable
+// desde /api/products y desde /chat (para alimentar el catálogo del bot).
 async function loadProductsCache(force = false){
   if (!force && productsCache && Date.now() - productsCacheAt < PRODUCTS_TTL_MS) {
     return productsCache.products;
   }
   if (!process.env.SHOPIFY_ADMIN_TOKEN) return null;
-  const resp = await shopifyAdminFetch('/graphql.json', {
-    method: 'POST',
-    body: JSON.stringify({ query: PRODUCTS_QUERY }),
-  });
-  if (resp.errors) throw new Error(JSON.stringify(resp.errors));
-  const products = resp.data.products.edges.map(({ node: p }) => ({
-    id:          stripGid(p.id, 'Product'),
-    handle:      p.handle,
-    title:       p.title,
-    description: p.description,
-    type:        p.productType,
-    vendor:      p.vendor,
-    tags:        p.tags,
-    status:      p.status || 'ACTIVE',
-    image:       p.featuredImage?.url || null,
-    images:      (p.images?.edges || []).map(e => e.node.url),
-    variants: p.variants.edges.map(({ node: v }) => ({
-      id:             stripGid(v.id, 'ProductVariant'),
-      title:          v.title,
-      price:          v.price,
-      compareAtPrice: v.compareAtPrice,
-      sku:            v.sku,
-      available:      v.availableForSale,
-      stock:          v.inventoryQuantity,
-      image:          v.image && v.image.url ? v.image.url : null,
-    })),
-  }));
+  const products = [];
+  let cursor = null;
+  for (let page = 0; page < 20; page++) { // hasta 2000 productos
+    const resp = await shopifyAdminFetch('/graphql.json', {
+      method: 'POST',
+      body: JSON.stringify({ query: PRODUCTS_QUERY, variables: { cursor } }),
+    });
+    if (resp.errors) throw new Error(JSON.stringify(resp.errors));
+    const conn = resp.data.products;
+    for (const { node: p } of conn.edges) {
+      products.push({
+        id:          stripGid(p.id, 'Product'),
+        handle:      p.handle,
+        title:       p.title,
+        description: p.description,
+        type:        p.productType,
+        vendor:      p.vendor,
+        tags:        p.tags,
+        status:      p.status || 'ACTIVE',
+        image:       p.featuredImage?.url || null,
+        images:      (p.images?.edges || []).map(e => e.node.url),
+        variants: p.variants.edges.map(({ node: v }) => ({
+          id:             stripGid(v.id, 'ProductVariant'),
+          title:          v.title,
+          price:          v.price,
+          compareAtPrice: v.compareAtPrice,
+          sku:            v.sku,
+          available:      v.availableForSale,
+          stock:          v.inventoryQuantity,
+          image:          v.image && v.image.url ? v.image.url : null,
+        })),
+      });
+    }
+    if (!conn.pageInfo.hasNextPage) break;
+    cursor = conn.edges[conn.edges.length - 1].cursor;
+  }
   productsCache = { products, fetchedAt: new Date().toISOString() };
   productsCacheAt = Date.now();
   return products;
