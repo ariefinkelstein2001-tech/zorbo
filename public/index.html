@@ -81,11 +81,79 @@ body{
 
 /* ── APP SHELL ── */
 .app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+.app-main{display:flex;flex:1;min-height:0}
+.app-col{display:flex;flex-direction:column;flex:1;min-width:0}
+
+/* ── SIDEBAR catálogo por marca (estilo IA) ── */
+.hp-sidebar{
+  width:248px;flex-shrink:0;background:#fafafa;border-right:1px solid #e5e5e5;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.hp-sb-head{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1rem;border-bottom:1px solid #e5e5e5}
+.hp-sb-title{font-family:'Bricolage Grotesque','DM Sans',sans-serif;font-weight:800;font-size:.95rem;color:#111;letter-spacing:.02em}
+.hp-sb-close{display:none;background:none;border:none;font-size:1.1rem;color:#888;cursor:pointer}
+.hp-sb-body{flex:1;overflow-y:auto;padding:.6rem .5rem 1.2rem}
+.hp-sb-empty{padding:1rem;color:#999;font-size:.82rem;text-align:center}
+.hp-sb-brand{margin-bottom:.4rem}
+.hp-sb-brand-h{
+  display:flex;align-items:center;gap:.5rem;width:100%;
+  background:none;border:none;cursor:pointer;text-align:left;
+  padding:.5rem .6rem;border-radius:9px;font-family:'DM Sans',sans-serif;
+  font-size:.82rem;font-weight:700;color:#111;transition:background .15s;
+}
+.hp-sb-brand-h:hover{background:#f0f0f0}
+.hp-sb-brand-h img{width:26px;height:26px;border-radius:50%;object-fit:cover;background:#fff;border:1px solid #e5e5e5;flex-shrink:0}
+.hp-sb-brand-h .n{margin-left:auto;font-size:.66rem;color:#aaa;font-weight:600}
+.hp-sb-prods{display:flex;flex-direction:column;gap:1px;padding:.1rem 0 .3rem .55rem}
+.hp-sb-prod{
+  background:none;border:none;cursor:pointer;text-align:left;
+  padding:.4rem .55rem;border-radius:7px;font-family:'DM Sans',sans-serif;
+  font-size:.78rem;color:#555;transition:background .15s,color .15s;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.hp-sb-prod:hover{background:#fff3d6;color:#a05f00}
+.hp-sb-toggle{
+  display:none;background:none;border:none;color:inherit;cursor:pointer;
+  padding:.2rem;margin-right:.1rem;flex-shrink:0;align-items:center;
+}
+.hp-sidebar-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:39;
+}
+
+/* Círculos de marca centrados en el header */
+.header-circles{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:flex;gap:.7rem;align-items:center;
+}
+.hdr-circle{cursor:pointer;display:block;width:40px;height:40px;border-radius:50%;
+  overflow:hidden;background:#fff;border:1.5px solid #e5e5e5;transition:transform .15s,border-color .2s}
+.hdr-circle:hover{transform:scale(1.08);border-color:#f5a623}
+.hdr-circle img{width:100%;height:100%;object-fit:cover;display:block}
+@media(max-width:600px){
+  .header-circles{gap:.45rem}
+  .hdr-circle{width:30px;height:30px}
+}
+/* En mobile el sidebar es un drawer */
+@media(max-width:860px){
+  .hp-sb-toggle{display:inline-flex}
+  .hp-sidebar{
+    position:fixed;top:0;left:0;bottom:0;z-index:40;width:80vw;max-width:300px;
+    transform:translateX(-100%);transition:transform .25s ease;box-shadow:6px 0 24px rgba(0,0,0,.18);
+  }
+  .hp-sidebar.open{transform:translateX(0)}
+  .hp-sb-close{display:block}
+  .hp-sidebar-overlay.open{display:block}
+}
+@media(max-width:520px){
+  /* en pantallas muy chicas los círculos podrían chocar con el logo/cart:
+     los escondemos del header (siguen accesibles desde el sidebar) */
+  .header-circles{display:none}
+}
 
 /* ── HEADER ── */
 header{
   flex-shrink:0;display:flex;align-items:center;gap:.85rem;
-  padding:.7rem 1.25rem;
+  padding:.7rem 1.25rem;position:relative;
   background:rgba(18,18,25,.85);backdrop-filter:blur(12px);
   border-bottom:1px solid var(--border);z-index:20;
 }
@@ -252,10 +320,19 @@ body.mayorista-active #mayoPage{display:block}
 .shop-page .hp-circle:hover{transform:scale(1.06);border-color:#f5a623;box-shadow:0 8px 22px rgba(0,0,0,.18)}
 .shop-page .hp-circle img{width:100%;height:100%;object-fit:cover;display:block}
 
-/* Pills debajo del carrusel */
+/* Bloque "Ver productos" + pills (lo más arriba del home) */
+.shop-page .hp-verprod{
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+  padding:26px clamp(1rem,4vw,3rem) 22px;
+  border-bottom:1px solid #efefef;
+}
+.shop-page .hp-verprod-label{
+  font-family:'Bricolage Grotesque',sans-serif;font-size:13px;font-weight:700;
+  letter-spacing:.18em;text-transform:uppercase;color:#a05f00;
+}
+/* Pills de categoría */
 .shop-page .hp-pillrow{
   display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
-  padding:8px clamp(1rem,4vw,3rem) 36px;
 }
 .shop-page .hp-pill{
   background:#fff;border:2px solid #111;border-radius:14px;
@@ -1343,9 +1420,17 @@ body.mayorista-active .game-banner{display:none}
 
   <!-- HEADER -->
   <header>
+    <button class="hp-sb-toggle" id="hpSbToggle" onclick="toggleSidebar()" aria-label="Catálogo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
     <a class="brand-logo" onclick="goHomeTop()" aria-label="Volver al inicio">
       <img class="logo-img" src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Titulo_secundario-3.png?v=1779814975" alt="Zorbo">
     </a>
+    <div class="header-circles" aria-label="Marcas">
+      <a class="hdr-circle" onclick="hpScrollTo('sec-chelas')" title="Kairos Brewing"><img src="brands/kairos.png" alt="Kairos"></a>
+      <a class="hdr-circle" onclick="hpScrollTo('sec-craftmix')" title="Firulais"><img src="brands/firulais.png" alt="Firulais"></a>
+      <a class="hdr-circle" onclick="hpScrollTo('sec-destileria')" title="Banny"><img src="brands/banny.png" alt="Banny"></a>
+    </div>
     <button class="mayoristas-btn" id="mayoristasBtn" onclick="openMayoristaModal()" aria-label="Acceso mayoristas">
       <span class="mb-ico">🔐</span><span class="mb-txt">Mayoristas</span>
     </button>
@@ -1361,6 +1446,20 @@ body.mayorista-active .game-banner{display:none}
     </div>
   </header>
 
+  <div class="app-main">
+    <!-- SIDEBAR catálogo por marca (estilo IA) -->
+    <aside class="hp-sidebar" id="hpSidebar">
+      <div class="hp-sb-head">
+        <span class="hp-sb-title">Catálogo</span>
+        <button class="hp-sb-close" onclick="toggleSidebar(false)" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="hp-sb-body" id="hpSidebarBody">
+        <div class="hp-sb-empty">Cargando catálogo…</div>
+      </div>
+    </aside>
+    <div class="hp-sidebar-overlay" id="hpSidebarOverlay" onclick="toggleSidebar(false)"></div>
+
+    <div class="app-col">
 <!-- CHAT (con hero + promo adentro, así scrollean junto al contenido) -->
   <div class="chat-area" id="chatArea">
     <!-- HERO SLIDESHOW (3 marcas) -->
@@ -1453,6 +1552,8 @@ body.mayorista-active .game-banner{display:none}
     </div>
     <div class="input-hint">Zorbot puede cometer errores · responde con IA</div>
   </div>
+    </div><!-- /.app-col -->
+  </div><!-- /.app-main -->
 </div>
 
 <!-- TOASTS -->
@@ -2229,15 +2330,16 @@ async function showStorefront(){
     { src:'brands/firulais.png', target:'sec-craftmix',   alt:'Firulais' },
     { src:'brands/banny.png',    target:'sec-destileria', alt:'Banny' },
   ];
-  const circleSet = brandLogos.map(b => `<a class="hp-circle" onclick="hpScrollTo('${b.target}')"><img src="${b.src}" alt="${b.alt}"></a>`).join('');
+  // Los círculos de marca ahora viven en el header. Acá arriba dejamos un
+  // bloque "Ver productos" + los botones de categoría como primer elemento.
   const categories = `
-    <div class="hp-circles">
-      <div class="hp-circles-track">${circleSet}${circleSet}${circleSet}${circleSet}</div>
-    </div>
-    <div class="hp-pillrow">
-      <button class="hp-pill" onclick="hpScrollTo('sec-chelas')">Cervezas</button>
-      <button class="hp-pill" onclick="hpScrollTo('sec-craftmix')">Craft Mix</button>
-      <button class="hp-pill" onclick="hpScrollTo('sec-destileria')">Destilados</button>
+    <div class="hp-verprod">
+      <span class="hp-verprod-label">Ver productos</span>
+      <div class="hp-pillrow">
+        <button class="hp-pill" onclick="hpScrollTo('sec-chelas')">Cerveza</button>
+        <button class="hp-pill" onclick="hpScrollTo('sec-craftmix')">Craft Mix</button>
+        <button class="hp-pill" onclick="hpScrollTo('sec-destileria')">Destilados</button>
+      </div>
     </div>`;
 
   const section = (id, title, sub, items) => items.length ? `
@@ -2301,12 +2403,50 @@ async function showStorefront(){
       </div>
     </div>`;
 
-  // Orden: marquee → hero → categorías (logos) → welcome bubble → secciones de
-  // producto → juegos → cierre (manifiesto + chat).
-  // El 10% OFF ya no va inline acá — aparece como popup a los 5s (maybeShowPromoPopup).
-  page.innerHTML = `${marquee}${hero}${categories}${welcomeBubble}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${juegosHtml}${cierreHtml}`;
+  // Orden: "Ver productos" + categorías (lo más arriba) → marquee → hero →
+  // welcome bubble → secciones de producto → juegos → cierre.
+  page.innerHTML = `${categories}${marquee}${hero}${welcomeBubble}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${juegosHtml}${cierreHtml}`;
   hpInitHero();
+  renderSidebarCatalog(groups);
   maybeShowPromoPopup();
+}
+
+// Construye el catálogo por marca en la sidebar tipo IA.
+function renderSidebarCatalog(groups){
+  const el = document.getElementById('hpSidebarBody');
+  if (!el) return;
+  const brands = [
+    { key:'kairos',   label:'Kairos Brewing', img:'brands/kairos.png',   target:'sec-chelas',     items:[...(groups.chelas||[]), ...(groups.packs||[])] },
+    { key:'firulais', label:'Firulais',       img:'brands/firulais.png', target:'sec-craftmix',   items:(groups.craftmix||[]) },
+    { key:'banny',    label:'Banny',          img:'brands/banny.png',    target:'sec-destileria', items:(groups.destileria||[]) },
+  ].filter(b => b.items.length);
+  if (!brands.length) { el.innerHTML = '<div class="hp-sb-empty">Sin productos por ahora.</div>'; return; }
+  el.innerHTML = brands.map(b => `
+    <div class="hp-sb-brand">
+      <button class="hp-sb-brand-h" onclick="hpScrollTo('${b.target}'); if(window.innerWidth<=860) toggleSidebar(false)">
+        <img src="${b.img}" alt="${b.label}"><span>${b.label}</span><span class="n">${b.items.length}</span>
+      </button>
+      <div class="hp-sb-prods">
+        ${b.items.slice(0,40).map(p => `<button class="hp-sb-prod" data-pid="${p.id||''}" title="${escapeHtml(cleanHpTitle(p.title))}">${escapeHtml(cleanHpTitle(p.title))}</button>`).join('')}
+      </div>
+    </div>`).join('');
+  el.querySelectorAll('.hp-sb-prod[data-pid]').forEach(btn => {
+    btn.onclick = () => {
+      const pid = btn.dataset.pid;
+      if (pid && typeof hpOpenProduct === 'function') hpOpenProduct(pid);
+      if (window.innerWidth <= 860) toggleSidebar(false);
+    };
+  });
+}
+
+// Toggle del sidebar (drawer en mobile)
+function toggleSidebar(force){
+  const sb = document.getElementById('hpSidebar');
+  const ov = document.getElementById('hpSidebarOverlay');
+  if (!sb) return;
+  const open = force === undefined ? !sb.classList.contains('open') : force;
+  sb.classList.toggle('open', open);
+  if (ov) ov.classList.toggle('open', open);
 }
 
 // ─── POPUP 10% OFF ──────────────────────────────────────────────────────────
