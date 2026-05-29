@@ -1153,7 +1153,7 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
   const section = String(req.query.section || 'minorista').toLowerCase();
   const requiredTag = section === 'mayorista' ? 'MAYORISTA' : 'ZORBO';
   try {
-    const all = await loadProductsCache(false);
+    const all = await loadProductsCache(String(req.query.refresh || '') === '1');
     if (!all) return res.json({ products: [], section, requiredTag });
     const extras = loadProductExtras();
     const products = all

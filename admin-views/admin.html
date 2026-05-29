@@ -2078,7 +2078,7 @@ document.getElementById('btnReload').onclick = () => {
 };
 
 // ─── Productos: catálogo Shopify + notas extra para Zorbot ──────────────────
-async function loadProductos(){
+async function loadProductos(refresh){
   document.getElementById('productGrid').innerHTML = '<div class="adm-loading">Cargando catálogo desde Shopify…</div>';
   document.getElementById('brandTabs').innerHTML = '';
   const metaEl = document.getElementById('prodMeta');
@@ -2086,7 +2086,7 @@ async function loadProductos(){
     ? 'sync Shopify · solo productos con tag MAYORISTA · notas extra solo para Zorbot'
     : 'sync Shopify · solo productos con tag ZORBO (minorista) · notas extra solo para Zorbot';
   try {
-    const r = await fetch('/admin/products?section=' + encodeURIComponent(activeProdSection));
+    const r = await fetch('/admin/products?section=' + encodeURIComponent(activeProdSection) + (refresh ? '&refresh=1' : ''));
     if (!r.ok) {
       const e = await r.json().catch(() => ({}));
       throw new Error(e.error || 'HTTP ' + r.status);
@@ -2394,7 +2394,7 @@ function bindProductCards(){
   }
 }
 
-document.getElementById('btnReloadProd').onclick = () => { openProductId = null; loadProductos(); };
+document.getElementById('btnReloadProd').onclick = () => { openProductId = null; loadProductos(true); };
 
 // ─── Crear producto nuevo (maqueta por canvas + alta en Shopify) ────────────
 let npSection = 'minorista';
