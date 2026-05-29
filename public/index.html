@@ -3436,10 +3436,6 @@ async function showMayoristaStorefront(){
   const mpCircle = (b, dup) => `<a class="hp-circle${dup ? ' hp-circle-dup' : ''}" onclick="hpScrollTo('${b.target}')"><img src="${b.src}" alt="${escapeHtml(b.alt)}"></a>`;
   const circleSet = mpBrands.map(b => mpCircle(b, false)).join('');
   const circleDup = mpBrands.map(b => mpCircle(b, true)).join('');
-  const circles = `
-    <div class="hp-circles">
-      <div class="hp-circles-track">${circleSet}${circleDup}${circleDup}${circleDup}</div>
-    </div>`;
 
   const customer = (() => { try { return JSON.parse(sessionStorage.getItem('zmayo_customer') || '{}'); } catch { return {}; } })();
   const nom = customer.first_name || 'colega';
@@ -3476,9 +3472,17 @@ async function showMayoristaStorefront(){
     return { id:d.id, title: o.title || d.title, sub: o.sub || d.sub };
   };
 
-  const navPills = `
-    <div class="hp-pillrow" style="padding-top:8px;padding-bottom:14px">
-      ${mayoOrder.map(k => { const m = secMeta(k); return groups[k].length ? `<button class="hp-pill" onclick="hpScrollTo('${m.id}')">${escapeHtml(m.title)}</button>` : ''; }).join('')}
+  // Botones "Ver productos": editables desde el panel, por defecto = las 5 secciones.
+  const defaultPills = mayoOrder.map(k => { const m = secMeta(k); return { label: m.title, target: m.id }; });
+  const mpPills = (Array.isArray(mayoCfg.pills) && mayoCfg.pills.length) ? mayoCfg.pills : defaultPills;
+  const pillsHtml = mpPills.map(p => `<button class="hp-pill" onclick="hpScrollTo('${p.target}')">${escapeHtml(p.label)}</button>`).join('');
+  const verProductos = `
+    <div class="hp-verprod">
+      <span class="hp-verprod-label">Ver productos</span>
+      <div class="hp-pillrow">${pillsHtml}</div>
+      <div class="hp-circles">
+        <div class="hp-circles-track">${circleSet}${circleDup}${circleDup}${circleDup}</div>
+      </div>
     </div>`;
 
   // Render con bandera para Lanús/Osagui (los que tienen _flag), normal el resto
@@ -3495,11 +3499,11 @@ async function showMayoristaStorefront(){
 
   const sectionsHtml = mayoOrder.map(k => { const m = secMeta(k); return sec(m.id, escapeHtml(m.title), escapeHtml(m.sub), groups[k]); }).join('');
 
+  // Mismo orden que el home B2C: Ver productos (label + botones + logos) → banner → welcome → secciones.
   const html = `
+    ${verProductos}
     ${hero}
-    ${circles}
     ${welcomeMayo}
-    ${navPills}
     ${sectionsHtml}
   `;
 

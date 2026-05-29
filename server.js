@@ -1275,6 +1275,10 @@ function sanitizeSiteConfig(input){
   const m = (c.mayo && typeof c.mayo === 'object') ? c.mayo : {};
   out.mayo = {
     hero: arrStr(m.hero, 20),
+    pills: Array.isArray(m.pills) ? m.pills.slice(0, 20).map(p => ({
+      label:  str(p?.label, 40),
+      target: str(p?.target, 60),
+    })).filter(p => p.label && p.target) : [],
     brands: Array.isArray(m.brands) ? m.brands.slice(0, 40).map(b => ({
       label:  str(b?.label, 60),
       logo:   str(b?.logo, 500),
