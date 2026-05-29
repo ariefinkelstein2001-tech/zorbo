@@ -1284,6 +1284,11 @@ body.drawer-open{overflow:hidden}
 }
 
 /* ── Editor Página web ─────────────────────────────────────────── */
+.web-modetoggle{display:flex;gap:.5rem;margin-bottom:1.1rem}
+.web-modetoggle button{flex:1;padding:.6rem .8rem;border:1px solid var(--border);border-radius:11px;
+  background:var(--surface);color:var(--muted);font-weight:700;font-size:.82rem;cursor:pointer;transition:all .15s}
+.web-modetoggle button:hover{border-color:var(--gold-bd-h);color:var(--text)}
+.web-modetoggle button.on{background:var(--gold-dim);border-color:var(--gold-bd-h);color:var(--gold-deep)}
 .web-group{border:1px solid var(--border);border-radius:14px;padding:1rem 1.1rem;margin-bottom:1.1rem;background:var(--surface2)}
 .web-group-h{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.4rem}
 .web-group-t{font-family:var(--display,inherit);font-size:1.02rem;font-weight:700;color:var(--text)}
@@ -4548,8 +4553,34 @@ const WEB_BASE_CATS = [
   { key:'destileria', title:'Licores' },
   { key:'packs',      title:'Packs' },
 ];
+// Home mayorista (B2B): secciones fijas por formato + defaults.
+const MAYO_SECTIONS = [
+  { key:'chelasBarril',   id:'sec-mayo-chelas',          title:'Chelas · Barriles',  sub:'Barriles cerveceros · mayorista' },
+  { key:'packs',          id:'sec-mayo-packs',           title:'Packs',              sub:'24 pack 473cc · mayorista' },
+  { key:'craftmixBarril', id:'sec-mayo-craftmix',        title:'Craft Mix · Barril', sub:'Cheladas Firulais en barril' },
+  { key:'licoresBidon',   id:'sec-mayo-licores-bidon',   title:'Licores · Bidón',    sub:'Banny en bidón · gin, ron y más' },
+  { key:'licoresBotella', id:'sec-mayo-licores-botella', title:'Licores · Botella',  sub:'Banny en botella · gin, whiskey, ron' },
+];
+const MAYO_DEFAULTS = {
+  hero: [
+    'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-03.png?v=1775154716&width=1280',
+    'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-01.png?v=1775154725&width=1280',
+    'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-02.png?v=1775154766&width=1280',
+  ],
+  brands: [
+    { label:'Kairos',   logo:'brands/kairos.png',   target:'sec-mayo-chelas' },
+    { label:'Firulais', logo:'brands/firulais.png', target:'sec-mayo-craftmix' },
+    { label:'Banny',    logo:'brands/banny.png',    target:'sec-mayo-licores-bidon' },
+  ],
+  welcome: [
+    'Hola {nombre}, soy Zorbot tu <strong>sommelier corporativo</strong> 🍺',
+    'Estoy acá para ayudarte con lo que necesites!',
+    'Pídeme lo que necesites (limpieza de línea, despachos, mantenciones, capacitaciones, etc.)',
+  ],
+};
 let webConfig = null;
 let webDrag = null;
+let webMode = 'b2c';
 
 function webSlug(v){
   return String(v||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
@@ -4566,7 +4597,31 @@ function normalizeWebConfig(cfg){
     brands:      webHas(cfg.brands)   ? cfg.brands.map(b=>({key:b.key||'',label:b.label||'',logo:b.logo||'',category:b.category||'chelas',vendor:b.vendor||''})) : WEB_DEFAULTS.brands.map(b=>({...b})),
     categories:  Array.isArray(cfg.categories) ? cfg.categories.map(c=>({key:c.key||webSlug(c.title),title:c.title||'',sub:c.sub||''})).filter(c=>c.title) : [],
     categoryOrder: Array.isArray(cfg.categoryOrder) ? cfg.categoryOrder.slice() : [],
+    mayo: normalizeMayo(cfg.mayo),
   };
+}
+function normalizeMayo(m){
+  m = m || {};
+  return {
+    hero:    webHas(m.hero)   ? m.hero.slice()   : MAYO_DEFAULTS.hero.slice(),
+    brands:  webHas(m.brands) ? m.brands.map(b=>({label:b.label||'',logo:b.logo||'',target:b.target||'sec-mayo-chelas'})) : MAYO_DEFAULTS.brands.map(b=>({...b})),
+    welcome: webHas(m.welcome)? m.welcome.slice(): MAYO_DEFAULTS.welcome.slice(),
+    sectionOrder: Array.isArray(m.sectionOrder) ? m.sectionOrder.slice() : [],
+    sections: (m.sections && typeof m.sections === 'object') ? JSON.parse(JSON.stringify(m.sections)) : {},
+  };
+}
+// Secciones mayoristas en su orden actual, con título/sub override o default.
+function mayoOrderedSections(){
+  const order = webConfig.mayo.sectionOrder || [];
+  const keys = [...order.filter(k=>MAYO_SECTIONS.some(s=>s.key===k)), ...MAYO_SECTIONS.filter(s=>!order.includes(s.key)).map(s=>s.key)];
+  return keys.map(k=>{
+    const d = MAYO_SECTIONS.find(s=>s.key===k);
+    const o = webConfig.mayo.sections[k] || {};
+    return { key:k, id:d.id, title:o.title||d.title, sub:o.sub||d.sub };
+  });
+}
+function mayoSecOpts(sel){
+  return MAYO_SECTIONS.map(s=>`<option value="${s.id}"${s.id===sel?' selected':''}>${escapeHtml(s.title)}</option>`).join('');
 }
 function webAllCats(){ return [...WEB_BASE_CATS, ...webConfig.categories.map(c=>({key:c.key,title:c.title}))]; }
 // Categorías en su orden actual (guardado + las nuevas al final).
@@ -4646,7 +4701,7 @@ function renderWeb(){
       </div>
     </div>`).join('');
 
-  body.innerHTML = `
+  const b2cHtml = `
     <div class="web-group">
       <div class="web-group-t">Franja de arriba</div>
       <div class="web-group-d">El texto que corre arriba de todo (envío gratis, retiros, etc).</div>
@@ -4683,7 +4738,71 @@ function renderWeb(){
       <div>${orderHtml}</div>
     </div>`;
 
+  const toggle = `<div class="web-modetoggle">
+    <button type="button" class="${webMode==='b2c'?'on':''}" data-webmode="b2c">🛒 Tienda (B2C)</button>
+    <button type="button" class="${webMode==='mayo'?'on':''}" data-webmode="mayo">🏷️ Mayorista (B2B)</button>
+  </div>`;
+  body.innerHTML = toggle + (webMode==='mayo' ? renderWebMayoHtml(esc, escA, heroImgs) : b2cHtml);
   wireWeb();
+}
+
+// Editor del home mayorista (B2B): banner, círculos, orden/títulos, bienvenida.
+function renderWebMayoHtml(esc, escA, heroImgs){
+  const m = webConfig.mayo;
+  const heroHtml = heroImgs(m.hero, 'mayohero');
+  const brandsHtml = m.brands.map((b,i)=>`
+    <div class="web-brand" draggable="true" data-dragitem data-group="mayobrands" data-i="${i}">
+      <div class="web-brand-top">
+        <span class="web-img-grip" style="position:static;background:none;color:var(--dim);font-size:1rem">⠿</span>
+        <img class="web-brand-logo" src="${b.logo?escA(b.logo):'data:,'}" alt="">
+        <button class="web-add" data-mayologo="${i}" type="button">${b.logo?'Cambiar logo':'Subir logo'}</button>
+        <button class="web-del" data-del="mayobrand" data-i="${i}" title="Quitar" style="margin-left:auto">✕</button>
+      </div>
+      <div class="web-brand-grid">
+        <div><span class="web-mini">Nombre</span>
+          <input class="adm-input" data-web="mayobrand-label" data-i="${i}" value="${escA(b.label)}" placeholder="Ej: Kairos"></div>
+        <div><span class="web-mini">Lleva a la sección</span>
+          <select class="adm-select" data-web="mayobrand-target" data-i="${i}">${mayoSecOpts(b.target)}</select></div>
+      </div>
+    </div>`).join('');
+  const orderHtml = mayoOrderedSections().map((s,i)=>`
+    <div class="web-cat" draggable="true" data-dragitem data-group="mayocats" data-i="${i}" style="flex-direction:column;align-items:stretch;gap:.4rem">
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span class="web-img-grip" style="position:static;background:none;color:var(--dim);font-size:1rem">⠿</span>
+        <b style="flex:1">${esc(s.title)}</b>
+      </div>
+      <input class="adm-input" data-web="mayosec-title" data-key="${escA(s.key)}" value="${escA(s.title)}" placeholder="Título de la sección">
+      <input class="adm-input" data-web="mayosec-sub" data-key="${escA(s.key)}" value="${escA(s.sub)}" placeholder="Subtítulo">
+    </div>`).join('');
+  const welcomeHtml = m.welcome.map((t,i)=>`
+    <div class="web-row">
+      <input class="adm-input" data-web="mayowelcome" data-i="${i}" value="${escA(t)}" placeholder="Línea del mensaje">
+      <button class="web-del" data-del="mayowelcome" data-i="${i}" title="Quitar">✕</button>
+    </div>`).join('');
+  return `
+    <div class="web-group">
+      <div class="web-group-t">Banner mayorista</div>
+      <div class="web-group-d">Fotos del carrusel del home mayorista (son distintas al B2C). <b>Arrastrá para reordenar.</b> Apaisadas, recomendado <b>1920 × 600 px</b>.</div>
+      <div class="web-imgs">${heroHtml}</div>
+      <button class="web-add" id="webAddMayoHero" type="button">+ Agregar foto</button>
+    </div>
+    <div class="web-group">
+      <div class="web-group-t">Marcas / círculos</div>
+      <div class="web-group-d">Logos que giran arriba del catálogo mayorista. Cada uno lleva a una sección. <b>Arrastrá para reordenar.</b></div>
+      <div>${brandsHtml}</div>
+      <button class="web-add" id="webAddMayoBrand" type="button">+ Agregar marca</button>
+    </div>
+    <div class="web-group">
+      <div class="web-group-t">Orden y títulos de las secciones</div>
+      <div class="web-group-d">Las 5 secciones del mayorista (fijas por formato). Reordenalas arrastrando y editá su título/subtítulo.</div>
+      <div>${orderHtml}</div>
+    </div>
+    <div class="web-group">
+      <div class="web-group-t">Texto de bienvenida</div>
+      <div class="web-group-d">El mensaje de Zorbot arriba del catálogo mayorista. Usá <b>{nombre}</b> donde quieras que aparezca el nombre del cliente.</div>
+      <div>${welcomeHtml}</div>
+      <button class="web-add" id="webAddMayoWelcome" type="button">+ Agregar línea</button>
+    </div>`;
 }
 
 function webUploadImage(cb){
@@ -4714,10 +4833,19 @@ function wireWeb(){
     else if (k==='pill-label')   c.pills[i].label = v;
     else if (k==='brand-label')  c.brands[i].label = v;
     else if (k==='brand-vendor') c.brands[i].vendor = v;
+    else if (k==='mayowelcome')   c.mayo.welcome[i] = v;
+    else if (k==='mayobrand-label') c.mayo.brands[i].label = v;
+    else if (k==='mayosec-title' || k==='mayosec-sub') {
+      const key = el.dataset.key;
+      c.mayo.sections[key] = c.mayo.sections[key] || {};
+      c.mayo.sections[key][k==='mayosec-title' ? 'title' : 'sub'] = v;
+    }
   };
   body.onchange = (e) => {
     const pt = e.target.closest('[data-web="pill-target"]');
     if (pt) { webConfig.pills[+pt.dataset.i].target = pt.value; return; }
+    const mbt = e.target.closest('[data-web="mayobrand-target"]');
+    if (mbt) { webConfig.mayo.brands[+mbt.dataset.i].target = mbt.value; return; }
     const sel = e.target.closest('[data-web="brand-cat"]');
     if (sel) {
       const i = +sel.dataset.i;
@@ -4735,19 +4863,27 @@ function wireWeb(){
     }
   };
   body.onclick = (e) => {
+    const mode = e.target.closest('[data-webmode]');
+    if (mode) { webMode = mode.dataset.webmode; renderWeb(); return; }
     const del = e.target.closest('[data-del]');
     if (del) {
       const i = +del.dataset.i;
       ({ promo:()=>webConfig.promos.splice(i,1),
          pill:()=>webConfig.pills.splice(i,1),
-         brand:()=>webConfig.brands.splice(i,1) }[del.dataset.del] || (()=>{}))();
+         brand:()=>webConfig.brands.splice(i,1),
+         mayobrand:()=>webConfig.mayo.brands.splice(i,1),
+         mayowelcome:()=>webConfig.mayo.welcome.splice(i,1) }[del.dataset.del] || (()=>{}))();
       renderWeb(); return;
     }
     const dimg = e.target.closest('[data-delimg]');
     if (dimg) {
-      (dimg.dataset.delimg==='desktop' ? webConfig.heroDesktop : webConfig.heroMobile).splice(+dimg.dataset.i, 1);
+      const g = dimg.dataset.delimg;
+      const arr = g==='desktop' ? webConfig.heroDesktop : g==='mobile' ? webConfig.heroMobile : webConfig.mayo.hero;
+      arr.splice(+dimg.dataset.i, 1);
       renderWeb(); return;
     }
+    const mlogo = e.target.closest('[data-mayologo]');
+    if (mlogo) { webUploadImage(url => { webConfig.mayo.brands[+mlogo.dataset.mayologo].logo = url; renderWeb(); }); return; }
     const delcat = e.target.closest('[data-delcat]');
     if (delcat) {
       const key = delcat.dataset.delcat;
@@ -4765,6 +4901,9 @@ function wireWeb(){
     else if (id==='webAddBrand') { webConfig.brands.push({ key:'', label:'', logo:'', category:'chelas', vendor:'' }); renderWeb(); }
     else if (id==='webAddHeroD') { webUploadImage(url => { webConfig.heroDesktop.push(url); renderWeb(); }); }
     else if (id==='webAddHeroM') { webUploadImage(url => { webConfig.heroMobile.push(url); renderWeb(); }); }
+    else if (id==='webAddMayoHero') { webUploadImage(url => { webConfig.mayo.hero.push(url); renderWeb(); }); }
+    else if (id==='webAddMayoBrand') { webConfig.mayo.brands.push({ label:'', logo:'', target:'sec-mayo-chelas' }); renderWeb(); }
+    else if (id==='webAddMayoWelcome') { webConfig.mayo.welcome.push(''); renderWeb(); }
   };
   // Arrastrar para reordenar: fotos del banner (desktop/mobile) y categorías.
   const clearDrop = () => body.querySelectorAll('.drop-target,.dragging')
@@ -4775,8 +4914,17 @@ function wireWeb(){
       const keys = webOrderedCats().map(c => c.key);
       const [m] = keys.splice(from, 1); keys.splice(to, 0, m);
       webConfig.categoryOrder = keys;
+    } else if (group === 'mayocats') {
+      const keys = mayoOrderedSections().map(s => s.key);
+      const [m] = keys.splice(from, 1); keys.splice(to, 0, m);
+      webConfig.mayo.sectionOrder = keys;
     } else {
-      const arr = group === 'desktop' ? webConfig.heroDesktop : webConfig.heroMobile;
+      const arr = group === 'desktop'    ? webConfig.heroDesktop
+                : group === 'mobile'     ? webConfig.heroMobile
+                : group === 'mayohero'   ? webConfig.mayo.hero
+                : group === 'mayobrands' ? webConfig.mayo.brands
+                : null;
+      if (!arr) return;
       const [m] = arr.splice(from, 1); arr.splice(to, 0, m);
     }
   };
@@ -4822,6 +4970,13 @@ async function saveWeb(){
       category: b.category, vendor: b.vendor, target: 'sec-' + b.category,
     })),
     categoryOrder: webOrderedCats().map(x=>x.key),
+    mayo: {
+      hero:    c.mayo.hero.slice(),
+      brands:  c.mayo.brands.filter(b=>b.logo).map(b=>({ label:b.label, logo:b.logo, target:b.target || 'sec-mayo-chelas' })),
+      welcome: c.mayo.welcome.map(s=>String(s).trim()).filter(Boolean),
+      sectionOrder: mayoOrderedSections().map(s=>s.key),
+      sections: c.mayo.sections,
+    },
   };
   const st = document.getElementById('webStatus');
   st.className = 'adm-status loading'; st.textContent = 'Guardando…'; st.classList.remove('hidden');

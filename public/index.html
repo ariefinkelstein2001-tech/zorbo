@@ -3375,6 +3375,8 @@ function scrollToChat(){
 // Firulais · Destilados Banny · World Tour (Lanús + Osagui con bandera)
 async function showMayoristaStorefront(){
   const products = await loadMpCatalog();
+  let mayoCfg = {};
+  try { const rc = await fetch('/api/site-config'); if (rc.ok) mayoCfg = (await rc.json() || {}).mayo || {}; } catch {}
   // 5 secciones nuevas (sin World Tour separado: los barriles invitados
   // entran a CHELAS, los packs invitados entran a PACKS):
   //   chelasBarril    → Kairos + Lanús + Osagui barriles
@@ -3413,20 +3415,23 @@ async function showMayoristaStorefront(){
     }
   }
 
+  const mpHero = (Array.isArray(mayoCfg.hero) && mayoCfg.hero.length) ? mayoCfg.hero : MP_HERO_SLIDES;
   const hero = `
     <div class="hp-hero">
-      <div class="ht-track">${MP_HERO_SLIDES.map(u => `<div class="ht-slide"><img src="${u}" alt="Kairos Brewing" onerror="this.parentElement.parentElement.parentElement.parentElement.style.display='none'"></div>`).join('')}</div>
+      <div class="ht-track">${mpHero.map(u => `<div class="ht-slide"><img src="${u}" alt="Mayorista" onerror="this.parentElement.parentElement.parentElement.parentElement.style.display='none'"></div>`).join('')}</div>
       <button class="ht-arr prev" aria-label="Anterior">‹</button>
       <button class="ht-arr next" aria-label="Siguiente">›</button>
-      <div class="ht-dots">${MP_HERO_SLIDES.map((_,i)=>`<span class="d ${i===0?'on':''}"></span>`).join('')}</div>
+      <div class="ht-dots">${mpHero.map((_,i)=>`<span class="d ${i===0?'on':''}"></span>`).join('')}</div>
     </div>`;
 
-  const mpBrands = [
-    { src:'brands/kairos.png',   target:'sec-mayo-chelas',    alt:'Kairos' },
-    { src:'brands/firulais.png', target:'sec-mayo-craftmix',  alt:'Firulais' },
-    { src:'brands/banny.png',    target:'sec-mayo-licores-bidon', alt:'Banny' },
-  ];
-  const mpCircle = (b, dup) => `<a class="hp-circle${dup ? ' hp-circle-dup' : ''}" onclick="hpScrollTo('${b.target}')"><img src="${b.src}" alt="${b.alt}"></a>`;
+  const mpBrands = (Array.isArray(mayoCfg.brands) && mayoCfg.brands.length)
+    ? mayoCfg.brands.map(b => ({ src:b.logo, target:b.target || 'sec-mayo-chelas', alt:b.label || '' }))
+    : [
+        { src:'brands/kairos.png',   target:'sec-mayo-chelas',    alt:'Kairos' },
+        { src:'brands/firulais.png', target:'sec-mayo-craftmix',  alt:'Firulais' },
+        { src:'brands/banny.png',    target:'sec-mayo-licores-bidon', alt:'Banny' },
+      ];
+  const mpCircle = (b, dup) => `<a class="hp-circle${dup ? ' hp-circle-dup' : ''}" onclick="hpScrollTo('${b.target}')"><img src="${b.src}" alt="${escapeHtml(b.alt)}"></a>`;
   const circleSet = mpBrands.map(b => mpCircle(b, false)).join('');
   const circleDup = mpBrands.map(b => mpCircle(b, true)).join('');
   const circles = `
@@ -3436,26 +3441,42 @@ async function showMayoristaStorefront(){
 
   const customer = (() => { try { return JSON.parse(sessionStorage.getItem('zmayo_customer') || '{}'); } catch { return {}; } })();
   const nom = customer.first_name || 'colega';
+  const welcomeLines = (Array.isArray(mayoCfg.welcome) && mayoCfg.welcome.length) ? mayoCfg.welcome : [
+    'Hola {nombre}, soy Zorbot tu <strong>sommelier corporativo</strong> 🍺',
+    'Estoy acá para ayudarte con lo que necesites!',
+    'Pídeme lo que necesites (limpieza de línea, despachos, mantenciones, capacitaciones, etc.)',
+  ];
   const welcomeMayo = `
     <div class="hp-welcome">
       <div class="hp-welcome-avatar"><img src="/zorbot-avatar.jpg" alt="Zorbot"></div>
       <div class="hp-welcome-col">
         <div class="hp-welcome-sender">Zorbot <span class="hp-welcome-badge">IA</span></div>
         <div class="hp-welcome-bubble">
-          <p>Hola ${escapeHtml(nom)}, soy Zorbot tu <strong>sommelier corporativo</strong> 🍺</p>
-          <p>Estoy acá para ayudarte con lo que necesites!</p>
-          <p>Pídeme lo que necesites (limpieza de línea, despachos, mantenciones, capacitaciones, etc.)</p>
+          ${welcomeLines.map(l => `<p>${String(l).replace(/\{nombre\}/g, escapeHtml(nom))}</p>`).join('')}
         </div>
       </div>
     </div>`;
 
+  // 5 secciones fijas del mayorista (por formato). Orden y títulos editables.
+  const MAYO_SECTIONS_META = {
+    chelasBarril:   { id:'sec-mayo-chelas',          title:'Chelas · Barriles',  sub:'Barriles cerveceros · mayorista' },
+    packs:          { id:'sec-mayo-packs',           title:'Packs',              sub:'24 pack 473cc · mayorista' },
+    craftmixBarril: { id:'sec-mayo-craftmix',        title:'Craft Mix · Barril', sub:'Cheladas Firulais en barril' },
+    licoresBidon:   { id:'sec-mayo-licores-bidon',   title:'Licores · Bidón',    sub:'Banny en bidón · gin, ron y más' },
+    licoresBotella: { id:'sec-mayo-licores-botella', title:'Licores · Botella',  sub:'Banny en botella · gin, whiskey, ron' },
+  };
+  const MAYO_KEYS = Object.keys(MAYO_SECTIONS_META);
+  const savedOrder = Array.isArray(mayoCfg.sectionOrder) ? mayoCfg.sectionOrder.filter(k => MAYO_KEYS.includes(k)) : [];
+  const mayoOrder = [...savedOrder, ...MAYO_KEYS.filter(k => !savedOrder.includes(k))];
+  const secMeta = (k) => {
+    const d = MAYO_SECTIONS_META[k];
+    const o = (mayoCfg.sections && mayoCfg.sections[k]) || {};
+    return { id:d.id, title: o.title || d.title, sub: o.sub || d.sub };
+  };
+
   const navPills = `
     <div class="hp-pillrow" style="padding-top:8px;padding-bottom:14px">
-      ${groups.chelasBarril.length    ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-chelas\')">Chelas · Barriles</button>' : ''}
-      ${groups.packs.length           ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-packs\')">Packs</button>' : ''}
-      ${groups.craftmixBarril.length  ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-craftmix\')">Craft Mix · Barril</button>' : ''}
-      ${groups.licoresBidon.length    ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-licores-bidon\')">Licores · Bidón</button>' : ''}
-      ${groups.licoresBotella.length  ? '<button class="hp-pill" onclick="hpScrollTo(\'sec-mayo-licores-botella\')">Licores · Botella</button>' : ''}
+      ${mayoOrder.map(k => { const m = secMeta(k); return groups[k].length ? `<button class="hp-pill" onclick="hpScrollTo('${m.id}')">${escapeHtml(m.title)}</button>` : ''; }).join('')}
     </div>`;
 
   // Render con bandera para Lanús/Osagui (los que tienen _flag), normal el resto
@@ -3470,16 +3491,14 @@ async function showMayoristaStorefront(){
       <div class="hp-row">${items.map(renderCard).join('')}</div>
     </section>` : '';
 
+  const sectionsHtml = mayoOrder.map(k => { const m = secMeta(k); return sec(m.id, escapeHtml(m.title), escapeHtml(m.sub), groups[k]); }).join('');
+
   const html = `
     ${hero}
     ${circles}
     ${welcomeMayo}
     ${navPills}
-    ${sec('sec-mayo-chelas',          'Chelas · Barriles',  'Barriles cerveceros · mayorista',     groups.chelasBarril)}
-    ${sec('sec-mayo-packs',           'Packs',              '24 pack 473cc · mayorista',           groups.packs)}
-    ${sec('sec-mayo-craftmix',        'Craft Mix · Barril', 'Cheladas Firulais en barril',          groups.craftmixBarril)}
-    ${sec('sec-mayo-licores-bidon',   'Licores · Bidón',    'Banny en bidón · gin, ron y más',     groups.licoresBidon)}
-    ${sec('sec-mayo-licores-botella', 'Licores · Botella',  'Banny en botella · gin, whiskey, ron', groups.licoresBotella)}
+    ${sectionsHtml}
   `;
 
   const page = document.getElementById('mayoPage');

@@ -1269,6 +1269,26 @@ function sanitizeSiteConfig(input){
   })).filter(b => b.label) : [];
   out.categoryOrder = Array.isArray(c.categoryOrder)
     ? c.categoryOrder.map(k => slug(k)).filter(Boolean).slice(0, 40) : [];
+
+  // Home mayorista (B2B): banner, círculos, orden/títulos de secciones, bienvenida.
+  const MAYO_SECTION_KEYS = ['chelasBarril','packs','craftmixBarril','licoresBidon','licoresBotella'];
+  const m = (c.mayo && typeof c.mayo === 'object') ? c.mayo : {};
+  out.mayo = {
+    hero: arrStr(m.hero, 20),
+    brands: Array.isArray(m.brands) ? m.brands.slice(0, 40).map(b => ({
+      label:  str(b?.label, 60),
+      logo:   str(b?.logo, 500),
+      target: str(b?.target, 60),
+    })).filter(b => b.logo) : [],
+    sectionOrder: Array.isArray(m.sectionOrder)
+      ? m.sectionOrder.map(k => str(k, 40)).filter(k => MAYO_SECTION_KEYS.includes(k)).slice(0, 10) : [],
+    sections: (m.sections && typeof m.sections === 'object')
+      ? Object.fromEntries(MAYO_SECTION_KEYS.filter(k => m.sections[k]).map(k => [k, {
+          title: str(m.sections[k]?.title, 80),
+          sub:   str(m.sections[k]?.sub, 160),
+        }])) : {},
+    welcome: arrStr(m.welcome, 8),
+  };
   return out;
 }
 
