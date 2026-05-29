@@ -357,6 +357,21 @@ body{
 .adm-prod-upload:hover{border-color:var(--gold-bd-h);color:var(--gold-deep);background:var(--gold-dim)}
 .adm-prod-meta{font-family:var(--mono);font-size:.65rem;color:var(--dim);margin-top:.1rem}
 
+/* Modal crear producto */
+.adm-np-card{max-width:960px}
+.adm-np-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.1rem}
+@media(max-width:760px){.adm-np-grid{grid-template-columns:1fr}}
+.adm-np-form{display:flex;flex-direction:column;gap:.7rem}
+.adm-np-row2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
+.adm-np-row3{display:grid;grid-template-columns:1fr 1fr .8fr;gap:.6rem}
+.adm-np-color{padding:.2rem;height:38px;cursor:pointer}
+.adm-np-packs{display:flex;flex-direction:column;gap:.4rem}
+.adm-np-pack{display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--text)}
+.adm-np-price{max-width:120px;margin-left:auto}
+.adm-np-preview{display:flex;flex-direction:column;gap:.4rem;align-items:center}
+#npCanvas{width:100%;max-width:340px;aspect-ratio:1;border:1px solid var(--border);border-radius:10px;background:#fff}
+.adm-np-hint{font-size:.74rem;color:var(--dim);text-align:center;font-style:italic}
+
 /* ── CONVERSACIONES (embudo) ── */
 .adm-stats{
   display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;
@@ -1580,11 +1595,78 @@ body.drawer-open{overflow:hidden}
             <button data-v="mayorista"        type="button">Mayorista <span class="adm-pill-sub">MAYORISTA</span></button>
           </div>
           <button class="adm-btn adm-btn-ghost" id="btnReloadProd" type="button">Recargar catálogo</button>
+          <button class="adm-btn adm-btn-gold"  id="btnNewProd"    type="button">+ Agregar producto</button>
         </div>
       </div>
       <div class="adm-subtabs" id="brandTabs"></div>
       <div class="adm-prod-grid" id="productGrid">
         <div class="adm-loading">Cargando productos…</div>
+      </div>
+    </div>
+
+    <!-- Modal: crear producto nuevo (con generador de maqueta) -->
+    <div class="adm-fb" id="newProdModal" aria-hidden="true">
+      <div class="adm-fb-bg" data-act="close-np"></div>
+      <div class="adm-fb-card adm-np-card">
+        <button type="button" class="adm-fb-x" data-act="close-np" aria-label="Cerrar">✕</button>
+        <div class="adm-fb-head">
+          <div class="adm-fb-title">Agregar producto</div>
+          <div class="adm-fb-sub">Subí la foto de la lata y completá los datos. La maqueta (lata + cuadro) se arma sola y el producto se crea en Shopify con su tag.</div>
+        </div>
+        <div class="adm-np-grid">
+          <div class="adm-np-form">
+            <div class="adm-fb-col">
+              <label class="adm-fb-label">Sección</label>
+              <div class="adm-pillgroup" id="npSection">
+                <button data-v="minorista" class="on" type="button">Minorista · ZORBO</button>
+                <button data-v="mayorista"        type="button">Mayorista · MAYORISTA</button>
+              </div>
+            </div>
+            <div class="adm-np-row2">
+              <div class="adm-fb-col"><label class="adm-fb-label">Marca / proveedor</label>
+                <select class="adm-input" id="npVendor">
+                  <option value="Kairos Brewing">Kairos Brewing</option>
+                  <option value="Firulais">Firulais</option>
+                  <option value="Banny">Banny</option>
+                  <option value="Otros">Otros</option>
+                </select>
+              </div>
+              <div class="adm-fb-col"><label class="adm-fb-label">Estilo / tipo</label>
+                <input class="adm-input" id="npType" placeholder="Pils, APA, Chelada, Gin…"></div>
+            </div>
+            <div class="adm-fb-col"><label class="adm-fb-label">Nombre</label>
+              <input class="adm-input" id="npName" placeholder="Nada Personal"></div>
+            <div class="adm-fb-col"><label class="adm-fb-label">Descriptores (separados por ·)</label>
+              <input class="adm-input" id="npDesc" placeholder="Refrescante · Floral · Equilibrada"></div>
+            <div class="adm-np-row3">
+              <div class="adm-fb-col"><label class="adm-fb-label">% Alcohol</label>
+                <input class="adm-input" id="npAbv" placeholder="4.1"></div>
+              <div class="adm-fb-col"><label class="adm-fb-label">Tamaño</label>
+                <input class="adm-input" id="npSize" placeholder="473ml" value="473ml"></div>
+              <div class="adm-fb-col"><label class="adm-fb-label">Color</label>
+                <input class="adm-input adm-np-color" id="npColor" type="color" value="#f3a9a0"></div>
+            </div>
+            <div class="adm-fb-col"><label class="adm-fb-label">Packs y precios (CLP)</label>
+              <div class="adm-np-packs" id="npPacks">
+                <label class="adm-np-pack"><input type="checkbox" data-pk="6 Pack" checked> 6 Pack <input class="adm-input adm-np-price" data-pk="6 Pack" type="number" placeholder="precio"></label>
+                <label class="adm-np-pack"><input type="checkbox" data-pk="12 Pack" checked> 12 Pack <input class="adm-input adm-np-price" data-pk="12 Pack" type="number" placeholder="precio"></label>
+                <label class="adm-np-pack"><input type="checkbox" data-pk="24 Pack" checked> 24 Pack <input class="adm-input adm-np-price" data-pk="24 Pack" type="number" placeholder="precio"></label>
+              </div>
+            </div>
+            <div class="adm-fb-col"><label class="adm-fb-label">Foto de la lata (PNG/JPG)</label>
+              <label class="adm-prod-upload"><input type="file" id="npCan" accept="image/png,image/jpeg,image/webp" hidden><span>📷 Subir foto de la lata</span></label>
+            </div>
+          </div>
+          <div class="adm-np-preview">
+            <label class="adm-fb-label">Maqueta (preview)</label>
+            <canvas id="npCanvas" width="900" height="900"></canvas>
+            <div class="adm-np-hint" id="npHint">Subí la foto de la lata para ver la maqueta.</div>
+          </div>
+        </div>
+        <div class="adm-fb-acts">
+          <button type="button" class="adm-btn adm-btn-ghost" data-act="close-np">Cancelar</button>
+          <button type="button" class="adm-btn adm-btn-gold" id="npCreate">Crear en Shopify</button>
+        </div>
       </div>
     </div>
 
@@ -2269,6 +2351,146 @@ function bindProductCards(){
 }
 
 document.getElementById('btnReloadProd').onclick = () => { openProductId = null; loadProductos(); };
+
+// ─── Crear producto nuevo (maqueta por canvas + alta en Shopify) ────────────
+let npSection = 'minorista';
+let npCanImg = null; // Image de la lata cargada
+
+function openNewProd(){
+  npSection = activeProdSection || 'minorista';
+  document.querySelectorAll('#npSection button').forEach(b => b.classList.toggle('on', b.dataset.v === npSection));
+  document.getElementById('newProdModal').classList.add('open');
+  document.body.classList.add('drawer-open');
+}
+function closeNewProd(){
+  document.getElementById('newProdModal').classList.remove('open');
+  if (!document.querySelector('.adm-drawer.open')) document.body.classList.remove('drawer-open');
+}
+document.getElementById('btnNewProd').onclick = openNewProd;
+document.getElementById('newProdModal').addEventListener('click', e => { if (e.target.dataset.act === 'close-np') closeNewProd(); });
+document.querySelectorAll('#npSection button').forEach(b => b.onclick = () => {
+  npSection = b.dataset.v;
+  document.querySelectorAll('#npSection button').forEach(x => x.classList.toggle('on', x === b));
+});
+
+// Inputs que re-dibujan la maqueta
+['npName','npDesc','npAbv','npSize','npColor','npType'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => drawMaqueta());
+});
+document.getElementById('npCan').addEventListener('change', (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => { npCanImg = img; document.getElementById('npHint').style.display='none'; drawMaqueta(); };
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(f);
+});
+
+// Dibuja la maqueta para un pack dado (o "6 Pack" por defecto en el preview)
+function drawMaqueta(packLabel){
+  const cv = document.getElementById('npCanvas');
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,W,H);
+  // Lata a la izquierda
+  if (npCanImg){
+    const boxW = W*0.5, boxH = H*0.86, bx = W*0.03, by = H*0.07;
+    const r = Math.min(boxW/npCanImg.width, boxH/npCanImg.height);
+    const iw = npCanImg.width*r, ih = npCanImg.height*r;
+    ctx.drawImage(npCanImg, bx + (boxW-iw)/2, by + (boxH-ih)/2, iw, ih);
+  }
+  // Panel de info a la derecha
+  const color = document.getElementById('npColor').value || '#f3a9a0';
+  const name = (document.getElementById('npName').value || 'PRODUCTO').toUpperCase();
+  const desc = document.getElementById('npDesc').value || '';
+  const abv  = (document.getElementById('npAbv').value || '0').replace('%','') + '%';
+  const size = document.getElementById('npSize').value || '473ml';
+  const pk   = packLabel || '6 Pack';
+  const pkNum = (pk.match(/\d+/) || ['6'])[0];
+
+  const px = W*0.56, py = H*0.14, pw = W*0.40, ph = H*0.62;
+  // marco
+  ctx.strokeStyle = '#111'; ctx.lineWidth = 4;
+  ctx.strokeRect(px, py, pw, ph);
+  // header color con número de pack
+  const hh = ph*0.34;
+  ctx.fillStyle = color; ctx.fillRect(px, py, pw, hh);
+  ctx.fillStyle = '#111'; ctx.textBaseline = 'middle';
+  ctx.font = `800 ${hh*0.72}px 'Bricolage Grotesque', sans-serif`;
+  ctx.textAlign = 'left';
+  ctx.fillText(pkNum, px + pw*0.12, py + hh*0.52);
+  ctx.font = `700 ${hh*0.22}px 'DM Sans', sans-serif`;
+  ctx.fillText('PACK', px + pw*0.12 + ctx.measureText(pkNum).width + 12, py + hh*0.62);
+  // cuerpo blanco: nombre, desc, abv
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#111';
+  ctx.font = `800 ${pw*0.11}px 'Bricolage Grotesque', sans-serif`;
+  ctx.fillText(name, px + pw/2, py + hh + ph*0.16);
+  ctx.fillStyle = '#555';
+  ctx.font = `500 ${pw*0.055}px 'DM Sans', sans-serif`;
+  ctx.fillText(desc, px + pw/2, py + hh + ph*0.30);
+  ctx.fillStyle = '#111';
+  ctx.font = `800 ${pw*0.16}px 'Bricolage Grotesque', sans-serif`;
+  ctx.fillText(abv, px + pw/2, py + hh + ph*0.50);
+  // footer color con tamaño
+  const fh = ph*0.13;
+  ctx.fillStyle = color; ctx.fillRect(px, py + ph - fh, pw, fh);
+  ctx.fillStyle = '#fff';
+  ctx.font = `700 ${fh*0.5}px 'DM Sans', sans-serif`;
+  ctx.fillText(size, px + pw/2, py + ph - fh/2);
+}
+
+function getSelectedPacks(){
+  const packs = [];
+  document.querySelectorAll('#npPacks .adm-np-pack').forEach(row => {
+    const cb = row.querySelector('input[type=checkbox]');
+    const price = row.querySelector('.adm-np-price');
+    if (cb.checked) packs.push({ title: cb.dataset.pk, price: price.value || '0' });
+  });
+  return packs;
+}
+
+document.getElementById('npCreate').onclick = async () => {
+  const title = document.getElementById('npName').value.trim();
+  if (!title) { showToast('Falta el nombre del producto.', 'err'); return; }
+  if (!npCanImg) { showToast('Subí la foto de la lata.', 'err'); return; }
+  const packs = getSelectedPacks();
+  if (!packs.length) { showToast('Elegí al menos un pack.', 'err'); return; }
+  const btn = document.getElementById('npCreate');
+  btn.disabled = true; const o = btn.textContent; btn.textContent = 'Creando…';
+  try {
+    // Generar una maqueta por pack
+    const cv = document.getElementById('npCanvas');
+    const images = packs.map(p => {
+      drawMaqueta(p.title);
+      return { alt: p.title, dataBase64: cv.toDataURL('image/png').split(',')[1] };
+    });
+    drawMaqueta(); // volver al preview default
+    const body = {
+      section: npSection,
+      vendor: document.getElementById('npVendor').value,
+      title,
+      productType: document.getElementById('npType').value.trim(),
+      variants: packs,
+      images,
+    };
+    const r = await fetch('/admin/products/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+    showToast(`Producto creado en Shopify ✓ (${data.title})`, 'ok');
+    closeNewProd();
+    // refrescar catálogo
+    activeProdSection = npSection;
+    document.querySelectorAll('.adm-pillgroup[data-filter="prodSection"] button').forEach(x => x.classList.toggle('on', x.dataset.v === npSection));
+    loadProductos();
+  } catch (e) {
+    showToast('Error: ' + e.message, 'err');
+  } finally { btn.disabled = false; btn.textContent = o; }
+};
 
 // ─── Conversaciones (embudo) ────────────────────────────────────────────────
 let chatFilters = { brand:'all', mode:'b2c', module:'todos', from:'', to:'', q:'' };

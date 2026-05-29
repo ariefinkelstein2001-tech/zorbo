@@ -532,7 +532,7 @@ const SHOPIFY_API_VERSION = '2026-04';
 // Solo scopes Admin van por OAuth. Los unauthenticated_* (Storefront API) son
 // config a nivel de app (Dev Dashboard → Alcances opcionales) y se aplican
 // automáticamente al crear el storefront_access_token.
-const SHOPIFY_SCOPES = 'read_products,read_inventory,read_locations,read_customers,write_customers,read_orders';
+const SHOPIFY_SCOPES = 'read_products,write_products,read_inventory,read_locations,read_customers,write_customers,read_orders';
 const SHOPIFY_SHOP_REGEX = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i;
 
 function verifyShopifyHmac(query, secret) {
@@ -1170,6 +1170,71 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
     res.json({ section, requiredTag, products });
   } catch (e) {
     res.status(500).json({ error: 'Error cargando productos: ' + e.message });
+  }
+});
+
+// Crear un producto NUEVO en Shopify desde el panel. B2C → tag ZORBO,
+// B2B → tag MAYORISTA. Recibe variantes (6/12/24) y las maquetas en base64.
+// Requiere write_products. IMPORTANTE: va ANTES de /:id para que no lo capture.
+app.post('/admin/products/create', requireAdmin, async (req, res) => {
+  if (!process.env.SHOPIFY_ADMIN_TOKEN) {
+    return res.status(503).json({ error: 'Shopify no conectado.' });
+  }
+  const b = req.body || {};
+  const title = String(b.title || '').trim();
+  if (!title) return res.status(400).json({ error: 'Falta el nombre del producto.' });
+  const section = String(b.section || 'minorista').toLowerCase();
+  const tag = section === 'mayorista' ? 'MAYORISTA' : 'ZORBO';
+  const vendor = String(b.vendor || '').trim() || 'Kairos Brewing';
+  const productType = String(b.productType || '').trim();
+  const extraTags = Array.isArray(b.tags) ? b.tags.map(t => String(t).trim()).filter(Boolean) : [];
+  const tags = [tag, ...extraTags].join(', ');
+
+  let variants = Array.isArray(b.variants) ? b.variants
+        .filter(v => v && v.title)
+        .map(v => ({ option1: String(v.title).trim(), price: String(parseInt(v.price,10) || 0) }))
+      : [];
+  let options;
+  if (variants.length) options = [{ name: 'Cantidad', values: variants.map(v => v.option1) }];
+  else { variants = [{ price: String(parseInt(b.price,10) || 0) }]; options = undefined; }
+
+  const images = (Array.isArray(b.images) ? b.images : [])
+    .filter(im => im && im.dataBase64)
+    .map(im => ({ attachment: String(im.dataBase64), alt: String(im.alt || '').slice(0,120) }));
+
+  const payload = { product: {
+    title, vendor, status: 'active', tags,
+    ...(productType ? { product_type: productType } : {}),
+    ...(options ? { options } : {}),
+    variants,
+    ...(images.length ? { images } : {}),
+  }};
+
+  try {
+    const r = await shopifyAdminFetch('/products.json', { method: 'POST', body: JSON.stringify(payload) });
+    const product = r.product;
+    if (!product) throw new Error('Shopify no devolvió el producto.');
+    try {
+      if (product.images && product.variants) {
+        for (const v of product.variants) {
+          const img = product.images.find(im => (im.alt || '').trim() === (v.option1 || '').trim());
+          if (img) {
+            await shopifyAdminFetch(`/variants/${v.id}.json`, {
+              method: 'PUT',
+              body: JSON.stringify({ variant: { id: v.id, image_id: img.id } }),
+            });
+          }
+        }
+      }
+    } catch (e) { console.warn('variant image assoc:', e.message); }
+    productsCache = null; productsCacheAt = 0;
+    res.json({ ok: true, id: String(product.id), handle: product.handle, title: product.title });
+  } catch (e) {
+    const msg = String(e.message || e);
+    if (/\b40[13]\b|write_products|access denied|not approved|scope/i.test(msg)) {
+      return res.status(403).json({ error: 'El token de Shopify no tiene write_products. Re-autorizá la app (/shopify/install) y actualizá SHOPIFY_ADMIN_TOKEN.' });
+    }
+    res.status(500).json({ error: 'Error creando producto: ' + msg.slice(0, 300) });
   }
 });
 
