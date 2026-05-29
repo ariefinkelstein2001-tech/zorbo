@@ -1302,6 +1302,12 @@ body.drawer-open{overflow:hidden}
 .web-img button{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;
   background:rgba(0,0,0,.6);color:#fff;cursor:pointer;font-size:.8rem;line-height:1;display:flex;align-items:center;justify-content:center}
 .web-img button:hover{background:var(--red)}
+.web-img[draggable]{cursor:grab}
+.web-img[draggable]:active{cursor:grabbing}
+.web-img.dragging{opacity:.35}
+.web-img.drop-target{outline:2px solid var(--gold);outline-offset:2px}
+.web-img-grip{position:absolute;left:4px;bottom:4px;color:#fff;background:rgba(0,0,0,.5);
+  border-radius:5px;font-size:.7rem;line-height:1;padding:2px 4px;pointer-events:none;letter-spacing:1px}
 .web-brand{border:1px solid var(--border);border-radius:11px;padding:.7rem;margin-bottom:.6rem;background:var(--surface)}
 .web-brand-top{display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem}
 .web-brand-logo{width:46px;height:46px;border-radius:50%;border:1px solid var(--border);object-fit:cover;background:var(--surface3);flex:0 0 auto}
@@ -4418,6 +4424,7 @@ const WEB_BASE_CATS = [
   { key:'packs',      title:'Packs' },
 ];
 let webConfig = null;
+let webDrag = null;
 
 function webSlug(v){
   return String(v||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
@@ -4459,7 +4466,11 @@ function renderWeb(){
     </div>`).join('');
 
   const heroImgs = (arr,kind)=>arr.map((u,i)=>`
-    <div class="web-img"><img src="${escA(u)}" alt=""><button data-delimg="${kind}" data-i="${i}" title="Quitar">✕</button></div>`).join('')
+    <div class="web-img" draggable="true" data-imgkind="${kind}" data-i="${i}" title="Arrastrá para reordenar">
+      <img src="${escA(u)}" alt="" draggable="false">
+      <span class="web-img-grip">⠿</span>
+      <button data-delimg="${kind}" data-i="${i}" title="Quitar">✕</button>
+    </div>`).join('')
     || '<div class="web-mini">Sin fotos.</div>';
 
   const pillTargetOpts = (sel)=>webAllCats().map(x=>`<option value="sec-${escA(x.key)}"${('sec-'+x.key)===sel?' selected':''}>${esc(x.title)}</option>`).join('')
@@ -4499,7 +4510,7 @@ function renderWeb(){
     </div>
     <div class="web-group">
       <div class="web-group-t">Banner principal</div>
-      <div class="web-group-d">Fotos del carrusel. Computador y celular se configuran por separado — subí cada una con el tamaño recomendado para que se vea nítida y sin recortes.</div>
+      <div class="web-group-d">Fotos del carrusel. Computador y celular se configuran por separado — subí cada una con el tamaño recomendado para que se vea nítida y sin recortes. <b>Arrastrá las fotos para cambiar el orden.</b></div>
       <div class="web-subhead">Computador</div>
       <span class="web-mini">Apaisada (horizontal). Recomendado <b>1920 × 600 px</b> (relación ≈ 16:5). Se muestra a todo el ancho, máximo 420 px de alto y sin recortar. Usá la misma proporción en todas para que el carrusel no salte.</span>
       <div class="web-imgs">${heroImgs(c.heroDesktop,'desktop')}</div>
@@ -4596,6 +4607,38 @@ function wireWeb(){
     else if (id==='webAddHeroD') { webUploadImage(url => { webConfig.heroDesktop.push(url); renderWeb(); }); }
     else if (id==='webAddHeroM') { webUploadImage(url => { webConfig.heroMobile.push(url); renderWeb(); }); }
   };
+  // Arrastrar fotos del banner para reordenarlas (solo dentro del mismo grupo).
+  const heroArr = (kind) => kind==='desktop' ? webConfig.heroDesktop : webConfig.heroMobile;
+  const clearDrop = () => body.querySelectorAll('.web-img.drop-target,.web-img.dragging')
+    .forEach(x => x.classList.remove('drop-target','dragging'));
+  body.ondragstart = (e) => {
+    const el = e.target.closest('.web-img[draggable]');
+    if (!el) return;
+    webDrag = { kind: el.dataset.imgkind, i: +el.dataset.i };
+    el.classList.add('dragging');
+    if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', ''); } catch {} }
+  };
+  body.ondragover = (e) => {
+    const el = e.target.closest('.web-img[draggable]');
+    if (!el || !webDrag || el.dataset.imgkind !== webDrag.kind) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    body.querySelectorAll('.web-img.drop-target').forEach(x => x.classList.remove('drop-target'));
+    el.classList.add('drop-target');
+  };
+  body.ondrop = (e) => {
+    const el = e.target.closest('.web-img[draggable]');
+    if (!el || !webDrag || el.dataset.imgkind !== webDrag.kind) { clearDrop(); webDrag = null; return; }
+    e.preventDefault();
+    const arr = heroArr(webDrag.kind);
+    const from = webDrag.i, to = +el.dataset.i;
+    clearDrop(); webDrag = null;
+    if (from === to || isNaN(from) || isNaN(to)) return;
+    const [moved] = arr.splice(from, 1);
+    arr.splice(to, 0, moved);
+    renderWeb();
+  };
+  body.ondragend = () => { clearDrop(); webDrag = null; };
 }
 
 async function saveWeb(){
