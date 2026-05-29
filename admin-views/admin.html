@@ -1657,7 +1657,7 @@ body.drawer-open{overflow:hidden}
               <div class="adm-fb-col"><label class="adm-fb-label">Tamaño</label>
                 <input class="adm-input" id="npSize" placeholder="473ml" value="473ml"></div>
               <div class="adm-fb-col"><label class="adm-fb-label">Color</label>
-                <input class="adm-input adm-np-color" id="npColor" type="color" value="#f3a9a0"></div>
+                <input class="adm-input adm-np-color" id="npColor" type="color" value="#d8a079"></div>
             </div>
             <div class="adm-fb-col"><label class="adm-fb-label">Packs y precios (CLP)</label>
               <div class="adm-np-packs" id="npPacks">
@@ -1672,7 +1672,7 @@ body.drawer-open{overflow:hidden}
           </div>
           <div class="adm-np-preview">
             <label class="adm-fb-label">Maqueta (preview)</label>
-            <canvas id="npCanvas" width="900" height="900"></canvas>
+            <canvas id="npCanvas" width="1200" height="1200"></canvas>
             <div class="adm-np-hint" id="npHint">Subí la foto de la lata para ver la maqueta.</div>
           </div>
         </div>
@@ -2449,66 +2449,90 @@ function drawMaqueta(packLabel){
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,W,H);
 
-  // Lata a la izquierda
+  // Lata a la izquierda (full alto)
   if (npCanImg){
-    const boxW = W*0.46, boxH = H*0.78, bx = W*0.02, by = (H-boxH)/2;
+    const boxW = W*0.47, boxH = H*0.9, bx = W*0.0, by = (H-boxH)/2;
     const r = Math.min(boxW/npCanImg.width, boxH/npCanImg.height);
     const iw = npCanImg.width*r, ih = npCanImg.height*r;
     ctx.drawImage(npCanImg, bx + (boxW-iw)/2, by + (boxH-ih)/2, iw, ih);
   }
 
-  const color = document.getElementById('npColor').value || '#f3a9a0';
+  const color = document.getElementById('npColor').value || '#d8a079';
   const name = (document.getElementById('npName').value || 'PRODUCTO').toUpperCase();
   const desc = document.getElementById('npDesc').value || '';
   const abv  = (document.getElementById('npAbv').value || '0').replace('%','').trim() + '%';
   const size = document.getElementById('npSize').value || '473ml';
-  const pk   = packLabel || '6 Pack';
-  const pkNum = (pk.match(/\d+/) || ['6'])[0];
+  const pkNum = ((packLabel || '6 Pack').match(/\d+/) || ['6'])[0];
 
-  // Tarjeta a la derecha (vertical), centrada
-  const pw = W*0.42, ph = H*0.58, px = W*0.52, py = (H-ph)/2;
-  const D = 'Bricolage Grotesque';        // display
-  const S = 'DM Sans';                     // sans
-  const headH = ph*0.30, footH = ph*0.13;
+  const D = 'Bricolage Grotesque', S = 'DM Sans';
+  const TEAL = '#2c7a86', INK = '#111';
 
-  // marco exterior
-  ctx.fillStyle = '#fff'; ctx.fillRect(px, py, pw, ph);
+  // Tarjeta a la derecha (cuadrada, parte superior) con borde negro
+  const px = Math.round(W*0.51), py = Math.round(H*0.10);
+  const pw = Math.round(W*0.46), ph = Math.round(H*0.46);
+  const headH = Math.round(ph*0.42), footH = Math.round(ph*0.16);
+  const midTop = py + headH, midH = ph - headH - footH;
+  const bw = Math.max(3, Math.round(pw*0.012));
+
   // banda superior color
   ctx.fillStyle = color; ctx.fillRect(px, py, pw, headH);
-  // número grande + PACK chico (superíndice arriba-derecha del número)
-  ctx.fillStyle = '#111'; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
-  const numSize = headH*0.86;
+  // número grande + PACK
+  ctx.fillStyle = INK; ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  const numSize = Math.round(headH*0.82);
   ctx.font = `800 ${numSize}px '${D}', sans-serif`;
-  const numX = px + pw*0.13, numY = py + headH*0.78;
-  ctx.fillText(pkNum, numX, numY);
   const numW = ctx.measureText(pkNum).width;
-  ctx.font = `700 ${headH*0.2}px '${S}', sans-serif`;
-  ctx.fillText('PACK', numX + numW + 8, py + headH*0.40);
+  ctx.font = `700 ${Math.round(headH*0.16)}px '${S}', sans-serif`;
+  const packW = ctx.measureText('PACK').width;
+  const gap = pw*0.03;
+  const blockW = numW + gap + packW;
+  const startX = px + (pw - blockW)/2;
+  const baseY = py + headH*0.72;
+  ctx.font = `800 ${numSize}px '${D}', sans-serif`;
+  ctx.fillText(pkNum, startX, baseY);
+  ctx.font = `700 ${Math.round(headH*0.16)}px '${S}', sans-serif`;
+  ctx.fillText('PACK', startX + numW + gap, baseY);
 
-  // líneas divisorias
-  ctx.strokeStyle = '#111'; ctx.lineWidth = Math.max(2, pw*0.012);
-  ctx.beginPath(); ctx.moveTo(px, py+headH); ctx.lineTo(px+pw, py+headH); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(px, py+ph-footH); ctx.lineTo(px+pw, py+ph-footH); ctx.stroke();
+  // cuerpo blanco
+  ctx.fillStyle = '#fff'; ctx.fillRect(px, midTop, pw, midH);
+  ctx.textAlign = 'center'; ctx.fillStyle = INK;
+  // nombre (hasta 2 líneas, ajusta el tamaño)
+  let nameSize = Math.round(pw*0.10);
+  ctx.font = `800 ${nameSize}px '${D}', sans-serif`;
+  const words = name.split(/\s+/);
+  let lines = [name];
+  if (ctx.measureText(name).width > pw*0.86 && words.length > 1){
+    // partir en 2 líneas equilibradas
+    let best = 1;
+    for (let i=1;i<words.length;i++){
+      const l1 = words.slice(0,i).join(' ');
+      if (ctx.measureText(l1).width <= pw*0.86) best = i; else break;
+    }
+    lines = [words.slice(0,best).join(' '), words.slice(best).join(' ')];
+  }
+  const nameLH = nameSize*1.05;
+  let ny = midTop + midH*0.10 + nameSize*0.55;
+  lines.forEach(l => { ctx.fillText(l, px+pw/2, ny); ny += nameLH; });
+  // descriptores
+  ctx.fillStyle = INK;
+  ctx.font = `400 ${Math.round(pw*0.052)}px '${S}', sans-serif`;
+  ctx.fillText(desc, px+pw/2, midTop + midH*0.62);
+  // ABV
+  ctx.fillStyle = INK;
+  ctx.font = `800 ${Math.round(pw*0.16)}px '${D}', sans-serif`;
+  ctx.fillText(abv, px+pw/2, midTop + midH*0.92);
 
-  // cuerpo blanco: nombre, descriptores, ABV
-  const midTop = py + headH, midH = ph - headH - footH;
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#111';
-  ctx.font = `800 ${pw*0.105}px '${D}', sans-serif`;
-  ctx.fillText(name, px + pw/2, midTop + midH*0.26);
-  ctx.fillStyle = '#666';
-  ctx.font = `400 ${pw*0.052}px '${S}', sans-serif`;
-  ctx.fillText(desc, px + pw/2, midTop + midH*0.46);
-  ctx.fillStyle = '#111';
-  ctx.font = `800 ${pw*0.165}px '${D}', sans-serif`;
-  ctx.fillText(abv, px + pw/2, midTop + midH*0.82);
-
-  // barra inferior color con tamaño
+  // barra inferior color con tamaño en teal
   ctx.fillStyle = color; ctx.fillRect(px, py+ph-footH, pw, footH);
-  ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle';
-  ctx.font = `700 ${footH*0.5}px '${S}', sans-serif`;
-  ctx.fillText(size, px + pw/2, py + ph - footH/2 + 1);
+  ctx.fillStyle = TEAL; ctx.textBaseline = 'middle';
+  ctx.font = `800 ${Math.round(footH*0.46)}px '${S}', sans-serif`;
+  ctx.fillText(size, px+pw/2, py+ph-footH/2 + 2);
   ctx.textBaseline = 'alphabetic';
+
+  // borde negro: marco + 2 divisores
+  ctx.strokeStyle = INK; ctx.lineWidth = bw;
+  ctx.strokeRect(px+bw/2, py+bw/2, pw-bw, ph-bw);
+  ctx.beginPath(); ctx.moveTo(px, midTop); ctx.lineTo(px+pw, midTop); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(px, py+ph-footH); ctx.lineTo(px+pw, py+ph-footH); ctx.stroke();
 }
 
 // Asegura que las fuentes de marca estén cargadas antes de dibujar (canvas
