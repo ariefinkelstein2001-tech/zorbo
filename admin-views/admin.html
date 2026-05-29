@@ -4499,11 +4499,13 @@ function renderWeb(){
     </div>
     <div class="web-group">
       <div class="web-group-t">Banner principal</div>
-      <div class="web-group-d">Fotos del carrusel. Computador y celular se configuran por separado.</div>
+      <div class="web-group-d">Fotos del carrusel. Computador y celular se configuran por separado — subí cada una con el tamaño recomendado para que se vea nítida y sin recortes.</div>
       <div class="web-subhead">Computador</div>
+      <span class="web-mini">Apaisada (horizontal). Recomendado <b>1920 × 600 px</b> (relación ≈ 16:5). Se muestra a todo el ancho, máximo 420 px de alto y sin recortar. Usá la misma proporción en todas para que el carrusel no salte.</span>
       <div class="web-imgs">${heroImgs(c.heroDesktop,'desktop')}</div>
       <button class="web-add" id="webAddHeroD" type="button">+ Agregar foto (computador)</button>
       <div class="web-subhead" style="margin-top:.9rem">Celular</div>
+      <span class="web-mini">Vertical o cuadrada. Recomendado <b>1080 × 1080 px</b> (cuadrada) o <b>1080 × 1350 px</b> (vertical). Se muestra a todo el ancho con su alto natural — mantené la misma proporción en todas.</span>
       <div class="web-imgs">${heroImgs(c.heroMobile,'mobile')}</div>
       <button class="web-add" id="webAddHeroM" type="button">+ Agregar foto (celular)</button>
     </div>
@@ -4515,7 +4517,7 @@ function renderWeb(){
     </div>
     <div class="web-group">
       <div class="web-group-t">Marcas</div>
-      <div class="web-group-d">Logos que giran en la portada y aparecen en el catálogo lateral. Elegí una categoría existente o creá una nueva — si creás una, se genera su sección en el catálogo y se llena con los productos cuyo vendor en Shopify coincida (deben tener el tag ZORBO).</div>
+      <div class="web-group-d">Logos que giran en la portada y aparecen en el catálogo lateral. Logo recomendado: <b>cuadrado 400 × 400 px</b>, PNG con fondo transparente. Elegí una categoría existente o creá una nueva — si creás una, se genera su sección en el catálogo y se llena con los productos cuyo vendor en Shopify coincida (deben tener el tag ZORBO).</div>
       <div>${brandsHtml}</div>
       <button class="web-add" id="webAddBrand" type="button">+ Agregar marca</button>
     </div>`;
