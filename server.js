@@ -1269,11 +1269,14 @@ function sanitizeSiteConfig(input){
   })).filter(b => b.label) : [];
   out.categoryOrder = Array.isArray(c.categoryOrder)
     ? c.categoryOrder.map(k => slug(k)).filter(Boolean).slice(0, 40) : [];
+  // Texto del bot en el home B2C (bubble de bienvenida arriba).
+  out.botWelcome = arrStr(c.botWelcome, 8);
 
   // Home mayorista (B2B): banner, círculos, orden/títulos de secciones, bienvenida.
   const MAYO_SECTION_KEYS = ['chelasBarril','packs','craftmixBarril','licoresBidon','licoresBotella'];
   const m = (c.mayo && typeof c.mayo === 'object') ? c.mayo : {};
   out.mayo = {
+    promos: arrStr(m.promos),
     hero: arrStr(m.hero, 20),
     pills: Array.isArray(m.pills) ? m.pills.slice(0, 20).map(p => ({
       label:  str(p?.label, 40),

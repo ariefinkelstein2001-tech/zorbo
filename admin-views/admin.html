@@ -4547,6 +4547,11 @@ const WEB_DEFAULTS = {
   ],
   categories: [],
 };
+const WEB_DEFAULT_BOT_WELCOME = [
+  'Hola! Soy Zorbot, tu sommelier digital.',
+  '👇 <strong>Sigue bajando</strong> y vas a ver todos nuestros productos.',
+  '💬 Si quieres conversar conmigo, escríbeme en el chat que está <a class="hp-welcome-link" onclick="hpScrollTo(\'sec-cierre\')"><strong>al final de la página</strong></a>.',
+];
 const WEB_BASE_CATS = [
   { key:'chelas',     title:'Chelas' },
   { key:'craftmix',   title:'Craft Mix' },
@@ -4597,12 +4602,14 @@ function normalizeWebConfig(cfg){
     brands:      webHas(cfg.brands)   ? cfg.brands.map(b=>({key:b.key||'',label:b.label||'',logo:b.logo||'',category:b.category||'chelas',vendor:b.vendor||''})) : WEB_DEFAULTS.brands.map(b=>({...b})),
     categories:  Array.isArray(cfg.categories) ? cfg.categories.map(c=>({key:c.key||webSlug(c.title),title:c.title||'',sub:c.sub||''})).filter(c=>c.title) : [],
     categoryOrder: Array.isArray(cfg.categoryOrder) ? cfg.categoryOrder.slice() : [],
+    botWelcome:  webHas(cfg.botWelcome) ? cfg.botWelcome.slice() : WEB_DEFAULT_BOT_WELCOME.slice(),
     mayo: normalizeMayo(cfg.mayo),
   };
 }
 function normalizeMayo(m){
   m = m || {};
   return {
+    promos:  webHas(m.promos)  ? m.promos.slice() : [],
     hero:    webHas(m.hero)    ? m.hero.slice()    : MAYO_DEFAULTS.hero.slice(),
     pills:   webHas(m.pills)   ? m.pills.map(p=>({label:p.label||'',target:p.target||'sec-mayo-chelas'})) : MAYO_SECTIONS.map(s=>({label:s.title,target:s.id})),
     brands:  webHas(m.brands)  ? m.brands.map(b=>({label:b.label||'',logo:b.logo||'',target:b.target||'sec-mayo-chelas'})) : MAYO_DEFAULTS.brands.map(b=>({...b})),
@@ -4674,6 +4681,12 @@ function renderWeb(){
     </div>`;
   }).join('');
 
+  const botWelcomeHtml = c.botWelcome.map((t,i)=>`
+    <div class="web-row">
+      <input class="adm-input" data-web="botwelcome" data-i="${i}" value="${escA(t)}" placeholder="Línea del mensaje (admite HTML básico)">
+      <button class="web-del" data-del="botwelcome" data-i="${i}" title="Quitar">✕</button>
+    </div>`).join('');
+
   const pillTargetOpts = (sel)=>webAllCats().map(x=>`<option value="sec-${escA(x.key)}"${('sec-'+x.key)===sel?' selected':''}>${esc(x.title)}</option>`).join('')
     + `<option value="sec-juegos"${sel==='sec-juegos'?' selected':''}>Juega y Gana</option>`;
   const pillsHtml = c.pills.map((p,i)=>`
@@ -4737,6 +4750,12 @@ function renderWeb(){
       <div class="web-group-t">Orden de las secciones</div>
       <div class="web-group-d">El orden en que aparecen las categorías en el catálogo del home. <b>Arrastrá para reordenar.</b></div>
       <div>${orderHtml}</div>
+    </div>
+    <div class="web-group">
+      <div class="web-group-t">Chat del bot</div>
+      <div class="web-group-d">El mensaje de bienvenida de Zorbot arriba del catálogo. Una línea = un párrafo. Admite HTML básico (<b>&lt;strong&gt;</b>, <b>&lt;a&gt;</b>, emojis).</div>
+      <div>${botWelcomeHtml}</div>
+      <button class="web-add" id="webAddBotWelcome" type="button">+ Agregar línea</button>
     </div>`;
 
   const toggle = `<div class="web-modetoggle">
@@ -4751,6 +4770,11 @@ function renderWeb(){
 function renderWebMayoHtml(esc, escA, heroImgs){
   const m = webConfig.mayo;
   const heroHtml = heroImgs(m.hero, 'mayohero');
+  const mpPromosHtml = m.promos.map((t,i)=>`
+    <div class="web-row">
+      <input class="adm-input" data-web="mayopromo" data-i="${i}" value="${escA(t)}" placeholder="Texto de la franja">
+      <button class="web-del" data-del="mayopromo" data-i="${i}" title="Quitar">✕</button>
+    </div>`).join('');
   const mpPillsHtml = m.pills.map((p,i)=>`
     <div class="web-row">
       <input class="adm-input" data-web="mayopill-label" data-i="${i}" value="${escA(p.label)}" placeholder="Texto del botón">
@@ -4788,6 +4812,12 @@ function renderWebMayoHtml(esc, escA, heroImgs){
     </div>`).join('');
   return `
     <div class="web-group">
+      <div class="web-group-t">Franja de arriba</div>
+      <div class="web-group-d">El texto que corre arriba de todo en el home mayorista (envíos, mantenciones, atención dedicada, etc.).</div>
+      <div>${mpPromosHtml}</div>
+      <button class="web-add" id="webAddMayoPromo" type="button">+ Agregar texto</button>
+    </div>
+    <div class="web-group">
       <div class="web-group-t">Banner mayorista</div>
       <div class="web-group-d">Fotos del carrusel del home mayorista (son distintas al B2C). <b>Arrastrá para reordenar.</b> Apaisadas, recomendado <b>1920 × 600 px</b>.</div>
       <div class="web-imgs">${heroHtml}</div>
@@ -4811,8 +4841,8 @@ function renderWebMayoHtml(esc, escA, heroImgs){
       <div>${orderHtml}</div>
     </div>
     <div class="web-group">
-      <div class="web-group-t">Texto de bienvenida</div>
-      <div class="web-group-d">El mensaje de Zorbot arriba del catálogo mayorista. Usá <b>{nombre}</b> donde quieras que aparezca el nombre del cliente.</div>
+      <div class="web-group-t">Chat del bot</div>
+      <div class="web-group-d">El mensaje de Zorbot arriba del catálogo mayorista. Una línea = un párrafo. Usá <b>{nombre}</b> donde quieras que aparezca el nombre del cliente. Admite HTML básico.</div>
       <div>${welcomeHtml}</div>
       <button class="web-add" id="webAddMayoWelcome" type="button">+ Agregar línea</button>
     </div>`;
@@ -4846,6 +4876,8 @@ function wireWeb(){
     else if (k==='pill-label')   c.pills[i].label = v;
     else if (k==='brand-label')  c.brands[i].label = v;
     else if (k==='brand-vendor') c.brands[i].vendor = v;
+    else if (k==='botwelcome')    c.botWelcome[i] = v;
+    else if (k==='mayopromo')     c.mayo.promos[i] = v;
     else if (k==='mayowelcome')   c.mayo.welcome[i] = v;
     else if (k==='mayopill-label') c.mayo.pills[i].label = v;
     else if (k==='mayobrand-label') c.mayo.brands[i].label = v;
@@ -4889,7 +4921,9 @@ function wireWeb(){
          brand:()=>webConfig.brands.splice(i,1),
          mayobrand:()=>webConfig.mayo.brands.splice(i,1),
          mayopill:()=>webConfig.mayo.pills.splice(i,1),
-         mayowelcome:()=>webConfig.mayo.welcome.splice(i,1) }[del.dataset.del] || (()=>{}))();
+         mayopromo:()=>webConfig.mayo.promos.splice(i,1),
+         mayowelcome:()=>webConfig.mayo.welcome.splice(i,1),
+         botwelcome:()=>webConfig.botWelcome.splice(i,1) }[del.dataset.del] || (()=>{}))();
       renderWeb(); return;
     }
     const dimg = e.target.closest('[data-delimg]');
@@ -4921,7 +4955,9 @@ function wireWeb(){
     else if (id==='webAddMayoHero') { webUploadImage(url => { webConfig.mayo.hero.push(url); renderWeb(); }); }
     else if (id==='webAddMayoBrand') { webConfig.mayo.brands.push({ label:'', logo:'', target:'sec-mayo-chelas' }); renderWeb(); }
     else if (id==='webAddMayoPill')  { webConfig.mayo.pills.push({ label:'', target:'sec-mayo-chelas' }); renderWeb(); }
+    else if (id==='webAddMayoPromo') { webConfig.mayo.promos.push(''); renderWeb(); }
     else if (id==='webAddMayoWelcome') { webConfig.mayo.welcome.push(''); renderWeb(); }
+    else if (id==='webAddBotWelcome'){ webConfig.botWelcome.push(''); renderWeb(); }
   };
   // Arrastrar para reordenar: fotos del banner (desktop/mobile) y categorías.
   const clearDrop = () => body.querySelectorAll('.drop-target,.dragging')
@@ -4988,7 +5024,9 @@ async function saveWeb(){
       category: b.category, vendor: b.vendor, target: 'sec-' + b.category,
     })),
     categoryOrder: webOrderedCats().map(x=>x.key),
+    botWelcome: c.botWelcome.map(s=>String(s).trim()).filter(Boolean),
     mayo: {
+      promos:  c.mayo.promos.map(s=>String(s).trim()).filter(Boolean),
       hero:    c.mayo.hero.slice(),
       pills:   c.mayo.pills.filter(p=>p.label && p.target),
       brands:  c.mayo.brands.filter(b=>b.logo).map(b=>({ label:b.label, logo:b.logo, target:b.target || 'sec-mayo-chelas' })),

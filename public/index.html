@@ -2377,15 +2377,18 @@ async function showStorefront(){
 
   // Welcome bubble visual (entre logos y secciones). Texto pensado para
   // explicar a cualquier persona (incluso no tecnológica) cómo usar la página.
+  const botWelcome = (Array.isArray(cfg.botWelcome) && cfg.botWelcome.length) ? cfg.botWelcome : [
+    'Hola! Soy Zorbot, tu sommelier digital.',
+    '👇 <strong>Sigue bajando</strong> y vas a ver todos nuestros productos.',
+    '💬 Si quieres conversar conmigo, escríbeme en el chat que está <a class="hp-welcome-link" onclick="hpScrollTo(\'sec-cierre\')"><strong>al final de la página</strong></a>.',
+  ];
   const welcomeBubble = `
     <div class="hp-welcome">
       <div class="hp-welcome-avatar"><img src="/zorbot-avatar.jpg" alt="Zorbot"></div>
       <div class="hp-welcome-col">
         <div class="hp-welcome-sender">Zorbot <span class="hp-welcome-badge">IA</span></div>
         <div class="hp-welcome-bubble">
-          <p>Hola! Soy Zorbot, tu sommelier digital.</p>
-          <p>👇 <strong>Sigue bajando</strong> y vas a ver todos nuestros productos.</p>
-          <p>💬 Si quieres conversar conmigo, escríbeme en el chat que está <a class="hp-welcome-link" onclick="hpScrollTo('sec-cierre')"><strong>al final de la página</strong></a>.</p>
+          ${botWelcome.map(l => `<p>${l}</p>`).join('')}
         </div>
       </div>
     </div>`;
@@ -3417,6 +3420,12 @@ async function showMayoristaStorefront(){
     }
   }
 
+  // Franja de arriba del mayorista (idéntico al B2C, con su propia config).
+  const mpPromos = (Array.isArray(mayoCfg.promos) && mayoCfg.promos.length) ? mayoCfg.promos : [];
+  const mpMarquee = mpPromos.length
+    ? `<div class="hp-marquee"><div class="hp-marquee-track">${[...mpPromos,...mpPromos].map(t => `<span>${escapeHtml(t)}</span>`).join('')}</div></div>`
+    : '';
+
   const mpHero = (Array.isArray(mayoCfg.hero) && mayoCfg.hero.length) ? mayoCfg.hero : MP_HERO_SLIDES;
   const hero = `
     <div class="hp-hero">
@@ -3509,6 +3518,8 @@ async function showMayoristaStorefront(){
 
   const page = document.getElementById('mayoPage');
   if (!page) return;
+  const topbar = document.getElementById('hpTopbar');
+  if (topbar) topbar.innerHTML = mpMarquee;
   page.innerHTML = html;
   hpInitHero();
 }
