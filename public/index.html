@@ -2010,9 +2010,6 @@ const HP_HERO_SLIDES_MOBILE = [
   'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/3_4ec879f9-97da-4352-9e39-78fbe43f4091.png?v=1779813533',
   'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/4_ca074e6a-7359-453a-9988-cffbeebc6b60.png?v=1779813534',
 ];
-const HP_HERO_SLIDES = (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(min-width: 769px)').matches)
-  ? HP_HERO_SLIDES_DESKTOP
-  : HP_HERO_SLIDES_MOBILE;
 // Banners EXCLUSIVOS de mayorista (los 3 Kairos PageFly).
 const MP_HERO_SLIDES = [
   'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Web_-_Kairos_-03.png?v=1775154716&width=1280',
@@ -2026,12 +2023,26 @@ function hasZorboTag(p){
   const tags = (p.tags || []).map(t => String(t).trim().toUpperCase());
   return tags.includes('ZORBO');
 }
-function classifyHpProduct(p){
+function classifyHpProduct(p, home){
   if (!hasZorboTag(p)) return null;
   const t = (p.title || '').toLowerCase();
-  // Packs Mix 6 estilos
+  // Packs Mix 6 estilos: regla por título, gana siempre (un pack mix de Kairos
+  // no debe caer en Chelas aunque su vendor sea Kairos).
   if (/(6|12|24)\s*pack.*(mix|variado|6\s*estilos)/.test(t)) return 'packs';
   if (/mix\s*6\s*estilos/.test(t)) return 'packs';
+  // Marcas configuradas desde el panel: si el vendor del producto coincide con
+  // el de una marca, manda su categoría (override de las reglas por keyword).
+  // Útil sobre todo para categorías nuevas creadas desde el admin.
+  if (home && Array.isArray(home.brands)) {
+    const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+    const vend = norm(p.vendor);
+    if (vend) {
+      for (const b of home.brands) {
+        const bv = norm(b.vendor);
+        if (bv && (vend === bv || vend.includes(bv) || bv.includes(vend))) return b.category;
+      }
+    }
+  }
   // Firulais
   if (/cholita|pepita|cachupin|firulais|chelada/.test(t)) return 'craftmix';
   // Destilados Banny
@@ -2255,6 +2266,52 @@ function goHomeTop(){
   window.scrollTo({ top:0, behavior:'smooth' });
 }
 
+// Defaults del home (lo que se ve si NO hay config guardada desde el panel).
+const HOME_DEFAULT_PROMOS = [
+  '🚚  Envío GRATIS en compras sobre $50.000',
+  '📍  Retiro en Kairos Garden — La Florida',
+  '📍  Retiro en Kairos Badass — Parque Arauco',
+  '🍺  Craft beer artesanal · sin filtrar · sin aditivos',
+];
+const HOME_DEFAULT_PILLS = [
+  { label:'Cerveza',   target:'sec-chelas' },
+  { label:'Craft Mix', target:'sec-craftmix' },
+  { label:'Destilados',target:'sec-destileria' },
+];
+const HOME_DEFAULT_BRANDS = [
+  { key:'kairos',   label:'Kairos',   logo:'brands/kairos.png',   category:'chelas',     vendor:'kairos',   target:'sec-chelas' },
+  { key:'firulais', label:'Firulais', logo:'brands/firulais.png', category:'craftmix',   vendor:'firulais', target:'sec-craftmix' },
+  { key:'banny',    label:'Banny',    logo:'brands/banny.png',    category:'destileria', vendor:'banny',    target:'sec-destileria' },
+];
+// Metadata de las categorías base (título + subtítulo de cada sección).
+const HOME_BASE_CATEGORIES = {
+  chelas:     { title:'Chelas',         sub:'Kairos Brewing · 5 estilos · 473cc · 6/12/24 pack' },
+  craftmix:   { title:'Craft Mix',      sub:'Firulais · cheladas honestas' },
+  destileria: { title:'Licores',        sub:'Banny · gin · whiskey · ron' },
+  packs:      { title:'Nuestros Packs', sub:'Mix 6 estilos · 6/12/24 latas' },
+};
+
+// Mezcla la config del panel con los defaults. Cualquier lista vacía/ausente
+// cae al default, así el home nunca queda en blanco.
+function resolveHomeConfig(cfg){
+  cfg = cfg || {};
+  const promos = (cfg.topbar && Array.isArray(cfg.topbar.promos) && cfg.topbar.promos.length)
+    ? cfg.topbar.promos : HOME_DEFAULT_PROMOS;
+  const heroDesktop = (cfg.hero && Array.isArray(cfg.hero.desktop) && cfg.hero.desktop.length)
+    ? cfg.hero.desktop : HP_HERO_SLIDES_DESKTOP;
+  const heroMobile = (cfg.hero && Array.isArray(cfg.hero.mobile) && cfg.hero.mobile.length)
+    ? cfg.hero.mobile : HP_HERO_SLIDES_MOBILE;
+  const pills = (Array.isArray(cfg.pills) && cfg.pills.length) ? cfg.pills : HOME_DEFAULT_PILLS;
+  const brands = (Array.isArray(cfg.brands) && cfg.brands.length)
+    ? cfg.brands.map(b => ({ ...b, target: b.target || ('sec-' + (b.category || b.key)) }))
+    : HOME_DEFAULT_BRANDS;
+  const categories = (Array.isArray(cfg.categories) ? cfg.categories : [])
+    .filter(c => c && c.key && !HOME_BASE_CATEGORIES[c.key]);
+  const isDesk = !!(window.matchMedia && window.matchMedia('(min-width: 769px)').matches);
+  return { promos, heroDesktop, heroMobile, pills, brands, categories,
+           heroSlides: isDesk ? heroDesktop : heroMobile };
+}
+
 async function showStorefront(){
   const page = document.getElementById('homePage');
   if (!page) return;
@@ -2262,22 +2319,31 @@ async function showStorefront(){
   page.dataset.rendered = '1';
 
   let products = [];
+  let cfg = {};
   try {
-    const r = await fetch('/api/products?mode=b2c');
-    if (r.ok) {
-      const data = await r.json();
+    const [rp, rc] = await Promise.all([
+      fetch('/api/products?mode=b2c'),
+      fetch('/api/site-config').catch(() => null),
+    ]);
+    if (rp && rp.ok) {
+      const data = await rp.json();
       products = data.products || [];
     }
+    if (rc && rc.ok) cfg = await rc.json().catch(() => ({})) || {};
   } catch (e) { console.warn('home catalog:', e); }
+  window.SITE_CONFIG = cfg;
+  const home = resolveHomeConfig(cfg);
 
   // Popula la caché global con productos tag ZORBO (la usa detectProducts
   // del chat para SOLO mostrar cards de productos visibles en el home).
   ZORBO_LIVE = products.filter(p => hasZorboTag(p));
 
+  // Grupos por categoría: las 4 base + las categorías custom de la config.
   const groups = { chelas:[], craftmix:[], destileria:[], packs:[] };
+  for (const c of home.categories) if (!groups[c.key]) groups[c.key] = [];
   for (const p of products) {
     if (!p.variants || !p.variants.length) continue;
-    const cat = classifyHpProduct(p);
+    const cat = classifyHpProduct(p, home);
     if (!cat || !groups[cat]) continue;
     // Chelas y Craft Mix: solo productos con variantes 6/12/24 (>1 variant).
     // Los singles viejos ("Lata 473cc" sin variantes) quedan fuera.
@@ -2285,22 +2351,18 @@ async function showStorefront(){
     groups[cat].push(p);
   }
 
-  const promos = [
-    '🚚  Envío GRATIS en compras sobre $50.000',
-    '📍  Retiro en Kairos Garden — La Florida',
-    '📍  Retiro en Kairos Badass — Parque Arauco',
-    '🍺  Craft beer artesanal · sin filtrar · sin aditivos',
-  ];
+  const promos = home.promos;
   const marquee = `<div class="hp-marquee"><div class="hp-marquee-track">${
-    [...promos, ...promos].map(t => `<span>${t}</span>`).join('')
+    [...promos, ...promos].map(t => `<span>${escapeHtml(t)}</span>`).join('')
   }</div></div>`;
 
+  const heroSlides = home.heroSlides;
   const hero = `
     <div class="hp-hero">
-      <div class="ht-track">${HP_HERO_SLIDES.map(u => `<div class="ht-slide"><img src="${u}" alt="Kairos Brewing" onerror="this.parentElement.parentElement.parentElement.parentElement.style.display='none'"></div>`).join('')}</div>
+      <div class="ht-track">${heroSlides.map(u => `<div class="ht-slide"><img src="${u}" alt="Banner" onerror="this.parentElement.parentElement.parentElement.parentElement.style.display='none'"></div>`).join('')}</div>
       <button class="ht-arr prev" aria-label="Anterior">‹</button>
       <button class="ht-arr next" aria-label="Siguiente">›</button>
-      <div class="ht-dots">${HP_HERO_SLIDES.map((_,i)=>`<span class="d ${i===0?'on':''}"></span>`).join('')}</div>
+      <div class="ht-dots">${heroSlides.map((_,i)=>`<span class="d ${i===0?'on':''}"></span>`).join('')}</div>
     </div>`;
 
 
@@ -2321,22 +2383,15 @@ async function showStorefront(){
 
   // Círculos de marca como carrusel infinito (marquee) + pills debajo.
   // Repetimos los 3 logos varias veces para que el loop sea seamless.
-  const brandLogos = [
-    { src:'brands/kairos.png',   target:'sec-chelas',     alt:'Kairos' },
-    { src:'brands/firulais.png', target:'sec-craftmix',   alt:'Firulais' },
-    { src:'brands/banny.png',    target:'sec-destileria', alt:'Banny' },
-  ];
+  const brandLogos = home.brands.map(b => ({ src:b.logo, target:b.target, alt:b.label }));
   // Los círculos vuelven al cuerpo, debajo de las pills. Orden del bloque:
-  // "Ver productos" → pills (Cerveza/Craft Mix/Destilados) → 3 círculos girando.
-  const circleSet = brandLogos.map(b => `<a class="hp-circle" onclick="hpScrollTo('${b.target}')"><img src="${b.src}" alt="${b.alt}"></a>`).join('');
+  // "Ver productos" → pills → círculos de marca girando.
+  const circleSet = brandLogos.map(b => `<a class="hp-circle" onclick="hpScrollTo('${b.target}')"><img src="${b.src}" alt="${escapeHtml(b.alt)}"></a>`).join('');
+  const pillsHtml = home.pills.map(p => `<button class="hp-pill" onclick="hpScrollTo('${p.target}')">${escapeHtml(p.label)}</button>`).join('');
   const categories = `
     <div class="hp-verprod">
       <span class="hp-verprod-label">Ver productos</span>
-      <div class="hp-pillrow">
-        <button class="hp-pill" onclick="hpScrollTo('sec-chelas')">Cerveza</button>
-        <button class="hp-pill" onclick="hpScrollTo('sec-craftmix')">Craft Mix</button>
-        <button class="hp-pill" onclick="hpScrollTo('sec-destileria')">Destilados</button>
-      </div>
+      <div class="hp-pillrow">${pillsHtml}</div>
       <div class="hp-circles">
         <div class="hp-circles-track">${circleSet}${circleSet}${circleSet}${circleSet}</div>
       </div>
@@ -2355,6 +2410,10 @@ async function showStorefront(){
   const craftmixHtml   = section('sec-craftmix',   'Craft Mix',       'Firulais · cheladas honestas',                      groups.craftmix);
   const destileriaHtml = section('sec-destileria', 'Licores',         'Banny · gin · whiskey · ron',                       groups.destileria);
   const packsHtml      = section('sec-packs',      'Nuestros Packs',  'Mix 6 estilos · 6/12/24 latas',                     groups.packs);
+  // Secciones de categorías custom creadas desde el panel.
+  const customHtml = home.categories
+    .map(c => section('sec-' + c.key, escapeHtml(c.title), escapeHtml(c.sub || ''), groups[c.key] || []))
+    .join('');
 
   // Sección Juegos (separada del CTA 10% OFF)
   const juegosHtml = `
@@ -2408,27 +2467,40 @@ async function showStorefront(){
   if (topbar) topbar.innerHTML = marquee;
   // Orden del home: "Ver productos" + pills + círculos → hero → welcome →
   // secciones → juegos → cierre.
-  page.innerHTML = `${categories}${hero}${welcomeBubble}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${juegosHtml}${cierreHtml}`;
+  page.innerHTML = `${categories}${hero}${welcomeBubble}${chelasHtml}${craftmixHtml}${destileriaHtml}${packsHtml}${customHtml}${juegosHtml}${cierreHtml}`;
   hpInitHero();
-  renderSidebarCatalog(groups);
+  renderSidebarCatalog(groups, home);
   maybeShowPromoPopup();
 }
 
 // Construye el catálogo por marca en la sidebar tipo IA.
-function renderSidebarCatalog(groups){
+function renderSidebarCatalog(groups, home){
   const el = document.getElementById('hpSidebarBody');
   if (!el) return;
-  const brands = [
-    { key:'kairos',   label:'Kairos Brewing', img:'brands/kairos.png',   target:'sec-chelas',     items:[...(groups.chelas||[]), ...(groups.packs||[])] },
-    { key:'firulais', label:'Firulais',       img:'brands/firulais.png', target:'sec-craftmix',   items:(groups.craftmix||[]) },
-    { key:'banny',    label:'Banny',          img:'brands/banny.png',    target:'sec-destileria', items:(groups.destileria||[]) },
-  ].filter(b => b.items.length);
+  // Una entrada por marca configurada. Sus productos = los de su categoría cuyo
+  // vendor coincide; si la marca no tiene vendor, toma toda su categoría.
+  const dft = (typeof home === 'object' && home && Array.isArray(home.brands) && home.brands.length)
+    ? home.brands
+    : [
+        { key:'kairos',   label:'Kairos Brewing', logo:'brands/kairos.png',   category:'chelas',     vendor:'kairos' },
+        { key:'firulais', label:'Firulais',       logo:'brands/firulais.png', category:'craftmix',   vendor:'firulais' },
+        { key:'banny',    label:'Banny',          logo:'brands/banny.png',    category:'destileria', vendor:'banny' },
+      ];
+  const brands = dft.map(b => {
+    let items = [...(groups[b.category] || [])];
+    if (b.category === 'chelas') items = [...items, ...(groups.packs || [])];
+    const bv = String(b.vendor || '').toLowerCase().trim();
+    // Si hay varias marcas en la misma categoría, filtra por vendor.
+    const sameCat = dft.filter(x => x.category === b.category).length > 1;
+    if (bv && sameCat) items = items.filter(p => String(p.vendor || '').toLowerCase().includes(bv));
+    return { key:b.key, label:b.label, img:b.logo, target:b.target || ('sec-' + b.category), items };
+  }).filter(b => b.items.length);
   if (!brands.length) { el.innerHTML = '<div class="hp-sb-empty">Sin productos por ahora.</div>'; return; }
   // Solo las 3 marcas, colapsadas. Flecha para desplegar sus productos.
   el.innerHTML = brands.map(b => `
     <div class="hp-sb-brand" data-brand="${b.key}">
       <button class="hp-sb-brand-h" data-acc>
-        <img src="${b.img}" alt="${b.label}"><span>${b.label}</span>
+        <img src="${b.img}" alt="${escapeHtml(b.label)}"><span>${escapeHtml(b.label)}</span>
         <span class="n">${b.items.length}</span><span class="hp-sb-arrow">▸</span>
       </button>
       <div class="hp-sb-prods">

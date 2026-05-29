@@ -1144,6 +1144,107 @@ function brandFromProduct(p){
   return 'otros';
 }
 
+// ─── Config editable del home (franja, banner, botones, marcas) ───────────────
+// Lo edita el equipo desde el panel /admin → pestaña "Página web". Vive en el
+// volumen. Si el archivo no existe, el home usa sus defaults hardcodeados (no
+// cambia nada). Estructura: { version, topbar:{promos:[]}, hero:{desktop:[],
+// mobile:[]}, pills:[{label,target}], brands:[{key,label,logo,category,vendor}],
+// categories:[{key,title,sub}] }.
+const SITE_CONFIG_FILE = join(PROMPTS_EFFECTIVE_DIR, 'site-config.json');
+
+function loadSiteConfig(){
+  try {
+    if (!existsSync(SITE_CONFIG_FILE)) return {};
+    const parsed = JSON.parse(readFileSync(SITE_CONFIG_FILE, 'utf-8'));
+    return (parsed && typeof parsed === 'object') ? parsed : {};
+  } catch (e) {
+    console.warn('site config load:', e.message);
+    return {};
+  }
+}
+function saveSiteConfig(data){
+  if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) {
+    mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true });
+  }
+  writeFileSync(SITE_CONFIG_FILE, JSON.stringify(data, null, 2));
+}
+
+// Sanea/normaliza la config que llega del panel antes de guardar.
+function sanitizeSiteConfig(input){
+  const c = (input && typeof input === 'object') ? input : {};
+  const str = (v, max = 300) => String(v == null ? '' : v).slice(0, max);
+  const arrStr = (a, max = 60) => Array.isArray(a) ? a.map(x => str(x)).filter(Boolean).slice(0, max) : [];
+  const slug = (v) => str(v, 40).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || ('cat-' + Math.random().toString(36).slice(2, 7));
+
+  const out = { version: 1 };
+  out.topbar = { promos: arrStr(c.topbar?.promos) };
+  out.hero = {
+    desktop: arrStr(c.hero?.desktop, 20),
+    mobile:  arrStr(c.hero?.mobile, 20),
+  };
+  out.pills = Array.isArray(c.pills) ? c.pills.slice(0, 20).map(p => ({
+    label:  str(p?.label, 40),
+    target: str(p?.target, 60),
+  })).filter(p => p.label && p.target) : [];
+  out.categories = Array.isArray(c.categories) ? c.categories.slice(0, 30).map(cat => ({
+    key:   cat?.key ? slug(cat.key) : slug(cat?.title),
+    title: str(cat?.title, 60),
+    sub:   str(cat?.sub, 160),
+  })).filter(cat => cat.title) : [];
+  out.brands = Array.isArray(c.brands) ? c.brands.slice(0, 40).map(b => ({
+    key:      b?.key ? slug(b.key) : slug(b?.label),
+    label:    str(b?.label, 60),
+    logo:     str(b?.logo, 500),
+    category: str(b?.category, 40),
+    vendor:   str(b?.vendor, 80),
+    target:   str(b?.target, 60),
+  })).filter(b => b.label) : [];
+  return out;
+}
+
+// Pública: el home la lee al cargar. Devuelve {} si no hay config (usa defaults).
+app.get('/api/site-config', (_req, res) => {
+  res.json(loadSiteConfig());
+});
+
+app.get('/admin/site-config', requireAdmin, (_req, res) => {
+  res.json(loadSiteConfig());
+});
+
+app.post('/admin/site-config', requireAdmin, (req, res) => {
+  try {
+    const clean = sanitizeSiteConfig(req.body);
+    saveSiteConfig(clean);
+    res.json({ ok: true, config: clean });
+  } catch (e) {
+    res.status(500).json({ error: 'Error guardando config: ' + e.message });
+  }
+});
+
+// Subida genérica de imágenes (logos de marca, fotos de banner) → /uploads.
+// No está atada a un producto, a diferencia de /admin/products/:id/upload.
+app.post('/admin/upload', requireAdmin, (req, res) => {
+  const { filename = '', contentType = '', dataBase64 = '' } = req.body || {};
+  if (typeof dataBase64 !== 'string' || !dataBase64) {
+    return res.status(400).json({ error: 'Falta el archivo.' });
+  }
+  const ext = UPLOAD_TYPES[String(contentType).toLowerCase()];
+  if (!ext || ext === 'pdf') return res.status(415).json({ error: 'Solo se permiten imágenes (png, jpg, webp, gif).' });
+  let buf;
+  try { buf = Buffer.from(dataBase64, 'base64'); }
+  catch { return res.status(400).json({ error: 'Archivo inválido.' }); }
+  if (!buf.length)                   return res.status(400).json({ error: 'Archivo vacío.' });
+  if (buf.length > MAX_UPLOAD_BYTES) return res.status(413).json({ error: 'Máximo 8 MB por archivo.' });
+  try {
+    const safeName = randomUUID() + '.' + ext;
+    writeFileSync(join(UPLOADS_DIR, safeName), buf);
+    res.json({ ok: true, url: '/uploads/' + safeName, name: String(filename || ('imagen.' + ext)).slice(0, 200) });
+  } catch (e) {
+    res.status(500).json({ error: 'Error guardando archivo: ' + e.message });
+  }
+});
+
 app.get('/admin/products', requireAdmin, async (req, res) => {
   if (!process.env.SHOPIFY_ADMIN_TOKEN) {
     return res.status(503).json({ error: 'Shopify no está conectado (falta SHOPIFY_ADMIN_TOKEN).' });

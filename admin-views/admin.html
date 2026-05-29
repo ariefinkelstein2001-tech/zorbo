@@ -1282,6 +1282,33 @@ body.drawer-open{overflow:hidden}
   .adm-shell{padding:.5rem}
   .adm-panel{padding:.85rem .65rem}
 }
+
+/* ── Editor Página web ─────────────────────────────────────────── */
+.web-group{border:1px solid var(--border);border-radius:14px;padding:1rem 1.1rem;margin-bottom:1.1rem;background:var(--surface2)}
+.web-group-h{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.4rem}
+.web-group-t{font-family:var(--display,inherit);font-size:1.02rem;font-weight:700;color:var(--text)}
+.web-group-d{font-size:.74rem;color:var(--dim);margin-bottom:.85rem;line-height:1.45}
+.web-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem}
+.web-row .adm-input,.web-row .adm-select{flex:1;min-width:0}
+.web-del{flex:0 0 auto;border:1px solid var(--border);background:var(--surface);color:var(--red);
+  width:34px;height:34px;border-radius:9px;cursor:pointer;font-size:1rem;line-height:1}
+.web-del:hover{background:var(--red-dim);border-color:var(--red)}
+.web-add{border:1px dashed var(--gold-bd);background:transparent;color:var(--gold-deep,var(--gold));
+  padding:.5rem .9rem;border-radius:9px;cursor:pointer;font-size:.8rem;font-weight:600;margin-top:.2rem}
+.web-add:hover{background:var(--gold-dim);border-color:var(--gold-bd-h)}
+.web-imgs{display:flex;flex-wrap:wrap;gap:.7rem;margin-bottom:.6rem}
+.web-img{position:relative;width:120px;height:80px;border-radius:10px;overflow:hidden;border:1px solid var(--border);background:var(--surface3)}
+.web-img img{width:100%;height:100%;object-fit:cover;display:block}
+.web-img button{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;border:none;
+  background:rgba(0,0,0,.6);color:#fff;cursor:pointer;font-size:.8rem;line-height:1;display:flex;align-items:center;justify-content:center}
+.web-img button:hover{background:var(--red)}
+.web-brand{border:1px solid var(--border);border-radius:11px;padding:.7rem;margin-bottom:.6rem;background:var(--surface)}
+.web-brand-top{display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem}
+.web-brand-logo{width:46px;height:46px;border-radius:50%;border:1px solid var(--border);object-fit:cover;background:var(--surface3);flex:0 0 auto}
+.web-brand-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+@media(max-width:600px){.web-brand-grid{grid-template-columns:1fr}}
+.web-mini{font-size:.66rem;color:var(--dim);margin:.15rem 0 .3rem;display:block;letter-spacing:.02em}
+.web-subhead{font-size:.78rem;font-weight:700;color:var(--muted);margin:.7rem 0 .4rem;letter-spacing:.03em}
 </style>
 </head>
 <body>
@@ -1568,6 +1595,22 @@ body.drawer-open{overflow:hidden}
     </div>
 
     <!-- Vista de markdown (general/kairos/firulais/banny/mayorista) -->
+    <!-- Vista Página web (editor del home: franja, banner, botones, marcas) -->
+    <div class="adm-panel" id="webView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Página web · Home</div>
+          <div class="adm-panel-meta">Edita lo que ve el cliente en la portada. Los cambios se aplican al guardar.</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="btnWebReload" type="button">Recargar</button>
+          <button class="adm-btn adm-btn-gold" id="btnWebSave" type="button">Guardar cambios</button>
+          <span class="adm-status hidden" id="webStatus"></span>
+        </div>
+      </div>
+      <div id="webBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
     <div class="adm-panel" id="mdView">
       <div class="adm-panel-head">
         <div>
@@ -1838,6 +1881,7 @@ const SECCIONES = [
   { id:'feedback',   kind:'feedback', label:'Feedback',        desc:'correcciones para entrenar a Zorbot' },
   { id:'productos',  kind:'products', label:'Productos',       desc:'catálogo Shopify · notas extra para Zorbot' },
   { id:'tutoriales', kind:'tutorials',label:'Tutoriales',      desc:'videos técnicos que Zorbot comparte cuando aplica' },
+  { id:'web',       kind:'web',      label:'Página web',      desc:'franja, banner, botones y marcas del home' },
   { id:'general',   kind:'md',       label:'General',         desc:'identidad · tono · reglas globales' },
   { id:'kairos',    kind:'md',       label:'Kairos Brewing',  desc:'cervezas artesanales' },
   { id:'firulais',  kind:'md',       label:'Firulais',        desc:'cheladas craft' },
@@ -1898,6 +1942,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'tutorials') {
     showView('tutorials');
     await loadTutorials();
+  } else if (sec.kind === 'web') {
+    showView('web');
+    await loadWeb();
   } else {
     showView('md');
     await loadSeccion();
@@ -1911,6 +1958,7 @@ function showView(kind){
   document.getElementById('analyticsView').style.display  = kind === 'analytics'  ? '' : 'none';
   document.getElementById('feedbackView').style.display   = kind === 'feedback'   ? '' : 'none';
   document.getElementById('tutorialsView').style.display  = kind === 'tutorials'  ? '' : 'none';
+  document.getElementById('webView').style.display        = kind === 'web'        ? '' : 'none';
 }
 
 // ─── Parse / serialize markdown ─────────────────────────────────────────────
@@ -4327,6 +4375,258 @@ document.querySelectorAll('.adm-pillgroup[data-filter="range"] button').forEach(
   };
 });
 document.getElementById('btnReloadAna').onclick = loadAnalytics;
+
+// ─── Editor Página web (home) ─────────────────────────────────────────────────
+const WEB_DEFAULTS = {
+  promos: [
+    '🚚  Envío GRATIS en compras sobre $50.000',
+    '📍  Retiro en Kairos Garden — La Florida',
+    '📍  Retiro en Kairos Badass — Parque Arauco',
+    '🍺  Craft beer artesanal · sin filtrar · sin aditivos',
+  ],
+  heroDesktop: [
+    'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/ChatGPT_Image_26_de_may._de_2026_13_35_45.png?v=1779816967',
+    'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/1_5a4ab50c-e085-4a74-9a63-3f98dcd5915a.png?v=1779826590',
+    'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/4_75f94942-5ec8-4cc6-9188-a8c6b1b25f98.png?v=1779826590',
+    'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/3_d085707a-36c7-4de6-8242-a39879cc04d0.png?v=1779826590',
+    'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/2_10b2213e-463f-4fdd-8d01-eee969ff035e.png?v=1779826590',
+  ],
+  heroMobile: [
+    'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/ChatGPT_Image_26_de_may._de_2026_13_35_45.png?v=1779816967',
+    'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/1_8ca20bf3-d8fa-43d1-baac-bb0ce4d1f48e.png?v=1779813532',
+    'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/2_51051393-9c6b-41f9-8d2d-446b9b1bea97.png?v=1779813532',
+    'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/5_75ea85ed-dd33-4535-858c-e382852639b3.png?v=1779813533',
+    'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/3_4ec879f9-97da-4352-9e39-78fbe43f4091.png?v=1779813533',
+    'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/4_ca074e6a-7359-453a-9988-cffbeebc6b60.png?v=1779813534',
+  ],
+  pills: [
+    { label:'Cerveza',   target:'sec-chelas' },
+    { label:'Craft Mix', target:'sec-craftmix' },
+    { label:'Destilados',target:'sec-destileria' },
+  ],
+  brands: [
+    { key:'kairos',   label:'Kairos',   logo:'brands/kairos.png',   category:'chelas',     vendor:'kairos' },
+    { key:'firulais', label:'Firulais', logo:'brands/firulais.png', category:'craftmix',   vendor:'firulais' },
+    { key:'banny',    label:'Banny',    logo:'brands/banny.png',    category:'destileria', vendor:'banny' },
+  ],
+  categories: [],
+};
+const WEB_BASE_CATS = [
+  { key:'chelas',     title:'Chelas' },
+  { key:'craftmix',   title:'Craft Mix' },
+  { key:'destileria', title:'Licores' },
+  { key:'packs',      title:'Packs' },
+];
+let webConfig = null;
+
+function webSlug(v){
+  return String(v||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || ('cat-'+Math.random().toString(36).slice(2,7));
+}
+function webHas(a){ return Array.isArray(a) && a.length; }
+function normalizeWebConfig(cfg){
+  cfg = cfg || {};
+  return {
+    promos:      webHas(cfg.topbar && cfg.topbar.promos) ? cfg.topbar.promos.slice() : WEB_DEFAULTS.promos.slice(),
+    heroDesktop: webHas(cfg.hero && cfg.hero.desktop)    ? cfg.hero.desktop.slice()  : WEB_DEFAULTS.heroDesktop.slice(),
+    heroMobile:  webHas(cfg.hero && cfg.hero.mobile)     ? cfg.hero.mobile.slice()   : WEB_DEFAULTS.heroMobile.slice(),
+    pills:       webHas(cfg.pills)    ? cfg.pills.map(p=>({label:p.label||'',target:p.target||'sec-chelas'})) : WEB_DEFAULTS.pills.map(p=>({...p})),
+    brands:      webHas(cfg.brands)   ? cfg.brands.map(b=>({key:b.key||'',label:b.label||'',logo:b.logo||'',category:b.category||'chelas',vendor:b.vendor||''})) : WEB_DEFAULTS.brands.map(b=>({...b})),
+    categories:  Array.isArray(cfg.categories) ? cfg.categories.map(c=>({key:c.key||webSlug(c.title),title:c.title||'',sub:c.sub||''})).filter(c=>c.title) : [],
+  };
+}
+function webAllCats(){ return [...WEB_BASE_CATS, ...webConfig.categories.map(c=>({key:c.key,title:c.title}))]; }
+
+async function loadWeb(){
+  const body = document.getElementById('webBody');
+  body.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  let cfg = {};
+  try { const r = await fetch('/admin/site-config'); if (r.ok) cfg = await r.json(); } catch {}
+  webConfig = normalizeWebConfig(cfg);
+  renderWeb();
+}
+
+function renderWeb(){
+  const c = webConfig;
+  const esc = (s)=>escapeHtml(String(s==null?'':s));
+  const escA = (s)=>escapeAttr(String(s==null?'':s));
+  const body = document.getElementById('webBody');
+
+  const promosHtml = c.promos.map((t,i)=>`
+    <div class="web-row">
+      <input class="adm-input" data-web="promo" data-i="${i}" value="${escA(t)}" placeholder="Texto de la franja">
+      <button class="web-del" data-del="promo" data-i="${i}" title="Quitar">✕</button>
+    </div>`).join('');
+
+  const heroImgs = (arr,kind)=>arr.map((u,i)=>`
+    <div class="web-img"><img src="${escA(u)}" alt=""><button data-delimg="${kind}" data-i="${i}" title="Quitar">✕</button></div>`).join('')
+    || '<div class="web-mini">Sin fotos.</div>';
+
+  const pillTargetOpts = (sel)=>webAllCats().map(x=>`<option value="sec-${escA(x.key)}"${('sec-'+x.key)===sel?' selected':''}>${esc(x.title)}</option>`).join('')
+    + `<option value="sec-juegos"${sel==='sec-juegos'?' selected':''}>Juega y Gana</option>`;
+  const pillsHtml = c.pills.map((p,i)=>`
+    <div class="web-row">
+      <input class="adm-input" data-web="pill-label" data-i="${i}" value="${escA(p.label)}" placeholder="Texto del botón">
+      <select class="adm-select" data-web="pill-target" data-i="${i}">${pillTargetOpts(p.target)}</select>
+      <button class="web-del" data-del="pill" data-i="${i}" title="Quitar">✕</button>
+    </div>`).join('');
+
+  const brandCatOpts = (sel)=>webAllCats().map(x=>`<option value="${escA(x.key)}"${x.key===sel?' selected':''}>${esc(x.title)}</option>`).join('')
+    + `<option value="__new__">+ Nueva categoría…</option>`;
+  const brandsHtml = c.brands.map((b,i)=>`
+    <div class="web-brand">
+      <div class="web-brand-top">
+        <img class="web-brand-logo" src="${b.logo?escA(b.logo):'data:,'}" alt="">
+        <button class="web-add" data-logo="${i}" type="button">${b.logo?'Cambiar logo':'Subir logo'}</button>
+        <button class="web-del" data-del="brand" data-i="${i}" title="Quitar marca" style="margin-left:auto">✕</button>
+      </div>
+      <div class="web-brand-grid">
+        <div><span class="web-mini">Nombre de la marca</span>
+          <input class="adm-input" data-web="brand-label" data-i="${i}" value="${escA(b.label)}" placeholder="Ej: Lanús"></div>
+        <div><span class="web-mini">Vendor en Shopify (trae sus productos)</span>
+          <input class="adm-input" data-web="brand-vendor" data-i="${i}" value="${escA(b.vendor)}" placeholder="Ej: Lanús"></div>
+        <div><span class="web-mini">Categoría del catálogo</span>
+          <select class="adm-select" data-web="brand-cat" data-i="${i}">${brandCatOpts(b.category)}</select></div>
+      </div>
+    </div>`).join('');
+
+  body.innerHTML = `
+    <div class="web-group">
+      <div class="web-group-t">Franja de arriba</div>
+      <div class="web-group-d">El texto que corre arriba de todo (envío gratis, retiros, etc).</div>
+      <div>${promosHtml}</div>
+      <button class="web-add" id="webAddPromo" type="button">+ Agregar texto</button>
+    </div>
+    <div class="web-group">
+      <div class="web-group-t">Banner principal</div>
+      <div class="web-group-d">Fotos del carrusel. Computador y celular se configuran por separado.</div>
+      <div class="web-subhead">Computador</div>
+      <div class="web-imgs">${heroImgs(c.heroDesktop,'desktop')}</div>
+      <button class="web-add" id="webAddHeroD" type="button">+ Agregar foto (computador)</button>
+      <div class="web-subhead" style="margin-top:.9rem">Celular</div>
+      <div class="web-imgs">${heroImgs(c.heroMobile,'mobile')}</div>
+      <button class="web-add" id="webAddHeroM" type="button">+ Agregar foto (celular)</button>
+    </div>
+    <div class="web-group">
+      <div class="web-group-t">Botones "Ver productos"</div>
+      <div class="web-group-d">Botones de acceso rápido. Cada uno lleva a una sección del catálogo.</div>
+      <div>${pillsHtml}</div>
+      <button class="web-add" id="webAddPill" type="button">+ Agregar botón</button>
+    </div>
+    <div class="web-group">
+      <div class="web-group-t">Marcas</div>
+      <div class="web-group-d">Logos que giran en la portada y aparecen en el catálogo lateral. Elegí una categoría existente o creá una nueva — si creás una, se genera su sección en el catálogo y se llena con los productos cuyo vendor en Shopify coincida (deben tener el tag ZORBO).</div>
+      <div>${brandsHtml}</div>
+      <button class="web-add" id="webAddBrand" type="button">+ Agregar marca</button>
+    </div>`;
+
+  wireWeb();
+}
+
+function webUploadImage(cb){
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = async () => {
+    const f = inp.files && inp.files[0];
+    if (!f) return;
+    try {
+      const dataBase64 = await fileToBase64(f);
+      const r = await fetch('/admin/upload', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ filename:f.name, contentType:f.type, dataBase64 }) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Error subiendo');
+      cb(d.url);
+    } catch (err) { alert('No se pudo subir la imagen: ' + err.message); }
+  };
+  inp.click();
+}
+
+function wireWeb(){
+  const body = document.getElementById('webBody');
+  body.oninput = (e) => {
+    const el = e.target.closest('[data-web]');
+    if (!el) return;
+    const i = +el.dataset.i, k = el.dataset.web, v = el.value, c = webConfig;
+    if (k==='promo') c.promos[i] = v;
+    else if (k==='pill-label')   c.pills[i].label = v;
+    else if (k==='brand-label')  c.brands[i].label = v;
+    else if (k==='brand-vendor') c.brands[i].vendor = v;
+  };
+  body.onchange = (e) => {
+    const pt = e.target.closest('[data-web="pill-target"]');
+    if (pt) { webConfig.pills[+pt.dataset.i].target = pt.value; return; }
+    const sel = e.target.closest('[data-web="brand-cat"]');
+    if (sel) {
+      const i = +sel.dataset.i;
+      if (sel.value === '__new__') {
+        const title = (prompt('Nombre de la nueva categoría (ej: Vinos):') || '').trim();
+        if (!title) { renderWeb(); return; }
+        const key = webSlug(title);
+        if (!webConfig.categories.some(x=>x.key===key) && !WEB_BASE_CATS.some(x=>x.key===key))
+          webConfig.categories.push({ key, title, sub:'' });
+        webConfig.brands[i].category = key;
+        renderWeb();
+      } else {
+        webConfig.brands[i].category = sel.value;
+      }
+    }
+  };
+  body.onclick = (e) => {
+    const del = e.target.closest('[data-del]');
+    if (del) {
+      const i = +del.dataset.i;
+      ({ promo:()=>webConfig.promos.splice(i,1),
+         pill:()=>webConfig.pills.splice(i,1),
+         brand:()=>webConfig.brands.splice(i,1) }[del.dataset.del] || (()=>{}))();
+      renderWeb(); return;
+    }
+    const dimg = e.target.closest('[data-delimg]');
+    if (dimg) {
+      (dimg.dataset.delimg==='desktop' ? webConfig.heroDesktop : webConfig.heroMobile).splice(+dimg.dataset.i, 1);
+      renderWeb(); return;
+    }
+    const logo = e.target.closest('[data-logo]');
+    if (logo) { webUploadImage(url => { webConfig.brands[+logo.dataset.logo].logo = url; renderWeb(); }); return; }
+    const id = e.target.id;
+    if (id==='webAddPromo') { webConfig.promos.push(''); renderWeb(); }
+    else if (id==='webAddPill')  { webConfig.pills.push({ label:'', target:'sec-chelas' }); renderWeb(); }
+    else if (id==='webAddBrand') { webConfig.brands.push({ key:'', label:'', logo:'', category:'chelas', vendor:'' }); renderWeb(); }
+    else if (id==='webAddHeroD') { webUploadImage(url => { webConfig.heroDesktop.push(url); renderWeb(); }); }
+    else if (id==='webAddHeroM') { webUploadImage(url => { webConfig.heroMobile.push(url); renderWeb(); }); }
+  };
+}
+
+async function saveWeb(){
+  if (!webConfig) return;
+  const c = webConfig;
+  // Solo guardo las categorías custom que alguna marca usa (evita huérfanas).
+  const usedCats = new Set(c.brands.map(b=>b.category));
+  const payload = {
+    topbar: { promos: c.promos.map(s=>String(s).trim()).filter(Boolean) },
+    hero:   { desktop: c.heroDesktop.slice(), mobile: c.heroMobile.slice() },
+    pills:  c.pills.filter(p=>p.label && p.target),
+    categories: c.categories.filter(x=>x.title && usedCats.has(x.key)),
+    brands: c.brands.filter(b=>String(b.label).trim()).map(b=>({
+      key: b.key || webSlug(b.label), label: b.label.trim(), logo: b.logo,
+      category: b.category, vendor: b.vendor, target: 'sec-' + b.category,
+    })),
+  };
+  const st = document.getElementById('webStatus');
+  st.className = 'adm-status loading'; st.textContent = 'Guardando…'; st.classList.remove('hidden');
+  try {
+    const r = await fetch('/admin/site-config', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error guardando');
+    webConfig = normalizeWebConfig(d.config);
+    renderWeb();
+    st.className = 'adm-status ok'; st.textContent = 'Guardado ✓ — recargá el home para verlo';
+    setTimeout(()=>st.classList.add('hidden'), 3500);
+  } catch (err) {
+    st.className = 'adm-status err'; st.textContent = err.message;
+  }
+}
+document.getElementById('btnWebSave').onclick = saveWeb;
+document.getElementById('btnWebReload').onclick = loadWeb;
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();
