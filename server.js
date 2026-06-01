@@ -2973,21 +2973,55 @@ app.post('/chat', async (req, res) => {
     return res.end();
   }
 
-  // B) ADD_NOW: agregar al carrito SI se identifica el producto. Si no,
-  // dejamos pasar a Claude (no mentir con "ya lo agregué").
+  // B) ADD_NOW: agregar al carrito SI se identifica el producto.
+  // Si NO se identifica:
+  //  - Si dio pack-size pero hay múltiples → server lista las opciones y pregunta.
+  //  - Si no dio pack-size → cae a Claude (con prompt anti-mentira).
   if (!isB2BContext && (detect(message, ADD_NOW_KW) || isShorthandAddIntent(message))) {
     let cartItems = [];
+    let clarifyMsg = null;
+    const normMsg = normalizeShorthand(message);
     const lastAssistant = [...session.messages].reverse().find(m => m.role === 'assistant');
-    if (lastAssistant && process.env.SHOPIFY_ADMIN_TOKEN) {
+    if (process.env.SHOPIFY_ADMIN_TOKEN) {
       try {
         const all = await loadProductsCache(false);
         const b2c = (all || [])
           .filter(p => String(p.status || 'ACTIVE').toUpperCase() === 'ACTIVE')
           .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes('ZORBO'));
-        // Normaliza el shorthand ("1 24" → "agrégame 1 24 pack") para el parser.
-        cartItems = findMentionedProducts(lastAssistant.content, b2c, normalizeShorthand(message));
+        // 1) Intentar matchear desde lo que el bot recomendó previamente.
+        if (lastAssistant) cartItems = findMentionedProducts(lastAssistant.content, b2c, normMsg);
+        // 2) Fallback: el cliente puede haber nombrado el producto él mismo.
+        if (!cartItems.length) cartItems = findMentionedProducts(message, b2c, normMsg);
+        // 3) Fallback: si dio pack-size y hay un único producto con ese pack,
+        //    lo usamos. Si hay varios, server pide aclaración (no Claude).
+        if (!cartItems.length) {
+          const u = String(normMsg).toLowerCase();
+          const pack = parsePackSize(u);
+          if (pack) {
+            const inTitle = new RegExp('(^|\\s|\\b)' + pack.size + '\\s*[- ]?pack', 'i');
+            const matches = b2c.filter(p => inTitle.test(String(p.title || '')));
+            if (matches.length === 1) {
+              const p = matches[0];
+              const v = (p.variants || [])[0];
+              if (v) {
+                const qty = parseQty(u.replace(pack.rx, ' '));
+                cartItems = [{
+                  productData: {
+                    name: p.title, brand: p.vendor || '', emoji: '🍺', style: '', desc: '',
+                    price: parseFloat(v.price) || 0, variantId: String(v.id),
+                    image: v.image || p.image || (p.images && p.images[0]) || null,
+                  }, qty,
+                }];
+              }
+            } else if (matches.length > 1) {
+              const list = matches.slice(0, 4).map(p => `**${p.title}**`).join(', ');
+              clarifyMsg = `Tengo varias opciones de ${pack.size} pack: ${list}. Decime cuál querés y te lo sumo al carrito 🛒.`;
+            }
+          }
+        }
       } catch (e) { console.warn('add-now catalog:', e.message); }
     }
+    // 1) Items identificados → agrego al carrito.
     if (cartItems.length) {
       session.purchaseIntent = true;
       const replyMsg = cartItems.length === 1
@@ -3006,7 +3040,21 @@ app.post('/chat', async (req, res) => {
       res.write('data: [DONE]\n\n');
       return res.end();
     }
-    // Sin match claro → cae al flujo normal: Claude recomienda/pregunta.
+    // 2) Pidió un pack y hay varias opciones → aclaración del server.
+    if (clarifyMsg) {
+      session.messages.push({ role: 'user',      content: message,    timestamp: new Date().toISOString() });
+      session.messages.push({ role: 'assistant', content: clarifyMsg, timestamp: new Date().toISOString() });
+      saveSession(session);
+
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.write(`data: ${JSON.stringify({ sessionId })}\n\n`);
+      res.write(`data: ${JSON.stringify({ delta: clarifyMsg })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      return res.end();
+    }
+    // 3) Sin info útil → cae a Claude (el prompt le prohíbe decir "te agrego").
   }
 
   // Construir historial para Claude
