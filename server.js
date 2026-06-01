@@ -539,24 +539,71 @@ const CHECKOUT_MSG = 'Perfecto! 🛒 Te abro el carrito ahora — ahí ves todo 
 
 // Busca productos del catálogo mencionados en el texto (último mensaje del bot)
 // por coincidencia de título. Devuelve productData listo para el frontend.
-function findMentionedProducts(text, catalog){
-  if (!text || !catalog || !catalog.length) return [];
-  let lower = String(text).toLowerCase();
-  const out = [];
+// Detecta el tamaño de pack mencionado por el cliente (6/12/24) en su mensaje.
+// Devuelve { size, regex } o null. La regex sirve para enmascarar el match antes
+// de extraer la cantidad (así "un 12 pack" no se confunde con qty=12).
+function parsePackSize(u){
+  const tests = [
+    { size: 24, rx: /\b(24|veinticuatro)\s*[- ]?pack/i },
+    { size: 12, rx: /\b(12|doce)\s*[- ]?pack/i },
+    { size: 6,  rx: /\b(6|seis|six)\s*[- ]?pack/i },
+  ];
+  for (const t of tests) if (t.rx.test(u)) return { size: t.size, rx: t.rx };
+  return null;
+}
+// Cantidad (qty) explícita: palabra en español o número suelto. Default 1.
+function parseQty(u){
+  const words = { un:1, uno:1, una:1, dos:2, tres:3, cuatro:4, cinco:5,
+                  seis:6, siete:7, ocho:8, nueve:9, diez:10 };
+  for (const w in words) if (new RegExp('\\b' + w + '\\b', 'i').test(u)) return words[w];
+  const m = u.match(/\b(\d{1,2})\b/);
+  if (m) { const n = parseInt(m[1], 10); if (n >= 1 && n <= 99) return n; }
+  return 1;
+}
+
+// Busca productos del catálogo mencionados en `botText` (último mensaje del bot)
+// y los filtra/cuantifica según `userMessage` (el "agrégalo" del cliente).
+// Devuelve productData listo para el frontend.
+function findMentionedProducts(botText, catalog, userMessage){
+  if (!botText || !catalog || !catalog.length) return [];
+  // 1. Match de TODOS los productos mencionados en el último mensaje del bot
+  //    (ordenado por título más largo primero + masking para evitar prefijos).
+  let lower = String(botText).toLowerCase();
+  const candidates = [];
   const seen = new Set();
-  // Ordenar por longitud de título descendente para que "Firulais Pepita 6 Pack"
-  // gane a "Firulais Pepita" si ambos aparecen (el prefijo queda enmascarado).
   const ordered = [...catalog].sort((a, b) => (b.title || '').length - (a.title || '').length);
   for (const p of ordered) {
     const title = String(p.title || '').toLowerCase().trim();
     if (!title || seen.has(p.id)) continue;
     if (!lower.includes(title)) continue;
-    const v = (p.variants || [])[0];
-    if (!v) continue;
     seen.add(p.id);
-    // Enmascarar el título matcheado para que un prefijo no vuelva a matchear.
     lower = lower.split(title).join(' '.repeat(title.length));
-    out.push({
+    candidates.push(p);
+  }
+  if (!candidates.length) return [];
+
+  // 2. Parsear el mensaje del cliente: pack size + cantidad.
+  const u = String(userMessage || '').toLowerCase();
+  const pack = parsePackSize(u);
+  // Si pidió un tamaño específico, filtrar candidatos que matcheen en el título.
+  let filtered = candidates;
+  if (pack) {
+    const inTitle = new RegExp('(^|\\s|\\b)' + pack.size + '\\s*[- ]?pack', 'i');
+    const matched = candidates.filter(p => inTitle.test(String(p.title || '')));
+    if (matched.length) filtered = matched;
+  }
+  // Para la qty, enmascarar el match de pack-size así no se confunde con el número del pack.
+  const uForQty = pack ? u.replace(pack.rx, ' ') : u;
+  const qty = parseQty(uForQty);
+
+  // 3. Si el bot mostró varias opciones y el cliente no eligió tamaño/cuál,
+  //    devolver vacío para que el bot le pregunte cuál (mejor que adivinar mal).
+  if (!pack && filtered.length > 1) return [];
+
+  return filtered.map(p => {
+    const v = (p.variants || [])[0];
+    if (!v) return null;
+    return {
       productData: {
         name:      p.title,
         brand:     p.vendor || '',
@@ -567,10 +614,9 @@ function findMentionedProducts(text, catalog){
         variantId: String(v.id),
         image:     v.image || p.image || (p.images && p.images[0]) || null,
       },
-      qty: 1,
-    });
-  }
-  return out;
+      qty,
+    };
+  }).filter(Boolean);
 }
 const ERROR_MSG    = 'Disculpa, tuve un problema técnico, dame un segundo e intenta de nuevo 🍺';
 
@@ -2863,10 +2909,7 @@ app.post('/chat', async (req, res) => {
         const b2c = (all || [])
           .filter(p => String(p.status || 'ACTIVE').toUpperCase() === 'ACTIVE')
           .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes('ZORBO'));
-        cartItems = findMentionedProducts(lastAssistant.content, b2c);
-        // Cantidad pedida en el mensaje actual (ej: "agrégame 3" → qty 3 para todos).
-        const qm = message.match(/\b(\d{1,2})\b/);
-        if (qm) { const q = parseInt(qm[1], 10); if (q > 0 && q <= 99) cartItems.forEach(it => { it.qty = q; }); }
+        cartItems = findMentionedProducts(lastAssistant.content, b2c, message);
       } catch (e) { console.warn('add-now catalog:', e.message); }
     }
     const replyMsg = cartItems.length
