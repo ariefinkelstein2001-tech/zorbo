@@ -563,11 +563,12 @@ function parsePackSize(u){
   return null;
 }
 // Cantidad (qty) explícita: palabra en español o número suelto. Default 1.
+// Si el número está seguido de "pack" es tamaño de pack, no cantidad — lo ignora.
 function parseQty(u){
   const words = { un:1, uno:1, una:1, dos:2, tres:3, cuatro:4, cinco:5,
                   seis:6, siete:7, ocho:8, nueve:9, diez:10 };
   for (const w in words) if (new RegExp('\\b' + w + '\\b', 'i').test(u)) return words[w];
-  const m = u.match(/\b(\d{1,2})\b/);
+  const m = u.match(/\b(\d{1,2})\b(?!\s*[- ]?pack)/i);
   if (m) { const n = parseInt(m[1], 10); if (n >= 1 && n <= 99) return n; }
   return 1;
 }
@@ -600,9 +601,23 @@ function findMentionedProducts(botText, catalog, userMessage){
   let filtered = candidates;
   if (pack) {
     const inTitle = new RegExp('(^|\\s|\\b)' + pack.size + '\\s*[- ]?pack', 'i');
-    const matched = candidates.filter(p => inTitle.test(String(p.title || '')));
-    if (matched.length) filtered = matched;
+    let matched = candidates.filter(p => inTitle.test(String(p.title || '')));
+    if (!matched.length) {
+      // El bot recomendó (por ej.) el 6 Pack, pero el cliente quiere el 12.
+      // Buscar en el catálogo completo el "hermano" con el pack pedido y
+      // mismo nombre base (sin el prefijo "N Pack").
+      const stripPack = s => String(s || '')
+        .replace(/(\d+|seis|six|doce|veinticuatro)\s*[- ]?pack/gi, '')
+        .replace(/\s+/g, ' ')
+        .replace(/^[\s\-,.;]+|[\s\-,.;]+$/g, '')
+        .toLowerCase();
+      const candidateBases = new Set(candidates.map(c => stripPack(c.title)));
+      matched = catalog.filter(p => inTitle.test(String(p.title || '')) && candidateBases.has(stripPack(p.title)));
+    }
+    // Si tras todo eso no hay match, devolver vacío → el bot pregunta.
+    filtered = matched;
   }
+  if (!filtered.length) return [];
   // Para la qty, enmascarar el match de pack-size así no se confunde con el número del pack.
   const uForQty = pack ? u.replace(pack.rx, ' ') : u;
   const qty = parseQty(uForQty);
