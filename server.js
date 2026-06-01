@@ -524,6 +524,62 @@ function buildFeedbackCtx(){
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const CHECKOUT_MSG = 'Perfecto! 🛒 Te abro el carrito ahora — ahí ves todo lo que llevas y arriba a la derecha aprietas **Pagar** para ir directo al checkout con tus datos.';
+const CHECKOUT_MSG_ADDED = (n) => `Listo! 🛒 ${n === 1 ? 'Te agregué el producto que pediste' : `Te agregué los ${n} productos que pediste`} al carrito. Lo abro ahora — arriba a la derecha aprietas **Pagar** para ir al checkout.`;
+const CHECKOUT_MSG_EMPTY = 'Tu carrito está vacío todavía 🛒. Decime qué quieres llevar (ej: "quiero 3 six pack Amber") y te lo agrego al toque, o tócale **AÑADIR AL CARRITO** a las tarjetas de los productos que te muestre arriba.';
+
+// Extrae items de compra del mensaje usando Claude. Devuelve productData listo
+// para que el frontend lo meta al carrito (mismo shape que hpAdd).
+async function extractCartItems(message, catalog){
+  if (!catalog || !catalog.length) return [];
+  const compact = catalog.slice(0, 200).map(p => ({
+    id: String(p.id),
+    title: p.title,
+    vendor: p.vendor,
+    variants: (p.variants || []).map(v => ({ id: String(v.id), title: v.title, price: v.price })),
+  }));
+  const sys = `Sos un extractor de items de compra de una botillería chilena. Te paso un mensaje del cliente y el catálogo (cada producto con variantes). Devolvé SOLO JSON: {"items":[{"productId":"...","variantId":"...","qty":N}]}. Sin texto extra.
+Reglas:
+- Usá SOLO productos del catálogo (no inventes).
+- "six pack" o "6 pack" → variante "6 Pack" (o equivalente). "12 pack" → "12 Pack". "24 pack" → "24 Pack". "lata" o sin formato → primera variante.
+- qty entero ≥1; default 1.
+- Si no podés identificar un producto con confianza razonable, devolvé {"items":[]}.`;
+  let parsed;
+  try {
+    const r = await client.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 600,
+      system: sys,
+      messages: [{ role: 'user', content: `Mensaje: ${message}\n\nCatálogo: ${JSON.stringify(compact)}` }],
+    });
+    const text = (r.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim();
+    const m = text.match(/\{[\s\S]*\}/);
+    if (!m) return [];
+    parsed = JSON.parse(m[0]);
+  } catch (e) { console.warn('extractCartItems:', e.message); return []; }
+  const items = Array.isArray(parsed?.items) ? parsed.items : [];
+  const out = [];
+  for (const it of items) {
+    const p = catalog.find(x => String(x.id) === String(it.productId));
+    if (!p) continue;
+    const v = (p.variants || []).find(x => String(x.id) === String(it.variantId)) || (p.variants || [])[0];
+    if (!v) continue;
+    const qty = Math.max(1, Math.min(99, parseInt(it.qty, 10) || 1));
+    out.push({
+      productData: {
+        name:      p.title,
+        brand:     p.vendor || '',
+        emoji:     '🍺',
+        style:     '',
+        desc:      '',
+        price:     parseFloat(v.price) || 0,
+        variantId: String(v.id),
+        image:     v.image || p.image || (p.images && p.images[0]) || null,
+      },
+      qty,
+    });
+  }
+  return out;
+}
 const ERROR_MSG    = 'Disculpa, tuve un problema técnico, dame un segundo e intenta de nuevo 🍺';
 
 // ─── Shopify OAuth + Catálogo ─────────────────────────────────────────────────
@@ -2796,21 +2852,33 @@ app.post('/chat', async (req, res) => {
   if (mayorista) session.isB2B = true;
   const newlyB2B = !wasB2B && session.isB2B;
 
-  // Intención de compra → bypass Claude, enviar link de checkout
+  // Intención de compra → bypass Claude, agregar items al carrito + abrirlo.
   // Skip si el mensaje contiene contexto B2B (mayorista, no checkout)
   if (!detect(message, B2B_KW) && detect(message, PURCHASE_KW)) {
     session.purchaseIntent = true;
-    session.messages.push({ role: 'user',      content: message,      timestamp: new Date().toISOString() });
-    session.messages.push({ role: 'assistant', content: CHECKOUT_MSG, timestamp: new Date().toISOString() });
+    // Catálogo activo (solo B2C aquí) para intentar extraer los items que pide.
+    let cartItems = [];
+    if (process.env.SHOPIFY_ADMIN_TOKEN) {
+      try {
+        const all = await loadProductsCache(false);
+        const b2c = (all || [])
+          .filter(p => String(p.status || 'ACTIVE').toUpperCase() === 'ACTIVE')
+          .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes('ZORBO'));
+        cartItems = await extractCartItems(message, b2c);
+      } catch (e) { console.warn('purchase intent catalog:', e.message); }
+    }
+    const replyMsg = cartItems.length ? CHECKOUT_MSG_ADDED(cartItems.length) : CHECKOUT_MSG;
+    session.messages.push({ role: 'user',      content: message,  timestamp: new Date().toISOString() });
+    session.messages.push({ role: 'assistant', content: replyMsg, timestamp: new Date().toISOString() });
     saveSession(session);
 
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.write(`data: ${JSON.stringify({ sessionId })}\n\n`);
-    res.write(`data: ${JSON.stringify({ delta: CHECKOUT_MSG })}\n\n`);
-    // Marca para que el frontend auto-abra el carrito tras esta respuesta.
-    res.write(`data: ${JSON.stringify({ action: 'openCart' })}\n\n`);
+    res.write(`data: ${JSON.stringify({ delta: replyMsg })}\n\n`);
+    // Marca para que el frontend agregue los items y auto-abra el carrito.
+    res.write(`data: ${JSON.stringify({ action: 'openCart', items: cartItems })}\n\n`);
     res.write('data: [DONE]\n\n');
     return res.end();
   }

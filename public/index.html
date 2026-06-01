@@ -2727,8 +2727,16 @@ async function send(opts) {
           tRow.querySelector('.bubble').innerHTML = mdStream(full);
           scrollBottom();
         }
-        // Acciones que el server emite junto con el mensaje (ej. abrir el carrito)
+        // Acciones que el server emite junto con el mensaje (ej. abrir el carrito,
+        // posiblemente con items extraídos del mensaje para agregar al carrito).
         if (obj.action === 'openCart') {
+          if (Array.isArray(obj.items) && obj.items.length) {
+            for (const it of obj.items) {
+              if (it && it.productData && it.productData.variantId) {
+                addToCart(it.productData, Math.max(1, +it.qty || 1));
+              }
+            }
+          }
           setTimeout(() => {
             const cp = document.getElementById('cartPanel');
             if (cp && !cp.classList.contains('open')) toggleCart();
