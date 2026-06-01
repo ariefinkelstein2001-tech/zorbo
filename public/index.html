@@ -2727,9 +2727,9 @@ async function send(opts) {
           tRow.querySelector('.bubble').innerHTML = mdStream(full);
           scrollBottom();
         }
-        // Acciones que el server emite junto con el mensaje (ej. abrir el carrito,
-        // posiblemente con items extraídos del mensaje para agregar al carrito).
-        if (obj.action === 'openCart') {
+        // Acciones del server: addToCart (suma items al carrito) y openCart
+        // (abre el panel del carrito). Pueden venir juntas en una sola acción.
+        if (obj.action === 'addToCart' || obj.action === 'openCart') {
           if (Array.isArray(obj.items) && obj.items.length) {
             for (const it of obj.items) {
               if (it && it.productData && it.productData.variantId) {
@@ -2737,10 +2737,12 @@ async function send(opts) {
               }
             }
           }
-          setTimeout(() => {
-            const cp = document.getElementById('cartPanel');
-            if (cp && !cp.classList.contains('open')) toggleCart();
-          }, 400);
+          if (obj.action === 'openCart') {
+            setTimeout(() => {
+              const cp = document.getElementById('cartPanel');
+              if (cp && !cp.classList.contains('open')) toggleCart();
+            }, 400);
+          }
         }
       }
     }
@@ -2816,7 +2818,7 @@ function updateCart() {
 
   const body = document.getElementById('cartBody');
   if (!cart.length) {
-    body.innerHTML = '<div class="cart-empty-msg">Tu carro está vacío.<br>Pídele una recomendación a Zorbot!</div>';
+    body.innerHTML = '<div class="cart-empty-msg">Tu carro está vacío.<br>Tócale <b>AÑADIR AL CARRITO</b> a las tarjetas, o pídele a Zorbot que te sume algo (ej: <i>“agrégame Firulais Pepita”</i>).</div>';
   } else {
     body.innerHTML = cart.map((item, idx) => `
       <div class="ci">

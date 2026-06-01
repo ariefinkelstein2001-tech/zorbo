@@ -301,19 +301,31 @@ function serializeSession(s) {
 
 // ─── Detection ────────────────────────────────────────────────────────────────
 
-const PURCHASE_KW = [
-  // intención explícita de comprar
-  'quiero pagar', 'confirmar pedido', 'lo llevo', 'dale pídelo', 'dale, pídelo',
-  'me lo llevo', 'quiero comprar', 'lo quiero todo', 'lo compro', 'hacer el pedido',
-  'arma el pedido', 'checkout', 'quiero pedir', 'listo lo llevo',
-  'voy a pagar', 'paguemos', 'pagamos',
-  // pedidos del link / checkout (variantes comunes)
+// Sólo palabras de "abrime el carrito / pasame el link" → bypass directo.
+// "quiero comprar X" NO entra acá: va al bot normal para que recomiende y
+// pregunte si lo agrega. La idea es: recomendar → preguntar → confirmar.
+const CHECKOUT_OPEN_KW = [
+  // pedidos del link / checkout
   'link', 'el link', 'pasame el link', 'pásame el link', 'mandame el link',
   'mándame el link', 'envíame el link', 'enviame el link', 'manda el link',
   'pásamelo', 'pasamelo', 'mándamelo', 'mandamelo',
   'link de pago', 'link de checkout', 'link para pagar',
   'donde pago', 'dónde pago', 'cómo pago', 'como pago',
+  // ir a pagar
+  'checkout', 'quiero pagar', 'voy a pagar', 'paguemos', 'pagamos', 'pagar ahora',
 ];
+// Confirmaciones explícitas de "agregalo al carrito". Cuando el bot recomendó
+// algo y el cliente lo confirma con estas, el server toma los productos
+// mencionados en el último mensaje del bot y los suma al carrito.
+const ADD_NOW_KW = [
+  'agrégalo', 'agregalo', 'agrégalos', 'agregalos',
+  'agrégame', 'agregame', 'agrégamelos', 'agregamelos', 'agrégamela', 'agregamela',
+  'sumalo', 'súmalo', 'sumalos', 'súmalos',
+  'metelo', 'mételo', 'metelos', 'mételos',
+  'ponelo en el carrito', 'ponelo al carrito', 'ponelos en el carrito',
+];
+// Mantenido por compatibilidad con flags de sesión / clasificación.
+const PURCHASE_KW = [...CHECKOUT_OPEN_KW, ...ADD_NOW_KW];
 
 const B2B_KW = [
   'restaurante', ' bar', 'bares', 'cantina', 'hotel', 'por volumen',
@@ -524,46 +536,26 @@ function buildFeedbackCtx(){
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const CHECKOUT_MSG = 'Perfecto! 🛒 Te abro el carrito ahora — ahí ves todo lo que llevas y arriba a la derecha aprietas **Pagar** para ir directo al checkout con tus datos.';
-const CHECKOUT_MSG_ADDED = (n) => `Listo! 🛒 ${n === 1 ? 'Te agregué el producto que pediste' : `Te agregué los ${n} productos que pediste`} al carrito. Lo abro ahora — arriba a la derecha aprietas **Pagar** para ir al checkout.`;
-const CHECKOUT_MSG_EMPTY = 'Tu carrito está vacío todavía 🛒. Decime qué quieres llevar (ej: "quiero 3 six pack Amber") y te lo agrego al toque, o tócale **AÑADIR AL CARRITO** a las tarjetas de los productos que te muestre arriba.';
 
-// Extrae items de compra del mensaje usando Claude. Devuelve productData listo
-// para que el frontend lo meta al carrito (mismo shape que hpAdd).
-async function extractCartItems(message, catalog){
-  if (!catalog || !catalog.length) return [];
-  const compact = catalog.slice(0, 200).map(p => ({
-    id: String(p.id),
-    title: p.title,
-    vendor: p.vendor,
-    variants: (p.variants || []).map(v => ({ id: String(v.id), title: v.title, price: v.price })),
-  }));
-  const sys = `Sos un extractor de items de compra de una botillería chilena. Te paso un mensaje del cliente y el catálogo (cada producto con variantes). Devolvé SOLO JSON: {"items":[{"productId":"...","variantId":"...","qty":N}]}. Sin texto extra.
-Reglas:
-- Usá SOLO productos del catálogo (no inventes).
-- "six pack" o "6 pack" → variante "6 Pack" (o equivalente). "12 pack" → "12 Pack". "24 pack" → "24 Pack". "lata" o sin formato → primera variante.
-- qty entero ≥1; default 1.
-- Si no podés identificar un producto con confianza razonable, devolvé {"items":[]}.`;
-  let parsed;
-  try {
-    const r = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 600,
-      system: sys,
-      messages: [{ role: 'user', content: `Mensaje: ${message}\n\nCatálogo: ${JSON.stringify(compact)}` }],
-    });
-    const text = (r.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim();
-    const m = text.match(/\{[\s\S]*\}/);
-    if (!m) return [];
-    parsed = JSON.parse(m[0]);
-  } catch (e) { console.warn('extractCartItems:', e.message); return []; }
-  const items = Array.isArray(parsed?.items) ? parsed.items : [];
+// Busca productos del catálogo mencionados en el texto (último mensaje del bot)
+// por coincidencia de título. Devuelve productData listo para el frontend.
+function findMentionedProducts(text, catalog){
+  if (!text || !catalog || !catalog.length) return [];
+  let lower = String(text).toLowerCase();
   const out = [];
-  for (const it of items) {
-    const p = catalog.find(x => String(x.id) === String(it.productId));
-    if (!p) continue;
-    const v = (p.variants || []).find(x => String(x.id) === String(it.variantId)) || (p.variants || [])[0];
+  const seen = new Set();
+  // Ordenar por longitud de título descendente para que "Firulais Pepita 6 Pack"
+  // gane a "Firulais Pepita" si ambos aparecen (el prefijo queda enmascarado).
+  const ordered = [...catalog].sort((a, b) => (b.title || '').length - (a.title || '').length);
+  for (const p of ordered) {
+    const title = String(p.title || '').toLowerCase().trim();
+    if (!title || seen.has(p.id)) continue;
+    if (!lower.includes(title)) continue;
+    const v = (p.variants || [])[0];
     if (!v) continue;
-    const qty = Math.max(1, Math.min(99, parseInt(it.qty, 10) || 1));
+    seen.add(p.id);
+    // Enmascarar el título matcheado para que un prefijo no vuelva a matchear.
+    lower = lower.split(title).join(' '.repeat(title.length));
     out.push({
       productData: {
         name:      p.title,
@@ -575,7 +567,7 @@ Reglas:
         variantId: String(v.id),
         image:     v.image || p.image || (p.images && p.images[0]) || null,
       },
-      qty,
+      qty: 1,
     });
   }
   return out;
@@ -2852,22 +2844,36 @@ app.post('/chat', async (req, res) => {
   if (mayorista) session.isB2B = true;
   const newlyB2B = !wasB2B && session.isB2B;
 
-  // Intención de compra → bypass Claude, agregar items al carrito + abrirlo.
-  // Skip si el mensaje contiene contexto B2B (mayorista, no checkout)
-  if (!detect(message, B2B_KW) && detect(message, PURCHASE_KW)) {
+  // ── Flujo de compra: 3 vías ──────────────────────────────────────────────
+  //  A) "agrégalo / súmalo / metelo" → tomamos lo recomendado en el último
+  //     mensaje del bot y lo sumamos al carrito; preguntamos si abrimos el carrito.
+  //  B) "pasame el link / pagar / checkout" → abrimos el carrito (con lo que ya tenga).
+  //  C) Cualquier otra cosa ("quiero comprar X") → pasa a Claude normal (recomienda con
+  //     tarjeta y pregunta "te lo agrego?"). Esto evita falsas auto-compras.
+  const isB2BContext = detect(message, B2B_KW);
+
+  // A) ADD_NOW: confirmar lo recomendado
+  if (!isB2BContext && detect(message, ADD_NOW_KW)) {
     session.purchaseIntent = true;
-    // Catálogo activo (solo B2C aquí) para intentar extraer los items que pide.
     let cartItems = [];
-    if (process.env.SHOPIFY_ADMIN_TOKEN) {
+    const lastAssistant = [...session.messages].reverse().find(m => m.role === 'assistant');
+    if (lastAssistant && process.env.SHOPIFY_ADMIN_TOKEN) {
       try {
         const all = await loadProductsCache(false);
         const b2c = (all || [])
           .filter(p => String(p.status || 'ACTIVE').toUpperCase() === 'ACTIVE')
           .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes('ZORBO'));
-        cartItems = await extractCartItems(message, b2c);
-      } catch (e) { console.warn('purchase intent catalog:', e.message); }
+        cartItems = findMentionedProducts(lastAssistant.content, b2c);
+        // Cantidad pedida en el mensaje actual (ej: "agrégame 3" → qty 3 para todos).
+        const qm = message.match(/\b(\d{1,2})\b/);
+        if (qm) { const q = parseInt(qm[1], 10); if (q > 0 && q <= 99) cartItems.forEach(it => { it.qty = q; }); }
+      } catch (e) { console.warn('add-now catalog:', e.message); }
     }
-    const replyMsg = cartItems.length ? CHECKOUT_MSG_ADDED(cartItems.length) : CHECKOUT_MSG;
+    const replyMsg = cartItems.length
+      ? (cartItems.length === 1
+          ? `Listo! 🛒 Te sumé **${cartItems[0].productData.name}** (x${cartItems[0].qty}) al carrito. Decime "pasame el link" cuando quieras ir a pagar.`
+          : `Listo! 🛒 Te sumé ${cartItems.length} productos al carrito. Decime "pasame el link" cuando quieras ir a pagar.`)
+      : 'Decime cuál querés que sume (ej: "agrégame Firulais Pepita") y te lo pongo en el carrito al toque.';
     session.messages.push({ role: 'user',      content: message,  timestamp: new Date().toISOString() });
     session.messages.push({ role: 'assistant', content: replyMsg, timestamp: new Date().toISOString() });
     saveSession(session);
@@ -2877,8 +2883,24 @@ app.post('/chat', async (req, res) => {
     res.setHeader('Connection', 'keep-alive');
     res.write(`data: ${JSON.stringify({ sessionId })}\n\n`);
     res.write(`data: ${JSON.stringify({ delta: replyMsg })}\n\n`);
-    // Marca para que el frontend agregue los items y auto-abra el carrito.
-    res.write(`data: ${JSON.stringify({ action: 'openCart', items: cartItems })}\n\n`);
+    if (cartItems.length) res.write(`data: ${JSON.stringify({ action: 'addToCart', items: cartItems })}\n\n`);
+    res.write('data: [DONE]\n\n');
+    return res.end();
+  }
+
+  // B) CHECKOUT_OPEN: abrir el carrito (con lo que ya tenga).
+  if (!isB2BContext && detect(message, CHECKOUT_OPEN_KW)) {
+    session.purchaseIntent = true;
+    session.messages.push({ role: 'user',      content: message,      timestamp: new Date().toISOString() });
+    session.messages.push({ role: 'assistant', content: CHECKOUT_MSG, timestamp: new Date().toISOString() });
+    saveSession(session);
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.write(`data: ${JSON.stringify({ sessionId })}\n\n`);
+    res.write(`data: ${JSON.stringify({ delta: CHECKOUT_MSG })}\n\n`);
+    res.write(`data: ${JSON.stringify({ action: 'openCart' })}\n\n`);
     res.write('data: [DONE]\n\n');
     return res.end();
   }
