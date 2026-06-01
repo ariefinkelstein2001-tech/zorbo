@@ -562,8 +562,29 @@ function parsePackSize(u){
   for (const t of tests) if (t.rx.test(u)) return { size: t.size, rx: t.rx };
   return null;
 }
-// Cantidad (qty) explícita: palabra en español o número suelto. Default 1.
-// Si el número está seguido de "pack" es tamaño de pack, no cantidad — lo ignora.
+// Shorthand de intención de compra: mensajes cortos del tipo "1 24", "2 12 pack",
+// "un 12", "12 pack". Cuando el bot acaba de mostrar opciones, el cliente
+// abrevia. Estos patrones implican qty + pack-size sin verbos.
+function isShorthandAddIntent(msg){
+  const t = String(msg).trim();
+  // "1 24" / "un 12" / "2 6" (qty + size, sin "pack")
+  if (/^(un|uno|una|\d{1,2})\s+(?:6|12|24)\s*$/i.test(t)) return true;
+  // "12 pack" / "1 24 pack" / "un 12 pack"
+  if (/^(?:(?:un|uno|una|\d{1,2})\s+)?(?:6|12|24)\s*[- ]?pack\s*$/i.test(t)) return true;
+  // Solo el número de pack ("6", "12", "24") — sin nada más.
+  if (/^(?:6|12|24)\s*$/i.test(t)) return true;
+  return false;
+}
+
+// Convierte el shorthand en un mensaje "agrégame qty N pack" para que el
+// parser de pack-size lo entienda como tal.
+function normalizeShorthand(msg){
+  const t = String(msg).trim();
+  // "1 24" → "agrégame 1 24 pack" (para que parsePackSize matchee)
+  const m1 = t.match(/^(un|uno|una|\d{1,2})\s+(6|12|24)\s*$/i);
+  if (m1) return `agrégame ${m1[1]} ${m1[2]} pack`;
+  return t;
+}
 function parseQty(u){
   const words = { un:1, uno:1, una:1, dos:2, tres:3, cuatro:4, cinco:5,
                   seis:6, siete:7, ocho:8, nueve:9, diez:10 };
@@ -597,8 +618,8 @@ function findMentionedProducts(botText, catalog, userMessage){
   // 2. Parsear el mensaje del cliente: pack size + cantidad.
   const u = String(userMessage || '').toLowerCase();
   const pack = parsePackSize(u);
-  // Si pidió un tamaño específico, filtrar candidatos que matcheen en el título.
   let filtered = candidates;
+  let consumedNum = null;  // número del mensaje que ya usamos como pack-size
   if (pack) {
     const inTitle = new RegExp('(^|\\s|\\b)' + pack.size + '\\s*[- ]?pack', 'i');
     let matched = candidates.filter(p => inTitle.test(String(p.title || '')));
@@ -614,17 +635,27 @@ function findMentionedProducts(botText, catalog, userMessage){
       const candidateBases = new Set(candidates.map(c => stripPack(c.title)));
       matched = catalog.filter(p => inTitle.test(String(p.title || '')) && candidateBases.has(stripPack(p.title)));
     }
-    // Si tras todo eso no hay match, devolver vacío → el bot pregunta.
     filtered = matched;
+  } else if (candidates.length > 1) {
+    // Heurística: sin "X pack" explícito, si el mensaje tiene un número que
+    // coincide con el pack-size de uno (y solo uno) de los candidatos, ése
+    // es el elegido. Útil para "dame un 24" cuando el bot mostró 6/12/24.
+    const nums = (u.match(/\b(\d{1,3})\b/g) || []).map(s => parseInt(s, 10));
+    for (const n of nums) {
+      if (n < 2 || n > 99) continue;
+      const inTitle = new RegExp('(^|\\s|\\b)' + n + '\\s*[- ]?pack', 'i');
+      const matched = candidates.filter(p => inTitle.test(String(p.title || '')));
+      if (matched.length === 1) { filtered = matched; consumedNum = n; break; }
+    }
   }
   if (!filtered.length) return [];
-  // Para la qty, enmascarar el match de pack-size así no se confunde con el número del pack.
-  const uForQty = pack ? u.replace(pack.rx, ' ') : u;
+  // Si el bot mostró varias opciones y no logramos desambiguar → preguntar.
+  if (filtered.length > 1) return [];
+  // Para la qty: enmascarar el pack-size que ya consumimos.
+  let uForQty = u;
+  if (pack) uForQty = uForQty.replace(pack.rx, ' ');
+  if (consumedNum != null) uForQty = uForQty.replace(new RegExp('\\b' + consumedNum + '\\b'), ' ');
   const qty = parseQty(uForQty);
-
-  // 3. Si el bot mostró varias opciones y el cliente no eligió tamaño/cuál,
-  //    devolver vacío para que el bot le pregunte cuál (mejor que adivinar mal).
-  if (!pack && filtered.length > 1) return [];
 
   return filtered.map(p => {
     const v = (p.variants || [])[0];
@@ -2944,7 +2975,7 @@ app.post('/chat', async (req, res) => {
 
   // B) ADD_NOW: agregar al carrito SI se identifica el producto. Si no,
   // dejamos pasar a Claude (no mentir con "ya lo agregué").
-  if (!isB2BContext && detect(message, ADD_NOW_KW)) {
+  if (!isB2BContext && (detect(message, ADD_NOW_KW) || isShorthandAddIntent(message))) {
     let cartItems = [];
     const lastAssistant = [...session.messages].reverse().find(m => m.role === 'assistant');
     if (lastAssistant && process.env.SHOPIFY_ADMIN_TOKEN) {
@@ -2953,7 +2984,8 @@ app.post('/chat', async (req, res) => {
         const b2c = (all || [])
           .filter(p => String(p.status || 'ACTIVE').toUpperCase() === 'ACTIVE')
           .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes('ZORBO'));
-        cartItems = findMentionedProducts(lastAssistant.content, b2c, message);
+        // Normaliza el shorthand ("1 24" → "agrégame 1 24 pack") para el parser.
+        cartItems = findMentionedProducts(lastAssistant.content, b2c, normalizeShorthand(message));
       } catch (e) { console.warn('add-now catalog:', e.message); }
     }
     if (cartItems.length) {
