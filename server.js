@@ -314,15 +314,26 @@ const CHECKOUT_OPEN_KW = [
   // ir a pagar
   'checkout', 'quiero pagar', 'voy a pagar', 'paguemos', 'pagamos', 'pagar ahora',
 ];
-// Confirmaciones explícitas de "agregalo al carrito". Cuando el bot recomendó
-// algo y el cliente lo confirma con estas, el server toma los productos
-// mencionados en el último mensaje del bot y los suma al carrito.
+// Confirmaciones / intenciones de "metelo al carrito ya". Cuando matchea Y se
+// puede identificar el producto en el último mensaje del bot, el server agrega
+// al carrito directo. Si NO hay match claro, deja pasar al bot (que va a
+// recomendar o preguntar). Así nunca miente con "ya lo agregué".
 const ADD_NOW_KW = [
+  // Confirmaciones explícitas
   'agrégalo', 'agregalo', 'agrégalos', 'agregalos',
   'agrégame', 'agregame', 'agrégamelos', 'agregamelos', 'agrégamela', 'agregamela',
   'sumalo', 'súmalo', 'sumalos', 'súmalos',
   'metelo', 'mételo', 'metelos', 'mételos',
   'ponelo en el carrito', 'ponelo al carrito', 'ponelos en el carrito',
+  // Intenciones directas con artículo (= pedido concreto)
+  'me lo llevo', 'me los llevo', 'lo llevo', 'los llevo',
+  'lo quiero', 'los quiero', 'la quiero', 'las quiero',
+  'lo compro', 'los compro', 'la compro', 'las compro',
+  'quiero un', 'quiero una', 'quiero unos', 'quiero unas',
+  'quiero el', 'quiero la', 'quiero los', 'quiero las',
+  'quiero comprar', 'quiero pedir', 'quiero llevar',
+  'dame un', 'dame una', 'dame unos', 'dame unas',
+  'dame el', 'dame la', 'dame los', 'dame las',
 ];
 // Mantenido por compatibilidad con flags de sesión / clasificación.
 const PURCHASE_KW = [...CHECKOUT_OPEN_KW, ...ADD_NOW_KW];
@@ -2891,47 +2902,15 @@ app.post('/chat', async (req, res) => {
   const newlyB2B = !wasB2B && session.isB2B;
 
   // ── Flujo de compra: 3 vías ──────────────────────────────────────────────
-  //  A) "agrégalo / súmalo / metelo" → tomamos lo recomendado en el último
-  //     mensaje del bot y lo sumamos al carrito; preguntamos si abrimos el carrito.
-  //  B) "pasame el link / pagar / checkout" → abrimos el carrito (con lo que ya tenga).
-  //  C) Cualquier otra cosa ("quiero comprar X") → pasa a Claude normal (recomienda con
-  //     tarjeta y pregunta "te lo agrego?"). Esto evita falsas auto-compras.
+  //  A) "pasame el link / pagar / checkout" → abre el carrito directo.
+  //  B) "agrégalo / quiero un X / lo llevo" → si se identifica el producto
+  //     en lo que el bot recomendó, agrega al carrito. Si NO, deja pasar a
+  //     Claude (que recomienda y pregunta).
+  //  C) Cualquier otra cosa → Claude normal.
   const isB2BContext = detect(message, B2B_KW);
 
-  // A) ADD_NOW: confirmar lo recomendado
-  if (!isB2BContext && detect(message, ADD_NOW_KW)) {
-    session.purchaseIntent = true;
-    let cartItems = [];
-    const lastAssistant = [...session.messages].reverse().find(m => m.role === 'assistant');
-    if (lastAssistant && process.env.SHOPIFY_ADMIN_TOKEN) {
-      try {
-        const all = await loadProductsCache(false);
-        const b2c = (all || [])
-          .filter(p => String(p.status || 'ACTIVE').toUpperCase() === 'ACTIVE')
-          .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes('ZORBO'));
-        cartItems = findMentionedProducts(lastAssistant.content, b2c, message);
-      } catch (e) { console.warn('add-now catalog:', e.message); }
-    }
-    const replyMsg = cartItems.length
-      ? (cartItems.length === 1
-          ? `Listo! 🛒 Te sumé **${cartItems[0].productData.name}** (x${cartItems[0].qty}) al carrito. Decime "pasame el link" cuando quieras ir a pagar.`
-          : `Listo! 🛒 Te sumé ${cartItems.length} productos al carrito. Decime "pasame el link" cuando quieras ir a pagar.`)
-      : 'Decime cuál querés que sume (ej: "agrégame Firulais Pepita") y te lo pongo en el carrito al toque.';
-    session.messages.push({ role: 'user',      content: message,  timestamp: new Date().toISOString() });
-    session.messages.push({ role: 'assistant', content: replyMsg, timestamp: new Date().toISOString() });
-    saveSession(session);
-
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.write(`data: ${JSON.stringify({ sessionId })}\n\n`);
-    res.write(`data: ${JSON.stringify({ delta: replyMsg })}\n\n`);
-    if (cartItems.length) res.write(`data: ${JSON.stringify({ action: 'addToCart', items: cartItems })}\n\n`);
-    res.write('data: [DONE]\n\n');
-    return res.end();
-  }
-
-  // B) CHECKOUT_OPEN: abrir el carrito (con lo que ya tenga).
+  // A) CHECKOUT_OPEN: abrir carrito directo (chequeamos PRIMERO para que
+  // "quiero pagar" no matchee "quiero" de ADD_NOW por accidente).
   if (!isB2BContext && detect(message, CHECKOUT_OPEN_KW)) {
     session.purchaseIntent = true;
     session.messages.push({ role: 'user',      content: message,      timestamp: new Date().toISOString() });
@@ -2946,6 +2925,41 @@ app.post('/chat', async (req, res) => {
     res.write(`data: ${JSON.stringify({ action: 'openCart' })}\n\n`);
     res.write('data: [DONE]\n\n');
     return res.end();
+  }
+
+  // B) ADD_NOW: agregar al carrito SI se identifica el producto. Si no,
+  // dejamos pasar a Claude (no mentir con "ya lo agregué").
+  if (!isB2BContext && detect(message, ADD_NOW_KW)) {
+    let cartItems = [];
+    const lastAssistant = [...session.messages].reverse().find(m => m.role === 'assistant');
+    if (lastAssistant && process.env.SHOPIFY_ADMIN_TOKEN) {
+      try {
+        const all = await loadProductsCache(false);
+        const b2c = (all || [])
+          .filter(p => String(p.status || 'ACTIVE').toUpperCase() === 'ACTIVE')
+          .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes('ZORBO'));
+        cartItems = findMentionedProducts(lastAssistant.content, b2c, message);
+      } catch (e) { console.warn('add-now catalog:', e.message); }
+    }
+    if (cartItems.length) {
+      session.purchaseIntent = true;
+      const replyMsg = cartItems.length === 1
+        ? `Listo! 🛒 Te sumé **${cartItems[0].productData.name}** (x${cartItems[0].qty}) al carrito. Decime "pasame el link" cuando quieras ir a pagar.`
+        : `Listo! 🛒 Te sumé ${cartItems.length} productos al carrito. Decime "pasame el link" cuando quieras ir a pagar.`;
+      session.messages.push({ role: 'user',      content: message,  timestamp: new Date().toISOString() });
+      session.messages.push({ role: 'assistant', content: replyMsg, timestamp: new Date().toISOString() });
+      saveSession(session);
+
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.write(`data: ${JSON.stringify({ sessionId })}\n\n`);
+      res.write(`data: ${JSON.stringify({ delta: replyMsg })}\n\n`);
+      res.write(`data: ${JSON.stringify({ action: 'addToCart', items: cartItems })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      return res.end();
+    }
+    // Sin match claro → cae al flujo normal: Claude recomienda/pregunta.
   }
 
   // Construir historial para Claude
