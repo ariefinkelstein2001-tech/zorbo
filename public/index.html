@@ -3072,9 +3072,10 @@ function passesKairosMpFilter(p){
 }
 function kairosFmt(p){
   const t = (p.title || '').toLowerCase();
-  if (/barril/.test(t))     return 'barril';
-  if (/pack|lata/.test(t))  return 'pack';
-  return null;
+  // Cerveza Kairos/Lanús/Osagui: barril o pack/lata. Nunca null — todo lo que
+  // no es barril cae a pack (cubre títulos sin "pack"/"lata" explícitos como
+  // "473cc mayorista Osagui").
+  return /barril/.test(t) ? 'barril' : 'pack';
 }
 function cleanMpTitle(s){
   return String(s||'')
@@ -3409,16 +3410,16 @@ async function showMayoristaStorefront(){
     // Cervezas (Kairos / Lanús / Osagui) → CHELAS o PACKS según formato
     if (brand === 'kairos' || brand === 'lanus' || brand === 'osagui') {
       if (brand === 'kairos') {
-        if (!passesKairosMpFilter(p)) continue;
+        // No-cerveza con marca default Kairos (Recarga CO2, accesorios) → Otros
+        if (!passesKairosMpFilter(p)) { groups.otros.push(p); continue; }
         if (/nz\s*pils|new\s*zealand|nzpils/.test(t)) continue;
       }
       const fmt = kairosFmt(p);
       const enriched = brand === 'lanus'  ? { ...p, _flag:'ar', _country:'Argentina' }
                      : brand === 'osagui' ? { ...p, _flag:'jp', _country:'Japón' }
                      : p;
-      if (fmt === 'barril')   groups.chelasBarril.push(enriched);
-      else if (fmt === 'pack') groups.packs.push(enriched);
-      else groups.otros.push(enriched);
+      if (fmt === 'barril') groups.chelasBarril.push(enriched);
+      else                  groups.packs.push(enriched);
     }
     // Firulais → barriles a Craft Mix, el resto a Otros
     else if (brand === 'firulais') {
