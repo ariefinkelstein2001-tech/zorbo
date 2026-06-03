@@ -224,6 +224,10 @@ header .mayoristas-btn{margin-left:auto}
 }
 .account-menu .am-item:hover{background:var(--gold-dim);color:var(--gold)}
 body.mayorista-active .mayoristas-btn{display:none}
+/* Modo storefront mayorista-only (env STOREFRONT_MODE=mayorista): el público
+   no puede volver a B2C, así que escondemos la cuenta/logout. */
+body.storefront-mayorista-only .account-chip,
+body.storefront-mayorista-only .account-menu{display:none !important}
 
 /* ════════════════════════════════════════════════════════════════════════
    STOREFRONT ECOMMERCE — B2C (#homePage, tema beige Kairos) y B2B (#mayoPage).
@@ -4026,6 +4030,17 @@ async function mayoSignup(){
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
+// Modo storefront (env STOREFRONT_MODE). 'mayorista' = solo B2B público.
+// ?preview=b2c en la URL lo bypassa para que el equipo siga viendo B2C.
+(function applyStorefrontMode(){
+  const mode = window.__STOREFRONT_MODE__ || 'both';
+  const previewB2C = new URLSearchParams(location.search).get('preview') === 'b2c';
+  if (mode === 'mayorista' && !previewB2C) {
+    mayoristaMode = true;
+    try { sessionStorage.setItem('zmayo', '1'); } catch {}
+    document.body.classList.add('storefront-mayorista-only');
+  }
+})();
 checkAge();
 initPromos();
 initHeroSlides();

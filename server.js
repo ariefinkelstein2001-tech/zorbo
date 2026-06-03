@@ -1075,6 +1075,28 @@ app.get('/api/cart-link', (req, res) => {
 
 // ─── Static frontend ──────────────────────────────────────────────────────────
 
+// Modo de tienda: 'both' (default), 'mayorista' (solo B2B, oculta B2C al público)
+// o 'b2c'. Controlado por env var STOREFRONT_MODE. Para previsualizar B2C
+// mientras esté oculto, abrir / con ?preview=b2c (chequeo en el frontend).
+const STOREFRONT_MODE = (() => {
+  const v = String(process.env.STOREFRONT_MODE || 'both').toLowerCase();
+  return ['both','mayorista','b2c'].includes(v) ? v : 'both';
+})();
+
+// Inyecta el modo en el <head> del index.html antes de servir el archivo
+// estático, así el frontend sabe el modo sin tener que esperar un fetch.
+function serveIndexWithMode(_req, res, next){
+  try {
+    const path = join(__dirname, 'public', 'index.html');
+    let html = readFileSync(path, 'utf8');
+    const marker = `<script>window.__STOREFRONT_MODE__ = ${JSON.stringify(STOREFRONT_MODE)};</script>`;
+    html = html.replace('</head>', marker + '\n</head>');
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (e) { next(e); }
+}
+app.get(['/', '/index.html'], serveIndexWithMode);
+
 app.use(express.static(join(__dirname, 'public')));
 // Archivos subidos (PDF/imágenes de producto). Cuando DATA_DIR está seteado
 // viven en el volumen, así que necesitan su propia ruta estática.
@@ -1452,7 +1474,9 @@ function sanitizeSiteConfig(input){
 
 // Pública: el home la lee al cargar. Devuelve {} si no hay config (usa defaults).
 app.get('/api/site-config', (_req, res) => {
-  res.json(loadSiteConfig());
+  const cfg = loadSiteConfig();
+  cfg.storefrontMode = STOREFRONT_MODE;
+  res.json(cfg);
 });
 
 app.get('/admin/site-config', requireAdmin, (_req, res) => {
