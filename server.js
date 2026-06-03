@@ -1424,7 +1424,7 @@ function sanitizeSiteConfig(input){
   out.botWelcome = arrStr(c.botWelcome, 8);
 
   // Home mayorista (B2B): banner, círculos, orden/títulos de secciones, bienvenida.
-  const MAYO_SECTION_KEYS = ['chelasBarril','packs','craftmixBarril','licoresBidon','licoresBotella'];
+  const MAYO_SECTION_KEYS = ['chelasBarril','packs','craftmixBarril','licoresBidon','licoresBotella','otros'];
   const m = (c.mayo && typeof c.mayo === 'object') ? c.mayo : {};
   out.mayo = {
     promos: arrStr(m.promos),

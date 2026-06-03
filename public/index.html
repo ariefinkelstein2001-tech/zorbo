@@ -3392,14 +3392,10 @@ async function showMayoristaStorefront(){
   const products = await loadMpCatalog();
   let mayoCfg = {};
   try { const rc = await fetch('/api/site-config'); if (rc.ok) mayoCfg = (await rc.json() || {}).mayo || {}; } catch {}
-  // 5 secciones nuevas (sin World Tour separado: los barriles invitados
-  // entran a CHELAS, los packs invitados entran a PACKS):
-  //   chelasBarril    → Kairos + Lanús + Osagui barriles
-  //   packs           → Kairos + Lanús + Osagui 24 packs
-  //   craftmixBarril  → Firulais barriles
-  //   licoresBidon    → Banny en bidón
-  //   licoresBotella  → Banny en botella
-  const groups = { chelasBarril:[], packs:[], craftmixBarril:[], licoresBidon:[], licoresBotella:[] };
+  // 6 secciones: las 5 base + "Otros" como catch-all (custom brands,
+  // accesorios como Recarga CO2, etc.). Lo que no calza en ninguna regla
+  // específica cae a Otros para no perder productos del catálogo.
+  const groups = { chelasBarril:[], packs:[], craftmixBarril:[], licoresBidon:[], licoresBotella:[], otros:[] };
 
   for (const p of products) {
     if (!p.variants || !p.variants.length) continue;
@@ -3418,15 +3414,21 @@ async function showMayoristaStorefront(){
                      : p;
       if (fmt === 'barril')   groups.chelasBarril.push(enriched);
       else if (fmt === 'pack') groups.packs.push(enriched);
+      else groups.otros.push(enriched);
     }
-    // Firulais → solo barriles a Craft Mix
+    // Firulais → barriles a Craft Mix, el resto a Otros
     else if (brand === 'firulais') {
       if (/barril/.test(t)) groups.craftmixBarril.push(p);
+      else groups.otros.push(p);
     }
     // Banny → bidón o botella
     else if (brand === 'banny') {
       if (/bid[oó]n/.test(t)) groups.licoresBidon.push(p);
       else groups.licoresBotella.push(p);
+    }
+    // Cualquier otra marca (custom como Del Puerto, accesorios, etc.) → Otros
+    else {
+      groups.otros.push(p);
     }
   }
 
@@ -3474,13 +3476,14 @@ async function showMayoristaStorefront(){
       </div>
     </div>`;
 
-  // 5 secciones fijas del mayorista (por formato). Orden y títulos editables.
+  // 6 secciones fijas del mayorista. Orden y títulos editables desde el panel.
   const MAYO_SECTIONS_META = {
     chelasBarril:   { id:'sec-mayo-chelas',          title:'Chelas · Barriles',  sub:'Barriles cerveceros · mayorista' },
     packs:          { id:'sec-mayo-packs',           title:'Packs',              sub:'24 pack 473cc · mayorista' },
     craftmixBarril: { id:'sec-mayo-craftmix',        title:'Craft Mix · Barril', sub:'Cheladas Firulais en barril' },
     licoresBidon:   { id:'sec-mayo-licores-bidon',   title:'Licores · Bidón',    sub:'Banny en bidón · gin, ron y más' },
     licoresBotella: { id:'sec-mayo-licores-botella', title:'Licores · Botella',  sub:'Banny en botella · gin, whiskey, ron' },
+    otros:          { id:'sec-mayo-otros',           title:'Otros',              sub:'Accesorios y productos varios · mayorista' },
   };
   const MAYO_KEYS = Object.keys(MAYO_SECTIONS_META);
   const savedOrder = Array.isArray(mayoCfg.sectionOrder) ? mayoCfg.sectionOrder.filter(k => MAYO_KEYS.includes(k)) : [];
