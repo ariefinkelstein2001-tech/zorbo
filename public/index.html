@@ -3057,18 +3057,19 @@ const OSAGUI_BANNER = 'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Ba
 const FIRULAIS_BANNER = 'https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Banner_Firulais.jpg';
 
 function detectMpBrand(p){
+  const v = String(p.vendor || '').toLowerCase();
   const t = (p.title || '').toLowerCase();
-  if (t.includes('lanús') || t.includes('lanus'))  return 'lanus';
-  if (t.includes('osagui'))                         return 'osagui';
-  if (t.includes('firulais') || t.includes('chelada')) return 'firulais';
-  if (t.includes('banny') || t.includes('gin ') || /\brum\b|\bron\b/.test(t)
-      || t.includes('whisky') || t.includes('whiskey') || t.includes('vermut')
-      || t.includes('mojito') || t.includes('rtd')) return 'banny';
-  return 'kairos';
-}
-function passesKairosMpFilter(p){
-  const t = (p.title || '').toLowerCase();
-  return /(\bapa\b|secret\s*lab|\bpils\b|nada\s*personal|golden|galactic\s*mission)/.test(t);
+  // Accesorios / no-cerveza primero: CO2, recargas, growlers vacíos, cilindros,
+  // grifería, taps, etc. → siempre a Otros independiente del vendor.
+  if (/\b(co2|co₂|recarga|cilindro|accesorio|tap|llave|grifo|griferia)\b/.test(t)) return 'otros';
+  if (v.includes('lanús') || v.includes('lanus') || t.includes('lanús') || t.includes('lanus')) return 'lanus';
+  if (v.includes('osagui') || t.includes('osagui')) return 'osagui';
+  if (v.includes('firulais') || t.includes('firulais') || t.includes('chelada')) return 'firulais';
+  if (v.includes('banny') || t.includes('banny')) return 'banny';
+  if (/\bgin\b|\brum\b|\bron\b|whisky|whiskey|vermut|mojito|rtd/.test(t)) return 'banny';
+  if (v.includes('kairos')) return 'kairos';
+  // Vendor desconocido (Del Puerto, OTROS, etc.) → Otros.
+  return 'otros';
 }
 function kairosFmt(p){
   const t = (p.title || '').toLowerCase();
@@ -3407,13 +3408,10 @@ async function showMayoristaStorefront(){
     const brand = detectMpBrand(p);
     const t = (p.title || '').toLowerCase();
 
-    // Cervezas (Kairos / Lanús / Osagui) → CHELAS o PACKS según formato
+    // Cervezas (Kairos / Lanús / Osagui) → CHELAS o PACKS según formato.
+    // Sin allowlist por nombre — confiamos en que el tag MAYORISTA ya filtró.
     if (brand === 'kairos' || brand === 'lanus' || brand === 'osagui') {
-      if (brand === 'kairos') {
-        // No-cerveza con marca default Kairos (Recarga CO2, accesorios) → Otros
-        if (!passesKairosMpFilter(p)) { groups.otros.push(p); continue; }
-        if (/nz\s*pils|new\s*zealand|nzpils/.test(t)) continue;
-      }
+      if (brand === 'kairos' && /nz\s*pils|new\s*zealand|nzpils/.test(t)) continue;
       const fmt = kairosFmt(p);
       const enriched = brand === 'lanus'  ? { ...p, _flag:'ar', _country:'Argentina' }
                      : brand === 'osagui' ? { ...p, _flag:'jp', _country:'Japón' }
@@ -3431,7 +3429,7 @@ async function showMayoristaStorefront(){
       if (/bid[oó]n/.test(t)) groups.licoresBidon.push(p);
       else groups.licoresBotella.push(p);
     }
-    // Cualquier otra marca (custom como Del Puerto, accesorios, etc.) → Otros
+    // CO2, recargas, marcas custom (Del Puerto, vendor "OTROS") → Otros
     else {
       groups.otros.push(p);
     }
