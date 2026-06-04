@@ -3328,8 +3328,10 @@ function tourIsVisible(el){
 
 let _tourIntroShown = false;
 function maybeShowTourIntro(){
-  // ── Modo "solo primera vez" (NO activo aún): descomenta para activarlo ──
-  // if (localStorage.getItem('zorbo_tour_done')) return;
+  // Modo ACTIVO: el tutorial sale SOLO la primera vez. Una vez visto o
+  // descartado, no vuelve a salir (flag en localStorage 'zorbo_tour_done').
+  // Para volver a probarlo: borra esa clave en localStorage.
+  if (localStorage.getItem('zorbo_tour_done')) return;
   if (_tourIntroShown) return;                                        // una vez por carga
   if (document.body.classList.contains('mayo-landing-mode')) return;  // NUNCA en el login
   if (tourActive) return;
@@ -3343,8 +3345,8 @@ function showTourIntro(){
 function tourIntroNo(){
   const el = document.getElementById('tourIntro');
   if (el) el.classList.remove('open');
-  // ── Modo "solo primera vez": descomenta para que no vuelva a salir ──
-  // try { localStorage.setItem('zorbo_tour_done','1'); } catch {}
+  // Solo primera vez: al descartar, no vuelve a salir.
+  try { localStorage.setItem('zorbo_tour_done','1'); } catch {}
 }
 function tourIntroYes(){
   const el = document.getElementById('tourIntro');
@@ -3465,8 +3467,8 @@ function tourEnd(){
   document.getElementById('tourNote').classList.remove('on');
   window.removeEventListener('resize', tourReposition);
   window.removeEventListener('scroll', tourReposition, true);
-  // ── Modo "solo primera vez": descomenta para que no vuelva a salir ──
-  // try { localStorage.setItem('zorbo_tour_done','1'); } catch {}
+  // Solo primera vez: al terminar/saltar, no vuelve a salir.
+  try { localStorage.setItem('zorbo_tour_done','1'); } catch {}
 }
 document.addEventListener('keydown', (e) => {
   if (!tourActive) return;
