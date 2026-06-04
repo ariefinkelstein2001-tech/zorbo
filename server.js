@@ -992,7 +992,7 @@ async function loadProductsCache(force = false){
 // ─── Colección "MAYORISTA EX" (clientes con tag MAYORISTA1) ──────────────────
 // Devuelve el set de IDs de producto que pertenecen a la colección. Cacheado.
 // El título es configurable por env (MAYO_EX_COLLECTION), default "MAYORISTA EX".
-const MAYO_EX_TITLE = (process.env.MAYO_EX_COLLECTION || 'MAYORISTA EX').trim();
+const MAYO_EX_TITLE = (process.env.MAYO_EX_COLLECTION || 'MAYORISTAS EX').trim();
 const MAYO_EX_TTL_MS = 10 * 60 * 1000;
 let mayoExCache = null;
 let mayoExCacheAt = 0;
