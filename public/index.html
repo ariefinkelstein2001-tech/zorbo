@@ -711,6 +711,12 @@ body.pdp-open{overflow:hidden}
 .pdp-desc p{margin-bottom:.85em}
 .pdp-desc p:last-child{margin-bottom:0}
 .pdp-desc-empty{color:#999;font-style:italic}
+/* Popup de marca (al tocar un logo en "Ver nuestras marcas") */
+.pdp-card.brand-pop .brand-pop-img{background:#fff}
+.pdp-card.brand-pop .brand-pop-img img{padding:46px;object-fit:contain}
+.pdp-card.brand-pop .pdp-acts{margin-top:20px}
+.pdp-card.brand-pop button.hp-add{flex:1}
+@media (max-width:720px){.pdp-card.brand-pop .brand-pop-img img{padding:32px}}
 .pdp-card .hp-variants{justify-content:flex-start;margin-top:4px;flex-wrap:wrap}
 .pdp-card .hp-variant{
   background:#fff;border:1.5px solid #ccc;color:#444;
@@ -2454,6 +2460,67 @@ function closePdp(){
   // limpio contenido para soltar referencias y descargar la imagen grande
   setTimeout(() => { if (!modal.classList.contains('open')) modal.innerHTML = ''; }, 250);
 }
+
+// ─── POPUP DE MARCA (al tocar un logo en "Ver nuestras marcas") ─────────────
+const BRAND_INFO = {
+  kairos: {
+    name:'Kairos Brewing', logo:'brands/kairos.png', tagline:'Cervecería artesanal · est. 2017',
+    desc:[
+      'Cervecería artesanal chilena nacida en 2017, con la misión de crear momentos únicos a través de la cerveza.',
+      'Cuatro pilares: calidad, innovación, alta tomabilidad y experiencia integral. De barril a lata, pensada para rotar rápido en tu local.',
+    ],
+  },
+  firulais: {
+    name:'Firulais', logo:'brands/firulais.png', tagline:'Craft Mix · Cheladas · est. 2025',
+    desc:[
+      'Cheladas artesanales con tono callejero, irreverente y perrísimo. Perrísimas desde el primer sorbo.',
+      'La puerta de entrada para quienes no toman cerveza pura — ideales para el carrete, el patio y el verano.',
+    ],
+  },
+  banny: {
+    name:'Banny by Kairos', logo:'brands/banny.png', tagline:'Destilados premium & RTD',
+    desc:[
+      'Destilados artesanales y Ready to Drink del grupo. Craft to be wild: sofisticado pero cercano.',
+      'Gin, ron, whisky, vermut y RTD listos para tomar. Para quienes quieren algo más que una cerveza, sin perder el carácter craft.',
+    ],
+  },
+};
+
+function openBrandInfo(key, target, fallbackLabel, fallbackLogo){
+  const info = BRAND_INFO[key] || {
+    name: fallbackLabel || 'Nuestra marca',
+    logo: fallbackLogo || '',
+    tagline: 'Marca del grupo Zorbo',
+    desc: ['Parte del marketplace craft de Zorbo.'],
+  };
+  const modal = document.getElementById('pdpModal');
+  if (!modal) return;
+  const descHtml = (info.desc || []).map(p => `<p>${escapeHtml(p)}</p>`).join('');
+  const cta = target ? `<button class="hp-add" onclick="brandPopGo('${target}')">VER PRODUCTOS</button>` : '';
+  modal.innerHTML = `
+    <div class="pdp-overlay" onclick="closePdp()"></div>
+    <div class="pdp-card brand-pop">
+      <button class="pdp-x" onclick="closePdp()" aria-label="Cerrar" title="Cerrar">
+        <span class="pdp-x-d">✕</span>
+        <span class="pdp-x-m"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/><line x1="8" y1="11" x2="14" y2="11"/></svg></span>
+      </button>
+      <div class="pdp-grid">
+        <div class="pdp-img brand-pop-img"><img src="${escapeHtml(info.logo || '')}" alt="${escapeHtml(info.name)}"></div>
+        <div class="pdp-body">
+          <span class="pdp-brand">${escapeHtml(info.tagline || '')}</span>
+          <h2 class="pdp-name">${escapeHtml(info.name)}</h2>
+          <div class="pdp-desc">${descHtml}</div>
+          <div class="hp-acts pdp-acts">${cta}</div>
+        </div>
+      </div>
+    </div>`;
+  modal.classList.add('open');
+  document.body.classList.add('pdp-open');
+}
+function brandPopGo(target){
+  closePdp();
+  setTimeout(() => hpScrollTo(target), 80);
+}
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePdp(); });
 
 function hpSelectVariant(btn){
@@ -3977,7 +4044,11 @@ async function showMayoristaStorefront(){
         { src:'brands/firulais.png', target:'sec-mayo-craftmix',  alt:'Firulais' },
         { src:'brands/banny.png',    target:'sec-mayo-licores-bidon', alt:'Banny' },
       ];
-  const mpCircle = (b, dup) => `<a class="hp-circle${dup ? ' hp-circle-dup' : ''}" onclick="hpScrollTo('${b.target}')"><img src="${b.src}" alt="${escapeHtml(b.alt)}"></a>`;
+  // Al tocar un logo se abre el popup de marca (no hace scroll directo).
+  const mpCircle = (b, dup) => {
+    const key = String(b.alt || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+    return `<a class="hp-circle${dup ? ' hp-circle-dup' : ''}" onclick="openBrandInfo('${key}','${b.target}','${escapeHtml(b.alt)}','${escapeHtml(b.src)}')"><img src="${b.src}" alt="${escapeHtml(b.alt)}"></a>`;
+  };
   const circleSet = mpBrands.map(b => mpCircle(b, false)).join('');
   const circleDup = mpBrands.map(b => mpCircle(b, true)).join('');
 
@@ -4040,8 +4111,8 @@ async function showMayoristaStorefront(){
   }).join('');
   const verProductos = `
     <div class="hp-verprod">
-      <span class="hp-verprod-label">Ver productos</span>
       <div class="mayo-nav">${navHtml}</div>
+      <span class="hp-verprod-label">Ver nuestras marcas</span>
       <div class="hp-circles">
         <div class="hp-circles-track">${circleSet}${circleDup}${circleDup}${circleDup}</div>
       </div>
