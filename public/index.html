@@ -2324,6 +2324,11 @@ function vInStock(v){
   if (typeof v.stock === 'number' && v.stock > 0) return true;
   return v.available !== false;
 }
+// Tope de cantidad por stock: número positivo si el inventario está trackeado,
+// o null si no (sin tope numérico, solo el máximo general).
+function vStockCap(v){
+  return (v && typeof v.stock === 'number' && v.stock > 0) ? v.stock : null;
+}
 
 function buildHpCard(p){
   const variants = p.variants || [];
@@ -2335,6 +2340,7 @@ function buildHpCard(p){
   const offTag = offPct ? `<span class="off">-${offPct}%</span>` : '';
   const img1 = (v0.image) || p.image || (p.images && p.images[0]) || null;
   const v0Stock = vInStock(v0);
+  const v0Cap = vStockCap(v0);
   const variantPills = variants.length > 1 ? `
     <div class="hp-variants">
       ${variants.map((v,i) => `
@@ -2343,6 +2349,7 @@ function buildHpCard(p){
                 data-price="${v.price}"
                 data-image="${v.image || ''}"
                 data-instock="${vInStock(v) ? '1' : '0'}"
+                data-stockn="${vStockCap(v) ?? ''}"
                 onclick="hpSelectVariant(this)">${escapeHtml(v.title)}</button>
       `).join('')}
     </div>` : '';
@@ -2355,6 +2362,7 @@ function buildHpCard(p){
     price,
     variantId: v0.id,
     image: img1,
+    stock: v0Cap,
   };
   if (p && p.id) HP_PRODUCT_MAP.set(String(p.id), p);
   const soldBadge = `<span class="hp-card-soldout"${v0Stock ? ' style="display:none"' : ''}>Agotado</span>`;
@@ -2370,7 +2378,7 @@ function buildHpCard(p){
     ${variantPills}
     <div class="hp-card-price">${oldP}$${price.toLocaleString('es-CL')}${offTag}</div>
     <div class="hp-acts">
-      <div class="hp-qty"><button onclick="hpQty(this,-1)">−</button><span class="v">1</span><button onclick="hpQty(this,1)">+</button></div>
+      <div class="hp-qty" data-max="${v0Cap ?? ''}"><button onclick="hpQty(this,-1)">−</button><span class="v">1</span><button onclick="hpQty(this,1)">+</button></div>
       ${addBtn}
     </div>
   </div>`;
@@ -2401,6 +2409,7 @@ function hpOpenProduct(pid){
   const descHtml = desc
     ? desc.split(/\n{2,}/).map(par => `<p>${escapeHtml(par).replace(/\n/g,'<br>')}</p>`).join('')
     : '<p class="pdp-desc-empty">Sin descripción disponible.</p>';
+  const v0Cap = vStockCap(v0);
   const variantPills = variants.length > 1 ? `
     <div class="hp-variants">
       ${variants.map((v,i) => `
@@ -2408,6 +2417,8 @@ function hpOpenProduct(pid){
                 data-vid="${v.id}"
                 data-price="${v.price}"
                 data-image="${v.image || ''}"
+                data-instock="${vInStock(v) ? '1' : '0'}"
+                data-stockn="${vStockCap(v) ?? ''}"
                 onclick="hpSelectVariant(this)">${escapeHtml(v.title)}</button>
       `).join('')}
     </div>` : '';
@@ -2420,6 +2431,7 @@ function hpOpenProduct(pid){
     price,
     variantId: v0.id,
     image: img1,
+    stock: v0Cap,
   };
   const modal = document.getElementById('pdpModal');
   if (!modal) return;
@@ -2442,7 +2454,7 @@ function hpOpenProduct(pid){
           <div class="pdp-desc">${descHtml}</div>
           ${variantPills}
           <div class="hp-acts pdp-acts">
-            <div class="hp-qty"><button onclick="hpQty(this,-1)">−</button><span class="v">1</span><button onclick="hpQty(this,1)">+</button></div>
+            <div class="hp-qty" data-max="${v0Cap ?? ''}"><button onclick="hpQty(this,-1)">−</button><span class="v">1</span><button onclick="hpQty(this,1)">+</button></div>
             <button class="hp-add" data-product='${JSON.stringify(productData).replace(/'/g,"&#39;")}' onclick="hpAdd(this)">AÑADIR AL CARRITO</button>
           </div>
         </div>
@@ -2545,12 +2557,22 @@ function hpSelectVariant(btn){
       setTimeout(() => { imgEl.src = newImg; imgEl.classList.remove('swap-out'); }, 150);
     }
   }
+  // Stock de la variante elegida → tope del contador (no pedir más del stock).
+  const stockN = parseInt(btn.dataset.stockn, 10);
+  const cap = Number.isFinite(stockN) && stockN > 0 ? stockN : null;
+  const qWrap = card.querySelector('.hp-qty');
+  if (qWrap) {
+    qWrap.dataset.max = cap != null ? String(cap) : '';
+    const vEl = qWrap.querySelector('.v');
+    if (vEl) vEl.textContent = Math.max(1, Math.min(hpQtyCap(qWrap), parseInt(vEl.textContent,10)||1));
+  }
   const addBtn = card.querySelector('.hp-add');
   if (addBtn) {
     const data = JSON.parse(addBtn.getAttribute('data-product').replace(/&#39;/g,"'"));
     data.variantId = newVid;
     data.price = newPrice;
     if (newImg) data.image = newImg;
+    data.stock = cap;
     addBtn.setAttribute('data-product', JSON.stringify(data).replace(/'/g,"&#39;"));
     // Stock de la variante elegida → habilita/deshabilita "Añadir" y la marca.
     const inStock = btn.dataset.instock !== '0';
@@ -2569,16 +2591,36 @@ function hpSelectVariant(btn){
   }
 }
 
+// Tope efectivo del contador: el menor entre 99 y el stock (data-max).
+function hpQtyCap(wrap){
+  const m = parseInt(wrap && wrap.dataset ? wrap.dataset.max : '', 10);
+  return (Number.isFinite(m) && m > 0) ? Math.min(99, m) : 99;
+}
 function hpQty(btn, delta){
-  const el = btn.closest('.hp-qty').querySelector('.v');
+  const wrap = btn.closest('.hp-qty');
+  const el = wrap && wrap.querySelector('.v');
   if (!el) return;
-  el.textContent = Math.max(1, Math.min(99, (parseInt(el.textContent,10)||1)+delta));
+  const cap = hpQtyCap(wrap);
+  el.textContent = Math.max(1, Math.min(cap, (parseInt(el.textContent,10)||1)+delta));
 }
 
 function hpAdd(btn){
   const data = JSON.parse(btn.getAttribute('data-product').replace(/&#39;/g,"'"));
-  const qty = parseInt(btn.closest('.hp-card').querySelector('.v').textContent,10) || 1;
+  const wrap = btn.closest('.hp-card').querySelector('.hp-qty');
+  let qty = parseInt(wrap.querySelector('.v').textContent,10) || 1;
   if (!data.variantId) return;
+  // No permitir pedir más del stock disponible (considerando lo que ya está en el carro).
+  const max = (typeof data.stock === 'number' && data.stock > 0) ? data.stock : null;
+  if (max){
+    const already = (cart.find(i => i.p.variantId === data.variantId) || {}).qty || 0;
+    const room = Math.max(0, max - already);
+    if (room <= 0){
+      btn.textContent = 'SIN STOCK';
+      setTimeout(() => { btn.textContent = 'AÑADIR AL CARRITO'; }, 1600);
+      return;
+    }
+    qty = Math.min(qty, room);
+  }
   addToCart(data, qty);
   btn.textContent = `✓ AGREGADO (${qty})`;
   btn.classList.add('done');
@@ -3231,14 +3273,26 @@ function autoResize(el) {
 // ─── CARRO ────────────────────────────────────────────────────────────────────
 function addToCart(p, qty = 1) {
   const ex = cart.find(i => i.p.name === p.name);
-  if (ex) ex.qty += qty;
-  else cart.push({ p, qty });
+  const max = (typeof p.stock === 'number' && p.stock > 0) ? p.stock : null;
+  if (ex) {
+    ex.qty += qty;
+    if (typeof p.stock === 'number') ex.p.stock = p.stock; // refresca el tope
+    if (max) ex.qty = Math.min(ex.qty, max);
+  } else {
+    if (max) qty = Math.min(qty, max);
+    cart.push({ p, qty });
+  }
   updateCart();
   toast(p);
 }
 function changeQty(idx, d) {
-  cart[idx].qty += d;
-  if (cart[idx].qty <= 0) cart.splice(idx, 1);
+  const it = cart[idx];
+  if (!it) return;
+  let next = it.qty + d;
+  const max = (typeof it.p.stock === 'number' && it.p.stock > 0) ? it.p.stock : null;
+  if (max) next = Math.min(next, max);
+  it.qty = next;
+  if (it.qty <= 0) cart.splice(idx, 1);
   updateCart();
 }
 function updateCart() {
