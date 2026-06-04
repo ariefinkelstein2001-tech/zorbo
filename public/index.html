@@ -3086,24 +3086,23 @@ function renderSidebarCatalog(groups, home){
   });
 }
 
-// Sidebar del MAYORISTA (B2B): catálogo agrupado por MARCA (Kairos, Firulais,
-// Banny, Lanús, Osagui…). Recibe la lista de productos del catálogo mayorista.
+// Sidebar del MAYORISTA (B2B): catálogo agrupado por MARCA. Lanús y Osagui son
+// líneas de Kairos → van DENTRO de Kairos. CO2/accesorios → Servicios.
 function renderMayoSidebar(products){
   const el = document.getElementById('hpSidebarBody');
   if (!el) return;
   const META = {
     kairos:   { label:'Kairos Brewing', logo:'brands/kairos.png' },
-    lanus:    { label:'Lanús',          logo:'' },
-    osagui:   { label:'Osagui',         logo:'' },
     firulais: { label:'Firulais',       logo:'brands/firulais.png' },
     banny:    { label:'Banny',          logo:'brands/banny.png' },
   };
-  const order = ['kairos', 'lanus', 'osagui', 'firulais', 'banny'];
+  const order = ['kairos', 'firulais', 'banny'];
   const buckets = {};
   for (const p of (products || [])) {
     if (!p.variants || !p.variants.length) continue;
     let b = detectMpBrand(p);
-    if (!META[b]) b = 'otros';
+    if (b === 'lanus' || b === 'osagui') b = 'kairos'; // son de Kairos
+    if (!META[b]) b = 'otros';                          // CO2/accesorios → Servicios
     (buckets[b] = buckets[b] || []).push(p);
   }
   const keys = [
@@ -3112,7 +3111,7 @@ function renderMayoSidebar(products){
   ];
   if (!keys.length) { el.innerHTML = '<div class="hp-sb-empty">Sin productos por ahora.</div>'; return; }
   el.innerHTML = keys.map(k => {
-    const meta = META[k] || { label:'Otros', logo:'' };
+    const meta = META[k] || { label:'Servicios', logo:'' };
     const items = buckets[k];
     const img = meta.logo ? `<img src="${meta.logo}" alt="${escapeHtml(meta.label)}">` : '';
     return `

@@ -905,12 +905,14 @@ function isMayoristaProduct(p) {
 
 function filterProducts(products, mode) {
   return products.filter(p => {
-    if (HIDE_HANDLES.has(p.handle)) return false;
-    if (HIDE_TITLE_RX.test(p.title || '')) return false;
     // El público SOLO ve productos activos (los borradores quedan ocultos).
     if (String(p.status || 'ACTIVE').toUpperCase() !== 'ACTIVE') return false;
     const isB2B = isMayoristaProduct(p);
+    // Mayorista: NO ocultamos recargas/CO2/accesorios — son insumos del local
+    // (van a la sección Servicios). Las reglas de ocultar son solo para B2C.
     if (mode === 'b2b') return isB2B;
+    if (HIDE_HANDLES.has(p.handle)) return false;
+    if (HIDE_TITLE_RX.test(p.title || '')) return false;
     if (mode === 'b2c') return !isB2B;
     return true; // mode === 'all'
   });
@@ -1239,7 +1241,7 @@ app.post('/api/mayo-products', async (req, res) => {
       // Si la colección no se puede resolver, NO mostramos todo el catálogo
       // (rompería la restricción). Devolvemos vacío + motivo para el frontend.
       const products = (ex.available && ex.found)
-        ? all.filter(p => ex.ids.has(String(p.id)) && isVisibleProduct(p))
+        ? all.filter(p => ex.ids.has(String(p.id)) && String(p.status || 'ACTIVE').toUpperCase() === 'ACTIVE')
         : [];
       return res.json({
         level, restricted: true, collection: MAYO_EX_TITLE,
