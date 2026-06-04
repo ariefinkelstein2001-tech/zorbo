@@ -3170,13 +3170,13 @@ function closePromoPopup(){
    termina en el chat con Zorbot.
 
    ── CUÁNDO APARECE ──────────────────────────────────────────────────
-   HOY: el popup inicial sale SIEMPRE que se entra (para editar/probar).
-   Para cambiarlo a "solo la primera vez que el usuario inicia sesión":
-     1) En maybeShowTourIntro(): descomenta la línea del localStorage guard.
+   HOY: el popup sale al ENTRAR a la plataforma ya logueado (cuando se monta
+   el storefront mayorista), una vez por carga de página. NUNCA en el landing
+   de login. Sigue saliendo siempre (para editar/probar).
+   Para cambiarlo a "solo la primera vez":
+     1) En maybeShowTourIntro(): descomenta el guard de localStorage.
      2) En tourIntroNo() y tourEnd(): descomenta el localStorage.setItem(...)
-        (así, una vez visto o descartado, no vuelve a salir).
-     3) Opcional: en vez de dispararlo en el arranque, llamá a
-        maybeShowTourIntro() dentro de mayoLogin() tras un login exitoso.
+        (así, una vez visto o descartado, no vuelve a salir nunca más).
    ════════════════════════════════════════════════════════════════════ */
 
 // Pasos del tour: cada uno apunta a uno o más selectores; se usa el PRIMERO
@@ -3214,9 +3214,14 @@ function tourIsVisible(el){
   return st.display !== 'none' && st.visibility !== 'hidden' && +st.opacity !== 0;
 }
 
+let _tourIntroShown = false;
 function maybeShowTourIntro(){
   // ── Modo "solo primera vez" (NO activo aún): descomenta para activarlo ──
   // if (localStorage.getItem('zorbo_tour_done')) return;
+  if (_tourIntroShown) return;                                        // una vez por carga
+  if (document.body.classList.contains('mayo-landing-mode')) return;  // NUNCA en el login
+  if (tourActive) return;
+  _tourIntroShown = true;
   showTourIntro();
 }
 function showTourIntro(){
@@ -4525,6 +4530,8 @@ async function showMayoristaStorefront(){
   renderMayoSidebar(products);
   // Botón "Repetir último pedido" (recompra) — se monta async según historial.
   mountReorderButton(customer.email);
+  // Tour guiado: ya dentro de la plataforma (logueado), nunca en el landing.
+  setTimeout(() => { try { maybeShowTourIntro(); } catch (e) { console.warn('tour:', e); } }, 900);
 }
 
 // Header mayorista: pone el nav de categorías y la cuenta/cerrar sesión en la
@@ -5168,11 +5175,8 @@ updateCart();
 if (!mayoristaMode) {
   try { showStorefront(); } catch (e) { console.warn('eager showStorefront:', e); }
 }
-
-// Tour guiado: el popup inicial sale SIEMPRE por ahora (ver maybeShowTourIntro
-// para cambiarlo a "solo la primera vez que inicia sesión"). Esperamos a que
-// el storefront se monte antes de mostrarlo.
-setTimeout(() => { try { maybeShowTourIntro(); } catch (e) { console.warn('tour:', e); } }, 1700);
+// El tour NO se dispara en el arranque: se llama desde showMayoristaStorefront()
+// cuando el usuario ya está dentro (logueado), nunca en el landing de login.
 </script>
 </body>
 </html>
