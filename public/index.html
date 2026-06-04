@@ -1258,6 +1258,7 @@ header .account-chip{margin-left:auto}
 .cart-empty-msg{padding:2.8rem 1rem;text-align:center;color:var(--dim);font-size:.85rem;line-height:1.7;font-weight:300}
 .ci{display:flex;gap:.6rem;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:.58rem .68rem;margin-bottom:.45rem}
 .ci-em{font-size:1.2rem;flex-shrink:0}
+.ci-img{width:42px;height:42px;flex-shrink:0;border-radius:8px;background:#fff;object-fit:contain;padding:3px;border:1px solid var(--border)}
 .ci-info{flex:1;min-width:0}
 .ci-name{font-size:.79rem;font-weight:600;line-height:1.25}
 .ci-unit{font-size:.64rem;color:var(--dim)}
@@ -3711,7 +3712,9 @@ function updateCart() {
   } else {
     body.innerHTML = cart.map((item, idx) => `
       <div class="ci">
-        <span class="ci-em">${item.p.emoji}</span>
+        ${item.p.image
+          ? `<img class="ci-img" src="${item.p.image}" alt="${escapeHtml(item.p.name)}" onerror="this.outerHTML='<span class=&quot;ci-em&quot;>${item.p.emoji || '🍺'}</span>'">`
+          : `<span class="ci-em">${item.p.emoji || '🍺'}</span>`}
         <div class="ci-info">
           <div class="ci-name">${escapeHtml(item.p.name)}</div>
           <div class="ci-unit">$${item.p.price.toLocaleString('es-CL')} c/u</div>
