@@ -2838,27 +2838,46 @@ function renderSidebarCatalog(groups, home){
   });
 }
 
-// Sidebar del MAYORISTA (B2B): catálogo por las 4 categorías, no por marcas B2C.
-function renderMayoSidebar(groups){
+// Sidebar del MAYORISTA (B2B): catálogo agrupado por MARCA (Kairos, Firulais,
+// Banny, Lanús, Osagui…). Recibe la lista de productos del catálogo mayorista.
+function renderMayoSidebar(products){
   const el = document.getElementById('hpSidebarBody');
   if (!el) return;
-  const cats = [
-    { key:'cervezas',  label:'Cervezas',  items:[...(groups.chelasBarril||[]), ...(groups.packs||[])] },
-    { key:'licores',   label:'Licores',   items:[...(groups.licoresBidon||[]), ...(groups.licoresBotella||[])] },
-    { key:'craftmix',  label:'Craft Mix', items:[...(groups.craftmixBarril||[]), ...(groups.craftmixPack||[])] },
-    { key:'servicios', label:'Servicios', items:[...(groups.servicios||[])] },
-  ].filter(c => c.items.length);
-  if (!cats.length) { el.innerHTML = '<div class="hp-sb-empty">Sin productos por ahora.</div>'; return; }
-  el.innerHTML = cats.map(c => `
-    <div class="hp-sb-brand" data-brand="${c.key}">
+  const META = {
+    kairos:   { label:'Kairos Brewing', logo:'brands/kairos.png' },
+    lanus:    { label:'Lanús',          logo:'' },
+    osagui:   { label:'Osagui',         logo:'' },
+    firulais: { label:'Firulais',       logo:'brands/firulais.png' },
+    banny:    { label:'Banny',          logo:'brands/banny.png' },
+  };
+  const order = ['kairos', 'lanus', 'osagui', 'firulais', 'banny'];
+  const buckets = {};
+  for (const p of (products || [])) {
+    if (!p.variants || !p.variants.length) continue;
+    let b = detectMpBrand(p);
+    if (!META[b]) b = 'otros';
+    (buckets[b] = buckets[b] || []).push(p);
+  }
+  const keys = [
+    ...order.filter(k => buckets[k] && buckets[k].length),
+    ...((buckets.otros && buckets.otros.length) ? ['otros'] : []),
+  ];
+  if (!keys.length) { el.innerHTML = '<div class="hp-sb-empty">Sin productos por ahora.</div>'; return; }
+  el.innerHTML = keys.map(k => {
+    const meta = META[k] || { label:'Otros', logo:'' };
+    const items = buckets[k];
+    const img = meta.logo ? `<img src="${meta.logo}" alt="${escapeHtml(meta.label)}">` : '';
+    return `
+    <div class="hp-sb-brand" data-brand="${k}">
       <button class="hp-sb-brand-h" data-acc>
-        <span>${escapeHtml(c.label)}</span>
-        <span class="n">${c.items.length}</span><span class="hp-sb-arrow">▸</span>
+        ${img}<span>${escapeHtml(meta.label)}</span>
+        <span class="n">${items.length}</span><span class="hp-sb-arrow">▸</span>
       </button>
       <div class="hp-sb-prods">
-        ${c.items.slice(0,80).map(p => `<button class="hp-sb-prod" data-pid="${p.id||''}" title="${escapeHtml(cleanHpTitle(p.title))}">${escapeHtml(cleanHpTitle(p.title))}</button>`).join('')}
+        ${items.slice(0,80).map(p => `<button class="hp-sb-prod" data-pid="${p.id||''}" title="${escapeHtml(cleanHpTitle(p.title))}">${escapeHtml(cleanHpTitle(p.title))}</button>`).join('')}
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   el.querySelectorAll('.hp-sb-brand-h[data-acc]').forEach(h => {
     h.onclick = () => h.closest('.hp-sb-brand').classList.toggle('open');
   });
@@ -4066,8 +4085,8 @@ async function showMayoristaStorefront(){
   hpInitHero();
   // Nav de categorías + cuenta en el HEADER (misma línea que el logo, desktop).
   fillMayoHeader(navHtml, customer);
-  // Catálogo del sidebar (☰) en versión B2B: por categorías mayoristas.
-  renderMayoSidebar(groups);
+  // Catálogo del sidebar (☰) en versión B2B: agrupado por marca.
+  renderMayoSidebar(products);
   // Botón "Repetir último pedido" (recompra) — se monta async según historial.
   mountReorderButton(customer.email);
 }
