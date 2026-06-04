@@ -415,14 +415,30 @@ header .mayo-hacct .mayo-logout-btn{
   padding:7px 13px;border-radius:10px;transition:all .15s;white-space:nowrap;
 }
 header .mayo-hacct .mayo-logout-btn:hover{background:#111;color:#fff}
-/* Desktop: el nav/cuenta del cuerpo se ocultan (viven en el header) */
-@media(min-width:761px){
-  .shop-page .mayo-account-bar{display:none}
-  .shop-page .hp-verprod .mayo-nav{display:none}
-}
-/* Mobile: el nav/cuenta del header se ocultan (viven en el cuerpo) */
+/* El nav y la cuenta viven SIEMPRE en el header (desktop y mobile), nunca en
+   el cuerpo, para que no se corten ni dupliquen. */
+.shop-page .mayo-account-bar{display:none}
+.shop-page .hp-verprod .mayo-nav{display:none}
+/* Desktop: el botón de cerrar sesión muestra texto (no el ícono) */
+header .mayo-hacct .mayo-logout-btn .ml-ico{display:none}
+
+/* Mobile: header en 2 filas. Fila 1: ☰ logo · cuenta · carro. Fila 2: nav
+   de categorías (scroll horizontal). El logout se vuelve un ícono de persona. */
 @media(max-width:760px){
-  header .mayo-hnav,header .mayo-hacct{display:none}
+  header{flex-wrap:wrap;row-gap:8px}
+  header .mayo-hnav{
+    position:static;transform:none;order:10;width:100%;
+    justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;
+    gap:7px;padding-bottom:2px;scrollbar-width:none;
+  }
+  header .mayo-hnav::-webkit-scrollbar{display:none}
+  header .mayo-hnav .mayo-nav-item{flex-shrink:0}
+  header .mayo-hnav .mayo-nav-btn{padding:7px 12px;font-size:13px}
+  header .mayo-hacct{display:flex;margin-left:auto;gap:6px}
+  header .mayo-hacct .mayo-account-who{display:none}
+  header .mayo-hacct .mayo-logout-btn .ml-txt{display:none}
+  header .mayo-hacct .mayo-logout-btn .ml-ico{display:inline;font-size:17px}
+  header .mayo-hacct .mayo-logout-btn{width:40px;height:40px;padding:0;border-radius:50%;justify-content:center}
 }
 
 @media(max-width:600px){
@@ -1450,7 +1466,7 @@ body.mayorista-active .free-badge{display:none !important}
   header{padding:.6rem .8rem;gap:.55rem}
   .logo-sub{display:none}
   .messages{padding:1.1rem .75rem .75rem}
-  .input-wrap{padding:.6rem .75rem .65rem}
+  .input-wrap{padding:.6rem .75rem calc(.65rem + env(safe-area-inset-bottom))}
   .msg-col{max-width:90%}
   .row.user .msg-col{max-width:86%}
   .bubble{font-size:.85rem}
@@ -2859,24 +2875,43 @@ function hpScrollTo(id){
 }
 
 // ─── NAV MAYORISTA: 4 categorías con desplegable ────────────────────────────
+function closeMayoNav(){
+  document.querySelectorAll('.mayo-nav-item.open').forEach(i => {
+    i.classList.remove('open');
+    const d = i.querySelector('.mayo-nav-drop');
+    if (d){ d.style.position=''; d.style.top=''; d.style.left=''; d.style.transform=''; }
+  });
+}
 function mayoNavToggle(btn, ev){
   if (ev) ev.stopPropagation();
   const item = btn.closest('.mayo-nav-item');
   const wasOpen = item.classList.contains('open');
-  document.querySelectorAll('.mayo-nav-item.open').forEach(i => i.classList.remove('open'));
-  if (!wasOpen) item.classList.add('open');
+  closeMayoNav();
+  if (!wasOpen){
+    item.classList.add('open');
+    // En mobile el nav del header tiene scroll horizontal (recorta lo de abajo):
+    // posicionamos el desplegable como FIXED bajo el botón para que no se corte.
+    if (window.innerWidth <= 760){
+      const drop = item.querySelector('.mayo-nav-drop');
+      if (drop){
+        const r = btn.getBoundingClientRect();
+        drop.style.position = 'fixed';
+        drop.style.top = (r.bottom + 6) + 'px';
+        drop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 168)) + 'px';
+        drop.style.transform = 'none';
+      }
+    }
+  }
 }
 function mayoNavGo(target){
-  document.querySelectorAll('.mayo-nav-item.open').forEach(i => i.classList.remove('open'));
+  closeMayoNav();
   hpScrollTo(target);
 }
 // Cerrar desplegables al click fuera (se registra una sola vez).
 if (!window._mayoNavInit){
   window._mayoNavInit = true;
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.mayo-nav-item')) {
-      document.querySelectorAll('.mayo-nav-item.open').forEach(i => i.classList.remove('open'));
-    }
+    if (!e.target.closest('.mayo-nav-item')) closeMayoNav();
   });
 }
 
@@ -4681,7 +4716,9 @@ function fillMayoHeader(navHtml, customer){
   if (hacct) {
     const who = escapeHtml((customer && (customer.first_name || customer.email)) || 'Mi cuenta');
     hacct.innerHTML = `<span class="mayo-account-who">👤 ${who}</span>` +
-      `<button class="mayo-logout-btn" onclick="logoutMayorista()">Cerrar sesión</button>`;
+      `<button class="mayo-logout-btn" onclick="logoutMayorista()" aria-label="Cerrar sesión" title="Cerrar sesión">` +
+        `<span class="ml-ico">👤</span><span class="ml-txt">Cerrar sesión</span>` +
+      `</button>`;
   }
   // El chip de cuenta del header se reemplaza por esta barra.
   const chip = document.getElementById('accountChip');
