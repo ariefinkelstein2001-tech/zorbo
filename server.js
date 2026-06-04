@@ -868,9 +868,20 @@ async function shopifyGetCustomerByEmail(email) {
   return (r.customers && r.customers[0]) || null;
 }
 
+// Nivel de acceso mayorista según los tags del cliente:
+//   'ex'  → tag MAYORISTA1: SOLO ve la colección "MAYORISTA EX"
+//   'all' → tag MAYORISTA:  ve todos los productos mayoristas
+//   null  → sin acceso mayorista
+// MAYORISTA1 tiene precedencia (es el segmento restringido).
+function mayoLevelFromTags(tags) {
+  const up = String(tags || '').split(',').map(t => t.trim().toUpperCase());
+  if (up.includes('MAYORISTA1')) return 'ex';
+  if (up.includes('MAYORISTA'))  return 'all';
+  return null;
+}
+
 function customerHasMayoristaTag(customer) {
-  if (!customer || !customer.tags) return false;
-  return customer.tags.split(',').map(t => t.trim().toUpperCase()).includes('MAYORISTA1');
+  return !!mayoLevelFromTags(customer && customer.tags);
 }
 
 let productsCache = null;
@@ -976,6 +987,89 @@ async function loadProductsCache(force = false){
   productsCache = { products, fetchedAt: new Date().toISOString() };
   productsCacheAt = Date.now();
   return products;
+}
+
+// ─── Colección "MAYORISTA EX" (clientes con tag MAYORISTA1) ──────────────────
+// Devuelve el set de IDs de producto que pertenecen a la colección. Cacheado.
+// El título es configurable por env (MAYO_EX_COLLECTION), default "MAYORISTA EX".
+const MAYO_EX_TITLE = (process.env.MAYO_EX_COLLECTION || 'MAYORISTA EX').trim();
+const MAYO_EX_TTL_MS = 10 * 60 * 1000;
+let mayoExCache = null;
+let mayoExCacheAt = 0;
+
+async function loadMayoExProductIds(force = false) {
+  if (!force && mayoExCache && Date.now() - mayoExCacheAt < MAYO_EX_TTL_MS) return mayoExCache;
+  if (!process.env.SHOPIFY_ADMIN_TOKEN) return { available: false, found: false, ids: new Set(), reason: 'Shopify no conectado.' };
+  try {
+    // 1) Ubicar la colección por título (match exacto, case-insensitive).
+    const cq = await shopifyAdminFetch('/graphql.json', {
+      method: 'POST',
+      body: JSON.stringify({
+        query: `query($q:String!){ collections(first:10, query:$q){ edges{ node{ id title } } } }`,
+        variables: { q: `title:'${MAYO_EX_TITLE.replace(/'/g, '')}'` },
+      }),
+    });
+    if (cq.errors) throw new Error(JSON.stringify(cq.errors));
+    const edges = cq.data?.collections?.edges || [];
+    const want = MAYO_EX_TITLE.toUpperCase();
+    const match = edges.find(e => String(e.node.title || '').trim().toUpperCase() === want) || edges[0];
+    if (!match) {
+      mayoExCache = { available: true, found: false, ids: new Set(), title: MAYO_EX_TITLE };
+      mayoExCacheAt = Date.now();
+      return mayoExCache;
+    }
+    // 2) Paginar los productos de la colección.
+    const ids = new Set();
+    let cursor = null;
+    for (let i = 0; i < 20; i++) {
+      const pr = await shopifyAdminFetch('/graphql.json', {
+        method: 'POST',
+        body: JSON.stringify({
+          query: `query($id:ID!,$cursor:String){ collection(id:$id){ products(first:250, after:$cursor){ edges{ node{ id } } pageInfo{ hasNextPage } } } }`,
+          variables: { id: match.node.id, cursor },
+        }),
+      });
+      if (pr.errors) throw new Error(JSON.stringify(pr.errors));
+      const conn = pr.data?.collection?.products;
+      if (!conn) break;
+      for (const e of conn.edges) ids.add(stripGid(e.node.id, 'Product'));
+      if (!conn.pageInfo.hasNextPage) break;
+      cursor = conn.edges[conn.edges.length - 1].cursor;
+    }
+    mayoExCache = { available: true, found: true, ids, title: match.node.title };
+    mayoExCacheAt = Date.now();
+    return mayoExCache;
+  } catch (e) {
+    return { available: false, found: false, ids: new Set(), reason: String(e.message || e).slice(0, 200) };
+  }
+}
+
+// Nivel mayorista de un cliente por email (cacheado, evita golpear Shopify en
+// cada mensaje del chat). Devuelve 'all' | 'ex' | null.
+const CUST_LEVEL_TTL_MS = 10 * 60 * 1000;
+const custLevelCache = new Map(); // email → { level, at }
+
+async function getCustomerMayoLevel(email) {
+  const norm = normEmail(email);
+  if (!norm) return null;
+  const hit = custLevelCache.get(norm);
+  if (hit && Date.now() - hit.at < CUST_LEVEL_TTL_MS) return hit.level;
+  try {
+    const customer = await shopifyGetCustomerByEmail(norm);
+    const level = customer ? mayoLevelFromTags(customer.tags) : null;
+    custLevelCache.set(norm, { level, at: Date.now() });
+    return level;
+  } catch {
+    return null;
+  }
+}
+
+// Visibilidad base (mismas reglas que filterProducts, reutilizable para EX).
+function isVisibleProduct(p) {
+  if (HIDE_HANDLES.has(p.handle)) return false;
+  if (HIDE_TITLE_RX.test(p.title || '')) return false;
+  if (String(p.status || 'ACTIVE').toUpperCase() !== 'ACTIVE') return false;
+  return true;
 }
 
 // ─── Órdenes Shopify (para analítica de ventas) ─────────────────────────────
@@ -1122,6 +1216,43 @@ app.get('/api/products', async (req, res) => {
   } catch (e) {
     console.error('Shopify products error:', e.message);
     res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/mayo-products — catálogo mayorista filtrado por nivel del cliente.
+// El nivel se resuelve SERVER-SIDE desde los tags del cliente (por email), no
+// se confía en el cliente. MAYORISTA1 → solo colección "MAYORISTA EX";
+// MAYORISTA (o guest del equipo) → todos los productos mayoristas.
+app.post('/api/mayo-products', async (req, res) => {
+  if (!process.env.SHOPIFY_ADMIN_TOKEN) {
+    return res.status(503).json({ error: 'Shopify aún no está conectado. Falta SHOPIFY_ADMIN_TOKEN.' });
+  }
+  const email = normEmail(req.body && req.body.email);
+  try {
+    const all = await loadProductsCache(req.body && req.body.refresh === true) || [];
+    let level = email ? (await getCustomerMayoLevel(email)) : null;
+    // Sin email (preview ?mayo=guest del equipo) o sin tag reconocido → 'all'.
+    if (!level) level = 'all';
+
+    if (level === 'ex') {
+      const ex = await loadMayoExProductIds(false);
+      // Si la colección no se puede resolver, NO mostramos todo el catálogo
+      // (rompería la restricción). Devolvemos vacío + motivo para el frontend.
+      const products = (ex.available && ex.found)
+        ? all.filter(p => ex.ids.has(String(p.id)) && isVisibleProduct(p))
+        : [];
+      return res.json({
+        level, restricted: true, collection: MAYO_EX_TITLE,
+        exAvailable: !!(ex.available && ex.found),
+        reason: (ex.available && ex.found) ? undefined : (ex.reason || `No se encontró la colección "${MAYO_EX_TITLE}".`),
+        count: products.length, products,
+      });
+    }
+    const products = filterProducts(all, 'b2b');
+    return res.json({ level, restricted: false, count: products.length, products });
+  } catch (e) {
+    console.error('mayo-products error:', e.message);
+    return res.status(500).json({ error: e.message });
   }
 });
 
@@ -3171,11 +3302,22 @@ app.post('/chat', async (req, res) => {
       const all = await loadProductsCache(false);
       if (all) {
         const isB2B = mayorista || session.isB2B;
-        const tagFilter = isB2B ? 'MAYORISTA' : 'ZORBO';
-        liveCatalog = all
-          .filter(p => String(p.status || 'ACTIVE').toUpperCase() === 'ACTIVE')
-          .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes(tagFilter))
-          .map(p => ({ id: String(p.id), title: p.title, type: p.type, vendor: p.vendor }));
+        // Cliente MAYORISTA1 → el bot SOLO puede recomendar de la colección
+        // "MAYORISTA EX". Resolvemos el nivel por email (cacheado).
+        const mayoLevel = (isB2B && customerEmail) ? await getCustomerMayoLevel(customerEmail) : null;
+        const active = all.filter(p => String(p.status || 'ACTIVE').toUpperCase() === 'ACTIVE');
+        if (isB2B && mayoLevel === 'ex') {
+          const ex = await loadMayoExProductIds(false);
+          const inEx = (ex.available && ex.found) ? ex.ids : new Set();
+          liveCatalog = active
+            .filter(p => inEx.has(String(p.id)))
+            .map(p => ({ id: String(p.id), title: p.title, type: p.type, vendor: p.vendor }));
+        } else {
+          const tagFilter = isB2B ? 'MAYORISTA' : 'ZORBO';
+          liveCatalog = active
+            .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes(tagFilter))
+            .map(p => ({ id: String(p.id), title: p.title, type: p.type, vendor: p.vendor }));
+        }
       }
     } catch (e) { console.warn('liveCatalog warm:', e.message); }
   }
@@ -3351,10 +3493,14 @@ app.post('/mayorista/login', async (req, res) => {
     const customer = await shopifyGetCustomerByEmail(email);
     if (!customer) return res.status(404).json({ error: 'No encontramos tu cuenta en Kairos.' });
 
-    const isMayorista = customerHasMayoristaTag(customer);
+    const level = mayoLevelFromTags(customer.tags); // 'all' | 'ex' | null
+    const isMayorista = !!level;
+    // Refrescamos la caché de nivel para que el bot/catálogo lo tengan al toque.
+    if (customer.email) custLevelCache.set(normEmail(customer.email), { level, at: Date.now() });
     return res.json({
       ok: true,
       isMayorista,
+      level,
       status: isMayorista ? 'approved' : 'pending',
       customer: {
         first_name: customer.first_name,

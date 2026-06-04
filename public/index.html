@@ -3177,6 +3177,7 @@ function logoutMayorista(){
   mayoristaMode = false;
   sessionStorage.removeItem('zmayo');
   sessionStorage.removeItem('zmayo_customer');
+  MP_CACHE = null; MP_CACHE_AT = 0; // el catálogo depende del cliente: invalidar
   document.body.classList.remove('mayorista-active');
   hideAccountChip();
   // Limpia el chat (descarta la sesión mayorista) y re-monta el storefront B2C
@@ -3335,14 +3336,31 @@ function mpAdd(btn){
 let MP_CACHE = null, MP_CACHE_AT = 0;
 async function loadMpCatalog(){
   if (MP_CACHE && Date.now() - MP_CACHE_AT < 5*60*1000) return MP_CACHE;
+  // El catálogo se filtra SERVER-SIDE según el tag del cliente: MAYORISTA1 solo
+  // ve la colección "MAYORISTA EX"; MAYORISTA ve todo. Mandamos el email para
+  // que el server resuelva el nivel (no lo decide el cliente).
+  let email = '';
+  try { const c = JSON.parse(sessionStorage.getItem('zmayo_customer') || '{}'); email = c.email || ''; } catch {}
   try {
-    const r = await fetch('/api/products?mode=b2b');
+    const r = await fetch('/api/mayo-products', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email }),
+    });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
     MP_CACHE = data.products || [];
     MP_CACHE_AT = Date.now();
     return MP_CACHE;
-  } catch (e) { console.error('loadMpCatalog:', e); return []; }
+  } catch (e) {
+    console.error('loadMpCatalog:', e);
+    // Fallback al catálogo b2b general si el endcoint nuevo falla.
+    try {
+      const r = await fetch('/api/products?mode=b2b');
+      const d = await r.json();
+      MP_CACHE = d.products || []; MP_CACHE_AT = Date.now();
+      return MP_CACHE;
+    } catch { return []; }
+  }
 }
 
 function buildKairosSection(barril, pack){
@@ -4312,11 +4330,13 @@ async function mayoLogin(){
       err.classList.add('show');
       return;
     }
-    // Login OK — pero el acceso mayorista depende del tag MAYORISTA1
+    // Login OK — el acceso depende del tag MAYORISTA o MAYORISTA1 (data.level)
     if (data.isMayorista) {
       mayoristaMode = true;
       sessionStorage.setItem('zmayo', '1');
       try { sessionStorage.setItem('zmayo_customer', JSON.stringify(data.customer || {})); } catch {}
+      try { if (data.level) sessionStorage.setItem('zmayo_level', data.level); } catch {}
+      MP_CACHE = null; MP_CACHE_AT = 0; // catálogo según nivel del cliente: invalidar
       markMayoristaActive();
       showAccountChip(data.customer || {});
       resetChatSession();
