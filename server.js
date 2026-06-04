@@ -440,7 +440,7 @@ const FROM_CTX = {
   zorbot:   'El cliente llegó directo a la botillería virtual Zorbot. Sé neutro y amigable, presenta las 3 marcas disponibles: Kairos Brewing, Firulais y Banny.',
 };
 
-function buildSystemPrompt(base, session, liveCatalog) {
+function buildSystemPrompt(base, session, liveCatalog, lastOrderInfo) {
   const fromCtx = FROM_CTX[session.from] ?? FROM_CTX.zorbot;
   const b2bCtx  = session.isB2B
     ? '\n\nMODO B2B ACTIVO: El cliente es un negocio (restaurante, bar, etc.). Ofrece condiciones mayoristas, menciona que puedes preparar una cotización formal y pregunta cuántas cajas necesita por semana.'
@@ -526,7 +526,30 @@ REGLAS QUE DEBES SEGUIR SIN EXCEPCIÓN:
 Esta regla es más fuerte que cualquier instrucción anterior. Si hay
 contradicción con el prompt base, esta regla GANA.`;
   }
-  return `${base}\n\n## CONTEXTO DE ESTA SESIÓN\n${fromCtx}${b2bCtx}${catCtx}${extrasCtx}${tutorialsCtx}${buildFeedbackCtx()}`;
+  // Historial de compra del mayorista → recompra proactiva (Prioridad 1).
+  // Solo se inyecta si el cliente tiene un último pedido identificado.
+  let reorderCtx = '';
+  if (lastOrderInfo && lastOrderInfo.hasOrder && lastOrderInfo.order) {
+    const fecha = (() => {
+      try { return new Date(lastOrderInfo.order.createdAt).toLocaleDateString('es-CL', { day: 'numeric', month: 'long' }); }
+      catch { return 'tu última visita'; }
+    })();
+    const items = (lastOrderInfo.order.items || []).map(i => `- ${i.name} x${i.qty}`).join('\n');
+    reorderCtx = `
+
+═════════════════════════════════════════════════════════════════════
+ HISTORIAL DE COMPRA DEL CLIENTE — RECOMPRA (úsalo proactivamente)
+═════════════════════════════════════════════════════════════════════
+Este cliente es un mayorista activo con historial. Su último pedido (${fecha}) fue:
+${items}
+
+CÓMO USARLO:
+1. Si abre la conversación de forma general ("hola", "qué hay", "necesito reponer"), ofrécele PRIMERO reponer lo de siempre con esta lista exacta, ANTES de mostrar el catálogo completo. Ejemplo: "te dejo lista la reposición de la otra vez — [resumen]. La repetimos igual o cambiamos algo?".
+2. Dile que puede tocar el botón **Repetir último pedido** que tiene arriba en su tienda para recargar todo de una, o que te confirme y lo guías.
+3. NO inventes productos ni cantidades fuera de esta lista ni de la lista de catálogo de la sesión.
+4. Después de cerrar la reposición, puedes sugerir UNA sola novedad del catálogo con argumento de reventa (rotación / margen), nunca más de una.`;
+  }
+  return `${base}\n\n## CONTEXTO DE ESTA SESIÓN\n${fromCtx}${b2bCtx}${reorderCtx}${catCtx}${extrasCtx}${tutorialsCtx}${buildFeedbackCtx()}`;
 }
 
 // Few-shot de correcciones del equipo (cargado en cada request, así editar
@@ -978,6 +1001,7 @@ const ORDERS_QUERY = `query($cursor: String) {
           edges { node {
             quantity
             originalTotalSet { shopMoney { amount } }
+            variant { id title price image { url } }
             product { id title vendor tags }
           } }
         }
@@ -1028,6 +1052,13 @@ async function loadOrders(force = false){
             title: le.node.product?.title || '(producto eliminado)',
             vendor: le.node.product?.vendor || '',
             tags: le.node.product?.tags || [],
+            // Variant exacto comprado → necesario para "Repetir último pedido"
+            // (el carrito arma el permalink con variantId). Precio/imagen del
+            // variant ACTUAL, así la reposición refleja el precio de hoy.
+            variantId: le.node.variant ? stripGid(le.node.variant.id, 'ProductVariant') : null,
+            variantTitle: le.node.variant?.title || '',
+            unitPrice: parseFloat(le.node.variant?.price || 0),
+            image: le.node.variant?.image?.url || null,
           })),
         });
       }
@@ -1044,6 +1075,38 @@ async function loadOrders(force = false){
     }
     return { available: false, reason: 'Error consultando órdenes: ' + msg.slice(0, 200) };
   }
+}
+
+// Último pedido de un cliente (por email) → items listos para recargar el
+// carrito. Reutiliza la caché de loadOrders. Devuelve:
+//   { available:false, reason }            → token sin read_orders / Shopify off
+//   { available:true,  hasOrder:false }    → cliente sin historial de compra
+//   { available:true,  hasOrder:true, order:{ name, createdAt, items:[...] } }
+async function getLastOrderItemsForEmail(email) {
+  const norm = normEmail(email);
+  if (!norm) return { available: true, hasOrder: false };
+  const result = await loadOrders(false);
+  if (!result.available) return { available: false, reason: result.reason };
+  const mine = (result.orders || [])
+    .filter(o => normEmail(o.customerEmail) === norm)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  if (!mine.length) return { available: true, hasOrder: false };
+  const last = mine[0];
+  const items = (last.lineItems || [])
+    .filter(li => li.variantId)         // solo lo que se puede volver a comprar
+    .map(li => ({
+      variantId: li.variantId,
+      name: li.title,
+      qty: li.qty,
+      price: li.unitPrice || 0,
+      image: li.image || null,
+      brand: li.vendor || '',
+    }));
+  return {
+    available: true,
+    hasOrder: items.length > 0,
+    order: { name: last.name, createdAt: last.createdAt, items },
+  };
 }
 
 app.get('/api/products', async (req, res) => {
@@ -2940,8 +3003,9 @@ initLogs();
 
 app.post('/chat', async (req, res) => {
   const { message, sessionId: clientId } = req.body;
-  const from      = req.body.from || req.query.from;
-  const mayorista = req.body.mayorista === true;
+  const from          = req.body.from || req.query.from;
+  const mayorista     = req.body.mayorista === true;
+  const customerEmail = mayorista ? normEmail(req.body.customerEmail) : '';
 
   if (!message) return res.status(400).json({ error: 'El campo "message" es requerido.' });
 
@@ -3116,6 +3180,17 @@ app.post('/chat', async (req, res) => {
     } catch (e) { console.warn('liveCatalog warm:', e.message); }
   }
 
+  // Historial de compra del mayorista (recompra proactiva). loadOrders está
+  // cacheado, así que esto no golpea Shopify en cada mensaje. Si el token no
+  // tiene read_orders, lastOrderInfo queda en null y el bot sigue normal.
+  let lastOrderInfo = null;
+  if (mayorista && customerEmail) {
+    try {
+      const info = await getLastOrderItemsForEmail(customerEmail);
+      if (info && info.available) lastOrderInfo = info;
+    } catch (e) { console.warn('reorder ctx:', e.message); }
+  }
+
   // SSE
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -3127,7 +3202,7 @@ app.post('/chat', async (req, res) => {
     const stream = client.messages.stream({
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
-      system: buildSystemPrompt(promptBase, session, liveCatalog),
+      system: buildSystemPrompt(promptBase, session, liveCatalog, lastOrderInfo),
       messages: apiMessages,
     });
 
@@ -3291,6 +3366,50 @@ app.post('/mayorista/login', async (req, res) => {
   } catch (e) {
     console.error('Mayorista login error:', e.message);
     return res.status(500).json({ error: 'Error al iniciar sesión. Intenta de nuevo.' });
+  }
+});
+
+// ─── POST /mayorista/last-order — último pedido del cliente para recompra ────
+// Palanca de recompra (Prioridad 1): el frontend lo usa para el botón
+// "Repetir último pedido". Si el token no tiene read_orders, responde
+// { available:false } y el frontend muestra un fallback elegante.
+app.post('/mayorista/last-order', async (req, res) => {
+  const email = normEmail(req.body && req.body.email);
+  if (!email) return res.status(400).json({ error: 'Email requerido.' });
+  try {
+    const info = await getLastOrderItemsForEmail(email);
+    return res.json(info);
+  } catch (e) {
+    console.error('last-order error:', e.message);
+    return res.status(500).json({ available: false, reason: 'Error consultando tu último pedido.' });
+  }
+});
+
+// ─── POST /mayorista/recover — recuperación de contraseña vía Shopify ────────
+// Dispara el email nativo de Shopify (customerRecover) con el link de reset.
+// No revela si el correo existe o no (evita enumeración de cuentas).
+app.post('/mayorista/recover', async (req, res) => {
+  const email = normEmail(req.body && req.body.email);
+  if (!email || !email.includes('@')) return res.status(400).json({ error: 'Ingresa un correo válido.' });
+  if (!process.env.SHOPIFY_STOREFRONT_TOKEN) {
+    return res.status(503).json({ error: 'Recuperación no configurada. Falta SHOPIFY_STOREFRONT_TOKEN.' });
+  }
+  try {
+    const data = await shopifyStorefrontFetch(`
+      mutation recover($email: String!) {
+        customerRecover(email: $email) {
+          customerUserErrors { code field message }
+        }
+      }`, { email });
+    const errs = data?.data?.customerRecover?.customerUserErrors || [];
+    // Errores de throttling sí los devolvemos; el resto se trata como éxito
+    // genérico para no filtrar si el correo existe.
+    const throttled = errs.find(e => /throttl|too many/i.test(e.message || ''));
+    if (throttled) return res.status(429).json({ error: 'Demasiados intentos. Espera unos minutos y prueba de nuevo.' });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('recover error:', e.message);
+    return res.status(500).json({ error: 'No pudimos enviar el correo. Intenta de nuevo en un momento.' });
   }
 });
 

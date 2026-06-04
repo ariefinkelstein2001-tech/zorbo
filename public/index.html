@@ -847,6 +847,36 @@ header .account-chip{margin-left:auto}
 #mayoPage .mayo-hero-title{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(28px,4vw,42px);font-weight:800;line-height:1.05;color:#111;letter-spacing:-.01em}
 #mayoPage .mayo-hero-sub{font-family:'DM Sans',sans-serif;font-size:14px;color:#5a4a2a;margin-top:6px;line-height:1.5}
 
+/* ── RECOMPRA: tarjeta "Repetir último pedido" (recompra mayorista) ───────── */
+.mayo-reorder{
+  max-width:780px;margin:14px auto 0;
+  padding:16px 18px;border-radius:14px;
+  background:linear-gradient(120deg,#fff8e8 0%,#ffe9b8 100%);
+  border:1.5px solid #f5a623;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  box-shadow:0 8px 24px rgba(245,166,35,.14);
+}
+@media (min-width:560px){.mayo-reorder{margin-left:clamp(1rem,4vw,2rem);margin-right:clamp(1rem,4vw,2rem)}}
+.mayo-reorder-ico{font-size:1.7rem;flex-shrink:0;filter:drop-shadow(0 2px 5px rgba(160,95,0,.25))}
+.mayo-reorder-txt{flex:1;min-width:160px;display:flex;flex-direction:column;gap:2px}
+.mayo-reorder-txt strong{font-family:'Bricolage Grotesque',sans-serif;font-size:16px;color:#1a1408;letter-spacing:.01em}
+.mayo-reorder-txt small{font-size:12.5px;color:#5a4a2a;font-family:'DM Sans',sans-serif;line-height:1.4}
+.mayo-reorder-btn{
+  flex-shrink:0;cursor:pointer;border:none;
+  background:linear-gradient(135deg,#1a1a1a 0%,#000 100%);color:#f5a623;
+  font-family:'Bricolage Grotesque',sans-serif;font-size:13.5px;font-weight:800;letter-spacing:.04em;
+  padding:12px 20px;border-radius:10px;
+  transition:box-shadow .25s,transform .1s,filter .15s;
+}
+.mayo-reorder-btn:hover{box-shadow:0 10px 24px rgba(245,166,35,.3);filter:brightness(1.08)}
+.mayo-reorder-btn:active{transform:scale(.98)}
+/* Fallback (historial no conectado): mismo look, en tono apagado y sin botón */
+.mayo-reorder-soft{background:#faf6ee;border-color:#e8d9b0;box-shadow:none;opacity:.92}
+@media (max-width:560px){
+  .mayo-reorder{margin-left:1rem;margin-right:1rem;padding:14px}
+  .mayo-reorder-btn{width:100%}
+}
+
 /* Banderas para World Tour */
 .flag-badge{position:absolute;top:10px;right:10px;z-index:3;display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none}
 .flag{width:32px;height:22px;border-radius:2px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.25);display:flex;flex-direction:column}
@@ -2794,7 +2824,15 @@ async function send(opts) {
   try {
     const body = { message: text, from: urlFrom };
     if (sessionId) body.sessionId = sessionId;
-    if (mayoristaMode) body.mayorista = true;
+    if (mayoristaMode) {
+      body.mayorista = true;
+      // Email del cliente → el server busca su último pedido para que Zorbot
+      // ofrezca reponer lo de siempre (recompra proactiva).
+      try {
+        const c = JSON.parse(sessionStorage.getItem('zmayo_customer') || '{}');
+        if (c && c.email) body.customerEmail = c.email;
+      } catch {}
+    }
 
     const res = await fetch('/chat', {
       method:  'POST',
@@ -3764,6 +3802,7 @@ async function showMayoristaStorefront(){
     ${verProductos}
     ${hero}
     ${welcomeMayo}
+    <div id="mayoReorderSlot"></div>
     ${sectionsHtml}
   `;
 
@@ -3771,6 +3810,81 @@ async function showMayoristaStorefront(){
   if (topbar) topbar.innerHTML = mpMarquee;
   page.innerHTML = html;
   hpInitHero();
+  // Botón "Repetir último pedido" (recompra) — se monta async según historial.
+  mountReorderButton(customer.email);
+}
+
+// ─── RECOMPRA: "Repetir último pedido" ──────────────────────────────────────
+// Lee el último pedido del cliente desde Shopify (vía /mayorista/last-order) y
+// monta un botón que recarga el carrito completo de una. Si el token de Shopify
+// no tiene read_orders, muestra un fallback elegante en vez de romper.
+async function mountReorderButton(email){
+  const slot = document.getElementById('mayoReorderSlot');
+  if (!slot) return;
+  if (!email) return; // sin email no podemos buscar historial
+  let info = null;
+  try {
+    const r = await fetch('/mayorista/last-order', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email }),
+    });
+    info = await r.json().catch(() => null);
+  } catch { info = null; }
+  if (!info) return;
+
+  // Fallback elegante: el historial todavía no está conectado.
+  if (info.available === false) {
+    slot.innerHTML = `
+      <div class="mayo-reorder mayo-reorder-soft">
+        <div class="mayo-reorder-ico">🔄</div>
+        <div class="mayo-reorder-txt">
+          <strong>Repetir último pedido</strong>
+          <small>Conecta tu historial para reponer en un toque. Pídeselo a Zorbot en el chat.</small>
+        </div>
+      </div>`;
+    return;
+  }
+  // Cliente sin historial (mayorista nuevo) → no mostramos nada.
+  if (!info.hasOrder || !info.order || !info.order.items || !info.order.items.length) return;
+
+  const items = info.order.items;
+  const n = items.reduce((s, i) => s + (+i.qty || 1), 0);
+  const resumen = items.slice(0, 3).map(i => `${i.name} x${i.qty}`).join(' · ')
+    + (items.length > 3 ? ` +${items.length - 3} más` : '');
+  // Guardamos los items para el handler sin serializar HTML frágil.
+  window._mayoLastOrderItems = items;
+  slot.innerHTML = `
+    <div class="mayo-reorder">
+      <div class="mayo-reorder-ico">🔄</div>
+      <div class="mayo-reorder-txt">
+        <strong>Repetir último pedido</strong>
+        <small>${escapeHtml(resumen)}</small>
+      </div>
+      <button class="mayo-reorder-btn" onclick="repeatLastOrder()">Reponer lo de siempre (${n})</button>
+    </div>`;
+}
+
+// Recarga el carrito con los items del último pedido y abre el carrito.
+function repeatLastOrder(){
+  const items = window._mayoLastOrderItems || [];
+  if (!items.length) return;
+  let added = 0;
+  for (const it of items){
+    if (!it.variantId) continue;
+    addToCart({
+      name: it.name,
+      price: +it.price || 0,
+      variantId: String(it.variantId),
+      image: it.image || null,
+      brand: it.brand || '',
+      emoji: '🍺',
+    }, Math.max(1, +it.qty || 1));
+    added++;
+  }
+  if (!added) return;
+  // Abre el carrito para que revise y pague.
+  const cp = document.getElementById('cartPanel');
+  if (cp && !cp.classList.contains('open')) toggleCart();
 }
 
 function buildMayoWorldTourCard(p){
