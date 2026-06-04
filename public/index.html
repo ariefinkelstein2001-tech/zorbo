@@ -327,6 +327,20 @@ body.mayorista-active #mayoPage{display:block}
 .shop-page .hp-pill:hover{background:#111;color:#fff;transform:translateY(-2px)}
 .shop-page .hp-pill:active{transform:translateY(0)}
 
+/* Barra de cuenta del mayorista: nombre + cerrar sesión */
+.shop-page .mayo-account-bar{
+  display:flex;align-items:center;justify-content:flex-end;gap:12px;
+  padding:10px clamp(1rem,4vw,2rem);border-bottom:1px solid #efefef;background:#fff;
+}
+.shop-page .mayo-account-who{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:#555}
+.shop-page .mayo-logout-btn{
+  cursor:pointer;border:1.5px solid #111;background:#fff;color:#111;
+  font-family:'Bricolage Grotesque',sans-serif;font-size:12.5px;font-weight:700;letter-spacing:.02em;
+  padding:8px 16px;border-radius:10px;transition:all .15s;
+}
+.shop-page .mayo-logout-btn:hover{background:#111;color:#fff}
+.shop-page .mayo-logout-btn:active{transform:scale(.98)}
+
 /* Nav mayorista: 4 categorías con desplegable */
 .shop-page .mayo-nav{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 .shop-page .mayo-nav-item{position:relative}
@@ -3304,15 +3318,23 @@ document.addEventListener('click', e => {
   }
 });
 function logoutMayorista(){
-  mayoristaMode = false;
-  sessionStorage.removeItem('zmayo');
   sessionStorage.removeItem('zmayo_customer');
+  sessionStorage.removeItem('zmayo_level');
   MP_CACHE = null; MP_CACHE_AT = 0; // el catálogo depende del cliente: invalidar
-  document.body.classList.remove('mayorista-active');
   hideAccountChip();
-  // Limpia el chat (descarta la sesión mayorista) y re-monta el storefront B2C
   resetChatSession();
   welcomed = true; // ya no queremos el welcome inicial de Zorbot
+
+  // En modo storefront mayorista-only el público no puede ir a B2C: lo dejamos
+  // en la landing de acceso (login). En modo normal, volvemos al storefront B2C.
+  if (window.__STOREFRONT_MODE__ === 'mayorista') {
+    document.body.classList.add('mayo-landing-mode');
+    showMayoristaStorefront(); // sin sesión → renderiza la landing/login
+    return;
+  }
+  mayoristaMode = false;
+  sessionStorage.removeItem('zmayo');
+  document.body.classList.remove('mayorista-active');
   showStorefront();
   botStatic('Cerraste sesión. Si quieres volver a entrar como mayorista, pulsa MAYORISTAS.');
 }
@@ -3964,8 +3986,17 @@ async function showMayoristaStorefront(){
 
   const sectionsHtml = mayoOrder.map(k => { const m = secMeta(k); return sec(m.id, escapeHtml(m.title), escapeHtml(m.sub), groups[k]); }).join('');
 
+  // Barra de cuenta: nombre del cliente + cerrar sesión (siempre visible,
+  // también en modo storefront mayorista-only donde el chip del header se oculta).
+  const accountBar = `
+    <div class="mayo-account-bar">
+      <span class="mayo-account-who">👤 ${escapeHtml(customer.first_name || customer.email || 'Mi cuenta')}</span>
+      <button class="mayo-logout-btn" onclick="logoutMayorista()">Cerrar sesión</button>
+    </div>`;
+
   // Mismo orden que el home B2C: Ver productos (label + botones + logos) → banner → welcome → secciones.
   const html = `
+    ${accountBar}
     ${verProductos}
     ${hero}
     ${welcomeMayo}
