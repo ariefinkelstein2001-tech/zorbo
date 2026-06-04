@@ -1759,6 +1759,8 @@ body.mayo-landing-mode header{background:transparent;border-bottom:none;position
 /* Capa que bloquea clicks del resto de la página durante el tour */
 .tour-block{position:fixed;inset:0;z-index:2999;display:none}
 .tour-block.on{display:block}
+/* Paso de cierre centrado: el block oscurece todo (sin hueco) */
+.tour-block.dim{background:rgba(8,8,12,.74)}
 /* Hueco iluminado (spotlight): el box-shadow oscurece todo lo de afuera */
 .tour-hole{
   position:fixed;z-index:3000;border-radius:14px;pointer-events:none;
@@ -3190,7 +3192,8 @@ const TOUR_STEPS = [
   { sel:['#hpSbToggle'], txt:'Toca el menú para ver el catálogo completo por marca.' },
   { sel:['.shop-page .hp-section', '.hp-row'], txt:'Este es el catálogo. Elige la cantidad y añade al carro.' },
   { sel:['.cart-btn'], txt:'Tu carrito. Revisa todo y paga cuando estés listo.' },
-  { sel:['.input-wrap', '#msgIn'], txt:'Y este es <strong>Zorbot</strong>, el corazón de Zorbo. La primera IA del mundo creada solo para bebidas. Arma pedidos, proyecta stock, cotiza, asesora y aprende de tu negocio. Todo en una conversación.', final:true },
+  { sel:['.input-wrap', '#msgIn'], txt:'Y este es <strong>Zorbot</strong>, el corazón de Zorbo. La primera IA del mundo creada solo para bebidas. Arma pedidos, proyecta stock, cotiza, asesora y aprende de tu negocio. Todo en una conversación.' },
+  { center:true, final:true, txt:'Estás listo para tu primer <strong>Zorbo</strong>?' },
 ];
 
 let tourSteps = [];   // pasos visibles resueltos para esta sesión
@@ -3242,7 +3245,8 @@ function tourIntroYes(){
 
 function startTour(){
   // Resuelve qué pasos existen ahora (según la página en pantalla).
-  tourSteps = TOUR_STEPS.filter(s => tourFindEl(s.sel));
+  // Los pasos "center" (sin elemento) siempre se incluyen.
+  tourSteps = TOUR_STEPS.filter(s => s.center || tourFindEl(s.sel));
   if (!tourSteps.length) return;
   tourIdx = 0;
   tourActive = true;
@@ -3256,32 +3260,47 @@ function startTour(){
 
 function tourRender(){
   const step = tourSteps[tourIdx];
-  const el = tourFindEl(step.sel);
-  if (!el){ // por si desapareció, saltar
-    if (tourIdx < tourSteps.length - 1){ tourIdx++; return tourRender(); }
-    return tourEnd();
-  }
-  // Texto y controles
+  // Texto y controles (comunes a todos los pasos)
   document.getElementById('tourNoteStep').textContent = `Paso ${tourIdx+1} de ${tourSteps.length}`;
   document.getElementById('tourNoteTxt').innerHTML = step.txt;
   const prev = document.getElementById('tourPrev');
   const next = document.getElementById('tourNext');
   prev.style.visibility = tourIdx === 0 ? 'hidden' : 'visible';
   next.textContent = (tourIdx === tourSteps.length - 1) ? 'Listo' : 'Siguiente →';
+  // Paso centrado (cierre): sin spotlight, nota al medio.
+  if (step.center){ tourPlaceCenter(); return; }
+  const el = tourFindEl(step.sel);
+  if (!el){ // por si desapareció, saltar
+    if (tourIdx < tourSteps.length - 1){ tourIdx++; return tourRender(); }
+    return tourEnd();
+  }
   // Lleva el elemento a la vista y luego posiciona spotlight + nota.
   try { el.scrollIntoView({ behavior:'smooth', block:'center' }); } catch { el.scrollIntoView(); }
   setTimeout(() => tourPlace(el), 340);
+}
+// Paso de cierre centrado: oscurece todo (sin hueco) y centra la nota.
+function tourPlaceCenter(){
+  document.getElementById('tourHole').classList.remove('on');
+  document.getElementById('tourBlock').classList.add('dim');
+  const note = document.getElementById('tourNote');
+  note.dataset.arrow = 'none';
+  const nh = note.offsetHeight || 150, nw = note.offsetWidth || 300;
+  note.style.left = Math.max(12, (window.innerWidth - nw) / 2) + 'px';
+  note.style.top  = Math.max(12, (window.innerHeight - nh) / 2) + 'px';
 }
 
 function tourReposition(){
   if (!tourActive) return;
   const step = tourSteps[tourIdx];
+  if (step && step.center){ tourPlaceCenter(); return; }
   const el = step && tourFindEl(step.sel);
   if (el) tourPlace(el);
 }
 
 function tourPlace(el){
   if (!tourActive) return;
+  document.getElementById('tourBlock').classList.remove('dim');
+  document.getElementById('tourHole').classList.add('on');
   const r = el.getBoundingClientRect();
   const pad = 8;
   const hole = document.getElementById('tourHole');
@@ -3330,6 +3349,7 @@ function tourPrev(){
 function tourEnd(){
   tourActive = false;
   document.getElementById('tourBlock').classList.remove('on');
+  document.getElementById('tourBlock').classList.remove('dim');
   document.getElementById('tourHole').classList.remove('on');
   document.getElementById('tourNote').classList.remove('on');
   window.removeEventListener('resize', tourReposition);
