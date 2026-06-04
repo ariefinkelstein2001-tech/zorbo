@@ -4248,7 +4248,22 @@ async function mayoSignup(){
   if (mode === 'mayorista' && !previewB2C) {
     mayoristaMode = true;
     try { sessionStorage.setItem('zmayo', '1'); } catch {}
-    document.body.classList.add('storefront-mayorista-only');
+    // Aplicamos TODAS las clases ya: así #mayoPage se ve desde el primer
+    // frame y #homePage queda oculto sin parpadeo.
+    document.body.classList.add('storefront-mayorista-only', 'mayorista-active', 'mayo-landing-mode');
+    // Si no hay sesión todavía, renderea la landing INMEDIATO (sin fetch).
+    // showMayoristaStorefront después la sobrescribirá con la versión que
+    // toma mayo.landing del server, pero al menos no se ve blanco.
+    try {
+      const guest = new URLSearchParams(location.search).get('mayo') === 'guest';
+      const c = (() => { try { return JSON.parse(sessionStorage.getItem('zmayo_customer') || 'null'); } catch { return null; } })();
+      const loggedIn = !!(c && (c.id || c.email)) || guest;
+      const page = document.getElementById('mayoPage');
+      if (!loggedIn && page) {
+        page.innerHTML = buildMayoLandingHtml({});
+        initMayoLanding();
+      }
+    } catch (e) { console.warn('landing eager render:', e); }
   }
 })();
 checkAge();
