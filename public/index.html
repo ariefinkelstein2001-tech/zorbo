@@ -3740,7 +3740,7 @@ function toggleCart() {
   cartOpen = !cartOpen;
   document.getElementById('cartPanel').classList.toggle('open', cartOpen);
 }
-function doCheckout() {
+async function doCheckout() {
   if (!cart.length) return;
 
   const buyable = cart.filter(i => i.p.variantId);
@@ -3756,14 +3756,38 @@ function doCheckout() {
     if (!confirm(`Estos productos no están disponibles online todavía y se omitirán del checkout: ${names}.\n\n¿Continúas con el resto?`)) return;
   }
 
-  const items = buyable.map(i => `${i.p.variantId}:${i.qty}`).join(',');
-  const attrs = [];
-  attrs.push('attributes[source]=zorbot');
-  if (welcomeCoupon && welcomeCoupon.code) attrs.push(`discount=${encodeURIComponent(welcomeCoupon.code)}`);
-  else if (activeCoupon && activeCoupon.code) attrs.push(`discount=${encodeURIComponent(activeCoupon.code)}`);
+  const discount = (welcomeCoupon && welcomeCoupon.code) || (activeCoupon && activeCoupon.code) || '';
+  let token = '';
+  try { token = sessionStorage.getItem('zmayo_token') || ''; } catch {}
 
-  const url = `https://${SHOPIFY_DOMAIN}/cart/${items}?${attrs.join('&')}`;
-  window.open(url, '_blank');
+  // Mayorista logueado → checkout ASOCIADO a su cuenta (queda con sesión en
+  // Shopify). Abrimos la ventana YA (gesto del usuario) y luego la redirigimos,
+  // así no la bloquea el navegador mientras esperamos el fetch.
+  if (mayoristaMode && token) {
+    const win = window.open('', '_blank');
+    try {
+      const r = await fetch('/api/checkout', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: buyable.map(i => ({ variantId: i.p.variantId, qty: i.qty })),
+          token, discount,
+          attributes: [{ key: 'source', value: 'zorbot' }],
+        }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok && d.checkoutUrl) {
+        if (win) win.location = d.checkoutUrl; else window.open(d.checkoutUrl, '_blank');
+        return;
+      }
+    } catch (e) { console.warn('checkout asociado falló, uso permalink:', e); }
+    if (win) win.close(); // cae al permalink de abajo
+  }
+
+  // Fallback (B2C o si falla el carrito asociado): permalink clásico (invitado).
+  const items = buyable.map(i => `${i.p.variantId}:${i.qty}`).join(',');
+  const attrs = ['attributes[source]=zorbot'];
+  if (discount) attrs.push(`discount=${encodeURIComponent(discount)}`);
+  window.open(`https://${SHOPIFY_DOMAIN}/cart/${items}?${attrs.join('&')}`, '_blank');
 }
 
 // ─── TOASTS ───────────────────────────────────────────────────────────────────
@@ -3904,6 +3928,7 @@ document.addEventListener('click', e => {
 function logoutMayorista(){
   sessionStorage.removeItem('zmayo_customer');
   sessionStorage.removeItem('zmayo_level');
+  sessionStorage.removeItem('zmayo_token');
   MP_CACHE = null; MP_CACHE_AT = 0; // el catálogo depende del cliente: invalidar
   hideAccountChip();
   clearMayoHeader();
@@ -5138,6 +5163,8 @@ async function mayoLogin(){
       sessionStorage.setItem('zmayo', '1');
       try { sessionStorage.setItem('zmayo_customer', JSON.stringify(data.customer || {})); } catch {}
       try { if (data.level) sessionStorage.setItem('zmayo_level', data.level); } catch {}
+      // Token de cliente → checkout asociado a su cuenta (inicia sesión en Shopify).
+      try { if (data.customerAccessToken) sessionStorage.setItem('zmayo_token', data.customerAccessToken); } catch {}
       MP_CACHE = null; MP_CACHE_AT = 0; // catálogo según nivel del cliente: invalidar
       markMayoristaActive();
       showAccountChip(data.customer || {});

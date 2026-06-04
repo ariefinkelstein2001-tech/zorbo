@@ -1269,6 +1269,64 @@ app.get('/api/cart-link', (req, res) => {
   res.json({ url: `https://${shop}/cart/${items}` });
 });
 
+// POST /api/checkout — crea un carrito Storefront ASOCIADO al cliente logueado
+// (buyerIdentity con su customerAccessToken). El checkout que devuelve queda
+// con el cliente iniciado sesión (su email/condiciones), no como invitado.
+// Si no se manda token (B2C), igual crea el carrito como invitado.
+app.post('/api/checkout', async (req, res) => {
+  if (!process.env.SHOPIFY_STOREFRONT_TOKEN) {
+    return res.status(503).json({ error: 'Checkout no configurado. Falta SHOPIFY_STOREFRONT_TOKEN.' });
+  }
+  const { items, token, discount, attributes } = req.body || {};
+  if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: 'Carrito vacío.' });
+  try {
+    const lines = items
+      .filter(i => i && i.variantId)
+      .map(i => ({
+        merchandiseId: `gid://shopify/ProductVariant/${String(i.variantId).replace(/\D/g, '')}`,
+        quantity: Math.max(1, parseInt(i.qty, 10) || 1),
+      }))
+      .filter(l => /\d/.test(l.merchandiseId));
+    if (!lines.length) return res.status(400).json({ error: 'Sin productos válidos.' });
+
+    const input = { lines };
+    if (token) input.buyerIdentity = { customerAccessToken: String(token) };
+    if (discount) input.discountCodes = [String(discount)];
+    if (Array.isArray(attributes) && attributes.length) {
+      input.attributes = attributes
+        .filter(a => a && a.key)
+        .map(a => ({ key: String(a.key), value: String(a.value ?? '') }));
+    }
+
+    const data = await shopifyStorefrontFetch(`
+      mutation cartCreate($input: CartInput!) {
+        cartCreate(input: $input) {
+          cart { id checkoutUrl }
+          userErrors { field message }
+        }
+      }`, { input });
+
+    const r = data && data.data && data.data.cartCreate;
+    const errs = (r && r.userErrors) || [];
+    if (!r || !r.cart || errs.length) {
+      // Si el token venció o es inválido, reintenta SIN token (invitado).
+      if (token) {
+        const retry = await shopifyStorefrontFetch(`
+          mutation cartCreate($input: CartInput!) {
+            cartCreate(input: $input) { cart { checkoutUrl } userErrors { message } }
+          }`, { input: { ...input, buyerIdentity: undefined } });
+        const rr = retry && retry.data && retry.data.cartCreate;
+        if (rr && rr.cart && rr.cart.checkoutUrl) return res.json({ checkoutUrl: rr.cart.checkoutUrl, guest: true });
+      }
+      return res.status(400).json({ error: (errs[0] && errs[0].message) || 'No se pudo crear el checkout.' });
+    }
+    return res.json({ checkoutUrl: r.cart.checkoutUrl });
+  } catch (e) {
+    console.error('checkout error:', e.message);
+    return res.status(500).json({ error: 'Error creando el checkout.' });
+  }
+});
+
 // ─── Static frontend ──────────────────────────────────────────────────────────
 
 // Modo de tienda: 'both' (default), 'mayorista' (solo B2B, oculta B2C al público)
@@ -3504,6 +3562,10 @@ app.post('/mayorista/login', async (req, res) => {
       isMayorista,
       level,
       status: isMayorista ? 'approved' : 'pending',
+      // Token de cliente Shopify → asocia el carrito a su cuenta en el checkout
+      // (queda "iniciado sesión" en Shopify, con su pricing/condiciones).
+      customerAccessToken: result.customerAccessToken.accessToken,
+      tokenExpiresAt: result.customerAccessToken.expiresAt,
       customer: {
         first_name: customer.first_name,
         last_name:  customer.last_name,
