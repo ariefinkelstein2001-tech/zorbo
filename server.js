@@ -198,6 +198,60 @@ async function klaviyoOnboard({ email, first_name, last_name, phone_number, list
   return { upsert, sub, ev };
 }
 
+// ─── Notificación de waitlist mayorista (email + WhatsApp) ──────────────────
+// Cada inscripción en "Soy nuevo / Únete a la waitlist" avisa al equipo.
+// Destinos configurables por env; por defecto los del negocio.
+const WAITLIST_EMAIL    = process.env.WAITLIST_NOTIFY_EMAIL    || 'vfernandez@kairosdrinks.com';
+const WAITLIST_WHATSAPP = process.env.WAITLIST_NOTIFY_WHATSAPP || '+56996605516';
+
+async function sendWaitlistEmail(lead) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return { skipped: true, reason: 'no RESEND_API_KEY' };
+  const from = process.env.RESEND_FROM || 'Zorbo <onboarding@resend.dev>';
+  const rows = Object.entries(lead)
+    .map(([k, v]) => `<tr><td style="padding:4px 12px;font-weight:600;text-transform:capitalize">${k}</td><td style="padding:4px 12px">${v || '-'}</td></tr>`)
+    .join('');
+  const html = `<h2>Nuevo inscrito en la waitlist mayorista</h2><table style="border-collapse:collapse">${rows}</table>`;
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from, to: [WAITLIST_EMAIL], subject: `Nuevo mayorista waitlist: ${lead.nombre || lead.email}`, html }),
+  });
+  if (!r.ok) throw new Error('Resend ' + r.status + ': ' + (await r.text()).slice(0, 200));
+  return { ok: true };
+}
+
+async function sendWaitlistWhatsApp(lead) {
+  const sid = process.env.TWILIO_ACCOUNT_SID;
+  const tok = process.env.TWILIO_AUTH_TOKEN;
+  const fromWa = process.env.TWILIO_WHATSAPP_FROM; // ej: whatsapp:+1415... o +1415...
+  if (!sid || !tok || !fromWa) return { skipped: true, reason: 'no Twilio config' };
+  const body = 'Nueva waitlist mayorista Zorbo:\n' +
+    `Nombre: ${lead.nombre || '-'}\n` +
+    `Local: ${lead.local || '-'}\n` +
+    `Comuna: ${lead.comuna || '-'}\n` +
+    `Canal: ${lead.canal || '-'}\n` +
+    `Email: ${lead.email || '-'}\n` +
+    `Teléfono: ${lead.telefono || '-'}`;
+  const wa = (s) => (String(s).startsWith('whatsapp:') ? String(s) : 'whatsapp:' + String(s));
+  const params = new URLSearchParams({ From: wa(fromWa), To: wa(WAITLIST_WHATSAPP), Body: body });
+  const auth = Buffer.from(`${sid}:${tok}`).toString('base64');
+  const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+    method: 'POST',
+    headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  });
+  if (!r.ok) throw new Error('Twilio ' + r.status + ': ' + (await r.text()).slice(0, 200));
+  return { ok: true };
+}
+
+// Fire-and-forget: no bloquea la respuesta al usuario. Si un canal no está
+// configurado, se omite (y queda el log local del lead de respaldo).
+function notifyWaitlist(lead) {
+  sendWaitlistEmail(lead).catch(e => console.warn('waitlist email:', e.message));
+  sendWaitlistWhatsApp(lead).catch(e => console.warn('waitlist whatsapp:', e.message));
+}
+
 function saveSession(session) {
   try {
     const log = readLog(CONV_LOG);
@@ -3688,13 +3742,19 @@ app.post('/mayorista/signup', async (req, res) => {
 
     // Log local (backup) + Klaviyo
     const welcomeCode = `MAYORISTA10-${randomCode(6)}`;
-    appendLog(LEADS_LOG, {
-      timestamp: new Date().toISOString(),
+    const leadData = {
       nombre: first_name + (last_name ? ' ' + last_name : ''),
       local: local || '', comuna: comuna || '', canal: canal || '',
-      email, telefono: phone || '', welcomeCode,
+      email, telefono: phone || '',
+    };
+    appendLog(LEADS_LOG, {
+      timestamp: new Date().toISOString(),
+      ...leadData, welcomeCode,
       shopifyCustomerId: r.customer ? r.customer.id : null,
     });
+
+    // Avisar al equipo por email + WhatsApp con todos los datos del inscrito.
+    notifyWaitlist(leadData);
 
     klaviyoOnboard({
       email, first_name, last_name, phone_number: phone,
@@ -3708,7 +3768,7 @@ app.post('/mayorista/signup', async (req, res) => {
       status: 'pending',
       customer_id: r.customer ? r.customer.id : null,
       welcomeCode,
-      message: 'Tu cuenta fue creada. Te contactamos en las próximas 48 horas hábiles para activarla como mayorista.',
+      message: 'Listo! Quedaste en la waitlist mayorista. Te contactamos en las próximas 48 horas hábiles para activar tu cuenta.',
     });
   } catch (e) {
     const msg = e.message || 'Error al crear la cuenta.';

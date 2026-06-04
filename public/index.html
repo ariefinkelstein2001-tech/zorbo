@@ -4438,7 +4438,7 @@ function buildMayoLandingHtml(mayoCfg){
           </div>
 
           <div class="ml-auth-pane" id="mayoPaneNuevo">
-            <h2 class="ml-auth-title">Crear cuenta</h2>
+            <h2 class="ml-auth-title">Únete a la waitlist</h2>
             <div class="ml-msg err" id="mayoLeadErr"></div>
             <div class="ml-msg ok" id="mayoLeadOk"></div>
             <div class="ml-auth-grid">
@@ -4456,7 +4456,7 @@ function buildMayoLandingHtml(mayoCfg){
             <input type="email" id="leadEmail" placeholder="Correo *" autocomplete="email">
             <input type="tel" id="leadTelefono" placeholder="Teléfono *" autocomplete="tel">
             <div class="ml-pwd"><input type="password" id="leadPass" placeholder="Contraseña * (mín 5)" autocomplete="new-password"><button type="button" class="ml-pwd-eye" onclick="togglePwd(this,'leadPass')" aria-label="Mostrar contraseña">👁</button></div>
-            <button type="button" class="ml-auth-submit" id="mayoLeadBtn" onclick="mayoSignup()">Crear cuenta</button>
+            <button type="button" class="ml-auth-submit" id="mayoLeadBtn" onclick="mayoSignup()">Únete a la waitlist</button>
             <div class="ml-foot">Validamos como mayorista en las próximas 48 horas hábiles.</div>
           </div>
         </div>
@@ -5291,7 +5291,7 @@ async function mayoSignup(){
     return;
   }
   btn.disabled = true;
-  btn.textContent = 'Creando cuenta...';
+  btn.textContent = 'Enviando...';
   try {
     const res = await fetch('/mayorista/signup', {
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -5314,7 +5314,7 @@ async function mayoSignup(){
     err.classList.add('show');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Crear cuenta';
+    btn.textContent = 'Únete a la waitlist';
   }
 }
 
