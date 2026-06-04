@@ -1468,6 +1468,14 @@ function sanitizeSiteConfig(input){
           sub:   str(m.sections[k]?.sub, 160),
         }])) : {},
     welcome: arrStr(m.welcome, 8),
+    landing: {
+      title:    str(m.landing?.title, 200),
+      subtitle: str(m.landing?.subtitle, 600),
+      stats: Array.isArray(m.landing?.stats) ? m.landing.stats.slice(0, 6).map(s => ({
+        label: str(s?.label, 40),
+        value: str(s?.value, 20),
+      })).filter(s => s.label) : [],
+    },
   };
   return out;
 }

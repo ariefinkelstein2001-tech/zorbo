@@ -1346,6 +1346,74 @@ body.mayorista-active .game-banner{display:none}
   .mayoristas-btn .mb-txt{display:none}
 }
 
+/* ── LANDING MAYORISTA (login + bienvenida en #mayoPage cuando no hay sesión) ── */
+#mayoPage .mayo-landing{background:#fff;color:#111;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+#mayoPage .ml-hero{
+  background:#ece4d2;padding:clamp(36px,6vw,68px) clamp(20px,6vw,72px);
+  display:grid;grid-template-columns:1.4fr 1fr;gap:36px;align-items:center;
+}
+@media(max-width:880px){#mayoPage .ml-hero{grid-template-columns:1fr;text-align:center}}
+#mayoPage .ml-hero-title{font-family:'Syne',sans-serif;font-size:clamp(34px,5vw,64px);font-weight:800;line-height:1;letter-spacing:-.015em;color:#3a2b1a}
+#mayoPage .ml-hero-title em{font-style:italic;color:#3a2b1a;font-weight:800}
+#mayoPage .ml-hero-sub{font-size:clamp(14px,1.1vw,17px);color:#5a4a30;margin-top:22px;line-height:1.55;max-width:520px}
+@media(max-width:880px){#mayoPage .ml-hero-sub{margin-left:auto;margin-right:auto}}
+#mayoPage .ml-stats{display:flex;gap:18px;justify-content:flex-end;flex-wrap:wrap}
+@media(max-width:880px){#mayoPage .ml-stats{justify-content:center}}
+#mayoPage .ml-stat{display:flex;flex-direction:column;align-items:center;gap:10px}
+#mayoPage .ml-stat-circle{
+  width:clamp(96px,11vw,140px);height:clamp(96px,11vw,140px);background:#f5a623;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 12px 30px rgba(245,166,35,.28);
+}
+#mayoPage .ml-stat-num{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(20px,2.2vw,30px);font-weight:800;color:#1a1408;letter-spacing:-.01em}
+#mayoPage .ml-stat-label{font-size:11px;font-weight:700;letter-spacing:.18em;color:#444}
+
+#mayoPage .ml-brands{padding:clamp(36px,5vw,56px) clamp(20px,6vw,72px);text-align:center;background:#fff;border-bottom:1px solid #eee}
+#mayoPage .ml-brands-eyebrow{font-size:11px;font-weight:700;letter-spacing:.25em;color:#999}
+#mayoPage .ml-brands-row{display:flex;gap:clamp(28px,4vw,56px);justify-content:center;align-items:center;flex-wrap:wrap;margin-top:24px}
+#mayoPage .ml-brand-logo{width:clamp(70px,8vw,96px);height:clamp(70px,8vw,96px);border-radius:50%;border:2.5px solid #111;background:#fff;object-fit:cover;transition:transform .25s,box-shadow .25s}
+#mayoPage .ml-brand-logo:hover{transform:scale(1.06);box-shadow:0 10px 24px rgba(0,0,0,.12)}
+
+#mayoPage .ml-auth{padding:clamp(40px,5vw,64px) 20px;background:#fafafa;flex:1}
+#mayoPage .ml-auth-inner{max-width:480px;margin:0 auto}
+#mayoPage .ml-auth-tabs{display:flex;gap:0;margin-bottom:22px;border-bottom:2px solid #eee}
+#mayoPage .ml-auth-tab{
+  flex:1;padding:14px;background:transparent;border:none;
+  font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:15px;color:#999;
+  cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;
+  letter-spacing:.02em;
+}
+#mayoPage .ml-auth-tab.on{color:#111;border-bottom-color:#f5a623}
+#mayoPage .ml-auth-tab:hover{color:#333}
+#mayoPage .ml-auth-title{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;text-align:center;margin:8px 0 22px;color:#111;letter-spacing:-.01em}
+#mayoPage .ml-auth-pane{display:none;flex-direction:column;gap:11px}
+#mayoPage .ml-auth-pane.on{display:flex}
+#mayoPage .ml-auth-pane input,
+#mayoPage .ml-auth-pane select{
+  width:100%;padding:13px 16px;border:1px solid #ddd;border-radius:11px;
+  font-family:'DM Sans',sans-serif;font-size:15px;background:#fff;outline:none;
+  transition:border-color .15s,box-shadow .15s;color:#111;
+}
+#mayoPage .ml-auth-pane input::placeholder{color:#999}
+#mayoPage .ml-auth-pane input:focus,
+#mayoPage .ml-auth-pane select:focus{border-color:#f5a623;box-shadow:0 0 0 3px rgba(245,166,35,.15)}
+#mayoPage .ml-auth-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+@media(max-width:480px){#mayoPage .ml-auth-grid{grid-template-columns:1fr}}
+#mayoPage .ml-auth-submit{
+  padding:15px 20px;background:#111;color:#fff;border:none;border-radius:11px;
+  font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:15px;
+  letter-spacing:.04em;cursor:pointer;transition:opacity .15s,transform .08s;
+  margin-top:8px;
+}
+#mayoPage .ml-auth-submit:hover{opacity:.88}
+#mayoPage .ml-auth-submit:active{transform:scale(.985)}
+#mayoPage .ml-auth-submit:disabled{opacity:.4;cursor:not-allowed}
+#mayoPage .ml-foot{font-size:12px;color:#888;text-align:center;margin-top:14px;line-height:1.5}
+#mayoPage .ml-msg{padding:11px 14px;border-radius:9px;font-size:13px;display:none;text-align:center;font-weight:600}
+#mayoPage .ml-msg.show{display:block}
+#mayoPage .ml-msg.err{background:#fdecec;color:#d33;border:1px solid rgba(224,101,79,.22)}
+#mayoPage .ml-msg.ok{background:#ecf7ec;color:#2a8f3a;border:1px solid rgba(92,201,143,.25)}
+
 /* ── MODAL GENERICO (mayoristas + game gate) ── */
 .zmodal{position:fixed;inset:0;z-index:820;display:none;align-items:center;justify-content:center;padding:1.2rem;background:rgba(5,4,10,.85);backdrop-filter:blur(10px)}
 .zmodal.open{display:flex}
@@ -1612,81 +1680,7 @@ body.mayorista-active .game-banner{display:none}
 </div>
 
 <!-- MAYORISTAS MODAL -->
-<div class="zmodal" id="mayoristaModal">
-  <div class="zm-card">
-    <button class="zm-x" onclick="closeMayoristaModal()" aria-label="Cerrar">✕</button>
-    <div class="zm-title">🔐 Acceso Mayoristas</div>
-    <div class="zm-sub">Sección exclusiva para restaurantes, botillerías y eventos. Inicia sesión con tu cuenta Kairos, o cuéntanos de tu local si todavía no trabajas con nosotros.</div>
-
-    <div class="zm-tabs">
-      <button class="zm-tab on" data-tab="login" onclick="switchMayoTab('login',this)">Tengo cuenta</button>
-      <button class="zm-tab" data-tab="nuevo" onclick="switchMayoTab('nuevo',this)">Soy nuevo</button>
-    </div>
-
-    <!-- LOGIN -->
-    <div class="zm-pane on" id="mayoPaneLogin">
-      <div class="zm-err" id="mayoLoginErr"></div>
-      <div class="zm-ok" id="mayoLoginOk"></div>
-      <div class="zm-field">
-        <label>Correo</label>
-        <input class="zm-input" type="email" id="mayoEmail" placeholder="local@dominio.cl" autocomplete="email">
-      </div>
-      <div class="zm-field">
-        <label>Contraseña</label>
-        <input class="zm-input" type="password" id="mayoPass" placeholder="••••••••" autocomplete="current-password">
-      </div>
-      <button class="zm-submit" id="mayoLoginBtn" onclick="mayoLogin()">Iniciar sesión</button>
-      <div class="zm-foot">
-        Olvidaste tu contraseña? Escríbenos por el chat normal y te ayudamos a recuperarla.
-      </div>
-    </div>
-
-    <!-- NUEVO (crea cuenta Shopify con tag MAYORISTA_PENDIENTE) -->
-    <div class="zm-pane" id="mayoPaneNuevo">
-      <div class="zm-err" id="mayoLeadErr"></div>
-      <div class="zm-ok" id="mayoLeadOk"></div>
-      <div class="zm-field">
-        <label>Nombre*</label>
-        <input class="zm-input" type="text" id="leadNombre" placeholder="Tu nombre" autocomplete="given-name">
-      </div>
-      <div class="zm-field">
-        <label>Apellido</label>
-        <input class="zm-input" type="text" id="leadApellido" placeholder="Tu apellido" autocomplete="family-name">
-      </div>
-      <div class="zm-field">
-        <label>Nombre del local</label>
-        <input class="zm-input" type="text" id="leadLocal" placeholder="Ej. Bar La Esquina">
-      </div>
-      <div class="zm-field">
-        <label>Comuna o ciudad</label>
-        <input class="zm-input" type="text" id="leadComuna" placeholder="Ej. Providencia">
-      </div>
-      <div class="zm-field">
-        <label>Tipo de canal</label>
-        <select class="zm-select" id="leadCanal">
-          <option value="">Elige una opción</option>
-          <option value="restaurante">Restaurante</option>
-          <option value="botilleria">Botillería</option>
-          <option value="eventos">Eventos / Activaciones</option>
-        </select>
-      </div>
-      <div class="zm-field">
-        <label>Correo*</label>
-        <input class="zm-input" type="email" id="leadEmail" placeholder="contacto@dominio.cl" autocomplete="email">
-      </div>
-      <div class="zm-field">
-        <label>Teléfono*</label>
-        <input class="zm-input" type="tel" id="leadTelefono" placeholder="+56 9 ..." autocomplete="tel">
-      </div>
-      <div class="zm-field">
-        <label>Contraseña* (mínimo 5 caracteres)</label>
-        <input class="zm-input" type="password" id="leadPass" placeholder="••••••••" autocomplete="new-password">
-      </div>
-      <button class="zm-submit" id="mayoLeadBtn" onclick="mayoSignup()">Crear cuenta</button>
-      <div class="zm-foot">Tu cuenta queda creada al instante. La validamos como mayorista en las próximas 48 horas hábiles.</div>
-    </div>
-  </div>
-</div>
+<!-- (Login mayorista vive ahora como Landing inline en #mayoPage — ver buildMayoLandingHtml) -->
 
 <!-- GAME GATE MODAL (antes de jugar) -->
 <div class="zmodal" id="gameGateModal">
@@ -3391,13 +3385,147 @@ function scrollToChat(){
   msgs.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
+// ─── LANDING MAYORISTA (bienvenida + login inline en #mayoPage) ─────────────
+// Se muestra cuando entra alguien sin sesión (zmayo_customer ausente). El
+// catálogo solo aparece después del login. El equipo puede saltarse esto
+// agregando ?mayo=guest al URL.
+function buildMayoLandingHtml(mayoCfg){
+  mayoCfg = mayoCfg || {};
+  const landing = mayoCfg.landing || {};
+  const title    = landing.title    || 'Bienvenido a la *Zona Mayorista*';
+  const subtitle = landing.subtitle || 'Estás ingresando a nuestra plataforma B2B para restaurantes, bares, retail y más, donde puedes acceder a precios exclusivos, stock actualizado y realizar pedidos según tus condiciones comerciales.';
+  const stats    = (Array.isArray(landing.stats) && landing.stats.length) ? landing.stats : [
+    { label:'RESTAURANTES', value:'+100' },
+    { label:'TIENDAS',      value:'+10' },
+    { label:'CLIENTES',     value:'+50.000' },
+  ];
+  const brands = (Array.isArray(mayoCfg.brands) && mayoCfg.brands.length) ? mayoCfg.brands : [
+    { label:'Kairos',   logo:'brands/kairos.png' },
+    { label:'Firulais', logo:'brands/firulais.png' },
+    { label:'Banny',    logo:'brands/banny.png' },
+  ];
+  // *texto* → italic (para resaltar parte del título estilo "Zona *Mayorista*")
+  const titleHtml = escapeHtml(title).replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+  return `
+    <div class="mayo-landing">
+      <section class="ml-hero">
+        <div class="ml-hero-left">
+          <h1 class="ml-hero-title">${titleHtml}</h1>
+          <p class="ml-hero-sub">${escapeHtml(subtitle)}</p>
+        </div>
+        <div class="ml-stats">
+          ${stats.map(s => `
+            <div class="ml-stat">
+              <div class="ml-stat-circle"><span class="ml-stat-num" data-target="${escapeAttr(s.value || '')}">0</span></div>
+              <div class="ml-stat-label">${escapeHtml(s.label || '')}</div>
+            </div>`).join('')}
+        </div>
+      </section>
+
+      <section class="ml-brands">
+        <div class="ml-brands-eyebrow">NUESTRAS MARCAS</div>
+        <div class="ml-brands-row">
+          ${brands.map(b => `<img class="ml-brand-logo" src="${escapeAttr(b.logo || '')}" alt="${escapeAttr(b.label || '')}" title="${escapeAttr(b.label || '')}">`).join('')}
+        </div>
+      </section>
+
+      <section class="ml-auth">
+        <div class="ml-auth-inner">
+          <div class="ml-auth-tabs">
+            <button type="button" class="ml-auth-tab on" data-tab="login" onclick="mlSwitchTab('login',this)">Tengo cuenta</button>
+            <button type="button" class="ml-auth-tab" data-tab="signup" onclick="mlSwitchTab('signup',this)">Soy nuevo</button>
+          </div>
+
+          <div class="ml-auth-pane on" id="mayoPaneLogin">
+            <h2 class="ml-auth-title">Inicio de sesión</h2>
+            <div class="ml-msg err" id="mayoLoginErr"></div>
+            <div class="ml-msg ok" id="mayoLoginOk"></div>
+            <input type="email" id="mayoEmail" placeholder="Correo electrónico" autocomplete="email">
+            <input type="password" id="mayoPass" placeholder="Contraseña" autocomplete="current-password">
+            <button type="button" class="ml-auth-submit" id="mayoLoginBtn" onclick="mayoLogin()">Iniciar sesión</button>
+            <div class="ml-foot">¿Olvidaste tu contraseña? Escríbenos al chat y te ayudamos.</div>
+          </div>
+
+          <div class="ml-auth-pane" id="mayoPaneNuevo">
+            <h2 class="ml-auth-title">Crear cuenta</h2>
+            <div class="ml-msg err" id="mayoLeadErr"></div>
+            <div class="ml-msg ok" id="mayoLeadOk"></div>
+            <div class="ml-auth-grid">
+              <input type="text" id="leadNombre" placeholder="Nombre *" autocomplete="given-name">
+              <input type="text" id="leadApellido" placeholder="Apellido" autocomplete="family-name">
+            </div>
+            <input type="text" id="leadLocal" placeholder="Nombre del local (ej: Bar La Esquina)">
+            <input type="text" id="leadComuna" placeholder="Comuna o ciudad">
+            <select id="leadCanal">
+              <option value="">Tipo de canal</option>
+              <option value="restaurante">Restaurante</option>
+              <option value="botilleria">Botillería</option>
+              <option value="eventos">Eventos / Activaciones</option>
+            </select>
+            <input type="email" id="leadEmail" placeholder="Correo *" autocomplete="email">
+            <input type="tel" id="leadTelefono" placeholder="Teléfono *" autocomplete="tel">
+            <input type="password" id="leadPass" placeholder="Contraseña * (mín 5)" autocomplete="new-password">
+            <button type="button" class="ml-auth-submit" id="mayoLeadBtn" onclick="mayoSignup()">Crear cuenta</button>
+            <div class="ml-foot">Validamos como mayorista en las próximas 48 horas hábiles.</div>
+          </div>
+        </div>
+      </section>
+    </div>`;
+}
+
+function initMayoLanding(){
+  document.querySelectorAll('#mayoPage .ml-stat-num').forEach(el => {
+    const raw = String(el.dataset.target || '');
+    const numStr = raw.replace(/[^\d]/g, '');
+    const target = parseInt(numStr, 10);
+    if (!isFinite(target) || target <= 0) { el.textContent = raw; return; }
+    const duration = 1100;
+    const start = performance.now();
+    function tick(now){
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      const v = Math.round(target * eased);
+      if (t < 1) {
+        el.textContent = (target >= 1000 ? v.toLocaleString('es-CL') : String(v));
+        requestAnimationFrame(tick);
+      } else {
+        el.textContent = raw; // valor final exacto (preserva "+", "."  etc.)
+      }
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+function mlSwitchTab(tab, btn){
+  document.querySelectorAll('#mayoPage .ml-auth-tab').forEach(t => t.classList.toggle('on', t === btn));
+  document.querySelectorAll('#mayoPage .ml-auth-pane').forEach(p => p.classList.remove('on'));
+  const pane = document.getElementById(tab === 'signup' ? 'mayoPaneNuevo' : 'mayoPaneLogin');
+  if (pane) pane.classList.add('on');
+}
+
 // ─── MAYORISTA STOREFRONT (paleta blanca igual al home) ───────────────────
 // Secciones: Chelas (barriles Kairos sin NZ Pils) · Packs (24 packs) ·
 // Firulais · Destilados Banny · World Tour (Lanús + Osagui con bandera)
 async function showMayoristaStorefront(){
-  const products = await loadMpCatalog();
+  const page = document.getElementById('mayoPage');
+  if (!page) return;
   let mayoCfg = {};
   try { const rc = await fetch('/api/site-config'); if (rc.ok) mayoCfg = (await rc.json() || {}).mayo || {}; } catch {}
+
+  // Si no hay sesión mayorista → renderea la landing (login/signup) y sale.
+  // Skip vía ?mayo=guest para que el equipo pueda ver el catálogo sin loguearse.
+  const _sessCust = (() => { try { return JSON.parse(sessionStorage.getItem('zmayo_customer') || 'null'); } catch { return null; } })();
+  const guestParam = new URLSearchParams(location.search).get('mayo') === 'guest';
+  const loggedIn = !!(_sessCust && (_sessCust.id || _sessCust.email)) || guestParam;
+  if (!loggedIn) {
+    page.innerHTML = buildMayoLandingHtml(mayoCfg);
+    initMayoLanding();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+
+  const products = await loadMpCatalog();
   // 6 secciones: las 5 base + "Otros" como catch-all (custom brands,
   // accesorios como Recarga CO2, etc.). Lo que no calza en ninguna regla
   // específica cae a Otros para no perder productos del catálogo.
@@ -3532,8 +3660,6 @@ async function showMayoristaStorefront(){
     ${sectionsHtml}
   `;
 
-  const page = document.getElementById('mayoPage');
-  if (!page) return;
   const topbar = document.getElementById('hpTopbar');
   if (topbar) topbar.innerHTML = mpMarquee;
   page.innerHTML = html;
@@ -3892,36 +4018,16 @@ async function submitGameGate(){
 }
 
 // ═══════════════ MAYORISTAS MODAL ═══════════════════════════════════════════
+// Entra a la Zona Mayorista. showMayoristaStorefront() decide si renderea
+// la landing (sin sesión) o el catálogo (con sesión). El equipo puede
+// saltar la landing con ?mayo=guest en el URL.
 function openMayoristaModal(){
-  // ── Login mayorista DESACTIVADO temporalmente (volvemos después) ──
-  // Acceso directo al catálogo B2B sin pedir cuenta. Para reactivar el login,
-  // descomentar el bloque de abajo y borrar la llamada a enterMayoristaSinLogin().
-  enterMayoristaSinLogin();
-  /*
-  ['mayoLoginErr','mayoLoginOk','mayoLeadErr','mayoLeadOk'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.classList.remove('show'); el.textContent = ''; }
-  });
-  document.getElementById('mayoristaModal').classList.add('open');
-  */
-}
-function enterMayoristaSinLogin(){
   mayoristaMode = true;
   try { sessionStorage.setItem('zmayo', '1'); } catch {}
   markMayoristaActive();
-  showAccountChip({});
   resetChatSession();
   showMayoristaStorefront();
   window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-function closeMayoristaModal(){
-  document.getElementById('mayoristaModal').classList.remove('open');
-}
-function switchMayoTab(tab, btn){
-  document.querySelectorAll('#mayoristaModal .zm-tab').forEach(t => t.classList.remove('on'));
-  btn.classList.add('on');
-  document.getElementById('mayoPaneLogin').classList.toggle('on', tab === 'login');
-  document.getElementById('mayoPaneNuevo').classList.toggle('on', tab === 'nuevo');
 }
 async function mayoLogin(){
   const email = document.getElementById('mayoEmail').value.trim().toLowerCase();
@@ -3957,12 +4063,11 @@ async function mayoLogin(){
       markMayoristaActive();
       showAccountChip(data.customer || {});
       resetChatSession();
-      showMayoristaStorefront();
-      // El welcome ahora vive como bubble visual en #mayoPage, no en el chat.
       const nom = (data.customer && data.customer.first_name) || '';
-      ok.textContent = `Bienvenido${nom ? ' ' + nom : ''}! Cargamos tu catálogo mayorista.`;
+      ok.textContent = `Bienvenido${nom ? ' ' + nom : ''}! Cargando tu catálogo…`;
       ok.classList.add('show');
-      setTimeout(closeMayoristaModal, 1300);
+      // Pequeño delay para que el mensaje se vea antes de re-renderizar.
+      setTimeout(() => showMayoristaStorefront(), 700);
     } else {
       // Cuenta válida pero sin tag MAYORISTA1 — pendiente de aprobación
       ok.innerHTML = 'Tu cuenta existe pero todavía no está validada como mayorista. Te contactamos en las próximas 48 horas hábiles.';
