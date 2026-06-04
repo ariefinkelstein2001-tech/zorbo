@@ -376,6 +376,51 @@ body.mayorista-active #mayoPage{display:block}
   .shop-page .mayo-nav-opt{font-size:13px;padding:9px 12px}
 }
 
+/* ── Header mayorista: nav de categorías + cuenta en la MISMA línea que el logo
+   (desktop). En mobile caen al cuerpo para no romper el header. ───────────── */
+header .mayo-hnav{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
+header .mayo-hnav:empty,header .mayo-hacct:empty{display:none}
+header .mayo-hnav .mayo-nav-item{position:relative;flex-shrink:0}
+header .mayo-hnav .mayo-nav-btn{
+  background:#fff;border:1.5px solid #111;border-radius:11px;padding:7px 13px;cursor:pointer;
+  font-family:'Bricolage Grotesque',sans-serif;font-size:13px;font-weight:700;color:#111;
+  display:inline-flex;align-items:center;gap:5px;white-space:nowrap;transition:all .15s;
+}
+header .mayo-hnav .mayo-nav-btn:hover,
+header .mayo-hnav .mayo-nav-item.open .mayo-nav-btn{background:#111;color:#fff}
+header .mayo-hnav .mayo-nav-caret{font-size:10px;transition:transform .2s}
+header .mayo-hnav .mayo-nav-item.open .mayo-nav-caret{transform:rotate(180deg)}
+header .mayo-hnav .mayo-nav-drop{
+  position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%) translateY(-6px);
+  background:#fff;border:1.5px solid #111;border-radius:12px;padding:6px;min-width:150px;z-index:1200;
+  display:flex;flex-direction:column;gap:2px;box-shadow:0 14px 34px rgba(0,0,0,.16);
+  opacity:0;visibility:hidden;transition:opacity .15s,transform .15s,visibility .15s;
+}
+header .mayo-hnav .mayo-nav-item.open .mayo-nav-drop{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0)}
+header .mayo-hnav .mayo-nav-opt{
+  background:none;border:none;cursor:pointer;text-align:left;
+  font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:600;color:#222;
+  padding:9px 13px;border-radius:8px;transition:background .12s,color .12s;
+}
+header .mayo-hnav .mayo-nav-opt:hover{background:#fff3d6;color:#a05f00}
+header .mayo-hacct{display:flex;align-items:center;gap:10px;margin-left:auto;flex-shrink:0}
+header .mayo-hacct .mayo-account-who{font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:600;color:#555;white-space:nowrap}
+header .mayo-hacct .mayo-logout-btn{
+  cursor:pointer;border:1.5px solid #111;background:#fff;color:#111;
+  font-family:'Bricolage Grotesque',sans-serif;font-size:12px;font-weight:700;
+  padding:7px 13px;border-radius:10px;transition:all .15s;white-space:nowrap;
+}
+header .mayo-hacct .mayo-logout-btn:hover{background:#111;color:#fff}
+/* Desktop: el nav/cuenta del cuerpo se ocultan (viven en el header) */
+@media(min-width:761px){
+  .shop-page .mayo-account-bar{display:none}
+  .shop-page .hp-verprod .mayo-nav{display:none}
+}
+/* Mobile: el nav/cuenta del header se ocultan (viven en el cuerpo) */
+@media(max-width:760px){
+  header .mayo-hnav,header .mayo-hacct{display:none}
+}
+
 @media(max-width:600px){
   .shop-page .hp-circle{width:72px;height:72px;border-width:2px}
   .shop-page .hp-circles-track{gap:22px}
@@ -1694,12 +1739,16 @@ body.mayo-landing-mode header{background:transparent;border-bottom:none;position
     <a class="brand-logo" onclick="goHomeTop()" aria-label="Volver al inicio">
       <img class="logo-img" src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Titulo_secundario-3.png?v=1779814975" alt="Zorbo">
     </a>
+    <!-- Nav de categorías mayorista (se llena en showMayoristaStorefront) -->
+    <div class="mayo-hnav" id="mayoHnav"></div>
     <button class="mayoristas-btn" id="mayoristasBtn" onclick="openMayoristaModal()" aria-label="Acceso mayoristas">
       <span class="mb-ico">🔐</span><span class="mb-txt">Mayoristas</span>
     </button>
     <button class="account-chip" id="accountChip" style="display:none" onclick="toggleAccountMenu()" aria-label="Mi cuenta">
       <span class="ac-ico">👤</span><span class="ac-name" id="accountName">Mi cuenta</span>
     </button>
+    <!-- Cuenta + cerrar sesión mayorista (se llena en showMayoristaStorefront) -->
+    <div class="mayo-hacct" id="mayoHacct"></div>
     <button class="cart-btn" onclick="toggleCart()" aria-label="Carro">
       🛒<span class="cart-badge" id="cartBadge">0</span>
     </button>
@@ -3322,6 +3371,7 @@ function logoutMayorista(){
   sessionStorage.removeItem('zmayo_level');
   MP_CACHE = null; MP_CACHE_AT = 0; // el catálogo depende del cliente: invalidar
   hideAccountChip();
+  clearMayoHeader();
   resetChatSession();
   welcomed = true; // ya no queremos el welcome inicial de Zorbot
 
@@ -3832,6 +3882,8 @@ async function showMayoristaStorefront(){
   const _sessCust = (() => { try { return JSON.parse(sessionStorage.getItem('zmayo_customer') || 'null'); } catch { return null; } })();
   const guestParam = new URLSearchParams(location.search).get('mayo') === 'guest';
   const loggedIn = !!(_sessCust && (_sessCust.id || _sessCust.email)) || guestParam;
+  // El nav/cuenta del header solo aplican con sesión: limpiar por defecto.
+  clearMayoHeader();
   if (!loggedIn) {
     document.body.classList.add('mayo-landing-mode');
     page.innerHTML = buildMayoLandingHtml(mayoCfg);
@@ -4008,10 +4060,34 @@ async function showMayoristaStorefront(){
   if (topbar) topbar.innerHTML = mpMarquee;
   page.innerHTML = html;
   hpInitHero();
+  // Nav de categorías + cuenta en el HEADER (misma línea que el logo, desktop).
+  fillMayoHeader(navHtml, customer);
   // Catálogo del sidebar (☰) en versión B2B: por categorías mayoristas.
   renderMayoSidebar(groups);
   // Botón "Repetir último pedido" (recompra) — se monta async según historial.
   mountReorderButton(customer.email);
+}
+
+// Header mayorista: pone el nav de categorías y la cuenta/cerrar sesión en la
+// misma línea que el logo (visible en desktop; en mobile viven en el cuerpo).
+function fillMayoHeader(navHtml, customer){
+  const hnav = document.getElementById('mayoHnav');
+  if (hnav) hnav.innerHTML = navHtml || '';
+  const hacct = document.getElementById('mayoHacct');
+  if (hacct) {
+    const who = escapeHtml((customer && (customer.first_name || customer.email)) || 'Mi cuenta');
+    hacct.innerHTML = `<span class="mayo-account-who">👤 ${who}</span>` +
+      `<button class="mayo-logout-btn" onclick="logoutMayorista()">Cerrar sesión</button>`;
+  }
+  // El chip de cuenta del header se reemplaza por esta barra.
+  const chip = document.getElementById('accountChip');
+  if (chip) chip.style.display = 'none';
+}
+function clearMayoHeader(){
+  const hnav = document.getElementById('mayoHnav');
+  if (hnav) hnav.innerHTML = '';
+  const hacct = document.getElementById('mayoHacct');
+  if (hacct) hacct.innerHTML = '';
 }
 
 // ─── RECOMPRA: "Repetir último pedido" ──────────────────────────────────────
