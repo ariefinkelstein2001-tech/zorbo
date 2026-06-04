@@ -3417,7 +3417,7 @@ function buildMayoLandingHtml(mayoCfg){
         <div class="ml-stats">
           ${stats.map(s => `
             <div class="ml-stat">
-              <div class="ml-stat-circle"><span class="ml-stat-num" data-target="${escapeAttr(s.value || '')}">0</span></div>
+              <div class="ml-stat-circle"><span class="ml-stat-num" data-target="${escapeHtml(s.value || '')}">0</span></div>
               <div class="ml-stat-label">${escapeHtml(s.label || '')}</div>
             </div>`).join('')}
         </div>
@@ -3426,7 +3426,7 @@ function buildMayoLandingHtml(mayoCfg){
       <section class="ml-brands">
         <div class="ml-brands-eyebrow">NUESTRAS MARCAS</div>
         <div class="ml-brands-row">
-          ${brands.map(b => `<img class="ml-brand-logo" src="${escapeAttr(b.logo || '')}" alt="${escapeAttr(b.label || '')}" title="${escapeAttr(b.label || '')}">`).join('')}
+          ${brands.map(b => `<img class="ml-brand-logo" src="${escapeHtml(b.logo || '')}" alt="${escapeHtml(b.label || '')}" title="${escapeHtml(b.label || '')}">`).join('')}
         </div>
       </section>
 
