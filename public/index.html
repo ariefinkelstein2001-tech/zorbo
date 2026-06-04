@@ -1287,6 +1287,10 @@ header .account-chip{margin-left:auto}
 }
 .checkout-btn:hover{opacity:.92}
 .checkout-btn:disabled{opacity:.4;cursor:not-allowed}
+/* Envío gratis sobre $50.000 es SOLO B2C: en mayorista ocultamos la barra/hint */
+body.mayorista-active .ship-bar,
+body.mayorista-active .ship-hint,
+body.mayorista-active .free-badge{display:none !important}
 
 /* ── ANIMATIONS ── */
 @keyframes popIn{from{opacity:0;transform:scale(.88) translateY(12px)}to{opacity:1;transform:none}}
@@ -3373,10 +3377,12 @@ function tourPlace(el){
   const vw = window.innerWidth, vh = window.innerHeight;
   const isMobile = vw <= 600;
   if (isMobile){
-    // En móvil: nota fija abajo, centrada, sin flecha.
+    // En móvil la nota va al lado OPUESTO del elemento para no taparlo: si el
+    // elemento está en la mitad inferior (ej. el chat), la nota va ARRIBA.
     note.dataset.arrow = 'none';
     note.style.left = Math.max(12, (vw - nw)/2) + 'px';
-    note.style.top = (vh - nh - 16) + 'px';
+    const elMidY = r.top + r.height/2;
+    note.style.top = (elMidY > vh/2) ? '16px' : (vh - nh - 16) + 'px';
     return;
   }
   let nTop, arrow;
@@ -3728,13 +3734,19 @@ function updateCart() {
     totalEl.textContent = '$' + total.toLocaleString('es-CL');
   }
   document.getElementById('checkoutBtn').disabled = cart.length === 0;
-  const pct = Math.min(total / FREE_SHIP * 100, 100);
-  document.getElementById('shipFill').style.width = pct + '%';
-  const free = total >= FREE_SHIP;
-  document.getElementById('freeBadge').classList.toggle('on', free);
-  document.getElementById('shipHint').textContent = free
-    ? 'Envío gratis activado!'
-    : '$' + (FREE_SHIP - total).toLocaleString('es-CL') + ' para envío gratis';
+  // Envío gratis sobre $50.000 es SOLO B2C. En mayorista no se muestra (su
+  // despacho va por condiciones comerciales). El CSS oculta la barra/hint.
+  if (!mayoristaMode) {
+    const pct = Math.min(total / FREE_SHIP * 100, 100);
+    document.getElementById('shipFill').style.width = pct + '%';
+    const free = total >= FREE_SHIP;
+    document.getElementById('freeBadge').classList.toggle('on', free);
+    document.getElementById('shipHint').textContent = free
+      ? 'Envío gratis activado!'
+      : '$' + (FREE_SHIP - total).toLocaleString('es-CL') + ' para envío gratis';
+  } else {
+    document.getElementById('freeBadge').classList.remove('on');
+  }
 }
 function toggleCart() {
   cartOpen = !cartOpen;
@@ -3793,7 +3805,7 @@ async function doCheckout() {
 // ─── TOASTS ───────────────────────────────────────────────────────────────────
 function toast(p) {
   const total  = cart.reduce((s, i) => s + i.p.price * i.qty, 0);
-  const isFree = total >= FREE_SHIP;
+  const isFree = !mayoristaMode && total >= FREE_SHIP; // envío gratis es solo B2C
   const el = document.createElement('div');
   el.className = 'toast' + (isFree ? ' ship' : '');
   el.innerHTML = isFree
