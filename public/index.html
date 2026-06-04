@@ -445,6 +445,26 @@ header .mayo-hacct .mayo-logout-btn:hover{background:#111;color:#fff}
 .shop-page .hp-row::-webkit-scrollbar{height:6px}
 .shop-page .hp-row::-webkit-scrollbar-track{background:transparent}
 .shop-page .hp-row::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+/* Flechas para mover la fila de productos (carrusel horizontal) */
+.shop-page .hp-row-wrap{position:relative}
+.hp-row-arr{
+  position:absolute;top:38%;transform:translateY(-50%);z-index:6;
+  width:42px;height:42px;border-radius:50%;border:1px solid #e5e5e5;cursor:pointer;
+  background:rgba(255,255,255,.97);color:#111;
+  display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1;
+  box-shadow:0 4px 16px rgba(0,0,0,.18);transition:background .15s,color .15s,opacity .2s,transform .12s;
+}
+.hp-row-arr:hover{background:#f5a623;color:#fff;border-color:#f5a623}
+.hp-row-arr:active{transform:translateY(-50%) scale(.94)}
+.hp-row-arr.prev{left:-8px}
+.hp-row-arr.next{right:-8px}
+.hp-row-arr.hide{opacity:0;pointer-events:none}
+.hp-row-wrap.no-arrows .hp-row-arr{display:none}
+@media(max-width:600px){
+  .hp-row-arr{width:34px;height:34px;font-size:19px}
+  .hp-row-arr.prev{left:0}
+  .hp-row-arr.next{right:0}
+}
 .shop-page .hp-card{
   flex:0 0 280px;scroll-snap-align:start;
   background:#fff;border:1px solid #e5e5e5;border-radius:6px;
@@ -2760,6 +2780,41 @@ function hpAdd(btn){
   setTimeout(() => { btn.textContent = 'AÑADIR AL CARRITO'; btn.classList.remove('done'); }, 2200);
 }
 
+// Flechas de navegación para las filas de productos (carrusel horizontal).
+// Envuelve cada .hp-section .hp-row y le agrega botones ‹ ›. Idempotente.
+function hpInitRowArrows(scope){
+  (scope || document).querySelectorAll('.hp-section .hp-row').forEach(row => {
+    if (row.dataset.arr) return;
+    row.dataset.arr = '1';
+    const wrap = document.createElement('div');
+    wrap.className = 'hp-row-wrap';
+    row.parentNode.insertBefore(wrap, row);
+    wrap.appendChild(row);
+    const mk = (cls, sym, lbl) => {
+      const b = document.createElement('button');
+      b.className = 'hp-row-arr ' + cls; b.type = 'button';
+      b.innerHTML = sym; b.setAttribute('aria-label', lbl);
+      return b;
+    };
+    const prev = mk('prev', '‹', 'Anterior');
+    const next = mk('next', '›', 'Siguiente');
+    wrap.appendChild(prev); wrap.appendChild(next);
+    const step = () => Math.max(240, row.clientWidth * 0.85);
+    prev.onclick = () => row.scrollBy({ left: -step(), behavior: 'smooth' });
+    next.onclick = () => row.scrollBy({ left:  step(), behavior: 'smooth' });
+    const upd = () => {
+      const noOverflow = row.scrollWidth <= row.clientWidth + 4;
+      wrap.classList.toggle('no-arrows', noOverflow);
+      const max = row.scrollWidth - row.clientWidth - 2;
+      prev.classList.toggle('hide', row.scrollLeft <= 2);
+      next.classList.toggle('hide', row.scrollLeft >= max);
+    };
+    row.addEventListener('scroll', upd, { passive: true });
+    window.addEventListener('resize', upd);
+    setTimeout(upd, 120);
+  });
+}
+
 function hpInitHero(){
   document.querySelectorAll('.shop-page .hp-hero').forEach(ss => {
     if (ss.dataset.init) return;
@@ -3034,6 +3089,7 @@ async function showStorefront(){
   // secciones → juegos → cierre.
   page.innerHTML = `${categories}${hero}${welcomeBubble}${orderedSectionsHtml}${juegosHtml}${cierreHtml}`;
   hpInitHero();
+  hpInitRowArrows(page); // flechas para mover las filas de productos
   renderSidebarCatalog(groups, home);
   maybeShowPromoPopup();
 }
@@ -4543,6 +4599,7 @@ async function showMayoristaStorefront(){
   if (topbar) topbar.innerHTML = mpMarquee;
   page.innerHTML = html;
   hpInitHero();
+  hpInitRowArrows(page); // flechas para mover las filas de productos
   // Nav de categorías + cuenta en el HEADER (misma línea que el logo, desktop).
   fillMayoHeader(navHtml, customer);
   // Catálogo del sidebar (☰) en versión B2B: agrupado por marca.
