@@ -1347,72 +1347,175 @@ body.mayorista-active .game-banner{display:none}
 }
 
 /* ── LANDING MAYORISTA (login + bienvenida en #mayoPage cuando no hay sesión) ── */
-#mayoPage .mayo-landing{background:#fff;color:#111;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column}
-#mayoPage .ml-hero{
-  background:#ece4d2;padding:clamp(36px,6vw,68px) clamp(20px,6vw,72px);
-  display:grid;grid-template-columns:1.4fr 1fr;gap:36px;align-items:center;
+/* Paleta Zorbo: blanco + oro + negro. Tipografías DM Sans / Bricolage / Syne. */
+#mayoPage .mayo-landing{
+  background:#fff;color:#111;font-family:'DM Sans',sans-serif;
+  min-height:100vh;display:flex;flex-direction:column;position:relative;overflow:hidden;
 }
-@media(max-width:880px){#mayoPage .ml-hero{grid-template-columns:1fr;text-align:center}}
-#mayoPage .ml-hero-title{font-family:'Syne',sans-serif;font-size:clamp(34px,5vw,64px);font-weight:800;line-height:1;letter-spacing:-.015em;color:#3a2b1a}
-#mayoPage .ml-hero-title em{font-style:italic;color:#3a2b1a;font-weight:800}
-#mayoPage .ml-hero-sub{font-size:clamp(14px,1.1vw,17px);color:#5a4a30;margin-top:22px;line-height:1.55;max-width:520px}
+/* Glow dorado de fondo (decorativo) */
+#mayoPage .mayo-landing::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(circle at 85% 15%, rgba(245,166,35,.10) 0%, transparent 40%),
+    radial-gradient(circle at 12% 92%, rgba(245,166,35,.07) 0%, transparent 35%);
+}
+#mayoPage .ml-hero,
+#mayoPage .ml-brands,
+#mayoPage .ml-auth{position:relative;z-index:1}
+
+#mayoPage .ml-hero{
+  padding:clamp(26px,3.8vw,52px) clamp(20px,6vw,80px) clamp(18px,2.6vw,30px);
+  display:grid;grid-template-columns:1.35fr 1fr;gap:36px;align-items:center;
+}
+@media(max-width:880px){#mayoPage .ml-hero{grid-template-columns:1fr;text-align:center;padding-top:28px}}
+#mayoPage .ml-hero-title{
+  font-family:'Bricolage Grotesque','Syne',sans-serif;
+  font-size:clamp(38px,5.6vw,76px);font-weight:800;line-height:.95;
+  letter-spacing:-.025em;color:#111;
+  animation:mlFadeUp .7s cubic-bezier(.2,.7,.3,1) both;
+}
+#mayoPage .ml-hero-title em{
+  font-style:italic;font-family:'Syne',sans-serif;font-weight:800;
+  background:linear-gradient(135deg,#ffb840 0%,#f5a623 50%,#a05f00 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+@keyframes mlFadeUp{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+#mayoPage .ml-hero-sub{
+  font-size:clamp(13.5px,1vw,15.5px);color:#555;margin-top:18px;
+  line-height:1.55;max-width:480px;
+  animation:mlFadeUp .8s cubic-bezier(.2,.7,.3,1) .12s both;
+}
 @media(max-width:880px){#mayoPage .ml-hero-sub{margin-left:auto;margin-right:auto}}
-#mayoPage .ml-stats{display:flex;gap:18px;justify-content:flex-end;flex-wrap:wrap}
+
+#mayoPage .ml-stats{
+  display:flex;gap:clamp(14px,1.8vw,22px);justify-content:flex-end;flex-wrap:wrap;
+  animation:mlFadeUp .9s cubic-bezier(.2,.7,.3,1) .25s both;
+}
 @media(max-width:880px){#mayoPage .ml-stats{justify-content:center}}
 #mayoPage .ml-stat{display:flex;flex-direction:column;align-items:center;gap:10px}
 #mayoPage .ml-stat-circle{
-  width:clamp(96px,11vw,140px);height:clamp(96px,11vw,140px);background:#f5a623;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 12px 30px rgba(245,166,35,.28);
+  width:clamp(92px,9.5vw,128px);height:clamp(92px,9.5vw,128px);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 30% 26%,#ffd56b 0%,#ffb840 45%,#f5a623 100%);
+  box-shadow:
+    0 18px 38px rgba(245,166,35,.28),
+    inset 0 -10px 22px rgba(160,95,0,.16),
+    inset 0 6px 14px rgba(255,255,255,.5);
+  animation:mlFloat 4.5s ease-in-out infinite;
+  transition:transform .35s cubic-bezier(.3,1.4,.5,1);
 }
-#mayoPage .ml-stat-num{font-family:'Bricolage Grotesque',sans-serif;font-size:clamp(20px,2.2vw,30px);font-weight:800;color:#1a1408;letter-spacing:-.01em}
-#mayoPage .ml-stat-label{font-size:11px;font-weight:700;letter-spacing:.18em;color:#444}
+#mayoPage .ml-stat:nth-child(2) .ml-stat-circle{animation-delay:.5s}
+#mayoPage .ml-stat:nth-child(3) .ml-stat-circle{animation-delay:1s}
+#mayoPage .ml-stat-circle:hover{transform:scale(1.08) rotate(-3deg)}
+@keyframes mlFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-10px)}
+}
+#mayoPage .ml-stat-num{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-size:clamp(20px,2.4vw,30px);font-weight:800;color:#1a1408;letter-spacing:-.02em;
+}
+#mayoPage .ml-stat-label{
+  font-family:'DM Sans',sans-serif;font-size:10.5px;font-weight:700;
+  letter-spacing:.22em;color:#444;
+}
 
-#mayoPage .ml-brands{padding:clamp(36px,5vw,56px) clamp(20px,6vw,72px);text-align:center;background:#fff;border-bottom:1px solid #eee}
-#mayoPage .ml-brands-eyebrow{font-size:11px;font-weight:700;letter-spacing:.25em;color:#999}
-#mayoPage .ml-brands-row{display:flex;gap:clamp(28px,4vw,56px);justify-content:center;align-items:center;flex-wrap:wrap;margin-top:24px}
-#mayoPage .ml-brand-logo{width:clamp(70px,8vw,96px);height:clamp(70px,8vw,96px);border-radius:50%;border:2.5px solid #111;background:#fff;object-fit:cover;transition:transform .25s,box-shadow .25s}
-#mayoPage .ml-brand-logo:hover{transform:scale(1.06);box-shadow:0 10px 24px rgba(0,0,0,.12)}
+#mayoPage .ml-brands{
+  padding:clamp(18px,2.5vw,28px) clamp(20px,6vw,80px) clamp(16px,2vw,24px);
+  text-align:center;animation:mlFadeUp 1s cubic-bezier(.2,.7,.3,1) .35s both;
+}
+#mayoPage .ml-brands-eyebrow{
+  font-size:10.5px;font-weight:700;letter-spacing:.28em;color:#999;
+}
+#mayoPage .ml-brands-row{
+  display:flex;gap:clamp(24px,4vw,52px);justify-content:center;align-items:center;
+  flex-wrap:wrap;margin-top:14px;
+}
+#mayoPage .ml-brand-logo{
+  width:clamp(58px,5.8vw,76px);height:clamp(58px,5.8vw,76px);border-radius:50%;
+  border:2.5px solid #111;background:#fff;object-fit:cover;cursor:default;
+  transition:transform .28s cubic-bezier(.3,1.4,.5,1),box-shadow .28s,border-color .28s;
+}
+#mayoPage .ml-brand-logo:hover{
+  transform:scale(1.12) rotate(-6deg);
+  box-shadow:0 12px 26px rgba(0,0,0,.18);border-color:#f5a623;
+}
 
-#mayoPage .ml-auth{padding:clamp(40px,5vw,64px) 20px;background:#fafafa;flex:1}
-#mayoPage .ml-auth-inner{max-width:480px;margin:0 auto}
-#mayoPage .ml-auth-tabs{display:flex;gap:0;margin-bottom:22px;border-bottom:2px solid #eee}
+#mayoPage .ml-auth{
+  padding:clamp(14px,2vw,22px) 20px clamp(28px,4vw,44px);
+  animation:mlFadeUp 1.05s cubic-bezier(.2,.7,.3,1) .45s both;
+}
+#mayoPage .ml-auth-inner{
+  max-width:440px;margin:0 auto;background:#fff;
+  border:1px solid #ececec;border-radius:18px;padding:20px 22px 24px;
+  box-shadow:0 22px 52px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.03);
+}
+#mayoPage .ml-auth-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid #f1f1f1}
 #mayoPage .ml-auth-tab{
-  flex:1;padding:14px;background:transparent;border:none;
-  font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:15px;color:#999;
-  cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;
-  letter-spacing:.02em;
+  flex:1;padding:12px;background:transparent;border:none;
+  font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:14px;color:#aaa;
+  cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;
+  transition:all .15s;letter-spacing:.02em;
 }
 #mayoPage .ml-auth-tab.on{color:#111;border-bottom-color:#f5a623}
 #mayoPage .ml-auth-tab:hover{color:#333}
-#mayoPage .ml-auth-title{font-family:'Syne',sans-serif;font-size:28px;font-weight:700;text-align:center;margin:8px 0 22px;color:#111;letter-spacing:-.01em}
-#mayoPage .ml-auth-pane{display:none;flex-direction:column;gap:11px}
+#mayoPage .ml-auth-title{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-size:22px;font-weight:800;text-align:center;margin:4px 0 14px;
+  color:#111;letter-spacing:-.012em;
+}
+#mayoPage .ml-auth-pane{display:none;flex-direction:column;gap:9px}
 #mayoPage .ml-auth-pane.on{display:flex}
 #mayoPage .ml-auth-pane input,
 #mayoPage .ml-auth-pane select{
-  width:100%;padding:13px 16px;border:1px solid #ddd;border-radius:11px;
-  font-family:'DM Sans',sans-serif;font-size:15px;background:#fff;outline:none;
-  transition:border-color .15s,box-shadow .15s;color:#111;
+  width:100%;padding:11px 14px;border:1px solid #e0e0e0;border-radius:10px;
+  font-family:'DM Sans',sans-serif;font-size:14px;background:#fafafa;
+  outline:none;transition:all .15s;color:#111;
 }
 #mayoPage .ml-auth-pane input::placeholder{color:#999}
 #mayoPage .ml-auth-pane input:focus,
-#mayoPage .ml-auth-pane select:focus{border-color:#f5a623;box-shadow:0 0 0 3px rgba(245,166,35,.15)}
-#mayoPage .ml-auth-grid{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+#mayoPage .ml-auth-pane select:focus{
+  border-color:#f5a623;background:#fff;box-shadow:0 0 0 3px rgba(245,166,35,.15);
+}
+#mayoPage .ml-auth-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 @media(max-width:480px){#mayoPage .ml-auth-grid{grid-template-columns:1fr}}
 #mayoPage .ml-auth-submit{
-  padding:15px 20px;background:#111;color:#fff;border:none;border-radius:11px;
-  font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:15px;
-  letter-spacing:.04em;cursor:pointer;transition:opacity .15s,transform .08s;
-  margin-top:8px;
+  position:relative;overflow:hidden;
+  padding:13px 18px;background:linear-gradient(135deg,#1a1a1a 0%,#000 100%);
+  color:#fff;border:none;border-radius:11px;
+  font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:14.5px;
+  letter-spacing:.04em;cursor:pointer;margin-top:6px;
+  transition:box-shadow .25s,transform .1s;
 }
-#mayoPage .ml-auth-submit:hover{opacity:.88}
+#mayoPage .ml-auth-submit::before{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(245,166,35,.35),transparent);
+  transition:left .55s;
+}
+#mayoPage .ml-auth-submit:hover{box-shadow:0 10px 26px rgba(245,166,35,.28)}
+#mayoPage .ml-auth-submit:hover::before{left:100%}
 #mayoPage .ml-auth-submit:active{transform:scale(.985)}
 #mayoPage .ml-auth-submit:disabled{opacity:.4;cursor:not-allowed}
-#mayoPage .ml-foot{font-size:12px;color:#888;text-align:center;margin-top:14px;line-height:1.5}
-#mayoPage .ml-msg{padding:11px 14px;border-radius:9px;font-size:13px;display:none;text-align:center;font-weight:600}
+#mayoPage .ml-foot{font-size:11.5px;color:#888;text-align:center;margin-top:10px;line-height:1.5}
+#mayoPage .ml-msg{padding:10px 12px;border-radius:9px;font-size:13px;display:none;text-align:center;font-weight:600}
 #mayoPage .ml-msg.show{display:block}
 #mayoPage .ml-msg.err{background:#fdecec;color:#d33;border:1px solid rgba(224,101,79,.22)}
 #mayoPage .ml-msg.ok{background:#ecf7ec;color:#2a8f3a;border:1px solid rgba(92,201,143,.25)}
+
+/* Modo landing: ocultar todo lo que no sea login (carrito, chat, pills, topbar) */
+body.mayo-landing-mode .cart-btn,
+body.mayo-landing-mode .input-wrap,
+body.mayo-landing-mode .chat-area,
+body.mayo-landing-mode .hp-sb-toggle,
+body.mayo-landing-mode .hp-topbar,
+body.mayo-landing-mode .hp-sidebar,
+body.mayo-landing-mode .hp-sidebar-overlay,
+body.mayo-landing-mode .account-chip,
+body.mayo-landing-mode .account-menu{display:none !important}
+body.mayo-landing-mode header{background:transparent;border-bottom:none;position:relative;z-index:10}
 
 /* ── MODAL GENERICO (mayoristas + game gate) ── */
 .zmodal{position:fixed;inset:0;z-index:820;display:none;align-items:center;justify-content:center;padding:1.2rem;background:rgba(5,4,10,.85);backdrop-filter:blur(10px)}
@@ -3519,11 +3622,14 @@ async function showMayoristaStorefront(){
   const guestParam = new URLSearchParams(location.search).get('mayo') === 'guest';
   const loggedIn = !!(_sessCust && (_sessCust.id || _sessCust.email)) || guestParam;
   if (!loggedIn) {
+    document.body.classList.add('mayo-landing-mode');
     page.innerHTML = buildMayoLandingHtml(mayoCfg);
     initMayoLanding();
     window.scrollTo({ top: 0, behavior: 'smooth' });
     return;
   }
+  // Pasó el login → modo catálogo normal.
+  document.body.classList.remove('mayo-landing-mode');
 
   const products = await loadMpCatalog();
   // 6 secciones: las 5 base + "Otros" como catch-all (custom brands,
