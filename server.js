@@ -3241,10 +3241,13 @@ app.post('/chat', async (req, res) => {
   //     Claude (que recomienda y pregunta).
   //  C) Cualquier otra cosa → Claude normal.
   const isB2BContext = detect(message, B2B_KW);
+  // ¿Es una sesión mayorista? Entonces el flujo de compra usa el catálogo
+  // MAYORISTA (o la colección EX), nunca el B2C.
+  const mayo = mayorista || session.isB2B;
 
   // A) CHECKOUT_OPEN: abrir carrito directo (chequeamos PRIMERO para que
   // "quiero pagar" no matchee "quiero" de ADD_NOW por accidente).
-  if (!isB2BContext && detect(message, CHECKOUT_OPEN_KW)) {
+  if ((mayo || !isB2BContext) && detect(message, CHECKOUT_OPEN_KW)) {
     session.purchaseIntent = true;
     session.messages.push({ role: 'user',      content: message,      timestamp: new Date().toISOString() });
     session.messages.push({ role: 'assistant', content: CHECKOUT_MSG, timestamp: new Date().toISOString() });
@@ -3264,7 +3267,7 @@ app.post('/chat', async (req, res) => {
   // Si NO se identifica:
   //  - Si dio pack-size pero hay múltiples → server lista las opciones y pregunta.
   //  - Si no dio pack-size → cae a Claude (con prompt anti-mentira).
-  if (!isB2BContext && (detect(message, ADD_NOW_KW) || isShorthandAddIntent(message))) {
+  if ((mayo || !isB2BContext) && (detect(message, ADD_NOW_KW) || isShorthandAddIntent(message))) {
     let cartItems = [];
     let clarifyMsg = null;
     const normMsg = normalizeShorthand(message);
@@ -3272,13 +3275,27 @@ app.post('/chat', async (req, res) => {
     if (process.env.SHOPIFY_ADMIN_TOKEN) {
       try {
         const all = await loadProductsCache(false);
-        const b2c = (all || [])
-          .filter(p => String(p.status || 'ACTIVE').toUpperCase() === 'ACTIVE')
-          .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes('ZORBO'));
+        const active = (all || []).filter(p => String(p.status || 'ACTIVE').toUpperCase() === 'ACTIVE');
+        // Catálogo según el tipo de cliente: mayorista (tag MAYORISTA o, si es
+        // MAYORISTA1, solo la colección EX) o B2C (tag ZORBO). Así "agrégalo"
+        // nunca matchea un producto fuera del catálogo que ve el cliente.
+        let shopCatalog;
+        if (mayo) {
+          const level = customerEmail ? await getCustomerMayoLevel(customerEmail) : null;
+          if (level === 'ex') {
+            const ex = await loadMayoExProductIds(false);
+            const ids = (ex.available && ex.found) ? ex.ids : new Set();
+            shopCatalog = active.filter(p => ids.has(String(p.id)));
+          } else {
+            shopCatalog = active.filter(p => isMayoristaProduct(p));
+          }
+        } else {
+          shopCatalog = active.filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes('ZORBO'));
+        }
         // 1) Intentar matchear desde lo que el bot recomendó previamente.
-        if (lastAssistant) cartItems = findMentionedProducts(lastAssistant.content, b2c, normMsg);
+        if (lastAssistant) cartItems = findMentionedProducts(lastAssistant.content, shopCatalog, normMsg);
         // 2) Fallback: el cliente puede haber nombrado el producto él mismo.
-        if (!cartItems.length) cartItems = findMentionedProducts(message, b2c, normMsg);
+        if (!cartItems.length) cartItems = findMentionedProducts(message, shopCatalog, normMsg);
         // 3) Fallback: si dio pack-size y hay un único producto con ese pack,
         //    lo usamos. Si hay varios, server pide aclaración (no Claude).
         if (!cartItems.length) {
@@ -3286,7 +3303,7 @@ app.post('/chat', async (req, res) => {
           const pack = parsePackSize(u);
           if (pack) {
             const inTitle = new RegExp('(^|\\s|\\b)' + pack.size + '\\s*[- ]?pack', 'i');
-            const matches = b2c.filter(p => inTitle.test(String(p.title || '')));
+            const matches = shopCatalog.filter(p => inTitle.test(String(p.title || '')));
             if (matches.length === 1) {
               const p = matches[0];
               const v = (p.variants || [])[0];
