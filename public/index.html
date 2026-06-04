@@ -1508,13 +1508,15 @@ body.mayorista-active .game-banner{display:none}
 /* Modo landing: ocultar todo lo que no sea login (carrito, chat, pills, topbar) */
 body.mayo-landing-mode .cart-btn,
 body.mayo-landing-mode .input-wrap,
-body.mayo-landing-mode .chat-area,
+body.mayo-landing-mode #messages,
+body.mayo-landing-mode .promo-banner,
 body.mayo-landing-mode .hp-sb-toggle,
 body.mayo-landing-mode .hp-topbar,
 body.mayo-landing-mode .hp-sidebar,
 body.mayo-landing-mode .hp-sidebar-overlay,
 body.mayo-landing-mode .account-chip,
 body.mayo-landing-mode .account-menu{display:none !important}
+/* OJO: NO ocultar .chat-area — #mayoPage vive adentro */
 body.mayo-landing-mode header{background:transparent;border-bottom:none;position:relative;z-index:10}
 
 /* ── MODAL GENERICO (mayoristas + game gate) ── */
