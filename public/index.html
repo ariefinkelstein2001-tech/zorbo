@@ -1359,83 +1359,23 @@ body.mayorista-active .game-banner{display:none}
     radial-gradient(circle at 85% 15%, rgba(245,166,35,.10) 0%, transparent 40%),
     radial-gradient(circle at 12% 92%, rgba(245,166,35,.07) 0%, transparent 35%);
 }
-#mayoPage .ml-hero,
 #mayoPage .ml-brands,
-#mayoPage .ml-auth{position:relative;z-index:1}
+#mayoPage .ml-main{position:relative;z-index:1}
 
-#mayoPage .ml-hero{
-  padding:clamp(26px,3.8vw,52px) clamp(20px,6vw,80px) clamp(18px,2.6vw,30px);
-  display:grid;grid-template-columns:1.35fr 1fr;gap:36px;align-items:center;
-}
-@media(max-width:880px){#mayoPage .ml-hero{grid-template-columns:1fr;text-align:center;padding-top:28px}}
-#mayoPage .ml-hero-title{
-  font-family:'Bricolage Grotesque','Syne',sans-serif;
-  font-size:clamp(38px,5.6vw,76px);font-weight:800;line-height:.95;
-  letter-spacing:-.025em;color:#111;
-  /* anim disabled */
-}
-#mayoPage .ml-hero-title em{
-  font-style:italic;font-family:'Syne',sans-serif;font-weight:800;
-  background:linear-gradient(135deg,#ffb840 0%,#f5a623 50%,#a05f00 100%);
-  -webkit-background-clip:text;background-clip:text;color:transparent;
-}
-@keyframes mlFadeUp{
-  from{opacity:0;transform:translateY(20px)}
-  to{opacity:1;transform:translateY(0)}
-}
-#mayoPage .ml-hero-sub{
-  font-size:clamp(13.5px,1vw,15.5px);color:#555;margin-top:18px;
-  line-height:1.55;max-width:480px;
-  /* anim disabled */
-}
-@media(max-width:880px){#mayoPage .ml-hero-sub{margin-left:auto;margin-right:auto}}
-
-#mayoPage .ml-stats{
-  display:flex;gap:clamp(14px,1.8vw,22px);justify-content:flex-end;flex-wrap:wrap;
-  /* anim disabled */
-}
-@media(max-width:880px){#mayoPage .ml-stats{justify-content:center}}
-#mayoPage .ml-stat{display:flex;flex-direction:column;align-items:center;gap:10px}
-#mayoPage .ml-stat-circle{
-  width:clamp(92px,9.5vw,128px);height:clamp(92px,9.5vw,128px);
-  border-radius:50%;display:flex;align-items:center;justify-content:center;
-  background:radial-gradient(circle at 30% 26%,#ffd56b 0%,#ffb840 45%,#f5a623 100%);
-  box-shadow:
-    0 18px 38px rgba(245,166,35,.28),
-    inset 0 -10px 22px rgba(160,95,0,.16),
-    inset 0 6px 14px rgba(255,255,255,.5);
-  animation:mlFloat 4.5s ease-in-out infinite;
-  transition:transform .35s cubic-bezier(.3,1.4,.5,1);
-}
-#mayoPage .ml-stat:nth-child(2) .ml-stat-circle{animation-delay:.5s}
-#mayoPage .ml-stat:nth-child(3) .ml-stat-circle{animation-delay:1s}
-#mayoPage .ml-stat-circle:hover{transform:scale(1.08) rotate(-3deg)}
-@keyframes mlFloat{
-  0%,100%{transform:translateY(0)}
-  50%{transform:translateY(-10px)}
-}
-#mayoPage .ml-stat-num{
-  font-family:'Bricolage Grotesque',sans-serif;
-  font-size:clamp(20px,2.4vw,30px);font-weight:800;color:#1a1408;letter-spacing:-.02em;
-}
-#mayoPage .ml-stat-label{
-  font-family:'DM Sans',sans-serif;font-size:10.5px;font-weight:700;
-  letter-spacing:.22em;color:#444;
-}
-
+/* Marcas arriba al medio, compacto */
 #mayoPage .ml-brands{
-  padding:clamp(18px,2.5vw,28px) clamp(20px,6vw,80px) clamp(16px,2vw,24px);
-  text-align:center;/* anim disabled */
+  padding:clamp(12px,1.5vw,18px) clamp(20px,4vw,40px) clamp(8px,1vw,14px);
+  text-align:center;
 }
 #mayoPage .ml-brands-eyebrow{
-  font-size:10.5px;font-weight:700;letter-spacing:.28em;color:#999;
+  font-size:10px;font-weight:700;letter-spacing:.3em;color:#999;
 }
 #mayoPage .ml-brands-row{
-  display:flex;gap:clamp(24px,4vw,52px);justify-content:center;align-items:center;
-  flex-wrap:wrap;margin-top:14px;
+  display:flex;gap:clamp(18px,2.5vw,32px);justify-content:center;align-items:center;
+  flex-wrap:wrap;margin-top:8px;
 }
 #mayoPage .ml-brand-logo{
-  width:clamp(58px,5.8vw,76px);height:clamp(58px,5.8vw,76px);border-radius:50%;
+  width:clamp(48px,4.5vw,62px);height:clamp(48px,4.5vw,62px);border-radius:50%;
   border:2.5px solid #111;background:#fff;object-fit:cover;cursor:default;
   transition:transform .28s cubic-bezier(.3,1.4,.5,1),box-shadow .28s,border-color .28s;
 }
@@ -1444,14 +1384,75 @@ body.mayorista-active .game-banner{display:none}
   box-shadow:0 12px 26px rgba(0,0,0,.18);border-color:#f5a623;
 }
 
-#mayoPage .ml-auth{
-  padding:clamp(14px,2vw,22px) 20px clamp(28px,4vw,44px);
-  /* anim disabled */
+/* Main: 2 columnas (hero a la izq + login a la der), todo en una vista */
+#mayoPage .ml-main{
+  flex:1;display:grid;grid-template-columns:1.25fr 1fr;
+  gap:clamp(28px,4vw,56px);align-items:center;
+  padding:clamp(14px,2.5vw,32px) clamp(20px,6vw,72px) clamp(20px,3vw,32px);
 }
+@media(max-width:880px){
+  #mayoPage .ml-main{grid-template-columns:1fr;gap:22px;padding-top:8px;text-align:center}
+}
+
+#mayoPage .ml-hero-left{display:flex;flex-direction:column;gap:14px}
+#mayoPage .ml-hero-title{
+  font-family:'Bricolage Grotesque','Syne',sans-serif;
+  font-size:clamp(34px,4.6vw,62px);font-weight:800;line-height:.95;
+  letter-spacing:-.025em;color:#111;margin:0;
+}
+#mayoPage .ml-hero-title em{
+  font-style:italic;font-family:'Syne',sans-serif;font-weight:800;
+  background:linear-gradient(135deg,#ffb840 0%,#f5a623 50%,#a05f00 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+#mayoPage .ml-hero-sub{
+  font-size:clamp(13px,.95vw,14.5px);color:#555;
+  line-height:1.5;max-width:480px;margin:0;
+}
+@media(max-width:880px){#mayoPage .ml-hero-sub{margin-left:auto;margin-right:auto}}
+
+/* Stats: ahora va inline debajo del subtítulo, más compacto */
+#mayoPage .ml-stats{
+  display:flex;gap:clamp(14px,1.8vw,22px);flex-wrap:wrap;margin-top:6px;
+}
+@media(max-width:880px){#mayoPage .ml-stats{justify-content:center}}
+#mayoPage .ml-stat{display:flex;flex-direction:column;align-items:center;gap:8px}
+#mayoPage .ml-stat-circle{
+  width:clamp(72px,7vw,94px);height:clamp(72px,7vw,94px);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 30% 26%,#ffd56b 0%,#ffb840 45%,#f5a623 100%);
+  box-shadow:
+    0 14px 30px rgba(245,166,35,.26),
+    inset 0 -8px 18px rgba(160,95,0,.16),
+    inset 0 6px 12px rgba(255,255,255,.5);
+  animation:mlFloat 4.5s ease-in-out infinite;
+  transition:transform .35s cubic-bezier(.3,1.4,.5,1);
+}
+#mayoPage .ml-stat:nth-child(2) .ml-stat-circle{animation-delay:.5s}
+#mayoPage .ml-stat:nth-child(3) .ml-stat-circle{animation-delay:1s}
+#mayoPage .ml-stat-circle:hover{transform:scale(1.08) rotate(-3deg)}
+@keyframes mlFloat{
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-8px)}
+}
+#mayoPage .ml-stat-num{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-size:clamp(16px,1.9vw,22px);font-weight:800;color:#1a1408;letter-spacing:-.02em;
+}
+#mayoPage .ml-stat-label{
+  font-family:'DM Sans',sans-serif;font-size:9.5px;font-weight:700;
+  letter-spacing:.22em;color:#444;
+}
+
+/* Card de auth — columna derecha del main */
 #mayoPage .ml-auth-inner{
-  max-width:440px;margin:0 auto;background:#fff;
-  border:1px solid #ececec;border-radius:18px;padding:20px 22px 24px;
+  background:#fff;border:1px solid #ececec;border-radius:16px;
+  padding:18px 22px 22px;
   box-shadow:0 22px 52px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.03);
+  max-width:100%;
+}
+@media(max-width:880px){
+  #mayoPage .ml-auth-inner{max-width:440px;margin:0 auto}
 }
 #mayoPage .ml-auth-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid #f1f1f1}
 #mayoPage .ml-auth-tab{
@@ -1464,7 +1465,7 @@ body.mayorista-active .game-banner{display:none}
 #mayoPage .ml-auth-tab:hover{color:#333}
 #mayoPage .ml-auth-title{
   font-family:'Bricolage Grotesque',sans-serif;
-  font-size:22px;font-weight:800;text-align:center;margin:4px 0 14px;
+  font-size:18px;font-weight:800;text-align:center;margin:2px 0 12px;
   color:#111;letter-spacing:-.012em;
 }
 #mayoPage .ml-auth-pane{display:none;flex-direction:column;gap:9px}
@@ -3514,20 +3515,6 @@ function buildMayoLandingHtml(mayoCfg){
 
   return `
     <div class="mayo-landing">
-      <section class="ml-hero">
-        <div class="ml-hero-left">
-          <h1 class="ml-hero-title">${titleHtml}</h1>
-          <p class="ml-hero-sub">${escapeHtml(subtitle)}</p>
-        </div>
-        <div class="ml-stats">
-          ${stats.map(s => `
-            <div class="ml-stat">
-              <div class="ml-stat-circle"><span class="ml-stat-num" data-target="${escapeHtml(s.value || '')}">0</span></div>
-              <div class="ml-stat-label">${escapeHtml(s.label || '')}</div>
-            </div>`).join('')}
-        </div>
-      </section>
-
       <section class="ml-brands">
         <div class="ml-brands-eyebrow">NUESTRAS MARCAS</div>
         <div class="ml-brands-row">
@@ -3535,7 +3522,19 @@ function buildMayoLandingHtml(mayoCfg){
         </div>
       </section>
 
-      <section class="ml-auth">
+      <section class="ml-main">
+        <div class="ml-hero-left">
+          <h1 class="ml-hero-title">${titleHtml}</h1>
+          <p class="ml-hero-sub">${escapeHtml(subtitle)}</p>
+          <div class="ml-stats">
+            ${stats.map(s => `
+              <div class="ml-stat">
+                <div class="ml-stat-circle"><span class="ml-stat-num" data-target="${escapeHtml(s.value || '')}">0</span></div>
+                <div class="ml-stat-label">${escapeHtml(s.label || '')}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+
         <div class="ml-auth-inner">
           <div class="ml-auth-tabs">
             <button type="button" class="ml-auth-tab on" data-tab="login" onclick="mlSwitchTab('login',this)">Tengo cuenta</button>
