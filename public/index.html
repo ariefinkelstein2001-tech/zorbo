@@ -1531,6 +1531,8 @@ body.mayorista-active .game-banner{display:none}
 #mayoPage .ml-auth-submit:active{transform:scale(.985)}
 #mayoPage .ml-auth-submit:disabled{opacity:.4;cursor:not-allowed}
 #mayoPage .ml-foot{font-size:11.5px;color:#888;text-align:center;margin-top:10px;line-height:1.5}
+#mayoPage .ml-foot-link{color:#a05f00;text-decoration:underline;text-underline-offset:2px;cursor:pointer;font-weight:600}
+#mayoPage .ml-foot-link:hover{color:#7a4700}
 #mayoPage .ml-msg{padding:10px 12px;border-radius:9px;font-size:13px;display:none;text-align:center;font-weight:600}
 #mayoPage .ml-msg.show{display:block}
 #mayoPage .ml-msg.err{background:#fdecec;color:#d33;border:1px solid rgba(224,101,79,.22)}
@@ -3586,7 +3588,7 @@ function buildMayoLandingHtml(mayoCfg){
             <input type="email" id="mayoEmail" placeholder="Correo electrónico" autocomplete="email">
             <input type="password" id="mayoPass" placeholder="Contraseña" autocomplete="current-password">
             <button type="button" class="ml-auth-submit" id="mayoLoginBtn" onclick="mayoLogin()">Iniciar sesión</button>
-            <div class="ml-foot">¿Olvidaste tu contraseña? Escríbenos al chat y te ayudamos.</div>
+            <div class="ml-foot"><a href="#" class="ml-foot-link" onclick="mayoRecoverPassword();return false">Olvidaste tu contraseña?</a></div>
           </div>
 
           <div class="ml-auth-pane" id="mayoPaneNuevo">
@@ -4249,6 +4251,40 @@ function openMayoristaModal(){
   resetChatSession();
   showMayoristaStorefront();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+// Recuperación de contraseña: dispara el email nativo de Shopify con el link
+// de reset. Usa el correo ya escrito en el campo, o lo pide si está vacío.
+async function mayoRecoverPassword(){
+  const emailEl = document.getElementById('mayoEmail');
+  const err = document.getElementById('mayoLoginErr');
+  const ok  = document.getElementById('mayoLoginOk');
+  err.classList.remove('show'); ok.classList.remove('show');
+  let email = ((emailEl && emailEl.value) || '').trim().toLowerCase();
+  if (!email) {
+    email = (prompt('Escribe tu correo y te enviamos el link para recuperar tu contraseña:') || '').trim().toLowerCase();
+  }
+  if (!email || !email.includes('@')) {
+    err.textContent = 'Ingresa un correo válido para recuperar tu contraseña.';
+    err.classList.add('show');
+    return;
+  }
+  try {
+    const res = await fetch('/mayorista/recover', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      ok.textContent = 'Listo! Te enviamos un correo con el link para recuperar tu contraseña. Revisa tu bandeja (y el spam).';
+      ok.classList.add('show');
+    } else {
+      err.textContent = data.error || 'No pudimos enviar el correo. Intenta de nuevo en un momento.';
+      err.classList.add('show');
+    }
+  } catch {
+    err.textContent = 'Error de red. Intenta de nuevo en un momento.';
+    err.classList.add('show');
+  }
 }
 async function mayoLogin(){
   const email = document.getElementById('mayoEmail').value.trim().toLowerCase();
