@@ -3737,9 +3737,9 @@ async function showMayoristaStorefront(){
   const customer = (() => { try { return JSON.parse(sessionStorage.getItem('zmayo_customer') || '{}'); } catch { return {}; } })();
   const nom = customer.first_name || 'colega';
   const welcomeLines = (Array.isArray(mayoCfg.welcome) && mayoCfg.welcome.length) ? mayoCfg.welcome : [
-    'Hola {nombre}, soy Zorbot tu <strong>sommelier corporativo</strong> 🍺',
-    'Estoy acá para ayudarte con lo que necesites!',
-    'Pídeme lo que necesites (limpieza de línea, despachos, mantenciones, capacitaciones, etc.)',
+    'Hola {nombre}, soy Zorbot, tu <strong>sommelier corporativo</strong> 🍺',
+    'Te repongo lo de siempre en un toque, te aviso qué está rotando más y te paso las novedades de Kairos, Firulais y Banny antes que nadie.',
+    'También veo despachos, limpieza de línea y mantención cuando lo necesites. Partimos reponiendo lo de siempre o miramos algo nuevo?',
   ];
   const welcomeMayo = `
     <div class="hp-welcome">
