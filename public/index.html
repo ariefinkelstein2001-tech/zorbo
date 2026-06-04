@@ -428,12 +428,15 @@ header .mayo-hacct .mayo-logout-btn .ml-ico{display:none}
   header{flex-wrap:wrap;row-gap:8px}
   header .mayo-hnav{
     position:static;transform:none;order:10;width:100%;
-    justify-content:flex-start;flex-wrap:nowrap;overflow-x:auto;
-    gap:7px;padding-bottom:2px;scrollbar-width:none;
+    justify-content:center;flex-wrap:nowrap;
+    overflow-x:auto;overflow-y:hidden;            /* SOLO se mueve a los lados */
+    touch-action:pan-x;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+    gap:6px;padding-bottom:2px;scrollbar-width:none;
   }
   header .mayo-hnav::-webkit-scrollbar{display:none}
   header .mayo-hnav .mayo-nav-item{flex-shrink:0}
-  header .mayo-hnav .mayo-nav-btn{padding:7px 12px;font-size:13px}
+  header .mayo-hnav .mayo-nav-btn{padding:6px 11px;font-size:12px;gap:3px}
+  header .mayo-hnav .mayo-nav-caret{font-size:9px}
   header .mayo-hacct{display:flex;margin-left:auto;gap:6px}
   header .mayo-hacct .mayo-account-who{display:none}
   header .mayo-hacct .mayo-logout-btn .ml-txt{display:none}
