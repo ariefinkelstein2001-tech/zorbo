@@ -865,6 +865,8 @@ body .row.bot .ai-badge{background:#fff3d6;color:#a05f00;border-color:#f5a623}
 body .row.bot .bubble{background:#f5f5f5;border:1px solid #e5e5e5;color:#111}
 body .row.user .bubble{background:linear-gradient(135deg,#fff3d6,#ffe4a1);border:1px solid #f5a623;color:#111}
 body .row.bot .bubble strong,body .row.user .bubble strong{color:#a05f00}
+.bubble a.md-link,.bubble a{color:#a05f00;font-weight:600;text-decoration:underline;text-underline-offset:2px;word-break:break-word}
+.bubble a.md-link:hover,.bubble a:hover{color:#7a4700}
 body .row.bot .bubble em{color:#5a4a2a}
 body .row.bot .bubble h3{color:#a05f00}
 body .row.bot .bubble li{color:#444}
@@ -2134,6 +2136,7 @@ function initPromos() {
 // ─── MARKDOWN ─────────────────────────────────────────────────────────────────
 function md(text) {
   let h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  h = mdLinks(h);
   h = h.replace(/(\|.+\|\n?)+/g, m => {
     const rows = m.trim().split('\n').filter(r => r.trim());
     let t = '<table>';
@@ -2159,10 +2162,19 @@ function md(text) {
   }).join('');
 }
 function mdStream(text) {
-  let h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  let h = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  h = mdLinks(h);
+  h = h.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>');
   return h.split(/\n\n+/).map(b => `<p>${b.replace(/\n/g,'<br>')}</p>`).join('');
+}
+// Convierte links markdown [texto](url) en <a> clickeable. Solo permite
+// http(s), rutas relativas (/uploads/…) y mailto — bloquea esquemas raros.
+function mdLinks(h){
+  return h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, txt, url) => {
+    if (!/^(https?:\/\/|\/|mailto:)/i.test(url)) return m;
+    return `<a href="${url}" target="_blank" rel="noopener" class="md-link">${txt}</a>`;
+  });
 }
 function escapeHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
