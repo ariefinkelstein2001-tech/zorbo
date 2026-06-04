@@ -1651,6 +1651,17 @@ body.mayorista-active .game-banner{display:none}
 #mayoPage .ml-auth-pane select:focus{
   border-color:#f5a623;background:#fff;box-shadow:0 0 0 3px rgba(245,166,35,.15);
 }
+/* Campo de contraseña con ojito para ver/ocultar */
+#mayoPage .ml-pwd{position:relative}
+#mayoPage .ml-pwd input{padding-right:46px}
+#mayoPage .ml-pwd-eye{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;font-size:16px;line-height:1;
+  width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+  border-radius:8px;opacity:.55;transition:opacity .15s,background .15s;
+}
+#mayoPage .ml-pwd-eye:hover{opacity:1;background:rgba(0,0,0,.05)}
+#mayoPage .ml-pwd-eye.on{opacity:1}
 #mayoPage .ml-auth-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 @media(max-width:480px){#mayoPage .ml-auth-grid{grid-template-columns:1fr}}
 #mayoPage .ml-auth-submit{
@@ -4378,7 +4389,7 @@ function buildMayoLandingHtml(mayoCfg){
             <div class="ml-msg err" id="mayoLoginErr"></div>
             <div class="ml-msg ok" id="mayoLoginOk"></div>
             <input type="email" id="mayoEmail" placeholder="Correo electrónico" autocomplete="email">
-            <input type="password" id="mayoPass" placeholder="Contraseña" autocomplete="current-password">
+            <div class="ml-pwd"><input type="password" id="mayoPass" placeholder="Contraseña" autocomplete="current-password"><button type="button" class="ml-pwd-eye" onclick="togglePwd(this,'mayoPass')" aria-label="Mostrar contraseña">👁</button></div>
             <button type="button" class="ml-auth-submit" id="mayoLoginBtn" onclick="mayoLogin()">Iniciar sesión</button>
             <div class="ml-foot"><a href="#" class="ml-foot-link" onclick="mayoRecoverPassword();return false">Olvidaste tu contraseña?</a></div>
           </div>
@@ -4401,7 +4412,7 @@ function buildMayoLandingHtml(mayoCfg){
             </select>
             <input type="email" id="leadEmail" placeholder="Correo *" autocomplete="email">
             <input type="tel" id="leadTelefono" placeholder="Teléfono *" autocomplete="tel">
-            <input type="password" id="leadPass" placeholder="Contraseña * (mín 5)" autocomplete="new-password">
+            <div class="ml-pwd"><input type="password" id="leadPass" placeholder="Contraseña * (mín 5)" autocomplete="new-password"><button type="button" class="ml-pwd-eye" onclick="togglePwd(this,'leadPass')" aria-label="Mostrar contraseña">👁</button></div>
             <button type="button" class="ml-auth-submit" id="mayoLeadBtn" onclick="mayoSignup()">Crear cuenta</button>
             <div class="ml-foot">Validamos como mayorista en las próximas 48 horas hábiles.</div>
           </div>
@@ -4438,6 +4449,17 @@ function mlSwitchTab(tab, btn){
   document.querySelectorAll('#mayoPage .ml-auth-pane').forEach(p => p.classList.remove('on'));
   const pane = document.getElementById(tab === 'signup' ? 'mayoPaneNuevo' : 'mayoPaneLogin');
   if (pane) pane.classList.add('on');
+}
+
+// Ojito ver/ocultar contraseña en login y registro mayorista.
+function togglePwd(btn, id){
+  const inp = document.getElementById(id);
+  if (!inp) return;
+  const show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  btn.textContent = show ? '🙈' : '👁';
+  btn.classList.toggle('on', show);
+  btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
 }
 
 // ─── MAYORISTA STOREFRONT (paleta blanca igual al home) ───────────────────
