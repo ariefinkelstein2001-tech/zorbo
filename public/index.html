@@ -1565,17 +1565,21 @@ body.mayorista-active .game-banner{display:none}
 /* Paleta Zorbo: blanco + oro + negro. Tipografías DM Sans / Bricolage / Syne. */
 #mayoPage .mayo-landing{
   background:#fff;color:#111;font-family:'DM Sans',sans-serif;
-  /* min-height para llenar la vista, pero SIN clip vertical: si la pantalla es
-     chica, el contenido fluye y .chat-area scrollea (el login nunca se corta). */
-  min-height:100vh;display:flex;flex-direction:column;position:relative;overflow-x:hidden;
+  display:flex;flex-direction:column;position:relative;overflow-x:hidden;
+  min-height:100vh; /* fallback; en desktop se sobreescribe a height:100% */
 }
-/* En modo landing, la columna del chat no scrollea: la landing entra completa */
-/* En landing dejamos que .chat-area scrollee si la pantalla es chica (login
-   siempre alcanzable). En pantallas normales entra todo sin scroll igual. */
-body.mayo-landing-mode .chat-area{overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
-/* En mobile la landing es de alto natural (no fuerza 100vh) para que SIEMPRE
-   se pueda bajar hasta el login. */
-@media(max-width:880px){ #mayoPage .mayo-landing{min-height:auto} }
+/* DESKTOP: la landing llena la vista (debajo del header) y entra TODO en una
+   hoja, con el marquee de marcas abastecidas visible abajo (sin scroll). */
+@media(min-width:881px){
+  body.mayo-landing-mode .chat-area{overflow:hidden}
+  body.mayo-landing-mode #mayoPage{height:100%}
+  #mayoPage .mayo-landing{height:100%;min-height:0;overflow:hidden}
+}
+/* MOBILE: alto natural + scroll táctil, así el login SIEMPRE se alcanza. */
+@media(max-width:880px){
+  body.mayo-landing-mode .chat-area{overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+  #mayoPage .mayo-landing{min-height:auto}
+}
 /* Glow dorado de fondo (decorativo) */
 #mayoPage .mayo-landing::before{
   content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
