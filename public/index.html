@@ -1572,7 +1572,10 @@ body.mayorista-active .game-banner{display:none}
 /* En modo landing, la columna del chat no scrollea: la landing entra completa */
 /* En landing dejamos que .chat-area scrollee si la pantalla es chica (login
    siempre alcanzable). En pantallas normales entra todo sin scroll igual. */
-body.mayo-landing-mode .chat-area{overflow-y:auto}
+body.mayo-landing-mode .chat-area{overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+/* En mobile la landing es de alto natural (no fuerza 100vh) para que SIEMPRE
+   se pueda bajar hasta el login. */
+@media(max-width:880px){ #mayoPage .mayo-landing{min-height:auto} }
 /* Glow dorado de fondo (decorativo) */
 #mayoPage .mayo-landing::before{
   content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
