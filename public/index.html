@@ -1658,6 +1658,22 @@ body.mayo-landing-mode #mayoPage{height:100%}
 }
 
 /* Card de auth — columna derecha del main */
+/* Columna derecha: marcas (arriba) + login */
+#mayoPage .ml-right{display:flex;flex-direction:column;gap:clamp(14px,2vw,24px);min-width:0}
+#mayoPage .ml-hero-marcas{text-align:center}
+#mayoPage .ml-hero-marcas-label{
+  font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;letter-spacing:.26em;
+  text-transform:uppercase;color:#a05f00;margin-bottom:12px;
+}
+#mayoPage .ml-hero-marcas-row{display:flex;gap:clamp(16px,2vw,26px);justify-content:center;align-items:center}
+#mayoPage .ml-hero-marca{
+  width:clamp(56px,5.5vw,74px);height:clamp(56px,5.5vw,74px);border-radius:50%;
+  border:2.5px solid #111;background:#fff;padding:0;cursor:pointer;overflow:hidden;flex-shrink:0;
+  transition:transform .25s cubic-bezier(.3,1.4,.5,1),border-color .25s,box-shadow .25s;
+}
+#mayoPage .ml-hero-marca img{width:100%;height:100%;object-fit:cover;display:block}
+#mayoPage .ml-hero-marca:hover{transform:scale(1.1) rotate(-5deg);border-color:#f5a623;box-shadow:0 12px 26px rgba(245,166,35,.3)}
+
 #mayoPage .ml-auth-inner{
   background:#fff;border:1px solid #ececec;border-radius:16px;
   padding:18px 22px 22px;
@@ -4507,7 +4523,7 @@ const MAYO_RESTAURANTS = [
 function buildMayoLandingHtml(mayoCfg){
   mayoCfg = mayoCfg || {};
   const landing = mayoCfg.landing || {};
-  const title    = landing.title    || 'Surte tu local con bebidas craft que *rotan*';
+  const title    = landing.title    || 'El proveedor *craft* de los mejores locales';
   const subtitle = landing.subtitle || 'Tres marcas propias bajo un mismo techo — Kairos, Firulais y Banny. Compras directo al productor, con catálogo que se renueva y pedido online cuando quieras. Sin intermediarios encareciendo tu costo.';
   const stats    = (Array.isArray(landing.stats) && landing.stats.length) ? landing.stats : [
     { label:'LOCALES ABASTECIDOS', value:'+100' },
@@ -4551,7 +4567,18 @@ function buildMayoLandingHtml(mayoCfg){
           </div>
         </div>
 
-        <div class="ml-auth-inner">
+        <div class="ml-right">
+          <div class="ml-hero-marcas">
+            <div class="ml-hero-marcas-label">NUESTRAS MARCAS</div>
+            <div class="ml-hero-marcas-row">
+              ${[
+                { key:'kairos',   label:'Kairos Brewing', logo:'brands/kairos.png' },
+                { key:'firulais', label:'Firulais',       logo:'brands/firulais.png' },
+                { key:'banny',    label:'Banny',          logo:'brands/banny.png' },
+              ].map(b => `<button class="ml-hero-marca" title="${escapeHtml(b.label)}" onclick="openBrandInfo('${b.key}','','${escapeHtml(b.label)}','${b.logo}')"><img src="${b.logo}" alt="${escapeHtml(b.label)}"></button>`).join('')}
+            </div>
+          </div>
+          <div class="ml-auth-inner">
           <div class="ml-auth-tabs">
             <button type="button" class="ml-auth-tab on" data-tab="login" onclick="mlSwitchTab('login',this)">Tengo cuenta</button>
             <button type="button" class="ml-auth-tab" data-tab="signup" onclick="mlSwitchTab('signup',this)">Soy nuevo</button>
@@ -4589,6 +4616,7 @@ function buildMayoLandingHtml(mayoCfg){
             <button type="button" class="ml-auth-submit" id="mayoLeadBtn" onclick="mayoSignup()">Únete a la waitlist</button>
             <div class="ml-foot">Validamos como mayorista en las próximas 48 horas hábiles.</div>
           </div>
+          </div>
         </div>
       </section>
       ${restaurantsHtml}
@@ -4615,7 +4643,7 @@ function clearLandingHeaderBrands(){
 }
 
 function initMayoLanding(){
-  fillLandingHeaderBrands(); // marcas en el header, al lado de la Z
+  clearLandingHeaderBrands(); // las marcas ahora van en el hero (no en el header)
   document.querySelectorAll('#mayoPage .ml-stat-num').forEach(el => {
     const raw = String(el.dataset.target || '');
     const numStr = raw.replace(/[^\d]/g, '');
