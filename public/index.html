@@ -2367,17 +2367,22 @@ const HP_PRODUCT_MAP = new Map();
 function detectProducts(text) {
   const lower = text.toLowerCase();
   const found = [];
-  // Solo del catálogo live ZORBO. Si está vacío (caché fría), no devuelve nada.
-  for (const p of ZORBO_LIVE) {
+  // Catálogo según el contexto: mayorista usa MP_CACHE (productos MAYORISTA /
+  // colección EX); B2C usa ZORBO_LIVE. Así en el chat mayorista SÍ salen las
+  // tarjetas de los productos que menciona el bot.
+  const catalog = (typeof mayoristaMode !== 'undefined' && mayoristaMode && Array.isArray(MP_CACHE) && MP_CACHE.length)
+    ? MP_CACHE : ZORBO_LIVE;
+  for (const p of catalog) {
     const raw = (p.title || '').toLowerCase();
     if (!raw) continue;
-    // Variantes de matching: el bot puede mencionar el producto de varias formas
-    // (sin marca, sin tamaño, sin estilo, etc.).
-    const noSize  = raw.replace(/\s*-?\s*(lata\s*\d+\s*cc?|\d+\s*ml|\d+\s*cc|\d+\s*pack)/gi,'').trim();
-    const noBrand = noSize.replace(/^(firulais|kairos\s+brewing|kairos|banny\s+by\s+kairos|banny)\s+/i, '').trim();
-    const candidates = [raw, noSize, noBrand].filter(c => c && c.length >= 4);
+    // Variantes de matching: el bot puede nombrar el producto de varias formas
+    // (sin marca, sin tamaño, sin estilo, título limpio, etc.).
+    const clean   = (typeof cleanHpTitle === 'function' ? cleanHpTitle(p.title) : raw).toLowerCase();
+    const noSize  = raw.replace(/\s*-?\s*(lata\s*\d+\s*cc?|\d+\s*ml|\d+\s*cc|\d+\s*pack|barril|bid[oó]n|botella|mayorista|473cc|473)/gi,'').replace(/\s+/g,' ').trim();
+    const noBrand = noSize.replace(/^(firulais|kairos\s+brewing|kairos|banny\s+by\s+kairos|banny|lan[uú]s|osagui)\s+/i, '').trim();
+    const candidates = [raw, clean, noSize, noBrand].filter(c => c && c.length >= 4);
     if (candidates.some(c => lower.includes(c)) && !found.includes(p)) found.push(p);
-    if (found.length >= 4) break;
+    if (found.length >= 8) break;
   }
   return found;
 }
