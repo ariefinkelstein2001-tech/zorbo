@@ -694,6 +694,19 @@ function isSoftSelection(msg){
   const words = t.split(/[^a-záéíóúñ0-9]+/i).filter(Boolean);
   return words.some(w => SELECT_KW.has(w));
 }
+// Orden por formato: "1 barril de lanus", "2 latas de X", "un bidón de gin",
+// "barril osagui". Cantidad (opcional) + un formato + (marca/estilo). No cuenta
+// si es pregunta ("cuánto sale 1 barril?").
+function isQtyFormatOrder(msg){
+  const t = String(msg).trim().toLowerCase();
+  if (!t || t.length > 60 || isQuestionish(t)) return false;
+  if (/^no\b/.test(t)) return false;
+  const FMT = /\b(barril|barriles|lata|latas|bid[oó]n|bidones|botella|botellas|pack|packs|caja|cajas)\b/;
+  const QTY = /\b(\d{1,2}|un|uno|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|media|medio)\b/;
+  if (QTY.test(t) && FMT.test(t)) return true;     // "1 barril de lanus"
+  if (/^\s*(barril|barriles|lata|latas|bid[oó]n|botella|pack)\b/.test(t)) return true; // "barril lanus"
+  return false;
+}
 
 // Convierte el shorthand en un mensaje "agrégame qty N pack" para que el
 // parser de pack-size lo entienda como tal.
@@ -771,7 +784,7 @@ function findMentionedProducts(botText, catalog, userMessage){
   // Si el bot mostró varias opciones y no desambiguamos por pack/número, probamos
   // por PALABRA del mensaje del cliente (ej. "solo golden" → elige el Golden).
   if (filtered.length > 1) {
-    const STOP = new Set(['solo','sólo','el','la','los','las','un','una','unos','unas','pack','de','del','con','mayorista','cerveza','cervezas','quiero','dame','ese','esa','esos','esas','mismo','lata','latas','y','o','por','favor','ese','este','esta','va','voy','llevo','lleva','473cc','473']);
+    const STOP = new Set(['solo','sólo','el','la','los','las','un','una','unos','unas','pack','packs','de','del','con','mayorista','cerveza','cervezas','quiero','dame','ese','esa','esos','esas','mismo','lata','latas','barril','barriles','bidon','bidón','bidones','botella','botellas','caja','cajas','y','o','por','favor','este','esta','va','voy','llevo','lleva','473cc','473']);
     const words = u.split(/[^a-záéíóúñ0-9]+/i).filter(w => w.length >= 3 && !STOP.has(w));
     if (words.length) {
       const byWord = filtered.filter(p => {
@@ -3376,7 +3389,7 @@ app.post('/chat', async (req, res) => {
   // Si NO se identifica:
   //  - Si dio pack-size pero hay múltiples → server lista las opciones y pregunta.
   //  - Si no dio pack-size → cae a Claude (con prompt anti-mentira).
-  if ((mayo || !isB2BContext) && (detect(message, ADD_NOW_KW) || isShorthandAddIntent(message) || isSoftSelection(message))) {
+  if ((mayo || !isB2BContext) && (detect(message, ADD_NOW_KW) || isShorthandAddIntent(message) || isSoftSelection(message) || isQtyFormatOrder(message))) {
     let cartItems = [];
     let clarifyMsg = null;
     const normMsg = normalizeShorthand(message);
