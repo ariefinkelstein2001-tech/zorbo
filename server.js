@@ -3768,8 +3768,8 @@ app.post('/mayorista/signup', async (req, res) => {
       return res.status(409).json({ error: 'Ya existe una cuenta con ese email. Inicia sesión.' });
     }
 
+    // Solo el tag MAYORISTA_PENDIENTE. El canal queda en la nota del cliente.
     const tags = ['MAYORISTA_PENDIENTE'];
-    if (canal) tags.push('CANAL_' + String(canal).toUpperCase());
 
     const note = [
       local  && `Local: ${local}`,
