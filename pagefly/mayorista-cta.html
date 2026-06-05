@@ -1,0 +1,84 @@
+<!-- ════════════════════════════════════════════════════════════════════
+     ZORBO · CTA MAYORISTA para PageFly (Shopify)
+     Pega TODO esto en un elemento "HTML / Liquid" de PageFly.
+     Todo es autocontenido (estilos inline scopeados en .zorbo-cta), así
+     no choca con el tema de Shopify ni con PageFly.
+     Cambia el link del botón si quieres otra URL.
+═══════════════════════════════════════════════════════════════════════ -->
+<div class="zorbo-cta">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=DM+Sans:wght@400;500;600;700&display=swap');
+    .zorbo-cta{
+      --gold:#f5a623; --gold-deep:#a05f00; --teal:#16a7ab; --ink:#111;
+      box-sizing:border-box; position:relative; overflow:hidden;
+      max-width:1100px; margin:0 auto; padding:48px 28px;
+      background:
+        radial-gradient(40rem 24rem at 85% -10%, rgba(245,166,35,.12), transparent),
+        radial-gradient(34rem 22rem at -8% 115%, rgba(22,167,171,.10), transparent),
+        #ffffff;
+      border:1px solid #eee; border-radius:22px;
+      box-shadow:0 24px 60px rgba(0,0,0,.06);
+      text-align:center; font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif; color:var(--ink);
+    }
+    .zorbo-cta *{box-sizing:border-box}
+    .zorbo-cta .zc-eyebrow{
+      font-size:12px; font-weight:700; letter-spacing:.26em; text-transform:uppercase;
+      color:var(--gold-deep); margin:0 0 14px;
+    }
+    .zorbo-cta .zc-title{
+      font-family:'Bricolage Grotesque','DM Sans',sans-serif; font-weight:800;
+      font-size:clamp(28px,4.4vw,46px); line-height:1.04; letter-spacing:-.02em;
+      color:var(--ink); margin:0 0 16px;
+    }
+    .zorbo-cta .zc-title b{color:var(--teal); font-weight:800}
+    .zorbo-cta .zc-sub{
+      font-size:clamp(14px,1.4vw,17px); line-height:1.6; color:#555;
+      max-width:620px; margin:0 auto 26px;
+    }
+    .zorbo-cta .zc-brands{
+      display:flex; gap:clamp(18px,3vw,34px); justify-content:center; align-items:center;
+      flex-wrap:wrap; margin:0 auto 30px;
+    }
+    .zorbo-cta .zc-brand{
+      width:clamp(54px,6vw,72px); height:clamp(54px,6vw,72px); border-radius:50%;
+      border:2.5px solid var(--ink); background:#fff; overflow:hidden; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      box-shadow:0 8px 20px rgba(0,0,0,.08);
+    }
+    .zorbo-cta .zc-brand img{width:100%; height:100%; object-fit:cover; display:block}
+    .zorbo-cta .zc-btn{
+      display:inline-flex; align-items:center; gap:10px; text-decoration:none;
+      background:linear-gradient(135deg,#1a1a1a,#000); color:var(--gold);
+      font-family:'Bricolage Grotesque','DM Sans',sans-serif; font-weight:800;
+      font-size:clamp(15px,1.5vw,18px); letter-spacing:.02em;
+      padding:16px 30px; border-radius:14px;
+      box-shadow:0 14px 34px rgba(245,166,35,.22);
+      transition:transform .12s ease, box-shadow .25s ease;
+    }
+    .zorbo-cta .zc-btn:hover{transform:translateY(-2px); box-shadow:0 18px 42px rgba(245,166,35,.32)}
+    .zorbo-cta .zc-btn .zc-arrow{font-size:1.1em; line-height:1}
+    .zorbo-cta .zc-foot{margin:16px 0 0; font-size:13px; color:#888}
+    @media(max-width:600px){
+      .zorbo-cta{padding:34px 18px; border-radius:18px}
+    }
+  </style>
+
+  <p class="zc-eyebrow">Zona Mayorista</p>
+  <h2 class="zc-title">Ahora compras nuestros productos en <b>Zorbo</b></h2>
+  <p class="zc-sub">
+    La nueva plataforma mayorista de Kairos, Firulais y Banny. Inicia sesión con tu cuenta,
+    arma tu pedido en minutos y conversa con Zorbot, nuestra IA especializada en bebidas craft.
+  </p>
+
+  <div class="zc-brands">
+    <span class="zc-brand"><img src="https://zorbo.cl/brands/kairos.png"   alt="Kairos Brewing"></span>
+    <span class="zc-brand"><img src="https://zorbo.cl/brands/firulais.png" alt="Firulais"></span>
+    <span class="zc-brand"><img src="https://zorbo.cl/brands/banny.png"    alt="Banny"></span>
+  </div>
+
+  <a class="zc-btn" href="https://zorbo.cl" target="_blank" rel="noopener">
+    Iniciar sesión en zorbo.cl <span class="zc-arrow">→</span>
+  </a>
+
+  <p class="zc-foot">Acceso exclusivo para clientes mayoristas · Pedido mínimo un barril o un pack de 24</p>
+</div>
