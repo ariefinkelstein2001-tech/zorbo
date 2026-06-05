@@ -593,6 +593,12 @@ header .mayo-hacct .mayo-logout-btn .ml-ico{display:none}
   padding:4px 9px;border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,.2);
 }
 .shop-page .hp-empty{padding:60px 20px;text-align:center;color:#999;font-size:14px;letter-spacing:.08em}
+/* Estado vacío del catálogo mayorista (red de seguridad anti-página en blanco) */
+.shop-page .mp-empty-state{max-width:560px;margin:30px auto;text-align:center;padding:36px 24px;background:#fff;border:1px solid #eee;border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.05)}
+.shop-page .mp-empty-state .mp-empty-ico{font-size:2.6rem;margin-bottom:10px}
+.shop-page .mp-empty-state h2{font-family:'Bricolage Grotesque',sans-serif;font-size:22px;color:#111;margin-bottom:8px}
+.shop-page .mp-empty-state p{font-family:'DM Sans',sans-serif;font-size:14px;color:#555;line-height:1.55;margin:0}
+.shop-page .mp-empty-state strong{color:#a05f00}
 
 /* Popup 10% OFF */
 .hp-promo-popup{position:fixed;inset:0;z-index:900;display:none;align-items:center;justify-content:center;padding:1.2rem}
@@ -1559,12 +1565,14 @@ body.mayorista-active .game-banner{display:none}
 /* Paleta Zorbo: blanco + oro + negro. Tipografías DM Sans / Bricolage / Syne. */
 #mayoPage .mayo-landing{
   background:#fff;color:#111;font-family:'DM Sans',sans-serif;
-  /* Llena el alto disponible (debajo del header) y NO scrollea: todo en una hoja */
-  min-height:100%;height:100%;display:flex;flex-direction:column;position:relative;overflow:hidden;
+  /* min-height para llenar la vista, pero SIN clip vertical: si la pantalla es
+     chica, el contenido fluye y .chat-area scrollea (el login nunca se corta). */
+  min-height:100vh;display:flex;flex-direction:column;position:relative;overflow-x:hidden;
 }
 /* En modo landing, la columna del chat no scrollea: la landing entra completa */
-body.mayo-landing-mode .chat-area{overflow:hidden}
-body.mayo-landing-mode #mayoPage{height:100%}
+/* En landing dejamos que .chat-area scrollee si la pantalla es chica (login
+   siempre alcanzable). En pantallas normales entra todo sin scroll igual. */
+body.mayo-landing-mode .chat-area{overflow-y:auto}
 /* Glow dorado de fondo (decorativo) */
 #mayoPage .mayo-landing::before{
   content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
@@ -4871,6 +4879,19 @@ async function showMayoristaStorefront(){
 
   const sectionsHtml = mayoOrder.map(k => { const m = secMeta(k); return sec(m.id, escapeHtml(m.title), escapeHtml(m.sub), groups[k]); }).join('');
 
+  // Red de seguridad: si el cliente no tiene NINGÚN producto disponible (ej.
+  // MAYORISTA1 con la colección "MAYORISTAS EX" mal configurada o vacía), NO
+  // mostramos una página en blanco — mostramos un mensaje claro con el chat.
+  const noProducts = !sectionsHtml.trim();
+  const emptyStateHtml = noProducts ? `
+    <section class="hp-section" id="sec-mayo-vacio">
+      <div class="mp-empty-state">
+        <div class="mp-empty-ico">🍺</div>
+        <h2>Estamos preparando tu catálogo</h2>
+        <p>Aún no tienes productos asignados a tu cuenta. Escríbele a <strong>Zorbot</strong> aquí abajo y te lo dejamos listo al toque.</p>
+      </div>
+    </section>` : '';
+
   // Barra de cuenta: nombre del cliente + cerrar sesión (siempre visible,
   // también en modo storefront mayorista-only donde el chip del header se oculta).
   const accountBar = `
@@ -4887,6 +4908,7 @@ async function showMayoristaStorefront(){
     ${welcomeMayo}
     <div id="mayoReorderSlot"></div>
     ${sectionsHtml}
+    ${emptyStateHtml}
   `;
 
   const topbar = document.getElementById('hpTopbar');
