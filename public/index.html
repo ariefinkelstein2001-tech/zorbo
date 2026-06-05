@@ -417,8 +417,13 @@ header .mayo-hacct .mayo-logout-btn{
 header .mayo-hacct .mayo-logout-btn:hover{background:#111;color:#fff}
 
 /* Marcas (Kairos/Firulais/Banny) en el header de la landing, al lado de la Z */
-header .mayo-hbrands{display:flex;align-items:center;gap:10px;margin-left:16px}
+header .mayo-hbrands{display:flex;align-items:center;gap:10px;margin-left:18px}
 header .mayo-hbrands:empty{display:none}
+header .mayo-hbrands-label{
+  font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;letter-spacing:.18em;
+  text-transform:uppercase;color:#a05f00;white-space:nowrap;margin-right:2px;
+}
+@media(max-width:600px){header .mayo-hbrands-label{display:none}}
 header .mayo-hbrand{
   width:40px;height:40px;border-radius:50%;border:2px solid #111;background:#fff;
   padding:0;cursor:pointer;overflow:hidden;flex-shrink:0;
@@ -4600,7 +4605,7 @@ function fillLandingHeaderBrands(){
     { key:'firulais', label:'Firulais',       logo:'brands/firulais.png' },
     { key:'banny',    label:'Banny',          logo:'brands/banny.png' },
   ];
-  el.innerHTML = brands.map(b =>
+  el.innerHTML = `<span class="mayo-hbrands-label">Nuestras marcas</span>` + brands.map(b =>
     `<button class="mayo-hbrand" title="${escapeHtml(b.label)}" onclick="openBrandInfo('${b.key}','','${escapeHtml(b.label)}','${b.logo}')"><img src="${b.logo}" alt="${escapeHtml(b.label)}"></button>`
   ).join('');
 }
