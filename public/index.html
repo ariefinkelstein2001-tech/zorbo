@@ -1618,6 +1618,10 @@ body.mayo-landing-mode #mayoPage{height:100%}
   background:linear-gradient(135deg,#ffb840 0%,#f5a623 50%,#a05f00 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
 }
+#mayoPage .ml-hero-lead{
+  font-family:'Bricolage Grotesque',sans-serif;
+  font-size:clamp(18px,2vw,26px);font-weight:700;color:#111;line-height:1.2;margin:0;
+}
 #mayoPage .ml-hero-sub{
   font-size:clamp(13px,.95vw,14.5px);color:#555;
   line-height:1.5;max-width:480px;margin:0;
@@ -4524,7 +4528,8 @@ function buildMayoLandingHtml(mayoCfg){
   mayoCfg = mayoCfg || {};
   const landing = mayoCfg.landing || {};
   const title    = landing.title    || 'El proveedor *craft* de los mejores locales';
-  const subtitle = landing.subtitle || 'Selección de bebidas craft. Zorbot es la primera IA especializada en bebidas, con sommelería, soporte técnico y mucho más.';
+  const lead     = landing.lead     || 'Selección de bebidas craft.';
+  const subtitle = landing.subtitle || 'Zorbot es la primera IA especializada en bebidas, con sommelería, soporte técnico y mucho más.';
   const stats    = (Array.isArray(landing.stats) && landing.stats.length) ? landing.stats : [
     { label:'LOCALES ABASTECIDOS', value:'+100' },
     { label:'CUENTAS ACTIVAS',     value:'+200' },
@@ -4557,6 +4562,7 @@ function buildMayoLandingHtml(mayoCfg){
       <section class="ml-main">
         <div class="ml-hero-left">
           <h1 class="ml-hero-title">${titleHtml}</h1>
+          <p class="ml-hero-lead">${escapeHtml(lead)}</p>
           <p class="ml-hero-sub">${escapeHtml(subtitle)}</p>
           <div class="ml-stats">
             ${stats.map(s => `
