@@ -1618,6 +1618,11 @@ body.mayo-landing-mode #mayoPage{height:100%}
   background:linear-gradient(135deg,#ffb840 0%,#f5a623 50%,#a05f00 100%);
   -webkit-background-clip:text;background-clip:text;color:transparent;
 }
+/* Palabra de marca "Zorbo" en el turquesa del logo, misma tipografía del título */
+#mayoPage .ml-hero-title .ml-brandword{
+  color:#16a7ab;font-style:normal;
+  font-family:'Bricolage Grotesque','Syne',sans-serif;
+}
 #mayoPage .ml-hero-lead{
   font-family:'Bricolage Grotesque',sans-serif;
   font-size:clamp(18px,2vw,26px);font-weight:700;color:#111;line-height:1.2;margin:0;
@@ -4527,7 +4532,7 @@ const MAYO_RESTAURANTS = [
 function buildMayoLandingHtml(mayoCfg){
   mayoCfg = mayoCfg || {};
   const landing = mayoCfg.landing || {};
-  const title    = landing.title    || 'Listo para tu primer *Zorbo*?';
+  const title    = landing.title    || 'Listo para tu primer ~Zorbo~?';
   const lead     = landing.lead     || 'La mejor selección de bebidas craft';
   const subtitle = landing.subtitle || 'Desarrollamos Zorbot, la primera IA especializada en bebidas con sommelería, soporte técnico y mucho más. Optimiza tu negocio, conversa con Zorbot y deja atrás cualquier problema.';
   const stats    = (Array.isArray(landing.stats) && landing.stats.length) ? landing.stats : [
@@ -4540,8 +4545,10 @@ function buildMayoLandingHtml(mayoCfg){
     { label:'Firulais', logo:'brands/firulais.png' },
     { label:'Banny',    logo:'brands/banny.png' },
   ];
-  // *texto* → italic (para resaltar parte del título estilo "Zona *Mayorista*")
-  const titleHtml = escapeHtml(title).replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  // *texto* → realce dorado itálico · ~texto~ → palabra de marca (turquesa de la Z)
+  const titleHtml = escapeHtml(title)
+    .replace(/~([^~]+)~/g, '<span class="ml-brandword">$1</span>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
   // "Nuestros restaurantes": marquee de logos que entran y salen de izq a der.
   // Toma mayo.restaurants del panel, si no, el arreglo MAYO_RESTAURANTS de arriba.
