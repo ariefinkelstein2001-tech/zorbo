@@ -4452,8 +4452,31 @@ function scrollToChat(){
 // configúralos desde /admin en mayo.restaurants. Mientras esté vacío, la sección
 // no se muestra. (Súbelos a public/brands/restaurantes/ o pega URLs externas.)
 const MAYO_RESTAURANTS = [
-  { name:'Osaka', logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Osaka.png' },
-  // Agrega el resto igual: { name:'...', logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_...png' },
+  { name:'Osaka',              logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Osaka.png' },
+  { name:'La Mar',             logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_La-mar.png' },
+  { name:'Panchita',           logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Panchita.png' },
+  { name:'Tanta',              logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Tanta.png' },
+  { name:'El Japonés',         logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_El-Japo-Nes.png' },
+  { name:'Fuente Suiza',       logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo-Fuente-Suiza.png' },
+  { name:'Badass',             logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Badass.png' },
+  { name:'Barra Chalaca',      logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Barra-Chalac.png' },
+  { name:'El Bodegón',         logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_El-Bodegon.png' },
+  { name:'Enrique Tomás',      logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Enrique-Tomas.png' },
+  { name:'Frida Kahlo',        logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Frida-Kahlo.png' },
+  { name:'La Argentina',       logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_La-Argentina.png' },
+  { name:'Kairos Garden',      logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Kairos-Garden-1.png' },
+  { name:'La Piazza',          logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_La-Piazza.png' },
+  { name:'La Sanguchera',      logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_La-Sanguchera.png' },
+  { name:'Mamma Mía',          logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Mamma-Mia.png' },
+  { name:'Mesón del Marinero', logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Meson-del-Marinero.png' },
+  { name:'Mila',               logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Mila.png' },
+  { name:'Muu Grill',          logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Muu-Grill.png' },
+  { name:'Muu Steak',          logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Muu-Steak.png' },
+  { name:'Siete Cortes',       logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Siete-Cortes.png' },
+  { name:'Sky 300',            logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Sky-300.png' },
+  { name:'Take a Wok',         logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Take-a-awok.png' },
+  { name:'Udon',               logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Udon.png' },
+  { name:'Jalisco',            logo:'https://grupomilsabores.cl/wp-content/uploads/2026/01/Logo_Jalisco.png' },
 ];
 
 function buildMayoLandingHtml(mayoCfg){
