@@ -1644,6 +1644,67 @@ body.mayorista-active .game-banner{display:none}
 @media(max-width:880px){
   #mayoPage .ml-auth-inner{max-width:440px;margin:0 auto}
 }
+
+/* ── Pitch / propuesta de valor de la landing (captación de mayoristas) ── */
+#mayoPage .ml-pitch{
+  position:relative;z-index:1;
+  padding:clamp(20px,3vw,34px) clamp(20px,6vw,80px) clamp(28px,4vw,48px);
+  border-top:1px solid #f0e7d3;
+}
+#mayoPage .ml-pitch-eyebrow{
+  text-align:center;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.26em;color:#a05f00;margin-bottom:18px;
+}
+#mayoPage .ml-pitch-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
+  max-width:980px;margin:0 auto;
+}
+@media(max-width:760px){#mayoPage .ml-pitch-grid{grid-template-columns:1fr}}
+#mayoPage .ml-pitch-card{
+  background:#fff;border:1px solid #eee;border-top:3px solid #f5a623;border-radius:14px;
+  padding:20px 18px;box-shadow:0 12px 30px rgba(0,0,0,.05);
+}
+#mayoPage .ml-pitch-ico{font-size:1.7rem;display:inline-block;margin-bottom:8px;filter:drop-shadow(0 3px 8px rgba(160,95,0,.18))}
+#mayoPage .ml-pitch-card strong{display:block;font-family:'Bricolage Grotesque',sans-serif;font-size:17px;color:#111;margin-bottom:5px}
+#mayoPage .ml-pitch-card p{font-family:'DM Sans',sans-serif;font-size:13.5px;line-height:1.5;color:#555;margin:0}
+#mayoPage .ml-facts{
+  display:flex;flex-wrap:wrap;justify-content:center;gap:10px 14px;
+  max-width:980px;margin:22px auto 0;
+}
+#mayoPage .ml-facts span{
+  font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:600;color:#5a4a2a;
+  background:#fff7e6;border:1px solid #f0dcae;border-radius:100px;padding:8px 16px;
+}
+#mayoPage .ml-facts span::before{content:'✓ ';color:#a05f00;font-weight:800}
+
+/* ── "Nuestros restaurantes": marquee de logos (izq → der, entran y salen) ── */
+#mayoPage .ml-clients{
+  position:relative;z-index:1;
+  padding:clamp(18px,2.5vw,30px) 0 clamp(26px,3.5vw,40px);
+  border-top:1px solid #f0e7d3;
+}
+#mayoPage .ml-clients-eyebrow{
+  text-align:center;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;
+  letter-spacing:.26em;color:#a05f00;margin-bottom:20px;
+}
+#mayoPage .ml-clients-marquee{
+  overflow:hidden;width:100%;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+          mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
+}
+#mayoPage .ml-clients-track{
+  display:flex;align-items:center;gap:clamp(36px,6vw,72px);width:max-content;
+  animation:mlClients 30s linear infinite;
+}
+#mayoPage .ml-clients:hover .ml-clients-track{animation-play-state:paused}
+@keyframes mlClients{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+#mayoPage .ml-client{flex-shrink:0;display:flex;align-items:center;justify-content:center}
+#mayoPage .ml-client img{
+  height:clamp(42px,5vw,60px);width:auto;max-width:160px;object-fit:contain;display:block;
+  filter:grayscale(1);opacity:.62;transition:filter .25s,opacity .25s;
+}
+#mayoPage .ml-client img:hover{filter:none;opacity:1}
+
 #mayoPage .ml-auth-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid #f1f1f1}
 #mayoPage .ml-auth-tab{
   flex:1;padding:12px;background:transparent;border:none;
@@ -4386,15 +4447,23 @@ function scrollToChat(){
 // Se muestra cuando entra alguien sin sesión (zmayo_customer ausente). El
 // catálogo solo aparece después del login. El equipo puede saltarse esto
 // agregando ?mayo=guest al URL.
+// Logos de restaurantes/clientes para el marquee "Nuestros restaurantes" de la
+// landing. Llena este arreglo con { name, logo } (logo = URL de la imagen) o
+// configúralos desde /admin en mayo.restaurants. Mientras esté vacío, la sección
+// no se muestra. (Súbelos a public/brands/restaurantes/ o pega URLs externas.)
+const MAYO_RESTAURANTS = [
+  // { name:'Restaurante X', logo:'brands/restaurantes/x.png' },
+];
+
 function buildMayoLandingHtml(mayoCfg){
   mayoCfg = mayoCfg || {};
   const landing = mayoCfg.landing || {};
-  const title    = landing.title    || 'Bienvenido a la *Zona Mayorista*';
-  const subtitle = landing.subtitle || 'Estás ingresando a nuestra plataforma B2B para restaurantes, bares, retail y más, donde puedes acceder a precios exclusivos, stock actualizado y realizar pedidos según tus condiciones comerciales.';
+  const title    = landing.title    || 'Surte tu local con bebidas craft que *rotan*';
+  const subtitle = landing.subtitle || 'Tres marcas propias bajo un mismo techo — Kairos, Firulais y Banny. Compras directo al productor, con catálogo que se renueva y pedido online cuando quieras. Sin intermediarios encareciendo tu costo.';
   const stats    = (Array.isArray(landing.stats) && landing.stats.length) ? landing.stats : [
-    { label:'RESTAURANTES', value:'+100' },
-    { label:'TIENDAS',      value:'+10' },
-    { label:'CLIENTES',     value:'+50.000' },
+    { label:'LOCALES ABASTECIDOS', value:'+100' },
+    { label:'MARCAS PROPIAS',      value:'3' },
+    { label:'CONSUMIDORES',        value:'+50.000' },
   ];
   const brands = (Array.isArray(mayoCfg.brands) && mayoCfg.brands.length) ? mayoCfg.brands : [
     { label:'Kairos',   logo:'brands/kairos.png' },
@@ -4403,6 +4472,20 @@ function buildMayoLandingHtml(mayoCfg){
   ];
   // *texto* → italic (para resaltar parte del título estilo "Zona *Mayorista*")
   const titleHtml = escapeHtml(title).replace(/\*([^*]+)\*/g, '<em>$1</em>');
+
+  // "Nuestros restaurantes": marquee de logos que entran y salen de izq a der.
+  // Toma mayo.restaurants del panel, si no, el arreglo MAYO_RESTAURANTS de arriba.
+  const restaurants = (Array.isArray(mayoCfg.restaurants) && mayoCfg.restaurants.length)
+    ? mayoCfg.restaurants : MAYO_RESTAURANTS;
+  const restaurantsHtml = restaurants.length ? `
+    <section class="ml-clients">
+      <div class="ml-clients-eyebrow">NUESTROS RESTAURANTES</div>
+      <div class="ml-clients-marquee">
+        <div class="ml-clients-track">
+          ${[...restaurants, ...restaurants].map(r => `<div class="ml-client"><img src="${escapeHtml(r.logo || '')}" alt="${escapeHtml(r.name || '')}" title="${escapeHtml(r.name || '')}" loading="lazy" onerror="this.closest('.ml-client').style.display='none'"></div>`).join('')}
+        </div>
+      </div>
+    </section>` : '';
 
   return `
     <div class="mayo-landing">
@@ -4466,6 +4549,33 @@ function buildMayoLandingHtml(mayoCfg){
           </div>
         </div>
       </section>
+
+      <section class="ml-pitch">
+        <div class="ml-pitch-eyebrow">POR QUÉ VENDER ZORBO</div>
+        <div class="ml-pitch-grid">
+          <div class="ml-pitch-card">
+            <span class="ml-pitch-ico">🏷️</span>
+            <strong>Margen real</strong>
+            <p>Compras directo al productor, sin intermediarios encareciendo tu costo.</p>
+          </div>
+          <div class="ml-pitch-card">
+            <span class="ml-pitch-ico">🔄</span>
+            <strong>Catálogo que rota</strong>
+            <p>Cervezas, cheladas y destilados craft que tu cliente ya pide.</p>
+          </div>
+          <div class="ml-pitch-card">
+            <span class="ml-pitch-ico">⚡</span>
+            <strong>Pedido online</strong>
+            <p>Armas tu mix y repones cuando quieras, sin llamadas ni vendedores.</p>
+          </div>
+        </div>
+        <div class="ml-facts">
+          <span>Pedido mínimo: un barril o un pack de 24</span>
+          <span>Todos los pedidos van con factura</span>
+          <span>Eliges tu mix: una marca o las tres</span>
+        </div>
+      </section>
+      ${restaurantsHtml}
     </div>`;
 }
 
