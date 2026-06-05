@@ -5299,7 +5299,7 @@ async function mayoSignup(){
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
-      ok.innerHTML = (data.message || 'Cuenta creada!') + (data.welcomeCode ? ` Te dejamos un cupón de bienvenida: <strong>${data.welcomeCode}</strong>` : '');
+      ok.textContent = data.message || 'Listo! Quedaste en la waitlist mayorista. Te contactamos en las próximas 48 horas hábiles.';
       ok.classList.add('show');
       ['leadNombre','leadApellido','leadLocal','leadComuna','leadEmail','leadTelefono','leadPass'].forEach(id => document.getElementById(id).value = '');
       document.getElementById('leadCanal').value = '';

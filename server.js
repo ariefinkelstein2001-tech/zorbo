@@ -3823,7 +3823,7 @@ app.post('/mayorista/signup', async (req, res) => {
       status: 'pending',
       customer_id: r.customer ? r.customer.id : null,
       welcomeCode,
-      message: 'Listo! Quedaste en la waitlist mayorista. Te contactamos en las próximas 48 horas hábiles para activar tu cuenta.',
+      message: 'Listo! Quedaste en la waitlist mayorista. Te contactamos en las próximas 48 horas hábiles.',
     });
   } catch (e) {
     const msg = e.message || 'Error al crear la cuenta.';
