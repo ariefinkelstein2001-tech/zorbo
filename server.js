@@ -248,8 +248,29 @@ async function sendWaitlistWhatsApp(lead) {
 // Fire-and-forget: no bloquea la respuesta al usuario. Si un canal no está
 // configurado, se omite (y queda el log local del lead de respaldo).
 function notifyWaitlist(lead) {
+  sendWaitlistWebhook(lead).catch(e => console.warn('waitlist webhook:', e.message));
   sendWaitlistEmail(lead).catch(e => console.warn('waitlist email:', e.message));
   sendWaitlistWhatsApp(lead).catch(e => console.warn('waitlist whatsapp:', e.message));
+}
+
+// Opción más simple: mandar el lead a un webhook de Make/Zapier/n8n que se
+// encarga del email + WhatsApp. Solo hay que pegar la URL del webhook en env.
+async function sendWaitlistWebhook(lead) {
+  const url = process.env.WAITLIST_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL;
+  if (!url) return { skipped: true, reason: 'no WAITLIST_WEBHOOK_URL' };
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      ...lead,
+      notify_email: WAITLIST_EMAIL,
+      notify_whatsapp: WAITLIST_WHATSAPP,
+      source: 'zorbo-waitlist-mayorista',
+      timestamp: new Date().toISOString(),
+    }),
+  });
+  if (!r.ok) throw new Error('Webhook ' + r.status + ': ' + (await r.text()).slice(0, 200));
+  return { ok: true };
 }
 
 function saveSession(session) {
