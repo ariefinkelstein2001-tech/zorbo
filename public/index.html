@@ -415,6 +415,20 @@ header .mayo-hacct .mayo-logout-btn{
   padding:7px 13px;border-radius:10px;transition:all .15s;white-space:nowrap;
 }
 header .mayo-hacct .mayo-logout-btn:hover{background:#111;color:#fff}
+
+/* Marcas (Kairos/Firulais/Banny) en el header de la landing, al lado de la Z */
+header .mayo-hbrands{display:flex;align-items:center;gap:10px;margin-left:16px}
+header .mayo-hbrands:empty{display:none}
+header .mayo-hbrand{
+  width:40px;height:40px;border-radius:50%;border:2px solid #111;background:#fff;
+  padding:0;cursor:pointer;overflow:hidden;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .2s,border-color .2s,box-shadow .2s;
+}
+header .mayo-hbrand img{width:100%;height:100%;object-fit:cover;display:block}
+header .mayo-hbrand:hover{transform:scale(1.08);border-color:#f5a623;box-shadow:0 4px 14px rgba(245,166,35,.3)}
+@media(max-width:600px){header .mayo-hbrand{width:34px;height:34px}header .mayo-hbrands{gap:7px;margin-left:10px}}
+
 /* El nav y la cuenta viven SIEMPRE en el header (desktop y mobile), nunca en
    el cuerpo, para que no se corten ni dupliquen. */
 .shop-page .mayo-account-bar{display:none}
@@ -1540,8 +1554,12 @@ body.mayorista-active .game-banner{display:none}
 /* Paleta Zorbo: blanco + oro + negro. Tipografías DM Sans / Bricolage / Syne. */
 #mayoPage .mayo-landing{
   background:#fff;color:#111;font-family:'DM Sans',sans-serif;
-  min-height:100vh;display:flex;flex-direction:column;position:relative;overflow:hidden;
+  /* Llena el alto disponible (debajo del header) y NO scrollea: todo en una hoja */
+  min-height:100%;height:100%;display:flex;flex-direction:column;position:relative;overflow:hidden;
 }
+/* En modo landing, la columna del chat no scrollea: la landing entra completa */
+body.mayo-landing-mode .chat-area{overflow:hidden}
+body.mayo-landing-mode #mayoPage{height:100%}
 /* Glow dorado de fondo (decorativo) */
 #mayoPage .mayo-landing::before{
   content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
@@ -1679,13 +1697,13 @@ body.mayorista-active .game-banner{display:none}
 
 /* ── "Nuestros restaurantes": marquee de logos (izq → der, entran y salen) ── */
 #mayoPage .ml-clients{
-  position:relative;z-index:1;
-  padding:clamp(18px,2.5vw,30px) 0 clamp(26px,3.5vw,40px);
+  position:relative;z-index:1;flex-shrink:0;
+  padding:clamp(12px,1.8vw,18px) 0 clamp(16px,2vw,24px);
   border-top:1px solid #f0e7d3;
 }
 #mayoPage .ml-clients-eyebrow{
   text-align:center;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:700;
-  letter-spacing:.26em;color:#a05f00;margin-bottom:20px;
+  letter-spacing:.26em;color:#a05f00;margin-bottom:14px;
 }
 #mayoPage .ml-clients-marquee{
   overflow:hidden;width:100%;
@@ -1960,6 +1978,8 @@ body.mayo-landing-mode header{background:transparent;border-bottom:none;position
     <a class="brand-logo" onclick="goHomeTop()" aria-label="Volver al inicio">
       <img class="logo-img" src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Titulo_secundario-3.png?v=1779814975" alt="Zorbo">
     </a>
+    <!-- Marcas (Kairos/Firulais/Banny) en la landing, al lado de la Z -->
+    <div class="mayo-hbrands" id="mayoHbrands"></div>
     <!-- Nav de categorías mayorista (se llena en showMayoristaStorefront) -->
     <div class="mayo-hnav" id="mayoHnav"></div>
     <button class="mayoristas-btn" id="mayoristasBtn" onclick="openMayoristaModal()" aria-label="Acceso mayoristas">
@@ -4503,7 +4523,7 @@ function buildMayoLandingHtml(mayoCfg){
     ? mayoCfg.restaurants : MAYO_RESTAURANTS;
   const restaurantsHtml = restaurants.length ? `
     <section class="ml-clients">
-      <div class="ml-clients-eyebrow">NUESTROS RESTAURANTES</div>
+      <div class="ml-clients-eyebrow">MARCAS ABASTECIDAS</div>
       <div class="ml-clients-marquee">
         <div class="ml-clients-track">
           ${[...restaurants, ...restaurants].map(r => `<div class="ml-client"><img src="${escapeHtml(r.logo || '')}" alt="${escapeHtml(r.name || '')}" title="${escapeHtml(r.name || '')}" loading="lazy" onerror="this.closest('.ml-client').style.display='none'"></div>`).join('')}
@@ -4513,13 +4533,6 @@ function buildMayoLandingHtml(mayoCfg){
 
   return `
     <div class="mayo-landing">
-      <section class="ml-brands">
-        <div class="ml-brands-eyebrow">NUESTRAS MARCAS</div>
-        <div class="ml-brands-row">
-          ${brands.map(b => `<img class="ml-brand-logo" src="${escapeHtml(b.logo || '')}" alt="${escapeHtml(b.label || '')}" title="${escapeHtml(b.label || '')}">`).join('')}
-        </div>
-      </section>
-
       <section class="ml-main">
         <div class="ml-hero-left">
           <h1 class="ml-hero-title">${titleHtml}</h1>
@@ -4573,37 +4586,31 @@ function buildMayoLandingHtml(mayoCfg){
           </div>
         </div>
       </section>
-
-      <section class="ml-pitch">
-        <div class="ml-pitch-eyebrow">POR QUÉ VENDER ZORBO</div>
-        <div class="ml-pitch-grid">
-          <div class="ml-pitch-card">
-            <span class="ml-pitch-ico">🏷️</span>
-            <strong>Margen real</strong>
-            <p>Compras directo al productor, sin intermediarios encareciendo tu costo.</p>
-          </div>
-          <div class="ml-pitch-card">
-            <span class="ml-pitch-ico">🔄</span>
-            <strong>Catálogo que rota</strong>
-            <p>Cervezas, cheladas y destilados craft que tu cliente ya pide.</p>
-          </div>
-          <div class="ml-pitch-card">
-            <span class="ml-pitch-ico">⚡</span>
-            <strong>Pedido online</strong>
-            <p>Armas tu mix y repones cuando quieras, sin llamadas ni vendedores.</p>
-          </div>
-        </div>
-        <div class="ml-facts">
-          <span>Pedido mínimo: un barril o un pack de 24</span>
-          <span>Todos los pedidos van con factura</span>
-          <span>Eliges tu mix: una marca o las tres</span>
-        </div>
-      </section>
       ${restaurantsHtml}
     </div>`;
 }
 
+// Marcas (Kairos/Firulais/Banny) en el HEADER de la landing, al lado de la Z.
+// Al tocarlas abre el popup con la descripción de la marca (igual que adentro).
+function fillLandingHeaderBrands(){
+  const el = document.getElementById('mayoHbrands');
+  if (!el) return;
+  const brands = [
+    { key:'kairos',   label:'Kairos Brewing', logo:'brands/kairos.png' },
+    { key:'firulais', label:'Firulais',       logo:'brands/firulais.png' },
+    { key:'banny',    label:'Banny',          logo:'brands/banny.png' },
+  ];
+  el.innerHTML = brands.map(b =>
+    `<button class="mayo-hbrand" title="${escapeHtml(b.label)}" onclick="openBrandInfo('${b.key}','','${escapeHtml(b.label)}','${b.logo}')"><img src="${b.logo}" alt="${escapeHtml(b.label)}"></button>`
+  ).join('');
+}
+function clearLandingHeaderBrands(){
+  const el = document.getElementById('mayoHbrands');
+  if (el) el.innerHTML = '';
+}
+
 function initMayoLanding(){
+  fillLandingHeaderBrands(); // marcas en el header, al lado de la Z
   document.querySelectorAll('#mayoPage .ml-stat-num').forEach(el => {
     const raw = String(el.dataset.target || '');
     const numStr = raw.replace(/[^\d]/g, '');
@@ -4854,6 +4861,7 @@ async function showMayoristaStorefront(){
 // Header mayorista: pone el nav de categorías y la cuenta/cerrar sesión en la
 // misma línea que el logo (visible en desktop; en mobile viven en el cuerpo).
 function fillMayoHeader(navHtml, customer){
+  clearLandingHeaderBrands(); // ya no es la landing
   const hnav = document.getElementById('mayoHnav');
   if (hnav) hnav.innerHTML = navHtml || '';
   const hacct = document.getElementById('mayoHacct');
