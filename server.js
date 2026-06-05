@@ -674,6 +674,27 @@ function isShorthandAddIntent(msg){
   return false;
 }
 
+// ¿El mensaje es una pregunta o consulta (no una confirmación de compra)?
+function isQuestionish(msg){
+  const t = String(msg).toLowerCase();
+  if (t.includes('?')) return true;
+  return /\b(cu[aá]nto|cu[aá]l|cu[aá]les|precio|cuesta|vale|sale|info|ficha|d[oó]nde|c[oó]mo|por\s*qu[eé]|qu[eé]\s*es|stock|hay|tienen|ten[eé]s)\b/.test(t);
+}
+// "Selección suave": el cliente confirma/elige una opción que el bot acaba de
+// ofrecer, sin usar un verbo de agregar explícito (ej. "solo golden", "ese",
+// "dale el golden", "el osagui"). Solo cuenta si NO es pregunta ni negación.
+const SELECT_KW = new Set(['si','sí','sip','sipo','dale','ya','ok','okey','oka','obvio','claro','ese','esa','esos','esas','solo','sólo','el','la','los','las','ambos','ambas','todos','todas','listo','perfecto','bkn','bacán','bacan','filo']);
+function isSoftSelection(msg){
+  const t = String(msg).trim().toLowerCase();
+  if (!t || t.length > 50) return false;
+  if (isQuestionish(t)) return false;
+  if (/^no\b/.test(t)) return false;
+  // Despedidas / declinaciones / cierres: no son selección de compra.
+  if (/\b(gracias|chao|nada|m[aá]s\s*nada|eso\s*nom[aá]s|despu[eé]s|luego|otro\s*d[ií]a|mejor\s*no|ahora\s*no)\b/.test(t)) return false;
+  const words = t.split(/[^a-záéíóúñ0-9]+/i).filter(Boolean);
+  return words.some(w => SELECT_KW.has(w));
+}
+
 // Convierte el shorthand en un mensaje "agrégame qty N pack" para que el
 // parser de pack-size lo entienda como tal.
 function normalizeShorthand(msg){
@@ -747,7 +768,20 @@ function findMentionedProducts(botText, catalog, userMessage){
     }
   }
   if (!filtered.length) return [];
-  // Si el bot mostró varias opciones y no logramos desambiguar → preguntar.
+  // Si el bot mostró varias opciones y no desambiguamos por pack/número, probamos
+  // por PALABRA del mensaje del cliente (ej. "solo golden" → elige el Golden).
+  if (filtered.length > 1) {
+    const STOP = new Set(['solo','sólo','el','la','los','las','un','una','unos','unas','pack','de','del','con','mayorista','cerveza','cervezas','quiero','dame','ese','esa','esos','esas','mismo','lata','latas','y','o','por','favor','ese','este','esta','va','voy','llevo','lleva','473cc','473']);
+    const words = u.split(/[^a-záéíóúñ0-9]+/i).filter(w => w.length >= 3 && !STOP.has(w));
+    if (words.length) {
+      const byWord = filtered.filter(p => {
+        const t = String(p.title || '').toLowerCase();
+        return words.some(w => t.includes(w));
+      });
+      if (byWord.length === 1) filtered = byWord;
+    }
+  }
+  // Si aún hay varias opciones sin desambiguar → preguntar (no adivinar).
   if (filtered.length > 1) return [];
   // Para la qty: enmascarar el pack-size que ya consumimos.
   let uForQty = u;
@@ -3342,7 +3376,7 @@ app.post('/chat', async (req, res) => {
   // Si NO se identifica:
   //  - Si dio pack-size pero hay múltiples → server lista las opciones y pregunta.
   //  - Si no dio pack-size → cae a Claude (con prompt anti-mentira).
-  if ((mayo || !isB2BContext) && (detect(message, ADD_NOW_KW) || isShorthandAddIntent(message))) {
+  if ((mayo || !isB2BContext) && (detect(message, ADD_NOW_KW) || isShorthandAddIntent(message) || isSoftSelection(message))) {
     let cartItems = [];
     let clarifyMsg = null;
     const normMsg = normalizeShorthand(message);
