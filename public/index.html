@@ -2649,7 +2649,10 @@ function vStockCap(v){
 
 function buildHpCard(p){
   const variants = p.variants || [];
-  const v0 = variants[0] || {};
+  // Variante por defecto: la PRIMERA con stock (si hay), para no abrir en una
+  // agotada. Si todas están agotadas, usa la primera (mostrará Agotado).
+  const dIdx = (() => { const i = variants.findIndex(vInStock); return i >= 0 ? i : 0; })();
+  const v0 = variants[dIdx] || {};
   const price = parseFloat(v0.price || 0);
   const compareAt = parseFloat(v0.compareAtPrice || 0);
   const offPct = (compareAt && compareAt > price) ? Math.round((compareAt - price) / compareAt * 100) : 0;
@@ -2661,7 +2664,7 @@ function buildHpCard(p){
   const variantPills = variants.length > 1 ? `
     <div class="hp-variants">
       ${variants.map((v,i) => `
-        <button class="hp-variant ${i===0?'active':''}"
+        <button class="hp-variant ${i===dIdx?'active':''}"
                 data-vid="${v.id}"
                 data-price="${v.price}"
                 data-image="${v.image || ''}"
@@ -2716,7 +2719,9 @@ function hpOpenProduct(pid){
   const p = HP_PRODUCT_MAP.get(String(pid));
   if (!p) return;
   const variants = p.variants || [];
-  const v0 = variants[0] || {};
+  // Abre en la primera variante con stock (no en una agotada).
+  const dIdx = (() => { const i = variants.findIndex(vInStock); return i >= 0 ? i : 0; })();
+  const v0 = variants[dIdx] || {};
   const price = parseFloat(v0.price || 0);
   const compareAt = parseFloat(v0.compareAtPrice || 0);
   const offPct = (compareAt && compareAt > price) ? Math.round((compareAt - price) / compareAt * 100) : 0;
@@ -2733,7 +2738,7 @@ function hpOpenProduct(pid){
   const variantPills = variants.length > 1 ? `
     <div class="hp-variants">
       ${variants.map((v,i) => `
-        <button class="hp-variant ${i===0?'active':''}"
+        <button class="hp-variant ${i===dIdx?'active':''}"
                 data-vid="${v.id}"
                 data-price="${v.price}"
                 data-image="${v.image || ''}"
