@@ -2860,11 +2860,10 @@ function buildHpCard(p){
   };
   if (p && p.id) HP_PRODUCT_MAP.set(String(p.id), p);
   const soldBadge = `<span class="hp-card-soldout"${v0Stock ? ' style="display:none"' : ''}>Agotado</span>`;
-  // El botón SIEMPRE lleva onclick="hpAdd" — solo se deshabilita por stock. Así,
-  // si el 1er variant está agotado pero otro tiene stock, al cambiar de variante
-  // el botón queda funcional (antes el botón "AGOTADO" no tenía handler y no
-  // agregaba aunque eligieras un variant con stock).
-  const addBtn = `<button class="hp-add${v0Stock ? '' : ' soldout'}" data-product='${JSON.stringify(productData).replace(/'/g,"&#39;")}' onclick="hpAdd(this)"${v0Stock ? '' : ' disabled'}>${v0Stock ? 'AÑADIR AL CARRITO' : 'AGOTADO'}</button>`;
+  // El botón SIEMPRE lleva onclick (solo se deshabilita por stock) y el label
+  // depende de _request: Servicios (CO2/accesorios) → "SOLICITAR"; resto → "AÑADIR".
+  const addLabel = p._request ? 'SOLICITAR' : 'AÑADIR AL CARRITO';
+  const addBtn = `<button class="hp-add${v0Stock ? '' : ' soldout'}" data-product='${JSON.stringify(productData).replace(/'/g,"&#39;")}' data-addlabel="${addLabel}" onclick="hpAdd(this)"${v0Stock ? '' : ' disabled'}>${v0Stock ? addLabel : 'AGOTADO'}</button>`;
   return `<div class="hp-card${v0Stock ? '' : ' is-soldout'}" data-pid="${p.id||''}" onclick="hpCardClick(this,event)">
     <span class="hp-card-zoom" aria-hidden="true">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
@@ -2955,7 +2954,7 @@ function hpOpenProduct(pid){
           ${variantPills}
           <div class="hp-acts pdp-acts">
             <div class="hp-qty" data-max="${v0Cap ?? ''}"><button onclick="hpQty(this,-1)">−</button><span class="v">1</span><button onclick="hpQty(this,1)">+</button></div>
-            <button class="hp-add${v0Stock ? '' : ' soldout'}" data-product='${JSON.stringify(productData).replace(/'/g,"&#39;")}' onclick="hpAdd(this)"${v0Stock ? '' : ' disabled'}>${v0Stock ? 'AÑADIR AL CARRITO' : 'AGOTADO'}</button>
+            <button class="hp-add${v0Stock ? '' : ' soldout'}" data-product='${JSON.stringify(productData).replace(/'/g,"&#39;")}' data-addlabel="${p._request ? 'SOLICITAR' : 'AÑADIR AL CARRITO'}" onclick="hpAdd(this)"${v0Stock ? '' : ' disabled'}>${v0Stock ? (p._request ? 'SOLICITAR' : 'AÑADIR AL CARRITO') : 'AGOTADO'}</button>
           </div>
         </div>
       </div>
@@ -3119,7 +3118,7 @@ function hpSelectVariant(btn){
     if (inStock) {
       addBtn.disabled = false;
       addBtn.classList.remove('soldout');
-      if (/agotado/i.test(addBtn.textContent)) addBtn.textContent = 'AÑADIR AL CARRITO';
+      if (/agotado/i.test(addBtn.textContent)) addBtn.textContent = addBtn.dataset.addlabel || 'AÑADIR AL CARRITO';
     } else {
       addBtn.disabled = true;
       addBtn.classList.add('soldout');
@@ -3146,6 +3145,8 @@ function hpAdd(btn){
   const wrap = btn.closest('.hp-card').querySelector('.hp-qty');
   let qty = parseInt(wrap.querySelector('.v').textContent,10) || 1;
   if (!data.variantId) return;
+  const label = btn.dataset.addlabel || 'AÑADIR AL CARRITO';
+  const doneWord = label === 'SOLICITAR' ? 'SOLICITADO' : 'AGREGADO';
   // No permitir pedir más del stock disponible (considerando lo que ya está en el carro).
   const max = (typeof data.stock === 'number' && data.stock > 0) ? data.stock : null;
   if (max){
@@ -3153,15 +3154,15 @@ function hpAdd(btn){
     const room = Math.max(0, max - already);
     if (room <= 0){
       btn.textContent = 'SIN STOCK';
-      setTimeout(() => { btn.textContent = 'AÑADIR AL CARRITO'; }, 1600);
+      setTimeout(() => { btn.textContent = label; }, 1600);
       return;
     }
     qty = Math.min(qty, room);
   }
   addToCart(data, qty);
-  btn.textContent = `✓ AGREGADO (${qty})`;
+  btn.textContent = `✓ ${doneWord} (${qty})`;
   btn.classList.add('done');
-  setTimeout(() => { btn.textContent = 'AÑADIR AL CARRITO'; btn.classList.remove('done'); }, 2200);
+  setTimeout(() => { btn.textContent = label; btn.classList.remove('done'); }, 2200);
 }
 
 // Flechas de navegación para las filas de productos (carrusel horizontal).
@@ -4988,9 +4989,10 @@ async function showMayoristaStorefront(){
       if (/bid[oó]n/.test(t)) groups.licoresBidon.push(p);
       else groups.licoresBotella.push(p);
     }
-    // CO2, recargas, accesorios, marcas custom → Servicios (catch-all)
+    // CO2, recargas, accesorios, marcas custom → Servicios (catch-all).
+    // _request:true → la tarjeta muestra "SOLICITAR" en vez de "Añadir al carrito".
     else {
-      groups.servicios.push(p);
+      groups.servicios.push({ ...p, _request: true });
     }
   }
 
