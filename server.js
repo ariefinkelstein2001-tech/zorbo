@@ -273,6 +273,47 @@ async function sendWaitlistWebhook(lead) {
   return { ok: true };
 }
 
+// ─── Solicitudes de servicio (reposición, capacitación, limpieza de líneas) ──
+// Avisan al equipo (webhook Make + email + WhatsApp), igual que la waitlist.
+// NO pasan por carrito ni pago: son agendamientos/solicitudes.
+function notifyServiceRequest(data) {
+  const url = process.env.WAITLIST_WEBHOOK_URL || process.env.MAKE_WEBHOOK_URL;
+  if (url) {
+    fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'service-request', ...data, notify_email: WAITLIST_EMAIL, notify_whatsapp: WAITLIST_WHATSAPP, source: 'zorbo-servicio-mayorista', timestamp: new Date().toISOString() }),
+    }).catch(e => console.warn('service webhook:', e.message));
+  }
+  sendServiceEmail(data).catch(e => console.warn('service email:', e.message));
+  sendServiceWhatsApp(data).catch(e => console.warn('service whatsapp:', e.message));
+}
+async function sendServiceEmail(d) {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return { skipped: true };
+  const from = process.env.RESEND_FROM || 'Zorbo <onboarding@resend.dev>';
+  const rows = Object.entries(d).map(([k, v]) => `<tr><td style="padding:4px 12px;font-weight:600;text-transform:capitalize">${k}</td><td style="padding:4px 12px">${v || '-'}</td></tr>`).join('');
+  const html = `<h2>Nueva solicitud de servicio mayorista</h2><table style="border-collapse:collapse">${rows}</table>`;
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST', headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from, to: [WAITLIST_EMAIL], subject: `Solicitud de servicio: ${d.servicio || ''}`, html }),
+  });
+  if (!r.ok) throw new Error('Resend ' + r.status);
+  return { ok: true };
+}
+async function sendServiceWhatsApp(d) {
+  const sid = process.env.TWILIO_ACCOUNT_SID, tok = process.env.TWILIO_AUTH_TOKEN, fromWa = process.env.TWILIO_WHATSAPP_FROM;
+  if (!sid || !tok || !fromWa) return { skipped: true };
+  const body = 'Solicitud de servicio Zorbo:\n' + Object.entries(d).map(([k, v]) => `${k}: ${v || '-'}`).join('\n');
+  const wa = (s) => (String(s).startsWith('whatsapp:') ? String(s) : 'whatsapp:' + String(s));
+  const params = new URLSearchParams({ From: wa(fromWa), To: wa(WAITLIST_WHATSAPP), Body: body });
+  const auth = Buffer.from(`${sid}:${tok}`).toString('base64');
+  const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+    method: 'POST', headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString(),
+  });
+  if (!r.ok) throw new Error('Twilio ' + r.status);
+  return { ok: true };
+}
+
 function saveSession(session) {
   try {
     const log = readLog(CONV_LOG);
@@ -1347,6 +1388,26 @@ app.get('/api/products', async (req, res) => {
 // El nivel se resuelve SERVER-SIDE desde los tags del cliente (por email), no
 // se confía en el cliente. MAYORISTA1 → solo colección "MAYORISTA EX";
 // MAYORISTA (o guest del equipo) → todos los productos mayoristas.
+// POST /api/service-request — solicitud de servicio (reposición / capacitación /
+// limpieza de líneas). Avisa al equipo, no pasa por carrito.
+app.post('/api/service-request', (req, res) => {
+  const { product, option, date, time, customer } = req.body || {};
+  if (!product) return res.status(400).json({ error: 'Falta el servicio.' });
+  const c = customer || {};
+  const data = {
+    servicio: String(product).slice(0, 120),
+    opcion:   option ? String(option).slice(0, 80) : '',
+    fecha:    date ? String(date).slice(0, 40) : '',
+    hora:     time ? String(time).slice(0, 20) : '',
+    cliente:  [c.first_name, c.last_name].filter(Boolean).join(' ') || '',
+    email:    c.email || '',
+    telefono: c.phone || '',
+  };
+  try { notifyServiceRequest(data); } catch (e) { console.warn('service-request:', e.message); }
+  try { appendLog(LEADS_LOG, { timestamp: new Date().toISOString(), kind: 'service', ...data }); } catch {}
+  return res.json({ ok: true });
+});
+
 app.post('/api/mayo-products', async (req, res) => {
   if (!process.env.SHOPIFY_ADMIN_TOKEN) {
     return res.status(503).json({ error: 'Shopify aún no está conectado. Falta SHOPIFY_ADMIN_TOKEN.' });

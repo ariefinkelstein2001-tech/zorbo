@@ -582,6 +582,17 @@ header .mayo-hacct .mayo-logout-btn .ml-ico{display:none}
 .shop-page button.hp-add:hover{background:#ffb840}
 .shop-page button.hp-add:active{transform:scale(.97)}
 .shop-page button.hp-add.done{background:#4caf50!important;color:#fff!important;pointer-events:none}
+/* Tarjeta de servicio (selector de marca/opción + calendario) */
+.shop-page .hp-service .hp-svc-sel{
+  width:100%;padding:9px 11px;border:1.5px solid #ddd;border-radius:8px;
+  font-family:'DM Sans',sans-serif;font-size:13px;background:#fafafa;color:#111;
+  margin-bottom:8px;cursor:pointer;
+}
+.shop-page .hp-service .hp-svc-sel:focus{border-color:#f5a623;outline:none;background:#fff}
+.shop-page .hp-service .hp-svc-cal{display:flex;gap:8px}
+.shop-page .hp-service .hp-svc-cal .hp-svc-sel{margin-bottom:4px}
+.shop-page .hp-service .hp-svc-hint{font-size:11px;color:#999;margin:0 0 10px;text-align:center}
+.shop-page .hp-service .hp-add{width:100%;margin-top:auto}
 /* Agotado: botón deshabilitado + badge sobre la foto */
 .shop-page button.hp-add.soldout,
 .pdp-card button.hp-add.soldout{background:#e5e5e5!important;color:#999!important;cursor:not-allowed;pointer-events:none}
@@ -2821,7 +2832,87 @@ function vStockCap(v){
   return (v && typeof v.stock === 'number' && v.stock > 0) ? v.stock : null;
 }
 
+// ─── Servicios con UI especial (selector de marca/opción + calendario) ──────
+// Reposición → escoge marca · Reposición de botellas → 3 opciones Banny ·
+// Capacitación → marca + calendario · Limpieza de líneas → calendario.
+const SVC_BRANDS  = ['Kairos', 'Firulais', 'Banny'];
+const SVC_BOTTLES = ['Banny Contemporáneo', 'Ron Rey de Copas', 'Banny London Dry'];
+const SVC_TIMES   = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
+function detectServiceType(title){
+  const t = String(title || '').toLowerCase();
+  if (/limpieza\s+de\s+l[ií]nea/.test(t)) return 'limpieza';       // solo calendario
+  if (/capacitaci[oó]n/.test(t))          return 'capacitacion';   // marca + calendario
+  if (/reposici[oó]n\s+de\s+botella/.test(t)) return 'botellas';   // opciones Banny
+  if (/reposici[oó]n/.test(t))            return 'reposicion';     // marca
+  return null;
+}
+function svcDateOptions(n = 12){
+  const out = []; const d = new Date();
+  while (out.length < n){
+    d.setDate(d.getDate() + 1);
+    const wd = d.getDay();
+    if (wd >= 1 && wd <= 5){
+      out.push({ value: d.toISOString().slice(0,10), label: d.toLocaleDateString('es-CL', { weekday:'short', day:'numeric', month:'short' }) });
+    }
+  }
+  return out;
+}
+function buildServiceCard(p, type){
+  const img1 = (p.variants && p.variants[0] && p.variants[0].image) || p.image || (p.images && p.images[0]) || null;
+  if (p && p.id) HP_PRODUCT_MAP.set(String(p.id), p);
+  const needsOpt = type === 'reposicion' || type === 'botellas' || type === 'capacitacion';
+  const opts = type === 'botellas' ? SVC_BOTTLES : SVC_BRANDS;
+  const optHtml = needsOpt
+    ? `<select class="hp-svc-sel hp-svc-opt" onclick="event.stopPropagation()">${opts.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('')}</select>`
+    : '';
+  const needsCal = type === 'capacitacion' || type === 'limpieza';
+  const calHtml = needsCal ? `
+    <div class="hp-svc-cal">
+      <select class="hp-svc-sel hp-svc-date" onclick="event.stopPropagation()">${svcDateOptions().map(d => `<option value="${d.value}">${escapeHtml(d.label)}</option>`).join('')}</select>
+      <select class="hp-svc-sel hp-svc-time" onclick="event.stopPropagation()">${SVC_TIMES.map(t => `<option value="${t}">${t}</option>`).join('')}</select>
+    </div>
+    <div class="hp-svc-hint">Lun a vie · 10:00–17:00</div>` : '';
+  return `<div class="hp-card hp-service" data-pid="${p.id||''}" data-svc="${type}">
+    <div class="hp-card-img"><img src="${img1 || ''}" alt="${escapeHtml(p.title)}" loading="lazy"></div>
+    <div class="hp-card-name">${escapeHtml(cleanHpTitle(p.title))}</div>
+    ${optHtml}
+    ${calHtml}
+    <button class="hp-add" data-name="${escapeHtml(cleanHpTitle(p.title))}" onclick="requestService(this)">SOLICITAR</button>
+  </div>`;
+}
+async function requestService(btn){
+  const card = btn.closest('.hp-card'); if (!card) return;
+  const name = btn.dataset.name || '';
+  const optEl  = card.querySelector('.hp-svc-opt');
+  const dateEl = card.querySelector('.hp-svc-date');
+  const timeEl = card.querySelector('.hp-svc-time');
+  const option = optEl ? optEl.value : '';
+  const date   = dateEl ? (dateEl.selectedOptions[0]?.textContent || dateEl.value) : '';
+  const time   = timeEl ? timeEl.value : '';
+  let customer = {}; try { customer = JSON.parse(sessionStorage.getItem('zmayo_customer') || '{}'); } catch {}
+  btn.disabled = true; btn.textContent = 'Enviando...';
+  try {
+    const r = await fetch('/api/service-request', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ product: name, option, date, time, customer }),
+    });
+    if (r.ok){
+      btn.textContent = '✓ SOLICITADO'; btn.classList.add('done');
+      try {
+        const extra = [option, date && `${date}${time ? ' · ' + time : ''}`].filter(Boolean).join(' · ');
+        botStatic(`Listo! Recibimos tu solicitud de **${name}**${extra ? ` (${extra})` : ''}. El equipo te confirma a la brevedad 🍺`);
+      } catch {}
+    } else {
+      btn.textContent = 'Reintenta';
+    }
+  } catch { btn.textContent = 'Error de red'; }
+  finally { setTimeout(() => { btn.disabled = false; btn.classList.remove('done'); btn.textContent = 'SOLICITAR'; }, 2600); }
+}
+
 function buildHpCard(p){
+  // Servicios con UI especial (selector + calendario) → tarjeta dedicada.
+  const _svc = detectServiceType(p.title);
+  if (_svc) return buildServiceCard(p, _svc);
   const variants = p.variants || [];
   // Variante por defecto: la PRIMERA con stock (si hay), para no abrir en una
   // agotada. Si todas están agotadas, usa la primera (mostrará Agotado).
