@@ -1077,6 +1077,10 @@ header .account-chip{margin-left:auto}
 .flag.flag-ar span:nth-child(2){background:#f0ece0}
 .flag.flag-jp{background:#fff;display:flex;align-items:center;justify-content:center}
 .flag.flag-jp::after{content:'';width:10px;height:10px;border-radius:50%;background:#c0241a}
+.flag.flag-pe{flex-direction:row}
+.flag.flag-pe span{flex:1;display:block}
+.flag.flag-pe span:nth-child(1),.flag.flag-pe span:nth-child(3){background:#d91023}
+.flag.flag-pe span:nth-child(2){background:#fff}
 .flag-cap{font-family:'DM Sans',sans-serif;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#555;background:#fff;padding:1px 4px;border-radius:2px;font-weight:700}
 
 /* World Tour card: hace lugar para la bandera */
@@ -3652,7 +3656,7 @@ function renderMayoSidebar(products){
   for (const p of (products || [])) {
     if (!p.variants || !p.variants.length) continue;
     let b = detectMpBrand(p);
-    if (b === 'lanus' || b === 'osagui') b = 'kairos'; // son de Kairos
+    if (b === 'lanus' || b === 'osagui' || b === 'acholada') b = 'kairos'; // son de Kairos
     if (!META[b]) b = 'otros';                          // CO2/accesorios → Servicios
     (buckets[b] = buckets[b] || []).push(p);
   }
@@ -4474,6 +4478,7 @@ function detectMpBrand(p){
   if (/\b(co2|co₂|recarga|cilindro|accesorio|tap|llave|grifo|griferia)\b/.test(t)) return 'otros';
   if (v.includes('lanús') || v.includes('lanus') || t.includes('lanús') || t.includes('lanus')) return 'lanus';
   if (v.includes('osagui') || t.includes('osagui')) return 'osagui';
+  if (v.includes('acholada') || t.includes('acholada')) return 'acholada';
   if (v.includes('firulais') || t.includes('firulais') || t.includes('chelada')) return 'firulais';
   if (v.includes('banny') || t.includes('banny')) return 'banny';
   if (/\bgin\b|\brum\b|\bron\b|whisky|whiskey|vermut|mojito|rtd/.test(t)) return 'banny';
@@ -5061,13 +5066,15 @@ async function showMayoristaStorefront(){
 
     // Cervezas (Kairos / Lanús / Osagui) → CHELAS o PACKS según formato.
     // Sin allowlist por nombre — confiamos en que el tag MAYORISTA ya filtró.
-    if (brand === 'kairos' || brand === 'lanus' || brand === 'osagui') {
+    if (brand === 'kairos' || brand === 'lanus' || brand === 'osagui' || brand === 'acholada') {
       if (brand === 'kairos' && /nz\s*pils|new\s*zealand|nzpils/.test(t)) continue;
       const fmt = kairosFmt(p);
-      const enriched = brand === 'lanus'  ? { ...p, _flag:'ar', _country:'Argentina' }
-                     : brand === 'osagui' ? { ...p, _flag:'jp', _country:'Japón' }
+      const enriched = brand === 'lanus'    ? { ...p, _flag:'ar', _country:'Argentina' }
+                     : brand === 'osagui'   ? { ...p, _flag:'jp', _country:'Japón' }
+                     : brand === 'acholada' ? { ...p, _flag:'pe', _country:'Perú' }
                      : p;
-      if (fmt === 'barril') groups.chelasBarril.push(enriched);
+      // World Tour (con bandera) primero, arriba de la sección de barriles.
+      if (fmt === 'barril'){ if (enriched._flag) groups.chelasBarril.unshift(enriched); else groups.chelasBarril.push(enriched); }
       else                  groups.packs.push(enriched);
     }
     // Firulais → barril a Craft Mix·Barril, el resto (latas/packs) a Craft Mix·Packs
@@ -5349,6 +5356,8 @@ function buildMayoWorldTourCard(p){
     ? '<div class="flag-badge"><span class="flag flag-ar"><span></span><span></span><span></span></span><span class="flag-cap">'+escapeHtml(p._country)+'</span></div>'
     : p._flag === 'jp'
     ? '<div class="flag-badge"><span class="flag flag-jp"></span><span class="flag-cap">'+escapeHtml(p._country)+'</span></div>'
+    : p._flag === 'pe'
+    ? '<div class="flag-badge"><span class="flag flag-pe"><span></span><span></span><span></span></span><span class="flag-cap">'+escapeHtml(p._country)+'</span></div>'
     : '';
   // Inserta la clase wt-card y la bandera. Tolera la clase is-soldout que
   // buildHpCard agrega cuando el producto está agotado.
