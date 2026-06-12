@@ -3111,18 +3111,30 @@ function normAttrKey(k){
     .trim();
 }
 
-// Extrae las 4 predicciones desde los atributos/propiedades del pedido.
+// Extrae las 4 predicciones desde los atributos/propiedades del pedido. No
+// sabemos los nombres EXACTOS de los campos del pack mundialero, así que
+// matcheamos por palabras clave. Lo que no calce en ninguna de las 4 columnas
+// se devuelve en `extra` para no perder nada de lo que el cliente escribió.
 function extractMundialPicks(attrs){
+  const list = (attrs || []).filter(a => String(a.value || '').trim() && !/^_/.test(String(a.key||'')));
+  const used = new Set();
   const pick = (re) => {
-    const hit = (attrs || []).find(a => re.test(normAttrKey(a.key)) && String(a.value || '').trim());
-    return hit ? String(hit.value).trim() : '';
+    const idx = list.findIndex((a, i) => !used.has(i) && re.test(normAttrKey(a.key)));
+    if (idx < 0) return '';
+    used.add(idx);
+    return String(list[idx].value).trim();
   };
-  return {
+  const picks = {
     primero:  pick(/\b(primer|1er|1|campeon|oro|ganador|first|champion)\b/),
-    segundo:  pick(/\b(segundo|2do|2|plata|finalista|second)\b/),
+    segundo:  pick(/\b(segundo|2do|2|subcampeon|plata|finalista|second)\b/),
     tercero:  pick(/\b(tercer|3er|3|bronce|third)\b/),
     goleador: pick(/(golead|scorer|goal|pichichi|max\s*gol|bota)/),
   };
+  const extra = list
+    .filter((_, i) => !used.has(i))
+    .map(a => `${a.key}: ${String(a.value).trim()}`)
+    .join(' · ');
+  return { ...picks, extra };
 }
 
 app.get('/admin/mundial', requireAdmin, async (req, res) => {
@@ -3140,6 +3152,7 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
     ];
     const picks = extractMundialPicks(attrs);
     const nombre = [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim();
+    const nota = [o.note || '', picks.extra || ''].filter(Boolean).join(' · ');
     rows.push({
       order: o.name || '',
       date: o.createdAt,
@@ -3151,7 +3164,7 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
       segundo: picks.segundo,
       tercero: picks.tercero,
       goleador: picks.goleador,
-      nota: o.note || '',
+      nota,
     });
   }
   rows.sort((a, b) => new Date(b.date) - new Date(a.date));
