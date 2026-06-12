@@ -1254,12 +1254,15 @@ const ORDERS_QUERY = `query($cursor: String) {
         name
         createdAt
         displayFulfillmentStatus
+        note
+        customAttributes { key value }
         currentTotalPriceSet { shopMoney { amount } }
-        customer { id email }
+        customer { id email firstName lastName phone }
         lineItems(first: 50) {
           edges { node {
             quantity
             originalTotalSet { shopMoney { amount } }
+            customAttributes { key value }
             variant { id title price image { url } }
             product { id title vendor tags }
           } }
@@ -1301,9 +1304,14 @@ async function loadOrders(force = false){
           name: n.name || null,
           createdAt: n.createdAt,
           status: n.displayFulfillmentStatus || null,
+          note: n.note || '',
+          attributes: (n.customAttributes || []).map(a => ({ key: a.key, value: a.value })),
           total: parseFloat(n.currentTotalPriceSet?.shopMoney?.amount || 0),
           customerId: n.customer ? stripGid(n.customer.id, 'Customer') : null,
           customerEmail: n.customer?.email || null,
+          customerFirstName: n.customer?.firstName || '',
+          customerLastName: n.customer?.lastName || '',
+          customerPhone: n.customer?.phone || '',
           lineItems: (n.lineItems?.edges || []).map(le => ({
             qty: le.node.quantity,
             amount: parseFloat(le.node.originalTotalSet?.shopMoney?.amount || 0),
@@ -1311,6 +1319,7 @@ async function loadOrders(force = false){
             title: le.node.product?.title || '(producto eliminado)',
             vendor: le.node.product?.vendor || '',
             tags: le.node.product?.tags || [],
+            properties: (le.node.customAttributes || []).map(a => ({ key: a.key, value: a.value })),
             // Variant exacto comprado → necesario para "Repetir último pedido"
             // (el carrito arma el permalink con variantId). Precio/imagen del
             // variant ACTUAL, así la reposición refleja el precio de hoy.
@@ -1593,8 +1602,19 @@ function adminSessionFor(req){
   return { token, ...s };
 }
 
+// Credenciales del panel. Idealmente se setean en Railway como ADMIN_USER /
+// ADMIN_PASSWORD. Si no están, caen a un default para no dejar el panel
+// inaccesible — CAMBIALAS en producción seteando las env vars.
+const ADMIN_USER_DEFAULT = 'zorbo';
+const ADMIN_PASSWORD_DEFAULT = 'zorbo2026';
+function adminCreds(){
+  return {
+    user: (process.env.ADMIN_USER || ADMIN_USER_DEFAULT),
+    pass: (process.env.ADMIN_PASSWORD || ADMIN_PASSWORD_DEFAULT),
+  };
+}
 function isAdminConfigured(){
-  return !!(process.env.ADMIN_USER && process.env.ADMIN_PASSWORD);
+  return true; // siempre hay credenciales (env o default)
 }
 
 function wantsHtml(req){
@@ -1602,17 +1622,10 @@ function wantsHtml(req){
   return accept.includes('text/html');
 }
 
-// Login deshabilitado temporalmente — /admin queda abierto. La infraestructura
-// de sesiones queda intacta (constantes, /admin/login, /admin/logout, cookies)
-// para poder reactivar el gate más adelante seteando ADMIN_AUTH_ENABLED=1.
+// Login ACTIVO por defecto. Para abrir el panel sin login (debug) setear
+// ADMIN_AUTH_ENABLED=0.
 function requireAdmin(req, res, next){
-  if (process.env.ADMIN_AUTH_ENABLED !== '1') return next();
-  if (!isAdminConfigured()) {
-    if (wantsHtml(req)) return res.status(503).send(
-      '<h1>Panel admin no configurado</h1><p>Falta ADMIN_USER / ADMIN_PASSWORD en el entorno.</p>'
-    );
-    return res.status(503).json({ error: 'Panel admin no configurado en el server.' });
-  }
+  if (process.env.ADMIN_AUTH_ENABLED === '0') return next();
   if (adminSessionFor(req)) return next();
   if (wantsHtml(req)) return res.redirect(302, '/admin/login');
   return res.status(401).json({ error: 'No autorizado. Iniciá sesión en /admin/login.' });
@@ -1639,9 +1652,11 @@ app.post('/admin/login', async (req, res) => {
     return res.status(400).json({ error: 'Faltan credenciales.' });
   }
 
+  const creds = adminCreds();
+
   // Comparación constante en tiempo para evitar timing attacks
-  const eqUser = safeStrEq(username.trim().toLowerCase(), String(process.env.ADMIN_USER).trim().toLowerCase());
-  const eqPass = safeStrEq(password, String(process.env.ADMIN_PASSWORD));
+  const eqUser = safeStrEq(username.trim().toLowerCase(), String(creds.user).trim().toLowerCase());
+  const eqPass = safeStrEq(password, String(creds.pass));
 
   // Pequeño delay artificial para frenar fuerza bruta
   await new Promise(r => setTimeout(r, 250));
@@ -1652,7 +1667,7 @@ app.post('/admin/login', async (req, res) => {
 
   const token = randomBytes(32).toString('hex');
   const expiresAt = Date.now() + ADMIN_TTL_MS;
-  ADMIN_SESSIONS.set(token, { username: process.env.ADMIN_USER, expiresAt });
+  ADMIN_SESSIONS.set(token, { username: creds.user, expiresAt });
 
   const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
   const parts = [
@@ -1693,6 +1708,7 @@ app.get('/admin', requireAdmin, (_req, res) => {
 
 app.get('/admin/me', requireAdmin, (req, res) => {
   const s = adminSessionFor(req);
+  if (!s) return res.json({ username: null, expiresAt: null }); // auth deshabilitada
   res.json({ username: s.username, expiresAt: s.expiresAt });
 });
 
@@ -3075,6 +3091,72 @@ app.get('/admin/analytics/sales', requireAdmin, async (req, res) => {  const r =
 function monthLabel(m){
   return ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][m] || '';
 }
+
+// ─── Pack Mundialero (planilla en /admin → "Mundial") ───────────────────────
+// Cada compra que incluye un pack mundialero queda lista en una tabla tipo
+// Excel: nombre, contacto y las predicciones (1er/2do/3er lugar + goleador) que
+// el cliente llenó al comprar. Se lee EN VIVO desde las órdenes de Shopify, así
+// cualquier persona nueva que compre se agrega sola en la próxima carga.
+
+function isMundialLine(li){
+  return /mundial/i.test(li.title || '');
+}
+
+// Clave normalizada (sin tildes, sin signos) para matchear atributos flexibles.
+function normAttrKey(k){
+  return String(k || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+// Extrae las 4 predicciones desde los atributos/propiedades del pedido.
+function extractMundialPicks(attrs){
+  const pick = (re) => {
+    const hit = (attrs || []).find(a => re.test(normAttrKey(a.key)) && String(a.value || '').trim());
+    return hit ? String(hit.value).trim() : '';
+  };
+  return {
+    primero:  pick(/\b(primer|1er|1|campeon|oro|ganador|first|champion)\b/),
+    segundo:  pick(/\b(segundo|2do|2|plata|finalista|second)\b/),
+    tercero:  pick(/\b(tercer|3er|3|bronce|third)\b/),
+    goleador: pick(/(golead|scorer|goal|pichichi|max\s*gol|bota)/),
+  };
+}
+
+app.get('/admin/mundial', requireAdmin, async (req, res) => {
+  const result = await loadOrders(String(req.query.refresh || '') === '1');
+  if (!result.available) {
+    return res.json({ available: false, reason: result.reason });
+  }
+  const rows = [];
+  for (const o of result.orders) {
+    const mundialLines = (o.lineItems || []).filter(isMundialLine);
+    if (!mundialLines.length) continue;
+    const attrs = [
+      ...(o.attributes || []),
+      ...mundialLines.flatMap(li => li.properties || []),
+    ];
+    const picks = extractMundialPicks(attrs);
+    const nombre = [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim();
+    rows.push({
+      order: o.name || '',
+      date: o.createdAt,
+      nombre,
+      email: o.customerEmail || '',
+      telefono: o.customerPhone || '',
+      pack: mundialLines.map(li => li.title).join(' · '),
+      primero: picks.primero,
+      segundo: picks.segundo,
+      tercero: picks.tercero,
+      goleador: picks.goleador,
+      nota: o.note || '',
+    });
+  }
+  rows.sort((a, b) => new Date(b.date) - new Date(a.date));
+  res.json({ available: true, count: rows.length, rows });
+});
 
 // ─── Analítica del BOT (uso desde conversations.json) ───────────────────────
 // Orden = prioridad de clasificación (la primera que matchea gana). Reclamos

@@ -1332,6 +1332,20 @@ body.drawer-open{overflow:hidden}
 .bq-label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.04em;margin:.9rem 0 .35rem}
 .bq-ta{width:100%;min-height:84px;resize:vertical;line-height:1.5}
 .bq-actions{display:flex;align-items:center;gap:.7rem;margin-top:1.1rem;flex-wrap:wrap}
+
+/* ── MUNDIAL · tabla tipo Excel ── */
+.mun-wrap{overflow-x:auto;border:1px solid var(--line,#e5e5e5);border-radius:10px}
+.mun-table{width:100%;border-collapse:collapse;font-size:.82rem;min-width:880px}
+.mun-table th,.mun-table td{padding:.6rem .7rem;text-align:left;border-bottom:1px solid var(--line,#eee);vertical-align:top}
+.mun-table thead th{position:sticky;top:0;background:var(--card,#faf7f0);font-size:.68rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#666);font-weight:800;white-space:nowrap}
+.mun-table tbody tr:nth-child(even){background:rgba(0,0,0,.02)}
+.mun-table tbody tr:hover{background:rgba(245,166,35,.07)}
+.mun-table td.mun-pick{font-weight:700;color:var(--text,#111)}
+.mun-table td.mun-empty{color:#bbb;font-weight:400}
+.mun-meta-cell{font-family:var(--mono);font-size:.7rem;color:var(--muted,#888);white-space:nowrap}
+.mun-note{max-width:260px;white-space:pre-wrap;color:var(--muted,#555);font-size:.76rem}
+.mun-empty-state{padding:2.4rem 1rem;text-align:center;color:var(--muted,#777);line-height:1.6}
+.mun-count{font-family:var(--mono);font-size:.7rem;color:var(--muted,#888);margin:.2rem 0 .8rem}
 </style>
 </head>
 <body>
@@ -1540,6 +1554,21 @@ body.drawer-open{overflow:hidden}
         </div>
         <div class="adm-drawer-body" id="custBody"><div class="adm-loading">Cargando…</div></div>
       </div>
+    </div>
+
+    <!-- Vista Mundial (pack mundialero · predicciones) -->
+    <div class="adm-panel" id="mundialView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Mundial</div>
+          <div class="adm-panel-meta" id="munMeta">predicciones del pack mundialero · se llena solo con cada compra</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="btnMunReload" type="button">Recargar</button>
+          <button class="adm-btn adm-btn-ghost" id="btnMunCsv"    type="button">Descargar Excel (CSV)</button>
+        </div>
+      </div>
+      <div id="munBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
     <!-- Vista de tutoriales (videos técnicos) -->
@@ -1900,6 +1929,7 @@ body.drawer-open{overflow:hidden}
 // ─── Secciones disponibles ──────────────────────────────────────────────────
 const BASE_SECCIONES = [
   { id:'analytics', kind:'analytics',label:'Analítica',       desc:'foto general del negocio · números y gráficos' },
+  { id:'mundial',   kind:'mundial',  label:'Mundial',         desc:'predicciones del pack mundialero · quién compró y qué eligió' },
   { id:'chats',     kind:'chats',    label:'Conversaciones',  desc:'historial completo · filtros y embudo' },
   { id:'feedback',   kind:'feedback', label:'Feedback',        desc:'correcciones para entrenar a Zorbot' },
   { id:'productos',  kind:'products', label:'Productos',       desc:'catálogo Shopify · notas extra para Zorbot' },
@@ -2001,6 +2031,9 @@ async function selectSeccion(id){
   if (sec.kind === 'analytics') {
     showView('analytics');
     await loadAnalytics();
+  } else if (sec.kind === 'mundial') {
+    showView('mundial');
+    await loadMundial();
   } else if (sec.kind === 'products') {
     showView('products');
     await loadProductos();
@@ -2027,6 +2060,7 @@ function showView(kind){
   document.getElementById('productsView').style.display   = kind === 'products'   ? '' : 'none';
   document.getElementById('chatsView').style.display      = kind === 'chats'      ? '' : 'none';
   document.getElementById('analyticsView').style.display  = kind === 'analytics'  ? '' : 'none';
+  document.getElementById('mundialView').style.display    = kind === 'mundial'    ? '' : 'none';
   document.getElementById('feedbackView').style.display   = kind === 'feedback'   ? '' : 'none';
   document.getElementById('tutorialsView').style.display  = kind === 'tutorials'  ? '' : 'none';
   document.getElementById('webView').style.display        = kind === 'web'        ? '' : 'none';
@@ -5056,8 +5090,91 @@ async function saveWeb(){
 document.getElementById('btnWebSave').onclick = saveWeb;
 document.getElementById('btnWebReload').onclick = loadWeb;
 
+// ─── Mundial (pack mundialero · predicciones) ───────────────────────────────
+let mundialRows = [];
+async function loadMundial(refresh){
+  const body = document.getElementById('munBody');
+  body.innerHTML = '<div class="adm-loading">Cargando predicciones…</div>';
+  try {
+    const r = await fetch('/admin/mundial' + (refresh ? '?refresh=1' : ''));
+    const d = await r.json();
+    if (!d.available) {
+      mundialRows = [];
+      body.innerHTML = `<div class="mun-empty-state">${escapeHtml(d.reason || 'No se pudieron cargar las órdenes.')}</div>`;
+      document.getElementById('munMeta').textContent = 'sin conexión a órdenes';
+      return;
+    }
+    mundialRows = d.rows || [];
+    document.getElementById('munMeta').textContent = `pack mundialero · se llena solo con cada compra · ${d.count} ${d.count===1?'compra':'compras'}`;
+    renderMundial();
+  } catch (e) {
+    body.innerHTML = `<div class="mun-empty-state">Error: ${escapeHtml(String(e.message||e))}</div>`;
+  }
+}
+
+function renderMundial(){
+  const body = document.getElementById('munBody');
+  if (!mundialRows.length) {
+    body.innerHTML = '<div class="mun-empty-state">Todavía no hay compras del pack mundialero.<br>Cuando alguien compre uno, aparece acá automáticamente.</div>';
+    return;
+  }
+  const fmtDate = (iso) => {
+    try { const d = new Date(iso); return d.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'2-digit'}); }
+    catch { return ''; }
+  };
+  const cell = (v) => v ? `<td class="mun-pick">${escapeHtml(v)}</td>` : '<td class="mun-pick mun-empty">—</td>';
+  const rows = mundialRows.map(x => `
+    <tr>
+      <td class="mun-meta-cell">${escapeHtml(x.order)}<br>${fmtDate(x.date)}</td>
+      <td>${escapeHtml(x.nombre) || '<span class="mun-empty">—</span>'}</td>
+      <td class="mun-meta-cell">${escapeHtml(x.telefono) || '—'}<br>${escapeHtml(x.email) || '—'}</td>
+      ${cell(x.primero)}
+      ${cell(x.segundo)}
+      ${cell(x.tercero)}
+      ${cell(x.goleador)}
+      <td class="mun-note">${escapeHtml(x.nota) || '<span class="mun-empty">—</span>'}</td>
+    </tr>`).join('');
+  body.innerHTML = `
+    <div class="mun-count">${mundialRows.length} ${mundialRows.length===1?'compra':'compras'} con pack mundialero</div>
+    <div class="mun-wrap"><table class="mun-table">
+      <thead><tr>
+        <th>Pedido</th><th>Nombre y apellido</th><th>Contacto</th>
+        <th>1er lugar</th><th>2do lugar</th><th>3er lugar</th><th>Goleador</th><th>Nota</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+function downloadMundialCsv(){
+  if (!mundialRows.length) { alert('No hay compras para exportar todavía.'); return; }
+  const headers = ['Pedido','Fecha','Nombre y apellido','Telefono','Email','Pack','1er lugar','2do lugar','3er lugar','Goleador','Nota'];
+  const esc = (v) => {
+    const s = String(v == null ? '' : v).replace(/"/g, '""');
+    return `"${s}"`;
+  };
+  const lines = [headers.map(esc).join(',')];
+  for (const x of mundialRows) {
+    lines.push([x.order, x.date, x.nombre, x.telefono, x.email, x.pack, x.primero, x.segundo, x.tercero, x.goleador, x.nota].map(esc).join(','));
+  }
+  // BOM para que Excel respete los acentos
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `mundial-zorbo-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('btnMunReload').onclick = () => loadMundial(true);
+document.getElementById('btnMunCsv').onclick = downloadMundialCsv;
+
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();
+// Mostrar botón "Salir" si la sesión está activa (login habilitado)
+fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
+  if (d && d.username) document.getElementById('btnLogout').style.display = '';
+}).catch(()=>{});
 loadCustomBrands().then(() => {
   renderTabs();
   selectSeccion(activeSeccion);
