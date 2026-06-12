@@ -3146,26 +3146,33 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
   for (const o of result.orders) {
     const mundialLines = (o.lineItems || []).filter(isMundialLine);
     if (!mundialLines.length) continue;
-    const attrs = [
-      ...(o.attributes || []),
-      ...mundialLines.flatMap(li => li.properties || []),
-    ];
-    const picks = extractMundialPicks(attrs);
     const nombre = [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim();
-    const nota = [o.note || '', picks.extra || ''].filter(Boolean).join(' · ');
-    rows.push({
-      order: o.name || '',
-      date: o.createdAt,
-      nombre,
-      email: o.customerEmail || '',
-      telefono: o.customerPhone || '',
-      pack: mundialLines.map(li => li.title).join(' · '),
-      primero: picks.primero,
-      segundo: picks.segundo,
-      tercero: picks.tercero,
-      goleador: picks.goleador,
-      nota,
-    });
+    // Una fila POR pack. Si alguien compra 2 packs con predicciones distintas,
+    // Shopify los guarda como 2 líneas separadas (cada una con sus propiedades),
+    // así que cada una queda en su propia fila.
+    const soloUna = mundialLines.length === 1;
+    for (const li of mundialLines) {
+      // Predicciones de la línea; si la línea no trae propiedades y es el único
+      // pack del pedido, caemos a los atributos/nota a nivel orden.
+      const attrs = (li.properties && li.properties.length)
+        ? li.properties
+        : (soloUna ? (o.attributes || []) : []);
+      const picks = extractMundialPicks(attrs);
+      const nota = [o.note || '', picks.extra || ''].filter(Boolean).join(' · ');
+      rows.push({
+        order: o.name || '',
+        date: o.createdAt,
+        nombre,
+        email: o.customerEmail || '',
+        telefono: o.customerPhone || '',
+        pack: (li.title || '') + (li.qty > 1 ? ` (x${li.qty})` : ''),
+        primero: picks.primero,
+        segundo: picks.segundo,
+        tercero: picks.tercero,
+        goleador: picks.goleador,
+        nota,
+      });
+    }
   }
   rows.sort((a, b) => new Date(b.date) - new Date(a.date));
   res.json({ available: true, count: rows.length, rows });
