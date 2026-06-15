@@ -73,12 +73,23 @@ body{
   text-transform:uppercase;padding-left:.2rem;font-family:var(--sans);
 }
 .lg-input{
-  background:var(--surface2);border:1px solid var(--border);border-radius:11px;
-  padding:.8rem 1rem;color:var(--text);font-family:var(--sans);font-size:.92rem;
-  outline:none;transition:border-color .18s,background .18s;
+  background:#15151e;border:1px solid var(--border);border-radius:11px;
+  padding:.8rem 1rem;color:#fff;font-family:var(--sans);font-size:.92rem;
+  caret-color:#fff;outline:none;transition:border-color .18s,background .18s;
 }
-.lg-input::placeholder{color:var(--dim)}
-.lg-input:focus{border-color:var(--gold-bd-h);background:#15151e}
+.lg-input::placeholder{color:#888}
+.lg-input:focus{border-color:var(--gold-bd-h);background:#15151e;color:#fff}
+/* Autofill: el navegador pinta su propio fondo claro; forzamos texto claro
+   y bloqueamos el repintado para que el campo siga oscuro y legible. */
+.lg-input:-webkit-autofill,
+.lg-input:-webkit-autofill:hover,
+.lg-input:-webkit-autofill:focus{
+  -webkit-text-fill-color:#fff;
+  caret-color:#fff;
+  -webkit-box-shadow:0 0 0 1000px #15151e inset;
+  box-shadow:0 0 0 1000px #15151e inset;
+  transition:background-color 9999s ease-in-out 0s;
+}
 
 .lg-err{
   display:none;align-items:center;gap:.5rem;
