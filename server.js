@@ -3314,6 +3314,101 @@ app.delete('/admin/distribuidora/suppliers/:id', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Márgenes por categoría ──
+app.put('/admin/distribuidora/margins', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const d = loadDistri();
+  for (const c of DISTRI_CATEGORIES) {
+    if (b[c.key] !== undefined) {
+      const n = Number(b[c.key]);
+      if (!Number.isFinite(n) || n < 0 || n > 500) {
+        return res.status(400).json({ error: `Margen inválido para ${c.label} (0–500%).` });
+      }
+      d.margins[c.key] = Math.round(n * 100) / 100;
+    }
+  }
+  saveDistri(d);
+  res.json({ ok: true, margins: d.margins });
+});
+
+// ── Costo de compra por producto (carga manual) ──
+// body: { cost, category, dispatch }. Mandar cost vacío/null borra el registro.
+app.put('/admin/distribuidora/costs/:productId', requireAdmin, (req, res) => {
+  const pid = String(req.params.productId);
+  const b = req.body || {};
+  const d = loadDistri();
+  const cost = (b.cost === '' || b.cost == null) ? null : Number(b.cost);
+  const dispatch = (b.dispatch === '' || b.dispatch == null) ? 0 : Number(b.dispatch);
+  if (cost !== null && (!Number.isFinite(cost) || cost < 0)) return res.status(400).json({ error: 'Costo inválido.' });
+  if (!Number.isFinite(dispatch) || dispatch < 0) return res.status(400).json({ error: 'Despacho inválido.' });
+  const category = isDistriCategory(b.category) ? b.category : '';
+  // Si no hay ni costo ni categoría ni despacho, limpiamos el registro.
+  if (cost === null && !category && !dispatch) {
+    delete d.productCosts[pid];
+  } else {
+    d.productCosts[pid] = { cost, category, dispatch, updatedAt: new Date().toISOString() };
+  }
+  saveDistri(d);
+  res.json({ ok: true, cost: d.productCosts[pid] || null });
+});
+
+// Categoría sugerida para un producto según el proveedor cuyo nombre matchea el
+// vendor de Shopify (así el costo arranca con una categoría razonable).
+function supplierCategoryForVendor(suppliers, vendor){
+  const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  const nv = norm(vendor);
+  if (!nv) return '';
+  for (const s of suppliers) {
+    const ns = norm(s.name);
+    if (ns && (nv === ns || nv.includes(ns) || ns.includes(nv))) return s.category || '';
+  }
+  return '';
+}
+
+// Productos de Shopify + costo manual + cálculo de comercialización. Alimenta
+// las tablas de Costos, Inventario y Comercialización.
+app.get('/admin/distribuidora/products', requireAdmin, async (req, res) => {
+  if (!process.env.SHOPIFY_ADMIN_TOKEN) {
+    return res.json({ available: false, reason: 'Shopify no conectado (falta SHOPIFY_ADMIN_TOKEN).' });
+  }
+  try {
+    const all = await loadProductsCache(String(req.query.refresh || '') === '1');
+    if (!all) return res.json({ available: false, reason: 'No se pudieron cargar los productos.' });
+    const d = loadDistri();
+    const customBrands = getCustomBrands();
+    const products = all.map(p => {
+      const pid = String(p.id);
+      const c = d.productCosts[pid] || null;
+      const variants = p.variants || [];
+      const stock = variants.reduce((sum, v) => sum + (Number.isFinite(v.stock) ? v.stock : 0), 0);
+      const price = variants[0]?.price != null ? Number(variants[0].price) : null;
+      const category = (c && c.category) || supplierCategoryForVendor(d.suppliers, p.vendor) || '';
+      const cost = c && c.cost != null ? Number(c.cost) : null;
+      const dispatch = c && Number.isFinite(c.dispatch) ? Number(c.dispatch) : 0;
+      const marginPct = category && d.margins[category] != null ? Number(d.margins[category]) : null;
+      let finalPrice = null;
+      if (cost != null && marginPct != null) {
+        finalPrice = Math.round(cost * (1 + marginPct / 100) + dispatch);
+      }
+      return {
+        id: pid,
+        title: p.title,
+        vendor: p.vendor || '',
+        brand: brandFromProduct(p, customBrands),
+        sku: variants[0]?.sku || '',
+        status: String(p.status || 'ACTIVE').toUpperCase(),
+        image: p.image || null,
+        price, stock,
+        cost, category, dispatch, marginPct, finalPrice,
+        hasManualCategory: !!(c && c.category),
+      };
+    });
+    res.json({ available: true, products, margins: d.margins, categories: DISTRI_CATEGORIES });
+  } catch (e) {
+    res.status(500).json({ error: 'Error cargando productos: ' + (e.message || e) });
+  }
+});
+
 // ─── Analítica del BOT (uso desde conversations.json) ───────────────────────
 // Orden = prioridad de clasificación (la primera que matchea gana). Reclamos
 // y envío van primero para que "mi pedido no llegó" caiga en reclamo, no en

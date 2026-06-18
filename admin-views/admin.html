@@ -5265,9 +5265,164 @@ function renderDistSub(){
     b.classList.toggle('on', b.dataset.sub === distSub);
   });
   if (distSub === 'proveedores') return renderDistProveedores();
+  if (distSub === 'margenes')    return renderDistMargenes();
+  if (distSub === 'costos')      return renderDistProductsTab('costos');
   // Las demás sub-secciones llegan en las próximas partes.
   document.getElementById('distBody').innerHTML =
     '<div class="dist-empty">Esta sección se habilita en la próxima parte del módulo.</div>';
+}
+
+// ── Márgenes por categoría ──
+function renderDistMargenes(){
+  const cats = distData?.categories || [];
+  const m = distData?.margins || {};
+  const rows = cats.map(c => `
+    <tr>
+      <td>${escapeHtml(c.label)}</td>
+      <td class="dist-num"><input type="number" min="0" max="500" step="1" class="dist-input-sm dist-num" id="mg_${c.key}" value="${m[c.key] != null ? m[c.key] : ''}"> %</td>
+    </tr>`).join('');
+  document.getElementById('distBody').innerHTML = `
+    <div class="dist-sec-head">
+      <div>
+        <div class="dist-sec-title">Márgenes por categoría</div>
+        <div class="dist-sec-sub">El margen que Zorbo aplica sobre el costo de compra, según la categoría del producto. Se usa para calcular el precio final en Comercialización.</div>
+      </div>
+    </div>
+    <div class="mun-wrap" style="max-width:420px">
+      <table class="mun-table" style="min-width:0">
+        <thead><tr><th>Categoría</th><th style="text-align:right">Margen</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div class="dist-form-actions">
+      <button class="adm-btn" id="mgSave" type="button">Guardar márgenes</button>
+      <span class="dist-status" id="mgStatus"></span>
+    </div>`;
+  document.getElementById('mgSave').onclick = saveDistMargins;
+}
+
+async function saveDistMargins(){
+  const cats = distData?.categories || [];
+  const payload = {};
+  for (const c of cats) {
+    const el = document.getElementById('mg_' + c.key);
+    if (el && el.value !== '') payload[c.key] = Number(el.value);
+  }
+  const st = document.getElementById('mgStatus');
+  st.className = 'dist-status'; st.textContent = 'Guardando…';
+  try {
+    const r = await fetch('/admin/distribuidora/margins', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    distData.margins = d.margins;
+    distProducts = null; // invalidar cálculo de comercialización
+    st.className = 'dist-status ok'; st.textContent = 'Guardado ✓';
+    setTimeout(() => { st.textContent = ''; }, 2500);
+  } catch (e) {
+    st.className = 'dist-status err'; st.textContent = e.message;
+  }
+}
+
+// ── Productos (compartido por Costos / Inventario / Comercialización) ──
+let distProducts = null; // { available, products, margins, categories }
+
+async function loadDistProducts(force){
+  if (distProducts && !force) return distProducts;
+  const r = await fetch('/admin/distribuidora/products' + (force ? '?refresh=1' : ''));
+  distProducts = await r.json();
+  return distProducts;
+}
+
+async function renderDistProductsTab(which){
+  const body = document.getElementById('distBody');
+  body.innerHTML = '<div class="adm-loading">Cargando productos…</div>';
+  let data;
+  try { data = await loadDistProducts(); }
+  catch (e) { body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+  if (!data.available) {
+    body.innerHTML = `<div class="dist-empty">${escapeHtml(data.reason || 'No se pudieron cargar los productos.')}</div>`;
+    return;
+  }
+  if (which === 'costos') return renderDistCostos(data);
+}
+
+function distMoney(n){
+  if (n == null || !Number.isFinite(Number(n))) return '—';
+  return '$' + Math.round(Number(n)).toLocaleString('es-CL');
+}
+
+function renderDistCostos(data){
+  const cats = data.categories || [];
+  const catSel = (pid, cur) => `<select class="dist-input-sm" data-cost-cat="${pid}">
+      <option value="">— sin categoría —</option>
+      ${cats.map(c => `<option value="${c.key}" ${cur===c.key?'selected':''}>${escapeHtml(c.label)}</option>`).join('')}
+    </select>`;
+  const rows = data.products.map(p => `
+    <tr data-pid="${p.id}">
+      <td>${escapeHtml(p.title)}<div class="mun-meta-cell">${escapeHtml(p.vendor||'')}${p.sku?(' · '+escapeHtml(p.sku)):''}</div></td>
+      <td>${catSel(p.id, p.category)}</td>
+      <td class="dist-num"><input type="number" min="0" step="1" class="dist-input-sm dist-num" data-cost-val="${p.id}" value="${p.cost!=null?p.cost:''}" placeholder="0"></td>
+      <td class="dist-num"><input type="number" min="0" step="1" class="dist-input-sm dist-num" data-cost-disp="${p.id}" value="${p.dispatch||''}" placeholder="0"></td>
+      <td class="dist-num">${p.price!=null?distMoney(p.price):'—'}</td>
+      <td><span class="dist-status" data-cost-st="${p.id}"></span></td>
+    </tr>`).join('');
+  document.getElementById('distBody').innerHTML = `
+    <div class="dist-sec-head">
+      <div>
+        <div class="dist-sec-title">Costos de compra</div>
+        <div class="dist-sec-sub">Cargá lo que Zorbo le paga al proveedor por unidad y la categoría (define el margen). La categoría arranca sugerida según el proveedor. Se guarda solo al cambiar cada campo.</div>
+      </div>
+      <button class="adm-btn adm-btn-ghost" id="costRefresh" type="button">Refrescar de Shopify</button>
+    </div>
+    <div class="mun-count">${data.products.length} productos · "Precio Shopify" es el precio de venta actual</div>
+    <div class="mun-wrap"><table class="mun-table">
+      <thead><tr>
+        <th>Producto</th><th>Categoría</th><th style="text-align:right">Costo compra (unid.)</th>
+        <th style="text-align:right">Despacho</th><th style="text-align:right">Precio Shopify</th><th></th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  document.getElementById('costRefresh').onclick = async () => { await loadDistProducts(true); renderDistCostos(distProducts); };
+  // Auto-guardado por fila
+  document.querySelectorAll('#distBody [data-cost-val],#distBody [data-cost-disp]').forEach(el => {
+    el.onblur = () => saveDistCost(el.closest('tr').dataset.pid);
+  });
+  document.querySelectorAll('#distBody [data-cost-cat]').forEach(el => {
+    el.onchange = () => saveDistCost(el.closest('tr').dataset.pid);
+  });
+}
+
+async function saveDistCost(pid){
+  const tr = document.querySelector(`#distBody tr[data-pid="${pid}"]`);
+  if (!tr) return;
+  const cost = tr.querySelector('[data-cost-val]').value;
+  const dispatch = tr.querySelector('[data-cost-disp]').value;
+  const category = tr.querySelector('[data-cost-cat]').value;
+  const st = tr.querySelector('[data-cost-st]');
+  st.className = 'dist-status'; st.textContent = '…';
+  try {
+    const r = await fetch(`/admin/distribuidora/costs/${pid}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cost, dispatch, category }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    // refrescar la fila local del cache para que Comercialización quede al día
+    if (distProducts && distProducts.products) {
+      const p = distProducts.products.find(x => x.id === pid);
+      if (p) {
+        p.cost = d.cost ? d.cost.cost : null;
+        p.category = d.cost ? d.cost.category : (category || p.category);
+        p.dispatch = d.cost ? d.cost.dispatch : 0;
+      }
+    }
+    st.className = 'dist-status ok'; st.textContent = '✓';
+    setTimeout(() => { st.textContent = ''; }, 1800);
+  } catch (e) {
+    st.className = 'dist-status err'; st.textContent = e.message;
+  }
 }
 
 document.getElementById('distSubnav').addEventListener('click', (e) => {
