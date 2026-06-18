@@ -1439,7 +1439,17 @@ body.drawer-open{overflow:hidden}
 .pv-rank{font-family:var(--mono,monospace);font-weight:700;color:var(--gold-deep,#a05f00);width:1.6rem;display:inline-block}
 .pv-tag-b2b{background:#efeafa;color:#5e4ea3;font-size:.6rem;font-weight:800;padding:.12rem .45rem;border-radius:999px;letter-spacing:.04em}
 .pv-tag-b2c{background:var(--gold-dim,#fff3d6);color:var(--gold-deep,#a05f00);font-size:.6rem;font-weight:800;padding:.12rem .45rem;border-radius:999px;letter-spacing:.04em}
+.pv-tag-new{background:#e3f6ea;color:#1f7a44;font-size:.6rem;font-weight:800;padding:.12rem .45rem;border-radius:999px;letter-spacing:.04em}
 .pv-noloc{color:#bbb}
+.pv-top{display:grid;grid-template-columns:1fr 340px;gap:1rem;margin-bottom:1rem}
+@media(max-width:900px){.pv-top{grid-template-columns:1fr}}
+.pv-top #pvMap{height:100%;min-height:380px;margin-bottom:0}
+.pv-form{border:1px solid var(--line,#e5e5e5);border-radius:14px;padding:1.1rem 1.15rem;background:var(--surface2,#fafafa);align-self:start}
+.pv-form-title{font-family:var(--display,inherit);font-size:1rem;font-weight:800}
+.pv-form-sub{font-size:.74rem;color:var(--muted,#666);margin:.2rem 0 .8rem;line-height:1.5}
+.pv-form .dist-field{margin-bottom:.55rem}
+.pv-del{background:transparent;border:none;color:#c66;cursor:pointer;font-size:.85rem;padding:0 .2rem}
+.pv-del:hover{color:#d33}
 </style>
 </head>
 <body>
@@ -5789,34 +5799,93 @@ async function loadPuntos(refresh){
 
 function renderPuntos(d){
   const pts = d.points || [];
-  if (!pts.length) {
-    document.getElementById('puntosBody').innerHTML = '<div class="dist-empty">Todavía no hay ventas registradas para mapear puntos de venta.</div>';
-    return;
-  }
-  const rows = pts.map((p, i) => `
+  const hasMap = !!window.L;
+  const rows = pts.length ? pts.map((p, i) => `
     <tr>
       <td><span class="pv-rank">${i+1}</span></td>
-      <td>${escapeHtml(p.name)} ${p.b2b?'<span class="pv-tag-b2b">B2B</span>':'<span class="pv-tag-b2c">B2C</span>'}
+      <td>${escapeHtml(p.name)} ${p.manual?'<span class="pv-tag-new">NUEVO</span>':(p.b2b?'<span class="pv-tag-b2b">B2B</span>':'<span class="pv-tag-b2c">B2C</span>')}
         ${p.brands && p.brands.length ? `<div class="mun-meta-cell">${escapeHtml(p.brands.join(' · '))}</div>` : ''}</td>
       <td>${p.address ? escapeHtml(p.address) : '<span class="pv-noloc">sin dirección</span>'}</td>
       <td class="dist-num">${distMoney(p.total)}</td>
       <td class="dist-num">${(p.units||0).toLocaleString('es-CL')}</td>
       <td class="dist-num">${p.orders||0}</td>
-    </tr>`).join('');
-  const hasMap = !!window.L;
+      <td>${p.manualId ? `<button class="pv-del" data-punto-del="${p.manualId}" title="Eliminar punto">✕</button>` : ''}</td>
+    </tr>`).join('') : `<tr><td colspan="7" class="pv-noloc" style="padding:1.5rem;text-align:center">Todavía no hay puntos de venta. Agregá el primero con el formulario.</td></tr>`;
+
+  const ordersNote = d.ordersReason
+    ? `<div class="pv-geo">⚠ Ventas no disponibles ahora (${escapeHtml(d.ordersReason)}). Se muestran los puntos cargados a mano.</div>` : '';
+
   document.getElementById('puntosBody').innerHTML = `
     <div class="pv-stats">
       <div class="pv-stat"><div class="pv-stat-l">Locales</div><div class="pv-stat-v">${d.count}</div></div>
       <div class="pv-stat"><div class="pv-stat-l">Venta total</div><div class="pv-stat-v">${distMoney(d.totalVenta)}</div></div>
       <div class="pv-stat"><div class="pv-stat-l">Ubicados en mapa</div><div class="pv-stat-v" id="pvLocated">${d.withCoords}</div></div>
     </div>
-    ${hasMap ? '<div id="pvMap"></div><div class="pv-geo" id="pvGeo"></div>' : ''}
+    ${ordersNote}
+    <div class="pv-top">
+      ${hasMap ? '<div id="pvMap"></div>' : '<div></div>'}
+      <div class="pv-form">
+        <div class="pv-form-title">Agregar punto de venta</div>
+        <div class="pv-form-sub">Cargá un local y se registra como cliente en Shopify, además de quedar en el mapa.</div>
+        <div class="dist-field"><label>Nombre del local</label><input id="pf_name" placeholder="Ej: Bar La Esquina"></div>
+        <div class="dist-field"><label>País</label><input id="pf_country" value="Chile"></div>
+        <div class="dist-field"><label>Región</label><input id="pf_region" placeholder="Ej: Metropolitana"></div>
+        <div class="dist-field"><label>Ciudad / Comuna</label><input id="pf_city" placeholder="Ej: Providencia"></div>
+        <div class="dist-field"><label>Dirección</label><input id="pf_address" placeholder="Ej: Av Providencia"></div>
+        <div class="dist-field"><label>Número</label><input id="pf_number" placeholder="Ej: 1234"></div>
+        <div class="dist-field"><label>Teléfono (opcional)</label><input id="pf_phone" placeholder="+56 9 ..."></div>
+        <div class="dist-field"><label>Email (opcional)</label><input id="pf_email" placeholder="local@correo.cl"></div>
+        <div class="dist-form-actions">
+          <button class="adm-btn" id="pfCreate" type="button">Crear como cliente</button>
+          <span class="dist-status" id="pfStatus"></span>
+        </div>
+      </div>
+    </div>
+    ${hasMap ? '<div class="pv-geo" id="pvGeo"></div>' : ''}
     <div class="mun-count">ranking por venta · cada local con cuánto te compra</div>
     <div class="mun-wrap"><table class="mun-table">
-      <thead><tr><th>#</th><th>Local</th><th>Dirección</th><th style="text-align:right">Venta</th><th style="text-align:right">Unid.</th><th style="text-align:right">Pedidos</th></tr></thead>
+      <thead><tr><th>#</th><th>Local</th><th>Dirección</th><th style="text-align:right">Venta</th><th style="text-align:right">Unid.</th><th style="text-align:right">Pedidos</th><th></th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
+
   if (hasMap) initPuntosMap(pts);
+  document.getElementById('pfCreate').onclick = createPuntoVenta;
+  document.querySelectorAll('#puntosBody [data-punto-del]').forEach(b => {
+    b.onclick = () => deletePuntoVenta(b.dataset.puntoDel);
+  });
+}
+
+async function createPuntoVenta(){
+  const g = (id) => document.getElementById(id).value;
+  const payload = {
+    name: g('pf_name'), country: g('pf_country'), region: g('pf_region'),
+    city: g('pf_city'), address: g('pf_address'), number: g('pf_number'),
+    phone: g('pf_phone'), email: g('pf_email'),
+  };
+  const st = document.getElementById('pfStatus');
+  if (!payload.name.trim()) { st.className='dist-status err'; st.textContent='El nombre del local es obligatorio.'; return; }
+  st.className = 'dist-status'; st.textContent = 'Creando…';
+  try {
+    const r = await fetch('/admin/puntos-venta/create', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload),
+    });
+    const dd = await r.json();
+    if (!r.ok) throw new Error(dd.error || 'Error');
+    st.className = 'dist-status ok';
+    st.textContent = dd.shopifyOk ? 'Creado y registrado como cliente ✓' : ('Guardado. ' + (dd.shopifyMsg || ''));
+    await loadPuntos(); // recarga el mapa (geocodifica el nuevo punto)
+  } catch (e) {
+    st.className = 'dist-status err'; st.textContent = e.message;
+  }
+}
+
+async function deletePuntoVenta(id){
+  if (!confirm('Eliminar este punto de venta del mapa? (no borra el cliente de Shopify)')) return;
+  try {
+    const r = await fetch(`/admin/puntos-venta/${id}`, { method:'DELETE' });
+    if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Error'); }
+    await loadPuntos();
+  } catch (e) { alert(e.message); }
 }
 
 function initPuntosMap(pts){
@@ -5838,6 +5907,7 @@ function initPuntosMap(pts){
   };
   pts.forEach((p, i) => addMarker(p, i+1));
   if (bounds.length) pvMapObj.fitBounds(bounds, { padding:[40,40], maxZoom:14 });
+  setTimeout(() => { try { pvMapObj.invalidateSize(); } catch {} }, 200);
   // Geocodificación best-effort de los que no traen coordenadas de Shopify.
   geocodeMissing(pts.map((p,i)=>({p, rank:i+1})).filter(x => x.p.lat==null && x.p.address), addMarker);
 }

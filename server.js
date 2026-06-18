@@ -3231,6 +3231,7 @@ function distriDefaults(){
     margins: { ...DISTRI_DEFAULT_MARGINS },
     productCosts: {},   // productId → { cost, category, dispatch, updatedAt }
     purchaseOrders: [], // { id, supplierId, supplierName, date, status, items:[], total, notes, ... }
+    salesPoints: [],    // puntos de venta cargados a mano (locales) → { id, name, country, region, city, address, number, phone, email, customerId, lat, lng, createdAt }
   };
 }
 
@@ -3249,6 +3250,7 @@ function loadDistri(){
       margins: { ...DISTRI_DEFAULT_MARGINS, ...(parsed.margins || {}) },
       productCosts: (parsed.productCosts && typeof parsed.productCosts === 'object') ? parsed.productCosts : {},
       purchaseOrders: Array.isArray(parsed.purchaseOrders) ? parsed.purchaseOrders : [],
+      salesPoints: Array.isArray(parsed.salesPoints) ? parsed.salesPoints : [],
     };
   } catch (e) {
     console.warn('distribuidora load:', e.message);
@@ -3466,16 +3468,16 @@ app.get('/admin/distribuidora/products', requireAdmin, async (req, res) => {
 // venta de cada uno. Sale de las órdenes de Shopify (dirección de despacho).
 app.get('/admin/puntos-venta', requireAdmin, async (req, res) => {
   const result = await loadOrders(String(req.query.refresh || '') === '1');
-  if (!result.available) return res.json({ available: false, reason: result.reason });
+  const ordersReason = result.available ? '' : (result.reason || '');
   const map = new Map();
-  for (const o of result.orders) {
+  for (const o of (result.available ? result.orders : [])) {
     const sa = o.shippingAddress;
     const key = o.customerId
       || (o.customerEmail ? 'e:' + normEmail(o.customerEmail) : null)
       || (sa ? 'a:' + [sa.address1, sa.city].filter(Boolean).join('|').toLowerCase() : null);
     if (!key) continue;
     let p = map.get(key);
-    if (!p) { p = { name:'', email:o.customerEmail||'', total:0, units:0, orders:0, lastDate:0, address:null, brands:new Set(), b2b:false }; map.set(key, p); }
+    if (!p) { p = { customerId:o.customerId||null, name:'', email:o.customerEmail||'', total:0, units:0, orders:0, lastDate:0, address:null, brands:new Set(), b2b:false }; map.set(key, p); }
     p.total += Number(o.total || 0);
     p.orders += 1;
     let isB2B = false;
@@ -3495,6 +3497,7 @@ app.get('/admin/puntos-venta', requireAdmin, async (req, res) => {
     }
   }
   const points = [...map.values()].map(p => ({
+    _customerId: p.customerId,
     name: p.name, email: p.email, total: Math.round(p.total), units: p.units, orders: p.orders,
     b2b: p.b2b, brands: [...p.brands].slice(0, 6),
     address: p.address ? [p.address.address1, p.address.city, p.address.province].filter(Boolean).join(', ') : '',
@@ -3502,13 +3505,104 @@ app.get('/admin/puntos-venta', requireAdmin, async (req, res) => {
     lat: p.address?.lat ?? null, lng: p.address?.lng ?? null,
     lastOrder: p.lastDate ? new Date(p.lastDate).toISOString() : null,
   })).sort((a, b) => b.total - a.total);
+  // Fusiona los puntos de venta cargados a mano (locales sin ventas todavía o
+  // ya registrados como cliente). Si el punto manual tiene customerId que ya
+  // aparece en las ventas, lo enriquece; si no, lo agrega como punto nuevo.
+  const d = loadDistri();
+  for (const sp of (d.salesPoints || [])) {
+    const addr = [sp.address, sp.number].filter(Boolean).join(' ');
+    const fullAddr = [addr, sp.city, sp.region, sp.country].filter(Boolean).join(', ');
+    const existing = sp.customerId
+      ? points.find(p => p._customerId === sp.customerId)
+      : points.find(p => p.name.toLowerCase() === String(sp.name||'').toLowerCase());
+    if (existing) {
+      if (sp.lat != null && existing.lat == null) { existing.lat = sp.lat; existing.lng = sp.lng; }
+      if (!existing.address) existing.address = fullAddr;
+      existing.manualId = sp.id;
+    } else {
+      points.push({
+        name: sp.name || 'Sin nombre', email: sp.email || '', total: 0, units: 0, orders: 0,
+        b2b: true, brands: [], address: fullAddr, city: sp.city || '',
+        lat: sp.lat ?? null, lng: sp.lng ?? null, lastOrder: null,
+        manual: true, manualId: sp.id, customerId: sp.customerId || null,
+      });
+    }
+  }
+  points.sort((a, b) => b.total - a.total);
+
   res.json({
     available: true,
+    ordersReason,
     count: points.length,
     totalVenta: points.reduce((a, p) => a + p.total, 0),
     withCoords: points.filter(p => p.lat != null).length,
-    points,
+    points: points.map(({ _customerId, ...rest }) => rest),
   });
+});
+
+// Crear un punto de venta a mano y registrarlo como cliente en Shopify.
+app.post('/admin/puntos-venta/create', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const name = distriStr(b.name, 160);
+  if (!name) return res.status(400).json({ error: 'El nombre del local es obligatorio.' });
+  const country = distriStr(b.country, 80) || 'Chile';
+  const region  = distriStr(b.region, 120);
+  const city    = distriStr(b.city, 120);
+  const address = distriStr(b.address, 200);
+  const number  = distriStr(b.number, 40);
+  const phone   = distriStr(b.phone, 60);
+  const email   = normEmail(b.email);
+  const address1 = [address, number].filter(Boolean).join(' ');
+
+  let customerId = null, shopifyOk = false, shopifyMsg = '';
+  if (process.env.SHOPIFY_ADMIN_TOKEN) {
+    try {
+      if (email) {
+        const existing = await shopifyGetCustomerByEmail(email);
+        if (existing) { customerId = stripGid(existing.id, 'Customer'); shopifyOk = true; shopifyMsg = 'Ya existía un cliente con ese email; se reutilizó.'; }
+      }
+      if (!customerId) {
+        const payload = { customer: {
+          first_name: name,
+          tags: 'PUNTO_VENTA, MAYORISTA',
+          note: 'Punto de venta cargado desde el panel',
+          send_email_welcome: false,
+          addresses: [{
+            company: name, address1, city, province: region, country, phone: phone || null,
+          }],
+        } };
+        if (email) payload.customer.email = email;
+        if (phone) payload.customer.phone = phone;
+        const r = await shopifyAdminFetch('/customers.json', { method: 'POST', body: JSON.stringify(payload) });
+        if (r.customer && r.customer.id) { customerId = String(r.customer.id); shopifyOk = true; }
+        else shopifyMsg = 'Shopify no devolvió el cliente.';
+      }
+    } catch (e) {
+      shopifyMsg = 'No se pudo crear en Shopify (' + String(e.message || e).slice(0, 140) + '). El punto quedó guardado igual.';
+    }
+  } else {
+    shopifyMsg = 'Shopify no conectado: el punto quedó guardado solo en el panel.';
+  }
+
+  const point = {
+    id: randomUUID(), name, country, region, city, address, number, phone, email,
+    customerId, lat: null, lng: null, createdAt: new Date().toISOString(),
+  };
+  const d = loadDistri();
+  d.salesPoints.push(point);
+  saveDistri(d);
+  res.json({ ok: true, point, shopifyOk, shopifyMsg });
+});
+
+// Eliminar un punto de venta cargado a mano (no borra el cliente de Shopify).
+app.delete('/admin/puntos-venta/:id', requireAdmin, (req, res) => {
+  const id = String(req.params.id);
+  const d = loadDistri();
+  const before = d.salesPoints.length;
+  d.salesPoints = d.salesPoints.filter(x => x.id !== id);
+  if (d.salesPoints.length === before) return res.status(404).json({ error: 'Punto no encontrado.' });
+  saveDistri(d);
+  res.json({ ok: true });
 });
 
 // ─── PORTAL DEL PROVEEDOR (Fase 2) ──────────────────────────────────────────
