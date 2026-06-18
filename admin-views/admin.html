@@ -1388,6 +1388,13 @@ body.drawer-open{overflow:hidden}
 .dist-pill{display:inline-block;font-size:.64rem;font-weight:800;padding:.2rem .55rem;border-radius:999px;letter-spacing:.04em}
 .dist-pill.pend{background:#fff3d6;color:#a05f00}
 .dist-pill.recib{background:#e3f6ea;color:#1f7a44}
+.dist-portal{margin-top:.7rem;border-top:1px dashed var(--line,#eee);padding-top:.6rem}
+.dist-portal-state{font-size:.74rem;color:var(--muted,#666);display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.dist-portal-state b{color:var(--text,#111)}
+.dist-portal-ico{font-size:.9rem}
+.dist-portal-link{font-size:.72rem;font-weight:700;color:var(--gold-deep,#a05f00);background:transparent;border:none;cursor:pointer;text-decoration:underline;padding:0}
+.dist-portal-link.del{color:#d33}
+.dist-portal-form{margin-top:.6rem;display:grid;gap:.5rem;background:var(--surface2,#fafafa);border:1px solid var(--line,#eee);border-radius:10px;padding:.7rem .8rem}
 </style>
 </head>
 <body>
@@ -5485,6 +5492,7 @@ function renderDistProveedores(){
         <button type="button" data-edit="${s.id}">Editar</button>
         <button type="button" class="del" data-del="${s.id}">Eliminar</button>
       </div>
+      ${distPortalBlock(s)}
     </div>`).join('')}</div>` : '<div class="dist-empty">Todavía no hay proveedores. Agregá el primero arriba.</div>';
 
   document.getElementById('distBody').innerHTML = form + cards;
@@ -5498,6 +5506,68 @@ function renderDistProveedores(){
   document.querySelectorAll('#distBody [data-del]').forEach(b => {
     b.onclick = () => deleteDistSupplier(b.dataset.del);
   });
+  // Acceso al portal (mostrar/ocultar form + guardar/quitar)
+  document.querySelectorAll('#distBody [data-portal-toggle]').forEach(b => {
+    b.onclick = () => {
+      const f = document.querySelector(`[data-portal-form="${b.dataset.portalToggle}"]`);
+      if (f) f.style.display = f.style.display === 'none' ? 'block' : 'none';
+    };
+  });
+  document.querySelectorAll('#distBody [data-portal-save]').forEach(b => {
+    b.onclick = () => savePortalAccess(b.dataset.portalSave);
+  });
+  document.querySelectorAll('#distBody [data-portal-revoke]').forEach(b => {
+    b.onclick = () => revokePortalAccess(b.dataset.portalRevoke);
+  });
+}
+
+// Bloque de "Acceso al portal" dentro de cada ficha de proveedor.
+function distPortalBlock(s){
+  const has = s.hasAccess;
+  return `<div class="dist-portal">
+    <div class="dist-portal-state">
+      <span class="dist-portal-ico">${has ? '🔓' : '🔒'}</span>
+      ${has
+        ? `Portal activo · usuario <b>${escapeHtml(s.portalUser)}</b>`
+        : 'Sin acceso al portal del proveedor'}
+      <button type="button" class="dist-portal-link" data-portal-toggle="${s.id}">${has ? 'Cambiar' : 'Crear acceso'}</button>
+      ${has ? `<button type="button" class="dist-portal-link del" data-portal-revoke="${s.id}">Quitar</button>` : ''}
+    </div>
+    <div class="dist-portal-form" data-portal-form="${s.id}" style="display:none">
+      <div class="dist-field"><label>Usuario</label><input class="dist-input-sm" style="max-width:none" data-pf-user="${s.id}" value="${escapeAttr(s.portalUser||'')}" placeholder="ej: kombucha-biloba"></div>
+      <div class="dist-field"><label>${has ? 'Nueva contraseña (vacío = no cambiar)' : 'Contraseña'}</label><input class="dist-input-sm" style="max-width:none" type="text" data-pf-pass="${s.id}" placeholder="mínimo 6 caracteres"></div>
+      <div class="dist-form-actions">
+        <button class="adm-btn" type="button" data-portal-save="${s.id}">${has ? 'Actualizar acceso' : 'Crear acceso'}</button>
+        <span class="dist-status" data-portal-st="${s.id}"></span>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function savePortalAccess(id){
+  const user = document.querySelector(`[data-pf-user="${id}"]`).value;
+  const password = document.querySelector(`[data-pf-pass="${id}"]`).value;
+  const st = document.querySelector(`[data-portal-st="${id}"]`);
+  st.className = 'dist-status'; st.textContent = 'Guardando…';
+  try {
+    const r = await fetch(`/admin/distribuidora/suppliers/${id}/portal`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user, password }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    await loadDistri();
+  } catch (e) { st.className = 'dist-status err'; st.textContent = e.message; }
+}
+
+async function revokePortalAccess(id){
+  const s = (distData?.suppliers || []).find(x => x.id === id);
+  if (!confirm(`Quitar el acceso al portal de "${s ? s.name : ''}"? No podrá entrar hasta que le crees uno nuevo.`)) return;
+  try {
+    const r = await fetch(`/admin/distribuidora/suppliers/${id}/portal`, { method: 'DELETE' });
+    if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Error'); }
+    await loadDistri();
+  } catch (e) { alert(e.message); }
 }
 
 async function saveDistSupplier(){

@@ -5,7 +5,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { readFileSync, existsSync, mkdirSync, writeFileSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { randomUUID, createHmac, timingSafeEqual, randomBytes } from 'crypto';
+import { randomUUID, createHmac, timingSafeEqual, randomBytes, scryptSync } from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -3256,9 +3256,13 @@ const distriStr = (v, max = 400) => String(v == null ? '' : v).trim().slice(0, m
 
 // Estado completo del módulo (config). Las tablas que derivan de productos
 // Shopify (costos, inventario, comercialización) usan /admin/distribuidora/products.
+function sanitizeSupplier(s){
+  const { portal, ...rest } = s;
+  return { ...rest, portalUser: portal?.user || '', hasAccess: !!(portal && portal.user) };
+}
 app.get('/admin/distribuidora', requireAdmin, (_req, res) => {
   const d = loadDistri();
-  res.json({ ...d, categories: DISTRI_CATEGORIES });
+  res.json({ ...d, suppliers: d.suppliers.map(sanitizeSupplier), categories: DISTRI_CATEGORIES });
 });
 
 // ── Proveedores (CRUD) ──
@@ -3310,6 +3314,43 @@ app.delete('/admin/distribuidora/suppliers/:id', requireAdmin, (req, res) => {
   const before = d.suppliers.length;
   d.suppliers = d.suppliers.filter(x => x.id !== id);
   if (d.suppliers.length === before) return res.status(404).json({ error: 'Proveedor no encontrado.' });
+  saveDistri(d);
+  res.json({ ok: true });
+});
+
+// ── Acceso al PORTAL del proveedor (credenciales que asigna el admin) ──
+// Guardamos la contraseña hasheada (scrypt + salt), nunca en claro.
+function hashPortalPassword(password, salt){
+  return scryptSync(String(password), salt, 32).toString('hex');
+}
+app.put('/admin/distribuidora/suppliers/:id/portal', requireAdmin, (req, res) => {
+  const id = String(req.params.id);
+  const b = req.body || {};
+  const user = distriStr(b.user, 60).toLowerCase();
+  const password = String(b.password == null ? '' : b.password);
+  const d = loadDistri();
+  const s = d.suppliers.find(x => x.id === id);
+  if (!s) return res.status(404).json({ error: 'Proveedor no encontrado.' });
+  if (!user) return res.status(400).json({ error: 'El usuario es obligatorio.' });
+  if (!/^[a-z0-9._-]{3,60}$/.test(user)) return res.status(400).json({ error: 'Usuario inválido (3-60: letras, números, . _ -).' });
+  // Usuario único entre proveedores
+  const taken = d.suppliers.some(x => x.id !== id && x.portal && x.portal.user === user);
+  if (taken) return res.status(409).json({ error: 'Ese usuario ya está en uso por otro proveedor.' });
+  const hadPass = !!(s.portal && s.portal.hash);
+  if (!password && !hadPass) return res.status(400).json({ error: 'Definí una contraseña.' });
+  if (password && password.length < 6) return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres.' });
+  const salt = (password || !hadPass) ? randomBytes(16).toString('hex') : s.portal.salt;
+  const hash = password ? hashPortalPassword(password, salt) : s.portal.hash;
+  s.portal = { user, salt, hash, updatedAt: new Date().toISOString() };
+  saveDistri(d);
+  res.json({ ok: true, portalUser: user });
+});
+app.delete('/admin/distribuidora/suppliers/:id/portal', requireAdmin, (req, res) => {
+  const id = String(req.params.id);
+  const d = loadDistri();
+  const s = d.suppliers.find(x => x.id === id);
+  if (!s) return res.status(404).json({ error: 'Proveedor no encontrado.' });
+  delete s.portal;
   saveDistri(d);
   res.json({ ok: true });
 });
@@ -3407,6 +3448,162 @@ app.get('/admin/distribuidora/products', requireAdmin, async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Error cargando productos: ' + (e.message || e) });
   }
+});
+
+// ─── PORTAL DEL PROVEEDOR (Fase 2) ──────────────────────────────────────────
+// Portal SEPARADO del /admin. Cada marca entra con su propio login y ve SOLO su
+// data. Sesión con cookie propia (zprov), distinta a la del admin (zadm).
+const PORTAL_COOKIE = 'zprov';
+const PORTAL_TTL_MS = 12 * 60 * 60 * 1000;
+const PORTAL_SESSIONS = new Map(); // token → { supplierId, expiresAt }
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [t, s] of PORTAL_SESSIONS) if (s.expiresAt < now) PORTAL_SESSIONS.delete(t);
+}, 60 * 60 * 1000).unref?.();
+
+function portalSessionFor(req){
+  const token = parseCookies(req)[PORTAL_COOKIE];
+  if (!token) return null;
+  const s = PORTAL_SESSIONS.get(token);
+  if (!s) return null;
+  if (s.expiresAt < Date.now()) { PORTAL_SESSIONS.delete(token); return null; }
+  return { token, ...s };
+}
+// Devuelve el proveedor logueado (objeto completo desde distribuidora.json).
+function portalSupplier(req){
+  const sess = portalSessionFor(req);
+  if (!sess) return null;
+  const d = loadDistri();
+  return d.suppliers.find(x => x.id === sess.supplierId) || null;
+}
+function requirePortal(req, res, next){
+  if (portalSupplier(req)) return next();
+  if (wantsHtml(req)) return res.redirect(302, '/proveedores/login');
+  return res.status(401).json({ error: 'No autorizado. Iniciá sesión en /proveedores/login.' });
+}
+
+// ¿La línea de venta pertenece a este proveedor? Match por vendor de Shopify.
+function lineMatchesSupplier(li, supplier){
+  const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  const ns = norm(supplier.name);
+  if (!ns) return false;
+  const nv = norm(li.vendor);
+  if (nv && (nv === ns || nv.includes(ns) || ns.includes(nv))) return true;
+  const tags = (li.tags || []).map(norm);
+  return tags.some(t => t === ns);
+}
+
+// Buckets de los últimos N meses → [{ key:'2026-06', label:'jun 26', value:0 }]
+function monthlyBuckets(n = 12){
+  const out = [];
+  const now = new Date();
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    out.push({ key, label: `${monthLabel(d.getMonth())} ${String(d.getFullYear()).slice(2)}`, value: 0, units: 0 });
+  }
+  return out;
+}
+function bucketKey(iso){
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+// ── Rutas del portal ──
+app.get('/proveedores/login', (req, res) => {
+  if (portalSupplier(req)) return res.redirect(302, '/proveedores');
+  res.sendFile(join(__dirname, 'portal-views', 'login.html'));
+});
+app.post('/proveedores/login', async (req, res) => {
+  const { username, password } = req.body || {};
+  if (typeof username !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ error: 'Faltan credenciales.' });
+  }
+  const user = username.trim().toLowerCase();
+  const d = loadDistri();
+  const s = d.suppliers.find(x => x.portal && x.portal.user === user);
+  await new Promise(r => setTimeout(r, 250)); // anti fuerza bruta
+  let ok = false;
+  if (s && s.portal && s.portal.hash) {
+    const cand = hashPortalPassword(password, s.portal.salt);
+    const A = Buffer.from(cand, 'hex'), B = Buffer.from(s.portal.hash, 'hex');
+    ok = A.length === B.length && timingSafeEqual(A, B);
+  }
+  if (!ok) return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
+  const token = randomBytes(32).toString('hex');
+  const expiresAt = Date.now() + PORTAL_TTL_MS;
+  PORTAL_SESSIONS.set(token, { supplierId: s.id, expiresAt });
+  const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  const parts = [
+    `${PORTAL_COOKIE}=${encodeURIComponent(token)}`, 'HttpOnly', 'Path=/', 'SameSite=Lax',
+    `Max-Age=${Math.floor(PORTAL_TTL_MS / 1000)}`,
+  ];
+  if (secure) parts.push('Secure');
+  res.setHeader('Set-Cookie', parts.join('; '));
+  res.json({ ok: true });
+});
+app.post('/proveedores/logout', (req, res) => {
+  const sess = portalSessionFor(req);
+  if (sess) PORTAL_SESSIONS.delete(sess.token);
+  res.setHeader('Set-Cookie', `${PORTAL_COOKIE}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`);
+  res.json({ ok: true });
+});
+app.get('/proveedores', requirePortal, (_req, res) => {
+  res.sendFile(join(__dirname, 'portal-views', 'portal.html'));
+});
+app.get('/portal/me', requirePortal, (req, res) => {
+  const s = portalSupplier(req);
+  res.json({ id: s.id, name: s.name, type: s.type, category: s.category });
+});
+
+// Dashboard básico: sell-in (órdenes de compra de Fase 1) + sell-out (Shopify).
+app.get('/portal/dashboard', requirePortal, async (req, res) => {
+  const s = portalSupplier(req);
+  const d = loadDistri();
+
+  // SELL IN — lo que Zorbo le compró (órdenes de compra del proveedor)
+  const sellInBuckets = monthlyBuckets(12);
+  const sellInByKey = new Map(sellInBuckets.map(b => [b.key, b]));
+  let sellInTotal = 0, sellInUnits = 0;
+  for (const po of d.purchaseOrders) {
+    if (po.supplierId !== s.id) continue;
+    const amount = Number(po.total || 0);
+    const units = (po.items || []).reduce((a, it) => a + (Number(it.qty) || 0), 0);
+    sellInTotal += amount; sellInUnits += units;
+    const b = sellInByKey.get(bucketKey(po.date || po.createdAt));
+    if (b) { b.value += amount; b.units += units; }
+  }
+
+  // SELL OUT — ventas de su marca en Shopify (filtrado por vendor)
+  let sellOut = { available: false, reason: '', total: 0, units: 0, orders: 0, monthly: [] };
+  const result = await loadOrders(false);
+  if (!result.available) {
+    sellOut.reason = result.reason || 'Ventas no disponibles.';
+  } else {
+    const buckets = monthlyBuckets(12);
+    const byKey = new Map(buckets.map(b => [b.key, b]));
+    let total = 0, units = 0; const orderIds = new Set();
+    for (const o of result.orders) {
+      let matched = false;
+      for (const li of (o.lineItems || [])) {
+        if (!lineMatchesSupplier(li, s)) continue;
+        matched = true;
+        total += Number(li.amount || 0);
+        units += Number(li.qty || 0);
+        const b = byKey.get(bucketKey(o.createdAt));
+        if (b) { b.value += Number(li.amount || 0); b.units += Number(li.qty || 0); }
+      }
+      if (matched) orderIds.add(o.id);
+    }
+    sellOut = { available: true, reason: '', total: Math.round(total), units, orders: orderIds.size, monthly: buckets };
+  }
+
+  res.json({
+    supplier: { name: s.name, type: s.type, category: s.category },
+    sellIn: { total: Math.round(sellInTotal), units: sellInUnits, monthly: sellInBuckets },
+    sellOut,
+  });
 });
 
 // ─── Analítica del BOT (uso desde conversations.json) ───────────────────────

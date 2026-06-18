@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zorbo · Portal del proveedor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#faf7f1;--surface:#fff;--surface2:#fafafa;--surface3:#f4f1ea;
+  --gold:#f5a623;--gold-bright:#ffb840;--gold-deep:#a05f00;--gold-dim:#fff3d6;--gold-bd:#f1c97b;
+  --ink:#1a1408;--text:#161310;--muted:#6b655c;--dim:#9a948a;--line:#ece7dc;
+  --green:#2e9c5a;--purple:#7c6bb8;
+  --sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--display:'Syne',var(--sans);--mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh}
+a{color:inherit}
+.pv-header{
+  display:flex;align-items:center;gap:.85rem;padding:.85rem 1.4rem;
+  background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20;
+}
+.pv-logo{height:30px;width:auto}
+.pv-pipe{width:1px;height:24px;background:var(--line)}
+.pv-portaltag{font-family:var(--display);font-size:.66rem;font-weight:700;color:var(--gold-deep);letter-spacing:.16em;text-transform:uppercase;background:var(--gold-dim);border:1px solid var(--gold-bd);padding:.25rem .6rem;border-radius:20px}
+.pv-spacer{flex:1}
+.pv-out{font-size:.76rem;font-weight:700;color:var(--muted);background:transparent;border:1px solid var(--line);border-radius:9px;padding:.45rem .8rem;cursor:pointer}
+.pv-out:hover{border-color:var(--gold-bd);color:var(--text)}
+
+.pv-shell{max-width:1080px;margin:0 auto;padding:1.6rem 1.4rem 3rem}
+.pv-hi{font-family:var(--display);font-size:1.7rem;font-weight:800;letter-spacing:-.01em}
+.pv-hi .brand{color:var(--gold-deep)}
+.pv-sub{color:var(--muted);font-size:.86rem;margin-top:.3rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+.pv-badge{display:inline-block;font-size:.6rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:.2rem .55rem;border-radius:999px}
+.pv-badge.propia{background:var(--gold-dim);color:var(--gold-deep)}
+.pv-badge.tercero{background:#efe9fb;color:#5b4b9e}
+.pv-badge.cat{background:var(--surface3);color:var(--muted)}
+
+.pv-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:1.5rem}
+.pv-kpi{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:1.2rem 1.3rem;position:relative;overflow:hidden}
+.pv-kpi::after{content:"";position:absolute;right:-30px;top:-30px;width:90px;height:90px;border-radius:50%;opacity:.12}
+.pv-kpi.in::after{background:var(--purple)}
+.pv-kpi.out::after{background:var(--gold)}
+.pv-kpi-label{font-size:.7rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.pv-kpi-help{font-size:.7rem;color:var(--dim);margin-top:.15rem}
+.pv-kpi-val{font-family:var(--display);font-size:2rem;font-weight:800;margin-top:.5rem;letter-spacing:-.02em}
+.pv-kpi-meta{font-size:.74rem;color:var(--muted);margin-top:.25rem;font-variant-numeric:tabular-nums}
+.pv-kpi.in .pv-kpi-val{color:#5b4b9e}
+.pv-kpi.out .pv-kpi-val{color:var(--gold-deep)}
+
+.pv-cards{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1.2rem}
+.pv-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:1.2rem 1.3rem}
+.pv-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin-bottom:.4rem}
+.pv-card-title{font-family:var(--display);font-size:1rem;font-weight:800}
+.pv-card-sub{font-size:.74rem;color:var(--dim)}
+.pv-chartbox{position:relative;height:230px;margin-top:.6rem}
+.pv-empty{padding:2.2rem 1rem;text-align:center;color:var(--muted);font-size:.84rem;line-height:1.6}
+.pv-note{margin-top:1.4rem;font-size:.76rem;color:var(--dim);text-align:center;line-height:1.6}
+.pv-loading{padding:3rem 1rem;text-align:center;color:var(--muted)}
+.pv-soon{margin-top:1.6rem;background:var(--surface);border:1px dashed var(--gold-bd);border-radius:14px;padding:1rem 1.2rem;font-size:.8rem;color:var(--muted);line-height:1.6}
+.pv-soon b{color:var(--text)}
+
+@media (max-width:720px){
+  .pv-cards{grid-template-columns:1fr}
+  .pv-hi{font-size:1.4rem}
+  .pv-shell{padding:1.2rem 1rem 2.5rem}
+}
+</style>
+</head>
+<body>
+<header class="pv-header">
+  <img class="pv-logo" src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Titulo_secundario-3.png?v=1779814975" alt="ZORBO">
+  <span class="pv-pipe"></span>
+  <span class="pv-portaltag">Portal del proveedor</span>
+  <span class="pv-spacer"></span>
+  <button class="pv-out" id="btnOut" type="button">Salir</button>
+</header>
+
+<main class="pv-shell" id="shell">
+  <div class="pv-loading">Cargando tu panel…</div>
+</main>
+
+<script>
+const fmtCLP = (n) => '$' + Math.round(Number(n)||0).toLocaleString('es-CL');
+const esc = (s) => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let charts = {};
+
+async function boot(){
+  let me, dash;
+  try {
+    const r = await fetch('/portal/dashboard');
+    if (r.status === 401) { window.location.href = '/proveedores/login'; return; }
+    dash = await r.json();
+  } catch (e) {
+    document.getElementById('shell').innerHTML = '<div class="pv-empty">No pudimos cargar tu panel. Recargá la página.</div>';
+    return;
+  }
+  render(dash);
+}
+
+function kpi(cls, label, help, val, meta){
+  return `<div class="pv-kpi ${cls}">
+    <div class="pv-kpi-label">${label}</div>
+    <div class="pv-kpi-help">${help}</div>
+    <div class="pv-kpi-val">${val}</div>
+    <div class="pv-kpi-meta">${meta||''}</div>
+  </div>`;
+}
+
+function render(d){
+  const s = d.supplier || {};
+  const so = d.sellOut || {};
+  const si = d.sellIn || {};
+  const sellOutKpi = so.available
+    ? kpi('out','Sell out','lo que se vendió de tu marca a locales', fmtCLP(so.total), `${(so.units||0).toLocaleString('es-CL')} unidades · ${so.orders||0} pedidos`)
+    : kpi('out','Sell out','ventas a locales', '—', 'Ventas no disponibles aún');
+  const sellInKpi = kpi('in','Sell in','lo que Zorbo te compró a ti', fmtCLP(si.total), `${(si.units||0).toLocaleString('es-CL')} unidades`);
+
+  document.getElementById('shell').innerHTML = `
+    <div class="pv-hi">Hola, <span class="brand">${esc(s.name)}</span></div>
+    <div class="pv-sub">
+      <span class="pv-badge ${s.type==='tercero'?'tercero':'propia'}">${s.type==='tercero'?'Marca tercero':'Marca propia'}</span>
+      ${s.category?`<span class="pv-badge cat">${esc(catLabel(s.category))}</span>`:''}
+      <span>Este es el rendimiento de tu marca dentro de Zorbo.</span>
+    </div>
+
+    <div class="pv-kpis">${sellInKpi}${sellOutKpi}</div>
+
+    <div class="pv-cards">
+      <div class="pv-card">
+        <div class="pv-card-head">
+          <div class="pv-card-title">Sell in · evolución</div>
+          <div class="pv-card-sub">últimos 12 meses</div>
+        </div>
+        <div class="pv-chartbox" id="boxIn"></div>
+      </div>
+      <div class="pv-card">
+        <div class="pv-card-head">
+          <div class="pv-card-title">Sell out · evolución</div>
+          <div class="pv-card-sub">últimos 12 meses</div>
+        </div>
+        <div class="pv-chartbox" id="boxOut"></div>
+      </div>
+    </div>
+
+    <div class="pv-soon">
+      Próximamente en tu portal: <b>mapa de locales</b> donde está tu producto, <b>top 10 puntos de venta</b>,
+      <b>agendar despacho</b> de tus órdenes, <b>sugerir nuevos locales</b> y la <b>cadena de valor</b> completa.
+    </div>
+    <div class="pv-note">Los datos se actualizan automáticamente. Sell out viene de las ventas reales en Zorbo; sell in, de las órdenes de compra que te hace Zorbo.</div>
+  `;
+
+  drawArea('boxIn', si.monthly || [], '#7c6bb8', !((si.monthly||[]).some(m=>m.value>0)), 'Sell in');
+  if (so.available) drawArea('boxOut', so.monthly || [], '#f5a623', !((so.monthly||[]).some(m=>m.value>0)), 'Sell out');
+  else document.getElementById('boxOut').innerHTML = `<div class="pv-empty">${esc(so.reason||'Ventas no disponibles aún.')}</div>`;
+}
+
+const CAT_LABELS = { cerveza:'Cerveza', licores:'Licores', rtd:'RTD', funcionales:'Bebidas y funcionales' };
+function catLabel(k){ return CAT_LABELS[k] || k; }
+
+function drawArea(boxId, monthly, color, empty, label){
+  const box = document.getElementById(boxId);
+  if (empty){ box.innerHTML = '<div class="pv-empty">Sin movimientos todavía en este período.</div>'; return; }
+  box.innerHTML = '<canvas></canvas>';
+  const ctx = box.querySelector('canvas').getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,0,230);
+  grad.addColorStop(0, color+'55'); grad.addColorStop(1, color+'05');
+  if (charts[boxId]) charts[boxId].destroy();
+  charts[boxId] = new Chart(ctx, {
+    type:'line',
+    data:{ labels: monthly.map(m=>m.label), datasets:[{
+      label, data: monthly.map(m=>m.value), borderColor:color, backgroundColor:grad,
+      fill:true, tension:.35, pointRadius:2, pointHoverRadius:5, borderWidth:2,
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:(c)=>fmtCLP(c.parsed.y) } } },
+      scales:{
+        x:{ grid:{display:false}, ticks:{ color:'#9a948a', font:{size:10} } },
+        y:{ grid:{color:'rgba(0,0,0,.05)'}, ticks:{ color:'#9a948a', font:{size:10}, callback:(v)=>'$'+(v/1000)+'k' } },
+      },
+    },
+  });
+}
+
+document.getElementById('btnOut').onclick = async () => {
+  try { await fetch('/proveedores/logout', { method:'POST' }); } catch {}
+  window.location.href = '/proveedores/login';
+};
+
+boot();
+</script>
+</body>
+</html>
