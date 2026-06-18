@@ -85,6 +85,34 @@ body{
   .adm-shell{grid-template-columns:1fr;gap:1rem;padding:1rem}
 }
 
+/* ── HOME / categorías ── */
+body.admin-home .adm-shell{grid-template-columns:1fr}
+body.admin-home .adm-chat,body.admin-home .adm-chat-fab{display:none!important}
+.adm-home{padding:1.5rem .5rem 2.5rem;max-width:1000px;margin:0 auto;text-align:center;animation:homeIn .4s ease}
+@keyframes homeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.adm-home-welcome{font-family:var(--display);font-size:.78rem;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
+.adm-home-q{font-family:var(--display);font-size:2rem;font-weight:800;letter-spacing:-.01em;margin:.5rem 0 0;color:var(--text)}
+.adm-home-sub{color:var(--muted);font-size:.92rem;margin-top:.55rem}
+.adm-home-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.1rem;margin-top:2.2rem;text-align:left}
+@media(max-width:820px){.adm-home-cards{grid-template-columns:1fr}}
+.adm-cat{position:relative;overflow:hidden;border:1px solid var(--border);border-radius:18px;background:var(--surface);padding:1.6rem 1.4rem;cursor:pointer;transition:transform .15s,box-shadow .2s,border-color .2s}
+.adm-cat:hover{transform:translateY(-3px);box-shadow:0 16px 38px rgba(0,0,0,.10);border-color:var(--gold-bd)}
+.adm-cat::after{content:"";position:absolute;right:-40px;top:-40px;width:120px;height:120px;border-radius:50%;background:var(--accent,#f5a623);opacity:.10}
+.adm-cat-ic{font-size:2rem;line-height:1}
+.adm-cat-name{font-family:var(--display);font-size:1.25rem;font-weight:800;margin-top:.8rem;position:relative}
+.adm-cat-desc{color:var(--muted);font-size:.82rem;margin-top:.35rem;line-height:1.5;position:relative}
+.adm-cat-items{margin-top:.9rem;display:flex;flex-wrap:wrap;gap:.3rem;position:relative}
+.adm-cat-chip{font-size:.66rem;font-weight:600;color:var(--muted);background:var(--surface3);border-radius:999px;padding:.2rem .55rem}
+.adm-cat-go{margin-top:1rem;font-size:.78rem;font-weight:800;color:var(--gold-deep);letter-spacing:.04em;position:relative}
+.adm-quote{margin:2.6rem auto 0;border-top:1px solid var(--border);padding-top:1.6rem;max-width:660px}
+.adm-quote-text{font-family:var(--display);font-size:1.08rem;font-style:italic;color:var(--text);line-height:1.55}
+.adm-quote-author{font-size:.76rem;color:var(--dim);margin-top:.6rem;letter-spacing:.05em;text-transform:uppercase;font-weight:700}
+.adm-catbar{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:1.1rem}
+.adm-back{font-size:.8rem;font-weight:700;color:var(--muted);background:var(--surface3);border:1px solid var(--border);border-radius:999px;padding:.4rem .8rem;cursor:pointer;flex-shrink:0}
+.adm-back:hover{border-color:var(--gold-bd);color:var(--text)}
+.adm-catbar-label{font-family:var(--display);font-weight:800;font-size:.95rem;color:var(--text);display:flex;align-items:center;gap:.35rem;margin-right:.3rem}
+.adm-catbar-sep{width:1px;height:20px;background:var(--border);margin:0 .2rem}
+
 /* ── TABS PILLS ── */
 .adm-tabs{
   display:flex;gap:.45rem;flex-wrap:wrap;margin-bottom:1.1rem;
@@ -1414,6 +1442,9 @@ body.drawer-open{overflow:hidden}
   <section>
     <div class="adm-tabs" id="tabs"></div>
 
+    <!-- Home / selección de categoría -->
+    <div id="homeView" style="display:none"></div>
+
     <!-- Vista de analítica (dashboard) -->
     <div id="analyticsView" style="display:none">
       <div class="adm-panel">
@@ -1999,19 +2030,44 @@ body.drawer-open{overflow:hidden}
 <script>
 // ─── Secciones disponibles ──────────────────────────────────────────────────
 const BASE_SECCIONES = [
-  { id:'analytics', kind:'analytics',label:'Analítica',       desc:'foto general del negocio · números y gráficos' },
-  { id:'mundial',   kind:'mundial',  label:'Mundial',         desc:'predicciones del pack mundialero · quién compró y qué eligió' },
-  { id:'distribuidora', kind:'distribuidora', label:'Distribuidora', desc:'proveedores · costos · márgenes · órdenes de compra · comercialización' },
-  { id:'chats',     kind:'chats',    label:'Conversaciones',  desc:'historial completo · filtros y embudo' },
-  { id:'feedback',   kind:'feedback', label:'Feedback',        desc:'correcciones para entrenar a Zorbot' },
-  { id:'productos',  kind:'products', label:'Productos',       desc:'catálogo Shopify · notas extra para Zorbot' },
-  { id:'tutoriales', kind:'tutorials',label:'Tutoriales',      desc:'videos técnicos que Zorbot comparte cuando aplica' },
-  { id:'web',       kind:'web',      label:'Página web',      desc:'franja, banner, botones y marcas del home' },
-  { id:'general',   kind:'md',       label:'General',         desc:'identidad · tono · reglas globales' },
-  { id:'kairos',    kind:'md',       label:'Kairos Brewing',  desc:'cervezas artesanales' },
-  { id:'firulais',  kind:'md',       label:'Firulais',        desc:'cheladas craft' },
-  { id:'banny',     kind:'md',       label:'Banny',           desc:'destilados · RTD' },
-  { id:'mayorista', kind:'md',       label:'Mayoristas (B2B)',desc:'restaurantes · botillerías · eventos' },
+  { id:'analytics', kind:'analytics',label:'Analítica',       cat:'marketing', desc:'foto general del negocio · números y gráficos' },
+  { id:'mundial',   kind:'mundial',  label:'Mundial',         cat:'marketing', desc:'predicciones del pack mundialero · quién compró y qué eligió' },
+  { id:'chats',     kind:'chats',    label:'Conversaciones',  cat:'marketing', desc:'historial completo · filtros y embudo' },
+  { id:'feedback',   kind:'feedback', label:'Feedback',        cat:'marketing', desc:'correcciones para entrenar a Zorbot' },
+  { id:'web',       kind:'web',      label:'Página web',      cat:'marketing', desc:'franja, banner, botones y marcas del home' },
+  { id:'tutoriales', kind:'tutorials',label:'Tutoriales',      cat:'marketing', desc:'videos técnicos que Zorbot comparte cuando aplica' },
+  { id:'general',   kind:'md',       label:'General',         cat:'marketing', desc:'identidad · tono · reglas globales' },
+  { id:'kairos',    kind:'md',       label:'Kairos Brewing',  cat:'marketing', desc:'cervezas artesanales' },
+  { id:'firulais',  kind:'md',       label:'Firulais',        cat:'marketing', desc:'cheladas craft' },
+  { id:'banny',     kind:'md',       label:'Banny',           cat:'marketing', desc:'destilados · RTD' },
+  { id:'mayorista', kind:'md',       label:'Mayoristas (B2B)',cat:'marketing', desc:'restaurantes · botillerías · eventos' },
+  { id:'productos',  kind:'products', label:'Productos',       cat:'comercializacion', desc:'catálogo Shopify · notas extra para Zorbot' },
+  { id:'distribuidora', kind:'distribuidora', label:'Distribuidora', cat:'operaciones', desc:'proveedores · costos · márgenes · órdenes de compra · comercialización' },
+];
+
+// Categorías grandes de la home. accent = color del halo de la tarjeta.
+const ADMIN_CATEGORIES = [
+  { id:'marketing',       icon:'📣', label:'Marketing',                desc:'Cómo Zorbo se comunica y atrae: analítica, conversaciones del bot, campañas y contenido de marca.', accent:'#f5a623' },
+  { id:'comercializacion',icon:'🛒', label:'Comercialización',         desc:'El catálogo y la venta: productos, fichas y todo lo que el cliente compra.', accent:'#2e9c5a' },
+  { id:'operaciones',     icon:'📦', label:'Distribución y Operaciones',desc:'La trastienda: proveedores, costos, márgenes, órdenes de compra y cadena de valor.', accent:'#7c6bb8' },
+];
+
+// Frases motivacionales — sale una distinta cada vez que se abre la home.
+const ADMIN_QUOTES = [
+  { t:'El único modo de hacer un gran trabajo es amar lo que haces.', a:'Steve Jobs' },
+  { t:'La mejor forma de predecir el futuro es crearlo.', a:'Peter Drucker' },
+  { t:'No se trata de ideas. Se trata de hacer que las ideas sucedan.', a:'Scott Belsky' },
+  { t:'Los detalles no son los detalles. Hacen el diseño.', a:'Charles Eames' },
+  { t:'Si no estás dispuesto a equivocarte, nunca crearás nada original.', a:'Ken Robinson' },
+  { t:'La calidad significa hacerlo bien cuando nadie está mirando.', a:'Henry Ford' },
+  { t:'La simplicidad es la máxima sofisticación.', a:'Leonardo da Vinci' },
+  { t:'Empieza por donde estás. Usa lo que tienes. Haz lo que puedas.', a:'Arthur Ashe' },
+  { t:'El éxito es la suma de pequeños esfuerzos repetidos día tras día.', a:'Robert Collier' },
+  { t:'Lo que se mide, mejora.', a:'Peter Drucker' },
+  { t:'Un cliente bien atendido podría ser más valioso que $10.000 en publicidad.', a:'Jim Rohn' },
+  { t:'No encuentres clientes para tus productos, encuentra productos para tus clientes.', a:'Seth Godin' },
+  { t:'El movimiento vence al miedo.', a:'Robert Kiyosaki' },
+  { t:'Hazlo simple. Hazlo memorable. Hazlo irresistible.', a:'Leo Burnett' },
 ];
 const BASE_BRANDS = [
   { id:'all',      label:'Todos'           },
@@ -2043,10 +2099,10 @@ async function loadCustomBrands(){
 }
 function applyCustomBrands(){
   const brandTabs = CUSTOM_BRANDS.map(b => ({
-    id:b.key, kind:'md', label:b.label, desc:'conocimiento de ' + b.label + ' para Zorbot',
+    id:b.key, kind:'md', label:b.label, cat:'marketing', desc:'conocimiento de ' + b.label + ' para Zorbot',
     custom:true, vendor:b.vendor,
   }));
-  // Tabs de marca custom: justo después de Banny.
+  // Tabs de marca custom: justo después de Banny (dentro de Marketing).
   const secOut = [];
   for (const s of BASE_SECCIONES) { secOut.push(s); if (s.id === 'banny') secOut.push(...brandTabs); }
   SECCIONES = secOut;
@@ -2074,6 +2130,7 @@ let productsCache = [];
 let openProductId = null;
 
 let activeSeccion = 'analytics';
+let activeCategory = null; // null = pantalla de inicio (home)
 let originalContent = '';
 let dirty = false;
 let chatMode = 'b2c';
@@ -2083,13 +2140,69 @@ let chatStreaming = false;
 // preview. Se carga lazy al usar el preview por primera vez.
 let previewCatalog = { minorista: null, mayorista: null };
 
+// ─── Home (selección de categoría) ───────────────────────────────────────────
+function sectionsForCat(catId){ return SECCIONES.filter(s => s.cat === catId); }
+
+function showHome(){
+  if (dirty && !confirm('Tenés cambios sin guardar. Descartar?')) return;
+  dirty = false;
+  activeCategory = null;
+  document.body.classList.add('admin-home');
+  showView('home');
+  document.getElementById('tabs').innerHTML = '';
+  const q = ADMIN_QUOTES[Math.floor(Math.random() * ADMIN_QUOTES.length)];
+  const cards = ADMIN_CATEGORIES.map(c => {
+    const chips = sectionsForCat(c.id).map(s => `<span class="adm-cat-chip">${escapeHtml(s.label)}</span>`).join('');
+    return `<div class="adm-cat" data-cat="${c.id}" style="--accent:${c.accent}">
+      <div class="adm-cat-ic">${c.icon}</div>
+      <div class="adm-cat-name">${escapeHtml(c.label)}</div>
+      <div class="adm-cat-desc">${escapeHtml(c.desc)}</div>
+      <div class="adm-cat-items">${chips}</div>
+      <div class="adm-cat-go">Entrar →</div>
+    </div>`;
+  }).join('');
+  document.getElementById('homeView').innerHTML = `
+    <div class="adm-home">
+      <div class="adm-home-welcome">Bienvenido al portal de administración de Zorbo</div>
+      <div class="adm-home-q">Qué deseas ver?</div>
+      <div class="adm-home-sub">Elegí una de las tres áreas para ver sus paneles.</div>
+      <div class="adm-home-cards">${cards}</div>
+      <div class="adm-quote">
+        <div class="adm-quote-text">“${escapeHtml(q.t)}”</div>
+        <div class="adm-quote-author">${escapeHtml(q.a)}</div>
+      </div>
+    </div>`;
+  document.querySelectorAll('#homeView .adm-cat').forEach(el => {
+    el.onclick = () => openCategory(el.dataset.cat);
+  });
+}
+
+function openCategory(catId){
+  const secs = sectionsForCat(catId);
+  if (!secs.length) return;
+  activeCategory = catId;
+  document.body.classList.remove('admin-home');
+  selectSeccion(secs[0].id);
+}
+
 // ─── Tabs ───────────────────────────────────────────────────────────────────
 function renderTabs(){
   const wrap = document.getElementById('tabs');
-  wrap.innerHTML = SECCIONES.map(s => `
+  if (!activeCategory) { wrap.innerHTML = ''; return; }
+  const cat = ADMIN_CATEGORIES.find(c => c.id === activeCategory);
+  const pills = sectionsForCat(activeCategory).map(s => `
     <button type="button" class="adm-tab ${s.id===activeSeccion?'on':''}" data-id="${s.id}">
       <span class="dot"></span>${s.label}
     </button>`).join('');
+  wrap.innerHTML = `
+    <div class="adm-catbar">
+      <button type="button" class="adm-back" id="btnHome">← Inicio</button>
+      <span class="adm-catbar-label">${cat ? cat.icon : ''} ${cat ? escapeHtml(cat.label) : ''}</span>
+      <span class="adm-catbar-sep"></span>
+      ${pills}
+    </div>`;
+  const home = document.getElementById('btnHome');
+  if (home) home.onclick = () => showHome();
   wrap.querySelectorAll('.adm-tab').forEach(b => {
     b.onclick = () => selectSeccion(b.dataset.id);
   });
@@ -2098,8 +2211,10 @@ function renderTabs(){
 async function selectSeccion(id){
   if (dirty && !confirm('Tenés cambios sin guardar en esta sección. Descartar?')) return;
   activeSeccion = id;
-  renderTabs();
   const sec = SECCIONES.find(s => s.id === id);
+  if (sec && sec.cat) activeCategory = sec.cat;
+  document.body.classList.remove('admin-home');
+  renderTabs();
   if (sec.kind === 'analytics') {
     showView('analytics');
     await loadAnalytics();
@@ -2131,6 +2246,7 @@ async function selectSeccion(id){
 }
 
 function showView(kind){
+  document.getElementById('homeView').style.display       = kind === 'home'       ? '' : 'none';
   document.getElementById('mdView').style.display         = kind === 'md'         ? '' : 'none';
   document.getElementById('productsView').style.display   = kind === 'products'   ? '' : 'none';
   document.getElementById('chatsView').style.display      = kind === 'chats'      ? '' : 'none';
@@ -5617,8 +5733,7 @@ fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
   if (d && d.username) document.getElementById('btnLogout').style.display = '';
 }).catch(()=>{});
 loadCustomBrands().then(() => {
-  renderTabs();
-  selectSeccion(activeSeccion);
+  showHome();
 });
 </script>
 </body>
