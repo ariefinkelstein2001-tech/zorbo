@@ -6,6 +6,8 @@
 <title>Zorbo Admin — Panel interno</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{
   --bg:#fff;
@@ -1423,6 +1425,21 @@ body.drawer-open{overflow:hidden}
 .dist-portal-link{font-size:.72rem;font-weight:700;color:var(--gold-deep,#a05f00);background:transparent;border:none;cursor:pointer;text-decoration:underline;padding:0}
 .dist-portal-link.del{color:#d33}
 .dist-portal-form{margin-top:.6rem;display:grid;gap:.5rem;background:var(--surface2,#fafafa);border:1px solid var(--line,#eee);border-radius:10px;padding:.7rem .8rem}
+
+/* ── PUNTOS DE VENTA ── */
+.pv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;margin-bottom:1rem}
+.pv-stat{border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.85rem 1rem;background:var(--surface,#fff)}
+.pv-stat-l{font-size:.66rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted,#666)}
+.pv-stat-v{font-family:var(--display,inherit);font-size:1.5rem;font-weight:800;margin-top:.25rem;color:var(--text,#111)}
+#pvMap{height:380px;width:100%;border-radius:14px;border:1px solid var(--line,#e5e5e5);z-index:0;margin-bottom:1rem}
+.pv-geo{font-size:.72rem;color:var(--muted,#888);margin:-.5rem 0 1rem;display:flex;align-items:center;gap:.4rem}
+.pv-mk{background:var(--gold,#f5a623);color:#1a1408;font-family:var(--sans);font-weight:800;font-size:.7rem;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.pv-pop-name{font-family:var(--display,inherit);font-weight:800;font-size:.92rem}
+.pv-pop-row{font-size:.78rem;color:#444;margin-top:.2rem}
+.pv-rank{font-family:var(--mono,monospace);font-weight:700;color:var(--gold-deep,#a05f00);width:1.6rem;display:inline-block}
+.pv-tag-b2b{background:#efeafa;color:#5e4ea3;font-size:.6rem;font-weight:800;padding:.12rem .45rem;border-radius:999px;letter-spacing:.04em}
+.pv-tag-b2c{background:var(--gold-dim,#fff3d6);color:var(--gold-deep,#a05f00);font-size:.6rem;font-weight:800;padding:.12rem .45rem;border-radius:999px;letter-spacing:.04em}
+.pv-noloc{color:#bbb}
 </style>
 </head>
 <body>
@@ -1649,6 +1666,20 @@ body.drawer-open{overflow:hidden}
         </div>
       </div>
       <div id="munBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
+    <!-- Vista Puntos de venta (mapa + venta por local) -->
+    <div class="adm-panel" id="puntosView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Puntos de venta</div>
+          <div class="adm-panel-meta" id="puntosMeta">locales donde está tu producto · venta de cada uno</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="btnPuntosReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div id="puntosBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
     <!-- Vista Distribuidora (proveedores · costos · márgenes · OC · comercialización) -->
@@ -2042,6 +2073,7 @@ const BASE_SECCIONES = [
   { id:'banny',     kind:'md',       label:'Banny',           cat:'marketing', desc:'destilados · RTD' },
   { id:'mayorista', kind:'md',       label:'Mayoristas (B2B)',cat:'marketing', desc:'restaurantes · botillerías · eventos' },
   { id:'productos',  kind:'products', label:'Productos',       cat:'comercializacion', desc:'catálogo Shopify · notas extra para Zorbot' },
+  { id:'puntos',     kind:'puntos',   label:'Puntos de venta', cat:'comercializacion', desc:'mapa de locales donde estás · venta por punto' },
   { id:'distribuidora', kind:'distribuidora', label:'Distribuidora', cat:'operaciones', desc:'proveedores · costos · márgenes · órdenes de compra · comercialización' },
 ];
 
@@ -2227,6 +2259,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'products') {
     showView('products');
     await loadProductos();
+  } else if (sec.kind === 'puntos') {
+    showView('puntos');
+    await loadPuntos();
   } else if (sec.kind === 'chats') {
     showView('chats');
     await loadConversations();
@@ -2249,6 +2284,7 @@ function showView(kind){
   document.getElementById('homeView').style.display       = kind === 'home'       ? '' : 'none';
   document.getElementById('mdView').style.display         = kind === 'md'         ? '' : 'none';
   document.getElementById('productsView').style.display   = kind === 'products'   ? '' : 'none';
+  document.getElementById('puntosView').style.display     = kind === 'puntos'     ? '' : 'none';
   document.getElementById('chatsView').style.display      = kind === 'chats'      ? '' : 'none';
   document.getElementById('analyticsView').style.display  = kind === 'analytics'  ? '' : 'none';
   document.getElementById('mundialView').style.display    = kind === 'mundial'    ? '' : 'none';
@@ -5725,6 +5761,120 @@ async function deleteDistSupplier(id){
     await loadDistri();
   } catch (e) { alert(e.message); }
 }
+
+// ─── Puntos de venta (mapa + venta por local) ────────────────────────────────
+let puntosData = null;
+let pvMapObj = null;
+
+async function loadPuntos(refresh){
+  const body = document.getElementById('puntosBody');
+  body.innerHTML = '<div class="adm-loading">Cargando puntos de venta…</div>';
+  if (pvMapObj) { try { pvMapObj.remove(); } catch {} pvMapObj = null; }
+  try {
+    const r = await fetch('/admin/puntos-venta' + (refresh ? '?refresh=1' : ''));
+    const d = await r.json();
+    if (!d.available) {
+      puntosData = null;
+      body.innerHTML = `<div class="dist-empty">${escapeHtml(d.reason || 'No se pudieron cargar las órdenes.')}</div>`;
+      document.getElementById('puntosMeta').textContent = 'sin conexión a órdenes';
+      return;
+    }
+    puntosData = d;
+    document.getElementById('puntosMeta').textContent = `${d.count} locales · ${distMoney(d.totalVenta)} en ventas`;
+    renderPuntos(d);
+  } catch (e) {
+    body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`;
+  }
+}
+
+function renderPuntos(d){
+  const pts = d.points || [];
+  if (!pts.length) {
+    document.getElementById('puntosBody').innerHTML = '<div class="dist-empty">Todavía no hay ventas registradas para mapear puntos de venta.</div>';
+    return;
+  }
+  const rows = pts.map((p, i) => `
+    <tr>
+      <td><span class="pv-rank">${i+1}</span></td>
+      <td>${escapeHtml(p.name)} ${p.b2b?'<span class="pv-tag-b2b">B2B</span>':'<span class="pv-tag-b2c">B2C</span>'}
+        ${p.brands && p.brands.length ? `<div class="mun-meta-cell">${escapeHtml(p.brands.join(' · '))}</div>` : ''}</td>
+      <td>${p.address ? escapeHtml(p.address) : '<span class="pv-noloc">sin dirección</span>'}</td>
+      <td class="dist-num">${distMoney(p.total)}</td>
+      <td class="dist-num">${(p.units||0).toLocaleString('es-CL')}</td>
+      <td class="dist-num">${p.orders||0}</td>
+    </tr>`).join('');
+  const hasMap = !!window.L;
+  document.getElementById('puntosBody').innerHTML = `
+    <div class="pv-stats">
+      <div class="pv-stat"><div class="pv-stat-l">Locales</div><div class="pv-stat-v">${d.count}</div></div>
+      <div class="pv-stat"><div class="pv-stat-l">Venta total</div><div class="pv-stat-v">${distMoney(d.totalVenta)}</div></div>
+      <div class="pv-stat"><div class="pv-stat-l">Ubicados en mapa</div><div class="pv-stat-v" id="pvLocated">${d.withCoords}</div></div>
+    </div>
+    ${hasMap ? '<div id="pvMap"></div><div class="pv-geo" id="pvGeo"></div>' : ''}
+    <div class="mun-count">ranking por venta · cada local con cuánto te compra</div>
+    <div class="mun-wrap"><table class="mun-table">
+      <thead><tr><th>#</th><th>Local</th><th>Dirección</th><th style="text-align:right">Venta</th><th style="text-align:right">Unid.</th><th style="text-align:right">Pedidos</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+  if (hasMap) initPuntosMap(pts);
+}
+
+function initPuntosMap(pts){
+  const el = document.getElementById('pvMap');
+  if (!el) return;
+  pvMapObj = L.map(el, { scrollWheelZoom:false }).setView([-33.45, -70.66], 11); // Santiago default
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© OpenStreetMap',
+  }).addTo(pvMapObj);
+  const bounds = [];
+  const addMarker = (p, rank) => {
+    if (p.lat == null || p.lng == null) return;
+    const icon = L.divIcon({ html:`<div class="pv-mk">${rank}</div>`, className:'', iconSize:[26,26], iconAnchor:[13,13] });
+    L.marker([p.lat, p.lng], { icon }).addTo(pvMapObj)
+      .bindPopup(`<div class="pv-pop-name">${escapeHtml(p.name)}</div>
+        <div class="pv-pop-row">${escapeHtml(p.address||'')}</div>
+        <div class="pv-pop-row"><b>${distMoney(p.total)}</b> · ${p.orders||0} pedidos</div>`);
+    bounds.push([p.lat, p.lng]);
+  };
+  pts.forEach((p, i) => addMarker(p, i+1));
+  if (bounds.length) pvMapObj.fitBounds(bounds, { padding:[40,40], maxZoom:14 });
+  // Geocodificación best-effort de los que no traen coordenadas de Shopify.
+  geocodeMissing(pts.map((p,i)=>({p, rank:i+1})).filter(x => x.p.lat==null && x.p.address), addMarker);
+}
+
+async function geocodeMissing(list, addMarker){
+  const geo = document.getElementById('pvGeo');
+  if (!list.length) { if (geo) geo.textContent = ''; return; }
+  if (geo) geo.textContent = `📍 Ubicando ${list.length} locales sin coordenadas…`;
+  let done = 0, ok = 0;
+  for (const { p, rank } of list.slice(0, 60)) {
+    const coords = await geocodeAddress(p.address + ', Chile');
+    done++;
+    if (coords) { p.lat = coords.lat; p.lng = coords.lng; addMarker(p, rank); ok++; }
+    if (geo) geo.textContent = `📍 Ubicando locales… ${done}/${Math.min(list.length,60)}`;
+  }
+  const located = document.getElementById('pvLocated');
+  if (located) located.textContent = String((puntosData?.withCoords||0) + ok);
+  if (geo) geo.textContent = ok ? `📍 ${ok} locales adicionales ubicados en el mapa.` : 'Algunos locales no tienen dirección geolocalizable.';
+}
+
+async function geocodeAddress(q){
+  const ck = 'zgeo:' + q.toLowerCase().replace(/\s+/g,' ').trim();
+  try {
+    const cached = localStorage.getItem(ck);
+    if (cached !== null) return JSON.parse(cached);
+  } catch {}
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q), { headers:{ 'Accept':'application/json' } });
+    const j = await r.json();
+    const c = (Array.isArray(j) && j.length) ? { lat:+j[0].lat, lng:+j[0].lon } : null;
+    try { localStorage.setItem(ck, JSON.stringify(c)); } catch {}
+    await new Promise(res => setTimeout(res, 1100)); // respetar rate-limit de Nominatim
+    return c;
+  } catch { return null; }
+}
+
+document.getElementById('btnPuntosReload').onclick = () => loadPuntos(true);
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();

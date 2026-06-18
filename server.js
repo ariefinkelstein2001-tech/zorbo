@@ -1258,6 +1258,7 @@ const ORDERS_QUERY = `query($cursor: String) {
         customAttributes { key value }
         currentTotalPriceSet { shopMoney { amount } }
         customer { id email firstName lastName phone }
+        shippingAddress { company address1 city province country zip latitude longitude }
         lineItems(first: 50) {
           edges { node {
             quantity
@@ -1312,6 +1313,16 @@ async function loadOrders(force = false){
           customerFirstName: n.customer?.firstName || '',
           customerLastName: n.customer?.lastName || '',
           customerPhone: n.customer?.phone || '',
+          shippingAddress: n.shippingAddress ? {
+            company:  n.shippingAddress.company || '',
+            address1: n.shippingAddress.address1 || '',
+            city:     n.shippingAddress.city || '',
+            province: n.shippingAddress.province || '',
+            country:  n.shippingAddress.country || '',
+            zip:      n.shippingAddress.zip || '',
+            lat:      n.shippingAddress.latitude != null ? Number(n.shippingAddress.latitude) : null,
+            lng:      n.shippingAddress.longitude != null ? Number(n.shippingAddress.longitude) : null,
+          } : null,
           lineItems: (n.lineItems?.edges || []).map(le => ({
             qty: le.node.quantity,
             amount: parseFloat(le.node.originalTotalSet?.shopMoney?.amount || 0),
@@ -3448,6 +3459,56 @@ app.get('/admin/distribuidora/products', requireAdmin, async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Error cargando productos: ' + (e.message || e) });
   }
+});
+
+// ─── Puntos de venta (Comercialización) ─────────────────────────────────────
+// Locales donde están los productos de Zorbo, agregados por cliente, con la
+// venta de cada uno. Sale de las órdenes de Shopify (dirección de despacho).
+app.get('/admin/puntos-venta', requireAdmin, async (req, res) => {
+  const result = await loadOrders(String(req.query.refresh || '') === '1');
+  if (!result.available) return res.json({ available: false, reason: result.reason });
+  const map = new Map();
+  for (const o of result.orders) {
+    const sa = o.shippingAddress;
+    const key = o.customerId
+      || (o.customerEmail ? 'e:' + normEmail(o.customerEmail) : null)
+      || (sa ? 'a:' + [sa.address1, sa.city].filter(Boolean).join('|').toLowerCase() : null);
+    if (!key) continue;
+    let p = map.get(key);
+    if (!p) { p = { name:'', email:o.customerEmail||'', total:0, units:0, orders:0, lastDate:0, address:null, brands:new Set(), b2b:false }; map.set(key, p); }
+    p.total += Number(o.total || 0);
+    p.orders += 1;
+    let isB2B = false;
+    for (const li of (o.lineItems || [])) {
+      p.units += Number(li.qty || 0);
+      if (li.vendor) p.brands.add(li.vendor);
+      if (isMayoristaLine(li)) isB2B = true;
+    }
+    if (isB2B) p.b2b = true;
+    const t = new Date(o.createdAt).getTime();
+    if (t >= p.lastDate) {
+      p.lastDate = t;
+      p.name = (sa && sa.company)
+        || [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim()
+        || o.customerEmail || 'Sin nombre';
+      if (sa) p.address = sa;
+    }
+  }
+  const points = [...map.values()].map(p => ({
+    name: p.name, email: p.email, total: Math.round(p.total), units: p.units, orders: p.orders,
+    b2b: p.b2b, brands: [...p.brands].slice(0, 6),
+    address: p.address ? [p.address.address1, p.address.city, p.address.province].filter(Boolean).join(', ') : '',
+    city: p.address?.city || '',
+    lat: p.address?.lat ?? null, lng: p.address?.lng ?? null,
+    lastOrder: p.lastDate ? new Date(p.lastDate).toISOString() : null,
+  })).sort((a, b) => b.total - a.total);
+  res.json({
+    available: true,
+    count: points.length,
+    totalVenta: points.reduce((a, p) => a + p.total, 0),
+    withCoords: points.filter(p => p.lat != null).length,
+    points,
+  });
 });
 
 // ─── PORTAL DEL PROVEEDOR (Fase 2) ──────────────────────────────────────────
