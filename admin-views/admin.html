@@ -1346,6 +1346,48 @@ body.drawer-open{overflow:hidden}
 .mun-note{max-width:260px;white-space:pre-wrap;color:var(--muted,#555);font-size:.76rem}
 .mun-empty-state{padding:2.4rem 1rem;text-align:center;color:var(--muted,#777);line-height:1.6}
 .mun-count{font-family:var(--mono);font-size:.7rem;color:var(--muted,#888);margin:.2rem 0 .8rem}
+
+/* ── DISTRIBUIDORA ── */
+.dist-subnav{display:flex;gap:.4rem;flex-wrap:wrap;margin:0 0 1.1rem;padding-bottom:.9rem;border-bottom:1px solid var(--line,#eee)}
+.dist-subtab{font-family:var(--sans);font-size:.78rem;font-weight:700;color:var(--muted,#666);background:transparent;border:1px solid var(--line,#e5e5e5);border-radius:999px;padding:.45rem .9rem;cursor:pointer;transition:all .15s}
+.dist-subtab:hover{border-color:var(--gold-bd,#f1c97b);color:var(--text,#111)}
+.dist-subtab.on{background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623) 60%);color:#1a1408;border-color:transparent}
+.dist-sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
+.dist-sec-title{font-family:var(--display,inherit);font-size:1.05rem;font-weight:800;color:var(--text,#111)}
+.dist-sec-sub{font-size:.78rem;color:var(--muted,#666);margin-top:.2rem;line-height:1.5}
+.dist-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.9rem}
+.dist-card{border:1px solid var(--line,#e5e5e5);border-radius:14px;padding:1rem 1.1rem;background:var(--surface,#fff);position:relative}
+.dist-card.propia{border-left:3px solid var(--gold,#f5a623)}
+.dist-card.tercero{border-left:3px solid #7c6bb8}
+.dist-card-name{font-family:var(--display,inherit);font-size:1.02rem;font-weight:800;color:var(--text,#111);padding-right:2rem}
+.dist-badge{display:inline-block;font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:.2rem .5rem;border-radius:999px;margin-top:.35rem}
+.dist-badge.propia{background:var(--gold-dim,#fff3d6);color:var(--gold-deep,#a05f00)}
+.dist-badge.tercero{background:#efe9fb;color:#5b4b9e}
+.dist-badge.cat{background:var(--surface3,#f0f0f0);color:var(--muted,#555);margin-left:.35rem}
+.dist-card-info{font-size:.76rem;color:var(--muted,#555);line-height:1.7;margin-top:.6rem}
+.dist-card-info b{color:var(--text,#222);font-weight:700}
+.dist-card-notes{font-size:.74rem;color:var(--muted,#777);margin-top:.5rem;white-space:pre-wrap;border-top:1px dashed var(--line,#eee);padding-top:.5rem}
+.dist-card-actions{display:flex;gap:.5rem;margin-top:.8rem}
+.dist-card-actions button{font-size:.72rem;font-weight:700;padding:.35rem .7rem;border-radius:8px;border:1px solid var(--line,#e5e5e5);background:transparent;color:var(--muted,#555);cursor:pointer}
+.dist-card-actions button:hover{border-color:var(--gold-bd,#f1c97b);color:var(--text,#111)}
+.dist-card-actions button.del:hover{border-color:#e0655f;color:#d33}
+.dist-form{border:1px solid var(--line,#e5e5e5);border-radius:14px;padding:1.1rem 1.2rem;background:var(--surface2,#fafafa);margin-bottom:1.2rem}
+.dist-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.7rem .9rem}
+.dist-field{display:flex;flex-direction:column;gap:.25rem}
+.dist-field label{font-size:.66rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted,#666)}
+.dist-field input,.dist-field select,.dist-field textarea{font-family:var(--sans);font-size:.85rem;padding:.55rem .7rem;border:1px solid var(--border,#e5e5e5);border-radius:9px;background:var(--surface,#fff);color:var(--text,#111);outline:none}
+.dist-field input:focus,.dist-field select:focus,.dist-field textarea:focus{border-color:var(--gold-bd-h,#f5a623)}
+.dist-field.wide{grid-column:1/-1}
+.dist-form-actions{display:flex;gap:.6rem;margin-top:.9rem;flex-wrap:wrap;align-items:center}
+.dist-empty{padding:2rem 1rem;text-align:center;color:var(--muted,#777);line-height:1.6}
+.dist-status{font-size:.74rem;font-weight:700}
+.dist-status.ok{color:#2e9c5a}.dist-status.err{color:#d33}
+.dist-input-sm{width:100%;max-width:120px;font-family:var(--sans);font-size:.82rem;padding:.4rem .5rem;border:1px solid var(--border,#e5e5e5);border-radius:8px;background:var(--surface,#fff);color:var(--text,#111);outline:none}
+.dist-input-sm:focus{border-color:var(--gold-bd-h,#f5a623)}
+.dist-num{text-align:right;font-variant-numeric:tabular-nums}
+.dist-pill{display:inline-block;font-size:.64rem;font-weight:800;padding:.2rem .55rem;border-radius:999px;letter-spacing:.04em}
+.dist-pill.pend{background:#fff3d6;color:#a05f00}
+.dist-pill.recib{background:#e3f6ea;color:#1f7a44}
 </style>
 </head>
 <body>
@@ -1569,6 +1611,28 @@ body.drawer-open{overflow:hidden}
         </div>
       </div>
       <div id="munBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
+    <!-- Vista Distribuidora (proveedores · costos · márgenes · OC · comercialización) -->
+    <div class="adm-panel" id="distribuidoraView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Distribuidora</div>
+          <div class="adm-panel-meta" id="distMeta">operación de comercialización · data manual que Shopify no registra</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="btnDistReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div class="dist-subnav" id="distSubnav">
+        <button type="button" class="dist-subtab on" data-sub="proveedores">Proveedores</button>
+        <button type="button" class="dist-subtab" data-sub="costos">Costos de compra</button>
+        <button type="button" class="dist-subtab" data-sub="margenes">Márgenes</button>
+        <button type="button" class="dist-subtab" data-sub="ordenes">Órdenes de compra</button>
+        <button type="button" class="dist-subtab" data-sub="inventario">Inventario</button>
+        <button type="button" class="dist-subtab" data-sub="comercializacion">Comercialización</button>
+      </div>
+      <div id="distBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
     <!-- Vista de tutoriales (videos técnicos) -->
@@ -1930,6 +1994,7 @@ body.drawer-open{overflow:hidden}
 const BASE_SECCIONES = [
   { id:'analytics', kind:'analytics',label:'Analítica',       desc:'foto general del negocio · números y gráficos' },
   { id:'mundial',   kind:'mundial',  label:'Mundial',         desc:'predicciones del pack mundialero · quién compró y qué eligió' },
+  { id:'distribuidora', kind:'distribuidora', label:'Distribuidora', desc:'proveedores · costos · márgenes · órdenes de compra · comercialización' },
   { id:'chats',     kind:'chats',    label:'Conversaciones',  desc:'historial completo · filtros y embudo' },
   { id:'feedback',   kind:'feedback', label:'Feedback',        desc:'correcciones para entrenar a Zorbot' },
   { id:'productos',  kind:'products', label:'Productos',       desc:'catálogo Shopify · notas extra para Zorbot' },
@@ -2034,6 +2099,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'mundial') {
     showView('mundial');
     await loadMundial();
+  } else if (sec.kind === 'distribuidora') {
+    showView('distribuidora');
+    await loadDistri();
   } else if (sec.kind === 'products') {
     showView('products');
     await loadProductos();
@@ -2061,6 +2129,7 @@ function showView(kind){
   document.getElementById('chatsView').style.display      = kind === 'chats'      ? '' : 'none';
   document.getElementById('analyticsView').style.display  = kind === 'analytics'  ? '' : 'none';
   document.getElementById('mundialView').style.display    = kind === 'mundial'    ? '' : 'none';
+  document.getElementById('distribuidoraView').style.display = kind === 'distribuidora' ? '' : 'none';
   document.getElementById('feedbackView').style.display   = kind === 'feedback'   ? '' : 'none';
   document.getElementById('tutorialsView').style.display  = kind === 'tutorials'  ? '' : 'none';
   document.getElementById('webView').style.display        = kind === 'web'        ? '' : 'none';
@@ -5168,6 +5237,153 @@ function downloadMundialCsv(){
 
 document.getElementById('btnMunReload').onclick = () => loadMundial(true);
 document.getElementById('btnMunCsv').onclick = downloadMundialCsv;
+
+// ─── Distribuidora (proveedores · costos · márgenes · OC · comercialización) ──
+let distData = null;          // { suppliers, margins, productCosts, purchaseOrders, categories }
+let distSub = 'proveedores';  // sub-tab activo
+let distEditingSupplier = null;
+
+async function loadDistri(){
+  const body = document.getElementById('distBody');
+  body.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const r = await fetch('/admin/distribuidora');
+    distData = await r.json();
+    renderDistSub();
+  } catch (e) {
+    body.innerHTML = `<div class="dist-empty">Error cargando: ${escapeHtml(String(e.message||e))}</div>`;
+  }
+}
+
+function catLabel(key){
+  const c = (distData?.categories || []).find(x => x.key === key);
+  return c ? c.label : key;
+}
+
+function renderDistSub(){
+  document.querySelectorAll('#distSubnav .dist-subtab').forEach(b => {
+    b.classList.toggle('on', b.dataset.sub === distSub);
+  });
+  if (distSub === 'proveedores') return renderDistProveedores();
+  // Las demás sub-secciones llegan en las próximas partes.
+  document.getElementById('distBody').innerHTML =
+    '<div class="dist-empty">Esta sección se habilita en la próxima parte del módulo.</div>';
+}
+
+document.getElementById('distSubnav').addEventListener('click', (e) => {
+  const b = e.target.closest('.dist-subtab');
+  if (!b) return;
+  distSub = b.dataset.sub;
+  renderDistSub();
+});
+document.getElementById('btnDistReload').onclick = () => loadDistri();
+
+// ── Proveedores ──
+function renderDistProveedores(){
+  const sups = distData?.suppliers || [];
+  const cats = distData?.categories || [];
+  const catOpts = cats.map(c => `<option value="${c.key}">${escapeHtml(c.label)}</option>`).join('');
+  const ed = distEditingSupplier;
+  const v = (k) => ed ? escapeAttr(ed[k] || '') : '';
+  const sel = (k, val) => (ed && ed[k] === val) ? 'selected' : '';
+  const form = `
+    <div class="dist-form">
+      <div class="dist-sec-title">${ed ? 'Editar proveedor' : 'Nuevo proveedor / marca'}</div>
+      <div class="dist-sec-sub">Registra cada marca que distribuís (propia o de terceros) con sus datos de contacto.</div>
+      <div class="dist-form-grid" style="margin-top:.9rem">
+        <div class="dist-field"><label>Nombre de la marca</label><input id="dsName" value="${v('name')}" placeholder="Ej: Kombucha Biloba"></div>
+        <div class="dist-field"><label>Tipo</label><select id="dsType">
+          <option value="propia"  ${sel('type','propia')}>Propia</option>
+          <option value="tercero" ${sel('type','tercero')}>Tercero</option>
+        </select></div>
+        <div class="dist-field"><label>Categoría principal</label><select id="dsCat">${
+          cats.map(c => `<option value="${c.key}" ${ed && ed.category===c.key?'selected':''}>${escapeHtml(c.label)}</option>`).join('')
+        }</select></div>
+        <div class="dist-field"><label>Contacto (nombre)</label><input id="dsContact" value="${v('contactName')}" placeholder="Nombre del contacto"></div>
+        <div class="dist-field"><label>Email</label><input id="dsEmail" value="${v('email')}" placeholder="contacto@marca.cl"></div>
+        <div class="dist-field"><label>Teléfono</label><input id="dsPhone" value="${v('phone')}" placeholder="+56 9 ..."></div>
+        <div class="dist-field wide"><label>Dirección</label><input id="dsAddr" value="${v('address')}" placeholder="Calle, comuna, ciudad"></div>
+        <div class="dist-field wide"><label>Notas internas</label><textarea id="dsNotes" rows="2" placeholder="Condiciones, acuerdos, observaciones…">${ed ? escapeHtml(ed.notes || '') : ''}</textarea></div>
+      </div>
+      <div class="dist-form-actions">
+        <button class="adm-btn" id="dsSave" type="button">${ed ? 'Guardar cambios' : 'Agregar proveedor'}</button>
+        ${ed ? '<button class="adm-btn adm-btn-ghost" id="dsCancel" type="button">Cancelar</button>' : ''}
+        <span class="dist-status" id="dsStatus"></span>
+      </div>
+    </div>`;
+
+  const cards = sups.length ? `<div class="dist-grid">${sups.map(s => `
+    <div class="dist-card ${s.type}">
+      <div class="dist-card-name">${escapeHtml(s.name)}</div>
+      <div>
+        <span class="dist-badge ${s.type}">${s.type === 'propia' ? 'Propia' : 'Tercero'}</span>
+        <span class="dist-badge cat">${escapeHtml(catLabel(s.category))}</span>
+      </div>
+      <div class="dist-card-info">
+        ${s.contactName ? `<div><b>Contacto:</b> ${escapeHtml(s.contactName)}</div>` : ''}
+        ${s.email ? `<div><b>Email:</b> ${escapeHtml(s.email)}</div>` : ''}
+        ${s.phone ? `<div><b>Tel:</b> ${escapeHtml(s.phone)}</div>` : ''}
+        ${s.address ? `<div><b>Dir:</b> ${escapeHtml(s.address)}</div>` : ''}
+      </div>
+      ${s.notes ? `<div class="dist-card-notes">${escapeHtml(s.notes)}</div>` : ''}
+      <div class="dist-card-actions">
+        <button type="button" data-edit="${s.id}">Editar</button>
+        <button type="button" class="del" data-del="${s.id}">Eliminar</button>
+      </div>
+    </div>`).join('')}</div>` : '<div class="dist-empty">Todavía no hay proveedores. Agregá el primero arriba.</div>';
+
+  document.getElementById('distBody').innerHTML = form + cards;
+
+  document.getElementById('dsSave').onclick = saveDistSupplier;
+  const cancel = document.getElementById('dsCancel');
+  if (cancel) cancel.onclick = () => { distEditingSupplier = null; renderDistProveedores(); };
+  document.querySelectorAll('#distBody [data-edit]').forEach(b => {
+    b.onclick = () => { distEditingSupplier = sups.find(x => x.id === b.dataset.edit) || null; renderDistProveedores(); window.scrollTo({top:0,behavior:'smooth'}); };
+  });
+  document.querySelectorAll('#distBody [data-del]').forEach(b => {
+    b.onclick = () => deleteDistSupplier(b.dataset.del);
+  });
+}
+
+async function saveDistSupplier(){
+  const payload = {
+    name: document.getElementById('dsName').value,
+    type: document.getElementById('dsType').value,
+    category: document.getElementById('dsCat').value,
+    contactName: document.getElementById('dsContact').value,
+    email: document.getElementById('dsEmail').value,
+    phone: document.getElementById('dsPhone').value,
+    address: document.getElementById('dsAddr').value,
+    notes: document.getElementById('dsNotes').value,
+  };
+  const st = document.getElementById('dsStatus');
+  if (!payload.name.trim()) { st.className = 'dist-status err'; st.textContent = 'El nombre es obligatorio.'; return; }
+  st.className = 'dist-status'; st.textContent = 'Guardando…';
+  const ed = distEditingSupplier;
+  try {
+    const r = await fetch(ed ? `/admin/distribuidora/suppliers/${ed.id}` : '/admin/distribuidora/suppliers', {
+      method: ed ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error guardando');
+    distEditingSupplier = null;
+    await loadDistri();
+  } catch (e) {
+    st.className = 'dist-status err'; st.textContent = e.message;
+  }
+}
+
+async function deleteDistSupplier(id){
+  const s = (distData?.suppliers || []).find(x => x.id === id);
+  if (!confirm(`Eliminar el proveedor "${s ? s.name : ''}"? Esto no borra sus costos ni órdenes ya cargadas.`)) return;
+  try {
+    const r = await fetch(`/admin/distribuidora/suppliers/${id}`, { method: 'DELETE' });
+    if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Error'); }
+    await loadDistri();
+  } catch (e) { alert(e.message); }
+}
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();

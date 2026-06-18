@@ -3178,6 +3178,142 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
   res.json({ available: true, count: rows.length, rows });
 });
 
+// ─── Distribuidora / Proveedores ────────────────────────────────────────────
+// Zorbo también opera como distribuidora: le COMPRA a marcas (propias y de
+// terceros) y revende a locales. Shopify registra el sell-out (ventas) pero NO
+// lo que Zorbo le compra a los proveedores ni los costos. Toda esa data se carga
+// manual acá y se persiste en distribuidora.json (en el volumen DATA_DIR).
+const DISTRI_FILE = join(PROMPTS_EFFECTIVE_DIR, 'distribuidora.json');
+
+// Categorías canónicas → definen el margen. label para la UI.
+const DISTRI_CATEGORIES = [
+  { key: 'cerveza',     label: 'Cerveza' },
+  { key: 'licores',     label: 'Licores' },
+  { key: 'rtd',         label: 'RTD (ready to drink)' },
+  { key: 'funcionales', label: 'Bebidas y funcionales' },
+];
+const DISTRI_DEFAULT_MARGINS = { cerveza: 25, licores: 40, rtd: 30, funcionales: 30 };
+
+// Marcas conocidas para sembrar la primera vez (propias + terceros actuales).
+const DISTRI_SEED_SUPPLIERS = [
+  { name: 'Kairos Brewing',       type: 'propia',  category: 'cerveza'     },
+  { name: 'Firulais',             type: 'propia',  category: 'rtd'         },
+  { name: 'Banny',                type: 'propia',  category: 'licores'     },
+  { name: 'Kombucha Biloba',      type: 'tercero', category: 'funcionales' },
+  { name: 'Cervecería del Puerto',type: 'tercero', category: 'cerveza'     },
+  { name: 'Destilería Zunda',     type: 'tercero', category: 'licores'     },
+];
+
+function distriDefaults(){
+  const now = new Date().toISOString();
+  return {
+    version: 1,
+    suppliers: DISTRI_SEED_SUPPLIERS.map(s => ({
+      id: randomUUID(),
+      name: s.name,
+      type: s.type,
+      category: s.category,
+      contactName: '', email: '', phone: '', address: '',
+      notes: '',
+      createdAt: now, updatedAt: now,
+    })),
+    margins: { ...DISTRI_DEFAULT_MARGINS },
+    productCosts: {},   // productId → { cost, category, dispatch, updatedAt }
+    purchaseOrders: [], // { id, supplierId, supplierName, date, status, items:[], total, notes, ... }
+  };
+}
+
+function loadDistri(){
+  try {
+    if (!existsSync(DISTRI_FILE)) {
+      const seeded = distriDefaults();
+      saveDistri(seeded);
+      return seeded;
+    }
+    const parsed = JSON.parse(readFileSync(DISTRI_FILE, 'utf-8'));
+    // normaliza estructura por si falta alguna llave
+    return {
+      version: 1,
+      suppliers: Array.isArray(parsed.suppliers) ? parsed.suppliers : [],
+      margins: { ...DISTRI_DEFAULT_MARGINS, ...(parsed.margins || {}) },
+      productCosts: (parsed.productCosts && typeof parsed.productCosts === 'object') ? parsed.productCosts : {},
+      purchaseOrders: Array.isArray(parsed.purchaseOrders) ? parsed.purchaseOrders : [],
+    };
+  } catch (e) {
+    console.warn('distribuidora load:', e.message);
+    return distriDefaults();
+  }
+}
+function saveDistri(data){
+  if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) {
+    mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true });
+  }
+  writeFileSync(DISTRI_FILE, JSON.stringify(data, null, 2));
+}
+
+function isDistriCategory(k){ return DISTRI_CATEGORIES.some(c => c.key === k); }
+const distriStr = (v, max = 400) => String(v == null ? '' : v).trim().slice(0, max);
+
+// Estado completo del módulo (config). Las tablas que derivan de productos
+// Shopify (costos, inventario, comercialización) usan /admin/distribuidora/products.
+app.get('/admin/distribuidora', requireAdmin, (_req, res) => {
+  const d = loadDistri();
+  res.json({ ...d, categories: DISTRI_CATEGORIES });
+});
+
+// ── Proveedores (CRUD) ──
+app.post('/admin/distribuidora/suppliers', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const name = distriStr(b.name, 120);
+  if (!name) return res.status(400).json({ error: 'El nombre de la marca es obligatorio.' });
+  const type = b.type === 'tercero' ? 'tercero' : 'propia';
+  const category = isDistriCategory(b.category) ? b.category : 'cerveza';
+  const now = new Date().toISOString();
+  const supplier = {
+    id: randomUUID(),
+    name, type, category,
+    contactName: distriStr(b.contactName, 120),
+    email: distriStr(b.email, 160),
+    phone: distriStr(b.phone, 60),
+    address: distriStr(b.address, 240),
+    notes: distriStr(b.notes, 2000),
+    createdAt: now, updatedAt: now,
+  };
+  const d = loadDistri();
+  d.suppliers.push(supplier);
+  saveDistri(d);
+  res.json({ ok: true, supplier });
+});
+
+app.put('/admin/distribuidora/suppliers/:id', requireAdmin, (req, res) => {
+  const id = String(req.params.id);
+  const b = req.body || {};
+  const d = loadDistri();
+  const s = d.suppliers.find(x => x.id === id);
+  if (!s) return res.status(404).json({ error: 'Proveedor no encontrado.' });
+  if (b.name !== undefined) { const n = distriStr(b.name, 120); if (!n) return res.status(400).json({ error: 'El nombre no puede quedar vacío.' }); s.name = n; }
+  if (b.type !== undefined) s.type = b.type === 'tercero' ? 'tercero' : 'propia';
+  if (b.category !== undefined && isDistriCategory(b.category)) s.category = b.category;
+  if (b.contactName !== undefined) s.contactName = distriStr(b.contactName, 120);
+  if (b.email !== undefined) s.email = distriStr(b.email, 160);
+  if (b.phone !== undefined) s.phone = distriStr(b.phone, 60);
+  if (b.address !== undefined) s.address = distriStr(b.address, 240);
+  if (b.notes !== undefined) s.notes = distriStr(b.notes, 2000);
+  s.updatedAt = new Date().toISOString();
+  saveDistri(d);
+  res.json({ ok: true, supplier: s });
+});
+
+app.delete('/admin/distribuidora/suppliers/:id', requireAdmin, (req, res) => {
+  const id = String(req.params.id);
+  const d = loadDistri();
+  const before = d.suppliers.length;
+  d.suppliers = d.suppliers.filter(x => x.id !== id);
+  if (d.suppliers.length === before) return res.status(404).json({ error: 'Proveedor no encontrado.' });
+  saveDistri(d);
+  res.json({ ok: true });
+});
+
 // ─── Analítica del BOT (uso desde conversations.json) ───────────────────────
 // Orden = prioridad de clasificación (la primera que matchea gana). Reclamos
 // y envío van primero para que "mi pedido no llegó" caiga en reclamo, no en
