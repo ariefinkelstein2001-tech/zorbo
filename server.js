@@ -3757,6 +3757,80 @@ app.get('/admin/ads/google', requireAdmin, async (_req, res) => {
   }
 });
 
+// ── Meta Ads (Facebook / Instagram) ──
+// Graph API de Marketing. Con un token de larga duración + el ID de la cuenta
+// publicitaria alcanza para LEER insights (no creamos ni editamos campañas).
+const META_API_VERSION = process.env.META_API_VERSION || 'v21.0';
+function metaConfigured(){
+  return !!(process.env.META_ACCESS_TOKEN && process.env.META_AD_ACCOUNT_ID);
+}
+// Tipos de acción de "compra" en Meta — tomamos el primero presente para no
+// contar la misma conversión dos veces.
+const META_PURCHASE_PRIORITY = ['omni_purchase', 'purchase', 'offsite_conversion.fb_pixel_purchase', 'onsite_web_purchase'];
+function metaPickAction(actions){
+  if (!Array.isArray(actions)) return 0;
+  for (const t of META_PURCHASE_PRIORITY) {
+    const a = actions.find(x => x.action_type === t);
+    if (a) return Number(a.value || 0);
+  }
+  return 0;
+}
+async function loadMetaCampaigns(){
+  const acct = String(process.env.META_AD_ACCOUNT_ID).replace(/^act_/, '');
+  const fields = 'campaign_id,campaign_name,spend,impressions,reach,clicks,ctr,cpc,frequency,actions,action_values';
+  const url = `https://graph.facebook.com/${META_API_VERSION}/act_${acct}/insights`
+    + `?level=campaign&date_preset=last_30d&limit=200`
+    + `&fields=${encodeURIComponent(fields)}`
+    + `&access_token=${encodeURIComponent(process.env.META_ACCESS_TOKEN)}`;
+  const r = await fetch(url);
+  const j = await r.json().catch(() => ({}));
+  if (j.error) throw new Error(j.error.message || 'Error de Meta');
+  const rows = Array.isArray(j.data) ? j.data : [];
+  const campaigns = rows.map(row => {
+    const spend = Number(row.spend || 0);
+    const impressions = Number(row.impressions || 0);
+    const reach = Number(row.reach || 0);
+    const clicks = Number(row.clicks || 0);
+    const conversions = metaPickAction(row.actions);
+    const convValue = metaPickAction(row.action_values);
+    const ctr = row.ctr != null ? Number(row.ctr) : (impressions ? clicks / impressions * 100 : 0);
+    const cpc = row.cpc != null ? Number(row.cpc) : (clicks ? spend / clicks : 0);
+    const frequency = row.frequency != null ? Number(row.frequency) : 0;
+    const cpa = conversions ? spend / conversions : 0;
+    const roas = spend ? convValue / spend : 0;
+    const c = {
+      id: row.campaign_id, name: row.campaign_name || '(sin nombre)',
+      spend: Math.round(spend), impressions, reach, clicks,
+      conversions, convValue: Math.round(convValue),
+      ctr: +ctr.toFixed(2), cpc: Math.round(cpc), frequency: +frequency.toFixed(2),
+      cpa: Math.round(cpa), roas: +roas.toFixed(2),
+    };
+    c.light = adLight(c);
+    return c;
+  }).sort((a, b) => b.spend - a.spend);
+  const totals = campaigns.reduce((t, c) => ({
+    spend: t.spend + c.spend, impressions: t.impressions + c.impressions, reach: t.reach + c.reach,
+    clicks: t.clicks + c.clicks, conversions: t.conversions + c.conversions, convValue: t.convValue + c.convValue,
+  }), { spend: 0, impressions: 0, reach: 0, clicks: 0, conversions: 0, convValue: 0 });
+  return { campaigns, totals };
+}
+
+app.get('/admin/ads/meta', requireAdmin, async (_req, res) => {
+  if (!metaConfigured()) {
+    return res.json({
+      connected: false,
+      reason: 'Falta conectar Meta Ads (variables de entorno en Railway).',
+      envVars: ['META_ACCESS_TOKEN', 'META_AD_ACCOUNT_ID', 'META_APP_ID (opcional)', 'META_APP_SECRET (opcional)'],
+    });
+  }
+  try {
+    const data = await loadMetaCampaigns();
+    res.json({ connected: true, currency: 'CLP', range: 'últimos 30 días', ...data });
+  } catch (e) {
+    res.json({ connected: true, error: 'Meta respondió un error: ' + String(e.message || e).slice(0, 240) });
+  }
+});
+
 // ─── PORTAL DEL PROVEEDOR (Fase 2) ──────────────────────────────────────────
 // Portal SEPARADO del /admin. Cada marca entra con su propio login y ve SOLO su
 // data. Sesión con cookie propia (zprov), distinta a la del admin (zadm).

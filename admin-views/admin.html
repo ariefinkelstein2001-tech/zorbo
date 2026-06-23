@@ -6019,8 +6019,8 @@ async function loadAds(){
 function renderAdsSub(){
   document.querySelectorAll('#adsSubnav .dist-subtab').forEach(b => b.classList.toggle('on', b.dataset.asub === adsSub));
   if (adsSub === 'google') return renderAdsGoogle();
+  if (adsSub === 'meta') return renderAdsMeta();
   const labels = {
-    meta: 'Meta Ads (Facebook / Instagram)',
     ia: 'Recomendaciones con IA',
     creativos: 'Feedback de creativos',
   };
@@ -6118,6 +6118,87 @@ async function renderAdsGoogle(){
     <div class="mun-count">${camps.length} campañas activas · ${escapeHtml(d.range||'')} · moneda ${escapeHtml(d.currency||'CLP')}</div>
     <div class="mun-wrap"><table class="mun-table">
       <thead><tr><th></th><th>Campaña</th><th style="text-align:right">Gasto</th><th style="text-align:right">Impr.</th><th style="text-align:right">Clicks</th><th style="text-align:right">CTR</th><th style="text-align:right">CPC</th><th style="text-align:right">Conv.</th><th style="text-align:right">CPA</th><th style="text-align:right">ROAS</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+const ADS_META_LEGEND = `
+  <div class="ads-legend">
+    <div class="ads-legend-tt">Qué significa cada métrica</div>
+    <div class="ads-legend-item"><b>Gasto:</b> lo invertido en la campaña (últimos 30 días).</div>
+    <div class="ads-legend-item"><b>Alcance:</b> personas distintas que vieron tu anuncio (no se repiten).</div>
+    <div class="ads-legend-item"><b>Impresiones:</b> veces totales que se mostró (una persona puede verlo varias veces).</div>
+    <div class="ads-legend-item"><b>Frecuencia:</b> cuántas veces vio el anuncio cada persona en promedio. Sobre 3–4 suele cansar a la audiencia (fatiga); conviene refrescar el creativo.</div>
+    <div class="ads-legend-item"><b>CTR:</b> % de los que vieron y tocaron. En redes &gt;1% es bueno.</div>
+    <div class="ads-legend-item"><b>CPC:</b> cuánto pagas por click.</div>
+    <div class="ads-legend-item"><b>Conversiones:</b> compras atribuidas por el píxel. Es lo que de verdad cuenta.</div>
+    <div class="ads-legend-item"><b>CPA:</b> costo por compra. Debe ser menor a lo que te deja la venta.</div>
+    <div class="ads-legend-item"><b>ROAS:</b> venta por cada $1 invertido. &gt;3 muy bueno, 1,5–3 aceptable, &lt;1,5 revisar.</div>
+    <div class="ads-legend-item"><span class="ads-light green"></span> <b>Verde</b> rinde · <span class="ads-light yellow"></span> <b>Amarillo</b> vigilar · <span class="ads-light red"></span> <b>Rojo</b> gasta sin retorno.</div>
+  </div>`;
+
+async function renderAdsMeta(){
+  const body = document.getElementById('adsBody');
+  body.innerHTML = '<div class="adm-loading">Cargando campañas de Meta Ads…</div>';
+  let d;
+  try { d = await (await fetch('/admin/ads/meta')).json(); }
+  catch (e) { body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+
+  if (!d.connected) {
+    const envs = (d.envVars || []).map(v => `<div><b>${escapeHtml(v.split(' ')[0])}</b>${v.includes('(')?(' '+escapeHtml(v.slice(v.indexOf('(')))):''}</div>`).join('');
+    body.innerHTML = `
+      <div class="ads-empty">
+        <div class="ads-empty-ic">📱</div>
+        <div class="ads-empty-t">Conecta tu cuenta de Meta Ads</div>
+        <div class="ads-empty-d">Cuando conectes la cuenta vas a ver acá las campañas de Facebook e Instagram con sus métricas (alcance, frecuencia, conversiones) y el semáforo de rendimiento. Necesitás conseguir esto y cargarlo como variables de entorno en Railway:</div>
+        <div class="ads-steps">
+          <div class="ads-step"><span class="ads-step-n">1</span><span><b>Cuenta publicitaria:</b> en Meta Business Suite → Configuración del negocio → Cuentas publicitarias. El ID se ve como <b>act_1234567890</b>.</span></div>
+          <div class="ads-step"><span class="ads-step-n">2</span><span><b>App de Meta:</b> en developers.facebook.com creá una app (tipo Negocio) y agregá el producto <b>Marketing API</b>.</span></div>
+          <div class="ads-step"><span class="ads-step-n">3</span><span><b>Access token de larga duración:</b> idealmente un token de <b>usuario del sistema</b> (System User) en Business Manager con permiso <b>ads_read</b> sobre la cuenta publicitaria. Ese token no expira si lo generás como System User.</span></div>
+          <div class="ads-step"><span class="ads-step-n">4</span><span>(Opcional) <b>App ID y App Secret</b> de la app, por si más adelante hay que renovar tokens automáticamente.</span></div>
+        </div>
+        <div class="ads-envs">${envs}</div>
+        <div class="ads-note">Cargá esas variables en Railway → tu servicio → Variables, y recargá esta sección. Solo pedimos permiso de <b>lectura</b> (ads_read): el Centro de Ads nunca crea ni edita campañas.</div>
+      </div>`;
+    return;
+  }
+  if (d.error) {
+    body.innerHTML = `<div class="dist-empty">⚠ ${escapeHtml(d.error)}<br><span style="font-size:.78rem;color:#888">Revisá el token (permiso ads_read) y el ID de la cuenta publicitaria.</span></div>`;
+    return;
+  }
+
+  const t = d.totals || {};
+  const camps = d.campaigns || [];
+  const ctrTot = t.impressions ? (t.clicks/t.impressions*100).toFixed(2) : '0';
+  const roasTot = t.spend ? (t.convValue/t.spend).toFixed(2) : '0';
+  const budgetLeft = adsConfig.monthlyBudget - t.spend;
+  const rows = camps.length ? camps.map(c => `
+    <tr>
+      <td><span class="ads-light ${c.light}"></span></td>
+      <td>${escapeHtml(c.name)}</td>
+      <td class="dist-num">${distMoney(c.spend)}</td>
+      <td class="dist-num">${(c.reach||0).toLocaleString('es-CL')}</td>
+      <td class="dist-num">${(c.impressions||0).toLocaleString('es-CL')}</td>
+      <td class="dist-num">${c.frequency||0}</td>
+      <td class="dist-num">${c.ctr}%</td>
+      <td class="dist-num">${distMoney(c.cpc)}</td>
+      <td class="dist-num">${(c.conversions||0).toLocaleString('es-CL')}</td>
+      <td class="dist-num">${c.conversions? distMoney(c.cpa):'—'}</td>
+      <td class="dist-num">${c.convValue>0? (c.roas+'x'):'—'}</td>
+    </tr>`).join('') : `<tr><td colspan="11" style="text-align:center;padding:1.5rem;color:#888">No hay campañas con datos en los últimos 30 días.</td></tr>`;
+
+  body.innerHTML = `
+    <div class="ads-kpis">
+      <div class="ads-kpi"><div class="ads-kpi-l">Gasto 30 días</div><div class="ads-kpi-v">${distMoney(t.spend||0)}</div></div>
+      <div class="ads-kpi"><div class="ads-kpi-l">Presupuesto restante</div><div class="ads-kpi-v" style="color:${budgetLeft<0?'#d33':'#2e9c5a'}">${distMoney(budgetLeft)}</div></div>
+      <div class="ads-kpi"><div class="ads-kpi-l">Alcance</div><div class="ads-kpi-v">${(t.reach||0).toLocaleString('es-CL')}</div></div>
+      <div class="ads-kpi"><div class="ads-kpi-l">Conversiones</div><div class="ads-kpi-v">${(t.conversions||0).toLocaleString('es-CL')}</div></div>
+      <div class="ads-kpi"><div class="ads-kpi-l">ROAS</div><div class="ads-kpi-v">${t.convValue>0?roasTot+'x':'—'}</div></div>
+    </div>
+    ${ADS_META_LEGEND}
+    <div class="mun-count">${camps.length} campañas · ${escapeHtml(d.range||'')} · moneda ${escapeHtml(d.currency||'CLP')}</div>
+    <div class="mun-wrap"><table class="mun-table">
+      <thead><tr><th></th><th>Campaña</th><th style="text-align:right">Gasto</th><th style="text-align:right">Alcance</th><th style="text-align:right">Impr.</th><th style="text-align:right">Frec.</th><th style="text-align:right">CTR</th><th style="text-align:right">CPC</th><th style="text-align:right">Conv.</th><th style="text-align:right">CPA</th><th style="text-align:right">ROAS</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
 }
