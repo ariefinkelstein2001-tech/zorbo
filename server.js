@@ -3639,7 +3639,12 @@ app.put('/admin/ads/config', requireAdmin, (req, res) => {
 
 // ── Google Ads ──
 // Usa la API REST (sin librerías): refresh_token → access_token → searchStream.
-const GOOGLE_ADS_API_VERSION = process.env.GOOGLE_ADS_API_VERSION || 'v18';
+// Si el usuario fija GOOGLE_ADS_API_VERSION la respetamos; si no, probamos de
+// la más nueva a la más vieja hasta que una no devuelva 404 (Google va
+// sacando versiones viejas con el tiempo).
+const GOOGLE_ADS_VERSIONS = process.env.GOOGLE_ADS_API_VERSION
+  ? [process.env.GOOGLE_ADS_API_VERSION]
+  : ['v21', 'v20', 'v19', 'v18', 'v17'];
 function googleAdsConfigured(){
   return !!(process.env.GOOGLE_ADS_DEVELOPER_TOKEN
     && process.env.GOOGLE_ADS_CLIENT_ID
@@ -3694,15 +3699,29 @@ async function loadGoogleAdsCampaigns(){
   if (process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID) {
     headers['login-customer-id'] = String(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID).replace(/-/g, '');
   }
-  const r = await fetch(`https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cid}/googleAds:searchStream`, {
-    method: 'POST', headers, body: JSON.stringify({ query }),
-  });
-  const text = await r.text();
-  if (!r.ok) {
-    let msg = text;
-    try { const j = JSON.parse(text); msg = j.error?.message || j[0]?.error?.message || text; } catch {}
+  let resp = null;
+  for (const v of GOOGLE_ADS_VERSIONS) {
+    const r = await fetch(`https://googleads.googleapis.com/${v}/customers/${cid}/googleAds:searchStream`, {
+      method: 'POST', headers, body: JSON.stringify({ query }),
+    });
+    const text = await r.text();
+    // 404 con HTML genérico = versión inexistente → probar la siguiente.
+    if (r.status === 404 && !/^\s*[\[{]/.test(text)) { resp = { status: r.status, ok: false, text }; continue; }
+    resp = { status: r.status, ok: r.ok, text }; break;
+  }
+  if (!resp) throw new Error('No se pudo contactar la API de Google Ads.');
+  if (resp.status === 404) {
+    throw new Error('Ninguna versión de la API de Google Ads respondió (probá fijar GOOGLE_ADS_API_VERSION con una versión vigente).');
+  }
+  if (!resp.ok) {
+    let msg = resp.text;
+    try { const j = JSON.parse(resp.text); msg = j.error?.message || j[0]?.error?.message || resp.text; } catch {}
+    if (/developer token|test account|not approved|DEVELOPER_TOKEN/i.test(msg)) {
+      throw new Error('El developer token todavía está en acceso de prueba (Google aún no aprueba el acceso básico). Apenas lo aprueben, recargá y aparecen las campañas.');
+    }
     throw new Error(msg.slice(0, 240));
   }
+  const text = resp.text;
   let chunks; try { chunks = JSON.parse(text); } catch { chunks = []; }
   const byId = new Map();
   for (const chunk of (Array.isArray(chunks) ? chunks : [])) {
@@ -3828,6 +3847,77 @@ app.get('/admin/ads/meta', requireAdmin, async (_req, res) => {
     res.json({ connected: true, currency: 'CLP', range: 'últimos 30 días', ...data });
   } catch (e) {
     res.json({ connected: true, error: 'Meta respondió un error: ' + String(e.message || e).slice(0, 240) });
+  }
+});
+
+// ── Recomendaciones con IA (reparto del presupuesto) ──
+async function gatherAdsData(){
+  const out = {};
+  if (googleAdsConfigured()) {
+    try { out.google = await loadGoogleAdsCampaigns(); } catch (e) { out.googleError = String(e.message || e); }
+  }
+  if (metaConfigured()) {
+    try { out.meta = await loadMetaCampaigns(); } catch (e) { out.metaError = String(e.message || e); }
+  }
+  return out;
+}
+
+app.post('/admin/ads/recommendations', requireAdmin, async (_req, res) => {
+  const data = await gatherAdsData();
+  const gCamps = (data.google && data.google.campaigns) || [];
+  const mCamps = (data.meta && data.meta.campaigns) || [];
+  if (!gCamps.length && !mCamps.length) {
+    return res.json({
+      available: false,
+      reason: data.googleError || data.metaError
+        ? 'Las plataformas todavía no devuelven datos (puede faltar la aprobación de Google o revisar las credenciales).'
+        : 'No hay campañas conectadas todavía. Conectá Google Ads o Meta Ads para que la IA pueda analizar.',
+    });
+  }
+  const budget = loadAdsConfig().monthlyBudget;
+  const slim = [
+    ...gCamps.map(c => ({ plataforma:'Google', campana:c.name, gasto:c.spend, impresiones:c.impressions, clicks:c.clicks, ctr:c.ctr, cpc:c.cpc, conversiones:c.conversions, cpa:c.cpa, roas:c.roas })),
+    ...mCamps.map(c => ({ plataforma:'Meta', campana:c.name, gasto:c.spend, alcance:c.reach, impresiones:c.impressions, frecuencia:c.frequency, clicks:c.clicks, ctr:c.ctr, cpc:c.cpc, conversiones:c.conversions, cpa:c.cpa, roas:c.roas })),
+  ];
+
+  const schema = `{
+  "resumen": "2 o 3 frases en lenguaje simple sobre cómo viene la inversión",
+  "allocation": [ { "campana": "nombre exacto", "plataforma": "Google" o "Meta", "gasto_actual": numero, "sugerido": numero, "accion": "subir|bajar|mantener|pausar", "porque": "una frase simple" } ],
+  "abrir": ["ideas de campañas nuevas a evaluar, o [] si no aplica"],
+  "hacer": ["acciones concretas a hacer ya"],
+  "no_hacer": ["errores a evitar"]
+}`;
+
+  const sys = `Sos el estratega de medios pagados (paid ads) de Zorbo, la plataforma de Kairos Brewing. Analizás datos REALES de campañas de Google Ads y Meta Ads y recomendás cómo repartir el presupuesto mensual para vender más sin malgastar plata. Hablás en español de Chile, simple y directo, para alguien que NO es experto en ads. NUNCA uses signos de apertura (¿ ¡), solo los de cierre.
+
+Criterios (mejores prácticas de paid ads):
+- Lo que importa son las CONVERSIONES y el ROAS, no las impresiones ni los clicks (esas son métricas de vanidad).
+- Cortá rápido lo que gasta y no convierte (ROAS bajo o conversiones en cero con gasto alto): pausar o bajar presupuesto.
+- Escalá de a poco lo que rinde (ROAS alto): subir presupuesto, pero no más de ~20-30% por vez para no romper el aprendizaje de la campaña.
+- No dejes plata en campañas con CPA mayor a lo que deja la venta.
+- En Meta, si la frecuencia es alta (mayor a 3 o 4) hay fatiga de audiencia: recomendá refrescar el creativo, no solo subir plata.
+- La suma de los montos "sugerido" de las campañas que NO pausás debe acercarse al presupuesto total mensual.
+- NO prometas viralidad ni resultados garantizados. Basate SOLO en los datos entregados; si hay poca data, decilo.
+
+Devolvé SOLO un JSON válido, sin texto extra y sin markdown, con esta forma EXACTA:
+${schema}
+Los montos van en pesos chilenos enteros (sin puntos ni símbolos). "accion" debe ser uno de: subir, bajar, mantener, pausar.`;
+
+  const userMsg = `Presupuesto mensual total a repartir: ${budget} (CLP).\n\nCampañas activas (datos reales, últimos 30 días):\n${JSON.stringify(slim, null, 1)}\n\nDevolvé SOLO el JSON pedido.`;
+
+  try {
+    const msg = await client.messages.create({
+      model: 'claude-sonnet-4-6', max_tokens: 2500, system: sys,
+      messages: [{ role: 'user', content: userMsg }],
+    });
+    let txt = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim();
+    txt = txt.replace(/^```(?:json)?\s*/i, '').replace(/```$/, '').trim();
+    let parsed = null;
+    try { parsed = JSON.parse(txt); } catch {}
+    if (!parsed) return res.json({ available: true, budget, generatedAt: new Date().toISOString(), raw: txt });
+    res.json({ available: true, budget, generatedAt: new Date().toISOString(), ...parsed });
+  } catch (e) {
+    res.status(500).json({ error: 'Error generando recomendaciones: ' + String(e.message || e).slice(0, 200) });
   }
 });
 

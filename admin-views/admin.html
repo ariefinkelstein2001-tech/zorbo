@@ -1477,6 +1477,23 @@ body.drawer-open{overflow:hidden}
 .ads-legend-item{font-size:.76rem;color:var(--muted,#555);line-height:1.45}
 .ads-legend-item b{color:var(--text,#111)}
 .ads-legend-tt{font-family:var(--display,inherit);font-weight:800;font-size:.8rem;color:var(--text,#111);margin-bottom:.4rem;grid-column:1/-1}
+/* IA recomendaciones */
+.ads-ia-intro{background:var(--surface2,#fafafa);border:1px solid var(--line,#eee);border-radius:14px;padding:1.2rem 1.3rem;margin-bottom:1rem}
+.ads-ia-intro-t{font-family:var(--display,inherit);font-size:1.05rem;font-weight:800}
+.ads-ia-intro-d{font-size:.84rem;color:var(--muted,#555);line-height:1.55;margin:.3rem 0 .9rem}
+.ads-ia-card{background:linear-gradient(135deg,#fff8ec,#fff);border:1px solid var(--gold-bd,#f1c97b);border-radius:14px;padding:1.1rem 1.3rem;margin-bottom:1.2rem}
+.ads-ia-resumen{font-size:.95rem;line-height:1.6;color:var(--text,#222)}
+.ads-ia-sech{font-family:var(--display,inherit);font-size:.95rem;font-weight:800;margin:1.3rem 0 .5rem;color:var(--text,#111)}
+.ads-act{display:inline-block;font-size:.66rem;font-weight:800;padding:.18rem .5rem;border-radius:999px;letter-spacing:.03em}
+.ads-ia-cols{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1rem 0}
+@media(max-width:760px){.ads-ia-cols{grid-template-columns:1fr}}
+.ads-ia-col{border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.9rem 1.1rem;background:var(--surface,#fff)}
+.ads-ia-colh{font-family:var(--display,inherit);font-weight:800;font-size:.86rem;margin-bottom:.4rem}
+.ads-ia-colh.good{color:#1f7a44}.ads-ia-colh.bad{color:#b32020}
+.ads-ia-list{margin:0;padding-left:1.1rem}
+.ads-ia-list li{font-size:.86rem;line-height:1.5;color:var(--text,#333);margin-bottom:.35rem}
+.ads-ia-none{font-size:.84rem;color:var(--dim,#999)}
+.ads-ia-foot{font-size:.74rem;color:var(--dim,#999);margin-top:1.2rem;line-height:1.5}
 </style>
 </head>
 <body>
@@ -6020,8 +6037,8 @@ function renderAdsSub(){
   document.querySelectorAll('#adsSubnav .dist-subtab').forEach(b => b.classList.toggle('on', b.dataset.asub === adsSub));
   if (adsSub === 'google') return renderAdsGoogle();
   if (adsSub === 'meta') return renderAdsMeta();
+  if (adsSub === 'ia') return renderAdsIA();
   const labels = {
-    ia: 'Recomendaciones con IA',
     creativos: 'Feedback de creativos',
   };
   document.getElementById('adsBody').innerHTML =
@@ -6201,6 +6218,79 @@ async function renderAdsMeta(){
       <thead><tr><th></th><th>Campaña</th><th style="text-align:right">Gasto</th><th style="text-align:right">Alcance</th><th style="text-align:right">Impr.</th><th style="text-align:right">Frec.</th><th style="text-align:right">CTR</th><th style="text-align:right">CPC</th><th style="text-align:right">Conv.</th><th style="text-align:right">CPA</th><th style="text-align:right">ROAS</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
+}
+
+// ── Recomendaciones con IA ──
+function renderAdsIA(){
+  document.getElementById('adsBody').innerHTML = `
+    <div class="ads-ia-intro">
+      <div class="ads-ia-intro-t">Recomendaciones con IA</div>
+      <div class="ads-ia-intro-d">Claude analiza tus campañas reales de Google y Meta y te dice cómo repartir los <b>${distMoney(adsConfig.monthlyBudget)}</b> del mes: qué escalar, qué pausar y por qué. Analiza y recomienda — los cambios los hacés vos en cada plataforma.</div>
+      <button class="adm-btn" id="iaGenBtn" type="button">Generar recomendaciones</button>
+      <span class="dist-status" id="iaStatus" style="margin-left:.6rem"></span>
+    </div>
+    <div id="iaResult"></div>`;
+  document.getElementById('iaGenBtn').onclick = genAdsIA;
+}
+
+async function genAdsIA(){
+  const btn = document.getElementById('iaGenBtn');
+  const st = document.getElementById('iaStatus');
+  const out = document.getElementById('iaResult');
+  btn.disabled = true; st.className = 'dist-status'; st.textContent = '';
+  out.innerHTML = '<div class="adm-loading">La IA está analizando tus campañas…</div>';
+  try {
+    const r = await fetch('/admin/ads/recommendations', { method:'POST' });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    if (!d.available) { out.innerHTML = `<div class="dist-empty">${escapeHtml(d.reason||'No disponible todavía.')}</div>`; return; }
+    renderIAResult(d);
+  } catch (e) {
+    out.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function renderIAResult(d){
+  if (d.raw) {
+    document.getElementById('iaResult').innerHTML =
+      `<div class="ads-ia-card"><div class="ads-ia-resumen">${escapeHtml(d.raw)}</div></div>`;
+    return;
+  }
+  const actionPill = (a) => {
+    const map = { subir:['#1f7a44','#e3f6ea','Subir'], bajar:['#a05f00','#fff3d6','Bajar'], mantener:['#555','#eee','Mantener'], pausar:['#b32020','#fdecec','Pausar'] };
+    const m = map[a] || map.mantener;
+    return `<span class="ads-act" style="color:${m[0]};background:${m[1]}">${m[2]}</span>`;
+  };
+  const totalSug = (d.allocation||[]).filter(a=>a.accion!=='pausar').reduce((s,a)=>s+(Number(a.sugerido)||0),0);
+  const rows = (d.allocation||[]).map(a => `
+    <tr>
+      <td>${escapeHtml(a.campana||'')}<div class="mun-meta-cell">${escapeHtml(a.plataforma||'')}</div></td>
+      <td class="dist-num">${distMoney(a.gasto_actual||0)}</td>
+      <td class="dist-num"><b>${a.accion==='pausar'?'—':distMoney(a.sugerido||0)}</b></td>
+      <td>${actionPill(a.accion)}</td>
+      <td style="font-size:.82rem;color:#555">${escapeHtml(a.porque||'')}</td>
+    </tr>`).join('');
+  const list = (arr) => (arr&&arr.length) ? '<ul class="ads-ia-list">'+arr.map(x=>`<li>${escapeHtml(x)}</li>`).join('')+'</ul>' : '<div class="ads-ia-none">Nada por ahora.</div>';
+
+  document.getElementById('iaResult').innerHTML = `
+    <div class="ads-ia-card">
+      <div class="ads-ia-resumen">${escapeHtml(d.resumen||'')}</div>
+    </div>
+    <div class="ads-ia-sech">Reparto sugerido del presupuesto</div>
+    <div class="mun-count">Presupuesto mensual ${distMoney(d.budget)} · suma sugerida (sin pausadas) ${distMoney(totalSug)}</div>
+    <div class="mun-wrap"><table class="mun-table">
+      <thead><tr><th>Campaña</th><th style="text-align:right">Gasto actual</th><th style="text-align:right">Sugerido</th><th>Acción</th><th>Por qué</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <div class="ads-ia-cols">
+      <div class="ads-ia-col"><div class="ads-ia-colh good">Qué hacer</div>${list(d.hacer)}</div>
+      <div class="ads-ia-col"><div class="ads-ia-colh bad">Qué no hacer</div>${list(d.no_hacer)}</div>
+    </div>
+    <div class="ads-ia-sech">Campañas nuevas a evaluar</div>
+    ${list(d.abrir)}
+    <div class="ads-ia-foot">Generado por IA sobre tus datos reales · ${new Date(d.generatedAt).toLocaleString('es-CL')} · revisá siempre antes de aplicar cambios.</div>`;
 }
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
