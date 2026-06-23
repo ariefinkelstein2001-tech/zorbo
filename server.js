@@ -3605,6 +3605,158 @@ app.delete('/admin/puntos-venta/:id', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── Centro de Ads (Marketing) ──────────────────────────────────────────────
+// Analiza y recomienda sobre las campañas de Google Ads y Meta Ads. NO crea ni
+// edita campañas (eso se hace en las plataformas). Presupuesto mensual editable
+// (default $2.000.000 CLP) que la IA usa para repartir.
+const ADS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'ads.json');
+const ADS_DEFAULT_BUDGET = 2000000;
+function loadAdsConfig(){
+  try {
+    if (!existsSync(ADS_FILE)) return { monthlyBudget: ADS_DEFAULT_BUDGET };
+    const p = JSON.parse(readFileSync(ADS_FILE, 'utf-8'));
+    return { monthlyBudget: Number(p.monthlyBudget) > 0 ? Number(p.monthlyBudget) : ADS_DEFAULT_BUDGET };
+  } catch { return { monthlyBudget: ADS_DEFAULT_BUDGET }; }
+}
+function saveAdsConfig(d){
+  if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true });
+  writeFileSync(ADS_FILE, JSON.stringify(d, null, 2));
+}
+
+app.get('/admin/ads/config', requireAdmin, (_req, res) => {
+  res.json({ ...loadAdsConfig(), currency: 'CLP' });
+});
+app.put('/admin/ads/config', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const monthlyBudget = Number(b.monthlyBudget);
+  if (!Number.isFinite(monthlyBudget) || monthlyBudget < 0 || monthlyBudget > 1e10) {
+    return res.status(400).json({ error: 'Presupuesto inválido.' });
+  }
+  const cfg = { monthlyBudget: Math.round(monthlyBudget) };
+  saveAdsConfig(cfg);
+  res.json({ ok: true, ...cfg });
+});
+
+// ── Google Ads ──
+// Usa la API REST (sin librerías): refresh_token → access_token → searchStream.
+const GOOGLE_ADS_API_VERSION = process.env.GOOGLE_ADS_API_VERSION || 'v18';
+function googleAdsConfigured(){
+  return !!(process.env.GOOGLE_ADS_DEVELOPER_TOKEN
+    && process.env.GOOGLE_ADS_CLIENT_ID
+    && process.env.GOOGLE_ADS_CLIENT_SECRET
+    && process.env.GOOGLE_ADS_REFRESH_TOKEN
+    && process.env.GOOGLE_ADS_CUSTOMER_ID);
+}
+async function googleAdsAccessToken(){
+  const r = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id: process.env.GOOGLE_ADS_CLIENT_ID,
+      client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET,
+      refresh_token: process.env.GOOGLE_ADS_REFRESH_TOKEN,
+      grant_type: 'refresh_token',
+    }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!j.access_token) throw new Error(j.error_description || j.error || 'No se pudo autenticar con Google (revisá el refresh token).');
+  return j.access_token;
+}
+// Semáforo de rendimiento por campaña (criterio: priorizar conversiones/ROAS
+// sobre métricas de vanidad; cortar lo que gasta sin convertir).
+function adLight(c){
+  if (c.convValue > 0 && c.spend > 0) {
+    if (c.roas >= 3) return 'green';
+    if (c.roas >= 1.5) return 'yellow';
+    return 'red';
+  }
+  if (c.conversions > 0) {
+    return c.ctr >= 2 ? 'green' : 'yellow';
+  }
+  if (c.clicks >= 40 && c.conversions === 0) return 'red'; // gasta y no convierte
+  return 'yellow';
+}
+async function loadGoogleAdsCampaigns(){
+  const token = await googleAdsAccessToken();
+  const cid = String(process.env.GOOGLE_ADS_CUSTOMER_ID).replace(/-/g, '');
+  const query = `
+    SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type,
+           metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.ctr,
+           metrics.average_cpc, metrics.conversions, metrics.cost_per_conversion,
+           metrics.conversions_value
+    FROM campaign
+    WHERE campaign.status = 'ENABLED' AND segments.date DURING LAST_30_DAYS`;
+  const headers = {
+    Authorization: 'Bearer ' + token,
+    'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
+    'Content-Type': 'application/json',
+  };
+  if (process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID) {
+    headers['login-customer-id'] = String(process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID).replace(/-/g, '');
+  }
+  const r = await fetch(`https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cid}/googleAds:searchStream`, {
+    method: 'POST', headers, body: JSON.stringify({ query }),
+  });
+  const text = await r.text();
+  if (!r.ok) {
+    let msg = text;
+    try { const j = JSON.parse(text); msg = j.error?.message || j[0]?.error?.message || text; } catch {}
+    throw new Error(msg.slice(0, 240));
+  }
+  let chunks; try { chunks = JSON.parse(text); } catch { chunks = []; }
+  const byId = new Map();
+  for (const chunk of (Array.isArray(chunks) ? chunks : [])) {
+    for (const row of (chunk.results || [])) {
+      const id = row.campaign?.id;
+      const m = row.metrics || {};
+      const spend = Number(m.costMicros || 0) / 1e6;
+      const clicks = Number(m.clicks || 0);
+      const impressions = Number(m.impressions || 0);
+      const conversions = Number(m.conversions || 0);
+      const convValue = Number(m.conversionsValue || 0);
+      let c = byId.get(id);
+      if (!c) {
+        c = { id, name: row.campaign?.name || '(sin nombre)', channel: row.campaign?.advertisingChannelType || '',
+              spend: 0, impressions: 0, clicks: 0, conversions: 0, convValue: 0 };
+        byId.set(id, c);
+      }
+      c.spend += spend; c.impressions += impressions; c.clicks += clicks;
+      c.conversions += conversions; c.convValue += convValue;
+    }
+  }
+  const campaigns = [...byId.values()].map(c => {
+    const ctr = c.impressions ? (c.clicks / c.impressions) * 100 : 0;
+    const cpc = c.clicks ? c.spend / c.clicks : 0;
+    const cpa = c.conversions ? c.spend / c.conversions : 0;
+    const roas = c.spend ? c.convValue / c.spend : 0;
+    const out = { ...c, spend: Math.round(c.spend), convValue: Math.round(c.convValue),
+      ctr: +ctr.toFixed(2), cpc: Math.round(cpc), cpa: Math.round(cpa), roas: +roas.toFixed(2) };
+    out.light = adLight(out);
+    return out;
+  }).sort((a, b) => b.spend - a.spend);
+  const totals = campaigns.reduce((t, c) => ({
+    spend: t.spend + c.spend, impressions: t.impressions + c.impressions, clicks: t.clicks + c.clicks,
+    conversions: t.conversions + c.conversions, convValue: t.convValue + c.convValue,
+  }), { spend: 0, impressions: 0, clicks: 0, conversions: 0, convValue: 0 });
+  return { campaigns, totals };
+}
+
+app.get('/admin/ads/google', requireAdmin, async (_req, res) => {
+  if (!googleAdsConfigured()) {
+    return res.json({
+      connected: false,
+      reason: 'Falta conectar Google Ads (variables de entorno en Railway).',
+      envVars: ['GOOGLE_ADS_DEVELOPER_TOKEN', 'GOOGLE_ADS_CLIENT_ID', 'GOOGLE_ADS_CLIENT_SECRET', 'GOOGLE_ADS_REFRESH_TOKEN', 'GOOGLE_ADS_CUSTOMER_ID', 'GOOGLE_ADS_LOGIN_CUSTOMER_ID (opcional, MCC)'],
+    });
+  }
+  try {
+    const data = await loadGoogleAdsCampaigns();
+    res.json({ connected: true, currency: 'CLP', range: 'últimos 30 días', ...data });
+  } catch (e) {
+    res.json({ connected: true, error: 'Google Ads respondió un error: ' + String(e.message || e).slice(0, 240) });
+  }
+});
+
 // ─── PORTAL DEL PROVEEDOR (Fase 2) ──────────────────────────────────────────
 // Portal SEPARADO del /admin. Cada marca entra con su propio login y ve SOLO su
 // data. Sesión con cookie propia (zprov), distinta a la del admin (zadm).

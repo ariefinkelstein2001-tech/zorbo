@@ -1450,6 +1450,33 @@ body.drawer-open{overflow:hidden}
 .pv-form .dist-field{margin-bottom:.55rem}
 .pv-del{background:transparent;border:none;color:#c66;cursor:pointer;font-size:.85rem;padding:0 .2rem}
 .pv-del:hover{color:#d33}
+
+/* ── CENTRO DE ADS ── */
+.ads-budget{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.ads-budget-l{font-size:.66rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted,#666)}
+.ads-budget-edit{font-weight:800;color:var(--text,#111)}
+.ads-budget-edit input{width:120px;font-family:var(--sans);font-size:.9rem;font-weight:700;padding:.4rem .5rem;border:1px solid var(--border,#e5e5e5);border-radius:8px;background:var(--surface,#fff);color:var(--text,#111);outline:none}
+.ads-budget-edit input:focus{border-color:var(--gold-bd-h,#f5a623)}
+.ads-empty{border:1px dashed var(--gold-bd,#f1c97b);border-radius:16px;padding:2rem 1.6rem;background:var(--gold-dim,#fff3d6);text-align:left;max-width:760px;margin:0 auto}
+.ads-empty-ic{font-size:2.2rem}
+.ads-empty-t{font-family:var(--display,inherit);font-size:1.3rem;font-weight:800;margin:.5rem 0 .3rem}
+.ads-empty-d{color:var(--muted,#555);font-size:.86rem;line-height:1.6;margin-bottom:1rem}
+.ads-steps{display:flex;flex-direction:column;gap:.6rem;margin:1rem 0}
+.ads-step{display:flex;gap:.7rem;align-items:flex-start;font-size:.84rem;line-height:1.5;color:var(--text,#222)}
+.ads-step-n{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--gold,#f5a623);color:#1a1408;font-weight:800;font-size:.74rem;display:flex;align-items:center;justify-content:center}
+.ads-envs{background:#15151e;border-radius:10px;padding:.9rem 1rem;margin-top:.9rem;font-family:var(--mono,monospace);font-size:.76rem;color:#ffe9b8;line-height:1.9;overflow-x:auto}
+.ads-envs b{color:#fff}
+.ads-note{font-size:.78rem;color:var(--muted,#666);margin-top:.8rem;line-height:1.5}
+.ads-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.7rem;margin-bottom:1rem}
+.ads-kpi{border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.8rem .9rem;background:var(--surface,#fff)}
+.ads-kpi-l{font-size:.64rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted,#666)}
+.ads-kpi-v{font-family:var(--display,inherit);font-size:1.35rem;font-weight:800;margin-top:.2rem}
+.ads-light{display:inline-block;width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.ads-light.green{background:#2e9c5a}.ads-light.yellow{background:#e8a33d}.ads-light.red{background:#d33}
+.ads-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.5rem .9rem;background:var(--surface2,#fafafa);border:1px solid var(--line,#eee);border-radius:12px;padding:.9rem 1.1rem;margin-bottom:1rem}
+.ads-legend-item{font-size:.76rem;color:var(--muted,#555);line-height:1.45}
+.ads-legend-item b{color:var(--text,#111)}
+.ads-legend-tt{font-family:var(--display,inherit);font-weight:800;font-size:.8rem;color:var(--text,#111);margin-bottom:.4rem;grid-column:1/-1}
 </style>
 </head>
 <body>
@@ -1690,6 +1717,30 @@ body.drawer-open{overflow:hidden}
         </div>
       </div>
       <div id="puntosBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
+    <!-- Vista Centro de Ads (Google + Meta + IA + creativos) -->
+    <div class="adm-panel" id="adsView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Centro de Ads</div>
+          <div class="adm-panel-meta" id="adsMeta">campañas de Google y Meta · análisis para no malgastar el presupuesto</div>
+        </div>
+        <div class="adm-actions">
+          <div class="ads-budget">
+            <span class="ads-budget-l">Presupuesto mensual</span>
+            <span class="ads-budget-edit">$<input type="number" id="adsBudget" min="0" step="50000" value="2000000"></span>
+            <button class="adm-btn adm-btn-ghost" id="adsBudgetSave" type="button">Guardar</button>
+          </div>
+        </div>
+      </div>
+      <div class="dist-subnav" id="adsSubnav">
+        <button type="button" class="dist-subtab on" data-asub="google">Google Ads</button>
+        <button type="button" class="dist-subtab" data-asub="meta">Meta Ads</button>
+        <button type="button" class="dist-subtab" data-asub="ia">Recomendaciones IA</button>
+        <button type="button" class="dist-subtab" data-asub="creativos">Feedback de creativos</button>
+      </div>
+      <div id="adsBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
     <!-- Vista Distribuidora (proveedores · costos · márgenes · OC · comercialización) -->
@@ -2072,6 +2123,7 @@ body.drawer-open{overflow:hidden}
 // ─── Secciones disponibles ──────────────────────────────────────────────────
 const BASE_SECCIONES = [
   { id:'analytics', kind:'analytics',label:'Analítica',       cat:'marketing', desc:'foto general del negocio · números y gráficos' },
+  { id:'ads',       kind:'ads',      label:'Centro de Ads',   cat:'marketing', desc:'campañas Google y Meta · análisis y recomendaciones con IA' },
   { id:'mundial',   kind:'mundial',  label:'Mundial',         cat:'marketing', desc:'predicciones del pack mundialero · quién compró y qué eligió' },
   { id:'chats',     kind:'chats',    label:'Conversaciones',  cat:'marketing', desc:'historial completo · filtros y embudo' },
   { id:'feedback',   kind:'feedback', label:'Feedback',        cat:'marketing', desc:'correcciones para entrenar a Zorbot' },
@@ -2263,6 +2315,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'mundial') {
     showView('mundial');
     await loadMundial();
+  } else if (sec.kind === 'ads') {
+    showView('ads');
+    await loadAds();
   } else if (sec.kind === 'distribuidora') {
     showView('distribuidora');
     await loadDistri();
@@ -2298,6 +2353,7 @@ function showView(kind){
   document.getElementById('chatsView').style.display      = kind === 'chats'      ? '' : 'none';
   document.getElementById('analyticsView').style.display  = kind === 'analytics'  ? '' : 'none';
   document.getElementById('mundialView').style.display    = kind === 'mundial'    ? '' : 'none';
+  document.getElementById('adsView').style.display        = kind === 'ads'        ? '' : 'none';
   document.getElementById('distribuidoraView').style.display = kind === 'distribuidora' ? '' : 'none';
   document.getElementById('feedbackView').style.display   = kind === 'feedback'   ? '' : 'none';
   document.getElementById('tutorialsView').style.display  = kind === 'tutorials'  ? '' : 'none';
@@ -5945,6 +6001,126 @@ async function geocodeAddress(q){
 }
 
 document.getElementById('btnPuntosReload').onclick = () => loadPuntos(true);
+
+// ─── Centro de Ads ───────────────────────────────────────────────────────────
+let adsSub = 'google';
+let adsConfig = { monthlyBudget: 2000000 };
+
+async function loadAds(){
+  try {
+    const r = await fetch('/admin/ads/config');
+    adsConfig = await r.json();
+    const inp = document.getElementById('adsBudget');
+    if (inp) inp.value = adsConfig.monthlyBudget;
+  } catch {}
+  renderAdsSub();
+}
+
+function renderAdsSub(){
+  document.querySelectorAll('#adsSubnav .dist-subtab').forEach(b => b.classList.toggle('on', b.dataset.asub === adsSub));
+  if (adsSub === 'google') return renderAdsGoogle();
+  const labels = {
+    meta: 'Meta Ads (Facebook / Instagram)',
+    ia: 'Recomendaciones con IA',
+    creativos: 'Feedback de creativos',
+  };
+  document.getElementById('adsBody').innerHTML =
+    `<div class="dist-empty"><b>${labels[adsSub]||''}</b><br>Esta parte se habilita en el siguiente avance del módulo.</div>`;
+}
+
+document.getElementById('adsSubnav').addEventListener('click', (e) => {
+  const b = e.target.closest('.dist-subtab'); if (!b) return;
+  adsSub = b.dataset.asub; renderAdsSub();
+});
+document.getElementById('adsBudgetSave').onclick = async () => {
+  const v = Number(document.getElementById('adsBudget').value);
+  try {
+    const r = await fetch('/admin/ads/config', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ monthlyBudget: v }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    adsConfig = d;
+    document.getElementById('adsMeta').textContent = `presupuesto mensual ${distMoney(d.monthlyBudget)} · análisis para no malgastar`;
+  } catch (e) { alert(e.message); }
+};
+
+const ADS_GOOGLE_LIGHTS = `
+  <div class="ads-legend">
+    <div class="ads-legend-tt">Qué significa cada métrica</div>
+    <div class="ads-legend-item"><b>Gasto:</b> lo que llevas invertido en la campaña (últimos 30 días).</div>
+    <div class="ads-legend-item"><b>Impresiones:</b> cuántas veces se mostró tu anuncio.</div>
+    <div class="ads-legend-item"><b>Clicks:</b> cuántas personas hicieron click.</div>
+    <div class="ads-legend-item"><b>CTR:</b> % de los que vieron el anuncio y hicieron click. En búsqueda &gt;3% es bueno; en display/redes &gt;1% es bueno.</div>
+    <div class="ads-legend-item"><b>CPC:</b> cuánto pagas por cada click. Más bajo es mejor (depende del rubro).</div>
+    <div class="ads-legend-item"><b>Conversiones:</b> acciones que te importan (compras, leads). Es lo que de verdad cuenta.</div>
+    <div class="ads-legend-item"><b>CPA:</b> cuánto te cuesta cada conversión. Debe ser menor a lo que te deja esa venta.</div>
+    <div class="ads-legend-item"><b>ROAS:</b> cuánto vendes por cada $1 invertido. &gt;3 es muy bueno, 1,5–3 aceptable, &lt;1,5 hay que revisar.</div>
+    <div class="ads-legend-item"><span class="ads-light green"></span> <b>Verde:</b> rinde bien. &nbsp; <span class="ads-light yellow"></span> <b>Amarillo:</b> a vigilar. &nbsp; <span class="ads-light red"></span> <b>Rojo:</b> gasta sin retorno, revisar o pausar.</div>
+  </div>`;
+
+async function renderAdsGoogle(){
+  const body = document.getElementById('adsBody');
+  body.innerHTML = '<div class="adm-loading">Cargando campañas de Google Ads…</div>';
+  let d;
+  try { d = await (await fetch('/admin/ads/google')).json(); }
+  catch (e) { body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+
+  if (!d.connected) {
+    const envs = (d.envVars || []).map(v => `<div><b>${escapeHtml(v.split(' ')[0])}</b>${v.includes('(')?(' '+escapeHtml(v.slice(v.indexOf('(')))):''}</div>`).join('');
+    body.innerHTML = `
+      <div class="ads-empty">
+        <div class="ads-empty-ic">🔌</div>
+        <div class="ads-empty-t">Conecta tu cuenta de Google Ads</div>
+        <div class="ads-empty-d">Cuando conectes la cuenta, acá vas a ver todas tus campañas activas con sus métricas y un semáforo de rendimiento. Necesitás conseguir estas credenciales y cargarlas como variables de entorno en Railway:</div>
+        <div class="ads-steps">
+          <div class="ads-step"><span class="ads-step-n">1</span><span><b>Developer token:</b> en tu cuenta de Google Ads → Herramientas → Configuración → API Center. (Requiere solicitar acceso a la API, lo aprueba Google.)</span></div>
+          <div class="ads-step"><span class="ads-step-n">2</span><span><b>Client ID y Client Secret:</b> en Google Cloud Console → crear un proyecto → APIs y servicios → Credenciales → ID de cliente OAuth (tipo App de escritorio).</span></div>
+          <div class="ads-step"><span class="ads-step-n">3</span><span><b>Refresh token:</b> se genera autorizando tu cuenta con el OAuth Playground (o el flujo OAuth) usando el scope de Google Ads.</span></div>
+          <div class="ads-step"><span class="ads-step-n">4</span><span><b>Customer ID:</b> el número de tu cuenta de Google Ads (arriba a la derecha, formato 123-456-7890). Si usás una cuenta administradora (MCC), también el login customer ID.</span></div>
+        </div>
+        <div class="ads-envs">${envs}</div>
+        <div class="ads-note">Cargá esas variables en Railway → tu servicio → Variables, y recargá esta sección. Mientras tanto, el resto del Centro de Ads queda listo esperando los datos.</div>
+      </div>`;
+    return;
+  }
+  if (d.error) {
+    body.innerHTML = `<div class="dist-empty">⚠ ${escapeHtml(d.error)}<br><span style="font-size:.78rem;color:#888">Revisá que las credenciales y el Customer ID sean correctos.</span></div>`;
+    return;
+  }
+
+  const t = d.totals || {};
+  const camps = d.campaigns || [];
+  const ctrTot = t.impressions ? (t.clicks/t.impressions*100).toFixed(2) : '0';
+  const roasTot = t.spend ? (t.convValue/t.spend).toFixed(2) : '0';
+  const budgetLeft = adsConfig.monthlyBudget - t.spend;
+  const rows = camps.length ? camps.map(c => `
+    <tr>
+      <td><span class="ads-light ${c.light}"></span></td>
+      <td>${escapeHtml(c.name)}<div class="mun-meta-cell">${escapeHtml(c.channel||'')}</div></td>
+      <td class="dist-num">${distMoney(c.spend)}</td>
+      <td class="dist-num">${(c.impressions||0).toLocaleString('es-CL')}</td>
+      <td class="dist-num">${(c.clicks||0).toLocaleString('es-CL')}</td>
+      <td class="dist-num">${c.ctr}%</td>
+      <td class="dist-num">${distMoney(c.cpc)}</td>
+      <td class="dist-num">${(c.conversions||0).toLocaleString('es-CL')}</td>
+      <td class="dist-num">${c.conversions? distMoney(c.cpa):'—'}</td>
+      <td class="dist-num">${c.convValue>0? (c.roas+'x'):'—'}</td>
+    </tr>`).join('') : `<tr><td colspan="10" style="text-align:center;padding:1.5rem;color:#888">No hay campañas activas en los últimos 30 días.</td></tr>`;
+
+  body.innerHTML = `
+    <div class="ads-kpis">
+      <div class="ads-kpi"><div class="ads-kpi-l">Gasto 30 días</div><div class="ads-kpi-v">${distMoney(t.spend||0)}</div></div>
+      <div class="ads-kpi"><div class="ads-kpi-l">Presupuesto restante</div><div class="ads-kpi-v" style="color:${budgetLeft<0?'#d33':'#2e9c5a'}">${distMoney(budgetLeft)}</div></div>
+      <div class="ads-kpi"><div class="ads-kpi-l">Conversiones</div><div class="ads-kpi-v">${(t.conversions||0).toLocaleString('es-CL')}</div></div>
+      <div class="ads-kpi"><div class="ads-kpi-l">CTR promedio</div><div class="ads-kpi-v">${ctrTot}%</div></div>
+      <div class="ads-kpi"><div class="ads-kpi-l">ROAS</div><div class="ads-kpi-v">${t.convValue>0?roasTot+'x':'—'}</div></div>
+    </div>
+    ${ADS_GOOGLE_LIGHTS}
+    <div class="mun-count">${camps.length} campañas activas · ${escapeHtml(d.range||'')} · moneda ${escapeHtml(d.currency||'CLP')}</div>
+    <div class="mun-wrap"><table class="mun-table">
+      <thead><tr><th></th><th>Campaña</th><th style="text-align:right">Gasto</th><th style="text-align:right">Impr.</th><th style="text-align:right">Clicks</th><th style="text-align:right">CTR</th><th style="text-align:right">CPC</th><th style="text-align:right">Conv.</th><th style="text-align:right">CPA</th><th style="text-align:right">ROAS</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();
