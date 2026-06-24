@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pronóstico Mundial 23 · Kairos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0f0e13;--card:#17161d;--gold:#f5a623;--gold-bright:#ffb840;--gold-deep:#a05f00;
+  --text:#f4f1ea;--muted:#a39d92;--line:#2a2832;--border:#34313d;
+  --sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;--display:'Syne',var(--sans);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--sans);background:radial-gradient(120% 80% at 50% -10%,#241d10 0%,var(--bg) 55%);color:var(--text);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem}
+.wrap{width:100%;max-width:460px;margin-top:2rem}
+.brand{text-align:center;margin-bottom:1.3rem}
+.brand img{height:42px;width:auto;filter:drop-shadow(0 4px 14px rgba(245,166,35,.25))}
+.tag{display:inline-block;font-family:var(--display);font-size:.66rem;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.3);padding:.3rem .8rem;border-radius:20px;margin-top:.7rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:1.6rem 1.4rem;box-shadow:0 18px 50px rgba(0,0,0,.4)}
+h1{font-family:var(--display);font-size:1.5rem;font-weight:800;line-height:1.15;letter-spacing:-.01em}
+.lead{color:var(--muted);font-size:.88rem;line-height:1.55;margin:.5rem 0 1.2rem}
+.field{margin-bottom:.9rem}
+label{display:block;font-size:.68rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:.35rem}
+input{width:100%;background:#0d0c11;border:1px solid var(--border);border-radius:11px;padding:.8rem 1rem;color:#fff;font-family:var(--sans);font-size:.95rem;outline:none;transition:border-color .15s}
+input::placeholder{color:#5e5a66}
+input:focus{border-color:var(--gold)}
+input[readonly]{opacity:.7;cursor:not-allowed}
+.row3{display:grid;grid-template-columns:1fr;gap:.9rem}
+.btn{margin-top:.6rem;width:100%;background:linear-gradient(135deg,var(--gold-bright),var(--gold) 55%,var(--gold-deep));color:#1a1408;border:none;border-radius:12px;padding:.95rem 1rem;font-size:.98rem;font-weight:800;letter-spacing:.02em;cursor:pointer;transition:opacity .2s,transform .1s;box-shadow:0 8px 24px rgba(245,166,35,.25)}
+.btn:hover{opacity:.93}.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+.msg{display:none;font-size:.82rem;font-weight:600;margin-top:.8rem;padding:.7rem .9rem;border-radius:10px}
+.msg.err{display:block;background:rgba(211,51,51,.12);border:1px solid rgba(211,51,51,.35);color:#ff8a8a}
+.foot{text-align:center;color:#5e5a66;font-size:.7rem;margin-top:1.2rem;letter-spacing:.04em}
+.done{text-align:center;padding:1rem 0}
+.done-ic{font-size:3rem}
+.done h2{font-family:var(--display);font-size:1.4rem;font-weight:800;margin:.5rem 0 .4rem}
+.done p{color:var(--muted);font-size:.9rem;line-height:1.55}
+.gift{margin-top:1rem;font-size:.84rem;color:var(--gold-bright);font-weight:700}
+.gift code{background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.3);padding:.15rem .5rem;border-radius:6px;font-family:var(--display)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">
+    <img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Titulo_secundario-3.png?v=1779814975" alt="Kairos">
+    <div class="tag">Pronóstico Mundial 23</div>
+  </div>
+
+  <div class="card" id="card">
+    <h1>Reenvía tu pronóstico 🏆</h1>
+    <p class="lead">Tuvimos un problema técnico y se borró tu pronóstico del Pack Mundialero. Completalo de nuevo acá y lo dejamos guardado al toque. Tu pack está perfecto 🍺</p>
+
+    <form id="form">
+      <div class="field">
+        <label for="email">Tu email</label>
+        <input type="email" id="email" placeholder="tu@correo.cl" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="order">N° de pedido (opcional)</label>
+        <input type="text" id="order" placeholder="Ej: K2730">
+      </div>
+      <div class="row3">
+        <div class="field" style="margin:0"><label for="p1">1° lugar (campeón)</label><input type="text" id="p1" placeholder="Ej: Brasil" required></div>
+        <div class="field" style="margin:0"><label for="p2">2° lugar</label><input type="text" id="p2" placeholder="Ej: Argentina" required></div>
+        <div class="field" style="margin:0"><label for="p3">3° lugar</label><input type="text" id="p3" placeholder="Ej: España" required></div>
+        <div class="field" style="margin:0"><label for="gol">Goleador del torneo</label><input type="text" id="gol" placeholder="Ej: Mbappé" required></div>
+      </div>
+      <button class="btn" id="btn" type="submit">Guardar mi pronóstico</button>
+      <div class="msg err" id="err"></div>
+    </form>
+  </div>
+
+  <div class="card done" id="done" style="display:none">
+    <div class="done-ic">✅</div>
+    <h2>Listo, quedó guardado!</h2>
+    <p>Tu pronóstico del Mundial 23 ya está registrado. Gracias por el aguante 🙌</p>
+    <div class="gift">Y por las molestias: <b>10% off</b> en tu próximo pack con el código <code>MUNDIAL23</code> 🎁</div>
+  </div>
+
+  <div class="foot">Kairos Brewing · Mundial 23</div>
+</div>
+
+<script>
+// Prefill desde la URL: ?email=...&order=...  (Klaviyo inyecta el email)
+const qs = new URLSearchParams(location.search);
+const setIf = (id, v) => { if (v) document.getElementById(id).value = v; };
+setIf('email', qs.get('email'));
+setIf('order', qs.get('order'));
+
+const form = document.getElementById('form');
+const btn = document.getElementById('btn');
+const err = document.getElementById('err');
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  err.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    const payload = {
+      email:    document.getElementById('email').value.trim(),
+      order:    document.getElementById('order').value.trim(),
+      primero:  document.getElementById('p1').value.trim(),
+      segundo:  document.getElementById('p2').value.trim(),
+      tercero:  document.getElementById('p3').value.trim(),
+      goleador: document.getElementById('gol').value.trim(),
+      source:   'klaviyo-form'
+    };
+    const r = await fetch('https://zorbo.cl/api/mundial-backup', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    });
+    if (!r.ok) throw new Error('No se pudo guardar. Intentá de nuevo.');
+    document.getElementById('card').style.display = 'none';
+    document.getElementById('done').style.display = '';
+  } catch (e2) {
+    err.textContent = e2.message || 'Error al guardar.';
+    err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Guardar mi pronóstico';
+  }
+});
+</script>
+</body>
+</html>
