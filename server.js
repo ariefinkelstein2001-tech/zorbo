@@ -1435,6 +1435,18 @@ app.post('/api/service-request', (req, res) => {
 // Se llama desde el form de /pages/mundial ANTES de mandar al checkout, así los
 // datos quedan a salvo aunque iDTE/Flapp sobrescriba los atributos del pedido.
 function loadMundialBackups(){ return readLog(MUNDIAL_BACKUP_FILE); }
+// Recuperación fija (bundled en el repo): pronósticos rescatados de un export
+// del 24-jun antes de que iDTE los borrara. Se cruzan por número de pedido.
+let _mundialRecovery = null;
+function loadMundialRecovery(){
+  if (_mundialRecovery) return _mundialRecovery;
+  try {
+    const raw = readFileSync(join(__dirname, 'mundial-recovery.json'), 'utf-8');
+    const parsed = JSON.parse(raw);
+    _mundialRecovery = Array.isArray(parsed.records) ? parsed.records : [];
+  } catch { _mundialRecovery = []; }
+  return _mundialRecovery;
+}
 const pickField = (obj, keys) => {
   for (const k of keys) {
     const v = obj && obj[k];
@@ -1474,6 +1486,7 @@ app.post('/api/mundial-backup', (req, res) => {
     // pack (_zorbo_ref). Permite cruzar el backup con el pedido SIN pedirle email
     // ni datos extra al cliente (las line item properties no las pisa iDTE).
     ref:      pickField(b, ['ref', 'zorbo_ref', '_zorbo_ref']).slice(0, 80),
+    order:    pickField(b, ['order', 'pedido', 'order_name', 'orderName']).slice(0, 40),
     cartToken: pickField(b, ['cartToken', 'cart_token', 'token']).slice(0, 120),
   };
   // Guardamos también el payload crudo como red de seguridad (si es chico).
@@ -3261,16 +3274,33 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
   // Fusión con el BACKUP server-side: si un pedido perdió las predicciones (iDTE
   // pisó los atributos), las recuperamos del backup matcheando por email y el
   // pedido más cercano en el tiempo (consumiendo un backup por pack).
-  const backups = loadMundialBackups();
+  const backups = [...loadMundialBackups(), ...loadMundialRecovery()];
   const byRef = new Map();   // match exacto por referencia oculta (no requiere email)
+  const byOrder = new Map(); // match exacto por número de pedido (recuperación)
   const byEmail = new Map();
   for (const b of backups) {
     if (b.ref) byRef.set(String(b.ref), b);
+    if (b.order) {
+      const k = String(b.order).trim();
+      if (!byOrder.has(k)) byOrder.set(k, []);
+      byOrder.get(k).push(b);
+    }
     const e = normEmail(b.email);
     if (!e) continue;
     if (!byEmail.has(e)) byEmail.set(e, []);
     byEmail.get(e).push(b);
   }
+  const usedByOrder = new Map();
+  const takeByOrder = (orderName) => {
+    const list = byOrder.get(String(orderName || '').trim());
+    if (!list || !list.length) return null;
+    const used = usedByOrder.get(orderName) || new Set();
+    usedByOrder.set(orderName, used);
+    const idx = list.findIndex((_, i) => !used.has(i));
+    if (idx < 0) return null;
+    used.add(idx);
+    return list[idx];
+  };
   const usedByEmail = new Map();
   const takeBackup = (email, orderDate) => {
     const list = byEmail.get(email);
@@ -3309,12 +3339,13 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
       applyBackup(row, byRef.get(row.ref));
     }
   }
-  // Paso 2 — sólo los que quedaron SIN predicciones: rellenar por email.
+  // Paso 2 — sólo los que quedaron SIN predicciones: rellenar por número de
+  // pedido (exacto, recuperación) y si no, por email + cercanía de fecha.
   for (const row of rows) {
     if (row.fromBackup) continue;
     const empty = !row.primero && !row.segundo && !row.tercero && !row.goleador;
     if (!empty) continue;
-    const bk = takeBackup(normEmail(row.email), row.date);
+    const bk = takeByOrder(row.order) || takeBackup(normEmail(row.email), row.date);
     if (bk) applyBackup(row, bk);
   }
 

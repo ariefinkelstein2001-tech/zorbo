@@ -1,0 +1,28 @@
+{
+  "_comment": "Recuperación de pronósticos del Mundial extraídos del CSV mundialzorbo20260624.csv (snapshot 24-jun), antes de que iDTE/Flapp los borrara de Shopify. Se cruza por número de pedido (exacto) y solo rellena filas vacías.",
+  "source": "recovery-csv-20260624",
+  "records": [
+    { "order": "K2671", "email": "t.gajardo.rivera@gmail.com", "primero": "Alemania", "segundo": "Portugal", "tercero": "Japón", "goleador": "Erling Haaland" },
+    { "order": "K2669", "email": "deborahvenegasosorio@gmail.com", "primero": "Portugal", "segundo": "Alemania", "tercero": "Marruecos", "goleador": "Erling Haaland" },
+    { "order": "K2664", "email": "jcoutts@uc.cl", "primero": "España", "segundo": "Argentina", "tercero": "Portugal", "goleador": "Lamine Yamal" },
+    { "order": "K2664", "email": "jcoutts@uc.cl", "primero": "Inglaterra", "segundo": "Portugal", "tercero": "España", "goleador": "Harry Kane" },
+    { "order": "K2661", "email": "g.vivanco.i@gmail.com", "primero": "España", "segundo": "Francia", "tercero": "Brasil", "goleador": "Lamine Yamal" },
+    { "order": "K2657", "email": "makaoasis@gmail.com", "primero": "España", "segundo": "Alemania", "tercero": "Francia", "goleador": "Kylian Mbappé" },
+    { "order": "K2655", "email": "francescabustamante72@gmail.com", "primero": "España", "segundo": "Francia", "tercero": "Brasil", "goleador": "Kylian Mbappé" },
+    { "order": "K2648", "email": "ferrerphillb@gmail.com", "primero": "Brasil", "segundo": "Francia", "tercero": "Países Bajos", "goleador": "Kylian Mbappé" },
+    { "order": "K2638", "email": "jotaprg@gmail.com", "primero": "España", "segundo": "Argentina", "tercero": "Francia", "goleador": "Kylian Mbappé" },
+    { "order": "K2635", "email": "sebastian@visualogica.com", "primero": "Brasil", "segundo": "Francia", "tercero": "Países Bajos", "goleador": "Erling Haaland" },
+    { "order": "K2633", "email": "robaroy69@gmail.com", "primero": "Portugal", "segundo": "Países Bajos", "tercero": "España", "goleador": "Kylian Mbappé" },
+    { "order": "K2631", "email": "m.navarro@vtr.net", "primero": "Francia", "segundo": "Países Bajos", "tercero": "Brasil", "goleador": "Kylian Mbappé" },
+    { "order": "K2630", "email": "yoshua.contador@gmail.com", "primero": "Portugal", "segundo": "Brasil", "tercero": "Argentina", "goleador": "Cristiano Ronaldo" },
+    { "order": "K2629", "email": "contertuliovidal@gmail.com", "primero": "Francia", "segundo": "Portugal", "tercero": "Alemania", "goleador": "Cristiano Ronaldo" },
+    { "order": "K2628", "email": "rodrigo.alonso.052@gmail.com", "primero": "Argentina", "segundo": "Países Bajos", "tercero": "Brasil", "goleador": "Harry Kane" },
+    { "order": "K2628", "email": "rodrigo.alonso.052@gmail.com", "primero": "Francia", "segundo": "Brasil", "tercero": "España", "goleador": "Kylian Mbappé" },
+    { "order": "K2626", "email": "osvaldo.escobedo@usach.cl", "primero": "Portugal", "segundo": "España", "tercero": "Brasil", "goleador": "Cristiano Ronaldo" },
+    { "order": "K2625", "email": "dnudmanr@gmail.com", "primero": "España", "segundo": "Portugal", "tercero": "Argentina", "goleador": "Kylian Mbappé" },
+    { "order": "K2616", "email": "luisnaranjo00@gmail.com", "primero": "España", "segundo": "Francia", "tercero": "Brasil", "goleador": "Kylian Mbappé" },
+    { "order": "K2614", "email": "afinkelstein@alumnos.uai.cl", "primero": "Brasil", "segundo": "Argentina", "tercero": "España", "goleador": "Kylian Mbappé" },
+    { "order": "K2597", "email": "vfernandez@kairosdrinks.com", "primero": "Argentina", "segundo": "España", "tercero": "Brasil", "goleador": "Harry Kane" },
+    { "order": "K2590", "email": "arie.finkelstein2001@gmail.com", "primero": "Chequia", "segundo": "Qatar", "tercero": "Escocia", "goleador": "Kylian Mbappé" }
+  ]
+}
