@@ -1376,6 +1376,7 @@ body.drawer-open{overflow:hidden}
 .mun-note{max-width:260px;white-space:pre-wrap;color:var(--muted,#555);font-size:.76rem}
 .mun-empty-state{padding:2.4rem 1rem;text-align:center;color:var(--muted,#777);line-height:1.6}
 .mun-count{font-family:var(--mono);font-size:.7rem;color:var(--muted,#888);margin:.2rem 0 .8rem}
+.mun-bk{display:inline-block;font-size:.56rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#1f7a44;background:#e3f6ea;border-radius:999px;padding:.08rem .4rem;vertical-align:middle}
 
 /* ── DISTRIBUIDORA ── */
 .dist-subnav{display:flex;gap:.4rem;flex-wrap:wrap;margin:0 0 1.1rem;padding-bottom:.9rem;border-bottom:1px solid var(--line,#eee)}
@@ -5416,7 +5417,8 @@ async function loadMundial(refresh){
       return;
     }
     mundialRows = d.rows || [];
-    document.getElementById('munMeta').textContent = `pack mundialero · se llena solo con cada compra · ${d.count} ${d.count===1?'compra':'compras'}`;
+    const rec = d.recovered ? ` · ${d.recovered} recuperada${d.recovered===1?'':'s'} del backup` : '';
+    document.getElementById('munMeta').textContent = `pack mundialero · ${d.count} ${d.count===1?'compra':'compras'}${rec}`;
     renderMundial();
   } catch (e) {
     body.innerHTML = `<div class="mun-empty-state">Error: ${escapeHtml(String(e.message||e))}</div>`;
@@ -5436,7 +5438,7 @@ function renderMundial(){
   const cell = (v) => v ? `<td class="mun-pick">${escapeHtml(v)}</td>` : '<td class="mun-pick mun-empty">—</td>';
   const rows = mundialRows.map(x => `
     <tr>
-      <td class="mun-meta-cell">${escapeHtml(x.order)}<br>${fmtDate(x.date)}</td>
+      <td class="mun-meta-cell">${escapeHtml(x.order)}${x.fromBackup?' <span class="mun-bk" title="Predicciones recuperadas del backup">backup</span>':''}<br>${fmtDate(x.date)}</td>
       <td>${escapeHtml(x.nombre) || '<span class="mun-empty">—</span>'}</td>
       <td class="mun-meta-cell">${escapeHtml(x.telefono) || '—'}<br>${escapeHtml(x.email) || '—'}</td>
       ${cell(x.primero)}

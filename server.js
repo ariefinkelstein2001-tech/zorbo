@@ -35,6 +35,9 @@ const CONV_LOG  = join(LOGS_DIR, 'conversations.json');
 const ERR_LOG   = join(LOGS_DIR, 'errors.json');
 const GAMES_LOG = join(LOGS_DIR, 'games.json');
 const LEADS_LOG = join(LOGS_DIR, 'mayoristas_leads.json');
+// Backup de los pronósticos del Mundial. Lo llena el form de /pages/mundial ANTES
+// del checkout, así iDTE/Flapp no puede pisarlo (sobrescribe los cart attributes).
+const MUNDIAL_BACKUP_FILE = join(LOGS_DIR, 'mundial-backup.json');
 // Archivos subidos desde el admin (PDF/imágenes de producto). En el volumen
 // si DATA_DIR está seteado; servidos en /uploads.
 const UPLOADS_DIR = DATA_DIR ? join(DATA_DIR, 'uploads') : join(__dirname, 'public', 'uploads');
@@ -1426,6 +1429,53 @@ app.post('/api/service-request', (req, res) => {
   try { notifyServiceRequest(data); } catch (e) { console.warn('service-request:', e.message); }
   try { appendLog(LEADS_LOG, { timestamp: new Date().toISOString(), kind: 'service', ...data }); } catch {}
   return res.json({ ok: true });
+});
+
+// POST /api/mundial-backup — backup server-side de los pronósticos del Mundial.
+// Se llama desde el form de /pages/mundial ANTES de mandar al checkout, así los
+// datos quedan a salvo aunque iDTE/Flapp sobrescriba los atributos del pedido.
+function loadMundialBackups(){ return readLog(MUNDIAL_BACKUP_FILE); }
+const pickField = (obj, keys) => {
+  for (const k of keys) {
+    const v = obj && obj[k];
+    if (v != null && String(v).trim()) return String(v).trim();
+  }
+  return '';
+};
+// Composición del pack → texto legible. Acepta objeto {estilo:cantidad} o array.
+function packToText(pack){
+  if (!pack) return '';
+  try {
+    if (Array.isArray(pack)) {
+      return pack.map(x => ({ n: Number(x.cantidad ?? x.qty ?? x.cantidad), e: x.estilo ?? x.style ?? x.nombre ?? x.name }))
+        .filter(x => x.n > 0 && x.e).map(x => `${x.n}× ${x.e}`).join(' · ');
+    }
+    if (typeof pack === 'object') {
+      return Object.entries(pack).map(([k, v]) => ({ n: Number(v), e: k })).filter(x => x.n > 0 && x.e).map(x => `${x.n}× ${x.e}`).join(' · ');
+    }
+    return String(pack);
+  } catch { return ''; }
+}
+
+app.post('/api/mundial-backup', (req, res) => {
+  const b = req.body || {};
+  const rec = {
+    id: randomUUID(),
+    createdAt: new Date().toISOString(),
+    email:    normEmail(pickField(b, ['email', 'correo', 'mail'])),
+    nombre:   pickField(b, ['nombre', 'name', 'nombre_apellido', 'fullName']).slice(0, 160),
+    telefono: pickField(b, ['telefono', 'phone', 'fono', 'celular']).slice(0, 60),
+    primero:  pickField(b, ['primero', 'primer', 'primer_lugar', 'first', 'campeon']).slice(0, 80),
+    segundo:  pickField(b, ['segundo', 'segundo_lugar', 'second']).slice(0, 80),
+    tercero:  pickField(b, ['tercero', 'tercer', 'tercer_lugar', 'third']).slice(0, 80),
+    goleador: pickField(b, ['goleador', 'scorer', 'goal', 'pichichi']).slice(0, 80),
+    pack:     b.pack ?? b.composicion ?? b.composition ?? null,
+    cartToken: pickField(b, ['cartToken', 'cart_token', 'token']).slice(0, 120),
+  };
+  // Guardamos también el payload crudo como red de seguridad (si es chico).
+  try { const s = JSON.stringify(b); if (s.length < 20000) rec.raw = b; } catch {}
+  try { appendLog(MUNDIAL_BACKUP_FILE, rec); } catch (e) { console.warn('mundial-backup:', e.message); }
+  return res.json({ ok: true, id: rec.id });
 });
 
 app.post('/api/mayo-products', async (req, res) => {
@@ -3197,11 +3247,58 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
         tercero: picks.tercero,
         goleador: picks.goleador,
         nota,
+        fromBackup: false,
       });
     }
   }
+
+  // Fusión con el BACKUP server-side: si un pedido perdió las predicciones (iDTE
+  // pisó los atributos), las recuperamos del backup matcheando por email y el
+  // pedido más cercano en el tiempo (consumiendo un backup por pack).
+  const backups = loadMundialBackups();
+  const byEmail = new Map();
+  for (const b of backups) {
+    const e = normEmail(b.email);
+    if (!e) continue;
+    if (!byEmail.has(e)) byEmail.set(e, []);
+    byEmail.get(e).push(b);
+  }
+  const usedByEmail = new Map();
+  const takeBackup = (email, orderDate) => {
+    const list = byEmail.get(email);
+    if (!list || !list.length) return null;
+    const used = usedByEmail.get(email) || new Set();
+    usedByEmail.set(email, used);
+    let best = -1, bestDelta = Infinity;
+    for (let i = 0; i < list.length; i++) {
+      if (used.has(i)) continue;
+      const d = Math.abs(new Date(list[i].createdAt) - new Date(orderDate));
+      if (d < bestDelta) { bestDelta = d; best = i; }
+    }
+    if (best < 0) return null;
+    used.add(best);
+    return list[best];
+  };
+  let recovered = 0;
+  for (const row of rows) {
+    const empty = !row.primero && !row.segundo && !row.tercero && !row.goleador;
+    if (!empty) continue;
+    const bk = takeBackup(normEmail(row.email), row.date);
+    if (!bk) continue;
+    row.primero = bk.primero || '';
+    row.segundo = bk.segundo || '';
+    row.tercero = bk.tercero || '';
+    row.goleador = bk.goleador || '';
+    const packTxt = packToText(bk.pack);
+    if (packTxt) row.nota = [row.nota, packTxt].filter(Boolean).join(' · ');
+    if (bk.nombre && !row.nombre) row.nombre = bk.nombre;
+    if (bk.telefono && !row.telefono) row.telefono = bk.telefono;
+    row.fromBackup = true;
+    if (row.primero || row.segundo || row.tercero || row.goleador) recovered++;
+  }
+
   rows.sort((a, b) => new Date(b.date) - new Date(a.date));
-  res.json({ available: true, count: rows.length, rows });
+  res.json({ available: true, count: rows.length, recovered, backups: backups.length, rows });
 });
 
 // ─── Distribuidora / Proveedores ────────────────────────────────────────────
