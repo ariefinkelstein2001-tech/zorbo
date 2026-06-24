@@ -3185,10 +3185,11 @@ function isMundialLine(li){
 function cleanMundialNote(note){
   if (!note) return '';
   let s = String(note);
-  s = s.replace(/https?:\/\/app\.idte\.cl\/\S+/gi, '');
+  s = s.replace(/https?:\/\/\S+/gi, '');                 // cualquier URL (iDTE, Flapp, etc.)
   s = s.replace(/iDTE\s*Boleta\s*Nro:?\s*\d+/gi, '');
   s = s.replace(/Boleta\s*\d+\s*Generada\s*Correctamente/gi, '');
   s = s.replace(/Fecha\s*documento:?\s*[\d/.\-]+/gi, '');
+  s = s.replace(/Etiqueta\s*Flapp:?/gi, '');
   return s.split('·')
     .map(x => x.replace(/^[\s:.\-]+|[\s:.\-]+$/g, '').trim())
     .filter(x => /[a-z0-9]/i.test(x))

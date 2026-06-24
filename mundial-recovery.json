@@ -2,6 +2,7 @@
   "_comment": "Recuperación de pronósticos del Mundial extraídos del CSV mundialzorbo20260624.csv (snapshot 24-jun), antes de que iDTE/Flapp los borrara de Shopify. Se cruza por número de pedido (exacto) y solo rellena filas vacías.",
   "source": "recovery-csv-20260624",
   "records": [
+    { "order": "K2765", "email": "seperezro@gmail.com", "primero": "Francia", "segundo": "Argentina", "tercero": "Alemania", "goleador": "Messi" },
     { "order": "K2671", "email": "t.gajardo.rivera@gmail.com", "primero": "Alemania", "segundo": "Portugal", "tercero": "Japón", "goleador": "Erling Haaland" },
     { "order": "K2669", "email": "deborahvenegasosorio@gmail.com", "primero": "Portugal", "segundo": "Alemania", "tercero": "Marruecos", "goleador": "Erling Haaland" },
     { "order": "K2664", "email": "jcoutts@uc.cl", "primero": "España", "segundo": "Argentina", "tercero": "Portugal", "goleador": "Lamine Yamal" },
