@@ -3770,6 +3770,47 @@ app.delete('/admin/puntos-venta/:id', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── Top clientes por producto (histórico Shopify) ──────────────────────────
+// Busca en los line items de TODOS los pedidos los que matchean el texto y
+// rankea por cliente: cuántas unidades compró y cuánto gastó.
+app.get('/admin/top-clientes', requireAdmin, async (req, res) => {
+  const q = String(req.query.q || '').trim().toLowerCase();
+  if (!q) return res.json({ available: true, query: '', count: 0, totalUnits: 0, rows: [] });
+  const result = await loadOrders(String(req.query.refresh || '') === '1');
+  if (!result.available) return res.json({ available: false, reason: result.reason });
+  const map = new Map();
+  const matchedTitles = new Set();
+  for (const o of result.orders) {
+    let units = 0, spent = 0, matched = false;
+    for (const li of (o.lineItems || [])) {
+      if (String(li.title || '').toLowerCase().includes(q)) {
+        units += Number(li.qty || 0);
+        spent += Number(li.amount || 0);
+        matched = true;
+        if (li.title) matchedTitles.add(li.title);
+      }
+    }
+    if (!matched) continue;
+    const key = o.customerId || (o.customerEmail ? 'e:' + normEmail(o.customerEmail) : 'o:' + o.id);
+    let p = map.get(key);
+    if (!p) { p = { nombre: '', email: o.customerEmail || '', telefono: o.customerPhone || '', units: 0, spent: 0, orders: 0, last: 0 }; map.set(key, p); }
+    p.units += units; p.spent += spent; p.orders += 1;
+    const nm = [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim();
+    if (nm && !p.nombre) p.nombre = nm;
+    const t = new Date(o.createdAt).getTime();
+    if (t > p.last) p.last = t;
+  }
+  const rows = [...map.values()]
+    .map(p => ({ nombre: p.nombre, email: p.email, telefono: p.telefono, units: p.units, spent: Math.round(p.spent), orders: p.orders, lastOrder: p.last ? new Date(p.last).toISOString() : null }))
+    .sort((a, b) => b.units - a.units);
+  res.json({
+    available: true, query: q, count: rows.length,
+    totalUnits: rows.reduce((s, p) => s + p.units, 0),
+    matchedProducts: [...matchedTitles].slice(0, 12),
+    rows,
+  });
+});
+
 // ─── Centro de Ads (Marketing) ──────────────────────────────────────────────
 // Analiza y recomienda sobre las campañas de Google Ads y Meta Ads. NO crea ni
 // edita campañas (eso se hace en las plataformas). Presupuesto mensual editable

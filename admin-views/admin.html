@@ -1377,6 +1377,10 @@ body.drawer-open{overflow:hidden}
 .mun-empty-state{padding:2.4rem 1rem;text-align:center;color:var(--muted,#777);line-height:1.6}
 .mun-count{font-family:var(--mono);font-size:.7rem;color:var(--muted,#888);margin:.2rem 0 .8rem}
 .mun-bk{display:inline-block;font-size:.56rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#1f7a44;background:#e3f6ea;border-radius:999px;padding:.08rem .4rem;vertical-align:middle}
+.tc-search{display:flex;gap:.6rem;margin-bottom:1.1rem;flex-wrap:wrap}
+.tc-search input{flex:1;min-width:220px;font-family:var(--sans);font-size:.95rem;padding:.7rem .9rem;border:1px solid var(--border,#e5e5e5);border-radius:10px;background:var(--surface,#fff);color:var(--text,#111);outline:none}
+.tc-search input:focus{border-color:var(--gold-bd-h,#f5a623)}
+.tc-rank{font-family:var(--mono,monospace);font-weight:700;color:var(--gold-deep,#a05f00)}
 
 /* ── DISTRIBUIDORA ── */
 .dist-subnav{display:flex;gap:.4rem;flex-wrap:wrap;margin:0 0 1.1rem;padding-bottom:.9rem;border-bottom:1px solid var(--line,#eee)}
@@ -1759,6 +1763,21 @@ body.drawer-open{overflow:hidden}
         <button type="button" class="dist-subtab" data-asub="creativos">Feedback de creativos</button>
       </div>
       <div id="adsBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
+    <!-- Vista Top clientes por producto -->
+    <div class="adm-panel" id="topclientesView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Top clientes por producto</div>
+          <div class="adm-panel-meta">quién más compró un producto en toda la historia de la tienda</div>
+        </div>
+      </div>
+      <div class="tc-search">
+        <input type="text" id="tcInput" placeholder="Escribí un producto… ej: Samba, Golden, Banny">
+        <button class="adm-btn" id="tcBtn" type="button">Buscar</button>
+      </div>
+      <div id="tcBody"><div class="dist-empty">Escribí el nombre de un producto y dale Buscar para ver el ranking de clientes.</div></div>
     </div>
 
     <!-- Vista Distribuidora (proveedores · costos · márgenes · OC · comercialización) -->
@@ -2154,6 +2173,7 @@ const BASE_SECCIONES = [
   { id:'mayorista', kind:'md',       label:'Mayoristas (B2B)',cat:'marketing', desc:'restaurantes · botillerías · eventos' },
   { id:'productos',  kind:'products', label:'Productos',       cat:'comercializacion', desc:'catálogo Shopify · notas extra para Zorbot' },
   { id:'puntos',     kind:'puntos',   label:'Puntos de venta', cat:'comercializacion', desc:'mapa de locales donde estás · venta por punto' },
+  { id:'topclientes',kind:'topclientes',label:'Top clientes',  cat:'comercializacion', desc:'quién compra más cada producto · histórico Shopify' },
   { id:'distribuidora', kind:'distribuidora', label:'Distribuidora', cat:'operaciones', desc:'proveedores · costos · márgenes · órdenes de compra · comercialización' },
 ];
 
@@ -2345,6 +2365,8 @@ async function selectSeccion(id){
   } else if (sec.kind === 'puntos') {
     showView('puntos');
     await loadPuntos();
+  } else if (sec.kind === 'topclientes') {
+    showView('topclientes');
   } else if (sec.kind === 'chats') {
     showView('chats');
     await loadConversations();
@@ -2368,6 +2390,7 @@ function showView(kind){
   document.getElementById('mdView').style.display         = kind === 'md'         ? '' : 'none';
   document.getElementById('productsView').style.display   = kind === 'products'   ? '' : 'none';
   document.getElementById('puntosView').style.display     = kind === 'puntos'     ? '' : 'none';
+  document.getElementById('topclientesView').style.display= kind === 'topclientes'? '' : 'none';
   document.getElementById('chatsView').style.display      = kind === 'chats'      ? '' : 'none';
   document.getElementById('analyticsView').style.display  = kind === 'analytics'  ? '' : 'none';
   document.getElementById('mundialView').style.display    = kind === 'mundial'    ? '' : 'none';
@@ -6294,6 +6317,41 @@ function renderIAResult(d){
     ${list(d.abrir)}
     <div class="ads-ia-foot">Generado por IA sobre tus datos reales · ${new Date(d.generatedAt).toLocaleString('es-CL')} · revisá siempre antes de aplicar cambios.</div>`;
 }
+
+// ─── Top clientes por producto ───────────────────────────────────────────────
+async function runTopClientes(){
+  const q = document.getElementById('tcInput').value.trim();
+  const body = document.getElementById('tcBody');
+  if (!q) { body.innerHTML = '<div class="dist-empty">Escribí el nombre de un producto.</div>'; return; }
+  body.innerHTML = '<div class="adm-loading">Buscando en todos los pedidos…</div>';
+  try {
+    const r = await fetch('/admin/top-clientes?q=' + encodeURIComponent(q));
+    const d = await r.json();
+    if (!d.available) { body.innerHTML = `<div class="dist-empty">${escapeHtml(d.reason||'No disponible')}</div>`; return; }
+    if (!d.rows.length) { body.innerHTML = `<div class="dist-empty">No se encontraron compras de "${escapeHtml(q)}".</div>`; return; }
+    const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'2-digit'}); } catch { return ''; } };
+    const rows = d.rows.map((p,i) => `
+      <tr>
+        <td><span class="tc-rank">${i+1}</span></td>
+        <td>${escapeHtml(p.nombre) || '<span class="mun-empty">—</span>'}</td>
+        <td class="mun-meta-cell">${escapeHtml(p.telefono)||'—'}<br>${escapeHtml(p.email)||'—'}</td>
+        <td class="dist-num"><b>${(p.units||0).toLocaleString('es-CL')}</b></td>
+        <td class="dist-num">${distMoney(p.spent)}</td>
+        <td class="dist-num">${p.orders}</td>
+        <td class="mun-meta-cell">${fmtDate(p.lastOrder)}</td>
+      </tr>`).join('');
+    body.innerHTML = `
+      <div class="mun-count">${d.count} clientes · ${d.totalUnits.toLocaleString('es-CL')} unidades en total · coincidencias: ${d.matchedProducts.map(escapeHtml).join(' · ')||'—'}</div>
+      <div class="mun-wrap"><table class="mun-table">
+        <thead><tr><th>#</th><th>Cliente</th><th>Contacto</th><th style="text-align:right">Unidades</th><th style="text-align:right">Gasto</th><th style="text-align:right">Pedidos</th><th>Última</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
+  } catch (e) {
+    body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`;
+  }
+}
+document.getElementById('tcBtn').onclick = runTopClientes;
+document.getElementById('tcInput').addEventListener('keydown', e => { if (e.key === 'Enter') runTopClientes(); });
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();
