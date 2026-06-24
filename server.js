@@ -3113,6 +3113,21 @@ function isMundialLine(li){
   return /mundial/i.test(li.title || '');
 }
 
+// Saca de la nota el ruido de la boleta electrónica / iDTE (lo escribe la app de
+// facturación) y deja solo lo útil del Mundial (ej. el detalle de cervezas).
+function cleanMundialNote(note){
+  if (!note) return '';
+  let s = String(note);
+  s = s.replace(/https?:\/\/app\.idte\.cl\/\S+/gi, '');
+  s = s.replace(/iDTE\s*Boleta\s*Nro:?\s*\d+/gi, '');
+  s = s.replace(/Boleta\s*\d+\s*Generada\s*Correctamente/gi, '');
+  s = s.replace(/Fecha\s*documento:?\s*[\d/.\-]+/gi, '');
+  return s.split('·')
+    .map(x => x.replace(/^[\s:.\-]+|[\s:.\-]+$/g, '').trim())
+    .filter(x => /[a-z0-9]/i.test(x))
+    .join(' · ');
+}
+
 // Clave normalizada (sin tildes, sin signos) para matchear atributos flexibles.
 function normAttrKey(k){
   return String(k || '')
@@ -3169,7 +3184,7 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
         ? li.properties
         : (soloUna ? (o.attributes || []) : []);
       const picks = extractMundialPicks(attrs);
-      const nota = [o.note || '', picks.extra || ''].filter(Boolean).join(' · ');
+      const nota = [cleanMundialNote(o.note), picks.extra || ''].filter(Boolean).join(' · ');
       rows.push({
         order: o.name || '',
         date: o.createdAt,
