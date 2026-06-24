@@ -3205,9 +3205,9 @@ function extractMundialPicks(attrs){
     return String(list[idx].value).trim();
   };
   const picks = {
-    primero:  pick(/\b(primer|1er|1|campeon|oro|ganador|first|champion)\b/),
-    segundo:  pick(/\b(segundo|2do|2|subcampeon|plata|finalista|second)\b/),
-    tercero:  pick(/\b(tercer|3er|3|bronce|third)\b/),
+    primero:  pick(/\b(primer|1er|1ro|campeon|oro|ganador|first|champion)\b/),
+    segundo:  pick(/\b(segundo|2do|2da|subcampeon|plata|finalista|second)\b/),
+    tercero:  pick(/\b(tercer|3er|3ro|bronce|third)\b/),
     goleador: pick(/(golead|scorer|goal|pichichi|max\s*gol|bota)/),
   };
   const extra = list
@@ -3289,16 +3289,7 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
   };
   const usedRefs = new Set();
   let recovered = 0;
-  for (const row of rows) {
-    const empty = !row.primero && !row.segundo && !row.tercero && !row.goleador;
-    if (!empty) continue;
-    // 1º por referencia oculta (exacto); 2º por email + cercanía de fecha.
-    let bk = null;
-    if (row.ref && byRef.has(row.ref) && !usedRefs.has(row.ref)) {
-      bk = byRef.get(row.ref); usedRefs.add(row.ref);
-    }
-    if (!bk) bk = takeBackup(normEmail(row.email), row.date);
-    if (!bk) continue;
+  const applyBackup = (row, bk) => {
     row.primero = bk.primero || '';
     row.segundo = bk.segundo || '';
     row.tercero = bk.tercero || '';
@@ -3309,6 +3300,22 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
     if (bk.telefono && !row.telefono) row.telefono = bk.telefono;
     row.fromBackup = true;
     if (row.primero || row.segundo || row.tercero || row.goleador) recovered++;
+  };
+  // Paso 1 — match EXACTO por referencia oculta: el backup es la fuente de
+  // verdad y PISA lo que se haya parseado de Shopify (que puede venir corrido).
+  for (const row of rows) {
+    if (row.ref && byRef.has(row.ref) && !usedRefs.has(row.ref)) {
+      usedRefs.add(row.ref);
+      applyBackup(row, byRef.get(row.ref));
+    }
+  }
+  // Paso 2 — sólo los que quedaron SIN predicciones: rellenar por email.
+  for (const row of rows) {
+    if (row.fromBackup) continue;
+    const empty = !row.primero && !row.segundo && !row.tercero && !row.goleador;
+    if (!empty) continue;
+    const bk = takeBackup(normEmail(row.email), row.date);
+    if (bk) applyBackup(row, bk);
   }
 
   rows.sort((a, b) => new Date(b.date) - new Date(a.date));
