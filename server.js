@@ -1470,6 +1470,10 @@ app.post('/api/mundial-backup', (req, res) => {
     tercero:  pickField(b, ['tercero', 'tercer', 'tercer_lugar', 'third']).slice(0, 80),
     goleador: pickField(b, ['goleador', 'scorer', 'goal', 'pichichi']).slice(0, 80),
     pack:     b.pack ?? b.composicion ?? b.composition ?? null,
+    // Referencia única que también viaja como propiedad oculta de la línea del
+    // pack (_zorbo_ref). Permite cruzar el backup con el pedido SIN pedirle email
+    // ni datos extra al cliente (las line item properties no las pisa iDTE).
+    ref:      pickField(b, ['ref', 'zorbo_ref', '_zorbo_ref']).slice(0, 80),
     cartToken: pickField(b, ['cartToken', 'cart_token', 'token']).slice(0, 120),
   };
   // Guardamos también el payload crudo como red de seguridad (si es chico).
@@ -3235,12 +3239,14 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
         : (soloUna ? (o.attributes || []) : []);
       const picks = extractMundialPicks(attrs);
       const nota = [cleanMundialNote(o.note), picks.extra || ''].filter(Boolean).join(' · ');
+      const refProp = (li.properties || []).find(p => /^_?zorbo_ref$/i.test(p.key || ''));
       rows.push({
         order: o.name || '',
         date: o.createdAt,
         nombre,
         email: o.customerEmail || '',
         telefono: o.customerPhone || '',
+        ref: refProp ? String(refProp.value || '').trim() : '',
         pack: (li.title || '') + (li.qty > 1 ? ` (x${li.qty})` : ''),
         primero: picks.primero,
         segundo: picks.segundo,
@@ -3256,8 +3262,10 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
   // pisó los atributos), las recuperamos del backup matcheando por email y el
   // pedido más cercano en el tiempo (consumiendo un backup por pack).
   const backups = loadMundialBackups();
+  const byRef = new Map();   // match exacto por referencia oculta (no requiere email)
   const byEmail = new Map();
   for (const b of backups) {
+    if (b.ref) byRef.set(String(b.ref), b);
     const e = normEmail(b.email);
     if (!e) continue;
     if (!byEmail.has(e)) byEmail.set(e, []);
@@ -3279,11 +3287,17 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
     used.add(best);
     return list[best];
   };
+  const usedRefs = new Set();
   let recovered = 0;
   for (const row of rows) {
     const empty = !row.primero && !row.segundo && !row.tercero && !row.goleador;
     if (!empty) continue;
-    const bk = takeBackup(normEmail(row.email), row.date);
+    // 1º por referencia oculta (exacto); 2º por email + cercanía de fecha.
+    let bk = null;
+    if (row.ref && byRef.has(row.ref) && !usedRefs.has(row.ref)) {
+      bk = byRef.get(row.ref); usedRefs.add(row.ref);
+    }
+    if (!bk) bk = takeBackup(normEmail(row.email), row.date);
     if (!bk) continue;
     row.primero = bk.primero || '';
     row.segundo = bk.segundo || '';
