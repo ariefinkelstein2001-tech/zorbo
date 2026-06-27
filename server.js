@@ -3320,11 +3320,13 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
   };
   const usedRefs = new Set();
   let recovered = 0;
+  // Aplica un backup: sólo PISA los campos que el backup trae no vacíos, así un
+  // registro parcial (ej. sólo goleador) corrige ese campo y deja el resto.
   const applyBackup = (row, bk) => {
-    row.primero = bk.primero || '';
-    row.segundo = bk.segundo || '';
-    row.tercero = bk.tercero || '';
-    row.goleador = bk.goleador || '';
+    if (bk.primero)  row.primero = bk.primero;
+    if (bk.segundo)  row.segundo = bk.segundo;
+    if (bk.tercero)  row.tercero = bk.tercero;
+    if (bk.goleador) row.goleador = bk.goleador;
     const packTxt = packToText(bk.pack);
     if (packTxt) row.nota = [row.nota, packTxt].filter(Boolean).join(' · ');
     if (bk.nombre && !row.nombre) row.nombre = bk.nombre;
@@ -3332,21 +3334,23 @@ app.get('/admin/mundial', requireAdmin, async (req, res) => {
     row.fromBackup = true;
     if (row.primero || row.segundo || row.tercero || row.goleador) recovered++;
   };
-  // Paso 1 — match EXACTO por referencia oculta: el backup es la fuente de
-  // verdad y PISA lo que se haya parseado de Shopify (que puede venir corrido).
+  // Paso 1 — match EXACTO (referencia oculta o número de pedido): la
+  // recuperación/backup es la fuente de verdad y PISA lo que venga de Shopify.
   for (const row of rows) {
     if (row.ref && byRef.has(row.ref) && !usedRefs.has(row.ref)) {
       usedRefs.add(row.ref);
       applyBackup(row, byRef.get(row.ref));
+      continue;
     }
+    const bkO = takeByOrder(row.order);
+    if (bkO) applyBackup(row, bkO);
   }
-  // Paso 2 — sólo los que quedaron SIN predicciones: rellenar por número de
-  // pedido (exacto, recuperación) y si no, por email + cercanía de fecha.
+  // Paso 2 — sólo los que quedaron SIN predicciones: rellenar por email.
   for (const row of rows) {
     if (row.fromBackup) continue;
     const empty = !row.primero && !row.segundo && !row.tercero && !row.goleador;
     if (!empty) continue;
-    const bk = takeByOrder(row.order) || takeBackup(normEmail(row.email), row.date);
+    const bk = takeBackup(normEmail(row.email), row.date);
     if (bk) applyBackup(row, bk);
   }
 
