@@ -55,6 +55,20 @@ a{color:inherit}
 .pv-card-title{font-family:var(--display);font-size:1rem;font-weight:800}
 .pv-card-sub{font-size:.74rem;color:var(--dim)}
 .pv-chartbox{position:relative;height:230px;margin-top:.6rem}
+.pv-acc-list{display:flex;flex-direction:column;gap:.8rem;margin-top:1.5rem}
+.pv-acc{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:border-color .15s}
+.pv-acc.open{border-color:var(--gold-bd)}
+.pv-acc-head{width:100%;display:flex;align-items:center;gap:.9rem;padding:1.05rem 1.2rem;background:none;border:none;cursor:pointer;text-align:left;color:var(--text);font-family:var(--sans)}
+.pv-acc-arrow{font-size:.85rem;color:var(--gold);transition:transform .2s;flex-shrink:0}
+.pv-acc.open .pv-acc-arrow{transform:rotate(90deg)}
+.pv-acc-main{display:flex;flex-direction:column;gap:.15rem;flex:1;min-width:0}
+.pv-acc-title{font-family:var(--display);font-weight:800;font-size:1.05rem}
+.pv-acc-help{font-size:.75rem;color:var(--muted)}
+.pv-acc-val{font-family:var(--display);font-weight:800;font-size:1.25rem;color:var(--gold-bright);text-align:right;display:flex;flex-direction:column;gap:.1rem;flex-shrink:0}
+.pv-acc-meta{font-family:var(--sans);font-weight:500;font-size:.72rem;color:var(--muted)}
+.pv-acc-body{display:none;padding:0 1.2rem 1.2rem;border-top:1px solid var(--line)}
+.pv-acc.open .pv-acc-body{display:block}
+.pv-acc-body .pv-chartbox{height:220px;margin-top:1rem}
 .pv-empty{padding:2.2rem 1rem;text-align:center;color:var(--muted);font-size:.84rem;line-height:1.6}
 .pv-note{margin-top:1.4rem;font-size:.76rem;color:var(--dim);text-align:center;line-height:1.6}
 .pv-loading{padding:3rem 1rem;text-align:center;color:var(--muted)}
@@ -108,14 +122,46 @@ function kpi(cls, label, help, val, meta){
   </div>`;
 }
 
+let dashData = null;
+const accDrawn = new Set();
+
+function accRow(key, title, help, val, meta){
+  const box = key === 'in' ? 'boxIn' : 'boxOut';
+  return `<div class="pv-acc" data-acc-wrap="${key}">
+    <button class="pv-acc-head" data-acc="${key}" type="button">
+      <span class="pv-acc-arrow">▸</span>
+      <span class="pv-acc-main">
+        <span class="pv-acc-title">${title}</span>
+        <span class="pv-acc-help">${help}</span>
+      </span>
+      <span class="pv-acc-val">${val}<span class="pv-acc-meta">${meta}</span></span>
+    </button>
+    <div class="pv-acc-body"><div class="pv-chartbox" id="${box}"></div></div>
+  </div>`;
+}
+
+function drawAccChart(key){
+  if (accDrawn.has(key)) return;
+  accDrawn.add(key);
+  const d = dashData || {};
+  if (key === 'in') {
+    const si = d.sellIn || {};
+    drawArea('boxIn', si.monthly || [], '#7c6bb8', !((si.monthly||[]).some(m=>m.value>0)), 'Sell in');
+  } else {
+    const so = d.sellOut || {};
+    if (so.available) drawArea('boxOut', so.monthly || [], '#f5a623', !((so.monthly||[]).some(m=>m.value>0)), 'Sell out');
+    else document.getElementById('boxOut').innerHTML = `<div class="pv-empty">${esc(so.reason||'Ventas no disponibles aún.')}</div>`;
+  }
+}
+
 function render(d){
+  dashData = d;
+  accDrawn.clear();
   const s = d.supplier || {};
   const so = d.sellOut || {};
   const si = d.sellIn || {};
-  const sellOutKpi = so.available
-    ? kpi('out','Sell out','lo que se vendió de tu marca a locales', fmtCLP(so.total), `${(so.units||0).toLocaleString('es-CL')} unidades · ${so.orders||0} pedidos`)
-    : kpi('out','Sell out','ventas a locales', '—', 'Ventas no disponibles aún');
-  const sellInKpi = kpi('in','Sell in','lo que Zorbo te compró a ti', fmtCLP(si.total), `${(si.units||0).toLocaleString('es-CL')} unidades`);
+  const inMeta  = `${(si.units||0).toLocaleString('es-CL')} unidades`;
+  const outMeta = so.available ? `${(so.units||0).toLocaleString('es-CL')} unidades · ${so.orders||0} pedidos` : 'ventas no disponibles aún';
 
   document.getElementById('shell').innerHTML = `
     <div class="pv-hi">Hola, <span class="brand">${esc(s.name)}</span></div>
@@ -125,35 +171,28 @@ function render(d){
       <span>Este es el rendimiento de tu marca dentro de Zorbo.</span>
     </div>
 
-    <div class="pv-kpis">${sellInKpi}${sellOutKpi}</div>
-
-    <div class="pv-cards">
-      <div class="pv-card">
-        <div class="pv-card-head">
-          <div class="pv-card-title">Sell in · evolución</div>
-          <div class="pv-card-sub">últimos 12 meses</div>
-        </div>
-        <div class="pv-chartbox" id="boxIn"></div>
-      </div>
-      <div class="pv-card">
-        <div class="pv-card-head">
-          <div class="pv-card-title">Sell out · evolución</div>
-          <div class="pv-card-sub">últimos 12 meses</div>
-        </div>
-        <div class="pv-chartbox" id="boxOut"></div>
-      </div>
+    <div class="pv-acc-list">
+      ${accRow('in','Sell in','lo que Zorbo te compró a ti', fmtCLP(si.total), inMeta)}
+      ${accRow('out','Sell out','lo que se vendió de tu marca a locales', so.available?fmtCLP(so.total):'—', outMeta)}
     </div>
 
     <div class="pv-soon">
-      Próximamente en tu portal: <b>mapa de locales</b> donde está tu producto, <b>top 10 puntos de venta</b>,
-      <b>agendar despacho</b> de tus órdenes, <b>sugerir nuevos locales</b> y la <b>cadena de valor</b> completa.
+      Próximamente en tu portal: <b>órdenes de compra</b> con agendar despacho, <b>mapa de locales</b> donde está tu producto,
+      <b>top 10 puntos de venta</b>, <b>sugerir nuevos locales</b> y la <b>cadena de valor</b> completa.
     </div>
-    <div class="pv-note">Los datos se actualizan automáticamente. Sell out viene de las ventas reales en Zorbo; sell in, de las órdenes de compra que te hace Zorbo.</div>
+    <div class="pv-note">Tocá "Sell in" o "Sell out" para ver su gráfico. Sell out viene de las ventas reales en Zorbo; sell in, de las órdenes de compra que te hace Zorbo.</div>
   `;
 
-  drawArea('boxIn', si.monthly || [], '#7c6bb8', !((si.monthly||[]).some(m=>m.value>0)), 'Sell in');
-  if (so.available) drawArea('boxOut', so.monthly || [], '#f5a623', !((so.monthly||[]).some(m=>m.value>0)), 'Sell out');
-  else document.getElementById('boxOut').innerHTML = `<div class="pv-empty">${esc(so.reason||'Ventas no disponibles aún.')}</div>`;
+  document.querySelectorAll('.pv-acc-head').forEach(btn => {
+    btn.onclick = () => {
+      const wrap = btn.closest('.pv-acc');
+      const open = wrap.classList.toggle('open');
+      if (open) setTimeout(() => drawAccChart(btn.dataset.acc), 30);
+    };
+  });
+  // Abrir "Sell in" por defecto
+  const first = document.querySelector('[data-acc-wrap="in"]');
+  if (first) { first.classList.add('open'); setTimeout(() => drawAccChart('in'), 30); }
 }
 
 const CAT_LABELS = { cerveza:'Cerveza', licores:'Licores', rtd:'RTD', funcionales:'Bebidas y funcionales' };
