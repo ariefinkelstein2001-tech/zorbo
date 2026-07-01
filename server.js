@@ -2068,10 +2068,12 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
     if (!all) return res.json({ products: [], section, requiredTag });
     const extras = loadProductExtras();
     const customBrands = getCustomBrands();
+    const productCosts = loadDistri().productCosts || {};
     const products = all
       .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes(requiredTag))
       .map(p => {
         const ex = extras.items[String(p.id)] || null;
+        const pc = productCosts[String(p.id)] || null;
         const tagsUpper = (p.tags || []).map(t => String(t).toUpperCase());
         const isMayorista = tagsUpper.includes('MAYORISTA');
         const isZorbo     = tagsUpper.includes('ZORBO');
@@ -2088,6 +2090,7 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
           compareAt:  p.variants?.[0]?.compareAtPrice ? Number(p.variants[0].compareAtPrice) : null,
           variants:   (p.variants || []).length,
           isMayorista, isZorbo,
+          ilaPct:     pc && Number.isFinite(pc.ilaPct) ? Number(pc.ilaPct) : 0,
           extra:      ex?.extra || '',
           files:      Array.isArray(ex?.files) ? ex.files : [],
           hasExtra:   !!(ex && (ex.extra && ex.extra.trim() || ex.video || (ex.files && ex.files.length))),
@@ -3577,20 +3580,24 @@ app.put('/admin/distribuidora/costs/:productId', requireAdmin, (req, res) => {
   const pid = String(req.params.productId);
   const b = req.body || {};
   const d = loadDistri();
-  const cost = (b.cost === '' || b.cost == null) ? null : Number(b.cost);
-  const dispatch = (b.dispatch === '' || b.dispatch == null) ? 0 : Number(b.dispatch);
-  const precioNeto = (b.precioNeto === '' || b.precioNeto == null) ? null : Number(b.precioNeto);
-  const ilaPct = (b.ilaPct === '' || b.ilaPct == null) ? 0 : Number(b.ilaPct);
-  if (cost !== null && (!Number.isFinite(cost) || cost < 0)) return res.status(400).json({ error: 'Costo inválido.' });
-  if (precioNeto !== null && (!Number.isFinite(precioNeto) || precioNeto < 0)) return res.status(400).json({ error: 'Precio neto inválido.' });
-  if (!Number.isFinite(dispatch) || dispatch < 0) return res.status(400).json({ error: 'Despacho inválido.' });
-  if (!Number.isFinite(ilaPct) || ilaPct < 0 || ilaPct > 100) return res.status(400).json({ error: 'ILA inválido (0–100%).' });
-  const category = isDistriCategory(b.category) ? b.category : '';
-  // Si no hay nada cargado, limpiamos el registro.
-  if (cost === null && precioNeto === null && !category && !dispatch && !ilaPct) {
+  // Actualización PARCIAL: sólo tocamos los campos presentes en el body, así el
+  // ILA (que se carga desde Productos) no pisa el costo/categoría/despacho.
+  const rec = { cost: null, precioNeto: null, category: '', dispatch: 0, ilaPct: 0, ...(d.productCosts[pid] || {}) };
+  const numOrNull = (v) => (v === '' || v == null) ? null : Number(v);
+  if (b.cost !== undefined) rec.cost = numOrNull(b.cost);
+  if (b.precioNeto !== undefined) rec.precioNeto = numOrNull(b.precioNeto);
+  if (b.dispatch !== undefined) rec.dispatch = numOrNull(b.dispatch) || 0;
+  if (b.ilaPct !== undefined) rec.ilaPct = numOrNull(b.ilaPct) || 0;
+  if (b.category !== undefined) rec.category = isDistriCategory(b.category) ? b.category : '';
+  if (rec.cost !== null && (!Number.isFinite(rec.cost) || rec.cost < 0)) return res.status(400).json({ error: 'Costo inválido.' });
+  if (rec.precioNeto !== null && (!Number.isFinite(rec.precioNeto) || rec.precioNeto < 0)) return res.status(400).json({ error: 'Precio neto inválido.' });
+  if (!Number.isFinite(rec.dispatch) || rec.dispatch < 0) return res.status(400).json({ error: 'Despacho inválido.' });
+  if (!Number.isFinite(rec.ilaPct) || rec.ilaPct < 0 || rec.ilaPct > 100) return res.status(400).json({ error: 'ILA inválido (0–100%).' });
+  if (rec.cost === null && rec.precioNeto === null && !rec.category && !rec.dispatch && !rec.ilaPct) {
     delete d.productCosts[pid];
   } else {
-    d.productCosts[pid] = { cost, precioNeto, category, dispatch, ilaPct, updatedAt: new Date().toISOString() };
+    rec.updatedAt = new Date().toISOString();
+    d.productCosts[pid] = rec;
   }
   saveDistri(d);
   res.json({ ok: true, cost: d.productCosts[pid] || null });

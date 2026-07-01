@@ -344,6 +344,9 @@ body.admin-home .adm-chat,body.admin-home .adm-chat-fab{display:none!important}
   font-size:.62rem;font-weight:700;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;
   font-family:var(--sans);padding-left:.15rem;
 }
+.adm-prod-ila-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.7rem;font-weight:700;color:var(--muted)}
+.adm-prod-ila{width:90px;padding:.5rem .6rem;border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:.9rem;outline:none}
+.adm-prod-ila:focus{border-color:var(--gold-bd-h)}
 .adm-prod-extra{
   width:100%;min-height:140px;
   background:#fafafa;color:var(--text);
@@ -2738,6 +2741,11 @@ function productCardHtml(p){
   ].filter(Boolean).join('');
   const editor = isOpen ? `
     <div class="adm-prod-editor">
+      <label class="adm-prod-label">ILA % <span style="font-weight:400;color:#999">(impuesto a bebidas alcohólicas · se usa en la orden de compra)</span></label>
+      <div class="adm-prod-ila-row">
+        <input class="adm-prod-ila" data-pid="${p.id}" type="number" min="0" max="100" step="0.5" placeholder="0" value="${p.ilaPct?p.ilaPct:''}"> %
+        <span class="dist-status adm-prod-ila-st" data-pid="${p.id}"></span>
+      </div>
       <label class="adm-prod-label">Notas para Zorbot (Markdown soportado)</label>
       <textarea class="adm-prod-extra" data-pid="${p.id}" rows="8"
         placeholder="Descripción extendida, maridajes, ocasiones, tono que querés que use el bot al hablar de este producto…">${escapeHtml(p.extra || '')}</textarea>
@@ -2900,6 +2908,25 @@ function bindProductCards(){
       ev.stopPropagation();
       openProductId = null;
       renderProductGrid();
+    };
+  });
+  // ILA % por producto → se guarda solo (alimenta la orden de compra)
+  document.querySelectorAll('.adm-prod-ila').forEach(el => {
+    el.onclick = (ev) => ev.stopPropagation();
+    el.onblur = async () => {
+      const pid = el.dataset.pid;
+      const st = document.querySelector(`.adm-prod-ila-st[data-pid="${CSS.escape(pid)}"]`);
+      if (st) { st.className = 'dist-status adm-prod-ila-st'; st.textContent = '…'; }
+      try {
+        const r = await fetch(`/admin/distribuidora/costs/${encodeURIComponent(pid)}`, {
+          method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ilaPct: el.value }),
+        });
+        if (!r.ok) { const d = await r.json(); throw new Error(d.error||'Error'); }
+        // reflejar en el cache de productos para la OC
+        const p = (productsCache||[]).find(x => String(x.id) === String(pid));
+        if (p) p.ilaPct = Number(el.value)||0;
+        if (st) { st.className = 'dist-status ok adm-prod-ila-st'; st.textContent = '✓'; setTimeout(()=>{ if(st) st.textContent=''; }, 1600); }
+      } catch (e) { if (st) { st.className = 'dist-status err adm-prod-ila-st'; st.textContent = e.message; } }
     };
   });
   document.querySelectorAll('.adm-prod [data-act="save"]').forEach(el => {
@@ -5850,8 +5877,6 @@ function renderDistCostos(data){
     <tr data-pid="${p.id}">
       <td>${escapeHtml(p.title)}<div class="mun-meta-cell">${escapeHtml(p.vendor||'')}${p.sku?(' · '+escapeHtml(p.sku)):''}</div></td>
       <td>${catSel(p.id, p.category)}</td>
-      <td class="dist-num"><input type="number" min="0" step="1" class="dist-input-sm dist-num" data-cost-neto="${p.id}" value="${p.precioNeto!=null?p.precioNeto:''}" placeholder="0"></td>
-      <td class="dist-num"><input type="number" min="0" max="100" step="0.5" class="dist-input-sm dist-num" data-cost-ila="${p.id}" value="${p.ilaPct?p.ilaPct:''}" placeholder="0"></td>
       <td class="dist-num"><input type="number" min="0" step="1" class="dist-input-sm dist-num" data-cost-val="${p.id}" value="${p.cost!=null?p.cost:''}" placeholder="0"></td>
       <td class="dist-num"><input type="number" min="0" step="1" class="dist-input-sm dist-num" data-cost-disp="${p.id}" value="${p.dispatch||''}" placeholder="0"></td>
       <td class="dist-num">${p.price!=null?distMoney(p.price):'—'}</td>
@@ -5861,22 +5886,21 @@ function renderDistCostos(data){
     <div class="dist-sec-head">
       <div>
         <div class="dist-sec-title">Costos de compra</div>
-        <div class="dist-sec-sub">Precio neto e ILA % por producto alimentan la orden de compra. Costo de compra y categoría definen el margen. Se guarda solo al cambiar cada campo.</div>
+        <div class="dist-sec-sub">Cargá lo que Zorbo le paga al proveedor por unidad y la categoría (define el margen). La categoría arranca sugerida según el proveedor. Se guarda solo al cambiar cada campo.</div>
       </div>
       <button class="adm-btn adm-btn-ghost" id="costRefresh" type="button">Refrescar de Shopify</button>
     </div>
-    <div class="mun-count">${data.products.length} productos · "Precio Shopify" es el precio de venta actual (con IVA)</div>
+    <div class="mun-count">${data.products.length} productos · "Precio Shopify" es el precio de venta actual</div>
     <div class="mun-wrap"><table class="mun-table">
       <thead><tr>
-        <th>Producto</th><th>Categoría</th><th style="text-align:right">Precio neto</th>
-        <th style="text-align:right">ILA %</th><th style="text-align:right">Costo compra</th>
+        <th>Producto</th><th>Categoría</th><th style="text-align:right">Costo compra (unid.)</th>
         <th style="text-align:right">Despacho</th><th style="text-align:right">Precio Shopify</th><th></th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
   document.getElementById('costRefresh').onclick = async () => { await loadDistProducts(true); renderDistCostos(distProducts); };
   // Auto-guardado por fila
-  document.querySelectorAll('#distBody [data-cost-val],#distBody [data-cost-disp],#distBody [data-cost-neto],#distBody [data-cost-ila]').forEach(el => {
+  document.querySelectorAll('#distBody [data-cost-val],#distBody [data-cost-disp]').forEach(el => {
     el.onblur = () => saveDistCost(el.closest('tr').dataset.pid);
   });
   document.querySelectorAll('#distBody [data-cost-cat]').forEach(el => {
@@ -5890,14 +5914,12 @@ async function saveDistCost(pid){
   const cost = tr.querySelector('[data-cost-val]').value;
   const dispatch = tr.querySelector('[data-cost-disp]').value;
   const category = tr.querySelector('[data-cost-cat]').value;
-  const precioNeto = tr.querySelector('[data-cost-neto]').value;
-  const ilaPct = tr.querySelector('[data-cost-ila]').value;
   const st = tr.querySelector('[data-cost-st]');
   st.className = 'dist-status'; st.textContent = '…';
   try {
     const r = await fetch(`/admin/distribuidora/costs/${pid}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cost, dispatch, category, precioNeto, ilaPct }),
+      body: JSON.stringify({ cost, dispatch, category }),
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Error');
