@@ -3462,6 +3462,13 @@ app.post('/admin/distribuidora/suppliers', requireAdmin, (req, res) => {
     email: distriStr(b.email, 160),
     phone: distriStr(b.phone, 60),
     address: distriStr(b.address, 240),
+    // Datos para la orden de compra (se autocompletan al elegir el proveedor).
+    rut: distriStr(b.rut, 40),
+    ciudad: distriStr(b.ciudad, 80),
+    banco: distriStr(b.banco, 80),
+    tipoCuenta: distriStr(b.tipoCuenta, 60),
+    nroCuenta: distriStr(b.nroCuenta, 60),
+    condicionesPago: distriStr(b.condicionesPago, 80),
     notes: distriStr(b.notes, 2000),
     createdAt: now, updatedAt: now,
   };
@@ -3484,6 +3491,12 @@ app.put('/admin/distribuidora/suppliers/:id', requireAdmin, (req, res) => {
   if (b.email !== undefined) s.email = distriStr(b.email, 160);
   if (b.phone !== undefined) s.phone = distriStr(b.phone, 60);
   if (b.address !== undefined) s.address = distriStr(b.address, 240);
+  if (b.rut !== undefined) s.rut = distriStr(b.rut, 40);
+  if (b.ciudad !== undefined) s.ciudad = distriStr(b.ciudad, 80);
+  if (b.banco !== undefined) s.banco = distriStr(b.banco, 80);
+  if (b.tipoCuenta !== undefined) s.tipoCuenta = distriStr(b.tipoCuenta, 60);
+  if (b.nroCuenta !== undefined) s.nroCuenta = distriStr(b.nroCuenta, 60);
+  if (b.condicionesPago !== undefined) s.condicionesPago = distriStr(b.condicionesPago, 80);
   if (b.notes !== undefined) s.notes = distriStr(b.notes, 2000);
   s.updatedAt = new Date().toISOString();
   saveDistri(d);
@@ -3593,17 +3606,25 @@ function normalizeOCItems(raw){
       articulo: distriStr(it.articulo ?? it.title, 200),
       cantidad: Math.max(0, Number(it.cantidad ?? it.qty) || 0),
       precioUnitario: Math.max(0, Math.round(Number(it.precioUnitario ?? it.unitCost) || 0)),
+      // ILA (Impuesto a las bebidas alcohólicas) por producto. Por ahora 0;
+      // más adelante se carga el % que corresponde a cada producto.
+      ilaPct: Math.max(0, Number(it.ilaPct) || 0),
     }))
     .filter(it => it.articulo && it.cantidad > 0)
-    .map(it => ({ ...it, precioTotal: Math.round(it.cantidad * it.precioUnitario) }));
+    .map(it => {
+      const precioTotal = Math.round(it.cantidad * it.precioUnitario);
+      return { ...it, precioTotal, ilaMonto: Math.round(precioTotal * it.ilaPct / 100) };
+    });
 }
 function computeOCTotals(items, descuentoPct){
   const subtotal = items.reduce((s, it) => s + it.precioTotal, 0);
   const dPct = Math.min(100, Math.max(0, Number(descuentoPct) || 0));
   const descuento = Math.round(subtotal * dPct / 100);
   const subtotalConDescuento = subtotal - descuento;
+  const ilaBruto = items.reduce((s, it) => s + (it.ilaMonto || 0), 0);
+  const ila = Math.round(ilaBruto * (1 - dPct / 100));
   const iva = Math.round(subtotalConDescuento * 0.19);
-  return { subtotal, descuentoPct: dPct, descuento, subtotalConDescuento, iva, total: subtotalConDescuento + iva };
+  return { subtotal, descuentoPct: dPct, descuento, subtotalConDescuento, ila, iva, total: subtotalConDescuento + ila + iva };
 }
 function buildOCFromBody(b, supplier){
   const items = normalizeOCItems(b.items);
@@ -3612,27 +3633,27 @@ function buildOCFromBody(b, supplier){
     supplierId: supplier.id, supplierName: supplier.name,
     proveedor: {
       razonSocial: distriStr(b.provRazonSocial, 160) || supplier.name,
-      rut:       distriStr(b.provRut, 40),
+      rut:       distriStr(b.provRut, 40) || supplier.rut || '',
       direccion: distriStr(b.provDireccion, 240) || supplier.address || '',
-      ciudad:    distriStr(b.provCiudad, 80),
+      ciudad:    distriStr(b.provCiudad, 80) || supplier.ciudad || '',
       contacto:  distriStr(b.provContacto, 160) || supplier.contactName || '',
       telefono:  distriStr(b.provTelefono, 60) || supplier.phone || '',
       correo:    distriStr(b.provCorreo, 160) || supplier.email || '',
     },
     transfer: {
       razonSocial: distriStr(b.trfRazonSocial, 160) || distriStr(b.provRazonSocial, 160) || supplier.name,
-      rut:       distriStr(b.trfRut, 40) || distriStr(b.provRut, 40),
-      banco:     distriStr(b.trfBanco, 80),
-      tipoCuenta:distriStr(b.trfTipoCuenta, 60),
-      nroCuenta: distriStr(b.trfNroCuenta, 60),
-      correo:    distriStr(b.trfCorreo, 160) || distriStr(b.provCorreo, 160),
+      rut:       distriStr(b.trfRut, 40) || distriStr(b.provRut, 40) || supplier.rut || '',
+      banco:     distriStr(b.trfBanco, 80) || supplier.banco || '',
+      tipoCuenta:distriStr(b.trfTipoCuenta, 60) || supplier.tipoCuenta || '',
+      nroCuenta: distriStr(b.trfNroCuenta, 60) || supplier.nroCuenta || '',
+      correo:    distriStr(b.trfCorreo, 160) || distriStr(b.provCorreo, 160) || supplier.email || '',
     },
     fecha:        distriStr(b.fecha, 20) || todayISO(),
     entrega:      distriStr(b.entrega, 40) || 'A CONVENIR',
     plazoEntrega: distriStr(b.plazoEntrega, 40) || 'A CONVENIR',
-    pago:         distriStr(b.pago, 40),
+    pago:         distriStr(b.pago, 40) || supplier.condicionesPago || '',
     motivo:       distriStr(b.motivo, 240),
-    area:         distriStr(b.area, 60) || 'COMERCIAL',
+    area:         distriStr(b.area, 60),
     centroCostos: distriStr(b.centroCostos, 40),
     items, ...t,
     notes: distriStr(b.notes, 2000),
@@ -3725,9 +3746,9 @@ function buildPurchaseOrderPdf(po){
   };
   const cw4 = CW / 4, ch = 30;
   cell(M, cw4, ch, 'FECHA', po.fecha);
-  cell(M + cw4, cw4, ch, 'ÁREA', po.area);
-  cell(M + cw4 * 2, cw4, ch, 'CENTRO DE COSTOS', po.centroCostos);
-  cell(M + cw4 * 3, cw4, ch, 'ESTADO', po.status === 'recibida' ? 'RECIBIDA' : 'PENDIENTE');
+  cell(M + cw4, cw4, ch, 'ENTREGA', po.entrega);
+  cell(M + cw4 * 2, cw4, ch, 'PLAZO ENTREGA', po.plazoEntrega);
+  cell(M + cw4 * 3, cw4, ch, 'PAGO', po.pago);
   y += ch + 10;
 
   // Datos del proveedor
@@ -3741,16 +3762,7 @@ function buildPurchaseOrderPdf(po){
   prow('CONTACTO', pv.contacto);
   prow('TELÉFONO', pv.telefono);
   prow('CORREO', pv.correo);
-  y += 8;
-
-  // Fila entrega / plazo / pago / motivo
-  const cw3 = CW / 3;
-  cell(M, cw3, ch, 'ENTREGA', po.entrega);
-  cell(M + cw3, cw3, ch, 'PLAZO ENTREGA', po.plazoEntrega);
-  cell(M + cw3 * 2, cw3, ch, 'PAGO', po.pago);
-  y += ch + 4;
-  if (po.motivo) { rect(M, y, CW, 18, LINE); txt(M + 5, y + 4, 'MOTIVO DE COMPRA', 6.5, GREY, true); txt(M + 130, y + 5, po.motivo, 8.5, DARK, false, null, CW - 140); y += 18; }
-  y += 10;
+  y += 12;
 
   // Tabla de artículos
   const cN = M, cA = M + 24, cCant = M + CW - 210, cPU = M + CW - 140, cPT = M + CW - 70;
@@ -3783,6 +3795,7 @@ function buildPurchaseOrderPdf(po){
   trow('SUB-TOTAL', clp(po.subtotal));
   trow('DESCUENTO (' + (po.descuentoPct || 0) + '%)', '-' + clp(po.descuento));
   trow('SUB-TOTAL C/DESC.', clp(po.subtotalConDescuento));
+  trow('ILA', clp(po.ila || 0));
   trow('IVA (19%)', clp(po.iva));
   trow('TOTAL', clp(po.total), true);
   y += 12;

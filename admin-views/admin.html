@@ -5618,12 +5618,9 @@ async function renderDistOrdenes(){
       <div class="dist-form-grid" style="margin-top:.9rem">
         <div class="dist-field"><label>Proveedor</label><select id="ocSup">${supOpts}</select></div>
         ${F('ocFecha','Fecha','dd-mm-aaaa')}
-        ${F('ocArea','Área','COMERCIAL','COMERCIAL')}
-        ${F('ocCentro','Centro de costos','')}
         ${F('ocEntrega','Entrega','A CONVENIR','A CONVENIR')}
         ${F('ocPlazo','Plazo entrega','A CONVENIR','A CONVENIR')}
-        ${F('ocPago','Pago','ej: 30 DIAS')}
-        ${F('ocMotivo','Motivo de compra','')}
+        ${F('ocPago','Condiciones de pago','ej: 30 DÍAS')}
       </div>
 
       <div class="oc-sub">Datos del proveedor</div>
@@ -5655,6 +5652,7 @@ async function renderDistOrdenes(){
           <div><span>Sub-total</span><b>${ocMoney(subtotal)}</b></div>
           <div><span>Descuento (${desc}%)</span><b>-${ocMoney(descMonto)}</b></div>
           <div><span>Sub-total c/desc.</span><b>${ocMoney(subConDesc)}</b></div>
+          <div><span>ILA <small style="color:#aaa">(por producto, se define luego)</small></span><b>${ocMoney(0)}</b></div>
           <div><span>IVA (19%)</span><b>${ocMoney(iva)}</b></div>
           <div class="oc-tot-final"><span>TOTAL</span><b>${ocMoney(total)}</b></div>
         </div>
@@ -5669,7 +5667,6 @@ async function renderDistOrdenes(){
       </div>
 
       <div class="dist-form-actions" style="margin-top:1rem">
-        <select id="ocStatus" class="dist-input-sm" style="max-width:150px"><option value="pendiente">Pendiente</option><option value="recibida">Recibida</option></select>
         <button class="adm-btn" id="ocSave" type="button">Guardar orden</button>
         <span class="dist-status" id="ocStatusMsg"></span>
       </div>
@@ -5677,17 +5674,23 @@ async function renderDistOrdenes(){
     <div class="dist-sec-title" style="margin-top:1.4rem">Órdenes registradas</div>
     <div class="oc-list">${list}</div>`;
 
-  // Prefill datos del proveedor al elegirlo
+  // Fecha automática = hoy (dd-mm-aaaa) si está vacía
+  const ocF = document.getElementById('ocFecha');
+  if (ocF && !ocF.value) { const t=new Date(); ocF.value = String(t.getDate()).padStart(2,'0')+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+t.getFullYear(); }
+  // Al elegir proveedor, se autocompleta TODO (datos + banco + pago)
   const supSel = document.getElementById('ocSup');
   supSel.onchange = () => {
     const s = sups.find(x=>x.id===supSel.value); if(!s) return;
-    const set=(id,v)=>{ const el=document.getElementById(id); if(el && !el.value) el.value=v||''; };
-    set('ocPRazon', s.name); set('ocPCorreo', s.email); set('ocPTel', s.phone);
-    set('ocPContacto', s.contactName); set('ocPDir', s.address);
+    const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v||''; };
+    set('ocPRazon', s.name); set('ocPRut', s.rut); set('ocPDir', s.address); set('ocPCiudad', s.ciudad);
+    set('ocPContacto', s.contactName); set('ocPTel', s.phone); set('ocPCorreo', s.email);
+    set('ocTBanco', s.banco); set('ocTTipo', s.tipoCuenta); set('ocTNro', s.nroCuenta); set('ocTCorreo', s.email);
+    set('ocPago', s.condicionesPago);
   };
+  // Al elegir un artículo, se pone su precio unitario automáticamente
   document.getElementById('ocPTitle').addEventListener('change', (e)=>{
     const opt = [...document.querySelectorAll('#ocProds option')].find(o=>o.value===e.target.value);
-    if (opt && opt.dataset.cost && !document.getElementById('ocPCost').value) document.getElementById('ocPCost').value = opt.dataset.cost;
+    if (opt && opt.dataset.cost) document.getElementById('ocPCost').value = opt.dataset.cost;
   });
   document.getElementById('ocDesc').oninput = () => renderDistOrdenesKeepInputs();
   document.getElementById('ocAdd').onclick = addOcLine;
@@ -5699,7 +5702,7 @@ async function renderDistOrdenes(){
 // Re-render manteniendo lo tipeado en el form (para actualizar totales sin perder datos)
 let ocFormCache = {};
 function ocSnapshot(){
-  ['ocSup','ocFecha','ocArea','ocCentro','ocEntrega','ocPlazo','ocPago','ocMotivo','ocPRazon','ocPRut','ocPDir','ocPCiudad','ocPContacto','ocPTel','ocPCorreo','ocDesc','ocTBanco','ocTTipo','ocTNro','ocTCorreo','ocStatus'].forEach(id=>{ const el=document.getElementById(id); if(el) ocFormCache[id]=el.value; });
+  ['ocSup','ocFecha','ocEntrega','ocPlazo','ocPago','ocPRazon','ocPRut','ocPDir','ocPCiudad','ocPContacto','ocPTel','ocPCorreo','ocDesc','ocTBanco','ocTTipo','ocTNro','ocTCorreo'].forEach(id=>{ const el=document.getElementById(id); if(el) ocFormCache[id]=el.value; });
 }
 function ocRestore(){
   Object.entries(ocFormCache).forEach(([id,v])=>{ const el=document.getElementById(id); if(el && v) el.value=v; });
@@ -5719,12 +5722,12 @@ async function saveOc(){
   if(!g('ocSup')){ st.className='dist-status err'; st.textContent='Elegí un proveedor.'; return; }
   if(!ocDraft.length){ st.className='dist-status err'; st.textContent='Agregá al menos un artículo.'; return; }
   const payload={
-    supplierId:g('ocSup'), fecha:g('ocFecha'), area:g('ocArea'), centroCostos:g('ocCentro'),
-    entrega:g('ocEntrega'), plazoEntrega:g('ocPlazo'), pago:g('ocPago'), motivo:g('ocMotivo'),
+    supplierId:g('ocSup'), fecha:g('ocFecha'),
+    entrega:g('ocEntrega'), plazoEntrega:g('ocPlazo'), pago:g('ocPago'),
     provRazonSocial:g('ocPRazon'), provRut:g('ocPRut'), provDireccion:g('ocPDir'), provCiudad:g('ocPCiudad'),
     provContacto:g('ocPContacto'), provTelefono:g('ocPTel'), provCorreo:g('ocPCorreo'),
     trfBanco:g('ocTBanco'), trfTipoCuenta:g('ocTTipo'), trfNroCuenta:g('ocTNro'), trfCorreo:g('ocTCorreo'),
-    descuentoPct:Number(g('ocDesc'))||0, status:g('ocStatus'), items:ocDraft,
+    descuentoPct:Number(g('ocDesc'))||0, items:ocDraft,
   };
   st.className='dist-status'; st.textContent='Guardando…';
   try{
@@ -5928,7 +5931,16 @@ function renderDistProveedores(){
         <div class="dist-field"><label>Contacto (nombre)</label><input id="dsContact" value="${v('contactName')}" placeholder="Nombre del contacto"></div>
         <div class="dist-field"><label>Email</label><input id="dsEmail" value="${v('email')}" placeholder="contacto@marca.cl"></div>
         <div class="dist-field"><label>Teléfono</label><input id="dsPhone" value="${v('phone')}" placeholder="+56 9 ..."></div>
-        <div class="dist-field wide"><label>Dirección</label><input id="dsAddr" value="${v('address')}" placeholder="Calle, comuna, ciudad"></div>
+        <div class="dist-field"><label>RUT</label><input id="dsRut" value="${v('rut')}" placeholder="76.xxx.xxx-x"></div>
+        <div class="dist-field"><label>Ciudad</label><input id="dsCiudad" value="${v('ciudad')}" placeholder="Santiago"></div>
+        <div class="dist-field wide"><label>Dirección</label><input id="dsAddr" value="${v('address')}" placeholder="Calle, número, comuna"></div>
+      </div>
+      <div class="oc-sub">Datos bancarios y de pago (para la orden de compra)</div>
+      <div class="dist-form-grid">
+        <div class="dist-field"><label>Banco</label><input id="dsBanco" value="${v('banco')}" placeholder="Ej: BCI"></div>
+        <div class="dist-field"><label>Tipo de cuenta</label><input id="dsTipoCuenta" value="${v('tipoCuenta')}" placeholder="Cuenta corriente"></div>
+        <div class="dist-field"><label>N° de cuenta</label><input id="dsNroCuenta" value="${v('nroCuenta')}" placeholder="000000000"></div>
+        <div class="dist-field"><label>Condiciones de pago</label><input id="dsPago" value="${v('condicionesPago')}" placeholder="Ej: 30 DÍAS"></div>
         <div class="dist-field wide"><label>Notas internas</label><textarea id="dsNotes" rows="2" placeholder="Condiciones, acuerdos, observaciones…">${ed ? escapeHtml(ed.notes || '') : ''}</textarea></div>
       </div>
       <div class="dist-form-actions">
@@ -6043,6 +6055,12 @@ async function saveDistSupplier(){
     email: document.getElementById('dsEmail').value,
     phone: document.getElementById('dsPhone').value,
     address: document.getElementById('dsAddr').value,
+    rut: document.getElementById('dsRut').value,
+    ciudad: document.getElementById('dsCiudad').value,
+    banco: document.getElementById('dsBanco').value,
+    tipoCuenta: document.getElementById('dsTipoCuenta').value,
+    nroCuenta: document.getElementById('dsNroCuenta').value,
+    condicionesPago: document.getElementById('dsPago').value,
     notes: document.getElementById('dsNotes').value,
   };
   const st = document.getElementById('dsStatus');
