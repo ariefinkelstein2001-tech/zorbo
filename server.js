@@ -3576,41 +3576,83 @@ app.put('/admin/distribuidora/costs/:productId', requireAdmin, (req, res) => {
 });
 
 // ── Órdenes de compra (sell in) — Zorbo le compra a un proveedor ──
-function normalizePOItems(raw){
+// Replica el formato de la Orden de Compra de 500 Sabores (Excel/PDF MCC).
+const OC_BUYER = {
+  nombre: '500 SABORES SpA',
+  rut: '77.528.378-5',
+  direccion: 'Av. Vicuña Mackenna 7110 B201 / Froilan Roa 7205 - La Florida - Santiago, Chile (8240000)',
+  giro: 'Compra y venta de bebidas alcohólicas y no alcohólicas al por mayor y por menor',
+  telefono: '(+) 56 9 6688 4494',
+  contacto: 'Benjamin Rifo',
+};
+const clp = (n) => '$' + String(Math.round(Number(n) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+function normalizeOCItems(raw){
   return (Array.isArray(raw) ? raw : [])
     .map(it => ({
-      productId: it.productId ? String(it.productId).slice(0, 40) : '',
-      title: distriStr(it.title, 160),
-      qty: Math.max(0, Number(it.qty) || 0),
-      unitCost: Math.max(0, Math.round(Number(it.unitCost) || 0)),
+      articulo: distriStr(it.articulo ?? it.title, 200),
+      cantidad: Math.max(0, Number(it.cantidad ?? it.qty) || 0),
+      precioUnitario: Math.max(0, Math.round(Number(it.precioUnitario ?? it.unitCost) || 0)),
     }))
-    .filter(it => it.title && it.qty > 0)
-    .map(it => ({ ...it, total: Math.round(it.qty * it.unitCost) }));
+    .filter(it => it.articulo && it.cantidad > 0)
+    .map(it => ({ ...it, precioTotal: Math.round(it.cantidad * it.precioUnitario) }));
 }
+function computeOCTotals(items, descuentoPct){
+  const subtotal = items.reduce((s, it) => s + it.precioTotal, 0);
+  const dPct = Math.min(100, Math.max(0, Number(descuentoPct) || 0));
+  const descuento = Math.round(subtotal * dPct / 100);
+  const subtotalConDescuento = subtotal - descuento;
+  const iva = Math.round(subtotalConDescuento * 0.19);
+  return { subtotal, descuentoPct: dPct, descuento, subtotalConDescuento, iva, total: subtotalConDescuento + iva };
+}
+function buildOCFromBody(b, supplier){
+  const items = normalizeOCItems(b.items);
+  const t = computeOCTotals(items, b.descuentoPct);
+  return {
+    supplierId: supplier.id, supplierName: supplier.name,
+    proveedor: {
+      razonSocial: distriStr(b.provRazonSocial, 160) || supplier.name,
+      rut:       distriStr(b.provRut, 40),
+      direccion: distriStr(b.provDireccion, 240) || supplier.address || '',
+      ciudad:    distriStr(b.provCiudad, 80),
+      contacto:  distriStr(b.provContacto, 160) || supplier.contactName || '',
+      telefono:  distriStr(b.provTelefono, 60) || supplier.phone || '',
+      correo:    distriStr(b.provCorreo, 160) || supplier.email || '',
+    },
+    transfer: {
+      razonSocial: distriStr(b.trfRazonSocial, 160) || distriStr(b.provRazonSocial, 160) || supplier.name,
+      rut:       distriStr(b.trfRut, 40) || distriStr(b.provRut, 40),
+      banco:     distriStr(b.trfBanco, 80),
+      tipoCuenta:distriStr(b.trfTipoCuenta, 60),
+      nroCuenta: distriStr(b.trfNroCuenta, 60),
+      correo:    distriStr(b.trfCorreo, 160) || distriStr(b.provCorreo, 160),
+    },
+    fecha:        distriStr(b.fecha, 20) || todayISO(),
+    entrega:      distriStr(b.entrega, 40) || 'A CONVENIR',
+    plazoEntrega: distriStr(b.plazoEntrega, 40) || 'A CONVENIR',
+    pago:         distriStr(b.pago, 40),
+    motivo:       distriStr(b.motivo, 240),
+    area:         distriStr(b.area, 60) || 'COMERCIAL',
+    centroCostos: distriStr(b.centroCostos, 40),
+    items, ...t,
+    notes: distriStr(b.notes, 2000),
+    status: b.status === 'recibida' ? 'recibida' : 'pendiente',
+  };
+}
+
 app.post('/admin/distribuidora/purchase-orders', requireAdmin, (req, res) => {
   const b = req.body || {};
   const d = loadDistri();
   const supplier = d.suppliers.find(s => s.id === b.supplierId);
   if (!supplier) return res.status(400).json({ error: 'Elegí un proveedor válido.' });
-  const items = normalizePOItems(b.items);
-  if (!items.length) return res.status(400).json({ error: 'Agregá al menos un producto con cantidad.' });
-  const total = items.reduce((s, it) => s + it.total, 0);
+  const built = buildOCFromBody(b, supplier);
+  if (!built.items.length) return res.status(400).json({ error: 'Agregá al menos un artículo con cantidad.' });
   const now = new Date().toISOString();
   const seq = (d.purchaseOrders.reduce((m, po) => {
     const n = parseInt(String(po.number || '').replace(/\D/g, ''), 10);
     return Number.isFinite(n) && n > m ? n : m;
   }, 0)) + 1;
-  const po = {
-    id: randomUUID(),
-    number: 'OC-' + String(seq).padStart(4, '0'),
-    supplierId: supplier.id, supplierName: supplier.name,
-    date: distriStr(b.date, 20) || todayISO(),
-    deliveryDate: distriStr(b.deliveryDate, 20),
-    status: b.status === 'recibida' ? 'recibida' : 'pendiente',
-    items, total,
-    notes: distriStr(b.notes, 2000),
-    createdAt: now, updatedAt: now,
-  };
+  const po = { id: randomUUID(), number: String(seq), ...built, createdAt: now, updatedAt: now };
   d.purchaseOrders.push(po);
   saveDistri(d);
   res.json({ ok: true, purchaseOrder: po });
@@ -3620,15 +3662,17 @@ app.put('/admin/distribuidora/purchase-orders/:id', requireAdmin, (req, res) => 
   const po = d.purchaseOrders.find(x => x.id === String(req.params.id));
   if (!po) return res.status(404).json({ error: 'Orden no encontrada.' });
   const b = req.body || {};
-  if (b.status !== undefined) po.status = b.status === 'recibida' ? 'recibida' : 'pendiente';
-  if (b.notes !== undefined) po.notes = distriStr(b.notes, 2000);
-  if (b.deliveryDate !== undefined) po.deliveryDate = distriStr(b.deliveryDate, 20);
-  if (b.date !== undefined) po.date = distriStr(b.date, 20) || po.date;
-  if (b.items !== undefined) {
-    const items = normalizePOItems(b.items);
-    if (items.length) { po.items = items; po.total = items.reduce((s, it) => s + it.total, 0); }
+  // Actualización parcial de estado (toggle rápido)
+  if (Object.keys(b).length === 1 && b.status !== undefined) {
+    po.status = b.status === 'recibida' ? 'recibida' : 'pendiente';
+    po.updatedAt = new Date().toISOString();
+    saveDistri(d);
+    return res.json({ ok: true, purchaseOrder: po });
   }
-  po.updatedAt = new Date().toISOString();
+  const supplier = d.suppliers.find(s => s.id === (b.supplierId || po.supplierId)) || { id: po.supplierId, name: po.supplierName };
+  const built = buildOCFromBody({ ...po, ...b }, supplier);
+  if (!built.items.length) return res.status(400).json({ error: 'Agregá al menos un artículo con cantidad.' });
+  Object.assign(po, built, { updatedAt: new Date().toISOString() });
   saveDistri(d);
   res.json({ ok: true, purchaseOrder: po });
 });
@@ -3639,6 +3683,146 @@ app.delete('/admin/distribuidora/purchase-orders/:id', requireAdmin, (req, res) 
   if (d.purchaseOrders.length === before) return res.status(404).json({ error: 'Orden no encontrada.' });
   saveDistri(d);
   res.json({ ok: true });
+});
+
+// ── PDF de la orden de compra (formato 500 Sabores) ──
+function buildPurchaseOrderPdf(po){
+  const W = 595.28, H = 841.89, M = 30, CW = W - 2 * M;
+  const ops = [];
+  const esc = (s) => String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  const cw = (c, b) => { const n = "ijl.,:;'|!ift()[]/ "; const wi = "mwMW@"; const up = "ABCDEFGHIJKLNOPQRSTUVXYZ0123456789"; let w = n.includes(c) ? .30 : wi.includes(c) ? .86 : up.includes(c) ? .70 : .52; return w * (b ? 1.04 : 1); };
+  const tw = (s, sz, b) => [...String(s)].reduce((a, c) => a + cw(c, b), 0) * sz;
+  const rect = (x, y, w, h, col, fill) => { const [r, g, bl] = col; ops.push(`${r} ${g} ${bl} ${fill ? 'rg' : 'RG'} ${fill ? '' : '0.6 w '}${x.toFixed(1)} ${(H - y - h).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)} re ${fill ? 'f' : 'S'}`); };
+  const txt = (x, y, s, sz, col, b, align, maxw) => {
+    let str = String(s == null ? '' : s);
+    if (maxw) { while (str.length > 1 && tw(str, sz, b) > maxw) str = str.slice(0, -1); }
+    let xx = x; const width = tw(str, sz, b);
+    if (align === 'r') xx = x - width; else if (align === 'c') xx = x - width / 2;
+    const [r, g, bl] = col; const f = b ? 'F2' : 'F1';
+    ops.push(`BT /${f} ${sz} Tf ${r} ${g} ${bl} rg ${xx.toFixed(1)} ${(H - y - sz).toFixed(1)} Td (${esc(str)}) Tj ET`);
+  };
+  const line = (x1, y1, x2, y2, col) => { const [r, g, bl] = col; ops.push(`${r} ${g} ${bl} RG 0.6 w ${x1.toFixed(1)} ${(H - y1).toFixed(1)} m ${x2.toFixed(1)} ${(H - y2).toFixed(1)} l S`); };
+  const GOLD = [0.63, 0.37, 0], DARK = [0.1, 0.1, 0.1], GREY = [0.4, 0.4, 0.4], LINE = [0.8, 0.8, 0.8], HEAD = [0.93, 0.9, 0.82];
+
+  let y = M;
+  // Encabezado
+  txt(M, y, OC_BUYER.nombre, 17, GOLD, true);
+  txt(W - M, y + 1, 'ORDEN DE COMPRA', 13, DARK, true, 'r');
+  txt(W - M, y + 18, 'N° ' + po.number, 12, GOLD, true, 'r');
+  y += 22;
+  txt(M, y, 'RUT: ' + OC_BUYER.rut + '   ·   ' + OC_BUYER.telefono, 8, GREY, false, null, CW * 0.62);
+  y += 11;
+  txt(M, y, OC_BUYER.direccion, 7.5, GREY, false, null, CW);
+  y += 10;
+  txt(M, y, 'Giro: ' + OC_BUYER.giro, 7.5, GREY, false, null, CW);
+  y += 16;
+
+  // Fila de datos de la orden (4 celdas)
+  const cell = (x, w, h, label, value) => {
+    rect(x, y, w, h, LINE);
+    txt(x + 5, y + 4, label, 6.5, GREY, true);
+    txt(x + 5, y + 13, value || '—', 9, DARK, true, null, w - 10);
+  };
+  const cw4 = CW / 4, ch = 30;
+  cell(M, cw4, ch, 'FECHA', po.fecha);
+  cell(M + cw4, cw4, ch, 'ÁREA', po.area);
+  cell(M + cw4 * 2, cw4, ch, 'CENTRO DE COSTOS', po.centroCostos);
+  cell(M + cw4 * 3, cw4, ch, 'ESTADO', po.status === 'recibida' ? 'RECIBIDA' : 'PENDIENTE');
+  y += ch + 10;
+
+  // Datos del proveedor
+  txt(M, y, 'DATOS DEL PROVEEDOR', 9, DARK, true); y += 13;
+  const pv = po.proveedor || {};
+  const prow = (label, value) => { rect(M, y, CW, 15, LINE); txt(M + 5, y + 4, label, 6.5, GREY, true); txt(M + 130, y + 4, value || '—', 8.5, DARK, false, null, CW - 140); y += 15; };
+  prow('RAZÓN SOCIAL', pv.razonSocial);
+  prow('RUT', pv.rut);
+  prow('DIRECCIÓN', pv.direccion);
+  prow('CIUDAD', pv.ciudad);
+  prow('CONTACTO', pv.contacto);
+  prow('TELÉFONO', pv.telefono);
+  prow('CORREO', pv.correo);
+  y += 8;
+
+  // Fila entrega / plazo / pago / motivo
+  const cw3 = CW / 3;
+  cell(M, cw3, ch, 'ENTREGA', po.entrega);
+  cell(M + cw3, cw3, ch, 'PLAZO ENTREGA', po.plazoEntrega);
+  cell(M + cw3 * 2, cw3, ch, 'PAGO', po.pago);
+  y += ch + 4;
+  if (po.motivo) { rect(M, y, CW, 18, LINE); txt(M + 5, y + 4, 'MOTIVO DE COMPRA', 6.5, GREY, true); txt(M + 130, y + 5, po.motivo, 8.5, DARK, false, null, CW - 140); y += 18; }
+  y += 10;
+
+  // Tabla de artículos
+  const cN = M, cA = M + 24, cCant = M + CW - 210, cPU = M + CW - 140, cPT = M + CW - 70;
+  rect(M, y, CW, 16, HEAD, true);
+  txt(cN + 3, y + 5, 'N°', 7.5, DARK, true);
+  txt(cA, y + 5, 'ARTÍCULO', 7.5, DARK, true);
+  txt(cCant + 60, y + 5, 'CANTIDAD', 7.5, DARK, true, 'r');
+  txt(cPU + 62, y + 5, 'P. UNITARIO', 7.5, DARK, true, 'r');
+  txt(M + CW - 4, y + 5, 'P. TOTAL', 7.5, DARK, true, 'r');
+  y += 16;
+  (po.items || []).forEach((it, i) => {
+    rect(M, y, CW, 15, LINE);
+    txt(cN + 3, y + 4.5, String(i + 1), 8, GREY);
+    txt(cA, y + 4.5, it.articulo, 8.5, DARK, false, null, cCant - cA - 6);
+    txt(cCant + 60, y + 4.5, String(it.cantidad).replace(/\B(?=(\d{3})+(?!\d))/g, '.'), 8.5, DARK, false, 'r');
+    txt(cPU + 62, y + 4.5, clp(it.precioUnitario), 8.5, DARK, false, 'r');
+    txt(M + CW - 4, y + 4.5, clp(it.precioTotal), 8.5, DARK, true, 'r');
+    y += 15;
+  });
+  y += 10;
+
+  // Totales (bloque derecho)
+  const tX = M + CW - 220, tW = 220;
+  const trow = (label, value, bold) => {
+    rect(tX, y, tW, 16, LINE);
+    txt(tX + 6, y + 5, label, 8, bold ? DARK : GREY, bold);
+    txt(tX + tW - 6, y + 5, value, bold ? 9.5 : 8.5, bold ? GOLD : DARK, bold, 'r');
+    y += 16;
+  };
+  trow('SUB-TOTAL', clp(po.subtotal));
+  trow('DESCUENTO (' + (po.descuentoPct || 0) + '%)', '-' + clp(po.descuento));
+  trow('SUB-TOTAL C/DESC.', clp(po.subtotalConDescuento));
+  trow('IVA (19%)', clp(po.iva));
+  trow('TOTAL', clp(po.total), true);
+  y += 12;
+
+  // Datos de transferencia
+  txt(M, y, 'DATOS DE TRANSFERENCIA DEL PROVEEDOR', 9, DARK, true); y += 13;
+  const tr = po.transfer || {};
+  const half = CW / 2;
+  const tcell = (x, w, label, value) => { rect(x, y, w, 15, LINE); txt(x + 5, y + 4, label, 6.5, GREY, true); txt(x + 95, y + 4, value || '—', 8.5, DARK, false, null, w - 100); };
+  tcell(M, half, 'RAZÓN SOCIAL', tr.razonSocial); tcell(M + half, half, 'RUT', tr.rut); y += 15;
+  tcell(M, half, 'BANCO', tr.banco); tcell(M + half, half, 'TIPO DE CUENTA', tr.tipoCuenta); y += 15;
+  tcell(M, half, 'N° DE CUENTA', tr.nroCuenta); tcell(M + half, half, 'CORREO', tr.correo); y += 15;
+
+  // Ensamblar PDF
+  const content = ops.join('\n');
+  const objs = {};
+  objs[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  objs[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+  objs[5] = `<< /Length ${content.length} >>\nstream\n${content}\nendstream`;
+  objs[6] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>`;
+  objs[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+  objs[2] = '<< /Type /Pages /Count 1 /Kids [6 0 R] >>';
+  let buf = '%PDF-1.4\n'; const off = {};
+  for (let i = 1; i <= 6; i++) { off[i] = buf.length; buf += `${i} 0 obj\n${objs[i]}\nendobj\n`; }
+  const xref = buf.length;
+  buf += `xref\n0 7\n0000000000 65535 f \n`;
+  for (let i = 1; i <= 6; i++) buf += `${String(off[i]).padStart(10, '0')} 00000 n \n`;
+  buf += `trailer\n<< /Size 7 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return Buffer.from(buf, 'latin1');
+}
+function sendPOPdf(res, po){
+  const pdf = buildPurchaseOrderPdf(po);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="Orden_de_Compra_${po.number}.pdf"`);
+  res.send(pdf);
+}
+app.get('/admin/distribuidora/purchase-orders/:id/pdf', requireAdmin, (req, res) => {
+  const po = loadDistri().purchaseOrders.find(x => x.id === String(req.params.id));
+  if (!po) return res.status(404).send('Orden no encontrada.');
+  sendPOPdf(res, po);
 });
 
 // Categoría sugerida para un producto según el proveedor cuyo nombre matchea el

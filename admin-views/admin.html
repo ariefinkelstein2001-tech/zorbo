@@ -1441,7 +1441,17 @@ body.drawer-open{overflow:hidden}
 .oc-items{font-size:.8rem;color:var(--text,#333);margin-top:.5rem;line-height:1.5}
 .oc-notes{font-size:.75rem;color:var(--muted,#777);margin-top:.4rem;border-top:1px dashed var(--line,#eee);padding-top:.4rem}
 .oc-card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:.6rem;font-size:1rem}
+.oc-card-foot span{display:flex;align-items:center;gap:.6rem}
+.oc-pdf{font-size:.78rem;font-weight:700;color:var(--gold-deep,#a05f00);text-decoration:none;border:1px solid var(--gold-bd,#f1c97b);border-radius:8px;padding:.25rem .55rem}
+.oc-pdf:hover{background:var(--gold-dim,#fff3d6)}
 .dist-pill.pend{cursor:pointer}.dist-pill.recib{cursor:pointer}
+.oc-sub{font-family:var(--display,inherit);font-weight:800;font-size:.82rem;color:var(--gold-deep,#a05f00);letter-spacing:.03em;text-transform:uppercase;margin:1.1rem 0 .5rem;border-bottom:1px solid var(--line,#eee);padding-bottom:.3rem}
+.oc-totales{display:flex;gap:1.2rem;align-items:flex-start;flex-wrap:wrap;margin-top:.8rem}
+.oc-tot-box{flex:1;min-width:240px;max-width:340px;margin-left:auto;font-size:.85rem}
+.oc-tot-box>div{display:flex;justify-content:space-between;padding:.3rem 0;border-bottom:1px solid var(--line,#eee)}
+.oc-tot-box>div span{color:var(--muted,#666)}
+.oc-tot-final{border-bottom:none!important;font-size:1.05rem;font-weight:800;color:var(--text,#111);border-top:2px solid var(--gold,#f5a623);margin-top:.2rem;padding-top:.4rem!important}
+.oc-tot-final b{color:var(--gold-deep,#a05f00)}
 
 /* ── PUNTOS DE VENTA ── */
 .pv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;margin-bottom:1rem}
@@ -5552,64 +5562,114 @@ function renderDistSub(){
     '<div class="dist-empty">Esta sección se habilita en la próxima parte del módulo.</div>';
 }
 
-// ── Órdenes de compra (sell in) ──
+// ── Órdenes de compra (sell in) — formato 500 Sabores ──
 let ocDraft = [];
+const ocMoney = (n) => '$' + String(Math.round(Number(n)||0)).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
 async function renderDistOrdenes(){
   const body = document.getElementById('distBody');
   const sups = distData?.suppliers || [];
-  // Productos para el selector de líneas (lazy, opcional).
   let prods = [];
   try { const pd = await loadDistProducts(); if (pd && pd.available) prods = pd.products || []; } catch {}
   const datalist = prods.map(p => `<option data-cost="${p.cost||''}" value="${escapeAttr(p.title)}">`).join('');
-  const supOpts = sups.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+  const supOpts = '<option value="">Elegí un proveedor…</option>' + sups.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
   const orders = (distData?.purchaseOrders || []).slice().sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt));
+
+  // Totales del borrador
+  const subtotal = ocDraft.reduce((s,it)=>s+it.cantidad*it.precioUnitario,0);
+  const desc = document.getElementById('ocDesc') ? Number(document.getElementById('ocDesc').value)||0 : 0;
+  const descMonto = Math.round(subtotal*desc/100);
+  const subConDesc = subtotal-descMonto;
+  const iva = Math.round(subConDesc*0.19);
+  const total = subConDesc+iva;
 
   const draftRows = ocDraft.length ? ocDraft.map((it,i)=>`
     <tr>
-      <td>${escapeHtml(it.title)}</td>
-      <td class="dist-num">${it.qty}</td>
-      <td class="dist-num">${distMoney(it.unitCost)}</td>
-      <td class="dist-num">${distMoney(it.qty*it.unitCost)}</td>
+      <td>${i+1}</td><td>${escapeHtml(it.articulo)}</td>
+      <td class="dist-num">${it.cantidad.toLocaleString('es-CL')}</td>
+      <td class="dist-num">${ocMoney(it.precioUnitario)}</td>
+      <td class="dist-num">${ocMoney(it.cantidad*it.precioUnitario)}</td>
       <td><button class="pv-del" type="button" data-oc-rm="${i}">✕</button></td>
-    </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:#aaa;padding:.8rem">Agregá productos a la orden…</td></tr>`;
-  const draftTotal = ocDraft.reduce((s,it)=>s+it.qty*it.unitCost,0);
+    </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:#aaa;padding:.8rem">Agregá artículos…</td></tr>`;
 
   const list = orders.length ? orders.map(po => `
     <div class="oc-card">
       <div class="oc-card-top">
-        <div><b class="oc-num">${escapeHtml(po.number)}</b> · ${escapeHtml(po.supplierName)}</div>
+        <div><b class="oc-num">OC N° ${escapeHtml(po.number)}</b> · ${escapeHtml((po.proveedor&&po.proveedor.razonSocial)||po.supplierName)}</div>
         <span class="dist-pill ${po.status==='recibida'?'recib':'pend'}" data-oc-status="${po.id}" data-cur="${po.status}" title="Cambiar estado">${po.status==='recibida'?'Recibida':'Pendiente'}</span>
       </div>
-      <div class="oc-card-meta">${(po.date||'').slice(0,10)}${po.deliveryDate?(' · entrega '+po.deliveryDate.slice(0,10)):''} · ${po.items.length} ítem${po.items.length===1?'':'s'}</div>
-      <div class="oc-items">${po.items.map(it=>`<span>${it.qty}× ${escapeHtml(it.title)}</span>`).join(' · ')}</div>
-      ${po.notes?`<div class="oc-notes">${escapeHtml(po.notes)}</div>`:''}
-      <div class="oc-card-foot"><b>${distMoney(po.total)}</b><button class="pv-del" type="button" data-oc-del="${po.id}">Eliminar</button></div>
+      <div class="oc-card-meta">${escapeHtml(po.fecha||'')} · ${po.area||''} · ${(po.items||[]).length} art.</div>
+      <div class="oc-items">${(po.items||[]).map(it=>`<span>${it.cantidad}× ${escapeHtml(it.articulo)}</span>`).join(' · ')}</div>
+      <div class="oc-card-foot"><b>${ocMoney(po.total)}</b>
+        <span>
+          <a class="oc-pdf" href="/admin/distribuidora/purchase-orders/${po.id}/pdf" target="_blank">⬇ PDF</a>
+          <button class="pv-del" type="button" data-oc-del="${po.id}">Eliminar</button>
+        </span>
+      </div>
     </div>`).join('') : '<div class="dist-empty">Todavía no hay órdenes de compra. Creá la primera arriba.</div>';
+
+  const F = (id,label,ph,val)=>`<div class="dist-field"><label>${label}</label><input id="${id}" placeholder="${ph||''}" value="${val?escapeAttr(val):''}"></div>`;
 
   body.innerHTML = `
     <datalist id="ocProds">${datalist}</datalist>
     <div class="dist-form">
       <div class="dist-sec-title">Nueva orden de compra</div>
-      <div class="dist-sec-sub">Lo que Zorbo le compra a un proveedor (sell in). Elegí el proveedor, cargá los productos y guardá.</div>
+      <div class="dist-sec-sub">Comprador: <b>500 Sabores SpA</b>. Completá los datos del proveedor y los artículos — se genera el PDF y le llega al portal del proveedor.</div>
+
       <div class="dist-form-grid" style="margin-top:.9rem">
         <div class="dist-field"><label>Proveedor</label><select id="ocSup">${supOpts}</select></div>
-        <div class="dist-field"><label>Fecha</label><input type="date" id="ocDate"></div>
-        <div class="dist-field"><label>Fecha de entrega (opcional)</label><input type="date" id="ocDeliv"></div>
-        <div class="dist-field"><label>Estado</label><select id="ocStatus"><option value="pendiente">Pendiente</option><option value="recibida">Recibida</option></select></div>
+        ${F('ocFecha','Fecha','dd-mm-aaaa')}
+        ${F('ocArea','Área','COMERCIAL','COMERCIAL')}
+        ${F('ocCentro','Centro de costos','')}
+        ${F('ocEntrega','Entrega','A CONVENIR','A CONVENIR')}
+        ${F('ocPlazo','Plazo entrega','A CONVENIR','A CONVENIR')}
+        ${F('ocPago','Pago','ej: 30 DIAS')}
+        ${F('ocMotivo','Motivo de compra','')}
       </div>
+
+      <div class="oc-sub">Datos del proveedor</div>
+      <div class="dist-form-grid">
+        ${F('ocPRazon','Razón social','')}
+        ${F('ocPRut','RUT','')}
+        ${F('ocPDir','Dirección','')}
+        ${F('ocPCiudad','Ciudad','')}
+        ${F('ocPContacto','Contacto','')}
+        ${F('ocPTel','Teléfono','')}
+        ${F('ocPCorreo','Correo','')}
+      </div>
+
+      <div class="oc-sub">Artículos</div>
       <div class="oc-line">
-        <div class="dist-field" style="flex:2"><label>Producto</label><input id="ocPTitle" list="ocProds" placeholder="Nombre del producto"></div>
+        <div class="dist-field" style="flex:2"><label>Artículo</label><input id="ocPTitle" list="ocProds" placeholder="Nombre del artículo"></div>
         <div class="dist-field"><label>Cantidad</label><input id="ocPQty" type="number" min="0" step="1" placeholder="0"></div>
-        <div class="dist-field"><label>Costo unitario</label><input id="ocPCost" type="number" min="0" step="1" placeholder="0"></div>
+        <div class="dist-field"><label>Precio unitario</label><input id="ocPCost" type="number" min="0" step="1" placeholder="0"></div>
         <button class="adm-btn adm-btn-ghost" id="ocAdd" type="button">+ Agregar</button>
       </div>
       <div class="mun-wrap" style="margin-top:.7rem"><table class="mun-table" style="min-width:0">
-        <thead><tr><th>Producto</th><th style="text-align:right">Cant.</th><th style="text-align:right">Costo unit.</th><th style="text-align:right">Total</th><th></th></tr></thead>
+        <thead><tr><th>N°</th><th>Artículo</th><th style="text-align:right">Cant.</th><th style="text-align:right">P. unit.</th><th style="text-align:right">P. total</th><th></th></tr></thead>
         <tbody>${draftRows}</tbody>
-        <tfoot><tr><td colspan="3" style="text-align:right;font-weight:800">Total orden</td><td class="dist-num" style="font-weight:800">${distMoney(draftTotal)}</td><td></td></tr></tfoot>
       </table></div>
-      <div class="dist-field wide" style="margin-top:.7rem"><label>Notas</label><textarea id="ocNotes" rows="2" placeholder="Observaciones, condiciones de pago, etc."></textarea></div>
-      <div class="dist-form-actions">
+
+      <div class="oc-totales">
+        <div class="dist-field" style="max-width:140px"><label>Descuento %</label><input id="ocDesc" type="number" min="0" max="100" step="1" value="${desc}"></div>
+        <div class="oc-tot-box">
+          <div><span>Sub-total</span><b>${ocMoney(subtotal)}</b></div>
+          <div><span>Descuento (${desc}%)</span><b>-${ocMoney(descMonto)}</b></div>
+          <div><span>Sub-total c/desc.</span><b>${ocMoney(subConDesc)}</b></div>
+          <div><span>IVA (19%)</span><b>${ocMoney(iva)}</b></div>
+          <div class="oc-tot-final"><span>TOTAL</span><b>${ocMoney(total)}</b></div>
+        </div>
+      </div>
+
+      <div class="oc-sub">Datos de transferencia del proveedor</div>
+      <div class="dist-form-grid">
+        ${F('ocTBanco','Banco','')}
+        ${F('ocTTipo','Tipo de cuenta','ej: Cuenta corriente')}
+        ${F('ocTNro','N° de cuenta','')}
+        ${F('ocTCorreo','Correo','')}
+      </div>
+
+      <div class="dist-form-actions" style="margin-top:1rem">
+        <select id="ocStatus" class="dist-input-sm" style="max-width:150px"><option value="pendiente">Pendiente</option><option value="recibida">Recibida</option></select>
         <button class="adm-btn" id="ocSave" type="button">Guardar orden</button>
         <span class="dist-status" id="ocStatusMsg"></span>
       </div>
@@ -5617,45 +5677,60 @@ async function renderDistOrdenes(){
     <div class="dist-sec-title" style="margin-top:1.4rem">Órdenes registradas</div>
     <div class="oc-list">${list}</div>`;
 
-  // fecha default hoy
-  const today = new Date().toISOString().slice(0,10);
-  document.getElementById('ocDate').value = today;
-  // prefill costo al elegir producto del datalist
+  // Prefill datos del proveedor al elegirlo
+  const supSel = document.getElementById('ocSup');
+  supSel.onchange = () => {
+    const s = sups.find(x=>x.id===supSel.value); if(!s) return;
+    const set=(id,v)=>{ const el=document.getElementById(id); if(el && !el.value) el.value=v||''; };
+    set('ocPRazon', s.name); set('ocPCorreo', s.email); set('ocPTel', s.phone);
+    set('ocPContacto', s.contactName); set('ocPDir', s.address);
+  };
   document.getElementById('ocPTitle').addEventListener('change', (e)=>{
     const opt = [...document.querySelectorAll('#ocProds option')].find(o=>o.value===e.target.value);
-    const c = opt && opt.dataset.cost;
-    if (c && !document.getElementById('ocPCost').value) document.getElementById('ocPCost').value = c;
+    if (opt && opt.dataset.cost && !document.getElementById('ocPCost').value) document.getElementById('ocPCost').value = opt.dataset.cost;
   });
+  document.getElementById('ocDesc').oninput = () => renderDistOrdenesKeepInputs();
   document.getElementById('ocAdd').onclick = addOcLine;
   document.getElementById('ocSave').onclick = saveOc;
-  body.querySelectorAll('[data-oc-rm]').forEach(b=>b.onclick=()=>{ ocDraft.splice(+b.dataset.ocRm,1); renderDistOrdenes(); });
+  body.querySelectorAll('[data-oc-rm]').forEach(b=>b.onclick=()=>{ ocDraft.splice(+b.dataset.ocRm,1); renderDistOrdenesKeepInputs(); });
   body.querySelectorAll('[data-oc-del]').forEach(b=>b.onclick=()=>deleteOc(b.dataset.ocDel));
   body.querySelectorAll('[data-oc-status]').forEach(b=>b.onclick=()=>toggleOcStatus(b.dataset.ocStatus, b.dataset.cur));
 }
+// Re-render manteniendo lo tipeado en el form (para actualizar totales sin perder datos)
+let ocFormCache = {};
+function ocSnapshot(){
+  ['ocSup','ocFecha','ocArea','ocCentro','ocEntrega','ocPlazo','ocPago','ocMotivo','ocPRazon','ocPRut','ocPDir','ocPCiudad','ocPContacto','ocPTel','ocPCorreo','ocDesc','ocTBanco','ocTTipo','ocTNro','ocTCorreo','ocStatus'].forEach(id=>{ const el=document.getElementById(id); if(el) ocFormCache[id]=el.value; });
+}
+function ocRestore(){
+  Object.entries(ocFormCache).forEach(([id,v])=>{ const el=document.getElementById(id); if(el && v) el.value=v; });
+}
+async function renderDistOrdenesKeepInputs(){ ocSnapshot(); await renderDistOrdenes(); ocRestore(); }
 function addOcLine(){
-  const title=document.getElementById('ocPTitle').value.trim();
-  const qty=Number(document.getElementById('ocPQty').value)||0;
-  const unitCost=Number(document.getElementById('ocPCost').value)||0;
-  if(!title||qty<=0){ alert('Poné un producto y una cantidad.'); return; }
-  ocDraft.push({ title, qty, unitCost });
-  renderDistOrdenes();
+  const articulo=document.getElementById('ocPTitle').value.trim();
+  const cantidad=Number(document.getElementById('ocPQty').value)||0;
+  const precioUnitario=Number(document.getElementById('ocPCost').value)||0;
+  if(!articulo||cantidad<=0){ alert('Poné un artículo y una cantidad.'); return; }
+  ocDraft.push({ articulo, cantidad, precioUnitario });
+  renderDistOrdenesKeepInputs();
 }
 async function saveOc(){
   const st=document.getElementById('ocStatusMsg');
-  if(!ocDraft.length){ st.className='dist-status err'; st.textContent='Agregá al menos un producto.'; return; }
+  const g=(id)=>{const el=document.getElementById(id);return el?el.value:'';};
+  if(!g('ocSup')){ st.className='dist-status err'; st.textContent='Elegí un proveedor.'; return; }
+  if(!ocDraft.length){ st.className='dist-status err'; st.textContent='Agregá al menos un artículo.'; return; }
   const payload={
-    supplierId: document.getElementById('ocSup').value,
-    date: document.getElementById('ocDate').value,
-    deliveryDate: document.getElementById('ocDeliv').value,
-    status: document.getElementById('ocStatus').value,
-    notes: document.getElementById('ocNotes').value,
-    items: ocDraft,
+    supplierId:g('ocSup'), fecha:g('ocFecha'), area:g('ocArea'), centroCostos:g('ocCentro'),
+    entrega:g('ocEntrega'), plazoEntrega:g('ocPlazo'), pago:g('ocPago'), motivo:g('ocMotivo'),
+    provRazonSocial:g('ocPRazon'), provRut:g('ocPRut'), provDireccion:g('ocPDir'), provCiudad:g('ocPCiudad'),
+    provContacto:g('ocPContacto'), provTelefono:g('ocPTel'), provCorreo:g('ocPCorreo'),
+    trfBanco:g('ocTBanco'), trfTipoCuenta:g('ocTTipo'), trfNroCuenta:g('ocTNro'), trfCorreo:g('ocTCorreo'),
+    descuentoPct:Number(g('ocDesc'))||0, status:g('ocStatus'), items:ocDraft,
   };
   st.className='dist-status'; st.textContent='Guardando…';
   try{
     const r=await fetch('/admin/distribuidora/purchase-orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
-    ocDraft=[];
+    ocDraft=[]; ocFormCache={};
     await loadDistri();
   }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
 }
