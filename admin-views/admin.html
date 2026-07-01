@@ -345,7 +345,7 @@ body.admin-home .adm-chat,body.admin-home .adm-chat-fab{display:none!important}
   font-family:var(--sans);padding-left:.15rem;
 }
 .adm-prod-ila-row{display:flex;align-items:center;gap:.5rem;margin-bottom:.7rem;font-weight:700;color:var(--muted)}
-.adm-prod-ila{width:90px;padding:.5rem .6rem;border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:.9rem;outline:none}
+.adm-prod-ila{min-width:150px;padding:.5rem .6rem;border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:.9rem;background:var(--surface,#fff);color:var(--text,#111);outline:none;cursor:pointer}
 .adm-prod-ila:focus{border-color:var(--gold-bd-h)}
 .adm-prod-extra{
   width:100%;min-height:140px;
@@ -2741,9 +2741,15 @@ function productCardHtml(p){
   ].filter(Boolean).join('');
   const editor = isOpen ? `
     <div class="adm-prod-editor">
-      <label class="adm-prod-label">ILA % <span style="font-weight:400;color:#999">(impuesto a bebidas alcohólicas · se usa en la orden de compra)</span></label>
+      <label class="adm-prod-label">ILA <span style="font-weight:400;color:#999">(impuesto a bebidas alcohólicas · se usa en la orden de compra)</span></label>
       <div class="adm-prod-ila-row">
-        <input class="adm-prod-ila" data-pid="${p.id}" type="number" min="0" max="100" step="0.5" placeholder="0" value="${p.ilaPct?p.ilaPct:''}"> %
+        <select class="adm-prod-ila" data-pid="${p.id}">
+          <option value="0" ${!p.ilaPct?'selected':''}>Sin ILA (0%)</option>
+          <option value="10" ${Number(p.ilaPct)===10?'selected':''}>10%</option>
+          <option value="18" ${Number(p.ilaPct)===18?'selected':''}>18%</option>
+          <option value="20.5" ${Number(p.ilaPct)===20.5?'selected':''}>20,5%</option>
+          <option value="31.5" ${Number(p.ilaPct)===31.5?'selected':''}>31,5%</option>
+        </select>
         <span class="dist-status adm-prod-ila-st" data-pid="${p.id}"></span>
       </div>
       <label class="adm-prod-label">Notas para Zorbot (Markdown soportado)</label>
@@ -2913,7 +2919,7 @@ function bindProductCards(){
   // ILA % por producto → se guarda solo (alimenta la orden de compra)
   document.querySelectorAll('.adm-prod-ila').forEach(el => {
     el.onclick = (ev) => ev.stopPropagation();
-    el.onblur = async () => {
+    el.onchange = async () => {
       const pid = el.dataset.pid;
       const st = document.querySelector(`.adm-prod-ila-st[data-pid="${CSS.escape(pid)}"]`);
       if (st) { st.className = 'dist-status adm-prod-ila-st'; st.textContent = '…'; }
