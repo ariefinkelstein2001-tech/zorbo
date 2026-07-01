@@ -5570,7 +5570,7 @@ async function renderDistOrdenes(){
   const sups = distData?.suppliers || [];
   let prods = [];
   try { const pd = await loadDistProducts(); if (pd && pd.available) prods = pd.products || []; } catch {}
-  const datalist = prods.map(p => `<option data-cost="${p.cost||''}" value="${escapeAttr(p.title)}">`).join('');
+  const datalist = prods.map(p => `<option data-cost="${p.cost||''}" data-price="${p.price||''}" value="${escapeAttr(p.title)}">`).join('');
   const supOpts = '<option value="">Elegí un proveedor…</option>' + sups.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
   const orders = (distData?.purchaseOrders || []).slice().sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt));
 
@@ -5638,7 +5638,7 @@ async function renderDistOrdenes(){
       <div class="oc-line">
         <div class="dist-field" style="flex:2"><label>Artículo</label><input id="ocPTitle" list="ocProds" placeholder="Nombre del artículo"></div>
         <div class="dist-field"><label>Cantidad</label><input id="ocPQty" type="number" min="0" step="1" placeholder="0"></div>
-        <div class="dist-field"><label>Precio unitario</label><input id="ocPCost" type="number" min="0" step="1" placeholder="0"></div>
+        <div class="dist-field"><label>Precio unitario (neto)</label><input id="ocPCost" type="number" min="0" step="1" placeholder="0"></div>
         <button class="adm-btn adm-btn-ghost" id="ocAdd" type="button">+ Agregar</button>
       </div>
       <div class="mun-wrap" style="margin-top:.7rem"><table class="mun-table" style="min-width:0">
@@ -5687,11 +5687,19 @@ async function renderDistOrdenes(){
     set('ocTBanco', s.banco); set('ocTTipo', s.tipoCuenta); set('ocTNro', s.nroCuenta); set('ocTCorreo', s.email);
     set('ocPago', s.condicionesPago);
   };
-  // Al elegir un artículo, se pone su precio unitario automáticamente
-  document.getElementById('ocPTitle').addEventListener('change', (e)=>{
-    const opt = [...document.querySelectorAll('#ocProds option')].find(o=>o.value===e.target.value);
-    if (opt && opt.dataset.cost) document.getElementById('ocPCost').value = opt.dataset.cost;
-  });
+  // Al elegir un artículo, se pone su precio unitario NETO automáticamente:
+  // usa el costo de compra si está cargado; si no, el precio de Shopify sin IVA.
+  const ocFillPrice = () => {
+    const val = document.getElementById('ocPTitle').value;
+    const opt = [...document.querySelectorAll('#ocProds option')].find(o=>o.value===val);
+    if (!opt) return;
+    const cost = Number(opt.dataset.cost)||0;
+    const price = Number(opt.dataset.price)||0;
+    const neto = cost>0 ? cost : (price>0 ? Math.round(price/1.19) : 0);
+    if (neto>0) document.getElementById('ocPCost').value = neto;
+  };
+  document.getElementById('ocPTitle').addEventListener('change', ocFillPrice);
+  document.getElementById('ocPTitle').addEventListener('input', ocFillPrice);
   document.getElementById('ocDesc').oninput = () => renderDistOrdenesKeepInputs();
   document.getElementById('ocAdd').onclick = addOcLine;
   document.getElementById('ocSave').onclick = saveOc;
