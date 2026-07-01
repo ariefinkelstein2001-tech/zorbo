@@ -5570,7 +5570,7 @@ async function renderDistOrdenes(){
   const sups = distData?.suppliers || [];
   let prods = [];
   try { const pd = await loadDistProducts(); if (pd && pd.available) prods = pd.products || []; } catch {}
-  const datalist = prods.map(p => `<option data-cost="${p.cost||''}" data-price="${p.price||''}" value="${escapeAttr(p.title)}">`).join('');
+  const datalist = prods.map(p => `<option data-cost="${p.cost||''}" data-neto="${p.precioNeto||''}" data-ila="${p.ilaPct||''}" data-price="${p.price||''}" value="${escapeAttr(p.title)}">`).join('');
   const supOpts = '<option value="">Elegí un proveedor…</option>' + sups.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
   const orders = (distData?.purchaseOrders || []).slice().sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt));
 
@@ -5579,8 +5579,10 @@ async function renderDistOrdenes(){
   const desc = document.getElementById('ocDesc') ? Number(document.getElementById('ocDesc').value)||0 : 0;
   const descMonto = Math.round(subtotal*desc/100);
   const subConDesc = subtotal-descMonto;
+  const ilaBruto = ocDraft.reduce((s,it)=>s+Math.round(it.cantidad*it.precioUnitario*(it.ilaPct||0)/100),0);
+  const ilaMonto = Math.round(ilaBruto*(1-desc/100));
   const iva = Math.round(subConDesc*0.19);
-  const total = subConDesc+iva;
+  const total = subConDesc+ilaMonto+iva;
 
   const draftRows = ocDraft.length ? ocDraft.map((it,i)=>`
     <tr>
@@ -5652,7 +5654,7 @@ async function renderDistOrdenes(){
           <div><span>Sub-total</span><b>${ocMoney(subtotal)}</b></div>
           <div><span>Descuento (${desc}%)</span><b>-${ocMoney(descMonto)}</b></div>
           <div><span>Sub-total c/desc.</span><b>${ocMoney(subConDesc)}</b></div>
-          <div><span>ILA <small style="color:#aaa">(por producto, se define luego)</small></span><b>${ocMoney(0)}</b></div>
+          <div><span>ILA</span><b>${ocMoney(ilaMonto)}</b></div>
           <div><span>IVA (19%)</span><b>${ocMoney(iva)}</b></div>
           <div class="oc-tot-final"><span>TOTAL</span><b>${ocMoney(total)}</b></div>
         </div>
@@ -5693,10 +5695,11 @@ async function renderDistOrdenes(){
     const val = document.getElementById('ocPTitle').value;
     const opt = [...document.querySelectorAll('#ocProds option')].find(o=>o.value===val);
     if (!opt) return;
+    const neto = Number(opt.dataset.neto)||0;
     const cost = Number(opt.dataset.cost)||0;
     const price = Number(opt.dataset.price)||0;
-    const neto = cost>0 ? cost : (price>0 ? Math.round(price/1.19) : 0);
-    if (neto>0) document.getElementById('ocPCost').value = neto;
+    const unit = neto>0 ? neto : (cost>0 ? cost : (price>0 ? Math.round(price/1.19) : 0));
+    if (unit>0) document.getElementById('ocPCost').value = unit;
   };
   document.getElementById('ocPTitle').addEventListener('change', ocFillPrice);
   document.getElementById('ocPTitle').addEventListener('input', ocFillPrice);
@@ -5721,7 +5724,9 @@ function addOcLine(){
   const cantidad=Number(document.getElementById('ocPQty').value)||0;
   const precioUnitario=Number(document.getElementById('ocPCost').value)||0;
   if(!articulo||cantidad<=0){ alert('Poné un artículo y una cantidad.'); return; }
-  ocDraft.push({ articulo, cantidad, precioUnitario });
+  const opt=[...document.querySelectorAll('#ocProds option')].find(o=>o.value===articulo);
+  const ilaPct=opt?Number(opt.dataset.ila)||0:0;
+  ocDraft.push({ articulo, cantidad, precioUnitario, ilaPct });
   renderDistOrdenesKeepInputs();
 }
 async function saveOc(){
@@ -5845,6 +5850,8 @@ function renderDistCostos(data){
     <tr data-pid="${p.id}">
       <td>${escapeHtml(p.title)}<div class="mun-meta-cell">${escapeHtml(p.vendor||'')}${p.sku?(' · '+escapeHtml(p.sku)):''}</div></td>
       <td>${catSel(p.id, p.category)}</td>
+      <td class="dist-num"><input type="number" min="0" step="1" class="dist-input-sm dist-num" data-cost-neto="${p.id}" value="${p.precioNeto!=null?p.precioNeto:''}" placeholder="0"></td>
+      <td class="dist-num"><input type="number" min="0" max="100" step="0.5" class="dist-input-sm dist-num" data-cost-ila="${p.id}" value="${p.ilaPct?p.ilaPct:''}" placeholder="0"></td>
       <td class="dist-num"><input type="number" min="0" step="1" class="dist-input-sm dist-num" data-cost-val="${p.id}" value="${p.cost!=null?p.cost:''}" placeholder="0"></td>
       <td class="dist-num"><input type="number" min="0" step="1" class="dist-input-sm dist-num" data-cost-disp="${p.id}" value="${p.dispatch||''}" placeholder="0"></td>
       <td class="dist-num">${p.price!=null?distMoney(p.price):'—'}</td>
@@ -5854,21 +5861,22 @@ function renderDistCostos(data){
     <div class="dist-sec-head">
       <div>
         <div class="dist-sec-title">Costos de compra</div>
-        <div class="dist-sec-sub">Cargá lo que Zorbo le paga al proveedor por unidad y la categoría (define el margen). La categoría arranca sugerida según el proveedor. Se guarda solo al cambiar cada campo.</div>
+        <div class="dist-sec-sub">Precio neto e ILA % por producto alimentan la orden de compra. Costo de compra y categoría definen el margen. Se guarda solo al cambiar cada campo.</div>
       </div>
       <button class="adm-btn adm-btn-ghost" id="costRefresh" type="button">Refrescar de Shopify</button>
     </div>
-    <div class="mun-count">${data.products.length} productos · "Precio Shopify" es el precio de venta actual</div>
+    <div class="mun-count">${data.products.length} productos · "Precio Shopify" es el precio de venta actual (con IVA)</div>
     <div class="mun-wrap"><table class="mun-table">
       <thead><tr>
-        <th>Producto</th><th>Categoría</th><th style="text-align:right">Costo compra (unid.)</th>
+        <th>Producto</th><th>Categoría</th><th style="text-align:right">Precio neto</th>
+        <th style="text-align:right">ILA %</th><th style="text-align:right">Costo compra</th>
         <th style="text-align:right">Despacho</th><th style="text-align:right">Precio Shopify</th><th></th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
   document.getElementById('costRefresh').onclick = async () => { await loadDistProducts(true); renderDistCostos(distProducts); };
   // Auto-guardado por fila
-  document.querySelectorAll('#distBody [data-cost-val],#distBody [data-cost-disp]').forEach(el => {
+  document.querySelectorAll('#distBody [data-cost-val],#distBody [data-cost-disp],#distBody [data-cost-neto],#distBody [data-cost-ila]').forEach(el => {
     el.onblur = () => saveDistCost(el.closest('tr').dataset.pid);
   });
   document.querySelectorAll('#distBody [data-cost-cat]').forEach(el => {
@@ -5882,20 +5890,24 @@ async function saveDistCost(pid){
   const cost = tr.querySelector('[data-cost-val]').value;
   const dispatch = tr.querySelector('[data-cost-disp]').value;
   const category = tr.querySelector('[data-cost-cat]').value;
+  const precioNeto = tr.querySelector('[data-cost-neto]').value;
+  const ilaPct = tr.querySelector('[data-cost-ila]').value;
   const st = tr.querySelector('[data-cost-st]');
   st.className = 'dist-status'; st.textContent = '…';
   try {
     const r = await fetch(`/admin/distribuidora/costs/${pid}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cost, dispatch, category }),
+      body: JSON.stringify({ cost, dispatch, category, precioNeto, ilaPct }),
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Error');
-    // refrescar la fila local del cache para que Comercialización quede al día
+    // refrescar la fila local del cache para que la OC quede al día
     if (distProducts && distProducts.products) {
       const p = distProducts.products.find(x => x.id === pid);
       if (p) {
         p.cost = d.cost ? d.cost.cost : null;
+        p.precioNeto = d.cost ? d.cost.precioNeto : null;
+        p.ilaPct = d.cost ? d.cost.ilaPct : 0;
         p.category = d.cost ? d.cost.category : (category || p.category);
         p.dispatch = d.cost ? d.cost.dispatch : 0;
       }

@@ -3579,14 +3579,18 @@ app.put('/admin/distribuidora/costs/:productId', requireAdmin, (req, res) => {
   const d = loadDistri();
   const cost = (b.cost === '' || b.cost == null) ? null : Number(b.cost);
   const dispatch = (b.dispatch === '' || b.dispatch == null) ? 0 : Number(b.dispatch);
+  const precioNeto = (b.precioNeto === '' || b.precioNeto == null) ? null : Number(b.precioNeto);
+  const ilaPct = (b.ilaPct === '' || b.ilaPct == null) ? 0 : Number(b.ilaPct);
   if (cost !== null && (!Number.isFinite(cost) || cost < 0)) return res.status(400).json({ error: 'Costo inválido.' });
+  if (precioNeto !== null && (!Number.isFinite(precioNeto) || precioNeto < 0)) return res.status(400).json({ error: 'Precio neto inválido.' });
   if (!Number.isFinite(dispatch) || dispatch < 0) return res.status(400).json({ error: 'Despacho inválido.' });
+  if (!Number.isFinite(ilaPct) || ilaPct < 0 || ilaPct > 100) return res.status(400).json({ error: 'ILA inválido (0–100%).' });
   const category = isDistriCategory(b.category) ? b.category : '';
-  // Si no hay ni costo ni categoría ni despacho, limpiamos el registro.
-  if (cost === null && !category && !dispatch) {
+  // Si no hay nada cargado, limpiamos el registro.
+  if (cost === null && precioNeto === null && !category && !dispatch && !ilaPct) {
     delete d.productCosts[pid];
   } else {
-    d.productCosts[pid] = { cost, category, dispatch, updatedAt: new Date().toISOString() };
+    d.productCosts[pid] = { cost, precioNeto, category, dispatch, ilaPct, updatedAt: new Date().toISOString() };
   }
   saveDistri(d);
   res.json({ ok: true, cost: d.productCosts[pid] || null });
@@ -3874,6 +3878,8 @@ app.get('/admin/distribuidora/products', requireAdmin, async (req, res) => {
       const price = variants[0]?.price != null ? Number(variants[0].price) : null;
       const category = (c && c.category) || supplierCategoryForVendor(d.suppliers, p.vendor) || '';
       const cost = c && c.cost != null ? Number(c.cost) : null;
+      const precioNeto = c && c.precioNeto != null ? Number(c.precioNeto) : null;
+      const ilaPct = c && Number.isFinite(c.ilaPct) ? Number(c.ilaPct) : 0;
       const dispatch = c && Number.isFinite(c.dispatch) ? Number(c.dispatch) : 0;
       const marginPct = category && d.margins[category] != null ? Number(d.margins[category]) : null;
       let finalPrice = null;
@@ -3889,7 +3895,7 @@ app.get('/admin/distribuidora/products', requireAdmin, async (req, res) => {
         status: String(p.status || 'ACTIVE').toUpperCase(),
         image: p.image || null,
         price, stock,
-        cost, category, dispatch, marginPct, finalPrice,
+        cost, precioNeto, ilaPct, category, dispatch, marginPct, finalPrice,
         hasManualCategory: !!(c && c.category),
       };
     });
