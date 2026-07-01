@@ -3774,7 +3774,6 @@ function buildPurchaseOrderPdf(po){
   prow('RUT', pv.rut);
   prow('DIRECCIÓN', pv.direccion);
   prow('CIUDAD', pv.ciudad);
-  prow('CONTACTO', pv.contacto);
   prow('TELÉFONO', pv.telefono);
   prow('CORREO', pv.correo);
   y += 12;

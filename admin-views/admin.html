@@ -5664,7 +5664,6 @@ async function renderDistOrdenes(){
         ${F('ocPRut','RUT','')}
         ${F('ocPDir','Dirección','')}
         ${F('ocPCiudad','Ciudad','')}
-        ${F('ocPContacto','Contacto','')}
         ${F('ocPTel','Teléfono','')}
         ${F('ocPCorreo','Correo','')}
       </div>
@@ -5718,7 +5717,7 @@ async function renderDistOrdenes(){
     const s = sups.find(x=>x.id===supSel.value); if(!s) return;
     const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v||''; };
     set('ocPRazon', s.razonSocial || s.name); set('ocPRut', s.rut); set('ocPDir', s.address); set('ocPCiudad', s.ciudad);
-    set('ocPContacto', s.contactName); set('ocPTel', s.phone); set('ocPCorreo', s.email);
+    set('ocPTel', s.phone); set('ocPCorreo', s.email);
     set('ocTBanco', s.banco); set('ocTTipo', s.tipoCuenta); set('ocTNro', s.nroCuenta); set('ocTCorreo', s.email);
     set('ocPago', s.condicionesPago);
   };
@@ -5746,7 +5745,7 @@ async function renderDistOrdenes(){
 // Re-render manteniendo lo tipeado en el form (para actualizar totales sin perder datos)
 let ocFormCache = {};
 function ocSnapshot(){
-  ['ocSup','ocFecha','ocEntrega','ocPlazo','ocPago','ocPRazon','ocPRut','ocPDir','ocPCiudad','ocPContacto','ocPTel','ocPCorreo','ocDesc','ocTBanco','ocTTipo','ocTNro','ocTCorreo'].forEach(id=>{ const el=document.getElementById(id); if(el) ocFormCache[id]=el.value; });
+  ['ocSup','ocFecha','ocEntrega','ocPlazo','ocPago','ocPRazon','ocPRut','ocPDir','ocPCiudad','ocPTel','ocPCorreo','ocDesc','ocTBanco','ocTTipo','ocTNro','ocTCorreo'].forEach(id=>{ const el=document.getElementById(id); if(el) ocFormCache[id]=el.value; });
 }
 function ocRestore(){
   Object.entries(ocFormCache).forEach(([id,v])=>{ const el=document.getElementById(id); if(el && v) el.value=v; });
@@ -5771,7 +5770,7 @@ async function saveOc(){
     supplierId:g('ocSup'), fecha:g('ocFecha'),
     entrega:g('ocEntrega'), plazoEntrega:g('ocPlazo'), pago:g('ocPago'),
     provRazonSocial:g('ocPRazon'), provRut:g('ocPRut'), provDireccion:g('ocPDir'), provCiudad:g('ocPCiudad'),
-    provContacto:g('ocPContacto'), provTelefono:g('ocPTel'), provCorreo:g('ocPCorreo'),
+    provTelefono:g('ocPTel'), provCorreo:g('ocPCorreo'),
     trfBanco:g('ocTBanco'), trfTipoCuenta:g('ocTTipo'), trfNroCuenta:g('ocTNro'), trfCorreo:g('ocTCorreo'),
     descuentoPct:Number(g('ocDesc'))||0, items:ocDraft,
   };
