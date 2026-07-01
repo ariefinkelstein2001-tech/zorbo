@@ -1430,6 +1430,18 @@ body.drawer-open{overflow:hidden}
 .dist-portal-link{font-size:.72rem;font-weight:700;color:var(--gold-deep,#a05f00);background:transparent;border:none;cursor:pointer;text-decoration:underline;padding:0}
 .dist-portal-link.del{color:#d33}
 .dist-portal-form{margin-top:.6rem;display:grid;gap:.5rem;background:var(--surface2,#fafafa);border:1px solid var(--line,#eee);border-radius:10px;padding:.7rem .8rem}
+.oc-line{display:flex;gap:.7rem;align-items:flex-end;margin-top:.9rem;flex-wrap:wrap}
+.oc-line .dist-field{flex:1;min-width:120px;margin:0}
+.oc-line .adm-btn{white-space:nowrap}
+.oc-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:.8rem}
+.oc-card{border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.9rem 1rem;background:var(--surface,#fff)}
+.oc-card-top{display:flex;align-items:center;justify-content:space-between;gap:.6rem}
+.oc-num{font-family:var(--mono,monospace);color:var(--gold-deep,#a05f00)}
+.oc-card-meta{font-size:.72rem;color:var(--muted,#888);margin-top:.25rem}
+.oc-items{font-size:.8rem;color:var(--text,#333);margin-top:.5rem;line-height:1.5}
+.oc-notes{font-size:.75rem;color:var(--muted,#777);margin-top:.4rem;border-top:1px dashed var(--line,#eee);padding-top:.4rem}
+.oc-card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:.6rem;font-size:1rem}
+.dist-pill.pend{cursor:pointer}.dist-pill.recib{cursor:pointer}
 
 /* ── PUNTOS DE VENTA ── */
 .pv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;margin-bottom:1rem}
@@ -5534,9 +5546,126 @@ function renderDistSub(){
   if (distSub === 'proveedores') return renderDistProveedores();
   if (distSub === 'margenes')    return renderDistMargenes();
   if (distSub === 'costos')      return renderDistProductsTab('costos');
+  if (distSub === 'ordenes')     return renderDistOrdenes();
   // Las demás sub-secciones llegan en las próximas partes.
   document.getElementById('distBody').innerHTML =
     '<div class="dist-empty">Esta sección se habilita en la próxima parte del módulo.</div>';
+}
+
+// ── Órdenes de compra (sell in) ──
+let ocDraft = [];
+async function renderDistOrdenes(){
+  const body = document.getElementById('distBody');
+  const sups = distData?.suppliers || [];
+  // Productos para el selector de líneas (lazy, opcional).
+  let prods = [];
+  try { const pd = await loadDistProducts(); if (pd && pd.available) prods = pd.products || []; } catch {}
+  const datalist = prods.map(p => `<option data-cost="${p.cost||''}" value="${escapeAttr(p.title)}">`).join('');
+  const supOpts = sups.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+  const orders = (distData?.purchaseOrders || []).slice().sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt));
+
+  const draftRows = ocDraft.length ? ocDraft.map((it,i)=>`
+    <tr>
+      <td>${escapeHtml(it.title)}</td>
+      <td class="dist-num">${it.qty}</td>
+      <td class="dist-num">${distMoney(it.unitCost)}</td>
+      <td class="dist-num">${distMoney(it.qty*it.unitCost)}</td>
+      <td><button class="pv-del" type="button" data-oc-rm="${i}">✕</button></td>
+    </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:#aaa;padding:.8rem">Agregá productos a la orden…</td></tr>`;
+  const draftTotal = ocDraft.reduce((s,it)=>s+it.qty*it.unitCost,0);
+
+  const list = orders.length ? orders.map(po => `
+    <div class="oc-card">
+      <div class="oc-card-top">
+        <div><b class="oc-num">${escapeHtml(po.number)}</b> · ${escapeHtml(po.supplierName)}</div>
+        <span class="dist-pill ${po.status==='recibida'?'recib':'pend'}" data-oc-status="${po.id}" data-cur="${po.status}" title="Cambiar estado">${po.status==='recibida'?'Recibida':'Pendiente'}</span>
+      </div>
+      <div class="oc-card-meta">${(po.date||'').slice(0,10)}${po.deliveryDate?(' · entrega '+po.deliveryDate.slice(0,10)):''} · ${po.items.length} ítem${po.items.length===1?'':'s'}</div>
+      <div class="oc-items">${po.items.map(it=>`<span>${it.qty}× ${escapeHtml(it.title)}</span>`).join(' · ')}</div>
+      ${po.notes?`<div class="oc-notes">${escapeHtml(po.notes)}</div>`:''}
+      <div class="oc-card-foot"><b>${distMoney(po.total)}</b><button class="pv-del" type="button" data-oc-del="${po.id}">Eliminar</button></div>
+    </div>`).join('') : '<div class="dist-empty">Todavía no hay órdenes de compra. Creá la primera arriba.</div>';
+
+  body.innerHTML = `
+    <datalist id="ocProds">${datalist}</datalist>
+    <div class="dist-form">
+      <div class="dist-sec-title">Nueva orden de compra</div>
+      <div class="dist-sec-sub">Lo que Zorbo le compra a un proveedor (sell in). Elegí el proveedor, cargá los productos y guardá.</div>
+      <div class="dist-form-grid" style="margin-top:.9rem">
+        <div class="dist-field"><label>Proveedor</label><select id="ocSup">${supOpts}</select></div>
+        <div class="dist-field"><label>Fecha</label><input type="date" id="ocDate"></div>
+        <div class="dist-field"><label>Fecha de entrega (opcional)</label><input type="date" id="ocDeliv"></div>
+        <div class="dist-field"><label>Estado</label><select id="ocStatus"><option value="pendiente">Pendiente</option><option value="recibida">Recibida</option></select></div>
+      </div>
+      <div class="oc-line">
+        <div class="dist-field" style="flex:2"><label>Producto</label><input id="ocPTitle" list="ocProds" placeholder="Nombre del producto"></div>
+        <div class="dist-field"><label>Cantidad</label><input id="ocPQty" type="number" min="0" step="1" placeholder="0"></div>
+        <div class="dist-field"><label>Costo unitario</label><input id="ocPCost" type="number" min="0" step="1" placeholder="0"></div>
+        <button class="adm-btn adm-btn-ghost" id="ocAdd" type="button">+ Agregar</button>
+      </div>
+      <div class="mun-wrap" style="margin-top:.7rem"><table class="mun-table" style="min-width:0">
+        <thead><tr><th>Producto</th><th style="text-align:right">Cant.</th><th style="text-align:right">Costo unit.</th><th style="text-align:right">Total</th><th></th></tr></thead>
+        <tbody>${draftRows}</tbody>
+        <tfoot><tr><td colspan="3" style="text-align:right;font-weight:800">Total orden</td><td class="dist-num" style="font-weight:800">${distMoney(draftTotal)}</td><td></td></tr></tfoot>
+      </table></div>
+      <div class="dist-field wide" style="margin-top:.7rem"><label>Notas</label><textarea id="ocNotes" rows="2" placeholder="Observaciones, condiciones de pago, etc."></textarea></div>
+      <div class="dist-form-actions">
+        <button class="adm-btn" id="ocSave" type="button">Guardar orden</button>
+        <span class="dist-status" id="ocStatusMsg"></span>
+      </div>
+    </div>
+    <div class="dist-sec-title" style="margin-top:1.4rem">Órdenes registradas</div>
+    <div class="oc-list">${list}</div>`;
+
+  // fecha default hoy
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('ocDate').value = today;
+  // prefill costo al elegir producto del datalist
+  document.getElementById('ocPTitle').addEventListener('change', (e)=>{
+    const opt = [...document.querySelectorAll('#ocProds option')].find(o=>o.value===e.target.value);
+    const c = opt && opt.dataset.cost;
+    if (c && !document.getElementById('ocPCost').value) document.getElementById('ocPCost').value = c;
+  });
+  document.getElementById('ocAdd').onclick = addOcLine;
+  document.getElementById('ocSave').onclick = saveOc;
+  body.querySelectorAll('[data-oc-rm]').forEach(b=>b.onclick=()=>{ ocDraft.splice(+b.dataset.ocRm,1); renderDistOrdenes(); });
+  body.querySelectorAll('[data-oc-del]').forEach(b=>b.onclick=()=>deleteOc(b.dataset.ocDel));
+  body.querySelectorAll('[data-oc-status]').forEach(b=>b.onclick=()=>toggleOcStatus(b.dataset.ocStatus, b.dataset.cur));
+}
+function addOcLine(){
+  const title=document.getElementById('ocPTitle').value.trim();
+  const qty=Number(document.getElementById('ocPQty').value)||0;
+  const unitCost=Number(document.getElementById('ocPCost').value)||0;
+  if(!title||qty<=0){ alert('Poné un producto y una cantidad.'); return; }
+  ocDraft.push({ title, qty, unitCost });
+  renderDistOrdenes();
+}
+async function saveOc(){
+  const st=document.getElementById('ocStatusMsg');
+  if(!ocDraft.length){ st.className='dist-status err'; st.textContent='Agregá al menos un producto.'; return; }
+  const payload={
+    supplierId: document.getElementById('ocSup').value,
+    date: document.getElementById('ocDate').value,
+    deliveryDate: document.getElementById('ocDeliv').value,
+    status: document.getElementById('ocStatus').value,
+    notes: document.getElementById('ocNotes').value,
+    items: ocDraft,
+  };
+  st.className='dist-status'; st.textContent='Guardando…';
+  try{
+    const r=await fetch('/admin/distribuidora/purchase-orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    ocDraft=[];
+    await loadDistri();
+  }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
+}
+async function toggleOcStatus(id, cur){
+  const next = cur==='recibida' ? 'pendiente' : 'recibida';
+  try{ const r=await fetch(`/admin/distribuidora/purchase-orders/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:next})}); if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');} await loadDistri(); }catch(e){ alert(e.message); }
+}
+async function deleteOc(id){
+  if(!confirm('Eliminar esta orden de compra?')) return;
+  try{ const r=await fetch(`/admin/distribuidora/purchase-orders/${id}`,{method:'DELETE'}); if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');} await loadDistri(); }catch(e){ alert(e.message); }
 }
 
 // ── Márgenes por categoría ──

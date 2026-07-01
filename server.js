@@ -3575,6 +3575,72 @@ app.put('/admin/distribuidora/costs/:productId', requireAdmin, (req, res) => {
   res.json({ ok: true, cost: d.productCosts[pid] || null });
 });
 
+// ── Órdenes de compra (sell in) — Zorbo le compra a un proveedor ──
+function normalizePOItems(raw){
+  return (Array.isArray(raw) ? raw : [])
+    .map(it => ({
+      productId: it.productId ? String(it.productId).slice(0, 40) : '',
+      title: distriStr(it.title, 160),
+      qty: Math.max(0, Number(it.qty) || 0),
+      unitCost: Math.max(0, Math.round(Number(it.unitCost) || 0)),
+    }))
+    .filter(it => it.title && it.qty > 0)
+    .map(it => ({ ...it, total: Math.round(it.qty * it.unitCost) }));
+}
+app.post('/admin/distribuidora/purchase-orders', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const d = loadDistri();
+  const supplier = d.suppliers.find(s => s.id === b.supplierId);
+  if (!supplier) return res.status(400).json({ error: 'Elegí un proveedor válido.' });
+  const items = normalizePOItems(b.items);
+  if (!items.length) return res.status(400).json({ error: 'Agregá al menos un producto con cantidad.' });
+  const total = items.reduce((s, it) => s + it.total, 0);
+  const now = new Date().toISOString();
+  const seq = (d.purchaseOrders.reduce((m, po) => {
+    const n = parseInt(String(po.number || '').replace(/\D/g, ''), 10);
+    return Number.isFinite(n) && n > m ? n : m;
+  }, 0)) + 1;
+  const po = {
+    id: randomUUID(),
+    number: 'OC-' + String(seq).padStart(4, '0'),
+    supplierId: supplier.id, supplierName: supplier.name,
+    date: distriStr(b.date, 20) || todayISO(),
+    deliveryDate: distriStr(b.deliveryDate, 20),
+    status: b.status === 'recibida' ? 'recibida' : 'pendiente',
+    items, total,
+    notes: distriStr(b.notes, 2000),
+    createdAt: now, updatedAt: now,
+  };
+  d.purchaseOrders.push(po);
+  saveDistri(d);
+  res.json({ ok: true, purchaseOrder: po });
+});
+app.put('/admin/distribuidora/purchase-orders/:id', requireAdmin, (req, res) => {
+  const d = loadDistri();
+  const po = d.purchaseOrders.find(x => x.id === String(req.params.id));
+  if (!po) return res.status(404).json({ error: 'Orden no encontrada.' });
+  const b = req.body || {};
+  if (b.status !== undefined) po.status = b.status === 'recibida' ? 'recibida' : 'pendiente';
+  if (b.notes !== undefined) po.notes = distriStr(b.notes, 2000);
+  if (b.deliveryDate !== undefined) po.deliveryDate = distriStr(b.deliveryDate, 20);
+  if (b.date !== undefined) po.date = distriStr(b.date, 20) || po.date;
+  if (b.items !== undefined) {
+    const items = normalizePOItems(b.items);
+    if (items.length) { po.items = items; po.total = items.reduce((s, it) => s + it.total, 0); }
+  }
+  po.updatedAt = new Date().toISOString();
+  saveDistri(d);
+  res.json({ ok: true, purchaseOrder: po });
+});
+app.delete('/admin/distribuidora/purchase-orders/:id', requireAdmin, (req, res) => {
+  const d = loadDistri();
+  const before = d.purchaseOrders.length;
+  d.purchaseOrders = d.purchaseOrders.filter(x => x.id !== String(req.params.id));
+  if (d.purchaseOrders.length === before) return res.status(404).json({ error: 'Orden no encontrada.' });
+  saveDistri(d);
+  res.json({ ok: true });
+});
+
 // Categoría sugerida para un producto según el proveedor cuyo nombre matchea el
 // vendor de Shopify (así el costo arranca con una categoría razonable).
 function supplierCategoryForVendor(suppliers, vendor){
