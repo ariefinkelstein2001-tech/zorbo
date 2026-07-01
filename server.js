@@ -3463,6 +3463,8 @@ app.post('/admin/distribuidora/suppliers', requireAdmin, (req, res) => {
     phone: distriStr(b.phone, 60),
     address: distriStr(b.address, 240),
     // Datos para la orden de compra (se autocompletan al elegir el proveedor).
+    razonSocial: distriStr(b.razonSocial, 160),
+    nombreFantasia: distriStr(b.nombreFantasia, 160),
     rut: distriStr(b.rut, 40),
     ciudad: distriStr(b.ciudad, 80),
     banco: distriStr(b.banco, 80),
@@ -3491,6 +3493,8 @@ app.put('/admin/distribuidora/suppliers/:id', requireAdmin, (req, res) => {
   if (b.email !== undefined) s.email = distriStr(b.email, 160);
   if (b.phone !== undefined) s.phone = distriStr(b.phone, 60);
   if (b.address !== undefined) s.address = distriStr(b.address, 240);
+  if (b.razonSocial !== undefined) s.razonSocial = distriStr(b.razonSocial, 160);
+  if (b.nombreFantasia !== undefined) s.nombreFantasia = distriStr(b.nombreFantasia, 160);
   if (b.rut !== undefined) s.rut = distriStr(b.rut, 40);
   if (b.ciudad !== undefined) s.ciudad = distriStr(b.ciudad, 80);
   if (b.banco !== undefined) s.banco = distriStr(b.banco, 80);
@@ -3632,7 +3636,7 @@ function buildOCFromBody(b, supplier){
   return {
     supplierId: supplier.id, supplierName: supplier.name,
     proveedor: {
-      razonSocial: distriStr(b.provRazonSocial, 160) || supplier.name,
+      razonSocial: distriStr(b.provRazonSocial, 160) || supplier.razonSocial || supplier.name,
       rut:       distriStr(b.provRut, 40) || supplier.rut || '',
       direccion: distriStr(b.provDireccion, 240) || supplier.address || '',
       ciudad:    distriStr(b.provCiudad, 80) || supplier.ciudad || '',

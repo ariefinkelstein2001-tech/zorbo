@@ -5682,7 +5682,7 @@ async function renderDistOrdenes(){
   supSel.onchange = () => {
     const s = sups.find(x=>x.id===supSel.value); if(!s) return;
     const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v||''; };
-    set('ocPRazon', s.name); set('ocPRut', s.rut); set('ocPDir', s.address); set('ocPCiudad', s.ciudad);
+    set('ocPRazon', s.razonSocial || s.name); set('ocPRut', s.rut); set('ocPDir', s.address); set('ocPCiudad', s.ciudad);
     set('ocPContacto', s.contactName); set('ocPTel', s.phone); set('ocPCorreo', s.email);
     set('ocTBanco', s.banco); set('ocTTipo', s.tipoCuenta); set('ocTNro', s.nroCuenta); set('ocTCorreo', s.email);
     set('ocPago', s.condicionesPago);
@@ -5928,6 +5928,8 @@ function renderDistProveedores(){
         <div class="dist-field"><label>Categoría principal</label><select id="dsCat">${
           cats.map(c => `<option value="${c.key}" ${ed && ed.category===c.key?'selected':''}>${escapeHtml(c.label)}</option>`).join('')
         }</select></div>
+        <div class="dist-field"><label>Razón social</label><input id="dsRazon" value="${v('razonSocial')}" placeholder="Razón social legal"></div>
+        <div class="dist-field"><label>Nombre fantasía</label><input id="dsFantasia" value="${v('nombreFantasia')}" placeholder="Nombre comercial / fantasía"></div>
         <div class="dist-field"><label>Contacto (nombre)</label><input id="dsContact" value="${v('contactName')}" placeholder="Nombre del contacto"></div>
         <div class="dist-field"><label>Email</label><input id="dsEmail" value="${v('email')}" placeholder="contacto@marca.cl"></div>
         <div class="dist-field"><label>Teléfono</label><input id="dsPhone" value="${v('phone')}" placeholder="+56 9 ..."></div>
@@ -6055,6 +6057,8 @@ async function saveDistSupplier(){
     email: document.getElementById('dsEmail').value,
     phone: document.getElementById('dsPhone').value,
     address: document.getElementById('dsAddr').value,
+    razonSocial: document.getElementById('dsRazon').value,
+    nombreFantasia: document.getElementById('dsFantasia').value,
     rut: document.getElementById('dsRut').value,
     ciudad: document.getElementById('dsCiudad').value,
     banco: document.getElementById('dsBanco').value,
