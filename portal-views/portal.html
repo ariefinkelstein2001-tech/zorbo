@@ -55,20 +55,32 @@ a{color:inherit}
 .pv-card-title{font-family:var(--display);font-size:1rem;font-weight:800}
 .pv-card-sub{font-size:.74rem;color:var(--dim)}
 .pv-chartbox{position:relative;height:230px;margin-top:.6rem}
-.pv-acc-list{display:flex;flex-direction:column;gap:.8rem;margin-top:1.5rem}
-.pv-acc{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;transition:border-color .15s}
-.pv-acc.open{border-color:var(--gold-bd)}
-.pv-acc-head{width:100%;display:flex;align-items:center;gap:.9rem;padding:1.05rem 1.2rem;background:none;border:none;cursor:pointer;text-align:left;color:var(--text);font-family:var(--sans)}
-.pv-acc-arrow{font-size:.85rem;color:var(--gold);transition:transform .2s;flex-shrink:0}
-.pv-acc.open .pv-acc-arrow{transform:rotate(90deg)}
-.pv-acc-main{display:flex;flex-direction:column;gap:.15rem;flex:1;min-width:0}
-.pv-acc-title{font-family:var(--display);font-weight:800;font-size:1.05rem}
-.pv-acc-help{font-size:.75rem;color:var(--muted)}
-.pv-acc-val{font-family:var(--display);font-weight:800;font-size:1.25rem;color:var(--gold-bright);text-align:right;display:flex;flex-direction:column;gap:.1rem;flex-shrink:0}
-.pv-acc-meta{font-family:var(--sans);font-weight:500;font-size:.72rem;color:var(--muted)}
-.pv-acc-body{display:none;padding:0 1.2rem 1.2rem;border-top:1px solid var(--line)}
-.pv-acc.open .pv-acc-body{display:block}
-.pv-acc-body .pv-chartbox{height:220px;margin-top:1rem}
+.pv-card{margin-top:1.5rem}
+.pv-controls{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.8rem}
+.pv-series{display:flex;gap:.6rem;flex-wrap:wrap}
+.pv-chip{display:inline-flex;align-items:center;gap:.45rem;font-size:.82rem;font-weight:600;color:var(--text);background:#0d0c11;border:1px solid var(--border);border-radius:999px;padding:.4rem .8rem;cursor:pointer;user-select:none}
+.pv-chip input{display:none}
+.pv-chip .pv-dot{width:11px;height:11px;border-radius:50%;background:var(--c);opacity:.35;transition:opacity .15s}
+.pv-chip input:checked ~ .pv-dot{opacity:1}
+.pv-chip:has(input:checked){border-color:var(--c)}
+.pv-range{display:flex;gap:.7rem;flex-wrap:wrap;font-size:.74rem;color:var(--muted)}
+.pv-range label{display:flex;align-items:center;gap:.35rem}
+.pv-range select{background:#0d0c11;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:.35rem .5rem;font-family:var(--sans);font-size:.8rem;outline:none}
+.pv-range select:focus{border-color:var(--gold)}
+/* Órdenes de compra */
+.pv-oc-title{font-family:var(--display);font-weight:800;font-size:1.15rem;margin:1.8rem 0 .8rem}
+.pv-oc-empty{margin-top:1.6rem;color:var(--muted);font-size:.86rem;text-align:center;padding:1.4rem;border:1px dashed var(--border);border-radius:12px}
+.pv-oc-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:.8rem}
+.pv-oc{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem}
+.pv-oc-top{display:flex;align-items:center;justify-content:space-between;gap:.6rem}
+.pv-oc-pill{font-size:.6rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:.2rem .5rem;border-radius:999px}
+.pv-oc-pill.pend{background:rgba(245,166,35,.15);color:var(--gold-bright)}
+.pv-oc-pill.recib{background:rgba(46,156,90,.18);color:#57d98a}
+.pv-oc-meta{font-size:.72rem;color:var(--muted);margin-top:.3rem}
+.pv-oc-items{font-size:.8rem;color:var(--text);margin-top:.5rem;line-height:1.5}
+.pv-oc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:.7rem;font-size:1rem;font-weight:700}
+.pv-oc-pdf{font-size:.78rem;font-weight:700;color:var(--gold-bright);text-decoration:none;border:1px solid var(--gold-bd);border-radius:8px;padding:.3rem .6rem}
+.pv-oc-pdf:hover{background:rgba(245,166,35,.12)}
 .pv-empty{padding:2.2rem 1rem;text-align:center;color:var(--muted);font-size:.84rem;line-height:1.6}
 .pv-note{margin-top:1.4rem;font-size:.76rem;color:var(--dim);text-align:center;line-height:1.6}
 .pv-loading{padding:3rem 1rem;text-align:center;color:var(--muted)}
@@ -123,45 +135,21 @@ function kpi(cls, label, help, val, meta){
 }
 
 let dashData = null;
-const accDrawn = new Set();
-
-function accRow(key, title, help, val, meta){
-  const box = key === 'in' ? 'boxIn' : 'boxOut';
-  return `<div class="pv-acc" data-acc-wrap="${key}">
-    <button class="pv-acc-head" data-acc="${key}" type="button">
-      <span class="pv-acc-arrow">▸</span>
-      <span class="pv-acc-main">
-        <span class="pv-acc-title">${title}</span>
-        <span class="pv-acc-help">${help}</span>
-      </span>
-      <span class="pv-acc-val">${val}<span class="pv-acc-meta">${meta}</span></span>
-    </button>
-    <div class="pv-acc-body"><div class="pv-chartbox" id="${box}"></div></div>
-  </div>`;
-}
-
-function drawAccChart(key){
-  if (accDrawn.has(key)) return;
-  accDrawn.add(key);
-  const d = dashData || {};
-  if (key === 'in') {
-    const si = d.sellIn || {};
-    drawArea('boxIn', si.monthly || [], '#7c6bb8', !((si.monthly||[]).some(m=>m.value>0)), 'Sell in');
-  } else {
-    const so = d.sellOut || {};
-    if (so.available) drawArea('boxOut', so.monthly || [], '#f5a623', !((so.monthly||[]).some(m=>m.value>0)), 'Sell out');
-    else document.getElementById('boxOut').innerHTML = `<div class="pv-empty">${esc(so.reason||'Ventas no disponibles aún.')}</div>`;
-  }
-}
+const SERIES = [
+  { key:'in',  label:'Sell in',  color:'#7c6bb8', help:'lo que Zorbo te compró' },
+  { key:'out', label:'Sell out', color:'#f5a623', help:'lo que se vendió a locales' },
+];
+const activeSeries = { in:true, out:true };
+let rangeFrom = 0, rangeTo = 11;
 
 function render(d){
   dashData = d;
-  accDrawn.clear();
   const s = d.supplier || {};
-  const so = d.sellOut || {};
   const si = d.sellIn || {};
-  const inMeta  = `${(si.units||0).toLocaleString('es-CL')} unidades`;
-  const outMeta = so.available ? `${(so.units||0).toLocaleString('es-CL')} unidades · ${so.orders||0} pedidos` : 'ventas no disponibles aún';
+  const so = d.sellOut || {};
+  const months = si.monthly || [];
+  rangeFrom = 0; rangeTo = Math.max(0, months.length - 1);
+  const monthOpts = (sel) => months.map((m,i)=>`<option value="${i}" ${i===sel?'selected':''}>${esc(m.label)}</option>`).join('');
 
   document.getElementById('shell').innerHTML = `
     <div class="pv-hi">Hola, <span class="brand">${esc(s.name)}</span></div>
@@ -171,28 +159,80 @@ function render(d){
       <span>Este es el rendimiento de tu marca dentro de Zorbo.</span>
     </div>
 
-    <div class="pv-acc-list">
-      ${accRow('in','Sell in','lo que Zorbo te compró a ti', fmtCLP(si.total), inMeta)}
-      ${accRow('out','Sell out','lo que se vendió de tu marca a locales', so.available?fmtCLP(so.total):'—', outMeta)}
+    <div class="pv-card">
+      <div class="pv-controls">
+        <div class="pv-series">
+          ${SERIES.map(se=>`<label class="pv-chip" style="--c:${se.color}"><input type="checkbox" data-series="${se.key}" ${activeSeries[se.key]?'checked':''}><span class="pv-dot"></span>${se.label}</label>`).join('')}
+        </div>
+        <div class="pv-range">
+          <label>Desde <select id="pvFrom">${monthOpts(rangeFrom)}</select></label>
+          <label>Hasta <select id="pvTo">${monthOpts(rangeTo)}</select></label>
+        </div>
+      </div>
+      <div class="pv-chartbox" id="mainBox" style="height:300px"></div>
+      ${so.available ? '' : `<div class="pv-note" style="margin-top:.6rem">${esc(so.reason||'Sell out no disponible aún.')}</div>`}
     </div>
 
-    <div class="pv-soon">
-      Próximamente en tu portal: <b>órdenes de compra</b> con agendar despacho, <b>mapa de locales</b> donde está tu producto,
-      <b>top 10 puntos de venta</b>, <b>sugerir nuevos locales</b> y la <b>cadena de valor</b> completa.
-    </div>
-    <div class="pv-note">Tocá "Sell in" o "Sell out" para ver su gráfico. Sell out viene de las ventas reales en Zorbo; sell in, de las órdenes de compra que te hace Zorbo.</div>
+    <div id="ordenesSection"><div class="pv-note">Cargando órdenes de compra…</div></div>
+    <div class="pv-note">Elegí las variables (con su color) y el rango de fechas. Sell out son ventas reales en Zorbo; sell in, las órdenes de compra que te hace Zorbo.</div>
   `;
 
-  document.querySelectorAll('.pv-acc-head').forEach(btn => {
-    btn.onclick = () => {
-      const wrap = btn.closest('.pv-acc');
-      const open = wrap.classList.toggle('open');
-      if (open) setTimeout(() => drawAccChart(btn.dataset.acc), 30);
-    };
+  document.querySelectorAll('[data-series]').forEach(cb => cb.onchange = () => { activeSeries[cb.dataset.series] = cb.checked; drawMainChart(); });
+  document.getElementById('pvFrom').onchange = (e) => { rangeFrom = +e.target.value; drawMainChart(); };
+  document.getElementById('pvTo').onchange   = (e) => { rangeTo   = +e.target.value; drawMainChart(); };
+  setTimeout(drawMainChart, 30);
+  loadPortalOrdenes();
+}
+
+function drawMainChart(){
+  const box = document.getElementById('mainBox');
+  if (!box) return;
+  const d = dashData || {};
+  const siM = (d.sellIn && d.sellIn.monthly) || [];
+  const soM = (d.sellOut && d.sellOut.monthly) || [];
+  const from = Math.min(rangeFrom, rangeTo), to = Math.max(rangeFrom, rangeTo);
+  const labels = siM.slice(from, to+1).map(m=>m.label);
+  const datasets = [];
+  const mkDs = (label, color, data) => {
+    return { label, data, borderColor:color, backgroundColor:color+'22', fill:true, tension:.35, pointRadius:2, pointHoverRadius:5, borderWidth:2.5 };
+  };
+  if (activeSeries.in)  datasets.push(mkDs('Sell in',  '#7c6bb8', siM.slice(from,to+1).map(m=>m.value)));
+  if (activeSeries.out && d.sellOut && d.sellOut.available) datasets.push(mkDs('Sell out', '#f5a623', soM.slice(from,to+1).map(m=>m.value)));
+  if (!datasets.length){ box.innerHTML = '<div class="pv-empty">Elegí al menos una variable arriba.</div>'; return; }
+  box.innerHTML = '<canvas></canvas>';
+  const ctx = box.querySelector('canvas').getContext('2d');
+  if (charts.main) charts.main.destroy();
+  charts.main = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets },
+    options:{
+      responsive:true, maintainAspectRatio:false, interaction:{ mode:'index', intersect:false },
+      plugins:{ legend:{ display:true, labels:{ usePointStyle:true, boxWidth:8 } },
+        tooltip:{ callbacks:{ label:(c)=>c.dataset.label+': '+fmtCLP(c.parsed.y) } } },
+      scales:{ x:{ grid:{display:false}, ticks:{ color:'#9a948a', font:{size:10} } },
+        y:{ grid:{color:'rgba(0,0,0,.05)'}, ticks:{ color:'#9a948a', font:{size:10}, callback:(v)=>'$'+(v/1000)+'k' } } },
+    },
   });
-  // Abrir "Sell in" por defecto
-  const first = document.querySelector('[data-acc-wrap="in"]');
-  if (first) { first.classList.add('open'); setTimeout(() => drawAccChart('in'), 30); }
+}
+
+async function loadPortalOrdenes(){
+  const el = document.getElementById('ordenesSection');
+  if (!el) return;
+  let orders = [];
+  try { const r = await fetch('/portal/ordenes'); const d = await r.json(); orders = d.orders || []; }
+  catch { el.innerHTML = ''; return; }
+  if (!orders.length){ el.innerHTML = `<div class="pv-oc-empty">Todavía no tenés órdenes de compra de Zorbo.</div>`; return; }
+  const cards = orders.map(po => `
+    <div class="pv-oc">
+      <div class="pv-oc-top">
+        <b>OC N° ${esc(po.number)}</b>
+        <span class="pv-oc-pill ${po.status==='recibida'?'recib':'pend'}">${po.status==='recibida'?'Recibida':'Pendiente'}</span>
+      </div>
+      <div class="pv-oc-meta">${esc(po.fecha||'')} · ${(po.items||[]).length} artículo${(po.items||[]).length===1?'':'s'}</div>
+      <div class="pv-oc-items">${(po.items||[]).map(it=>`${it.cantidad}× ${esc(it.articulo)}`).join(' · ')}</div>
+      <div class="pv-oc-foot"><b>${fmtCLP(po.total)}</b><a class="pv-oc-pdf" href="/portal/ordenes/${po.id}/pdf" target="_blank">⬇ Descargar PDF</a></div>
+    </div>`).join('');
+  el.innerHTML = `<div class="pv-oc-title">Órdenes de compra de Zorbo</div><div class="pv-oc-list">${cards}</div>`;
 }
 
 const CAT_LABELS = { cerveza:'Cerveza', licores:'Licores', rtd:'RTD', funcionales:'Bebidas y funcionales' };

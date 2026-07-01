@@ -4537,6 +4537,27 @@ app.get('/portal/dashboard', requirePortal, async (req, res) => {
   });
 });
 
+// Órdenes de compra que Zorbo le hizo a este proveedor (con PDF).
+app.get('/portal/ordenes', requirePortal, (req, res) => {
+  const s = portalSupplier(req);
+  const d = loadDistri();
+  const orders = d.purchaseOrders
+    .filter(po => po.supplierId === s.id)
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .map(po => ({
+      id: po.id, number: po.number, fecha: po.fecha, status: po.status, total: po.total,
+      entrega: po.entrega, plazoEntrega: po.plazoEntrega, pago: po.pago,
+      items: (po.items || []).map(it => ({ articulo: it.articulo, cantidad: it.cantidad, precioUnitario: it.precioUnitario, precioTotal: it.precioTotal })),
+    }));
+  res.json({ orders });
+});
+app.get('/portal/ordenes/:id/pdf', requirePortal, (req, res) => {
+  const s = portalSupplier(req);
+  const po = loadDistri().purchaseOrders.find(x => x.id === String(req.params.id));
+  if (!po || po.supplierId !== s.id) return res.status(404).send('Orden no encontrada.');
+  sendPOPdf(res, po);
+});
+
 // ─── Analítica del BOT (uso desde conversations.json) ───────────────────────
 // Orden = prioridad de clasificación (la primera que matchea gana). Reclamos
 // y envío van primero para que "mi pedido no llegó" caiga en reclamo, no en
