@@ -405,6 +405,8 @@ body.admin-home .adm-chat,body.admin-home .adm-chat-fab{display:none!important}
 .adm-np-packs{display:flex;flex-direction:column;gap:.4rem}
 .adm-np-pack{display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--text)}
 .adm-np-price{max-width:120px;margin-left:auto}
+.np-pk-qty{width:60px;padding:.4rem .5rem;border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:.85rem;text-align:center;outline:none}
+.np-pk-qty:focus{border-color:var(--gold-bd-h)}
 .adm-np-preview{display:flex;flex-direction:column;gap:.4rem;align-items:center}
 #npCanvas{width:100%;max-width:340px;aspect-ratio:1;border:1px solid var(--border);border-radius:10px;background:#fff}
 .adm-np-hint{font-size:.74rem;color:var(--dim);text-align:center;font-style:italic}
@@ -2012,10 +2014,11 @@ body.drawer-open{overflow:hidden}
             </div>
             <div class="adm-fb-col"><label class="adm-fb-label">Packs y precios (CLP)</label>
               <div class="adm-np-packs" id="npPacks">
-                <label class="adm-np-pack"><input type="checkbox" data-pk="6 Pack" checked> 6 Pack <input class="adm-input adm-np-price" data-pk="6 Pack" type="number" placeholder="precio"></label>
-                <label class="adm-np-pack"><input type="checkbox" data-pk="12 Pack" checked> 12 Pack <input class="adm-input adm-np-price" data-pk="12 Pack" type="number" placeholder="precio"></label>
-                <label class="adm-np-pack"><input type="checkbox" data-pk="24 Pack" checked> 24 Pack <input class="adm-input adm-np-price" data-pk="24 Pack" type="number" placeholder="precio"></label>
+                <label class="adm-np-pack"><input type="checkbox" class="np-pk-on" checked> <input type="number" class="np-pk-qty" value="6" min="1" step="1"> Pack <input class="adm-input adm-np-price" type="number" placeholder="precio"></label>
+                <label class="adm-np-pack"><input type="checkbox" class="np-pk-on" checked> <input type="number" class="np-pk-qty" value="12" min="1" step="1"> Pack <input class="adm-input adm-np-price" type="number" placeholder="precio"></label>
+                <label class="adm-np-pack"><input type="checkbox" class="np-pk-on" checked> <input type="number" class="np-pk-qty" value="24" min="1" step="1"> Pack <input class="adm-input adm-np-price" type="number" placeholder="precio"></label>
               </div>
+              <button type="button" class="adm-btn adm-btn-ghost" id="npAddPack" style="margin-top:.5rem">+ Agregar pack</button>
             </div>
             <div class="adm-fb-col"><label class="adm-fb-label">Foto de la lata (PNG/JPG)</label>
               <label class="adm-prod-upload"><input type="file" id="npCan" accept="image/png,image/jpeg,image/webp" hidden><span>📷 Subir foto de la lata</span></label>
@@ -2270,17 +2273,27 @@ function applyCustomBrands(){
   BRANDS = brOut;
   rebuildVendorOptions();
 }
+let extraVendors = [];
 function rebuildVendorOptions(){
   const sel = document.getElementById('npVendor');
   if (!sel) return;
-  const cur = sel.value;
+  const cur = sel.value && sel.value !== '__add__' ? sel.value : '';
   const opts = [
     ['Kairos Brewing','Kairos Brewing'], ['Firulais','Firulais'], ['Banny','Banny'],
     ...CUSTOM_BRANDS.map(b => [b.vendor || b.label, b.label]),
+    ...extraVendors.map(v => [v, v]),
     ['Otros','Otros'],
   ];
-  sel.innerHTML = opts.map(([v,l]) => `<option value="${escapeAttr(v)}">${escapeHtml(l)}</option>`).join('');
+  sel.innerHTML = opts.map(([v,l]) => `<option value="${escapeAttr(v)}">${escapeHtml(l)}</option>`).join('')
+    + '<option value="__add__">➕ Agregar otra…</option>';
   if (cur && opts.some(o => o[0] === cur)) sel.value = cur;
+  sel.onchange = () => {
+    if (sel.value !== '__add__') return;
+    const name = (prompt('Nombre de la nueva marca / proveedor:') || '').trim();
+    if (name && !extraVendors.some(v => v.toLowerCase() === name.toLowerCase())) extraVendors.push(name);
+    rebuildVendorOptions();
+    sel.value = name || 'Kairos Brewing';
+  };
 }
 let activeProdSection = 'minorista';
 let productsCache = [];
@@ -3155,12 +3168,20 @@ function drawMaquetaWhenReady(packLabel){
 function getSelectedPacks(){
   const packs = [];
   document.querySelectorAll('#npPacks .adm-np-pack').forEach(row => {
-    const cb = row.querySelector('input[type=checkbox]');
+    const cb = row.querySelector('.np-pk-on');
+    const qty = parseInt(row.querySelector('.np-pk-qty').value, 10);
     const price = row.querySelector('.adm-np-price');
-    if (cb.checked) packs.push({ title: cb.dataset.pk, price: price.value || '0' });
+    if (cb.checked && qty > 0) packs.push({ title: qty + ' Pack', price: price.value || '0' });
   });
   return packs;
 }
+document.getElementById('npAddPack')?.addEventListener('click', () => {
+  const row = document.createElement('label');
+  row.className = 'adm-np-pack';
+  row.innerHTML = '<input type="checkbox" class="np-pk-on" checked> <input type="number" class="np-pk-qty" min="1" step="1" placeholder="6"> Pack <input class="adm-input adm-np-price" type="number" placeholder="precio">';
+  document.getElementById('npPacks').appendChild(row);
+  row.querySelector('.np-pk-qty').focus();
+});
 
 document.getElementById('npCreate').onclick = async () => {
   const title = document.getElementById('npName').value.trim();
