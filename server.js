@@ -4170,16 +4170,20 @@ function adLight(c){
   if (c.clicks >= 40 && c.conversions === 0) return 'red'; // gasta y no convierte
   return 'yellow';
 }
-async function loadGoogleAdsCampaigns(){
+const isAdsDate = (s) => /^\d{4}-\d{2}-\d{2}$/.test(String(s || ''));
+async function loadGoogleAdsCampaigns(from, to){
   const token = await googleAdsAccessToken();
   const cid = String(process.env.GOOGLE_ADS_CUSTOMER_ID).replace(/-/g, '');
+  const dateClause = (isAdsDate(from) && isAdsDate(to))
+    ? `segments.date BETWEEN '${from}' AND '${to}'`
+    : `segments.date DURING LAST_30_DAYS`;
   const query = `
     SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type,
            metrics.cost_micros, metrics.impressions, metrics.clicks, metrics.ctr,
            metrics.average_cpc, metrics.conversions, metrics.cost_per_conversion,
            metrics.conversions_value
     FROM campaign
-    WHERE campaign.status = 'ENABLED' AND segments.date DURING LAST_30_DAYS`;
+    WHERE campaign.status = 'ENABLED' AND ${dateClause}`;
   const headers = {
     Authorization: 'Bearer ' + token,
     'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
@@ -4249,7 +4253,7 @@ async function loadGoogleAdsCampaigns(){
   return { campaigns, totals };
 }
 
-app.get('/admin/ads/google', requireAdmin, async (_req, res) => {
+app.get('/admin/ads/google', requireAdmin, async (req, res) => {
   if (!googleAdsConfigured()) {
     return res.json({
       connected: false,
@@ -4257,9 +4261,11 @@ app.get('/admin/ads/google', requireAdmin, async (_req, res) => {
       envVars: ['GOOGLE_ADS_DEVELOPER_TOKEN', 'GOOGLE_ADS_CLIENT_ID', 'GOOGLE_ADS_CLIENT_SECRET', 'GOOGLE_ADS_REFRESH_TOKEN', 'GOOGLE_ADS_CUSTOMER_ID', 'GOOGLE_ADS_LOGIN_CUSTOMER_ID (opcional, MCC)'],
     });
   }
+  const from = String(req.query.from || ''), to = String(req.query.to || '');
+  const range = (isAdsDate(from) && isAdsDate(to)) ? `${from} a ${to}` : 'últimos 30 días';
   try {
-    const data = await loadGoogleAdsCampaigns();
-    res.json({ connected: true, currency: 'CLP', range: 'últimos 30 días', ...data });
+    const data = await loadGoogleAdsCampaigns(from, to);
+    res.json({ connected: true, currency: 'CLP', range, ...data });
   } catch (e) {
     res.json({ connected: true, error: 'Google Ads respondió un error: ' + String(e.message || e).slice(0, 240) });
   }
@@ -4283,11 +4289,14 @@ function metaPickAction(actions){
   }
   return 0;
 }
-async function loadMetaCampaigns(){
+async function loadMetaCampaigns(from, to){
   const acct = String(process.env.META_AD_ACCOUNT_ID).replace(/^act_/, '');
   const fields = 'campaign_id,campaign_name,spend,impressions,reach,clicks,ctr,cpc,frequency,actions,action_values';
+  const period = (isAdsDate(from) && isAdsDate(to))
+    ? `&time_range=${encodeURIComponent(JSON.stringify({ since: from, until: to }))}`
+    : `&date_preset=last_30d`;
   const url = `https://graph.facebook.com/${META_API_VERSION}/act_${acct}/insights`
-    + `?level=campaign&date_preset=last_30d&limit=200`
+    + `?level=campaign${period}&limit=200`
     + `&fields=${encodeURIComponent(fields)}`
     + `&access_token=${encodeURIComponent(process.env.META_ACCESS_TOKEN)}`;
   const r = await fetch(url);
@@ -4323,7 +4332,7 @@ async function loadMetaCampaigns(){
   return { campaigns, totals };
 }
 
-app.get('/admin/ads/meta', requireAdmin, async (_req, res) => {
+app.get('/admin/ads/meta', requireAdmin, async (req, res) => {
   if (!metaConfigured()) {
     return res.json({
       connected: false,
@@ -4331,9 +4340,11 @@ app.get('/admin/ads/meta', requireAdmin, async (_req, res) => {
       envVars: ['META_ACCESS_TOKEN', 'META_AD_ACCOUNT_ID', 'META_APP_ID (opcional)', 'META_APP_SECRET (opcional)'],
     });
   }
+  const from = String(req.query.from || ''), to = String(req.query.to || '');
+  const range = (isAdsDate(from) && isAdsDate(to)) ? `${from} a ${to}` : 'últimos 30 días';
   try {
-    const data = await loadMetaCampaigns();
-    res.json({ connected: true, currency: 'CLP', range: 'últimos 30 días', ...data });
+    const data = await loadMetaCampaigns(from, to);
+    res.json({ connected: true, currency: 'CLP', range, ...data });
   } catch (e) {
     res.json({ connected: true, error: 'Meta respondió un error: ' + String(e.message || e).slice(0, 240) });
   }

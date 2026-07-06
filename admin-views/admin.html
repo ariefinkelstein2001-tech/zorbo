@@ -1499,6 +1499,10 @@ body.drawer-open{overflow:hidden}
 .ads-envs{background:#15151e;border-radius:10px;padding:.9rem 1rem;margin-top:.9rem;font-family:var(--mono,monospace);font-size:.76rem;color:#ffe9b8;line-height:1.9;overflow-x:auto}
 .ads-envs b{color:#fff}
 .ads-note{font-size:.78rem;color:var(--muted,#666);margin-top:.8rem;line-height:1.5}
+.ads-range{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;padding-bottom:.9rem;border-bottom:1px solid var(--line,#eee)}
+.ads-range select,.ads-range input[type=date]{font-family:var(--sans);font-size:.85rem;padding:.45rem .6rem;border:1px solid var(--border,#e5e5e5);border-radius:9px;background:var(--surface,#fff);color:var(--text,#111);outline:none}
+.ads-range select:focus,.ads-range input[type=date]:focus{border-color:var(--gold-bd-h,#f5a623)}
+.ads-range-sep{color:var(--muted,#888)}
 .ads-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.7rem;margin-bottom:1rem}
 .ads-kpi{border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.8rem .9rem;background:var(--surface,#fff)}
 .ads-kpi-l{font-size:.64rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted,#666)}
@@ -6345,6 +6349,51 @@ document.getElementById('btnPuntosReload').onclick = () => loadPuntos(true);
 let adsSub = 'google';
 let adsConfig = { monthlyBudget: 2000000 };
 
+// ── Rango de fechas (tipo Google) ──
+const adsFmtD = (x) => x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+function adsComputeRange(preset){
+  const n = new Date(); const today = new Date(n.getFullYear(),n.getMonth(),n.getDate());
+  const add = (d,k)=>new Date(d.getFullYear(),d.getMonth(),d.getDate()+k);
+  let from, to = today;
+  switch(preset){
+    case 'hoy': from = today; break;
+    case 'ayer': from = to = add(today,-1); break;
+    case '7d': from = add(today,-6); break;
+    case '14d': from = add(today,-13); break;
+    case '30d': from = add(today,-29); break;
+    case '90d': from = add(today,-89); break;
+    case 'mes': from = new Date(n.getFullYear(),n.getMonth(),1); break;
+    case 'mespasado': from = new Date(n.getFullYear(),n.getMonth()-1,1); to = new Date(n.getFullYear(),n.getMonth(),0); break;
+    default: return adsRange; // custom → no cambia
+  }
+  return { preset, from: adsFmtD(from), to: adsFmtD(to) };
+}
+let adsRange = adsComputeRange('30d');
+const ADS_PRESETS = [['hoy','Hoy'],['ayer','Ayer'],['7d','Últimos 7 días'],['14d','Últimos 14 días'],['30d','Últimos 30 días'],['90d','Últimos 90 días'],['mes','Este mes'],['mespasado','Mes pasado'],['custom','Personalizado']];
+function adsRangeBar(){
+  return `<div class="ads-range">
+    <select id="adsPreset">${ADS_PRESETS.map(([v,l])=>`<option value="${v}" ${adsRange.preset===v?'selected':''}>${l}</option>`).join('')}</select>
+    <input type="date" id="adsFrom" value="${adsRange.from}">
+    <span class="ads-range-sep">→</span>
+    <input type="date" id="adsTo" value="${adsRange.to}">
+    <button class="adm-btn adm-btn-ghost" id="adsApply" type="button">Aplicar</button>
+  </div>`;
+}
+function wireAdsRange(){
+  const preset = document.getElementById('adsPreset');
+  const from = document.getElementById('adsFrom'), to = document.getElementById('adsTo');
+  if (!preset) return;
+  preset.onchange = () => {
+    if (preset.value === 'custom') return;
+    adsRange = adsComputeRange(preset.value);
+    renderAdsSub();
+  };
+  const markCustom = () => { adsRange = { preset:'custom', from: from.value, to: to.value }; preset.value = 'custom'; };
+  from.onchange = markCustom; to.onchange = markCustom;
+  document.getElementById('adsApply').onclick = () => { adsRange = { preset: preset.value==='custom'?'custom':preset.value, from: from.value, to: to.value }; renderAdsSub(); };
+}
+const adsRangeQS = () => (adsRange.from && adsRange.to) ? `?from=${adsRange.from}&to=${adsRange.to}` : '';
+
 async function loadAds(){
   try {
     const r = await fetch('/admin/ads/config');
@@ -6400,7 +6449,7 @@ async function renderAdsGoogle(){
   const body = document.getElementById('adsBody');
   body.innerHTML = '<div class="adm-loading">Cargando campañas de Google Ads…</div>';
   let d;
-  try { d = await (await fetch('/admin/ads/google')).json(); }
+  try { d = await (await fetch('/admin/ads/google' + adsRangeQS())).json(); }
   catch (e) { body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
 
   if (!d.connected) {
@@ -6422,7 +6471,8 @@ async function renderAdsGoogle(){
     return;
   }
   if (d.error) {
-    body.innerHTML = `<div class="dist-empty">⚠ ${escapeHtml(d.error)}<br><span style="font-size:.78rem;color:#888">Revisá que las credenciales y el Customer ID sean correctos.</span></div>`;
+    body.innerHTML = adsRangeBar() + `<div class="dist-empty">⚠ ${escapeHtml(d.error)}<br><span style="font-size:.78rem;color:#888">Revisá que las credenciales y el Customer ID sean correctos.</span></div>`;
+    wireAdsRange();
     return;
   }
 
@@ -6443,11 +6493,11 @@ async function renderAdsGoogle(){
       <td class="dist-num">${(c.conversions||0).toLocaleString('es-CL')}</td>
       <td class="dist-num">${c.conversions? distMoney(c.cpa):'—'}</td>
       <td class="dist-num">${c.convValue>0? (c.roas+'x'):'—'}</td>
-    </tr>`).join('') : `<tr><td colspan="10" style="text-align:center;padding:1.5rem;color:#888">No hay campañas activas en los últimos 30 días.</td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="10" style="text-align:center;padding:1.5rem;color:#888">No hay campañas activas en el período.</td></tr>`;
 
-  body.innerHTML = `
+  body.innerHTML = adsRangeBar() + `
     <div class="ads-kpis">
-      <div class="ads-kpi"><div class="ads-kpi-l">Gasto 30 días</div><div class="ads-kpi-v">${distMoney(t.spend||0)}</div></div>
+      <div class="ads-kpi"><div class="ads-kpi-l">Gasto período</div><div class="ads-kpi-v">${distMoney(t.spend||0)}</div></div>
       <div class="ads-kpi"><div class="ads-kpi-l">Presupuesto restante</div><div class="ads-kpi-v" style="color:${budgetLeft<0?'#d33':'#2e9c5a'}">${distMoney(budgetLeft)}</div></div>
       <div class="ads-kpi"><div class="ads-kpi-l">Conversiones</div><div class="ads-kpi-v">${(t.conversions||0).toLocaleString('es-CL')}</div></div>
       <div class="ads-kpi"><div class="ads-kpi-l">CTR promedio</div><div class="ads-kpi-v">${ctrTot}%</div></div>
@@ -6459,6 +6509,7 @@ async function renderAdsGoogle(){
       <thead><tr><th></th><th>Campaña</th><th style="text-align:right">Gasto</th><th style="text-align:right">Impr.</th><th style="text-align:right">Clicks</th><th style="text-align:right">CTR</th><th style="text-align:right">CPC</th><th style="text-align:right">Conv.</th><th style="text-align:right">CPA</th><th style="text-align:right">ROAS</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
+  wireAdsRange();
 }
 
 const ADS_META_LEGEND = `
@@ -6480,7 +6531,7 @@ async function renderAdsMeta(){
   const body = document.getElementById('adsBody');
   body.innerHTML = '<div class="adm-loading">Cargando campañas de Meta Ads…</div>';
   let d;
-  try { d = await (await fetch('/admin/ads/meta')).json(); }
+  try { d = await (await fetch('/admin/ads/meta' + adsRangeQS())).json(); }
   catch (e) { body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
 
   if (!d.connected) {
@@ -6502,7 +6553,8 @@ async function renderAdsMeta(){
     return;
   }
   if (d.error) {
-    body.innerHTML = `<div class="dist-empty">⚠ ${escapeHtml(d.error)}<br><span style="font-size:.78rem;color:#888">Revisá el token (permiso ads_read) y el ID de la cuenta publicitaria.</span></div>`;
+    body.innerHTML = adsRangeBar() + `<div class="dist-empty">⚠ ${escapeHtml(d.error)}<br><span style="font-size:.78rem;color:#888">Revisá el token (permiso ads_read) y el ID de la cuenta publicitaria.</span></div>`;
+    wireAdsRange();
     return;
   }
 
@@ -6524,11 +6576,11 @@ async function renderAdsMeta(){
       <td class="dist-num">${(c.conversions||0).toLocaleString('es-CL')}</td>
       <td class="dist-num">${c.conversions? distMoney(c.cpa):'—'}</td>
       <td class="dist-num">${c.convValue>0? (c.roas+'x'):'—'}</td>
-    </tr>`).join('') : `<tr><td colspan="11" style="text-align:center;padding:1.5rem;color:#888">No hay campañas con datos en los últimos 30 días.</td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="11" style="text-align:center;padding:1.5rem;color:#888">No hay campañas con datos en el período.</td></tr>`;
 
-  body.innerHTML = `
+  body.innerHTML = adsRangeBar() + `
     <div class="ads-kpis">
-      <div class="ads-kpi"><div class="ads-kpi-l">Gasto 30 días</div><div class="ads-kpi-v">${distMoney(t.spend||0)}</div></div>
+      <div class="ads-kpi"><div class="ads-kpi-l">Gasto período</div><div class="ads-kpi-v">${distMoney(t.spend||0)}</div></div>
       <div class="ads-kpi"><div class="ads-kpi-l">Presupuesto restante</div><div class="ads-kpi-v" style="color:${budgetLeft<0?'#d33':'#2e9c5a'}">${distMoney(budgetLeft)}</div></div>
       <div class="ads-kpi"><div class="ads-kpi-l">Alcance</div><div class="ads-kpi-v">${(t.reach||0).toLocaleString('es-CL')}</div></div>
       <div class="ads-kpi"><div class="ads-kpi-l">Conversiones</div><div class="ads-kpi-v">${(t.conversions||0).toLocaleString('es-CL')}</div></div>
@@ -6540,6 +6592,7 @@ async function renderAdsMeta(){
       <thead><tr><th></th><th>Campaña</th><th style="text-align:right">Gasto</th><th style="text-align:right">Alcance</th><th style="text-align:right">Impr.</th><th style="text-align:right">Frec.</th><th style="text-align:right">CTR</th><th style="text-align:right">CPC</th><th style="text-align:right">Conv.</th><th style="text-align:right">CPA</th><th style="text-align:right">ROAS</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
+  wireAdsRange();
 }
 
 // ── Recomendaciones con IA ──
