@@ -5751,7 +5751,10 @@ async function renderDistOrdenes(){
     const neto = Number(opt.dataset.neto)||0;
     const cost = Number(opt.dataset.cost)||0;
     const price = Number(opt.dataset.price)||0;
-    const unit = neto>0 ? neto : (cost>0 ? cost : (price>0 ? Math.round(price/1.19) : 0));
+    const ila = Number(opt.dataset.ila)||0;
+    // El precio de Shopify viene con IVA + ILA incluidos: para el neto hay que
+    // sacar AMBOS impuestos (dividir por 1 + 19% + ILA%), no solo el IVA.
+    const unit = neto>0 ? neto : (cost>0 ? cost : (price>0 ? Math.round(price/(1 + 0.19 + ila/100)) : 0));
     if (unit>0) document.getElementById('ocPCost').value = unit;
   };
   document.getElementById('ocPTitle').addEventListener('change', ocFillPrice);
