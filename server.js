@@ -4450,7 +4450,19 @@ function costeoDefaults(){
     }).filter(Boolean);
     delete rb._raw;
   });
-  return { version: 1, insumos, recetasBase: rbs, platos: [], categorias: ['Rolls', 'Burgers', 'Papas', 'Ceviches/Tiraditos/Ensaladas', 'Principales', 'Huella del chef'] };
+  // Platos (Nivel 3): las lineas referencian insumos o RB por nombre. RB tiene
+  // prioridad (los "RB SHARI" del Excel son recetas base).
+  const platos = (seed.platos || []).map(x => {
+    const lineas = (x.lineas || []).map(l => {
+      const k = costeoNorm(l.ref);
+      if (rbByName.has(k)) return { refType: 'rb', refId: rbByName.get(k), cantidad: Number(l.cantidad) || 0 };
+      if (byName.has(k)) return { refType: 'insumo', refId: byName.get(k), cantidad: Number(l.cantidad) || 0 };
+      return null;
+    }).filter(Boolean);
+    const m = Number(x.margenPct); const margenPct = (m > 0 && m <= 100) ? m : 30;
+    return { id: randomUUID(), nombre: costeoStr(x.nombre, 200), categoria: costeoStr(x.categoria, 120) || 'Sin categoría', margenPct, lineas };
+  });
+  return { version: 1, insumos, recetasBase: rbs, platos, categorias: ['Rolls', 'Burgers', 'Papas', 'Ceviches/Tiraditos/Ensaladas', 'Principales', 'Huella del chef'] };
 }
 // El costeo es POR RESTAURANTE (garden / badass). Garden se siembra del Excel;
 // Badass arranca vacío. Archivo: { garden:{...}, badass:{...} }.
@@ -4519,7 +4531,31 @@ function resolveCosteo(d){
       return { refType: l.refType, refId: l.refId, nombre: ing ? (ing.descripcion || ing.nombre) : '(eliminado)', unidad: ing ? ing.unidad : '', precio, cantidad: l.cantidad, costo: Math.round((Number(l.cantidad) || 0) * precio) };
     }),
   }));
-  return { insumos, recetasBase, ingredientes, platos: d.platos, categorias: d.categorias };
+  // Platos (Nivel 3): cadena de costo exacta.
+  // CostoTotal insumos → Protección 10% → IVA 19% sobre (CostoTotal+Protección)
+  // → Costo Final → Precio Venta = Costo Final / margen → % costo = CostoFinal / PrecioVenta.
+  const platos = (d.platos || []).map(p => {
+    const lineas = (p.lineas || []).map(l => {
+      const ing = l.refType === 'insumo' ? insById.get(l.refId) : rbById.get(l.refId);
+      const precio = priceOf(l.refType, l.refId, []);
+      return { refType: l.refType, refId: l.refId, nombre: ing ? (ing.descripcion || ing.nombre) : '(eliminado)', unidad: ing ? ing.unidad : '', precio, cantidad: l.cantidad, costo: Math.round((Number(l.cantidad) || 0) * precio) };
+    });
+    const costoTotal = lineas.reduce((a, l) => a + l.costo, 0);
+    const proteccion = costoTotal * 0.10;
+    const iva = (costoTotal + proteccion) * 0.19;
+    const costoFinal = costoTotal + proteccion + iva;
+    const margenPct = (Number(p.margenPct) > 0 && Number(p.margenPct) <= 100) ? Number(p.margenPct) : 30;
+    const precioVenta = margenPct > 0 ? costoFinal / (margenPct / 100) : 0;
+    const precioVentaRedondeado = precioVenta > 0 ? Math.round(precioVenta / 100) * 100 : 0;
+    const pctCosto = precioVenta > 0 ? (costoFinal / precioVenta) * 100 : 0;
+    return {
+      id: p.id, nombre: p.nombre, categoria: p.categoria || 'Sin categoría', margenPct, lineas,
+      costoTotal: Math.round(costoTotal), proteccion: Math.round(proteccion), iva: Math.round(iva),
+      costoFinal: Math.round(costoFinal), precioVenta: Math.round(precioVenta),
+      precioVentaRedondeado, pctCosto: Math.round(pctCosto * 10) / 10,
+    };
+  });
+  return { insumos, recetasBase, ingredientes, platos, categorias: d.categorias };
 }
 
 app.get('/admin/costeo', requireAdmin, (req, res) => {
@@ -4577,6 +4613,34 @@ app.delete('/admin/costeo/recetas/:id', requireAdmin, (req, res) => {
   const rest = req.query.rest; const d = loadCosteo(rest); const before = d.recetasBase.length;
   d.recetasBase = d.recetasBase.filter(x => x.id !== String(req.params.id));
   if (d.recetasBase.length === before) return res.status(404).json({ error: 'Receta no encontrada.' });
+  saveCosteo(rest, d); res.json({ ok: true });
+});
+
+// ── Platos (Nivel 3) ──
+// Mismo modelo de lineas que RB: cada linea referencia un insumo o una RB + gramaje.
+function costeoMargen(v){ const m = Number(v); return (m > 0 && m <= 100) ? m : 30; }
+app.post('/admin/costeo/platos', requireAdmin, (req, res) => {
+  const rest = req.query.rest; const b = req.body || {}; const nombre = costeoStr(b.nombre, 200);
+  if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio.' });
+  const d = loadCosteo(rest);
+  const categoria = costeoStr(b.categoria, 120) || (d.categorias[0] || 'Sin categoría');
+  d.platos.push({ id: randomUUID(), nombre, categoria, margenPct: costeoMargen(b.margenPct), lineas: normalizeRBLineas(b.lineas) });
+  saveCosteo(rest, d); res.json({ ok: true });
+});
+app.put('/admin/costeo/platos/:id', requireAdmin, (req, res) => {
+  const rest = req.query.rest; const d = loadCosteo(rest); const p = d.platos.find(x => x.id === String(req.params.id));
+  if (!p) return res.status(404).json({ error: 'Plato no encontrado.' });
+  const b = req.body || {};
+  if (b.nombre !== undefined) { const v = costeoStr(b.nombre, 200); if (!v) return res.status(400).json({ error: 'Nombre vacío.' }); p.nombre = v; }
+  if (b.categoria !== undefined) p.categoria = costeoStr(b.categoria, 120) || p.categoria;
+  if (b.margenPct !== undefined) p.margenPct = costeoMargen(b.margenPct);
+  if (b.lineas !== undefined) p.lineas = normalizeRBLineas(b.lineas);
+  saveCosteo(rest, d); res.json({ ok: true });
+});
+app.delete('/admin/costeo/platos/:id', requireAdmin, (req, res) => {
+  const rest = req.query.rest; const d = loadCosteo(rest); const before = d.platos.length;
+  d.platos = d.platos.filter(x => x.id !== String(req.params.id));
+  if (d.platos.length === before) return res.status(404).json({ error: 'Plato no encontrado.' });
   saveCosteo(rest, d); res.json({ ok: true });
 });
 
