@@ -4430,9 +4430,14 @@ const COSTEO_UNITS = ['litro', 'kilogramo', 'unidad'];
 function costeoUnit(u){ u = String(u || '').toLowerCase(); if (COSTEO_UNITS.includes(u)) return u; return /lit/.test(u) ? 'litro' : /kil/.test(u) ? 'kilogramo' : 'unidad'; }
 const costeoNorm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
 
-function costeoDefaults(){
-  let seed = { insumos: [], recetasBase: [] };
-  try { seed = JSON.parse(readFileSync(join(__dirname, 'costeo-seed.json'), 'utf-8')); } catch {}
+const COSTEO_CATS_DEFAULT = ['Rolls', 'Burgers', 'Papas', 'Ceviches/Tiraditos/Ensaladas', 'Principales', 'Huella del chef'];
+// Construye un doc completo (insumos + RB + platos) desde un archivo de semilla.
+// Las RB y los platos referencian por nombre; se resuelven a ids. Mismo modelo
+// de cálculo para todos los restaurantes (la protección 10% se aplica una sola
+// vez a nivel de plato, no dentro de cada RB).
+function costeoBuildFromSeed(seedFile){
+  let seed = { insumos: [], recetasBase: [], platos: [] };
+  try { seed = JSON.parse(readFileSync(join(__dirname, seedFile), 'utf-8')); } catch {}
   const insumos = (seed.insumos || []).map(x => ({
     id: randomUUID(), descripcion: costeoStr(x.descripcion, 200),
     precioNeto: Number(x.precioNeto) || 0, unidad: costeoUnit(x.unidad),
@@ -4462,8 +4467,12 @@ function costeoDefaults(){
     const m = Number(x.margenPct); const margenPct = (m > 0 && m <= 100) ? m : 30;
     return { id: randomUUID(), nombre: costeoStr(x.nombre, 200), categoria: costeoStr(x.categoria, 120) || 'Sin categoría', margenPct, lineas };
   });
-  return { version: 1, insumos, recetasBase: rbs, platos, categorias: ['Rolls', 'Burgers', 'Papas', 'Ceviches/Tiraditos/Ensaladas', 'Principales', 'Huella del chef'] };
+  // Categorías: en orden de primera aparición de los platos; fallback al set base.
+  const cats = []; platos.forEach(p => { if (p.categoria && !cats.includes(p.categoria)) cats.push(p.categoria); });
+  return { version: 1, insumos, recetasBase: rbs, platos, categorias: cats.length ? cats : COSTEO_CATS_DEFAULT.slice() };
 }
+function costeoDefaults(){ return costeoBuildFromSeed('costeo-seed.json'); }
+function costeoDefaultsBadass(){ return costeoBuildFromSeed('costeo-seed-badass.json'); }
 // El costeo es POR RESTAURANTE (garden / badass). Garden se siembra del Excel;
 // Badass arranca vacío. Archivo: { garden:{...}, badass:{...} }.
 const COSTEO_RESTS = ['garden', 'badass'];
@@ -4503,19 +4512,21 @@ function costeoSeedPlatosInto(doc){
   });
   return true;
 }
+const costeoDocEmpty = (doc) => !doc || (!(doc.insumos && doc.insumos.length) && !(doc.recetasBase && doc.recetasBase.length) && !(doc.platos && doc.platos.length));
 function loadCosteoAll(){
   try {
-    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoEmpty() }; saveCosteoAll(all); return all; }
+    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; saveCosteoAll(all); return all; }
     const p = JSON.parse(readFileSync(COSTEO_FILE, 'utf-8'));
     // Migración: archivo viejo con la data en la raíz → pasa a "garden".
-    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); const all = { garden: g, badass: costeoEmpty() }; saveCosteoAll(all); return all; }
+    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); const all = { garden: g, badass: costeoDefaultsBadass() }; saveCosteoAll(all); return all; }
     const all = { garden: costeoNormalizeDoc(p.garden), badass: costeoNormalizeDoc(p.badass) };
     let changed = false;
     if (costeoSeedPlatosInto(all.garden)) changed = true;
-    if (costeoSeedPlatosInto(all.badass)) changed = true;
+    // Badass: si está completamente vacío, se siembra full desde el Excel de Badass.
+    if (costeoDocEmpty(all.badass)) { all.badass = costeoDefaultsBadass(); changed = true; }
     if (changed) saveCosteoAll(all);
     return all;
-  } catch (e) { console.warn('costeo load:', e.message); return { garden: costeoDefaults(), badass: costeoEmpty() }; }
+  } catch (e) { console.warn('costeo load:', e.message); return { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; }
 }
 function saveCosteoAll(all){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTEO_FILE, JSON.stringify(all, null, 2)); }
 function loadCosteo(rest){ return loadCosteoAll()[costeoRestKey(rest)]; }

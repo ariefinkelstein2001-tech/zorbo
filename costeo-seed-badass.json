@@ -1,0 +1,4858 @@
+{
+  "insumos": [
+    {
+      "descripcion": "ACEITE DE OLIVA",
+      "precioNeto": 4178,
+      "unidad": "LITRO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ACEITE DE SESAMO",
+      "precioNeto": 6973.68,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ACEITE para freir",
+      "precioNeto": 2374.3,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "aceite de trufa",
+      "precioNeto": 39960,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ACEITE VEGETAL",
+      "precioNeto": 1340,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "aceitunas verdes deshuesadas",
+      "precioNeto": 3418.75,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ACETO BALSAMICO",
+      "precioNeto": 2061.8,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "achiote",
+      "precioNeto": 7390,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "AJI AMARILLO",
+      "precioNeto": 2900,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "AJI AMARILLO MITADES",
+      "precioNeto": 4500,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "AJI LIMO",
+      "precioNeto": 14000,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "AJI VERDE",
+      "precioNeto": 3290,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "AJINOMOTO",
+      "precioNeto": 2420,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "AJO",
+      "precioNeto": 3840,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "AJO EN POLVO",
+      "precioNeto": 4890,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ALBAHACA",
+      "precioNeto": 4890,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ALCAPARRA",
+      "precioNeto": 12500,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ALMENDRA LAMINADA",
+      "precioNeto": 11466,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ATUN steak",
+      "precioNeto": 10690,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "APIO",
+      "precioNeto": 1071,
+      "unidad": "UNIDAD",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ARROZ COCIDO",
+      "precioNeto": 9116.17,
+      "unidad": "Kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ARROZ GRADO 1",
+      "precioNeto": 1490,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "arroz risotto",
+      "precioNeto": 4581.5,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ARROZ SUSHI SHIRAKIKU",
+      "precioNeto": 2217,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ARVEJA VERDE",
+      "precioNeto": 1990,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "anchoas",
+      "precioNeto": 28000,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "AZUCAR BLANCA",
+      "precioNeto": 955.6,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "AZUCAR MORENA",
+      "precioNeto": 2259,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "BBQ",
+      "precioNeto": 2980,
+      "unidad": "LITRO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "BETERRAGA",
+      "precioNeto": 687,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "brotes",
+      "precioNeto": 11333,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "BROCOLI",
+      "precioNeto": 1714,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CALAMAR",
+      "precioNeto": 5990,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CALDO DE POLLO/ CHICKEN POWER",
+      "precioNeto": 10400,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CAMARON 36/40 CON CASCARA",
+      "precioNeto": 6490,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CAMARON APANADO",
+      "precioNeto": 373,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CAMARON 36/40 SIN CASCARA",
+      "precioNeto": 8200,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CAMOTE",
+      "precioNeto": 1429,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CANELA CHINA",
+      "precioNeto": 39990,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CANELA EN RAMA",
+      "precioNeto": 34101,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CARBON",
+      "precioNeto": 760,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CEBOLLA BLANCA",
+      "precioNeto": 476,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CEBOLLA EN POLVO",
+      "precioNeto": 7390,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CEBOLLA MORADA",
+      "precioNeto": 780,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CEBOLLIN",
+      "precioNeto": 799,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CERDO BONDIOLA",
+      "precioNeto": 4480,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CERVEZA",
+      "precioNeto": 750,
+      "unidad": "LITROS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CERVEZA NEIPA",
+      "precioNeto": 750,
+      "unidad": "LITROS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CHAMPIÑON PARIS",
+      "precioNeto": 5891,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CHIPOTLE",
+      "precioNeto": 2560,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CHOCLO",
+      "precioNeto": 2087,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CHUÑO",
+      "precioNeto": 1287,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CIBOULETTE",
+      "precioNeto": 199,
+      "unidad": "UNIDAD",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "clavo de olor",
+      "precioNeto": 110000,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CILANTRO",
+      "precioNeto": 2987,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "COL MORADA",
+      "precioNeto": 1768,
+      "unidad": "Unidad",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "COMINO",
+      "precioNeto": 3600,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "COSTILLA BABY RIBS",
+      "precioNeto": 7900,
+      "unidad": "Kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CREMA DE LECHE",
+      "precioNeto": 4347,
+      "unidad": "LITRO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "CURCUMA MOLIDA",
+      "precioNeto": 2600,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "DIENTE DE DRAGON",
+      "precioNeto": 1890,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "DURAZNO CONSERVA",
+      "precioNeto": 1966,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "EDAMAME",
+      "precioNeto": 3300,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ENTRAÑA",
+      "precioNeto": 44833.33,
+      "unidad": "KILOGRAMO",
+      "rendimiento": 0.6
+    },
+    {
+      "descripcion": "FIDEO DE ARROZ",
+      "precioNeto": 1251,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "FILETE DE POLLO",
+      "precioNeto": 5800,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "FILETE SIN CORDON",
+      "precioNeto": 17824.44,
+      "unidad": "KILOGRAMO",
+      "rendimiento": 0.9
+    },
+    {
+      "descripcion": "FONDO VERDURAS",
+      "precioNeto": 2573,
+      "unidad": "Kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "FURIKAKE",
+      "precioNeto": 29500,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "GALLETA DE SODA",
+      "precioNeto": 7530,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "gyosas",
+      "precioNeto": 280,
+      "unidad": "UNIDAD",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "GLUCOSA",
+      "precioNeto": 1738,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "GOUCHUJAN",
+      "precioNeto": 9980,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "espinaca",
+      "precioNeto": 3380,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "HARINA",
+      "precioNeto": 567.6,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "HIERBA BUENA",
+      "precioNeto": 4990,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "HIERBA LUISA",
+      "precioNeto": 7490,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "HILOS DE CAMOTE",
+      "precioNeto": 1265,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "HONDASHI",
+      "precioNeto": 12800,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "HUEVO",
+      "precioNeto": 194.39,
+      "unidad": "Unidad",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "JALAPEÑOS",
+      "precioNeto": 2926,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "JENGIBRE",
+      "precioNeto": 3274,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "JUGO DE LIMON",
+      "precioNeto": 3990,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "JUGO DE NARANJA",
+      "precioNeto": 1490,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "KANIKAMA",
+      "precioNeto": 8068,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "KETCHUP",
+      "precioNeto": 2245,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "LECHE ENTERA",
+      "precioNeto": 1195.83,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "LECHE EVAPORADA",
+      "precioNeto": 1200,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "LECHUGA LOLO",
+      "precioNeto": 4780,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "LEVADURA",
+      "precioNeto": 2480,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "LIMON",
+      "precioNeto": 3490,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "LIMON EN POLVO",
+      "precioNeto": 3990,
+      "unidad": "Unidad",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "LIMON ENTERO SUTIL",
+      "precioNeto": 2650,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "LOMO LISO",
+      "precioNeto": 19866.67,
+      "unidad": "KILOGRAMO",
+      "rendimiento": 0.75
+    },
+    {
+      "descripcion": "MAICENA",
+      "precioNeto": 1080,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "MANI",
+      "precioNeto": 2100,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "MANTEQUILLA",
+      "precioNeto": 7492,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "MANZANA VERDE",
+      "precioNeto": 2481,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "MASA WANTAN",
+      "precioNeto": 3300,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "MASA PRIMAVERA",
+      "precioNeto": 4790,
+      "unidad": "Unidad",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "MISO",
+      "precioNeto": 8290,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "Milanesa vacuno",
+      "precioNeto": 2500,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "MASAGO",
+      "precioNeto": 15690,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "MAYO EASY",
+      "precioNeto": 17000,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "MAYONESA",
+      "precioNeto": 3716,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "MAYONESA HELLMANS",
+      "precioNeto": 2535,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "MAYONESA KRAFT",
+      "precioNeto": 4279.1,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "MIEL",
+      "precioNeto": 3438,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "MOSTAZA",
+      "precioNeto": 2366,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "NABO",
+      "precioNeto": 3990,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "NARANJA",
+      "precioNeto": 1282,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "NORI",
+      "precioNeto": 98,
+      "unidad": "Unidad",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "NOT BURGER",
+      "precioNeto": 1250,
+      "unidad": "unidad",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "NOT CHEESE CHEDDAR",
+      "precioNeto": 4529,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "NOT MAYO",
+      "precioNeto": 5890,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ñoquis",
+      "precioNeto": 4600,
+      "unidad": "Kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "nuez mariposa",
+      "precioNeto": 8730,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "OREGANO",
+      "precioNeto": 5890,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PALITOS SUSHI",
+      "precioNeto": 25,
+      "unidad": "Unidad",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PALMITO",
+      "precioNeto": 4325,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PALTA",
+      "precioNeto": 2750,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PAN DE PAPA",
+      "precioNeto": 391,
+      "unidad": "Unidad",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PANKO",
+      "precioNeto": 2380,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PAPA",
+      "precioNeto": 750,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PAPA FRITA",
+      "precioNeto": 1998,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PAPA HILO",
+      "precioNeto": 750,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PAPRIKA",
+      "precioNeto": 2500,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PEPINILLO",
+      "precioNeto": 4990,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PEPINO",
+      "precioNeto": 638,
+      "unidad": "UNIDAD",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PEPINO DULCE",
+      "precioNeto": 4155,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PEREJIL",
+      "precioNeto": 1990,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PIMENTON ROJO",
+      "precioNeto": 5243,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PIMENTON VERDE",
+      "precioNeto": 3276,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PIMIENTA BLANCA",
+      "precioNeto": 12090,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PIMIENTA NEGRA",
+      "precioNeto": 7490,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PIÑA",
+      "precioNeto": 1887,
+      "unidad": "UNIDAD",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PIÑA EN CONSERVA",
+      "precioNeto": 1799,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "POLLO ENTERO",
+      "precioNeto": 2390,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "POLLO GANSO",
+      "precioNeto": 9056.25,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": 0.8
+    },
+    {
+      "descripcion": "POROTO VERDE",
+      "precioNeto": 2390,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "POSTA NEGRA/ ASIENTO ARGENTINO",
+      "precioNeto": 8300,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PULPA MANGO",
+      "precioNeto": 4522,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "PULPA MARACUYA",
+      "precioNeto": 6118,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "Pulpo entero",
+      "precioNeto": 10500,
+      "unidad": "KILOGRAMO",
+      "rendimiento": 0.7
+    },
+    {
+      "descripcion": "QUESO CHEDDAR",
+      "precioNeto": 3060,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "QUESO CREMA",
+      "precioNeto": 7841.91,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "QUESO MOZZARELLA",
+      "precioNeto": 5689.92,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "DEDOS DE ORO",
+      "precioNeto": 9500,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "QUESO PARMESANO",
+      "precioNeto": 9634.06,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RABANITO",
+      "precioNeto": 3968.57,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "rb acevichada ahumada",
+      "precioNeto": 4756.09,
+      "unidad": "litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB ACEVICHADA",
+      "precioNeto": 4576.64,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB APANADO",
+      "precioNeto": 204.18,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB AJI AMARILLO",
+      "precioNeto": 7501.23,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB BASE LOMO",
+      "precioNeto": 3740.55,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB BAO",
+      "precioNeto": 28.66,
+      "unidad": "Unidad",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB CALDO BASE",
+      "precioNeto": 0,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB CEBOLLA CARAMELIZADA",
+      "precioNeto": 915.3,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "rb crema de zapallo",
+      "precioNeto": 884.78,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB CEBOLLA CROCANTE",
+      "precioNeto": 2678.39,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB CEVICHE NIKKEI",
+      "precioNeto": 9378.92,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "rb cesar",
+      "precioNeto": 5309.24,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB CEVICHE",
+      "precioNeto": 0,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB CHALAQUITA",
+      "precioNeto": 1785.78,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB CAMOTE GLASEADO",
+      "precioNeto": 2038.31,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB COLESLOW",
+      "precioNeto": 2424.9,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB CHIPS DE CAMOTE",
+      "precioNeto": 14935.8,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB CHAMPIÑONES PIL PIL",
+      "precioNeto": 7531.69,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB CHIMICHURRI",
+      "precioNeto": 7859.74,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "crutones",
+      "precioNeto": 3476.96,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB CREMA ACIDA",
+      "precioNeto": 6563.77,
+      "unidad": "LITRO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB ENCURTIDO VERDURAS",
+      "precioNeto": 1227.68,
+      "unidad": "Kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB ENSALADA COLESLAW",
+      "precioNeto": 12861.99,
+      "unidad": "Kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB ENSALADA MIXTA",
+      "precioNeto": 691.51,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB FONDO DE PESCADO",
+      "precioNeto": 340.85,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB LECHE DE TIGRE AMARILLA",
+      "precioNeto": 4196.1,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB LECHE DE TIGRE BLANCA",
+      "precioNeto": 3054.1,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB LECHE DE TIGRE ROJA",
+      "precioNeto": 8055.56,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB MAYO SIRACHA",
+      "precioNeto": 4946.11,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB MAYO BALSAMICA",
+      "precioNeto": 4463.11,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB MAYONESA CASERA",
+      "precioNeto": 1556.14,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB MANTEQUILLA ESPECIADA",
+      "precioNeto": 8505.85,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB MERMELADA ZATARA",
+      "precioNeto": 3674.43,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB MOUSSE DE PALTA",
+      "precioNeto": 3713.97,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB PREMIX CHAUFA",
+      "precioNeto": 3923.33,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB PASTELERA",
+      "precioNeto": 1363.95,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB PASTA DE AJO",
+      "precioNeto": 3362.62,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB PASTA DE TRUFA",
+      "precioNeto": 7964.49,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB PESCADO FURAI",
+      "precioNeto": 159.85,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB PURE DE BETERRAGA",
+      "precioNeto": 1511.4,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB PURE",
+      "precioNeto": 1313.33,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB POLLO SAZONADO",
+      "precioNeto": 3462.38,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB salsa bechamel",
+      "precioNeto": 2233.44,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SALSA BANNY",
+      "precioNeto": 4562.93,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SALSA PESTO",
+      "precioNeto": 5817.9,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SALSA PETER",
+      "precioNeto": 3165.12,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SALSA ANTONIE",
+      "precioNeto": 4598.16,
+      "unidad": "LITROS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SALSA CESAR",
+      "precioNeto": 5478.63,
+      "unidad": "LITRO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SALSA CHEDDAR",
+      "precioNeto": 6817.63,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SALSA KO",
+      "precioNeto": 5458.99,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SALSA GOLF",
+      "precioNeto": 4003.33,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SALSA MARACUYA",
+      "precioNeto": 5066.95,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB salsa florentina",
+      "precioNeto": 10582.26,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SALSA CILANTRO",
+      "precioNeto": 2145.92,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SALSA 4 QUESOS",
+      "precioNeto": 7885.35,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SHARI",
+      "precioNeto": 1365.11,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SMASH",
+      "precioNeto": 1041.84,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB salsa pepper",
+      "precioNeto": 4891.96,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB TARTAR VEGGIE",
+      "precioNeto": 4249.72,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "SALMON STEAK",
+      "precioNeto": 2488,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB TENKATSU NEGRO",
+      "precioNeto": 11374.18,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SUE",
+      "precioNeto": 1438.19,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB ACEITE DE ACHIOTE",
+      "precioNeto": 5538.5,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB SHOYU",
+      "precioNeto": 1159.97,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB UNAGUI",
+      "precioNeto": 354.04,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "rb verduras salteadas",
+      "precioNeto": 605.83,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB ACEITE CILANTRO",
+      "precioNeto": 3116.85,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB MAYO MISO",
+      "precioNeto": 6237.5,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB MECHADA",
+      "precioNeto": 8324.31,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB RISOTO",
+      "precioNeto": 7852.79,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB ACEITE CARBON",
+      "precioNeto": 2310,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "tabasco",
+      "precioNeto": 2206,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB TARTARA",
+      "precioNeto": 5505.75,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB TARE",
+      "precioNeto": 1323.35,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "REINETA",
+      "precioNeto": 13900,
+      "unidad": "KILOGRAMO",
+      "rendimiento": 0.7
+    },
+    {
+      "descripcion": "REPOLLO BLANCO",
+      "precioNeto": 1643,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "REPOLLO MORADO",
+      "precioNeto": 1997,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ROCOTO",
+      "precioNeto": 2393,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RUCULA",
+      "precioNeto": 3990,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "SAL",
+      "precioNeto": 481,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "Sal parrillera",
+      "precioNeto": 1597.33,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "SALMON",
+      "precioNeto": 15877.78,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": 0.9
+    },
+    {
+      "descripcion": "RB TARTAR SALMON",
+      "precioNeto": 16041.6,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "SALSA CHIJAUKAI",
+      "precioNeto": 14510.4,
+      "unidad": "Kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "SALSA DE OSTION",
+      "precioNeto": 7760,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "SALSA DE SOYA KIKO",
+      "precioNeto": 1470,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "salsa 4q",
+      "precioNeto": 9990,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "RB dressing tropical",
+      "precioNeto": 402.17,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "SALSA INGLESA",
+      "precioNeto": 2937,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "sepia",
+      "precioNeto": 77666,
+      "unidad": "",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "SESAMO BLANCO",
+      "precioNeto": 4530,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "SESAMO NEGRO",
+      "precioNeto": 4084,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "SHITAKE",
+      "precioNeto": 32500,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "SHOYU",
+      "precioNeto": 2613.98,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "SIRACHA",
+      "precioNeto": 6890,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "SOBRECOSTILLA",
+      "precioNeto": 11316.67,
+      "unidad": "KILOGRAMO",
+      "rendimiento": 0.6
+    },
+    {
+      "descripcion": "Tapapecho",
+      "precioNeto": 13180,
+      "unidad": "KILOGRAMO",
+      "rendimiento": 0.5
+    },
+    {
+      "descripcion": "TEMPURA",
+      "precioNeto": 2980,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "TINTA DE CALAMAR",
+      "precioNeto": 72111,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "TOBIKO",
+      "precioNeto": 18980,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "TOCINO",
+      "precioNeto": 7990,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "TOGARASHI",
+      "precioNeto": 28166.67,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "TOMATE",
+      "precioNeto": 898,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "TOMATE CHERRY",
+      "precioNeto": 2497,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "Tortilla maiz",
+      "precioNeto": 123,
+      "unidad": "UND",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "TRUTO DE ALAS DE POLLO",
+      "precioNeto": 2800,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "TRUTO DESHUESADO",
+      "precioNeto": 3050,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "VINAGRE BLANCO",
+      "precioNeto": 473,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "VINAGRE DE ARROZ",
+      "precioNeto": 2690,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "VINAGRE DE MANZANA",
+      "precioNeto": 1576,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "VINAGRE TINTO",
+      "precioNeto": 2200,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "VINO BLANCO",
+      "precioNeto": 3800,
+      "unidad": "Litro",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "WANTAN",
+      "precioNeto": 3300,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "WASABI",
+      "precioNeto": 8090,
+      "unidad": "KILOGRAMOS",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ZANAHORIA",
+      "precioNeto": 571,
+      "unidad": "kilogramo",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ZAPALLO ITALIANO",
+      "precioNeto": 1716,
+      "unidad": "KILOGRAMO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "ZUMO LIMON",
+      "precioNeto": 11211,
+      "unidad": "LITRO",
+      "rendimiento": null
+    },
+    {
+      "descripcion": "Zapallo",
+      "precioNeto": 740,
+      "unidad": "",
+      "rendimiento": null
+    }
+  ],
+  "recetasBase": [
+    {
+      "nombre": "RB SUE",
+      "produccion": 19,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "Vinagre de Manzana",
+          "cantidad": 10
+        },
+        {
+          "ref": "AzUcar BLANCA",
+          "cantidad": 9
+        },
+        {
+          "ref": "Sal",
+          "cantidad": 1
+        }
+      ]
+    },
+    {
+      "nombre": "RB SHARI",
+      "produccion": 9,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "ARROZ SUSHI SHIRAKIKU",
+          "cantidad": 4
+        },
+        {
+          "ref": "RB SUE",
+          "cantidad": 1.6
+        }
+      ]
+    },
+    {
+      "nombre": "RB PASTA DE AJO",
+      "produccion": 0.65,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "AJO",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "Aceite vegetal",
+          "cantidad": 0.05
+        }
+      ]
+    },
+    {
+      "nombre": "RB MAYO - SIRACHA",
+      "produccion": 0.38,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "Mayonesa Kraft",
+          "cantidad": 0.3
+        },
+        {
+          "ref": "Siracha",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "Aceite de sEsamo",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "Sal",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "JUGO DE LIMON",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "Ajinomoto",
+          "cantidad": 0.002
+        },
+        {
+          "ref": "RB Pasta de ajo",
+          "cantidad": 0.003
+        }
+      ]
+    },
+    {
+      "nombre": "RB crema de zapallo",
+      "produccion": 0,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "Zapallo",
+          "cantidad": 0.5
+        }
+      ]
+    },
+    {
+      "nombre": "RB cesar",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "anchoas",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "AZUCAR BLANCA",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "MOSTAZA",
+          "cantidad": 0.06
+        },
+        {
+          "ref": "MAYONESA",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "QUESO PARMESANO",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "JUGO DE LIMON",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "ACETO BALSAMICO",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "PIMIENTA NEGRA",
+          "cantidad": 0.005
+        },
+        {
+          "ref": "AJO",
+          "cantidad": 0.005
+        }
+      ]
+    },
+    {
+      "nombre": "RB ACEVICHADA",
+      "produccion": 5.6,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "MAYONESA KRAFT",
+          "cantidad": 4.75
+        },
+        {
+          "ref": "RB LECHE DE TIGRE blanca",
+          "cantidad": 0.8
+        },
+        {
+          "ref": "TOGARASHI",
+          "cantidad": 0.005
+        },
+        {
+          "ref": "HONDASHI",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "SHOYU",
+          "cantidad": 0.1
+        }
+      ]
+    },
+    {
+      "nombre": "RB ACEVICHADA ahumada",
+      "produccion": 5.6,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "MAYONESA KRAFT",
+          "cantidad": 4.75
+        },
+        {
+          "ref": "RB LECHE DE TIGRE amarilla",
+          "cantidad": 0.8
+        },
+        {
+          "ref": "TOGARASHI",
+          "cantidad": 0.005
+        },
+        {
+          "ref": "HONDASHI",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "SHOYU",
+          "cantidad": 0.1
+        }
+      ]
+    },
+    {
+      "nombre": "RB crutones",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "pan",
+          "cantidad": 1
+        },
+        {
+          "ref": "mantequilla",
+          "cantidad": 0.08
+        },
+        {
+          "ref": "AJO EN POLVO",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "sal",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "aceite de oliva",
+          "cantidad": 0.1
+        }
+      ]
+    },
+    {
+      "nombre": "RB LECHE DE TIGRE",
+      "produccion": 1.2,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "limon",
+          "cantidad": 0.75
+        },
+        {
+          "ref": "apio",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "jengibre",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "AJO",
+          "cantidad": 0.035
+        },
+        {
+          "ref": "cebolla morada",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "cilantro",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "sal",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "hondaShi",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "ajinomoto",
+          "cantidad": 0.025
+        },
+        {
+          "ref": "rocoto",
+          "cantidad": 0.015
+        }
+      ]
+    },
+    {
+      "nombre": "RB SALSA PETER",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "cebolla blanca",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "PEPINO DULCE",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "ketchup",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "mostaza",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "paprika",
+          "cantidad": 0.005
+        },
+        {
+          "ref": "sal",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "cebolla en polvo",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "pimienta NEGRA",
+          "cantidad": 0.001
+        },
+        {
+          "ref": "mayonesa kraft",
+          "cantidad": 0.4
+        },
+        {
+          "ref": "azucar blanca",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "vinagre de manzana",
+          "cantidad": 0.03
+        }
+      ]
+    },
+    {
+      "nombre": "RB LECHE DE TIGRE AHUMADA",
+      "produccion": 0.5,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "RB leche de tigre blanca",
+          "cantidad": 0.4
+        },
+        {
+          "ref": "RB AJI AMARILLO",
+          "cantidad": 0.08
+        },
+        {
+          "ref": "mayonesa KRAFT",
+          "cantidad": 0.02
+        }
+      ]
+    },
+    {
+      "nombre": "RB AJI AMARILLO AHUMADO",
+      "produccion": 2,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "aji amarillo mitades",
+          "cantidad": 3
+        },
+        {
+          "ref": "RB aceite carbon",
+          "cantidad": 0.06
+        }
+      ]
+    },
+    {
+      "nombre": "RB SALSA MARACUYA",
+      "produccion": 4,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "PULPA MARACUYA",
+          "cantidad": 2.5
+        },
+        {
+          "ref": "azucar BLANCA",
+          "cantidad": 2.1
+        },
+        {
+          "ref": "hierba luisa",
+          "cantidad": 0.15
+        }
+      ]
+    },
+    {
+      "nombre": "RB ACEITE CARBON",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "aceite vegetal",
+          "cantidad": 1
+        },
+        {
+          "ref": "CARBON",
+          "cantidad": 1
+        }
+      ]
+    },
+    {
+      "nombre": "RB TENKATSU NEGRO",
+      "produccion": 0.18,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "harina",
+          "cantidad": 0.2
+        },
+        {
+          "ref": "huevo",
+          "cantidad": 1
+        },
+        {
+          "ref": "sepia",
+          "cantidad": 0.02
+        }
+      ]
+    },
+    {
+      "nombre": "RB CHALAQUITA",
+      "produccion": 0.03,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "cebolla morada",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "rocoto",
+          "cantidad": 0.003
+        },
+        {
+          "ref": "cilantro",
+          "cantidad": 0.002
+        },
+        {
+          "ref": "JUGO DE LIMON",
+          "cantidad": 0.005
+        }
+      ]
+    },
+    {
+      "nombre": "RB SALSA CHEDDAR",
+      "produccion": 3,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "QUESO CHEDDAR",
+          "cantidad": 2.73
+        },
+        {
+          "ref": "LECHE ENTERA",
+          "cantidad": 5
+        },
+        {
+          "ref": "MANTEQUILLA",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "QUESO CREMA",
+          "cantidad": 0.4
+        }
+      ]
+    },
+    {
+      "nombre": "RB CREMA ACIDA",
+      "produccion": 3.3,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "CREMA DE LECHE",
+          "cantidad": 2
+        },
+        {
+          "ref": "QUESO CREMA",
+          "cantidad": 1.3
+        },
+        {
+          "ref": "JUGO DE LIMON",
+          "cantidad": 0.2
+        },
+        {
+          "ref": "SAL",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "RB SALSA KO",
+      "produccion": 0.2,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "GOUCHUJAN",
+          "cantidad": 0.06
+        },
+        {
+          "ref": "KETCHUP",
+          "cantidad": 0.08
+        },
+        {
+          "ref": "AJO",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "MIEL",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "AZUCAR BLANCA",
+          "cantidad": 0.04
+        }
+      ]
+    },
+    {
+      "nombre": "RB chips de camote",
+      "produccion": 0.25,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "camote",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "aceite VEGETAL",
+          "cantidad": 2
+        }
+      ]
+    },
+    {
+      "nombre": "RB camote glaseado",
+      "produccion": 0.5,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "jugo de naranja",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "canela EN RAMA",
+          "cantidad": 0.005
+        },
+        {
+          "ref": "clavo de olor",
+          "cantidad": 0.0001
+        }
+      ]
+    },
+    {
+      "nombre": "RB mouse de palta",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "PALTA",
+          "cantidad": 1
+        },
+        {
+          "ref": "LIMON",
+          "cantidad": 0.08
+        },
+        {
+          "ref": "SAL",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "MAYONESA KRAFT",
+          "cantidad": 0.08
+        }
+      ]
+    },
+    {
+      "nombre": "RB ACEITE DE ACHIOTE",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "ACHIOTE",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "ACEITE VEGETAL",
+          "cantidad": 1
+        }
+      ]
+    },
+    {
+      "nombre": "RB ACEITE DE CILANTRO",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "CILANTRO",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "ACEITE VEGETAL",
+          "cantidad": 1
+        }
+      ]
+    },
+    {
+      "nombre": "RB POLLO SAZONADO",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "pechuga pollo deshuesada",
+          "cantidad": 1
+        },
+        {
+          "ref": "sal",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "pimienta NEGRA",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "ajinomoto",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "RB APANADO",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "RB PASTA DE AJO",
+          "cantidad": 0.02
+        }
+      ]
+    },
+    {
+      "nombre": "RB PURE DE BETERRAGA",
+      "produccion": 0.5,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "BETERRAGA",
+          "cantidad": 1
+        }
+      ]
+    },
+    {
+      "nombre": "RB CAMARON APANADO",
+      "produccion": 1.34,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "CAMARON 36/40 SIN CASCARA",
+          "cantidad": 0.8
+        },
+        {
+          "ref": "SAL",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "PIMIENTA NEGRA",
+          "cantidad": 0.003
+        },
+        {
+          "ref": "HARINA",
+          "cantidad": 0.3
+        },
+        {
+          "ref": "HUEVO",
+          "cantidad": 1
+        },
+        {
+          "ref": "PANKO",
+          "cantidad": 0.4
+        },
+        {
+          "ref": "ACEITE VEGETAL",
+          "cantidad": 2
+        }
+      ]
+    },
+    {
+      "nombre": "RB UNAGUI",
+      "produccion": 36,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "SALSA DE SOYA KIKO",
+          "cantidad": 5.5
+        },
+        {
+          "ref": "AZUCAR BLANCA",
+          "cantidad": 0.027
+        },
+        {
+          "ref": "GLUCOSA",
+          "cantidad": 2
+        }
+      ]
+    },
+    {
+      "nombre": "RB SHOYU",
+      "produccion": 15,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "SALSA DE SOYA KIKO",
+          "cantidad": 10
+        },
+        {
+          "ref": "HONDASHI",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "AZUCAR BLANCA",
+          "cantidad": 0.5
+        }
+      ]
+    },
+    {
+      "nombre": "RB MAYO MISO",
+      "produccion": 0.5,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "MAYONESA KRAFT",
+          "cantidad": 0.45
+        },
+        {
+          "ref": "miso",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "SALSA DE SOYA KIKO",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "togarashi",
+          "cantidad": 0.02
+        }
+      ]
+    },
+    {
+      "nombre": "RB SALSA BANNY",
+      "produccion": 6,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "Mayonesa krafT",
+          "cantidad": 5
+        },
+        {
+          "ref": "RB leche de tigre BLANCA",
+          "cantidad": 0.4
+        },
+        {
+          "ref": "togarashi",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "hondashi",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "shoyu",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "RB PURE de beterraga",
+          "cantidad": 0.4
+        }
+      ]
+    },
+    {
+      "nombre": "RB MAYO BALSAMICA",
+      "produccion": 0.5,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "mayonesa krafT",
+          "cantidad": 0.45
+        },
+        {
+          "ref": "aceto balsamico",
+          "cantidad": 0.05
+        }
+      ]
+    },
+    {
+      "nombre": "RB SALSA MARACUYA",
+      "produccion": 4,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "PULPA MARACUYA",
+          "cantidad": 2.5
+        },
+        {
+          "ref": "azucar BLANCA",
+          "cantidad": 2.1
+        },
+        {
+          "ref": "hierba luisa",
+          "cantidad": 0.15
+        }
+      ]
+    },
+    {
+      "nombre": "RB CEBOLLA CRISPY",
+      "produccion": 0.5,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "cebolla blanca",
+          "cantidad": 1
+        },
+        {
+          "ref": "harina",
+          "cantidad": 1
+        },
+        {
+          "ref": "sal",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "pimienta NEGRA",
+          "cantidad": 0.02
+        }
+      ]
+    },
+    {
+      "nombre": "RB COLESLOW",
+      "produccion": 1.6,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "repollo morado",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "repollo blanco",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "zanahoria",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "mayonesa",
+          "cantidad": 0.41
+        },
+        {
+          "ref": "azucar BLANCA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "VINAGRE DE MANZANA",
+          "cantidad": 0.05
+        }
+      ]
+    },
+    {
+      "nombre": "RB CEBOLLA CARAMELO",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "cebolla blanca",
+          "cantidad": 1
+        },
+        {
+          "ref": "aceite vegetal",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "sal",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "CERVEZA",
+          "cantidad": 0.33
+        },
+        {
+          "ref": "azucar blanca",
+          "cantidad": 0.05
+        }
+      ]
+    },
+    {
+      "nombre": "RB MERMELADA ZATARA",
+      "produccion": 8,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "tocino",
+          "cantidad": 2
+        },
+        {
+          "ref": "cebolla blanca",
+          "cantidad": 3
+        },
+        {
+          "ref": "ajo en polvo",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "vinagre de manzana",
+          "cantidad": 0.25
+        },
+        {
+          "ref": "miel",
+          "cantidad": 1.5
+        },
+        {
+          "ref": "azucar BLANCA",
+          "cantidad": 1
+        },
+        {
+          "ref": "cerveza neipa",
+          "cantidad": 2.5
+        },
+        {
+          "ref": "siracha",
+          "cantidad": 0.1
+        }
+      ]
+    },
+    {
+      "nombre": "RB CHIMICHURRI",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "perejil",
+          "cantidad": 0.3
+        },
+        {
+          "ref": "AJO",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "oregano",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "vinagre DE MANZANA",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "pimenton rojo",
+          "cantidad": 1
+        },
+        {
+          "ref": "aceite vegetal",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "sal",
+          "cantidad": 0.02
+        }
+      ]
+    },
+    {
+      "nombre": "RB MANTEQUILLA ESPECIADA",
+      "produccion": 0.5,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "MANTEQUILLA",
+          "cantidad": 0.4
+        },
+        {
+          "ref": "honDashi",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "togarashi",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "jengibre",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "RB pasta de ajo",
+          "cantidad": 0.05
+        }
+      ]
+    },
+    {
+      "nombre": "RB SALSA GOLF",
+      "produccion": 0.8,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "mayonesa krafT",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "ketchup",
+          "cantidad": 0.3
+        },
+        {
+          "ref": "tabasco",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "limon",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "sal",
+          "cantidad": 0.05
+        }
+      ]
+    },
+    {
+      "nombre": "RB Tartar salmon makis",
+      "produccion": 0.24,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "SALMON",
+          "cantidad": 0.2
+        },
+        {
+          "ref": "SIRACHA",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "CEBOLLIN",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "sesamo negro",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "palta",
+          "cantidad": 0.05
+        }
+      ]
+    },
+    {
+      "nombre": "RB TARTAR VEGGIE",
+      "produccion": 0.255,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "PALTA",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "PALMITO",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "RB ACEVICHADA",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "CEBOLLIN",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "SESAMO NEGRO",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "RB CEVICHE NIKKEI",
+      "produccion": 0.1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "REINETA",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "RB CHALAQUITA",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "RB LECHE DE TIGRE AMARILLA",
+          "cantidad": 0.025
+        },
+        {
+          "ref": "ACEITE DE SESAMO",
+          "cantidad": 0.005
+        }
+      ]
+    },
+    {
+      "nombre": "RB APANADO",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "PANKO",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "HARINA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "HUEVO",
+          "cantidad": 0.5
+        }
+      ]
+    },
+    {
+      "nombre": "RB Salsa bechamel",
+      "produccion": 0.5,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "mantequilla",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "harina",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "leche entera",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "pimienta negra",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "nuez moscada",
+          "cantidad": 0.1
+        }
+      ]
+    },
+    {
+      "nombre": "RB salsa pepper",
+      "produccion": 0.25,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "vino blanco",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "mantequilla",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "pimienta negra",
+          "cantidad": 0.005
+        },
+        {
+          "ref": "demiglas",
+          "cantidad": 0.1
+        }
+      ]
+    },
+    {
+      "nombre": "RB salsa 4q",
+      "produccion": 2,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "Salsa 4q",
+          "cantidad": 1
+        },
+        {
+          "ref": "crema de leche",
+          "cantidad": 1
+        }
+      ]
+    },
+    {
+      "nombre": "RB Salsa tartara",
+      "produccion": 0.45,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "MAYONESA KRAFT",
+          "cantidad": 0.35
+        },
+        {
+          "ref": "Huevo",
+          "cantidad": 3
+        },
+        {
+          "ref": "cebollin",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "Cebolla morada",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "Tocino",
+          "cantidad": 0.015
+        }
+      ]
+    },
+    {
+      "nombre": "RB rissoto",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "cebolla blanca",
+          "cantidad": 0.2
+        },
+        {
+          "ref": "vino blanco",
+          "cantidad": 0.25
+        },
+        {
+          "ref": "fondo verduras",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "AJO",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "arroz risotto",
+          "cantidad": 1
+        },
+        {
+          "ref": "mantequilla",
+          "cantidad": 0.025
+        }
+      ]
+    },
+    {
+      "nombre": "RB mechada",
+      "produccion": 18,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "Tapapecho",
+          "cantidad": 20
+        },
+        {
+          "ref": "tomate",
+          "cantidad": 1.5
+        },
+        {
+          "ref": "zanahoria",
+          "cantidad": 1.5
+        },
+        {
+          "ref": "cebolla morada",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "pimenton verde",
+          "cantidad": 1
+        },
+        {
+          "ref": "apio",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "AJO",
+          "cantidad": 0.2
+        },
+        {
+          "ref": "pimenton rojo",
+          "cantidad": 1
+        }
+      ]
+    },
+    {
+      "nombre": "RB BASE LOMO",
+      "produccion": 0.6,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "VINAGRE BLANCO",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "SALSA DE OSTION",
+          "cantidad": 0.2
+        },
+        {
+          "ref": "SALSA DE SOYA KIKO",
+          "cantidad": 0.3
+        }
+      ]
+    },
+    {
+      "nombre": "RB salsa huancaina",
+      "produccion": 0.6,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "aji amarillo",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "cebolla morada",
+          "cantidad": 0.2
+        },
+        {
+          "ref": "ajo",
+          "cantidad": 0.3
+        },
+        {
+          "ref": "leche",
+          "cantidad": 0
+        },
+        {
+          "ref": "galletas de soda",
+          "cantidad": 0
+        },
+        {
+          "ref": "aceite",
+          "cantidad": 0
+        }
+      ]
+    },
+    {
+      "nombre": "RB Premix chaufa",
+      "produccion": 0.3,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "SALSA DE OSTION",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "SALSA DE SOYA KIKO",
+          "cantidad": 0.2
+        }
+      ]
+    },
+    {
+      "nombre": "RB salsa pesto",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "ALBAHACA",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "espinaca",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "cebolla blanca",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "AJO",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "nuez mariposa",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "LECHE EVAPORADA",
+          "cantidad": 0.3
+        },
+        {
+          "ref": "QUESO PARMESANO",
+          "cantidad": 0.05
+        }
+      ]
+    },
+    {
+      "nombre": "RB pasta de trufa",
+      "produccion": 0.25,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "queso crema",
+          "cantidad": 0.2
+        },
+        {
+          "ref": "ciboulette",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "tocino",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "aceite de trufa",
+          "cantidad": 0.004
+        }
+      ]
+    },
+    {
+      "nombre": "RB verduras salteadas",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "zapallo italiano",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "cebolla morada",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "pimenton rojo",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "pimenton verde",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "brocoli",
+          "cantidad": 0
+        }
+      ]
+    },
+    {
+      "nombre": "RB smash",
+      "produccion": 390,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "sobrecostilla",
+          "cantidad": 22
+        },
+        {
+          "ref": "Tapapecho",
+          "cantidad": 22
+        }
+      ]
+    },
+    {
+      "nombre": "RB dressing tropical",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "miel",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "aceite de oliva",
+          "cantidad": 0.06
+        },
+        {
+          "ref": "JUGO DE NARANJA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "jengibre",
+          "cantidad": 0.005
+        }
+      ]
+    },
+    {
+      "nombre": "RB salsa florentina",
+      "produccion": 1,
+      "unidad": "kilogramo",
+      "lineas": [
+        {
+          "ref": "harina",
+          "cantidad": 0.25
+        },
+        {
+          "ref": "leche entera",
+          "cantidad": 1
+        },
+        {
+          "ref": "mantequilla",
+          "cantidad": 0.25
+        },
+        {
+          "ref": "crema de leche",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "espinaca",
+          "cantidad": 1
+        },
+        {
+          "ref": "cebolla blanca",
+          "cantidad": 1
+        },
+        {
+          "ref": "vino blanco",
+          "cantidad": 0.1
+        }
+      ]
+    }
+  ],
+  "platos": [
+    {
+      "nombre": "avocado koopa troopa",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "NORI",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "QUESO CREMA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "CAMARON 36/40 SIN CASCARA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "LECHUGA LOLO",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "RB TENKATSU NEGRO",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "RB SALSA BANNY",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "RB SALSA MARACUYA",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "AVOCADO ONE LOVE",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "NORI",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "QUESO CREMA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "SALMON",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "LECHUGA LOLO",
+          "cantidad": 0.005
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "RB TENKATSU NEGRO",
+          "cantidad": 0.005
+        },
+        {
+          "ref": "RB SALSA BANNY",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "RB SALSA MARACUYA",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "ACEVICHADO PRINCESS PEACH",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "NORI",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "QUESO CREMA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "DURAZNO CONSERVA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "CEBOLLIN",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "SALMON",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "RB ACEVICHADA",
+          "cantidad": 0.005
+        },
+        {
+          "ref": "RB ACEVICHADA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "RB TENKATSU NEGRO",
+          "cantidad": 0.005
+        }
+      ]
+    },
+    {
+      "nombre": "AVOCADO 4 you",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "NORI",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "QUESO CREMA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "RB POLLO SAZONADO",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "LECHUGA LOLO",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.025
+        },
+        {
+          "ref": "RB TENKATSU NEGRO",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "RB SALSA BANNY",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "RB SALSA MARACUYA",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "ACEVICHADO x100pre",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "NORI",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "CEBOLLIN",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "DURAZNO CONSERVA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "SALMON",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "RB ACEVICHADA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "CAMARON APANADO",
+          "cantidad": 1
+        },
+        {
+          "ref": "TOGARASHI",
+          "cantidad": 0.003
+        }
+      ]
+    },
+    {
+      "nombre": "CEVICHE KING KONG",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "NORI",
+          "cantidad": 1
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "CAMARON 36/40 SIN CASCARA",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "RB CEVICHE NIKKEI",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "REPOLLO blanco",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "MIDORI VEGGIE",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "NORI",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "CAMOTE",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "LECHUGA LOLO",
+          "cantidad": 0.005
+        },
+        {
+          "ref": "RB TARTAR VEGGIE",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "RB SALSA MARACUYA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "ALMENDRA LAMINADA",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "SHOYU",
+          "cantidad": 0.06
+        }
+      ]
+    },
+    {
+      "nombre": "CRISPY CHICKEN",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "NORI",
+          "cantidad": 1
+        },
+        {
+          "ref": "QUESO CREMA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "RB POLLO SAZONADO",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.025
+        },
+        {
+          "ref": "RB APANADO",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "RB TARE",
+          "cantidad": 0.06
+        },
+        {
+          "ref": "SHOYU",
+          "cantidad": 0.06
+        }
+      ]
+    },
+    {
+      "nombre": "Ceviche 420",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "palta",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "CAMARON apanado",
+          "cantidad": 0.3
+        },
+        {
+          "ref": "REINETA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "CEBOLLA MORADA",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "ROCOTO",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "CILANTRO",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "RB ACEVICHADA",
+          "cantidad": 0.03
+        }
+      ]
+    },
+    {
+      "nombre": "ACEVICHADO JIJIJI",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "CAMARON apanado",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "SALMON",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "rb acevichada ahumada",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "TOGARASHI",
+          "cantidad": 0.005
+        }
+      ]
+    },
+    {
+      "nombre": "Avocado ganja tare",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "NORI",
+          "cantidad": 1
+        },
+        {
+          "ref": "SALMON",
+          "cantidad": 0.025
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "PALITOS SUSHI",
+          "cantidad": 1
+        },
+        {
+          "ref": "RB TARE",
+          "cantidad": 0.06
+        },
+        {
+          "ref": "SHOYU",
+          "cantidad": 0.02
+        }
+      ]
+    },
+    {
+      "nombre": "papi riki",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.08
+        },
+        {
+          "ref": "nori",
+          "cantidad": 1
+        },
+        {
+          "ref": "durazno conserva",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "cebollin",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "palta",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "rb tartar salmon",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "rb acevichada",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "sesamo blanco",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "panko",
+          "cantidad": 0.04
+        }
+      ]
+    },
+    {
+      "nombre": "rompe corazones",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "rb shari",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "palta",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "cebollin",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "nori",
+          "cantidad": 1
+        },
+        {
+          "ref": "rb tartar salmon",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "rb mayo siracha",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "ciboulette",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "sesamo blanco",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "togarashi",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "panko",
+          "cantidad": 0.04
+        }
+      ]
+    },
+    {
+      "nombre": "acevichado 420",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "rb shari",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "palta",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "camaron apanado",
+          "cantidad": 1
+        },
+        {
+          "ref": "nori",
+          "cantidad": 1
+        },
+        {
+          "ref": "salmon",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "rb acevichada",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "ciboulette",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "togarashi",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "sanders trufado",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "NORI",
+          "cantidad": 1
+        },
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "RB PASTA DE TRUFA",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "QUESO CREMA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "RB POLLO SAZONADO",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "cebollin",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "panko",
+          "cantidad": 0.04
+        }
+      ]
+    },
+    {
+      "nombre": "panko roll it baby",
+      "categoria": "Rolls",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "NORI",
+          "cantidad": 1
+        },
+        {
+          "ref": "camaron apanado",
+          "cantidad": 1
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "CIBOULETTE",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "rb apanado",
+          "cantidad": 0.025
+        },
+        {
+          "ref": "HUEVO",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "RB TARE",
+          "cantidad": 0.1
+        }
+      ]
+    },
+    {
+      "nombre": "ARIGATO gozaimas",
+      "categoria": "Burgers",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "PAN DE PAPA",
+          "cantidad": 1
+        },
+        {
+          "ref": "RB SMASH",
+          "cantidad": 1
+        },
+        {
+          "ref": "QUESO CREMA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "RB MAYO MISO",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "RB CEBOLLA CROCANTE",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "RB PASTA DE TRUFA",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "rb unagui",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "TRADITIONAL BADASS",
+      "categoria": "Burgers",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "PAN DE PAPA",
+          "cantidad": 1
+        },
+        {
+          "ref": "RB SMASH",
+          "cantidad": 1
+        },
+        {
+          "ref": "QUESO CHEDDAR",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "LECHUGA LOLO",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "TOMATE",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "MAYONESA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "CEBOLLA BLANCA",
+          "cantidad": 0.015
+        }
+      ]
+    },
+    {
+      "nombre": "JUNGLE BOOGIE",
+      "categoria": "Burgers",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "PAN DE PAPA",
+          "cantidad": 1
+        },
+        {
+          "ref": "RB SMASH",
+          "cantidad": 1
+        },
+        {
+          "ref": "QUESO CHEDDAR",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "CHAMPIÑON PARIS",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "RB MERMELADA ZATARA",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "RB CEBOLLA CROCANTE",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "BBQ",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "MAYONESA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "RB APANADO",
+          "cantidad": 0.1
+        }
+      ]
+    },
+    {
+      "nombre": "KEI POP",
+      "categoria": "Burgers",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "PAN DE PAPA",
+          "cantidad": 1
+        },
+        {
+          "ref": "RB POLLO SAZONADO",
+          "cantidad": 0.08
+        },
+        {
+          "ref": "RB SALSA KO",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "SESAMO NEGRO",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "RB COLESLOW",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "RB MAYO SIRACHA",
+          "cantidad": 0.02
+        }
+      ]
+    },
+    {
+      "nombre": "cheese burga",
+      "categoria": "Burgers",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "PAN DE PAPA",
+          "cantidad": 1
+        },
+        {
+          "ref": "RB SMASH",
+          "cantidad": 1
+        },
+        {
+          "ref": "QUESO CHEDDAR",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "MAYONESA",
+          "cantidad": 0.02
+        }
+      ]
+    },
+    {
+      "nombre": "Le fondeu",
+      "categoria": "Burgers",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SMASH",
+          "cantidad": 1
+        },
+        {
+          "ref": "PAN DE PAPA",
+          "cantidad": 1
+        },
+        {
+          "ref": "QUESO CHEDDAR",
+          "cantidad": 0.18
+        },
+        {
+          "ref": "QUESO CHEDDAR",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "Ciboulette",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "RB TARTARA",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "Tocino",
+          "cantidad": 0.015
+        }
+      ]
+    },
+    {
+      "nombre": "GYOSAS",
+      "categoria": "Entradas",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "rb acevichada ahumada",
+          "cantidad": 0.06
+        },
+        {
+          "ref": "SESAMO BLANCO",
+          "cantidad": 0.003
+        },
+        {
+          "ref": "BROTES",
+          "cantidad": 0.003
+        },
+        {
+          "ref": "gyosas",
+          "cantidad": 5
+        }
+      ]
+    },
+    {
+      "nombre": "Papas trufadas",
+      "categoria": "Entradas",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "papa frita",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "QUESO PARMESANO",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "paprika",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "ACEITE DE TRUFA",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "queso de wall street",
+      "categoria": "Entradas",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "papa frita",
+          "cantidad": 0.25
+        },
+        {
+          "ref": "RB SALSA CHEDDAR",
+          "cantidad": 0.06
+        },
+        {
+          "ref": "CIBOULETTE",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "CORONEL SANDERS",
+      "categoria": "Entradas",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "papa frita",
+          "cantidad": 0.5
+        },
+        {
+          "ref": "RB POLLO SAZONADO",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "RB CREMA ACIDA",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "RB AJI AMARILLO",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "MAYONESA KRAFT",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "CIBOULETTE",
+          "cantidad": 0.003
+        },
+        {
+          "ref": "TOCINO",
+          "cantidad": 0.05
+        }
+      ]
+    },
+    {
+      "nombre": "PAPAS FRITAS SOLTERAS",
+      "categoria": "Entradas",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "PAPA FRITA",
+          "cantidad": 0.25
+        }
+      ]
+    },
+    {
+      "nombre": "the boneless",
+      "categoria": "Entradas",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB POLLO SAZONADO",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "RB SALSA KO",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "CIBOULETTE",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "SESAMO NEGRO",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "DEDOS DE ORO",
+      "categoria": "Entradas",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "DEDOS DE ORO",
+          "cantidad": 0.2
+        }
+      ]
+    },
+    {
+      "nombre": "sexy ceviche",
+      "categoria": "Entradas",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "REINETA",
+          "cantidad": 0.17
+        },
+        {
+          "ref": "CAMOTE",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "RB CHIPS DE CAMOTE",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "CEBOLLA MORADA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "RB LECHE DE TIGRE AMARILLA",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "CILANTRO",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "TIRADITO EN LA PLAYA",
+      "categoria": "Entradas",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "REINETA",
+          "cantidad": 0.12
+        },
+        {
+          "ref": "RB LECHE DE TIGRE AMARILLA",
+          "cantidad": 0.12
+        },
+        {
+          "ref": "PALMITO",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "RB MOUSSE DE PALTA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "RB ACEITE DE ACHIOTE",
+          "cantidad": 0.005
+        },
+        {
+          "ref": "RB ACEITE CILANTRO",
+          "cantidad": 0.005
+        },
+        {
+          "ref": "RB CHALAQUITA",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "TARTAR DEL GARDEN",
+      "categoria": "Entradas",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "SALMON",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "CEBOLLA BLANCA",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "CILANTRO",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "ALCAPARRA",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "RB MAYO SIRACHA",
+          "cantidad": 0.06
+        },
+        {
+          "ref": "PEPINILLO",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "LIMON",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "SAL",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "RB CHIPS DE CAMOTE",
+          "cantidad": 0.03
+        }
+      ]
+    },
+    {
+      "nombre": "EDAMAMES",
+      "categoria": "Entradas",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "EDAMAMES",
+          "cantidad": 0.5
+        }
+      ]
+    },
+    {
+      "nombre": "MECHADA ELISA",
+      "categoria": "Entradas",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "PAPA FRITA",
+          "cantidad": 0.7
+        },
+        {
+          "ref": "sobrecostilla",
+          "cantidad": 0.07
+        },
+        {
+          "ref": "RB CEBOLLA CROCANTE",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "TOCINO",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "RB SALSA CHEDDAR",
+          "cantidad": 0.05
+        }
+      ]
+    },
+    {
+      "nombre": "poke camaron",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.16
+        },
+        {
+          "ref": "CAMARON APANADO",
+          "cantidad": 3
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "QUESO CREMA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "CEBOLLIN",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "RB CHIPS DE CAMOTE",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "SESAMO NEGRO",
+          "cantidad": 0.003
+        },
+        {
+          "ref": "rb ACEVICHADA",
+          "cantidad": 0.04
+        }
+      ]
+    },
+    {
+      "nombre": "POKE VEGGIE",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "rb shari",
+          "cantidad": 0.16
+        },
+        {
+          "ref": "RB TARTAR VEGGIE",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "QUESO CREMA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "CEBOLLIN",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "RB CHIPS DE CAMOTE",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "SESAMO NEGRO",
+          "cantidad": 0.003
+        },
+        {
+          "ref": "RB ACEVICHADA",
+          "cantidad": 0.04
+        }
+      ]
+    },
+    {
+      "nombre": "Lomo liso",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "LOMO LISO",
+          "cantidad": 0.2
+        },
+        {
+          "ref": "RB CHIMICHURRI",
+          "cantidad": 0.005
+        },
+        {
+          "ref": "PAPA FRITA",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "ENSALADA CAMARON",
+          "cantidad": 0
+        },
+        {
+          "ref": "LECHUGA LOLO",
+          "cantidad": 0.055
+        },
+        {
+          "ref": "crutones",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "QUESO PARMESANO",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "rb cesar",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "rucula",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "CAMARON 36/40 SIN CASCARA",
+          "cantidad": 0.05
+        }
+      ]
+    },
+    {
+      "nombre": "ENSALADA SALMON",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "LECHUGA LOLO",
+          "cantidad": 0.055
+        },
+        {
+          "ref": "crutones",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "QUESO PARMESANO",
+          "cantidad": 0.025
+        },
+        {
+          "ref": "rb cesar",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "rucula",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "SALMON",
+          "cantidad": 0.05
+        }
+      ]
+    },
+    {
+      "nombre": "kung fu chicken",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB pollo sazonado",
+          "cantidad": 0.2
+        },
+        {
+          "ref": "rb Verduras salteadas",
+          "cantidad": 1
+        },
+        {
+          "ref": "ARROZ GRADO 1",
+          "cantidad": 0.25
+        },
+        {
+          "ref": "ciboulette",
+          "cantidad": 0.1
+        }
+      ]
+    },
+    {
+      "nombre": "pepper steak cremoso",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "FILETE SIN CORDON",
+          "cantidad": 0.2
+        },
+        {
+          "ref": "RB SALSA PEPPER",
+          "cantidad": 0.08
+        },
+        {
+          "ref": "ñoquis",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "RB salsa bechamel",
+          "cantidad": 0.1
+        }
+      ]
+    },
+    {
+      "nombre": "milamores",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "Milanesa vacuno",
+          "cantidad": 1
+        },
+        {
+          "ref": "papa frita",
+          "cantidad": 0.2
+        }
+      ]
+    },
+    {
+      "nombre": "Mila nona",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "Milanesa vacuno",
+          "cantidad": 1
+        },
+        {
+          "ref": "ñoquis",
+          "cantidad": 0.18
+        },
+        {
+          "ref": "RB SALSA BECHAMEL",
+          "cantidad": 0.1
+        }
+      ]
+    },
+    {
+      "nombre": "Salmon risoto fungi",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "salmon STEAK",
+          "cantidad": 1
+        },
+        {
+          "ref": "RB RISOTO",
+          "cantidad": 0.18
+        },
+        {
+          "ref": "crema de leche",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "champiñon paris",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "RB CEBOLLA CARAMELIZADA",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "RB base lomo",
+          "cantidad": 0.03
+        }
+      ]
+    },
+    {
+      "nombre": "Rissoto dizuca con lomo",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "arroz risotto",
+          "cantidad": 0.2
+        },
+        {
+          "ref": "RB crema de zapallo",
+          "cantidad": 0.06
+        },
+        {
+          "ref": "ZAPALLO ITALIANO",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "tomate cherry",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "cebolla morada",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "RB BASE LOMO",
+          "cantidad": 0.06
+        },
+        {
+          "ref": "FILETE SIN CORDON",
+          "cantidad": 0.08
+        },
+        {
+          "ref": "cebollin",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "crema de leche",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "queso parmesano",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "mantequilla",
+          "cantidad": 0.06
+        },
+        {
+          "ref": "rb fondo de pescado",
+          "cantidad": 0.08
+        }
+      ]
+    },
+    {
+      "nombre": "Filete chao fans",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "zanahoria",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "cebolla morada",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "zapallo italiano",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "champiñon paris",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "diente de dragon",
+          "cantidad": 0.015
+        },
+        {
+          "ref": "ARROZ GRADO 1",
+          "cantidad": 0.25
+        },
+        {
+          "ref": "cebollin",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "huevo",
+          "cantidad": 1
+        },
+        {
+          "ref": "FILETE SIN CORDON",
+          "cantidad": 0.08
+        },
+        {
+          "ref": "RB PREMIX CHAUFA",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "RB BASE LOMO",
+          "cantidad": 0.06
+        },
+        {
+          "ref": "SESAMO BLANCO",
+          "cantidad": 0.007
+        }
+      ]
+    },
+    {
+      "nombre": "poke pollo",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "RB SHARI",
+          "cantidad": 0.16
+        },
+        {
+          "ref": "RB POLLO SAZONADO",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "QUESO CREMA",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "CEBOLLIN",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "RB CHIPS DE CAMOTE",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "SESAMO NEGRO",
+          "cantidad": 0.003
+        },
+        {
+          "ref": "rb ACEVICHADA",
+          "cantidad": 0.04
+        }
+      ]
+    },
+    {
+      "nombre": "milagro al pesto",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "Milanesa vacuno",
+          "cantidad": 1
+        },
+        {
+          "ref": "ñoquis",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "RB SALSA PESTO",
+          "cantidad": 0.09
+        }
+      ]
+    },
+    {
+      "nombre": "salmon mediterraneo",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "salmon STEAK",
+          "cantidad": 1
+        },
+        {
+          "ref": "ñoquis",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "RB SALSA PESTO",
+          "cantidad": 0.1
+        }
+      ]
+    },
+    {
+      "nombre": "pollito al velador",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "arroz grado 1",
+          "cantidad": 0.2
+        },
+        {
+          "ref": "pimenton verde",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "pimenton rojo",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "champiñon paris",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "zapallo italiano",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "aceite de sesamo",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "salsa de soya kiko",
+          "cantidad": 0.05
+        },
+        {
+          "ref": "cebollin",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "rb pollo sazonado",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "lechuga lolo",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "pepino",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "rucula",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "rb dressing tropical",
+          "cantidad": 0.04
+        }
+      ]
+    },
+    {
+      "nombre": "Salmon florentina",
+      "categoria": "Principales",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "Salmon",
+          "cantidad": 0.22
+        },
+        {
+          "ref": "ZAPALLO ITALIANO",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "pimenton ROJO",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "cebolla morada",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "champiñon PARIS",
+          "cantidad": 0.02
+        },
+        {
+          "ref": "tomate cherry",
+          "cantidad": 0.1
+        },
+        {
+          "ref": "RB salsa pesto",
+          "cantidad": 0.01
+        },
+        {
+          "ref": "RB Salsa florentina",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "queso parmesano",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "PORCION ARROZ",
+      "categoria": "Guarniciones",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "ARROZ GRADO 1",
+          "cantidad": 0.2
+        },
+        {
+          "ref": "CIBOULETTE",
+          "cantidad": 0.01
+        }
+      ]
+    },
+    {
+      "nombre": "papas fritas",
+      "categoria": "Guarniciones",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "papa frita",
+          "cantidad": 0.25
+        }
+      ]
+    },
+    {
+      "nombre": "ENSALADA MIXTA",
+      "categoria": "Guarniciones",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "TOMATE",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "LECHUGA LOLO",
+          "cantidad": 0.03
+        },
+        {
+          "ref": "PALTA",
+          "cantidad": 0.04
+        },
+        {
+          "ref": "PALMITO",
+          "cantidad": 0.04
+        }
+      ]
+    },
+    {
+      "nombre": "ñoquis",
+      "categoria": "Guarniciones",
+      "margenPct": 30,
+      "lineas": [
+        {
+          "ref": "ñoquis",
+          "cantidad": 0.15
+        },
+        {
+          "ref": "RB Salsa bechamel",
+          "cantidad": 0.08
+        },
+        {
+          "ref": "ciboulette",
+          "cantidad": 0.05
+        }
+      ]
+    }
+  ]
+}
