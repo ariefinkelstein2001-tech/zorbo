@@ -1477,6 +1477,8 @@ body.drawer-open{overflow:hidden}
 .pl-precio{color:var(--gold-deep,#a05f00);font-size:.98rem}
 .pl-pct{font-weight:700}
 .pl-pct.hi{color:#c0392b}
+.ci-rb-sep td{background:var(--surface-2,#faf6ec);font-size:.68rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#8a7a52);padding:.4rem .6rem!important}
+.ci-rb-row td{background:rgba(245,166,35,.04)}
 
 /* ── PUNTOS DE VENTA ── */
 .pv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;margin-bottom:1rem}
@@ -6790,9 +6792,13 @@ document.getElementById('costeoSubnav').addEventListener('click', e=>{ const b=e
 document.getElementById('btnCosteoReload').onclick = ()=>loadCosteo();
 
 // ── Insumos (Nivel 1) ──
+// La tabla de Insumos es el listado MAESTRO de todo lo que se puede usar como
+// ingrediente: incluye los insumos (editables) y las recetas base (RB, en solo
+// lectura, con su precio unitario calculado). Al crear una RB aparece acá al toque.
 function renderCosteoInsumos(){
   const q = insumoSearch.toLowerCase();
   const list = costeoData.insumos.filter(i=>!q || i.descripcion.toLowerCase().includes(q)).slice(0,500);
+  const rbList = (costeoData.recetasBase||[]).filter(r=>!q || r.nombre.toLowerCase().includes(q)).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
   const rows = list.map(i=>`
     <tr data-iid="${i.id}">
       <td><input class="ci-inp" style="width:100%" data-f="descripcion" value="${escapeAttr(i.descripcion)}"></td>
@@ -6801,6 +6807,15 @@ function renderCosteoInsumos(){
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:70px" data-f="rendimiento" value="${i.rendimiento||''}" placeholder="—"></td>
       <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b></td>
       <td><button class="pv-del" data-idel="${i.id}">✕</button> <span class="dist-status" data-ist></span></td>
+    </tr>`).join('');
+  const rbRows = rbList.map(r=>`
+    <tr class="ci-rb-row">
+      <td>${escapeHtml(r.nombre)} <span class="mun-bk">RB</span></td>
+      <td class="dist-num" style="color:#aaa">—</td>
+      <td>${r.unidad||''}</td>
+      <td class="dist-num" style="color:#aaa">—</td>
+      <td class="dist-num"><b>${cMoney(r.precioUnidad)}</b></td>
+      <td><button class="dist-portal-link" data-rbgoto="${r.id}">Editar en RB</button></td>
     </tr>`).join('');
   document.getElementById('costeoBody').innerHTML = `
     <div class="dist-form" style="margin-bottom:1rem">
@@ -6813,17 +6828,18 @@ function renderCosteoInsumos(){
       </div>
       <div class="dist-form-actions"><button class="adm-btn" id="niAdd" type="button">Agregar insumo</button><span class="dist-status" id="niSt"></span></div>
     </div>
-    <div class="tc-search"><input type="text" id="ciSearch" placeholder="Buscar insumo…" value="${escapeAttr(insumoSearch)}"></div>
-    <div class="mun-count">${list.length} de ${costeoData.insumos.length} insumos · precio real = precio neto ÷ rendimiento</div>
+    <div class="tc-search"><input type="text" id="ciSearch" placeholder="Buscar insumo o receta base…" value="${escapeAttr(insumoSearch)}"></div>
+    <div class="mun-count">${list.length} insumos · ${rbList.length} recetas base (RB) · precio real = precio neto ÷ rendimiento</div>
     <div class="mun-wrap"><table class="mun-table">
       <thead><tr><th>Descripción</th><th style="text-align:right">Precio neto</th><th>Unidad</th><th style="text-align:right">% Rend.</th><th style="text-align:right">Precio real</th><th></th></tr></thead>
-      <tbody>${rows}</tbody>
+      <tbody>${rows}${rbList.length?`<tr class="ci-rb-sep"><td colspan="6">Recetas base (RB) — precio unitario calculado, se editan en la pestaña Recetas base</td></tr>`:''}${rbRows}</tbody>
     </table></div>`;
   const s=document.getElementById('ciSearch');
   s.oninput=()=>{ insumoSearch=s.value; const p=s.selectionStart; renderCosteoInsumos(); const n=document.getElementById('ciSearch'); n.focus(); try{n.setSelectionRange(p,p);}catch{} };
   document.getElementById('niAdd').onclick=addInsumo;
   document.querySelectorAll('#costeoBody .ci-inp').forEach(el=>{ const h=()=>saveInsumo(el.closest('tr').dataset.iid); el.onblur=h; if(el.tagName==='SELECT') el.onchange=h; });
   document.querySelectorAll('#costeoBody [data-idel]').forEach(b=>b.onclick=()=>delInsumo(b.dataset.idel));
+  document.querySelectorAll('#costeoBody [data-rbgoto]').forEach(b=>b.onclick=()=>{ costeoSub='recetas'; loadCosteo().then(()=>{ setTimeout(()=>rbLoadEdit(b.dataset.rbgoto),50); }); });
 }
 async function addInsumo(){
   const desc=document.getElementById('niDesc').value.trim(); const st=document.getElementById('niSt');
