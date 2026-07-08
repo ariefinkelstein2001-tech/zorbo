@@ -6729,8 +6729,10 @@ document.getElementById('tcBtn').onclick = runTopClientes;
 document.getElementById('tcInput').addEventListener('keydown', e => { if (e.key === 'Enter') runTopClientes(); });
 
 // ─── Costeo de carta (insumos · recetas base) ────────────────────────────────
-let costeoData = null, costeoSub = 'insumos', insumoSearch = '';
+let costeoData = null, costeoSub = 'insumos', insumoSearch = '', rbSearch = '';
 const cMoney = (n) => '$' + Math.round(Number(n)||0).toLocaleString('es-CL');
+// Acepta coma como separador decimal (ej: "9,5")
+const cNum = (v) => { const n = parseFloat(String(v==null?'':v).trim().replace(',', '.')); return Number.isFinite(n) ? n : 0; };
 const C_UNITS = (cur) => ['litro','kilogramo','unidad'].map(u=>`<option value="${u}" ${cur===u?'selected':''}>${u}</option>`).join('');
 
 async function loadCosteo(){
@@ -6758,9 +6760,9 @@ function renderCosteoInsumos(){
   const rows = list.map(i=>`
     <tr data-iid="${i.id}">
       <td><input class="ci-inp" style="width:100%" data-f="descripcion" value="${escapeAttr(i.descripcion)}"></td>
-      <td class="dist-num"><input type="number" min="0" step="1" class="ci-inp dist-num" style="width:100px" data-f="precioNeto" value="${i.precioNeto||''}"></td>
+      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:100px" data-f="precioNeto" value="${i.precioNeto||''}"></td>
       <td><select class="ci-inp" data-f="unidad">${C_UNITS(i.unidad)}</select></td>
-      <td class="dist-num"><input type="number" min="0" max="1" step="0.01" class="ci-inp dist-num" style="width:70px" data-f="rendimiento" value="${i.rendimiento||''}" placeholder="—"></td>
+      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:70px" data-f="rendimiento" value="${i.rendimiento||''}" placeholder="—"></td>
       <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b></td>
       <td><button class="pv-del" data-idel="${i.id}">✕</button> <span class="dist-status" data-ist></span></td>
     </tr>`).join('');
@@ -6769,9 +6771,9 @@ function renderCosteoInsumos(){
       <div class="dist-sec-title">Nuevo insumo</div>
       <div class="dist-form-grid" style="margin-top:.7rem">
         <div class="dist-field wide"><label>Descripción</label><input id="niDesc" placeholder="Ej: Salmón fresco"></div>
-        <div class="dist-field"><label>Precio neto</label><input id="niPrecio" type="number" min="0" step="1" placeholder="0"></div>
+        <div class="dist-field"><label>Precio neto</label><input id="niPrecio" type="text" inputmode="decimal" placeholder="0"></div>
         <div class="dist-field"><label>Unidad</label><select id="niUnidad">${C_UNITS('kilogramo')}</select></div>
-        <div class="dist-field"><label>% Rendimiento (0-1, opcional)</label><input id="niRend" type="number" min="0" max="1" step="0.01" placeholder="ej: 0.6"></div>
+        <div class="dist-field"><label>% Rendimiento (0-1, opcional)</label><input id="niRend" type="text" inputmode="decimal" placeholder="ej: 0,6"></div>
       </div>
       <div class="dist-form-actions"><button class="adm-btn" id="niAdd" type="button">Agregar insumo</button><span class="dist-status" id="niSt"></span></div>
     </div>
@@ -6792,7 +6794,7 @@ async function addInsumo(){
   if(!desc){ st.className='dist-status err'; st.textContent='Falta la descripción.'; return; }
   st.className='dist-status'; st.textContent='…';
   try{
-    const r=await fetch('/admin/costeo/insumos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({descripcion:desc,precioNeto:document.getElementById('niPrecio').value,unidad:document.getElementById('niUnidad').value,rendimiento:document.getElementById('niRend').value})});
+    const r=await fetch('/admin/costeo/insumos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({descripcion:desc,precioNeto:cNum(document.getElementById('niPrecio').value),unidad:document.getElementById('niUnidad').value,rendimiento:cNum(document.getElementById('niRend').value)})});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
     insumoSearch=''; await loadCosteo();
   }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
@@ -6802,9 +6804,9 @@ async function saveInsumo(id){
   const g=(f)=>tr.querySelector(`[data-f="${f}"]`).value;
   const st=tr.querySelector('[data-ist]'); st.className='dist-status'; st.textContent='…';
   try{
-    const r=await fetch(`/admin/costeo/insumos/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({descripcion:g('descripcion'),precioNeto:g('precioNeto'),unidad:g('unidad'),rendimiento:g('rendimiento')})});
+    const r=await fetch(`/admin/costeo/insumos/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({descripcion:g('descripcion'),precioNeto:cNum(g('precioNeto')),unidad:g('unidad'),rendimiento:cNum(g('rendimiento'))})});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
-    const pn=Number(g('precioNeto'))||0, rd=Number(g('rendimiento'));
+    const pn=cNum(g('precioNeto')), rd=cNum(g('rendimiento'));
     const real=(rd>0&&rd<=1)?Math.round(pn/rd):Math.round(pn);
     tr.querySelector('[data-real]').textContent=cMoney(real);
     const ins=costeoData.insumos.find(x=>x.id===id); if(ins){ins.precioNeto=pn;ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');ins.descripcion=g('descripcion');ins.precioReal=real;}
@@ -6824,14 +6826,16 @@ function costeoIngDatalist(){
 }
 function renderCosteoRecetas(){
   const draftCosto = rbDraft.reduce((s,l)=>s+(Number(l.cantidad)||0)*(Number(l.precio)||0),0);
-  const prod = document.getElementById('rbProd') ? Number(document.getElementById('rbProd').value)||0 : (rbEditing?rbEditing.produccion:0);
+  const prod = document.getElementById('rbProd') ? cNum(document.getElementById('rbProd').value) : (rbEditing?rbEditing.produccion:0);
   const drows = rbDraft.length ? rbDraft.map((l,idx)=>`
     <tr><td>${escapeHtml(l.nombre)}${l.refType==='rb'?' <span class="mun-bk">RB</span>':''}</td><td>${l.unidad||''}</td>
     <td class="dist-num">${cMoney(l.precio)}</td>
-    <td class="dist-num"><input type="number" min="0" step="0.01" class="dist-input-sm dist-num" data-rbqty="${idx}" value="${l.cantidad}" style="width:80px"></td>
+    <td class="dist-num"><input type="text" inputmode="decimal" class="dist-input-sm dist-num" data-rbqty="${idx}" value="${l.cantidad}" style="width:80px"></td>
     <td class="dist-num">${cMoney((Number(l.cantidad)||0)*(Number(l.precio)||0))}</td>
     <td><button class="pv-del" data-rbrm="${idx}">✕</button></td></tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:#aaa;padding:.7rem">Agregá insumos o recetas…</td></tr>`;
-  const list = (costeoData.recetasBase||[]).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(rb=>`
+  const rq = rbSearch.toLowerCase();
+  const rbAll = (costeoData.recetasBase||[]).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const list = rbAll.filter(rb=>!rq || rb.nombre.toLowerCase().includes(rq)).map(rb=>`
     <div class="oc-card">
       <div class="oc-card-top"><div><b class="oc-num">${escapeHtml(rb.nombre)}</b></div><b>${cMoney(rb.precioUnidad)} / ${rb.unidad||'?'}</b></div>
       <div class="oc-card-meta">${rb.lineas.length} ítems · producción ${rb.produccion} · costo total ${cMoney(rb.costoTotal)}</div>
@@ -6844,12 +6848,12 @@ function renderCosteoRecetas(){
       <div class="dist-sec-sub">Agregá insumos o incluso otras recetas. El costo y el precio por unidad se calculan solos.</div>
       <div class="dist-form-grid" style="margin-top:.8rem">
         <div class="dist-field wide"><label>Nombre</label><input id="rbNombre" placeholder="Ej: RB Salsa Cheddar" value="${rbEditing?escapeAttr(rbEditing.nombre):''}"></div>
-        <div class="dist-field"><label>Producción total</label><input id="rbProd" type="number" min="0" step="0.01" placeholder="ej: 36" value="${rbEditing?rbEditing.produccion:''}"></div>
+        <div class="dist-field"><label>Producción total</label><input id="rbProd" type="text" inputmode="decimal" placeholder="ej: 36 o 9,5" value="${rbEditing?rbEditing.produccion:''}"></div>
         <div class="dist-field"><label>Unidad de la receta</label><select id="rbUnidad">${C_UNITS(rbEditing?rbEditing.unidad:'litro')}</select></div>
       </div>
       <div class="oc-line">
         <div class="dist-field" style="flex:2"><label>Insumo o receta</label><input id="rbIng" list="cIngList" placeholder="Escribí para buscar…"></div>
-        <div class="dist-field"><label>Cantidad</label><input id="rbCant" type="number" min="0" step="0.01" placeholder="0"></div>
+        <div class="dist-field"><label>Cantidad</label><input id="rbCant" type="text" inputmode="decimal" placeholder="0"></div>
         <button class="adm-btn adm-btn-ghost" id="rbAddLine" type="button">+ Agregar</button>
       </div>
       <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table" style="min-width:0">
@@ -6867,16 +6871,19 @@ function renderCosteoRecetas(){
       </div>
     </div>
     <div class="dist-sec-title" style="margin-top:1.4rem">Recetas base (${(costeoData.recetasBase||[]).length})</div>
-    <div class="oc-list">${list}</div>`;
+    <div class="tc-search"><input type="text" id="rbSearchInp" placeholder="Buscar receta base…" value="${escapeAttr(rbSearch)}"></div>
+    <div class="oc-list">${list || '<div class="dist-empty">No hay recetas que coincidan.</div>'}</div>`;
   document.getElementById('rbAddLine').onclick=rbAddLine;
   document.getElementById('rbSave').onclick=rbSave;
   document.getElementById('rbProd').oninput=()=>renderCosteoRecetasKeep();
   document.getElementById('rbUnidad').onchange=()=>renderCosteoRecetasKeep();
   const c=document.getElementById('rbCancel'); if(c) c.onclick=()=>{ rbEditing=null; rbDraft=[]; renderCosteoRecetas(); };
-  document.querySelectorAll('#costeoBody [data-rbqty]').forEach(el=>el.onchange=()=>{ rbDraft[+el.dataset.rbqty].cantidad=Number(el.value)||0; renderCosteoRecetasKeep(); });
+  document.querySelectorAll('#costeoBody [data-rbqty]').forEach(el=>el.onchange=()=>{ rbDraft[+el.dataset.rbqty].cantidad=cNum(el.value); renderCosteoRecetasKeep(); });
   document.querySelectorAll('#costeoBody [data-rbrm]').forEach(b=>b.onclick=()=>{ rbDraft.splice(+b.dataset.rbrm,1); renderCosteoRecetasKeep(); });
   document.querySelectorAll('#costeoBody [data-rbedit]').forEach(b=>b.onclick=()=>rbLoadEdit(b.dataset.rbedit));
   document.querySelectorAll('#costeoBody [data-rbdel]').forEach(b=>b.onclick=()=>rbDelete(b.dataset.rbdel));
+  const rs=document.getElementById('rbSearchInp');
+  if(rs) rs.oninput=()=>{ rbSearch=rs.value; const p=rs.selectionStart; renderCosteoRecetasKeep(); const n=document.getElementById('rbSearchInp'); if(n){n.focus(); try{n.setSelectionRange(p,p);}catch{}} };
 }
 let rbFormCache={};
 function renderCosteoRecetasKeep(){
@@ -6887,7 +6894,7 @@ function renderCosteoRecetasKeep(){
 function rbAddLine(){
   const val=document.getElementById('rbIng').value.replace(/ \(RB\)$/,'');
   const g=(costeoData.ingredientes||[]).find(x=>x.nombre===val);
-  const cant=Number(document.getElementById('rbCant').value)||0;
+  const cant=cNum(document.getElementById('rbCant').value);
   if(!g){ alert('Elegí un insumo o receta de la lista.'); return; }
   if(rbEditing && g.type==='rb' && g.id===rbEditing.id){ alert('Una receta no puede usarse a sí misma.'); return; }
   rbDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant });
@@ -6899,7 +6906,7 @@ async function rbSave(){
   const nombre=document.getElementById('rbNombre').value.trim();
   if(!nombre){ st.className='dist-status err'; st.textContent='Falta el nombre.'; return; }
   if(!rbDraft.length){ st.className='dist-status err'; st.textContent='Agregá al menos un insumo.'; return; }
-  const payload={ nombre, unidad:document.getElementById('rbUnidad').value, produccion:document.getElementById('rbProd').value, lineas:rbDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:l.cantidad})) };
+  const payload={ nombre, unidad:document.getElementById('rbUnidad').value, produccion:cNum(document.getElementById('rbProd').value), lineas:rbDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad)})) };
   st.className='dist-status'; st.textContent='Guardando…';
   try{
     const url=rbEditing?`/admin/costeo/recetas/${rbEditing.id}`:'/admin/costeo/recetas';
