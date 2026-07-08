@@ -4421,6 +4421,149 @@ Los montos van en pesos chilenos enteros (sin puntos ni símbolos). "accion" deb
   }
 });
 
+// ─── Costeo de carta (cocina / restaurante) ─────────────────────────────────
+// 3 niveles encadenados: insumos → recetas base (RB) → platos. Todo se calcula
+// en cascada al vuelo (los precios derivados no se guardan, se resuelven en GET).
+const COSTEO_FILE = join(PROMPTS_EFFECTIVE_DIR, 'costeo.json');
+const costeoStr = (v, max = 200) => String(v == null ? '' : v).trim().slice(0, max);
+const COSTEO_UNITS = ['litro', 'kilogramo', 'unidad'];
+function costeoUnit(u){ u = String(u || '').toLowerCase(); if (COSTEO_UNITS.includes(u)) return u; return /lit/.test(u) ? 'litro' : /kil/.test(u) ? 'kilogramo' : 'unidad'; }
+const costeoNorm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+
+function costeoDefaults(){
+  let seed = { insumos: [], recetasBase: [] };
+  try { seed = JSON.parse(readFileSync(join(__dirname, 'costeo-seed.json'), 'utf-8')); } catch {}
+  const insumos = (seed.insumos || []).map(x => ({
+    id: randomUUID(), descripcion: costeoStr(x.descripcion, 200),
+    precioNeto: Number(x.precioNeto) || 0, unidad: costeoUnit(x.unidad),
+    rendimiento: (Number(x.rendimiento) > 0 && Number(x.rendimiento) <= 1) ? Number(x.rendimiento) : null,
+  }));
+  const byName = new Map(); insumos.forEach(i => byName.set(costeoNorm(i.descripcion), i.id));
+  const rbs = (seed.recetasBase || []).map(x => ({ id: randomUUID(), nombre: costeoStr(x.nombre, 200), unidad: costeoUnit(x.unidad || 'unidad'), produccion: Number(x.produccion) || 0, _raw: x.lineas || [] }));
+  const rbByName = new Map(); rbs.forEach(rb => rbByName.set(costeoNorm(rb.nombre), rb.id));
+  rbs.forEach(rb => {
+    rb.lineas = rb._raw.map(l => {
+      const k = costeoNorm(l.ref);
+      if (rbByName.has(k) && rbByName.get(k) !== rb.id) return { refType: 'rb', refId: rbByName.get(k), cantidad: Number(l.cantidad) || 0 };
+      if (byName.has(k)) return { refType: 'insumo', refId: byName.get(k), cantidad: Number(l.cantidad) || 0 };
+      return null;
+    }).filter(Boolean);
+    delete rb._raw;
+  });
+  return { version: 1, insumos, recetasBase: rbs, platos: [], categorias: ['Rolls', 'Burgers', 'Papas', 'Ceviches/Tiraditos/Ensaladas', 'Principales', 'Huella del chef'] };
+}
+function loadCosteo(){
+  try {
+    if (!existsSync(COSTEO_FILE)) { const d = costeoDefaults(); saveCosteo(d); return d; }
+    const p = JSON.parse(readFileSync(COSTEO_FILE, 'utf-8'));
+    return {
+      version: 1,
+      insumos: Array.isArray(p.insumos) ? p.insumos : [],
+      recetasBase: Array.isArray(p.recetasBase) ? p.recetasBase : [],
+      platos: Array.isArray(p.platos) ? p.platos : [],
+      categorias: Array.isArray(p.categorias) ? p.categorias : [],
+    };
+  } catch (e) { console.warn('costeo load:', e.message); return costeoDefaults(); }
+}
+function saveCosteo(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTEO_FILE, JSON.stringify(d, null, 2)); }
+function insumoPrecioReal(i){ return (i.rendimiento && i.rendimiento > 0) ? Math.round(i.precioNeto / i.rendimiento) : Math.round(i.precioNeto); }
+
+// Resuelve todo en cascada (RB con memo + guard de ciclos). Un cambio de precio
+// de insumo se propaga solo porque nada derivado está guardado.
+function resolveCosteo(d){
+  const insById = new Map(d.insumos.map(i => [i.id, i]));
+  const rbById = new Map(d.recetasBase.map(r => [r.id, r]));
+  const insReal = new Map(d.insumos.map(i => [i.id, insumoPrecioReal(i)]));
+  const rbMemo = new Map();
+  const priceOf = (refType, refId, stack) => {
+    if (refType === 'insumo') return insReal.get(refId) || 0;
+    if (refType === 'rb') { const r = rbById.get(refId); return r ? rbUnit(r, stack) : 0; }
+    return 0;
+  };
+  function rbUnit(rb, stack){
+    if (rbMemo.has(rb.id)) return rbMemo.get(rb.id);
+    if (stack.includes(rb.id)) return 0;
+    const s = [...stack, rb.id];
+    let costo = 0;
+    for (const l of (rb.lineas || [])) costo += (Number(l.cantidad) || 0) * priceOf(l.refType, l.refId, s);
+    const pu = rb.produccion > 0 ? Math.round(costo / rb.produccion) : 0;
+    rbMemo.set(rb.id, pu);
+    rb._costoTotal = Math.round(costo); rb._precioUnidad = pu;
+    return pu;
+  }
+  d.recetasBase.forEach(rb => rbUnit(rb, []));
+  const ingredientes = [
+    ...d.insumos.map(i => ({ type: 'insumo', id: i.id, nombre: i.descripcion, unidad: i.unidad, precio: insReal.get(i.id) })),
+    ...d.recetasBase.map(r => ({ type: 'rb', id: r.id, nombre: r.nombre, unidad: r.unidad, precio: r._precioUnidad || 0 })),
+  ];
+  const insumos = d.insumos.map(i => ({ ...i, precioReal: insReal.get(i.id) }));
+  const recetasBase = d.recetasBase.map(rb => ({
+    id: rb.id, nombre: rb.nombre, unidad: rb.unidad, produccion: rb.produccion,
+    costoTotal: rb._costoTotal || 0, precioUnidad: rb._precioUnidad || 0,
+    lineas: (rb.lineas || []).map(l => {
+      const ing = l.refType === 'insumo' ? insById.get(l.refId) : rbById.get(l.refId);
+      const precio = priceOf(l.refType, l.refId, []);
+      return { refType: l.refType, refId: l.refId, nombre: ing ? (ing.descripcion || ing.nombre) : '(eliminado)', unidad: ing ? ing.unidad : '', precio, cantidad: l.cantidad, costo: Math.round((Number(l.cantidad) || 0) * precio) };
+    }),
+  }));
+  return { insumos, recetasBase, ingredientes, platos: d.platos, categorias: d.categorias };
+}
+
+app.get('/admin/costeo', requireAdmin, (_req, res) => { res.json(resolveCosteo(loadCosteo())); });
+
+// ── Insumos (Nivel 1) ──
+app.post('/admin/costeo/insumos', requireAdmin, (req, res) => {
+  const b = req.body || {}; const desc = costeoStr(b.descripcion, 200);
+  if (!desc) return res.status(400).json({ error: 'La descripción es obligatoria.' });
+  const d = loadCosteo();
+  d.insumos.push({ id: randomUUID(), descripcion: desc, precioNeto: Number(b.precioNeto) || 0, unidad: costeoUnit(b.unidad), rendimiento: (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null });
+  saveCosteo(d); res.json({ ok: true });
+});
+app.put('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
+  const d = loadCosteo(); const i = d.insumos.find(x => x.id === String(req.params.id));
+  if (!i) return res.status(404).json({ error: 'Insumo no encontrado.' });
+  const b = req.body || {};
+  if (b.descripcion !== undefined) { const v = costeoStr(b.descripcion, 200); if (!v) return res.status(400).json({ error: 'Descripción vacía.' }); i.descripcion = v; }
+  if (b.precioNeto !== undefined) i.precioNeto = Number(b.precioNeto) || 0;
+  if (b.unidad !== undefined) i.unidad = costeoUnit(b.unidad);
+  if (b.rendimiento !== undefined) i.rendimiento = (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null;
+  saveCosteo(d); res.json({ ok: true });
+});
+app.delete('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
+  const d = loadCosteo(); const before = d.insumos.length;
+  d.insumos = d.insumos.filter(x => x.id !== String(req.params.id));
+  if (d.insumos.length === before) return res.status(404).json({ error: 'Insumo no encontrado.' });
+  saveCosteo(d); res.json({ ok: true });
+});
+
+// ── Recetas base (Nivel 2) ──
+function normalizeRBLineas(raw){
+  return (Array.isArray(raw) ? raw : []).map(l => ({ refType: l.refType === 'rb' ? 'rb' : 'insumo', refId: String(l.refId || ''), cantidad: Number(l.cantidad) || 0 })).filter(l => l.refId);
+}
+app.post('/admin/costeo/recetas', requireAdmin, (req, res) => {
+  const b = req.body || {}; const nombre = costeoStr(b.nombre, 200);
+  if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio.' });
+  const d = loadCosteo();
+  d.recetasBase.push({ id: randomUUID(), nombre, unidad: costeoUnit(b.unidad), produccion: Number(b.produccion) || 0, lineas: normalizeRBLineas(b.lineas) });
+  saveCosteo(d); res.json({ ok: true });
+});
+app.put('/admin/costeo/recetas/:id', requireAdmin, (req, res) => {
+  const d = loadCosteo(); const rb = d.recetasBase.find(x => x.id === String(req.params.id));
+  if (!rb) return res.status(404).json({ error: 'Receta no encontrada.' });
+  const b = req.body || {};
+  if (b.nombre !== undefined) { const v = costeoStr(b.nombre, 200); if (!v) return res.status(400).json({ error: 'Nombre vacío.' }); rb.nombre = v; }
+  if (b.unidad !== undefined) rb.unidad = costeoUnit(b.unidad);
+  if (b.produccion !== undefined) rb.produccion = Number(b.produccion) || 0;
+  if (b.lineas !== undefined) rb.lineas = normalizeRBLineas(b.lineas);
+  saveCosteo(d); res.json({ ok: true });
+});
+app.delete('/admin/costeo/recetas/:id', requireAdmin, (req, res) => {
+  const d = loadCosteo(); const before = d.recetasBase.length;
+  d.recetasBase = d.recetasBase.filter(x => x.id !== String(req.params.id));
+  if (d.recetasBase.length === before) return res.status(404).json({ error: 'Receta no encontrada.' });
+  saveCosteo(d); res.json({ ok: true });
+});
+
 // ─── PORTAL DEL PROVEEDOR (Fase 2) ──────────────────────────────────────────
 // Portal SEPARADO del /admin. Cada marca entra con su propio login y ve SOLO su
 // data. Sesión con cookie propia (zprov), distinta a la del admin (zadm).
