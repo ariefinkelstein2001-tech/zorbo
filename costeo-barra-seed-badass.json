@@ -1,0 +1,2289 @@
+{
+ "insumos": [
+  {
+   "descripcion": "ABSOLUTE",
+   "precioNeto": 10445,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ABSOLUTE VAINILLA",
+   "precioNeto": 12210,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ACEITUNAS SEVILLANAS VERDES S/PEPA",
+   "precioNeto": 4690,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "AGUA C/GAS",
+   "precioNeto": 634,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "AGUA C/GAS VITAL",
+   "precioNeto": 634,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "AGUA S/GAS",
+   "precioNeto": 634,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "AGUA S/GAS 5 Ltrs",
+   "precioNeto": 1036,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "AGUA SC",
+   "precioNeto": 0,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "AGUA TONICA CUCUMBER FEVER TREE",
+   "precioNeto": 762,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "AGUA TONICA FEVER TREE",
+   "precioNeto": 762,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "AGUA TONICA MEDITERRANEAN FEVER TREE",
+   "precioNeto": 937,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "AGUA TONICA SCHWEPPES",
+   "precioNeto": 750,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ALBAHACA",
+   "precioNeto": 2390,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ARANDANOS",
+   "precioNeto": 6601,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ALBUMINA",
+   "precioNeto": 16207,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ALTO DEL CARMEN 35°",
+   "precioNeto": 7376,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ALTO DEL CARMEN 40°",
+   "precioNeto": 8937,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ALTO DEL CARMEN MANZANA",
+   "precioNeto": 8146,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ALTO DEL CARMEN ETIQUETA NEGRA",
+   "precioNeto": 5325,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ALTO DEL CARMEN TRANSPARENTE 40°",
+   "precioNeto": 6345,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ANIS ESTRELLA",
+   "precioNeto": 13890,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "APALTAGUA RESERVA CH",
+   "precioNeto": 3819,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "APALTAGUA SB",
+   "precioNeto": 3819,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "APEROL",
+   "precioNeto": 12564,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "APIO",
+   "precioNeto": 1510,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ARANDANOS FRUTA",
+   "precioNeto": 4000,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "AZUCAR BLANCA",
+   "precioNeto": 1307,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "AZUCAR BLANCA SACHETS",
+   "precioNeto": 8709,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "AZUCAR MORENA",
+   "precioNeto": 2020,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "AZUCAR MORENA SACHETS",
+   "precioNeto": 10000,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BACARDI AÑEJO",
+   "precioNeto": 8598,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BACARDI CARTA BLANCA",
+   "precioNeto": 10486,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BACARDI CARTA DE ORO",
+   "precioNeto": 8407,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BAILEYS",
+   "precioNeto": 7483,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BALLANTINES",
+   "precioNeto": 13990,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BALLANTINES BLENDED 7 AÑOS",
+   "precioNeto": 9990,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "GIN BANNY",
+   "precioNeto": 8490,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BANNY BIDON",
+   "precioNeto": 205700,
+   "volumen": 20.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BANNY XL",
+   "precioNeto": 5211,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BEEFETER",
+   "precioNeto": 16085,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BEEFETER PINK",
+   "precioNeto": 20086,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BELVEDERE",
+   "precioNeto": 27111,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BOMBAY",
+   "precioNeto": 16724,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BT AROMATIC BITTERS",
+   "precioNeto": 18598,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BT CHOCOLATE",
+   "precioNeto": 18598,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "amargo angostura",
+   "precioNeto": 8890,
+   "volumen": 0.1,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BT CREOLE BITTERS",
+   "precioNeto": 18598,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BT JERRY TOMAS OWN DECANTER",
+   "precioNeto": 18598,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BT NARANJA",
+   "precioNeto": 16538,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BT OLIVE BITTERS",
+   "precioNeto": 18598,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BT VIOLET LIQUEUR",
+   "precioNeto": 18598,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BUCHANAN´S 12",
+   "precioNeto": 24050,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "BULLIET BOURBON",
+   "precioNeto": 27087,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CACHAZA 51",
+   "precioNeto": 8408,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CACHO DE CABRA AHUMADO",
+   "precioNeto": 15363,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CACHO DE CABRA SIN AHUMAR",
+   "precioNeto": 5000,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CAFÉ EN CAPSULAS",
+   "precioNeto": -45396,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CAFE ESPRESSO",
+   "precioNeto": 625,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CAFÉ MIL SABORES",
+   "precioNeto": 19975,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CAMPARI",
+   "precioNeto": 12392,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CANELA",
+   "precioNeto": 17875,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CARAMELO TORANI",
+   "precioNeto": 9890,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CASAS PATRONALES C",
+   "precioNeto": 7907,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CASAS PATRONALES CS",
+   "precioNeto": 7907,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CASAS PATRONALES M",
+   "precioNeto": 4130,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CHANCACA 400GR",
+   "precioNeto": 2560,
+   "volumen": 0.4,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CHIVAS REGAL 12",
+   "precioNeto": 31094,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CHIVAS REGAL 18",
+   "precioNeto": 61501,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CINZANO ROSSO",
+   "precioNeto": 5116,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CITADELLE",
+   "precioNeto": 25900,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CLAVO DE OLOR",
+   "precioNeto": 19841,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "COCA COLA LIGHT LATA",
+   "precioNeto": 840,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "COCA COLA ORIGINAL LATA",
+   "precioNeto": 840,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "COCA COLA ZERO LATA",
+   "precioNeto": 840,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "COÑAC TRES PALOS",
+   "precioNeto": 5288,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CREMA DE COCO LOPEZ",
+   "precioNeto": 3989,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CREMA DE COCO MIX",
+   "precioNeto": 9254,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CREMA DE LECHE",
+   "precioNeto": 3796,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CUATRO GALLOS",
+   "precioNeto": 18520,
+   "volumen": 2.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CUATRO GALLOS ITALIA",
+   "precioNeto": 23994,
+   "volumen": 2.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CUATRO GALLOS MACERADO",
+   "precioNeto": 16636,
+   "volumen": 2.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "CYNAR",
+   "precioNeto": 11090,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "DIAMANTE VINO LICOROSO",
+   "precioNeto": 5750,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "DISARONNO",
+   "precioNeto": 16375,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ESPUMANTE",
+   "precioNeto": 3438,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "DON JULIO BLANCO",
+   "precioNeto": 40187,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "DON JULIO REPOSADO",
+   "precioNeto": 42768,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "DOÑA CLOTA",
+   "precioNeto": 2042,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "DRAMBUI",
+   "precioNeto": 25045,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "DURAZNO CONSERVA MITADES",
+   "precioNeto": 7890,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ENDULZANTE LIQUIDO",
+   "precioNeto": 1290,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ENDULZANTE SACHETS",
+   "precioNeto": 8709,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ERRAZURIZ RESERVA SERIES CH",
+   "precioNeto": 4234,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ERRAZURIZ RESERVA SERIES SB",
+   "precioNeto": 4262,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "FANTA",
+   "precioNeto": 789,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "FANTA ZERO",
+   "precioNeto": 789,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "FERNET BRANCA",
+   "precioNeto": 12565,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "FLOR DE CAÑA",
+   "precioNeto": 9990,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "FLOR DE CAÑA 12",
+   "precioNeto": 24088,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "FLORES COMESTIBLES",
+   "precioNeto": 3900,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "FRAMBUESA FRUTA",
+   "precioNeto": 6890,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "FRANGELICO",
+   "precioNeto": 15497,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "FRUTILLA FRUTA",
+   "precioNeto": 2500,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "GIN MARE",
+   "precioNeto": 39990,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "GINGER ALE FEVER TREE",
+   "precioNeto": 762,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "GINGER ALE SCHWEPPES",
+   "precioNeto": 789,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "GINGER ALE ZERO SCHWEPPES",
+   "precioNeto": 789,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "GINGER BEER FEVER TREE",
+   "precioNeto": 978,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "GLENFIDDICH 12",
+   "precioNeto": 30607,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "GOMITAS FLIPY",
+   "precioNeto": 185,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "GREY GOOSE",
+   "precioNeto": 18065,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "HAVANA CLUB 7",
+   "precioNeto": 18980,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "HAVANA BLANCO",
+   "precioNeto": 7877,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "HAVANA CLUB ESPECIAL",
+   "precioNeto": 5728,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "HAVANA CLUB SELECCIÓN DE MAESTROS",
+   "precioNeto": 44353,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "HEINEKEN S/ALCOHOL",
+   "precioNeto": 919,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "HELADO DE PIÑA 3KG",
+   "precioNeto": 6700,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "HENDRICKS",
+   "precioNeto": 18139,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "HERRADURA REPOSADO",
+   "precioNeto": 27671,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "HERRADURA SILVER",
+   "precioNeto": 34419,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "HUESILLO",
+   "precioNeto": 7000,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "APPLETON",
+   "precioNeto": 5286,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JACK DANIELS APPLE",
+   "precioNeto": 29204,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JACK DANIELS GENTLEMAN",
+   "precioNeto": 0,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JACK DANIELS HONEY",
+   "precioNeto": 29204,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JACK DANIELS OLD 7",
+   "precioNeto": 29204,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JAGERMEISTER",
+   "precioNeto": 15695,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JARABE DE GOMA",
+   "precioNeto": 1307,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JARABE DE GRANADINA 1L",
+   "precioNeto": 5290,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JENGIBRE",
+   "precioNeto": 9390,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JIM BEAM BOURBON",
+   "precioNeto": 18806,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JOHNNIE WALKER BLACK",
+   "precioNeto": 26451,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JOHNNIE WALKER BLONDE",
+   "precioNeto": 13719,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JOHNNIE WALKER BLUE",
+   "precioNeto": 369000,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JOHNNIE WALKER DOUBLE BLACK",
+   "precioNeto": 44980,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JOHNNIE WALKER GOLD",
+   "precioNeto": 65480,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JOHNNIE WALKER RED",
+   "precioNeto": 14645,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JOSE CUERVO REPOSADO",
+   "precioNeto": 19984,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JOSE CUERVO SILVER",
+   "precioNeto": 19842,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JUGO DE CRAMBERRY",
+   "precioNeto": 4190,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JUGO DE MANDARINA",
+   "precioNeto": 4165,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JUGO DE NARANJA SOFRUCO",
+   "precioNeto": 8990,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JUGO DE NARANJA SOPROLE",
+   "precioNeto": 760,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JUGO DE POMELO",
+   "precioNeto": 4165,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JUGO DE TOMATE BY BMARIA",
+   "precioNeto": 4655,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "JUGO LIMON SUTIL",
+   "precioNeto": 5670,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KAIROS APA",
+   "precioNeto": 788,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KAIROS GOLDEN",
+   "precioNeto": 788,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KAIROS NEIPA",
+   "precioNeto": 788,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KAIROS PILS",
+   "precioNeto": 788,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KAIROS RED",
+   "precioNeto": 788,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KAIROS WEIZEN",
+   "precioNeto": 788,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KOMBUCHA ELIXIR",
+   "precioNeto": 2579,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KOMBUCHA MOMENTUN",
+   "precioNeto": 2579,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KOMBUCHA ZEN",
+   "precioNeto": 2579,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER AMARETTO",
+   "precioNeto": 7895,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER APPLE",
+   "precioNeto": 9237,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER BANANA",
+   "precioNeto": 6414,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER BLUE CURACAO",
+   "precioNeto": 6181,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER BLUEBERRY",
+   "precioNeto": 6414,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER CACAO",
+   "precioNeto": 6414,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER CAFÉ",
+   "precioNeto": 7414,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER CHERRY",
+   "precioNeto": 9237,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER COCONUT",
+   "precioNeto": 6239,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER CREME DE CASSIS",
+   "precioNeto": 8299,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER PINNAPLE",
+   "precioNeto": 6181,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER ELDERFLOWER",
+   "precioNeto": 7103,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER GRAPEFRUIT",
+   "precioNeto": 7414,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER MANGO",
+   "precioNeto": 6414,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER MARASQUIN",
+   "precioNeto": 6414,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER MENTA",
+   "precioNeto": 6414,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER PINEAPPLE",
+   "precioNeto": 6414,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER WATERMELON",
+   "precioNeto": 6414,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "KUYPER TRIPLE SEC",
+   "precioNeto": 6181,
+   "volumen": 0.7,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "LECHE ENTERA",
+   "precioNeto": 1330,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "LECHE ENTERA S/LACTOSA",
+   "precioNeto": 1280,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "LECHE EVAPORADA",
+   "precioNeto": 1289,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "LICOR 43",
+   "precioNeto": 16982,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "LIMON SUTIL FRUTA",
+   "precioNeto": 1890,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "LUTHER ROSSO",
+   "precioNeto": 2560,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MALIBU",
+   "precioNeto": 9138,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MANDARINA",
+   "precioNeto": 1190,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MANZANA VERDE",
+   "precioNeto": 1450,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MARRASQUINOS / CEREZAS",
+   "precioNeto": 7980,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MARTINI BIANCO",
+   "precioNeto": 5086,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MARTINI EXTRA DRY",
+   "precioNeto": 10486,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MARTINI FIERO",
+   "precioNeto": 6548,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MARTINI ROSSO",
+   "precioNeto": 5818,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MASHMELLOWS 280GR",
+   "precioNeto": 1989,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MENTA",
+   "precioNeto": 4290,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MERKEN",
+   "precioNeto": 5980,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MERMA DE HIERBA LUISA",
+   "precioNeto": 0,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MERMA DE PIÑA",
+   "precioNeto": 0,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MISTRAL 35°",
+   "precioNeto": 7367,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MISTRAL 40°",
+   "precioNeto": 6944,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MISTRAL NOBEL",
+   "precioNeto": 15684,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MISTRAL NOBEL APPLE",
+   "precioNeto": 15684,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MISTRAL NOBEL HONEY",
+   "precioNeto": 15684,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MOTE",
+   "precioNeto": 1681,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "pimienta negra",
+   "precioNeto": 8913,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "NARANJA FRUTA",
+   "precioNeto": 1490,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "OLE SMOKY",
+   "precioNeto": 19989,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "OLMECA REPOSADO",
+   "precioNeto": 20696,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "OLMECA SILVER",
+   "precioNeto": 20696,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ORCON QUEMADO AÑEJADO RESERVADO 40°",
+   "precioNeto": 11671,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PAMPERO ANIVERSARIO",
+   "precioNeto": 17708,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PAMPERO ESPECIAL",
+   "precioNeto": 7473,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PAULANER S/ALCOHOL",
+   "precioNeto": 1374,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PEACHTREE",
+   "precioNeto": 6338,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PEPINO",
+   "precioNeto": 390,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PIMENTON ROJO",
+   "precioNeto": 1190,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PINK GRAPEFRUIT FEVER TREE",
+   "precioNeto": 762,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PIÑA FRUTA",
+   "precioNeto": 2190,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PIPEÑO 1.5L",
+   "precioNeto": 4190,
+   "volumen": 1.5,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "POBRE VERMOUTH BLANCO",
+   "precioNeto": 9890,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "POBRE VERMOUTH ROSSO",
+   "precioNeto": 9890,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "POMELO FRUTA",
+   "precioNeto": 1190,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PULPA PIÑA",
+   "precioNeto": 2890,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PULPA MARACUYA S/PEPA S/AZUCAR",
+   "precioNeto": 4200,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PULPA MARACUYA C/PEPA S/AZUCAR",
+   "precioNeto": 5890,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PULPA MANGO",
+   "precioNeto": 3390,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PULPA LIMON",
+   "precioNeto": 3690,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PULPA FRUTILLA",
+   "precioNeto": 2410,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PULPA FRAMBUESA",
+   "precioNeto": 6427,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PULPA CHIRIMOYA",
+   "precioNeto": 3480,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "PULPA BERRIES",
+   "precioNeto": 4736,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RAMAZZOTI ROSSATO",
+   "precioNeto": 14646,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RAMAZZOTI VIOLETTO",
+   "precioNeto": 14646,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RED BULL",
+   "precioNeto": 1305,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RED BULL YELLOW",
+   "precioNeto": 1305,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "REPUBLICA AMAZONICA",
+   "precioNeto": 10008,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "Ron rey de copa",
+   "precioNeto": 7650,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ROLLS CROCANTE CHOCOLATE",
+   "precioNeto": 1629,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ROMERO",
+   "precioNeto": 868,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SAL FINA",
+   "precioNeto": 360,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SAL PARRILERA",
+   "precioNeto": 1090,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SALSA DE CHOCOLATE",
+   "precioNeto": 2941,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SALSA INGLESA GOURMET",
+   "precioNeto": 3491,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SHRUP DE DURAZNO Y ALBAHACA",
+   "precioNeto": 3143,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SHRUP PIMENTON ROJO",
+   "precioNeto": 2131,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SHRUPS CACHO DE CABRA Y FRUTILLA",
+   "precioNeto": 1954,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SIERRA MORENA",
+   "precioNeto": 4091,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SIERRA MORENA CAJA",
+   "precioNeto": 24418,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SIRACHA BY MARIA",
+   "precioNeto": 8495,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SOMBRERO NEGRO",
+   "precioNeto": 13607,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SPRITE ORIGINAL",
+   "precioNeto": 789,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SPRITE ZERO",
+   "precioNeto": 789,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ST GERMAIN",
+   "precioNeto": 24909,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "VODKA STOLICHNAYA",
+   "precioNeto": 9690,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "sydra",
+   "precioNeto": 1846,
+   "volumen": 0.33,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SYRUP CANELA",
+   "precioNeto": 1315,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SYRUP COCO",
+   "precioNeto": 9285,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SYRUP CRIOLLO",
+   "precioNeto": 1588,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SYRUP DE ARANDANOS",
+   "precioNeto": 2646,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SYRUP DE JENGIBRE",
+   "precioNeto": 1522,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SYRUP NARANJA Y MARACUYA",
+   "precioNeto": 2635,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "SYRUP ROMERO",
+   "precioNeto": 1244,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TABASCO",
+   "precioNeto": 2206,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TAJIN",
+   "precioNeto": 4990,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TANQUERAY LONDON DRY",
+   "precioNeto": 12985,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TANQUERAY ROYALE",
+   "precioNeto": 10732,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TANQUERAY SEVILLA",
+   "precioNeto": 10691,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TANQUERAY TEN",
+   "precioNeto": 28490,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TE A GRANEL",
+   "precioNeto": 3890,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "THE SINGLETON 12",
+   "precioNeto": 32184,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TWININGS EARL GREY",
+   "precioNeto": 26280,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TWININGS ENGLISH BREAKFAST",
+   "precioNeto": 26280,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TWININGS FRUTOS ROJOS",
+   "precioNeto": 26280,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TWININGS HORTELA / MENTA PURA",
+   "precioNeto": 26280,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TWININGS LADY GREY",
+   "precioNeto": 26280,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TWININGS MANZANILLA",
+   "precioNeto": 26280,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TWININGS PRINCE OF WALES",
+   "precioNeto": 26280,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TWININGS PURE CEYLAN TEA",
+   "precioNeto": 26280,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "TWININGS TE CHA VERDE / TE VERDE",
+   "precioNeto": 26280,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "UNDURRAGA ALIWEN C",
+   "precioNeto": 6218,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "UNDURRAGA ALIWEN CS",
+   "precioNeto": 6218,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "UNDURRAGA ALIWEN M",
+   "precioNeto": 6218,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "UNDURRAGA BRUT",
+   "precioNeto": 3832,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "UNDURRAGA EXTRA BRUT",
+   "precioNeto": 4516,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "VINAGRE BLANCO",
+   "precioNeto": 2460,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "Vino blanco",
+   "precioNeto": 3808,
+   "volumen": 2.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "VINO TINTO",
+   "precioNeto": 4106,
+   "volumen": 2.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "ZACAPA 23",
+   "precioNeto": 47616,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "LICOR ARAUCANO",
+   "precioNeto": 10487,
+   "volumen": 0.75,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "VINO SANTA EMA SAUV. BLANC",
+   "precioNeto": 4589,
+   "volumen": 2.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "VINO SANTA EMA CHARD",
+   "precioNeto": 5714,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MONSTER RIPPER",
+   "precioNeto": 1305,
+   "volumen": 0.473,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "MONSTER ULTRA PARADISE",
+   "precioNeto": 1305,
+   "volumen": 0.473,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB JUGO DE LIMON",
+   "precioNeto": 8820,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB JARABE DE GOMA",
+   "precioNeto": 1307,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB SYRUP JENGIBRE",
+   "precioNeto": 1776,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB SYRUP ARANDANO",
+   "precioNeto": 3686,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB CREMA DE COCO",
+   "precioNeto": 6178,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB SYRUP HIBISCUS",
+   "precioNeto": 1120,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB SYRUP MALTA",
+   "precioNeto": 1950,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB SYRUP MARACUYA NARANJA",
+   "precioNeto": 4397,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB SYRUP COCO LOPEZ",
+   "precioNeto": 5462,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB SHRUB DURAZNO ALBAHACA",
+   "precioNeto": 8954,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB SHRUB PIMENTON ROJO",
+   "precioNeto": 3151,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB SYRUP OLD FASHION",
+   "precioNeto": 6748,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB SHRUB CACHO DE CABRA",
+   "precioNeto": 3496,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB SYRUP CANELA",
+   "precioNeto": 1754,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB GIN HIBISCUS",
+   "precioNeto": 8490,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB BLEND ST GERMAIN",
+   "precioNeto": 38286,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB BLEND AMARETTO",
+   "precioNeto": 11551,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB BLEND ZACAPA",
+   "precioNeto": 37388,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB PISCO HUESILLO",
+   "precioNeto": 10038,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB SYRUP ROMERO",
+   "precioNeto": 1321,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB PASTA JENGIBRE",
+   "precioNeto": 5634,
+   "volumen": 1.0,
+   "unidad": "litro"
+  },
+  {
+   "descripcion": "RB ESPUMA JENGIBRE",
+   "precioNeto": 1244,
+   "volumen": 1.0,
+   "unidad": "litro"
+  }
+ ],
+ "recetasBase": [
+  {
+   "nombre": "JARABE DE GOMA",
+   "unidad": "litro",
+   "produccion": 25.0,
+   "lineas": [
+    {
+     "ref": "AZUCAR BLANCA",
+     "cantidad": 25.0
+    },
+    {
+     "ref": "AGUA",
+     "cantidad": 15.0
+    }
+   ]
+  },
+  {
+   "nombre": "syrup jengibre",
+   "unidad": "litro",
+   "produccion": 6.0,
+   "lineas": [
+    {
+     "ref": "AZUCAR BLANCA",
+     "cantidad": 6.0
+    },
+    {
+     "ref": "JENGIBRE",
+     "cantidad": 0.3
+    },
+    {
+     "ref": "AGUA",
+     "cantidad": 3.5
+    }
+   ]
+  },
+  {
+   "nombre": "syrup arandanos",
+   "unidad": "litro",
+   "produccion": 15.0,
+   "lineas": [
+    {
+     "ref": "ARANDANOS",
+     "cantidad": 6.0
+    },
+    {
+     "ref": "AZUCAR BLANCA",
+     "cantidad": 12.0
+    },
+    {
+     "ref": "AGUA",
+     "cantidad": 6.0
+    }
+   ]
+  },
+  {
+   "nombre": "crema de coco",
+   "unidad": "litro",
+   "produccion": 1.5,
+   "lineas": [
+    {
+     "ref": "CREMA DE COCO LOPEZ",
+     "cantidad": 2.0
+    },
+    {
+     "ref": "LECHE EVAPORADA",
+     "cantidad": 1.0
+    }
+   ]
+  },
+  {
+   "nombre": "syrup hibiscus",
+   "unidad": "litro",
+   "produccion": 7.0,
+   "lineas": [
+    {
+     "ref": "AZUCAR BLANCA",
+     "cantidad": 6.0
+    },
+    {
+     "ref": "HIBISCUS",
+     "cantidad": 0.08
+    },
+    {
+     "ref": "AGUA",
+     "cantidad": 5.0
+    }
+   ]
+  },
+  {
+   "nombre": "syrup maracuya naranja",
+   "unidad": "litro",
+   "produccion": 14.0,
+   "lineas": [
+    {
+     "ref": "AZUCAR BLANCA",
+     "cantidad": 12.0
+    },
+    {
+     "ref": "PULPA MARACUYA S/PEPA S/AZUCAR",
+     "cantidad": 4.5
+    },
+    {
+     "ref": "JUGO DE NARANJA SOFRUCO",
+     "cantidad": 3.0
+    },
+    {
+     "ref": "AGUA",
+     "cantidad": 2.5
+    }
+   ]
+  },
+  {
+   "nombre": "syrup coco lopez",
+   "unidad": "litro",
+   "produccion": 1.7,
+   "lineas": [
+    {
+     "ref": "CREMA DE COCO LOPEZ",
+     "cantidad": 2.0
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 1.0
+    }
+   ]
+  },
+  {
+   "nombre": "shrub durazno albahaca",
+   "unidad": "litro",
+   "produccion": 14.0,
+   "lineas": [
+    {
+     "ref": "DURAZNO CONSERVA MITADES",
+     "cantidad": 12.0
+    },
+    {
+     "ref": "ALBAHACA",
+     "cantidad": 0.1
+    },
+    {
+     "ref": "AZUCAR BLANCA",
+     "cantidad": 12.0
+    },
+    {
+     "ref": "VINAGRE BLANCO",
+     "cantidad": 6.0
+    }
+   ]
+  },
+  {
+   "nombre": "shrub pimenton rojo",
+   "unidad": "litro",
+   "produccion": 10.0,
+   "lineas": [
+    {
+     "ref": "PIMENTON ROJO",
+     "cantidad": 6.0
+    },
+    {
+     "ref": "VINAGRE BLANCO",
+     "cantidad": 3.0
+    },
+    {
+     "ref": "AZUCAR BLANCA",
+     "cantidad": 13.0
+    }
+   ]
+  },
+  {
+   "nombre": "syrup old fashion",
+   "unidad": "litro",
+   "produccion": 1.0,
+   "lineas": [
+    {
+     "ref": "AZUCAR BLANCA",
+     "cantidad": 3.0
+    },
+    {
+     "ref": "AGUA",
+     "cantidad": 1.6
+    },
+    {
+     "ref": "NARANJA fruta",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "CLAVO DE OLOR",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "ANIS ESTRELLA",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "CANELA",
+     "cantidad": 0.05
+    }
+   ]
+  },
+  {
+   "nombre": "shrub cacho de cabra",
+   "unidad": "litro",
+   "produccion": 12.0,
+   "lineas": [
+    {
+     "ref": "CACHO DE CABRA SIN AHUMAR",
+     "cantidad": 0.3
+    },
+    {
+     "ref": "FRUTILLA FRUTA",
+     "cantidad": 8.0
+    },
+    {
+     "ref": "AZUCAR BLANCA",
+     "cantidad": 10.0
+    },
+    {
+     "ref": "VINAGRE BLANCO",
+     "cantidad": 3.0
+    }
+   ]
+  },
+  {
+   "nombre": "syrup canela",
+   "unidad": "litro",
+   "produccion": 12.0,
+   "lineas": [
+    {
+     "ref": "AZUCAR BLANCA",
+     "cantidad": 12.0
+    },
+    {
+     "ref": "CANELA",
+     "cantidad": 0.3
+    },
+    {
+     "ref": "AGUA",
+     "cantidad": 7.0
+    }
+   ]
+  },
+  {
+   "nombre": "gin hibiscus",
+   "unidad": "litro",
+   "produccion": 5.0,
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 5.0
+    },
+    {
+     "ref": "HIBISCUS",
+     "cantidad": 0.05
+    }
+   ]
+  },
+  {
+   "nombre": "blend st germain",
+   "unidad": "litro",
+   "produccion": 1.5,
+   "lineas": [
+    {
+     "ref": "ST GERMAIN",
+     "cantidad": 1.5
+    },
+    {
+     "ref": "KUYPER ELDERFLOWER",
+     "cantidad": 0.75
+    }
+   ]
+  },
+  {
+   "nombre": "blend amaretto",
+   "unidad": "litro",
+   "produccion": 2.15,
+   "lineas": [
+    {
+     "ref": "DISARONNO",
+     "cantidad": 0.75
+    },
+    {
+     "ref": "KUYPER AMARETTO",
+     "cantidad": 0.75
+    }
+   ]
+  },
+  {
+   "nombre": "blend zacapa",
+   "unidad": "litro",
+   "produccion": 1.45,
+   "lineas": [
+    {
+     "ref": "ZACAPA 23",
+     "cantidad": 0.75
+    },
+    {
+     "ref": "HAVANA CLUB ESPECIAL",
+     "cantidad": 0.35
+    },
+    {
+     "ref": "BACARDI CARTA DE ORO",
+     "cantidad": 0.35
+    }
+   ]
+  },
+  {
+   "nombre": "pisco huesillo",
+   "unidad": "litro",
+   "produccion": 1.8,
+   "lineas": [
+    {
+     "ref": "CUATRO GALLOS",
+     "cantidad": 1.8
+    },
+    {
+     "ref": "HUESILLO",
+     "cantidad": 0.2
+    }
+   ]
+  },
+  {
+   "nombre": "syrup romero",
+   "unidad": "litro",
+   "produccion": 6.0,
+   "lineas": [
+    {
+     "ref": "AZUCAR BLANCA",
+     "cantidad": 6.0
+    },
+    {
+     "ref": "ROMERO",
+     "cantidad": 0.1
+    },
+    {
+     "ref": "AGUA",
+     "cantidad": 3.5
+    }
+   ]
+  },
+  {
+   "nombre": "pasta jengibre",
+   "unidad": "litro",
+   "produccion": 0.5,
+   "lineas": [
+    {
+     "ref": "JENGIBRE",
+     "cantidad": 0.3
+    },
+    {
+     "ref": "AGUA",
+     "cantidad": 0.3
+    }
+   ]
+  },
+  {
+   "nombre": "espuma jengibre",
+   "unidad": "litro",
+   "produccion": 0.5,
+   "lineas": [
+    {
+     "ref": "SYRUP DE JENGIBRE",
+     "cantidad": 0.15
+    },
+    {
+     "ref": "JUGO LIMON SUTIL",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "HUEVO",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "rb jarabe de goma",
+     "cantidad": 0.04
+    },
+    {
+     "ref": "CAPSULAS DE N20",
+     "cantidad": 2.0
+    }
+   ]
+  },
+  {
+   "nombre": "syrup malta",
+   "unidad": "litro",
+   "produccion": 2.8,
+   "lineas": [
+    {
+     "ref": "MALTA",
+     "cantidad": 0.15
+    },
+    {
+     "ref": "AGUA",
+     "cantidad": 2.8
+    },
+    {
+     "ref": "AZUCAR BLANCA",
+     "cantidad": 4.0
+    }
+   ]
+  },
+  {
+   "nombre": "JUGO DE LIMON",
+   "unidad": "litro",
+   "produccion": 7.0,
+   "lineas": [
+    {
+     "ref": "Limon sutil fruta",
+     "cantidad": 20.0
+    },
+    {
+     "ref": "Limon sutil CRISTALES",
+     "cantidad": 6.0
+    }
+   ]
+  }
+ ],
+ "platos": [],
+ "categorias": [
+  "De la casa",
+  "Tropicals",
+  "De autor",
+  "Mocktails",
+  "Clásicos",
+  "Spritz y jarras"
+ ]
+}

@@ -4446,6 +4446,8 @@ function costeoBuildFromSeed(seedFile){
     id: randomUUID(), descripcion: costeoStr(x.descripcion, 200),
     precioNeto: Number(x.precioNeto) || 0, unidad: costeoUnit(x.unidad),
     rendimiento: (Number(x.rendimiento) > 0 && Number(x.rendimiento) <= 1) ? Number(x.rendimiento) : null,
+    // Barra: volumen/formato de botella. Precio por litro/unidad = precioNeto ÷ volumen.
+    volumen: (Number(x.volumen) > 0) ? Number(x.volumen) : null,
   }));
   const byName = new Map(); insumos.forEach(i => byName.set(costeoNorm(i.descripcion), i.id));
   const rbs = (seed.recetasBase || []).map(x => ({ id: randomUUID(), nombre: costeoStr(x.nombre, 200), unidad: costeoUnit(x.unidad || 'unidad'), produccion: Number(x.produccion) || 0, _raw: x.lineas || [] }));
@@ -4471,16 +4473,24 @@ function costeoBuildFromSeed(seedFile){
     const m = Number(x.margenPct); const margenPct = (m > 0 && m <= 100) ? m : 30;
     return { id: randomUUID(), nombre: costeoStr(x.nombre, 200), categoria: costeoStr(x.categoria, 120) || 'Sin categoría', margenPct, lineas };
   });
-  // Categorías: en orden de primera aparición de los platos; fallback al set base.
+  // Categorías: explícitas del seed (barra) > orden de aparición de platos > set base.
   const cats = []; platos.forEach(p => { if (p.categoria && !cats.includes(p.categoria)) cats.push(p.categoria); });
-  return { version: 1, insumos, recetasBase: rbs, platos, categorias: cats.length ? cats : COSTEO_CATS_DEFAULT.slice() };
+  const categorias = (Array.isArray(seed.categorias) && seed.categorias.length)
+    ? seed.categorias.map(c => costeoStr(c, 120)).filter(Boolean)
+    : (cats.length ? cats : COSTEO_CATS_DEFAULT.slice());
+  return { version: 1, insumos, recetasBase: rbs, platos, categorias };
 }
 function costeoDefaults(){ return costeoBuildFromSeed('costeo-seed.json'); }
 function costeoDefaultsBadass(){ return costeoBuildFromSeed('costeo-seed-badass.json'); }
+function costeoDefaultsBarra(rest){ return costeoBuildFromSeed(costeoRestKey(rest) === 'badass' ? 'costeo-barra-seed-badass.json' : 'costeo-barra-seed-garden.json'); }
 // El costeo es POR RESTAURANTE (garden / badass). Garden se siembra del Excel;
 // Badass arranca vacío. Archivo: { garden:{...}, badass:{...} }.
 const COSTEO_RESTS = ['garden', 'badass'];
 const costeoRestKey = (r) => (r === 'badass' ? 'badass' : 'garden');
+// Servicio dentro de cada restaurante: comida (default) o barra (tragos). Son 4
+// conjuntos de datos independientes: garden, badass, garden_barra, badass_barra.
+const costeoSvcKey = (s) => (s === 'barra' ? 'barra' : 'comida');
+const costeoDocKey = (rest, svc) => costeoSvcKey(svc) === 'barra' ? costeoRestKey(rest) + '_barra' : costeoRestKey(rest);
 function costeoEmpty(){ return { version: 1, insumos: [], recetasBase: [], platos: [], categorias: ['Rolls', 'Burgers', 'Papas', 'Ceviches/Tiraditos/Ensaladas', 'Principales', 'Huella del chef'] }; }
 function costeoNormalizeDoc(p){
   p = p || {};
@@ -4738,12 +4748,34 @@ function costeoSeedPlatosInto(doc){
   return true;
 }
 const costeoDocEmpty = (doc) => !doc || (!(doc.insumos && doc.insumos.length) && !(doc.recetasBase && doc.recetasBase.length) && !(doc.platos && doc.platos.length));
+const costeoSeccionesFromCategorias = (cats) => (cats || []).map(c => ({ id: randomUUID(), nombre: c, items: [] }));
+// Barra: la carta usa las categorías como secciones (los tragos se agrupan por
+// categoría, igual que comida por su sección). Siembra las secciones una vez.
+function costeoEnsureBarraCarta(doc){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.secciones.length) return false;
+  if (!(doc.categorias && doc.categorias.length)) return false;
+  doc.carta.secciones = costeoSeccionesFromCategorias(doc.categorias);
+  return true;
+}
+// Asegura los 2 docs de barra (garden_barra / badass_barra): los siembra desde el
+// Excel de barra si están vacíos y planta sus secciones de carta. Devuelve true si mutó.
+function costeoEnsureBarraDocs(all){
+  let ch = false;
+  for (const [key, rest] of [['garden_barra', 'garden'], ['badass_barra', 'badass']]) {
+    all[key] = costeoNormalizeDoc(all[key]);
+    if (costeoDocEmpty(all[key])) { all[key] = costeoDefaultsBarra(rest); ch = true; }
+    if (costeoEnsureBarraCarta(all[key])) ch = true;
+  }
+  return ch;
+}
 function loadCosteoAll(){
   try {
-    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.garden, 'garden'); costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.garden, 'garden'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.garden, 'garden'); costeoSeedPreciosReales(all.badass, 'badass'); saveCosteoAll(all); return all; }
+    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.garden, 'garden'); costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.garden, 'garden'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.garden, 'garden'); costeoSeedPreciosReales(all.badass, 'badass'); costeoEnsureBarraDocs(all); saveCosteoAll(all); return all; }
     const p = JSON.parse(readFileSync(COSTEO_FILE, 'utf-8'));
     // Migración: archivo viejo con la data en la raíz → pasa a "garden".
-    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoEnsureRealCarta(g, 'garden'); costeoMigratePlatos(g, 'garden'); costeoSeedPreciosReales(g, 'garden'); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.badass, 'badass'); saveCosteoAll(all); return all; }
+    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoEnsureRealCarta(g, 'garden'); costeoMigratePlatos(g, 'garden'); costeoSeedPreciosReales(g, 'garden'); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.badass, 'badass'); costeoEnsureBarraDocs(all); saveCosteoAll(all); return all; }
     const all = { garden: costeoNormalizeDoc(p.garden), badass: costeoNormalizeDoc(p.badass) };
     let changed = false;
     if (costeoSeedPlatosInto(all.garden)) changed = true;
@@ -4758,14 +4790,21 @@ function loadCosteoAll(){
     // Precios de venta reales: seed inicial (una vez), sin pisar lo que el usuario cargó.
     if (costeoSeedPreciosReales(all.garden, 'garden')) changed = true;
     if (costeoSeedPreciosReales(all.badass, 'badass')) changed = true;
+    // Barra: siembra los 2 conjuntos de tragos (una vez). Comida queda intacta.
+    if (costeoEnsureBarraDocs(all)) changed = true;
     if (changed) saveCosteoAll(all);
     return all;
-  } catch (e) { console.warn('costeo load:', e.message); return { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; }
+  } catch (e) { console.warn('costeo load:', e.message); const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureBarraDocs(all); return all; }
 }
 function saveCosteoAll(all){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTEO_FILE, JSON.stringify(all, null, 2)); }
-function loadCosteo(rest){ return loadCosteoAll()[costeoRestKey(rest)]; }
-function saveCosteo(rest, doc){ const all = loadCosteoAll(); all[costeoRestKey(rest)] = doc; saveCosteoAll(all); }
-function insumoPrecioReal(i){ return (i.rendimiento && i.rendimiento > 0) ? Math.round(i.precioNeto / i.rendimiento) : Math.round(i.precioNeto); }
+function loadCosteo(rest, svc){ return loadCosteoAll()[costeoDocKey(rest, svc)]; }
+function saveCosteo(rest, svc, doc){ const all = loadCosteoAll(); all[costeoDocKey(rest, svc)] = doc; saveCosteoAll(all); }
+// Precio por unidad usado en el costeo. Barra: precioNeto (bruto) ÷ volumen de
+// botella (= precio por litro). Comida: precioNeto ÷ rendimiento (o precioNeto).
+function insumoPrecioReal(i){
+  if (i.volumen && i.volumen > 0) return Math.round(i.precioNeto / i.volumen);
+  return (i.rendimiento && i.rendimiento > 0) ? Math.round(i.precioNeto / i.rendimiento) : Math.round(i.precioNeto);
+}
 
 // Resuelve todo en cascada (RB con memo + guard de ciclos). Un cambio de precio
 // de insumo se propaga solo porque nada derivado está guardado.
@@ -4837,33 +4876,35 @@ function resolveCosteo(d){
 }
 
 app.get('/admin/costeo', requireAdmin, (req, res) => {
-  const rest = costeoRestKey(req.query.rest);
-  res.json({ restaurante: rest, ...resolveCosteo(loadCosteo(rest)) });
+  const rest = costeoRestKey(req.query.rest); const svc = costeoSvcKey(req.query.svc);
+  res.json({ restaurante: rest, servicio: svc, ...resolveCosteo(loadCosteo(rest, svc)) });
 });
 
 // ── Insumos (Nivel 1) ──
 app.post('/admin/costeo/insumos', requireAdmin, (req, res) => {
   const rest = req.query.rest; const b = req.body || {}; const desc = costeoStr(b.descripcion, 200);
   if (!desc) return res.status(400).json({ error: 'La descripción es obligatoria.' });
-  const d = loadCosteo(rest);
-  d.insumos.push({ id: randomUUID(), descripcion: desc, precioNeto: Number(b.precioNeto) || 0, unidad: costeoUnit(b.unidad), rendimiento: (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null });
-  saveCosteo(rest, d); res.json({ ok: true });
+  const d = loadCosteo(rest, req.query.svc);
+  const volumen = (Number(b.volumen) > 0) ? Number(b.volumen) : null;
+  d.insumos.push({ id: randomUUID(), descripcion: desc, precioNeto: Number(b.precioNeto) || 0, unidad: costeoUnit(b.unidad), rendimiento: (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null, volumen });
+  saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 app.put('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
-  const rest = req.query.rest; const d = loadCosteo(rest); const i = d.insumos.find(x => x.id === String(req.params.id));
+  const rest = req.query.rest; const d = loadCosteo(rest, req.query.svc); const i = d.insumos.find(x => x.id === String(req.params.id));
   if (!i) return res.status(404).json({ error: 'Insumo no encontrado.' });
   const b = req.body || {};
   if (b.descripcion !== undefined) { const v = costeoStr(b.descripcion, 200); if (!v) return res.status(400).json({ error: 'Descripción vacía.' }); i.descripcion = v; }
   if (b.precioNeto !== undefined) i.precioNeto = Number(b.precioNeto) || 0;
   if (b.unidad !== undefined) i.unidad = costeoUnit(b.unidad);
   if (b.rendimiento !== undefined) i.rendimiento = (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null;
-  saveCosteo(rest, d); res.json({ ok: true });
+  if (b.volumen !== undefined) i.volumen = (Number(b.volumen) > 0) ? Number(b.volumen) : null;
+  saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 app.delete('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
-  const rest = req.query.rest; const d = loadCosteo(rest); const before = d.insumos.length;
+  const rest = req.query.rest; const d = loadCosteo(rest, req.query.svc); const before = d.insumos.length;
   d.insumos = d.insumos.filter(x => x.id !== String(req.params.id));
   if (d.insumos.length === before) return res.status(404).json({ error: 'Insumo no encontrado.' });
-  saveCosteo(rest, d); res.json({ ok: true });
+  saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 
 // ── Recetas base (Nivel 2) ──
@@ -4873,25 +4914,25 @@ function normalizeRBLineas(raw){
 app.post('/admin/costeo/recetas', requireAdmin, (req, res) => {
   const rest = req.query.rest; const b = req.body || {}; const nombre = costeoStr(b.nombre, 200);
   if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio.' });
-  const d = loadCosteo(rest);
+  const d = loadCosteo(rest, req.query.svc);
   d.recetasBase.push({ id: randomUUID(), nombre, unidad: costeoUnit(b.unidad), produccion: Number(b.produccion) || 0, lineas: normalizeRBLineas(b.lineas) });
-  saveCosteo(rest, d); res.json({ ok: true });
+  saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 app.put('/admin/costeo/recetas/:id', requireAdmin, (req, res) => {
-  const rest = req.query.rest; const d = loadCosteo(rest); const rb = d.recetasBase.find(x => x.id === String(req.params.id));
+  const rest = req.query.rest; const d = loadCosteo(rest, req.query.svc); const rb = d.recetasBase.find(x => x.id === String(req.params.id));
   if (!rb) return res.status(404).json({ error: 'Receta no encontrada.' });
   const b = req.body || {};
   if (b.nombre !== undefined) { const v = costeoStr(b.nombre, 200); if (!v) return res.status(400).json({ error: 'Nombre vacío.' }); rb.nombre = v; }
   if (b.unidad !== undefined) rb.unidad = costeoUnit(b.unidad);
   if (b.produccion !== undefined) rb.produccion = Number(b.produccion) || 0;
   if (b.lineas !== undefined) rb.lineas = normalizeRBLineas(b.lineas);
-  saveCosteo(rest, d); res.json({ ok: true });
+  saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 app.delete('/admin/costeo/recetas/:id', requireAdmin, (req, res) => {
-  const rest = req.query.rest; const d = loadCosteo(rest); const before = d.recetasBase.length;
+  const rest = req.query.rest; const d = loadCosteo(rest, req.query.svc); const before = d.recetasBase.length;
   d.recetasBase = d.recetasBase.filter(x => x.id !== String(req.params.id));
   if (d.recetasBase.length === before) return res.status(404).json({ error: 'Receta no encontrada.' });
-  saveCosteo(rest, d); res.json({ ok: true });
+  saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 
 // ── Platos (Nivel 3) ──
@@ -4900,14 +4941,14 @@ function costeoMargen(v){ const m = Number(v); return (m > 0 && m <= 100) ? m : 
 app.post('/admin/costeo/platos', requireAdmin, (req, res) => {
   const rest = req.query.rest; const b = req.body || {}; const nombre = costeoStr(b.nombre, 200);
   if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio.' });
-  const d = loadCosteo(rest);
+  const d = loadCosteo(rest, req.query.svc);
   const categoria = costeoStr(b.categoria, 120) || (d.categorias[0] || 'Sin categoría');
   const precioReal = (Number(b.precioReal) > 0) ? Math.round(Number(b.precioReal)) : null;
   d.platos.push({ id: randomUUID(), nombre, categoria, margenPct: costeoMargen(b.margenPct), precioReal, lineas: normalizeRBLineas(b.lineas) });
-  saveCosteo(rest, d); res.json({ ok: true });
+  saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 app.put('/admin/costeo/platos/:id', requireAdmin, (req, res) => {
-  const rest = req.query.rest; const d = loadCosteo(rest); const p = d.platos.find(x => x.id === String(req.params.id));
+  const rest = req.query.rest; const d = loadCosteo(rest, req.query.svc); const p = d.platos.find(x => x.id === String(req.params.id));
   if (!p) return res.status(404).json({ error: 'Plato no encontrado.' });
   const b = req.body || {};
   if (b.nombre !== undefined) { const v = costeoStr(b.nombre, 200); if (!v) return res.status(400).json({ error: 'Nombre vacío.' }); p.nombre = v; }
@@ -4915,22 +4956,22 @@ app.put('/admin/costeo/platos/:id', requireAdmin, (req, res) => {
   if (b.margenPct !== undefined) p.margenPct = costeoMargen(b.margenPct);
   if (b.precioReal !== undefined) p.precioReal = (Number(b.precioReal) > 0) ? Math.round(Number(b.precioReal)) : null;
   if (b.lineas !== undefined) p.lineas = normalizeRBLineas(b.lineas);
-  saveCosteo(rest, d); res.json({ ok: true });
+  saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 // Editar el precio de venta REAL de un plato (desde la pestaña Carta). '' / 0 → sin precio.
 app.post('/admin/costeo/carta/precio-real', requireAdmin, (req, res) => {
   const rest = req.query.rest; const b = req.body || {};
   const platoId = String(b.platoId || ''); if (!platoId) return res.status(400).json({ error: 'Falta platoId.' });
-  const d = loadCosteo(rest); const p = (d.platos || []).find(x => x.id === platoId);
+  const d = loadCosteo(rest, req.query.svc); const p = (d.platos || []).find(x => x.id === platoId);
   if (!p) return res.status(404).json({ error: 'Plato no encontrado.' });
   p.precioReal = (Number(b.precioReal) > 0) ? Math.round(Number(b.precioReal)) : null;
-  saveCosteo(rest, d); res.json({ ok: true, precioReal: p.precioReal });
+  saveCosteo(rest, req.query.svc, d); res.json({ ok: true, precioReal: p.precioReal });
 });
 app.delete('/admin/costeo/platos/:id', requireAdmin, (req, res) => {
-  const rest = req.query.rest; const d = loadCosteo(rest); const before = d.platos.length;
+  const rest = req.query.rest; const d = loadCosteo(rest, req.query.svc); const before = d.platos.length;
   d.platos = d.platos.filter(x => x.id !== String(req.params.id));
   if (d.platos.length === before) return res.status(404).json({ error: 'Plato no encontrado.' });
-  saveCosteo(rest, d); res.json({ ok: true });
+  saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 
 // ── Carta (Nivel 4): platos costeados organizados por las secciones del menú ──
@@ -4978,27 +5019,27 @@ function resolveCarta(doc){
 }
 
 app.get('/admin/costeo/carta', requireAdmin, (req, res) => {
-  const rest = costeoRestKey(req.query.rest);
-  res.json({ restaurante: rest, ...resolveCarta(loadCosteo(rest)) });
+  const rest = costeoRestKey(req.query.rest); const svc = costeoSvcKey(req.query.svc);
+  res.json({ restaurante: rest, servicio: svc, ...resolveCarta(loadCosteo(rest, svc)) });
 });
 // Reasignar un plato a otra sección. seccionId: id válido → esa sección;
 // '' → forzar "Sin asignar"; '__auto__' → volver al auto-match por nombre.
 app.post('/admin/costeo/carta/asignar', requireAdmin, (req, res) => {
   const rest = req.query.rest; const b = req.body || {};
   const platoId = String(b.platoId || ''); if (!platoId) return res.status(400).json({ error: 'Falta platoId.' });
-  const d = loadCosteo(rest); d.carta = costeoNormalizeCarta(d.carta);
+  const d = loadCosteo(rest, req.query.svc); d.carta = costeoNormalizeCarta(d.carta);
   const seccionId = String(b.seccionId == null ? '' : b.seccionId);
   if (seccionId === '__auto__') delete d.carta.asignaciones[platoId];
   else d.carta.asignaciones[platoId] = seccionId;
-  saveCosteo(rest, d); res.json({ ok: true });
+  saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 // Reemplaza la estructura de secciones/ítems (para cargar el orden real del menú).
 app.put('/admin/costeo/carta/secciones', requireAdmin, (req, res) => {
   const rest = req.query.rest; const b = req.body || {};
   if (!Array.isArray(b.secciones)) return res.status(400).json({ error: 'Falta secciones (array).' });
-  const d = loadCosteo(rest); d.carta = costeoNormalizeCarta(d.carta);
+  const d = loadCosteo(rest, req.query.svc); d.carta = costeoNormalizeCarta(d.carta);
   d.carta.secciones = costeoNormalizeCarta({ secciones: b.secciones }).secciones;
-  saveCosteo(rest, d); res.json({ ok: true });
+  saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 
 // ── Export de la Carta a Excel (.xlsx) ──────────────────────────────────────
@@ -5075,11 +5116,13 @@ function cartaSheetRows(carta){
 }
 app.get('/admin/costeo/carta/export.xlsx', requireAdmin, (req, res) => {
   const scope = String(req.query.rest || 'garden');
+  const svc = costeoSvcKey(req.query.svc);
   const rests = scope === 'both' ? ['garden', 'badass'] : [costeoRestKey(scope)];
+  const svcLabel = svc === 'barra' ? ' — Barra' : '';
   const label = { garden: 'Kairos Garden', badass: 'Badass' };
-  const sheets = rests.map(rt => ({ name: label[rt], rows: (() => {
-    const carta = resolveCarta(loadCosteo(rt));
-    return [[{ v: label[rt], s: 5 }], []].concat(cartaSheetRows(carta));
+  const sheets = rests.map(rt => ({ name: (label[rt] + svcLabel), rows: (() => {
+    const carta = resolveCarta(loadCosteo(rt, svc));
+    return [[{ v: label[rt] + svcLabel, s: 5 }], []].concat(cartaSheetRows(carta));
   })() }));
   // Partes del paquete OOXML.
   const files = [];
@@ -5097,7 +5140,8 @@ app.get('/admin/costeo/carta/export.xlsx', requireAdmin, (req, res) => {
   files.push({ name: 'xl/styles.xml', data: XLSX_STYLES });
   sheets.forEach((s, i) => files.push({ name: `xl/worksheets/sheet${i + 1}.xml`, data: xlsxSheetXml(s.rows) }));
   const buf = zipStore(files);
-  const fname = scope === 'both' ? 'carta-zorbo.xlsx' : `carta-${costeoRestKey(scope)}.xlsx`;
+  const sfx = svc === 'barra' ? '-barra' : '';
+  const fname = scope === 'both' ? `carta${sfx}-zorbo.xlsx` : `carta${sfx}-${costeoRestKey(scope)}.xlsx`;
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename="${fname}"`);
   res.send(buf);

@@ -1393,6 +1393,9 @@ body.drawer-open{overflow:hidden}
 .costeo-rest-btn{font-family:var(--sans);font-size:.82rem;font-weight:700;color:var(--muted,#666);background:transparent;border:1px solid var(--line,#e5e5e5);border-radius:999px;padding:.4rem .95rem;cursor:pointer;transition:all .15s}
 .costeo-rest-btn:hover{border-color:var(--gold-bd,#f1c97b);color:var(--text,#111)}
 .costeo-rest-btn.on{background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623) 60%);color:#1a1408;border-color:transparent}
+.costeo-svc-lbl{margin-left:.9rem}
+.costeo-svc{font-family:var(--sans);font-size:.82rem;font-weight:700;color:var(--text,#111);background:var(--surface,#fff);border:1px solid var(--line,#e5e5e5);border-radius:999px;padding:.4rem 1.6rem .4rem .95rem;cursor:pointer}
+.costeo-svc:focus{outline:none;border-color:var(--gold,#f5a623)}
 .dist-subnav{display:flex;gap:.4rem;flex-wrap:wrap;margin:0 0 1.1rem;padding-bottom:.9rem;border-bottom:1px solid var(--line,#eee)}
 .dist-subtab{font-family:var(--sans);font-size:.78rem;font-weight:700;color:var(--muted,#666);background:transparent;border:1px solid var(--line,#e5e5e5);border-radius:999px;padding:.45rem .9rem;cursor:pointer;transition:all .15s}
 .dist-subtab:hover{border-color:var(--gold-bd,#f1c97b);color:var(--text,#111)}
@@ -1887,11 +1890,16 @@ body.drawer-open{overflow:hidden}
         <span class="costeo-rest-lbl">Restaurante</span>
         <button type="button" class="costeo-rest-btn on" data-rest="garden">Garden</button>
         <button type="button" class="costeo-rest-btn" data-rest="badass">Badass</button>
+        <span class="costeo-rest-lbl costeo-svc-lbl">Servicio</span>
+        <select id="costeoSvc" class="costeo-svc">
+          <option value="comida">🍽️ Comida</option>
+          <option value="barra">🍸 Barra</option>
+        </select>
       </div>
       <div class="dist-subnav" id="costeoSubnav">
         <button type="button" class="dist-subtab on" data-csub="insumos">Insumos</button>
         <button type="button" class="dist-subtab" data-csub="recetas">Recetas base</button>
-        <button type="button" class="dist-subtab" data-csub="platos">Platos</button>
+        <button type="button" class="dist-subtab" data-csub="platos" id="costeoTabProd">Platos</button>
         <button type="button" class="dist-subtab" data-csub="resumen">Carta (resumen)</button>
       </div>
       <div id="costeoBody"><div class="adm-loading">Cargando…</div></div>
@@ -6773,20 +6781,25 @@ document.getElementById('tcBtn').onclick = runTopClientes;
 document.getElementById('tcInput').addEventListener('keydown', e => { if (e.key === 'Enter') runTopClientes(); });
 
 // ─── Costeo de carta (insumos · recetas base) ────────────────────────────────
-let costeoData = null, costeoSub = 'insumos', insumoSearch = '', rbSearch = '', costeoRest = 'garden';
+let costeoData = null, costeoSub = 'insumos', insumoSearch = '', rbSearch = '', costeoRest = 'garden', costeoSvc = 'comida';
 let platoEditing = null, platoDraft = [], platoSearch = '', platoCatFilter = '';
+const isBarra = () => costeoSvc === 'barra';
 const cMoney = (n) => '$' + Math.round(Number(n)||0).toLocaleString('es-CL');
 // Acepta coma como separador decimal (ej: "9,5")
 const cNum = (v) => { const n = parseFloat(String(v==null?'':v).trim().replace(',', '.')); return Number.isFinite(n) ? n : 0; };
-const cRest = (url) => url + (url.includes('?') ? '&' : '?') + 'rest=' + costeoRest;
+const cRest = (url) => url + (url.includes('?') ? '&' : '?') + 'rest=' + costeoRest + '&svc=' + costeoSvc;
 const C_UNITS = (cur) => ['litro','kilogramo','unidad'].map(u=>`<option value="${u}" ${cur===u?'selected':''}>${u}</option>`).join('');
+function costeoResetState(){ rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch=''; platoEditing=null; platoDraft=[]; platoSearch=''; platoCatFilter=''; }
 
 async function loadCosteo(){
   const body = document.getElementById('costeoBody');
   body.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  // La pestaña de productos se llama "Platos" en comida y "Tragos" en barra.
+  const prodTab = document.getElementById('costeoTabProd'); if (prodTab) prodTab.textContent = isBarra() ? 'Tragos' : 'Platos';
   try {
     costeoData = await (await fetch(cRest('/admin/costeo'))).json();
-    document.getElementById('costeoMeta').textContent = `${costeoData.insumos.length} insumos · ${costeoData.recetasBase.length} recetas base · ${(costeoData.platos||[]).length} platos`;
+    const prodLbl = isBarra() ? 'tragos' : 'platos';
+    document.getElementById('costeoMeta').textContent = `${costeoData.insumos.length} insumos · ${costeoData.recetasBase.length} recetas base · ${(costeoData.platos||[]).length} ${prodLbl}`;
     renderCosteoSub();
   } catch(e){ body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
 }
@@ -6794,8 +6807,12 @@ document.getElementById('costeoRest').addEventListener('click', e=>{
   const b=e.target.closest('.costeo-rest-btn'); if(!b || b.dataset.rest===costeoRest) return;
   costeoRest=b.dataset.rest;
   document.querySelectorAll('#costeoRest .costeo-rest-btn').forEach(x=>x.classList.toggle('on', x.dataset.rest===costeoRest));
-  rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch='';
-  platoEditing=null; platoDraft=[]; platoSearch=''; platoCatFilter='';
+  costeoResetState();
+  loadCosteo();
+});
+document.getElementById('costeoSvc').addEventListener('change', e=>{
+  costeoSvc = e.target.value === 'barra' ? 'barra' : 'comida';
+  costeoResetState();
   loadCosteo();
 });
 function renderCosteoSub(){
@@ -6813,10 +6830,18 @@ document.getElementById('btnCosteoReload').onclick = ()=>loadCosteo();
 // ingrediente: incluye los insumos (editables) y las recetas base (RB, en solo
 // lectura, con su precio unitario calculado). Al crear una RB aparece acá al toque.
 function renderCosteoInsumos(){
+  const barra = isBarra();
   const q = insumoSearch.toLowerCase();
   const list = costeoData.insumos.filter(i=>!q || i.descripcion.toLowerCase().includes(q)).slice(0,500);
   const rbList = (costeoData.recetasBase||[]).filter(r=>!q || r.nombre.toLowerCase().includes(q)).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
-  const rows = list.map(i=>`
+  const rows = list.map(i=> barra ? `
+    <tr data-iid="${i.id}">
+      <td><input class="ci-inp" style="width:100%" data-f="descripcion" value="${escapeAttr(i.descripcion)}"></td>
+      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:110px" data-f="precioNeto" value="${i.precioNeto||''}"></td>
+      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:80px" data-f="volumen" value="${i.volumen||''}" placeholder="1"></td>
+      <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b></td>
+      <td><button class="pv-del" data-idel="${i.id}">✕</button> <span class="dist-status" data-ist></span></td>
+    </tr>` : `
     <tr data-iid="${i.id}">
       <td><input class="ci-inp" style="width:100%" data-f="descripcion" value="${escapeAttr(i.descripcion)}"></td>
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:100px" data-f="precioNeto" value="${i.precioNeto||''}"></td>
@@ -6825,7 +6850,15 @@ function renderCosteoInsumos(){
       <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b></td>
       <td><button class="pv-del" data-idel="${i.id}">✕</button> <span class="dist-status" data-ist></span></td>
     </tr>`).join('');
-  const rbRows = rbList.map(r=>`
+  const cols = barra ? 5 : 6;
+  const rbRows = rbList.map(r=> barra ? `
+    <tr class="ci-rb-row">
+      <td>${escapeHtml(r.nombre)} <span class="mun-bk">RB</span></td>
+      <td class="dist-num" style="color:#aaa">—</td>
+      <td class="dist-num" style="color:#aaa">—</td>
+      <td class="dist-num"><b>${cMoney(r.precioUnidad)}</b></td>
+      <td><button class="dist-portal-link" data-rbgoto="${r.id}">Editar en RB</button></td>
+    </tr>` : `
     <tr class="ci-rb-row">
       <td>${escapeHtml(r.nombre)} <span class="mun-bk">RB</span></td>
       <td class="dist-num" style="color:#aaa">—</td>
@@ -6834,22 +6867,34 @@ function renderCosteoInsumos(){
       <td class="dist-num"><b>${cMoney(r.precioUnidad)}</b></td>
       <td><button class="dist-portal-link" data-rbgoto="${r.id}">Editar en RB</button></td>
     </tr>`).join('');
-  document.getElementById('costeoBody').innerHTML = `
-    <div class="dist-form" style="margin-bottom:1rem">
+  const form = barra ? `
+      <div class="dist-sec-title">Nuevo insumo de barra</div>
+      <div class="dist-form-grid" style="margin-top:.7rem">
+        <div class="dist-field wide"><label>Descripción</label><input id="niDesc" placeholder="Ej: Absolut"></div>
+        <div class="dist-field"><label>Precio bruto (botella)</label><input id="niPrecio" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="dist-field"><label>Volumen botella (L)</label><input id="niVol" type="text" inputmode="decimal" placeholder="ej: 0,75"></div>
+      </div>` : `
       <div class="dist-sec-title">Nuevo insumo</div>
       <div class="dist-form-grid" style="margin-top:.7rem">
         <div class="dist-field wide"><label>Descripción</label><input id="niDesc" placeholder="Ej: Salmón fresco"></div>
         <div class="dist-field"><label>Precio neto</label><input id="niPrecio" type="text" inputmode="decimal" placeholder="0"></div>
         <div class="dist-field"><label>Unidad</label><select id="niUnidad">${C_UNITS('kilogramo')}</select></div>
         <div class="dist-field"><label>% Rendimiento (0-1, opcional)</label><input id="niRend" type="text" inputmode="decimal" placeholder="ej: 0,6"></div>
-      </div>
+      </div>`;
+  const thead = barra
+    ? `<tr><th>Descripción</th><th style="text-align:right">Precio bruto</th><th style="text-align:right">Volumen bot.</th><th style="text-align:right">Precio 1L</th><th></th></tr>`
+    : `<tr><th>Descripción</th><th style="text-align:right">Precio neto</th><th>Unidad</th><th style="text-align:right">% Rend.</th><th style="text-align:right">Precio real</th><th></th></tr>`;
+  const countTxt = barra ? 'precio 1L = precio bruto ÷ volumen de botella' : 'precio real = precio neto ÷ rendimiento';
+  document.getElementById('costeoBody').innerHTML = `
+    <div class="dist-form" style="margin-bottom:1rem">
+      ${form}
       <div class="dist-form-actions"><button class="adm-btn" id="niAdd" type="button">Agregar insumo</button><span class="dist-status" id="niSt"></span></div>
     </div>
     <div class="tc-search"><input type="text" id="ciSearch" placeholder="Buscar insumo o receta base…" value="${escapeAttr(insumoSearch)}"></div>
-    <div class="mun-count">${list.length} insumos · ${rbList.length} recetas base (RB) · precio real = precio neto ÷ rendimiento</div>
+    <div class="mun-count">${list.length} insumos · ${rbList.length} recetas base (RB) · ${countTxt}</div>
     <div class="mun-wrap"><table class="mun-table">
-      <thead><tr><th>Descripción</th><th style="text-align:right">Precio neto</th><th>Unidad</th><th style="text-align:right">% Rend.</th><th style="text-align:right">Precio real</th><th></th></tr></thead>
-      <tbody>${rows}${rbList.length?`<tr class="ci-rb-sep"><td colspan="6">Recetas base (RB) — precio unitario calculado, se editan en la pestaña Recetas base</td></tr>`:''}${rbRows}</tbody>
+      <thead>${thead}</thead>
+      <tbody>${rows}${rbList.length?`<tr class="ci-rb-sep"><td colspan="${cols}">Recetas base (RB) — precio unitario calculado, se editan en la pestaña Recetas base</td></tr>`:''}${rbRows}</tbody>
     </table></div>`;
   const s=document.getElementById('ciSearch');
   s.oninput=()=>{ insumoSearch=s.value; const p=s.selectionStart; renderCosteoInsumos(); const n=document.getElementById('ciSearch'); n.focus(); try{n.setSelectionRange(p,p);}catch{} };
@@ -6862,23 +6907,33 @@ async function addInsumo(){
   const desc=document.getElementById('niDesc').value.trim(); const st=document.getElementById('niSt');
   if(!desc){ st.className='dist-status err'; st.textContent='Falta la descripción.'; return; }
   st.className='dist-status'; st.textContent='…';
+  const payload = isBarra()
+    ? { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), volumen:cNum(document.getElementById('niVol').value), unidad:'litro' }
+    : { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), unidad:document.getElementById('niUnidad').value, rendimiento:cNum(document.getElementById('niRend').value) };
   try{
-    const r=await fetch(cRest('/admin/costeo/insumos'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({descripcion:desc,precioNeto:cNum(document.getElementById('niPrecio').value),unidad:document.getElementById('niUnidad').value,rendimiento:cNum(document.getElementById('niRend').value)})});
+    const r=await fetch(cRest('/admin/costeo/insumos'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
     insumoSearch=''; await loadCosteo();
   }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
 }
 async function saveInsumo(id){
   const tr=document.querySelector(`#costeoBody tr[data-iid="${id}"]`); if(!tr) return;
-  const g=(f)=>tr.querySelector(`[data-f="${f}"]`).value;
+  const g=(f)=>{const el=tr.querySelector(`[data-f="${f}"]`);return el?el.value:undefined;};
   const st=tr.querySelector('[data-ist]'); st.className='dist-status'; st.textContent='…';
+  const barra=isBarra(); const pn=cNum(g('precioNeto')); const ins=costeoData.insumos.find(x=>x.id===id);
+  let real, payload;
+  if(barra){
+    const vol=cNum(g('volumen')); real=(vol>0)?Math.round(pn/vol):Math.round(pn);
+    payload={descripcion:g('descripcion'),precioNeto:pn,volumen:vol,unidad:(ins?ins.unidad:'litro')};
+  } else {
+    const rd=cNum(g('rendimiento')); real=(rd>0&&rd<=1)?Math.round(pn/rd):Math.round(pn);
+    payload={descripcion:g('descripcion'),precioNeto:pn,unidad:g('unidad'),rendimiento:rd};
+  }
   try{
-    const r=await fetch(cRest(`/admin/costeo/insumos/${id}`),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({descripcion:g('descripcion'),precioNeto:cNum(g('precioNeto')),unidad:g('unidad'),rendimiento:cNum(g('rendimiento'))})});
+    const r=await fetch(cRest(`/admin/costeo/insumos/${id}`),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
-    const pn=cNum(g('precioNeto')), rd=cNum(g('rendimiento'));
-    const real=(rd>0&&rd<=1)?Math.round(pn/rd):Math.round(pn);
     tr.querySelector('[data-real]').textContent=cMoney(real);
-    const ins=costeoData.insumos.find(x=>x.id===id); if(ins){ins.precioNeto=pn;ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');ins.descripcion=g('descripcion');ins.precioReal=real;}
+    if(ins){ins.precioNeto=pn;ins.descripcion=g('descripcion');ins.precioReal=real; if(barra){ins.volumen=cNum(g('volumen'))||null;} else {const rd=cNum(g('rendimiento'));ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');}}
     st.className='dist-status ok'; st.textContent='✓'; setTimeout(()=>{st.textContent='';},1400);
   }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
 }
