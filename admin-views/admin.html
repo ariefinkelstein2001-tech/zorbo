@@ -1493,6 +1493,9 @@ body.drawer-open{overflow:hidden}
 .ct-sincost{margin-top:.5rem;font-size:.74rem;color:var(--muted,#888);line-height:1.7}
 .ct-sincost span{display:inline-block;background:rgba(192,57,43,.08);color:#a53125;border:1px dashed rgba(192,57,43,.35);border-radius:6px;padding:.05rem .4rem;margin:.1rem .25rem .1rem 0}
 .ct-move{padding:.25rem .35rem;border:1px solid var(--line,#ddd);border-radius:7px;background:var(--surface,#fff);font-size:.75rem;color:var(--text,#111);max-width:150px}
+.ct-real{width:110px;text-align:right;padding:.3rem .5rem;border:1px solid var(--line,#ddd);border-radius:7px;background:var(--surface,#fff);font-size:.85rem;font-weight:700;color:var(--gold-deep,#a05f00)}
+.ct-real::placeholder{font-weight:400;font-style:italic;color:#bbb}
+.ct-real:focus{outline:none;border-color:var(--gold,#f5a623);box-shadow:0 0 0 2px rgba(245,166,35,.18)}
 
 /* ── PUNTOS DE VENTA ── */
 .pv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;margin-bottom:1rem}
@@ -7037,7 +7040,7 @@ function renderCosteoPlatos(){
       </tr>`).join('');
     return `<div class="pl-cat-title">${escapeHtml(cat)} <span>(${byCat[cat].length})</span></div>
       <div class="mun-wrap"><table class="mun-table">
-        <thead><tr><th>Plato</th><th style="text-align:right">Costo final</th><th style="text-align:right">Margen</th><th style="text-align:right">Precio venta</th><th style="text-align:right">% costo</th><th></th></tr></thead>
+        <thead><tr><th>Plato</th><th style="text-align:right">Costo final</th><th style="text-align:right">Margen</th><th style="text-align:right">Precio sugerido</th><th style="text-align:right">% costo</th><th></th></tr></thead>
         <tbody>${rows}</tbody></table></div>`;
   }).join('');
   const catOptions = cats.map(c=>`<option value="${escapeAttr(c)}" ${(platoEditing?platoEditing.categoria:'')===c?'selected':''}>${escapeHtml(c)}</option>`).join('');
@@ -7154,11 +7157,12 @@ function cartaSecSelect(pid, currentSecId, isSinAsignar){
     <option value="" ${isSinAsignar?'selected':''}>— Sin asignar —</option></select>`;
 }
 function cartaRow(p, secId, isSinAsignar){
+  const real = p.precioReal, pct = p.pctCosto; // pctCosto acá = % de costo REAL (o null)
   return `<tr>
     <td><b>${escapeHtml(p.nombre)}</b>${isSinAsignar?` <span class="mun-bk">${escapeHtml(p.categoria)}</span>`:''}</td>
-    <td class="dist-num"><b class="pl-precio">${cMoney(p.precioVenta)}</b></td>
+    <td class="dist-num"><input class="ct-real" data-pid="${p.id}" type="text" inputmode="numeric" value="${real!=null?real:''}" placeholder="sin precio"></td>
     <td class="dist-num">${cMoney(p.costo)}</td>
-    <td class="dist-num"><span class="pl-pct ${p.pctCosto>40?'hi':''}">${p.pctCosto}%</span></td>
+    <td class="dist-num"><span class="pl-pct ${pct!=null&&pct>40?'hi':''}" data-pct>${pct!=null?pct+'%':'—'}</span></td>
     <td class="dist-num">${cartaSecSelect(p.id, secId, isSinAsignar)}</td>
   </tr>`;
 }
@@ -7179,7 +7183,7 @@ function drawCarta(){
     : '';
   document.getElementById('costeoBody').innerHTML = `
     <div class="ct-toolbar">
-      <div class="ct-toolbar-info">Precios <b>sugeridos por tu costeo</b> (no los de la carta pública). ${c.meta.totalSecciones} secciones · ${c.meta.totalPlatos} platos costeados. Reasigná un plato con el selector de sección.</div>
+      <div class="ct-toolbar-info"><b>Precio de venta REAL</b> (el que cobrás al público, editable acá). El <b>% de costo</b> es contra ese precio real; el <b>costo</b> sale del costeo. ${c.meta.totalSecciones} secciones · ${c.meta.totalPlatos} platos.</div>
       <div class="ct-pdf">
         <span>Excel</span>
         <select id="ctXlScope"><option value="one">${escapeHtml(REST_LABEL[costeoRest]||costeoRest)}</option><option value="both">Ambos restaurantes</option></select>
@@ -7189,6 +7193,7 @@ function drawCarta(){
     ${secBlocks || '<div class="dist-empty">No hay secciones todavía.</div>'}
     ${saBlock}`;
   document.querySelectorAll('#costeoBody .ct-move').forEach(sel=>sel.onchange=()=>cartaMove(sel.dataset.pid, sel.value));
+  document.querySelectorAll('#costeoBody .ct-real').forEach(inp=>{ inp.onchange=()=>cartaSaveReal(inp); });
   document.getElementById('ctXlBtn').onclick=cartaExcel;
 }
 async function cartaMove(pid, seccionId){
@@ -7196,6 +7201,26 @@ async function cartaMove(pid, seccionId){
     const r=await fetch(cRest('/admin/costeo/carta/asignar'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platoId:pid, seccionId})});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
     await renderCosteoCarta();
+  }catch(e){ alert(e.message); }
+}
+function cartaFindPlato(pid){
+  for(const s of cartaData.secciones){ const f=s.platos.find(p=>p.id===pid); if(f) return f; }
+  return cartaData.sinAsignar.find(p=>p.id===pid);
+}
+// Guarda el precio de venta real de un plato y actualiza el % de costo en la fila
+// (sin re-render, para no perder el foco al ir tipeando precios).
+async function cartaSaveReal(inp){
+  const pid=inp.dataset.pid; const raw=inp.value.trim(); const val=raw===''?0:cNum(raw);
+  try{
+    const r=await fetch(cRest('/admin/costeo/carta/precio-real'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platoId:pid, precioReal:val})});
+    if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
+    const d=await r.json();
+    const real=d.precioReal; // ya normalizado por el server (null si 0/vacío)
+    const p=cartaFindPlato(pid);
+    if(p){ p.precioReal=real; p.pctCosto = real ? Math.round((p.costo/real)*1000)/10 : null; }
+    inp.value = real!=null ? real : '';
+    const tr=inp.closest('tr'); const pctEl=tr && tr.querySelector('[data-pct]');
+    if(pctEl){ const pct=p?p.pctCosto:null; pctEl.textContent = pct!=null ? pct+'%' : '—'; pctEl.classList.toggle('hi', pct!=null && pct>40); }
   }catch(e){ alert(e.message); }
 }
 // Descarga la carta en Excel (.xlsx). El servidor arma el archivo con una hoja por

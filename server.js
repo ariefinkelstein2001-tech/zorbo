@@ -4511,7 +4511,8 @@ function costeoNormalizeCarta(c){
   const asignaciones = (c.asignaciones && typeof c.asignaciones === 'object' && !Array.isArray(c.asignaciones)) ? { ...c.asignaciones } : {};
   const v = Number.isFinite(c.v) ? c.v : 0;   // versión del sembrado de secciones (migra una sola vez)
   const pv = Number.isFinite(c.pv) ? c.pv : 0; // versión de la migración de platos (renombres + categorías)
-  return { v, pv, secciones, asignaciones };
+  const rv = Number.isFinite(c.rv) ? c.rv : 0; // versión del sembrado de precios de venta reales
+  return { v, pv, rv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -4670,6 +4671,48 @@ function costeoMigratePlatos(doc, rest){
   doc.carta.pv = PLATOS_MIG_V;
   return true;
 }
+
+// ── Precios de venta REALES (los que se cobran al público) ──────────────────
+// El precio real es un campo editable por plato (p.precioReal). La pestaña Carta
+// lo muestra y calcula el % de costo real = Costo Final ÷ precio real. Acá se
+// siembran los precios reales de las cartas actuales, una sola vez (PRECIO_REAL_V),
+// matcheando por nombre. NO pisa un precio que el usuario ya haya cargado.
+const PRECIO_REAL_V = 1;
+const PRECIO_REAL_SEED = {
+  garden: {
+    'Easy Lunch': 8990, 'Full Lunch': 9990,
+    'Goldenmember Salmón': 7970, 'Gyosas Toad': 8970, 'Tiradito en la playa': 12470, 'Camarón que se duerme': 10990, 'Tartar del garden': 12990, 'Tartar Spicy Beef': 14470,
+    'Black Mamba Acevichado': 7970, 'Back in Black Anticuchero': 9470, 'Ostiones Batayaki': 9970, 'Empanadas de Lomo Salteado': 9970, 'El huerto de Antonella': 13990, 'Pollo Coronel Sanders': 16470, 'Mechada Elisa': 16970, 'Chorrillana Richard 55': 16970, 'Entraña de la madriguera': 19990,
+    'Poke': 7990, 'Lasagna bolognese di chef coniglio': 11990, 'Gnocchi Di Zucca': 11990, 'Mil-Amores': 13970, 'Costillitas del amor': 16970, 'Lomo liso del rancho': 18470, 'Mila-Nona': 16970,
+    'Salteado Cremoso Di Zucca': 14970, 'Fetuccini salteado': 15990, 'Salmon Fiorentina': 17970, 'Pepper Steak Cremoso': 19990,
+  },
+  badass: {
+    'Easy Lunch': 8970, 'Big Lunch': 10970,
+    'Gyosas Fungi': 8970, 'The Boneless': 9970,
+    'Goldmember': 9970, 'Tiradito Summer': 12470, 'Sexy Ceviche': 14970, 'Tartar Spicy Love': 14970, 'Pollo Coronel Sanders': 16470, 'Mechada Elisa': 16970, 'Lomo Liso Del Bigotudo': 18470,
+    'Salmon Fiorentina': 19970, 'Salmon mediterraneo': 19970, 'Salmon Risotto Fungi': 18970, 'Salteado Cremoso Di Zucca': 19970, 'Pepper Steak Cremoso': 19970,
+    'Poke': 8970, 'Kung-fu Chicken': 12470, 'Pollito al Velador': 13470, 'Filete Chào Fan': 13970, 'Mil-Amores': 15970, 'Mila-Nona': 16970, 'Mila-gro al Pesto': 16970,
+    'Ensalada de Atún': 11970, 'Ensalada de Pollo': 11970, 'Ensalada de salmón': 11970, 'Ensalada de camarón': 11970,
+    'Midori Veggi': 4970, 'Avocado Ganja Tare': 4970, 'Panko Roll It Baby': 4970, 'Crispy Chicken': 5470, 'Avocado Koopa Troopa': 4970,
+  },
+};
+function costeoSeedPreciosReales(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.rv >= PRECIO_REAL_V) return false;
+  const map = PRECIO_REAL_SEED[costeoRestKey(rest)] || {};
+  const entries = Object.entries(map).map(([n, price]) => ({ norm: costeoNormLoose(n), price }));
+  (doc.platos || []).forEach(p => {
+    if (p.precioReal != null) return; // no pisar lo que el usuario ya cargó
+    const pn = costeoNormLoose(p.nombre);
+    if (!pn) return;
+    let e = entries.find(x => x.norm === pn);
+    if (!e) e = entries.find(x => x.norm && (pn.includes(x.norm) || x.norm.includes(pn)));
+    if (e) p.precioReal = e.price;
+  });
+  doc.carta.rv = PRECIO_REAL_V;
+  return true;
+}
 // Migración de platos: el archivo costeo.json ya existía (con insumos/RB guardados)
 // antes de que existiera el Nivel 3, así que la semilla nunca inyectó los platos.
 // Acá se siembran los 75 platos del seed resolviendo cada línea POR NOMBRE contra
@@ -4697,10 +4740,10 @@ function costeoSeedPlatosInto(doc){
 const costeoDocEmpty = (doc) => !doc || (!(doc.insumos && doc.insumos.length) && !(doc.recetasBase && doc.recetasBase.length) && !(doc.platos && doc.platos.length));
 function loadCosteoAll(){
   try {
-    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.garden, 'garden'); costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.garden, 'garden'); costeoMigratePlatos(all.badass, 'badass'); saveCosteoAll(all); return all; }
+    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.garden, 'garden'); costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.garden, 'garden'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.garden, 'garden'); costeoSeedPreciosReales(all.badass, 'badass'); saveCosteoAll(all); return all; }
     const p = JSON.parse(readFileSync(COSTEO_FILE, 'utf-8'));
     // Migración: archivo viejo con la data en la raíz → pasa a "garden".
-    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoEnsureRealCarta(g, 'garden'); costeoMigratePlatos(g, 'garden'); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.badass, 'badass'); saveCosteoAll(all); return all; }
+    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoEnsureRealCarta(g, 'garden'); costeoMigratePlatos(g, 'garden'); costeoSeedPreciosReales(g, 'garden'); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.badass, 'badass'); saveCosteoAll(all); return all; }
     const all = { garden: costeoNormalizeDoc(p.garden), badass: costeoNormalizeDoc(p.badass) };
     let changed = false;
     if (costeoSeedPlatosInto(all.garden)) changed = true;
@@ -4712,6 +4755,9 @@ function loadCosteoAll(){
     // Migración de platos: renombres + categorías = secciones reales (una vez).
     if (costeoMigratePlatos(all.garden, 'garden')) changed = true;
     if (costeoMigratePlatos(all.badass, 'badass')) changed = true;
+    // Precios de venta reales: seed inicial (una vez), sin pisar lo que el usuario cargó.
+    if (costeoSeedPreciosReales(all.garden, 'garden')) changed = true;
+    if (costeoSeedPreciosReales(all.badass, 'badass')) changed = true;
     if (changed) saveCosteoAll(all);
     return all;
   } catch (e) { console.warn('costeo load:', e.message); return { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; }
@@ -4776,11 +4822,15 @@ function resolveCosteo(d){
     const precioVenta = margenPct > 0 ? costoFinal / (margenPct / 100) : 0;
     const precioVentaRedondeado = precioVenta > 0 ? Math.round(precioVenta / 100) * 100 : 0;
     const pctCosto = precioVenta > 0 ? (costoFinal / precioVenta) * 100 : 0;
+    const precioReal = (Number(p.precioReal) > 0) ? Math.round(Number(p.precioReal)) : null;
+    // % de costo REAL (contra el precio de venta que se cobra); null si no hay precio real cargado.
+    const pctCostoReal = precioReal ? Math.round((costoFinal / precioReal) * 1000) / 10 : null;
     return {
       id: p.id, nombre: p.nombre, categoria: p.categoria || 'Sin categoría', margenPct, lineas,
       costoTotal: Math.round(costoTotal), proteccion: Math.round(proteccion), iva: Math.round(iva),
       costoFinal: Math.round(costoFinal), precioVenta: Math.round(precioVenta),
       precioVentaRedondeado, pctCosto: Math.round(pctCosto * 10) / 10,
+      precioReal, pctCostoReal,
     };
   });
   return { insumos, recetasBase, ingredientes, platos, categorias: d.categorias };
@@ -4852,7 +4902,8 @@ app.post('/admin/costeo/platos', requireAdmin, (req, res) => {
   if (!nombre) return res.status(400).json({ error: 'El nombre es obligatorio.' });
   const d = loadCosteo(rest);
   const categoria = costeoStr(b.categoria, 120) || (d.categorias[0] || 'Sin categoría');
-  d.platos.push({ id: randomUUID(), nombre, categoria, margenPct: costeoMargen(b.margenPct), lineas: normalizeRBLineas(b.lineas) });
+  const precioReal = (Number(b.precioReal) > 0) ? Math.round(Number(b.precioReal)) : null;
+  d.platos.push({ id: randomUUID(), nombre, categoria, margenPct: costeoMargen(b.margenPct), precioReal, lineas: normalizeRBLineas(b.lineas) });
   saveCosteo(rest, d); res.json({ ok: true });
 });
 app.put('/admin/costeo/platos/:id', requireAdmin, (req, res) => {
@@ -4862,8 +4913,18 @@ app.put('/admin/costeo/platos/:id', requireAdmin, (req, res) => {
   if (b.nombre !== undefined) { const v = costeoStr(b.nombre, 200); if (!v) return res.status(400).json({ error: 'Nombre vacío.' }); p.nombre = v; }
   if (b.categoria !== undefined) p.categoria = costeoStr(b.categoria, 120) || p.categoria;
   if (b.margenPct !== undefined) p.margenPct = costeoMargen(b.margenPct);
+  if (b.precioReal !== undefined) p.precioReal = (Number(b.precioReal) > 0) ? Math.round(Number(b.precioReal)) : null;
   if (b.lineas !== undefined) p.lineas = normalizeRBLineas(b.lineas);
   saveCosteo(rest, d); res.json({ ok: true });
+});
+// Editar el precio de venta REAL de un plato (desde la pestaña Carta). '' / 0 → sin precio.
+app.post('/admin/costeo/carta/precio-real', requireAdmin, (req, res) => {
+  const rest = req.query.rest; const b = req.body || {};
+  const platoId = String(b.platoId || ''); if (!platoId) return res.status(400).json({ error: 'Falta platoId.' });
+  const d = loadCosteo(rest); const p = (d.platos || []).find(x => x.id === platoId);
+  if (!p) return res.status(404).json({ error: 'Plato no encontrado.' });
+  p.precioReal = (Number(b.precioReal) > 0) ? Math.round(Number(b.precioReal)) : null;
+  saveCosteo(rest, d); res.json({ ok: true, precioReal: p.precioReal });
 });
 app.delete('/admin/costeo/platos/:id', requireAdmin, (req, res) => {
   const rest = req.query.rest; const d = loadCosteo(rest); const before = d.platos.length;
@@ -4900,7 +4961,8 @@ function resolveCarta(doc){
     if (!hit) hit = itemIndex.find(it => it.norm && (it.norm.includes(pn) || pn.includes(it.norm)));
     if (hit) platoSection.set(p.id, hit.seccionId);
   });
-  const slim = (p) => ({ id: p.id, nombre: p.nombre, categoria: p.categoria, precioVenta: p.precioVentaRedondeado, costo: p.costoFinal, pctCosto: p.pctCosto });
+  // La Carta usa el precio de venta REAL y el % de costo contra ese real.
+  const slim = (p) => ({ id: p.id, nombre: p.nombre, categoria: p.categoria, precioReal: p.precioReal, precioSugerido: p.precioVentaRedondeado, costo: p.costoFinal, pctCosto: p.pctCostoReal });
   const secciones = carta.secciones.map(s => {
     const platosSec = platos.filter(p => platoSection.get(p.id) === s.id).map(slim).sort((a, b) => a.nombre.localeCompare(b.nombre));
     const secNorms = platosSec.map(p => costeoNormLoose(p.nombre));
@@ -4999,9 +5061,12 @@ function cartaSheetRows(carta){
     if (!platos.length && !(sinCostear && sinCostear.length)) return;
     rows.push([]); // fila en blanco
     rows.push([{ v: nombre, s: S.sec }, { v: '', s: S.sec }, { v: '', s: S.sec }, { v: '', s: S.sec }]);
-    platos.forEach(p => rows.push([
-      { v: p.nombre }, { v: p.precioVenta, t: 'n', s: S.money }, { v: p.costo, t: 'n', s: S.money }, { v: (Number(p.pctCosto) || 0) / 100, t: 'n', s: S.pct },
-    ]));
+    platos.forEach(p => {
+      // Precio de venta REAL (el que se cobra). % de costo = costo ÷ precio real.
+      const precioCell = (p.precioReal != null) ? { v: p.precioReal, t: 'n', s: S.money } : { v: 'sin precio' };
+      const pctCell = (p.precioReal != null && p.pctCosto != null) ? { v: (Number(p.pctCosto) || 0) / 100, t: 'n', s: S.pct } : { v: '' };
+      rows.push([{ v: p.nombre }, precioCell, { v: p.costo, t: 'n', s: S.money }, pctCell]);
+    });
     (sinCostear || []).forEach(n => rows.push([{ v: n + '  (sin costear)' }]));
   };
   carta.secciones.forEach(s => pushSec(s.nombre, s.platos, s.sinCostear));
