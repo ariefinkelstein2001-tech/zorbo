@@ -4429,6 +4429,10 @@ const costeoStr = (v, max = 200) => String(v == null ? '' : v).trim().slice(0, m
 const COSTEO_UNITS = ['litro', 'kilogramo', 'unidad'];
 function costeoUnit(u){ u = String(u || '').toLowerCase(); if (COSTEO_UNITS.includes(u)) return u; return /lit/.test(u) ? 'litro' : /kil/.test(u) ? 'kilogramo' : 'unidad'; }
 const costeoNorm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+// Normalización "suelta" para cruzar nombres de la carta contra los platos
+// costeados: además de acentos/mayúsculas, ignora guiones y puntuación (así
+// "Mil-Amores" calza con "mil amores", "Kung-fu Chicken" con "kung fu chicken").
+const costeoNormLoose = (s) => costeoNorm(s).replace(/[^a-z0-9]+/g, ' ').trim();
 
 const COSTEO_CATS_DEFAULT = ['Rolls', 'Burgers', 'Papas', 'Ceviches/Tiraditos/Ensaladas', 'Principales', 'Huella del chef'];
 // Construye un doc completo (insumos + RB + platos) desde un archivo de semilla.
@@ -4505,7 +4509,8 @@ function costeoNormalizeCarta(c){
       .filter(it => it.nombre) : [],
   })) : [];
   const asignaciones = (c.asignaciones && typeof c.asignaciones === 'object' && !Array.isArray(c.asignaciones)) ? { ...c.asignaciones } : {};
-  return { secciones, asignaciones };
+  const v = Number.isFinite(c.v) ? c.v : 0; // versión del sembrado de secciones (para migrar una sola vez)
+  return { v, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -4521,14 +4526,71 @@ function costeoDefaultCarta(doc){
   const cats = [...order.filter(c => byCat.has(c)), ...[...byCat.keys()].filter(c => !order.includes(c))];
   return { secciones: cats.map(c => ({ id: randomUUID(), nombre: c, items: byCat.get(c).map(n => ({ nombre: n })) })), asignaciones: {} };
 }
-// Siembra una carta por defecto si el doc todavía no tiene secciones. Corre una
-// sola vez (igual que el sembrado de platos). Devuelve true si mutó el doc.
-function costeoSeedCartaInto(doc){
+// Secciones REALES del menú público (gour.media), en el orden en que aparecen en
+// la carta. Cada sección lista los nombres de sus platos (incluso los que todavía
+// no están costeados → se muestran como "sin costear"). Las secciones sin platos
+// quedan vacías a propósito, para completarlas después con el reasignador manual.
+// El precio mostrado SIEMPRE sale del costeo; esto solo aporta orden y secciones.
+const COSTEO_CARTA_SEED = {
+  garden: [
+    { nombre: 'Almuerzo Silvestre (12:30-16:00)', items: ['Easy Lunch', 'Full Lunch'] },
+    { nombre: 'Para Comenzar', items: ['goldmember mechada', 'Goldenmember Salmón', 'Gyosas Toad', 'Tiradito en la playa', 'Camarón que se duerme', 'Tartar del garden', 'Tartar Spicy Beef'] },
+    { nombre: 'Para Compartir', items: ['Black Mamba Acevichado', 'Back in Black Anticuchero', 'Ostiones Batayaki', 'Empanadas de Lomo Salteado', 'El huerto de Antonella', 'Pollo Coronel Sanders', 'Mechada Elisa', 'Chorrillana Richard 55', 'Entraña de la madriguera'] },
+    { nombre: 'Platos Principales', items: ['Poke', 'Lasagna bolognese di chef coniglio', 'Gnocchi Di Zucca', 'Mil-Amores', 'Costillitas del amor', 'Lomo liso del rancho', 'Mila-Nona'] },
+    { nombre: 'La Huella del Chef', items: ['Salteado Cremoso Di Zucca', 'Fetuccini salteado', 'Salmon Fiorentina', 'Pepper Steak Cremoso'] },
+    { nombre: 'Ensaladas', items: [] },
+    { nombre: 'Ceviches', items: [] },
+    { nombre: 'Makis', items: [] },
+    { nombre: 'Entre panes (Burgers)', items: [] },
+    { nombre: 'Guarniciones', items: [] },
+    { nombre: 'Postres', items: [] },
+    { nombre: 'Para tomar 0,0°', items: [] },
+    { nombre: 'Banny dips', items: [] },
+    { nombre: 'Agregados', items: [] },
+  ],
+  badass: [
+    { nombre: 'Wild Lunch (12:30-16:00)', items: ['Easy Lunch', 'Big Lunch'] },
+    { nombre: 'Para Empezar', items: ['Gyosas Fungi', 'The Boneless'] },
+    { nombre: 'Para compartir', items: ['Goldmember', 'Tiradito Summer', 'Sexy Ceviche', 'Tartar Spicy Love', 'Pollo Coronel Sanders', 'Mechada Elisa', 'Lomo Liso Del Bigotudo'] },
+    { nombre: 'La Huella Del Chef', items: ['Salmon Fiorentina', 'Salmon mediterraneo', 'Salmon Risotto Fungi', 'Salteado Cremoso Di Zucca', 'Pepper Steak Cremoso'] },
+    { nombre: 'Platos Principales', items: ['Poke', 'Kung-fu Chicken', 'Pollito al Velador', 'Filete Chào Fan', 'Mil-Amores', 'Mila-Nona', 'Mila-gro al Pesto'] },
+    { nombre: 'Ensaladas', items: ['Ensalada de Atún', 'Ensalada de Pollo', 'Ensalada de salmón', 'Ensalada de camarón'] },
+    { nombre: 'Makis', items: ['Midori Veggi', 'Avocado Ganja Tare', 'Panko Roll It Baby', 'Crispy Chicken', 'Avocado Koopa Troopa'] },
+    { nombre: 'Entre panes (Burgers)', items: [] },
+    { nombre: 'Menu de niños', items: [] },
+    { nombre: 'Postres', items: [] },
+    { nombre: 'Guarniciones', items: [] },
+    { nombre: 'Banny Dips', items: [] },
+    { nombre: 'Para Tomar 0.0', items: [] },
+  ],
+};
+// Versión del sembrado de secciones. Al subirla, la migración vuelve a plantar
+// las secciones reales una vez por restaurante (sin pisar reasignaciones futuras
+// hechas sobre esta misma versión).
+const CARTA_REAL_V = 2;
+// Deja el doc con las secciones REALES del menú (COSTEO_CARTA_SEED) si todavía no
+// está en la versión actual. Reemplaza las secciones viejas (las que se armaban
+// por categorías del Excel) y limpia las asignaciones manuales, porque apuntaban a
+// secciones que ya no existen. Corre una sola vez por restaurante. Devuelve true
+// si mutó el doc.
+function costeoEnsureRealCarta(doc, rest){
   if (!doc) return false;
-  if (doc.carta && Array.isArray(doc.carta.secciones) && doc.carta.secciones.length) return false;
-  if (!(doc.platos && doc.platos.length)) return false;
-  doc.carta = costeoDefaultCarta(doc);
-  return true;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  const key = costeoRestKey(rest);
+  const seed = COSTEO_CARTA_SEED[key];
+  if (seed) {
+    if (doc.carta.v >= CARTA_REAL_V) return false;
+    doc.carta.secciones = seed.map((s, i) => ({ id: `${key}-s${i + 1}`, nombre: s.nombre, items: (s.items || []).map(n => ({ nombre: n })) }));
+    doc.carta.asignaciones = {};
+    doc.carta.v = CARTA_REAL_V;
+    return true;
+  }
+  // Restaurante sin seed real: default por categorías, una sola vez.
+  if (!doc.carta.secciones.length && doc.platos && doc.platos.length) {
+    doc.carta.secciones = costeoDefaultCarta(doc).secciones;
+    return true;
+  }
+  return false;
 }
 // Migración de platos: el archivo costeo.json ya existía (con insumos/RB guardados)
 // antes de que existiera el Nivel 3, así que la semilla nunca inyectó los platos.
@@ -4557,18 +4619,18 @@ function costeoSeedPlatosInto(doc){
 const costeoDocEmpty = (doc) => !doc || (!(doc.insumos && doc.insumos.length) && !(doc.recetasBase && doc.recetasBase.length) && !(doc.platos && doc.platos.length));
 function loadCosteoAll(){
   try {
-    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoSeedCartaInto(all.garden); costeoSeedCartaInto(all.badass); saveCosteoAll(all); return all; }
+    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.garden, 'garden'); costeoEnsureRealCarta(all.badass, 'badass'); saveCosteoAll(all); return all; }
     const p = JSON.parse(readFileSync(COSTEO_FILE, 'utf-8'));
     // Migración: archivo viejo con la data en la raíz → pasa a "garden".
-    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoSeedCartaInto(g); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoSeedCartaInto(all.badass); saveCosteoAll(all); return all; }
+    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoEnsureRealCarta(g, 'garden'); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.badass, 'badass'); saveCosteoAll(all); return all; }
     const all = { garden: costeoNormalizeDoc(p.garden), badass: costeoNormalizeDoc(p.badass) };
     let changed = false;
     if (costeoSeedPlatosInto(all.garden)) changed = true;
     // Badass: si está completamente vacío, se siembra full desde el Excel de Badass.
     if (costeoDocEmpty(all.badass)) { all.badass = costeoDefaultsBadass(); changed = true; }
-    // Carta (Nivel 4): siembra la estructura por categorías si aún no existe.
-    if (costeoSeedCartaInto(all.garden)) changed = true;
-    if (costeoSeedCartaInto(all.badass)) changed = true;
+    // Carta (Nivel 4): planta/actualiza las secciones REALES del menú (una vez por versión).
+    if (costeoEnsureRealCarta(all.garden, 'garden')) changed = true;
+    if (costeoEnsureRealCarta(all.badass, 'badass')) changed = true;
     if (changed) saveCosteoAll(all);
     return all;
   } catch (e) { console.warn('costeo load:', e.message); return { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; }
@@ -4739,15 +4801,15 @@ function resolveCarta(doc){
   const asign = carta.asignaciones || {};
   const platos = resolved.platos;
   const secIds = new Set(carta.secciones.map(s => s.id));
-  // Índice de ítems del menú para el auto-match por nombre.
+  // Índice de ítems del menú para el auto-match por nombre (normalización suelta).
   const itemIndex = [];
-  carta.secciones.forEach(s => (s.items || []).forEach(it => itemIndex.push({ seccionId: s.id, norm: costeoNorm(it.nombre) })));
+  carta.secciones.forEach(s => (s.items || []).forEach(it => itemIndex.push({ seccionId: s.id, norm: costeoNormLoose(it.nombre) })));
   // Sección resuelta de cada plato: manual > auto por nombre > (sin asignar).
   const platoSection = new Map();
   platos.forEach(p => {
     const manual = asign[p.id];
     if (manual !== undefined) { if (manual && secIds.has(manual)) platoSection.set(p.id, manual); return; }
-    const pn = costeoNorm(p.nombre);
+    const pn = costeoNormLoose(p.nombre);
     if (!pn) return;
     let hit = itemIndex.find(it => it.norm === pn);
     if (!hit) hit = itemIndex.find(it => it.norm && (it.norm.includes(pn) || pn.includes(it.norm)));
@@ -4756,10 +4818,10 @@ function resolveCarta(doc){
   const slim = (p) => ({ id: p.id, nombre: p.nombre, categoria: p.categoria, precioVenta: p.precioVentaRedondeado, pctCosto: p.pctCosto });
   const secciones = carta.secciones.map(s => {
     const platosSec = platos.filter(p => platoSection.get(p.id) === s.id).map(slim).sort((a, b) => a.nombre.localeCompare(b.nombre));
-    const secNorms = platosSec.map(p => costeoNorm(p.nombre));
+    const secNorms = platosSec.map(p => costeoNormLoose(p.nombre));
     // Ítem "sin costear" = nombre del menú que ningún plato costeado de la sección cubre.
     const sinCostear = (s.items || []).filter(it => {
-      const n = costeoNorm(it.nombre);
+      const n = costeoNormLoose(it.nombre);
       return n && !secNorms.some(pn => pn === n || pn.includes(n) || n.includes(pn));
     }).map(it => it.nombre);
     return { id: s.id, nombre: s.nombre, platos: platosSec, sinCostear };
