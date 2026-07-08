@@ -7153,46 +7153,43 @@ function cartaSecSelect(pid, currentSecId, isSinAsignar){
     <option value="__auto__">↺ Auto</option>${opts}
     <option value="" ${isSinAsignar?'selected':''}>— Sin asignar —</option></select>`;
 }
+function cartaRow(p, secId, isSinAsignar){
+  return `<tr>
+    <td><b>${escapeHtml(p.nombre)}</b>${isSinAsignar?` <span class="mun-bk">${escapeHtml(p.categoria)}</span>`:''}</td>
+    <td class="dist-num"><b class="pl-precio">${cMoney(p.precioVenta)}</b></td>
+    <td class="dist-num">${cMoney(p.costo)}</td>
+    <td class="dist-num"><span class="pl-pct ${p.pctCosto>40?'hi':''}">${p.pctCosto}%</span></td>
+    <td class="dist-num">${cartaSecSelect(p.id, secId, isSinAsignar)}</td>
+  </tr>`;
+}
+const CT_THEAD = '<thead><tr><th>Plato</th><th style="text-align:right">Precio de venta</th><th style="text-align:right">Costo</th><th style="text-align:right">% de costo</th><th style="text-align:right;width:150px">Sección</th></tr></thead>';
 function drawCarta(){
   const c=cartaData;
   const secBlocks = c.secciones.map(s=>{
-    const rows = s.platos.map(p=>`
-      <tr>
-        <td><b>${escapeHtml(p.nombre)}</b></td>
-        <td class="dist-num"><b class="pl-precio">${cMoney(p.precioVenta)}</b></td>
-        <td class="dist-num"><span class="pl-pct ${p.pctCosto>40?'hi':''}">${p.pctCosto}%</span></td>
-        <td class="dist-num">${cartaSecSelect(p.id, s.id, false)}</td>
-      </tr>`).join('');
+    const rows = s.platos.map(p=>cartaRow(p, s.id, false)).join('');
     const table = s.platos.length
-      ? `<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Plato</th><th style="text-align:right">Precio venta</th><th style="text-align:right">% costo</th><th style="text-align:right;width:160px">Sección</th></tr></thead><tbody>${rows}</tbody></table></div>`
+      ? `<div class="mun-wrap"><table class="mun-table">${CT_THEAD}<tbody>${rows}</tbody></table></div>`
       : '<div class="dist-empty" style="padding:.6rem">Sin platos costeados en esta sección.</div>';
     const sc = s.sinCostear.length ? `<div class="ct-sincost"><b>Sin costear:</b> ${s.sinCostear.map(n=>`<span>${escapeHtml(n)}</span>`).join('')}</div>` : '';
     return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.platos.length})</span></div>${table}${sc}</div>`;
   }).join('');
-  const saRows = c.sinAsignar.map(p=>`
-    <tr>
-      <td><b>${escapeHtml(p.nombre)}</b> <span class="mun-bk">${escapeHtml(p.categoria)}</span></td>
-      <td class="dist-num"><b class="pl-precio">${cMoney(p.precioVenta)}</b></td>
-      <td class="dist-num"><span class="pl-pct ${p.pctCosto>40?'hi':''}">${p.pctCosto}%</span></td>
-      <td class="dist-num">${cartaSecSelect(p.id, null, true)}</td>
-    </tr>`).join('');
+  const saRows = c.sinAsignar.map(p=>cartaRow(p, null, true)).join('');
   const saBlock = c.sinAsignar.length
-    ? `<div class="ct-sec ct-sec-sa"><div class="ct-sec-h">Sin asignar <span>(${c.sinAsignar.length})</span></div><div class="mun-wrap"><table class="mun-table"><thead><tr><th>Plato</th><th style="text-align:right">Precio venta</th><th style="text-align:right">% costo</th><th style="text-align:right;width:160px">Sección</th></tr></thead><tbody>${saRows}</tbody></table></div></div>`
+    ? `<div class="ct-sec ct-sec-sa"><div class="ct-sec-h">Sin asignar <span>(${c.sinAsignar.length})</span></div><div class="mun-wrap"><table class="mun-table">${CT_THEAD}<tbody>${saRows}</tbody></table></div></div>`
     : '';
   document.getElementById('costeoBody').innerHTML = `
     <div class="ct-toolbar">
       <div class="ct-toolbar-info">Precios <b>sugeridos por tu costeo</b> (no los de la carta pública). ${c.meta.totalSecciones} secciones · ${c.meta.totalPlatos} platos costeados. Reasigná un plato con el selector de sección.</div>
       <div class="ct-pdf">
-        <span>PDF</span>
-        <select id="ctPdfVer"><option value="interna">Interna (precio + % costo)</option><option value="limpia">Limpia (nombre + precio)</option></select>
-        <select id="ctPdfScope"><option value="one">${escapeHtml(REST_LABEL[costeoRest]||costeoRest)}</option><option value="both">Ambos restaurantes</option></select>
-        <button class="adm-btn adm-btn-gold" id="ctPdfBtn" type="button">Descargar PDF</button>
+        <span>Excel</span>
+        <select id="ctXlScope"><option value="one">${escapeHtml(REST_LABEL[costeoRest]||costeoRest)}</option><option value="both">Ambos restaurantes</option></select>
+        <button class="adm-btn adm-btn-gold" id="ctXlBtn" type="button">Descargar Excel</button>
       </div>
     </div>
     ${secBlocks || '<div class="dist-empty">No hay secciones todavía.</div>'}
     ${saBlock}`;
   document.querySelectorAll('#costeoBody .ct-move').forEach(sel=>sel.onchange=()=>cartaMove(sel.dataset.pid, sel.value));
-  document.getElementById('ctPdfBtn').onclick=cartaPdf;
+  document.getElementById('ctXlBtn').onclick=cartaExcel;
 }
 async function cartaMove(pid, seccionId){
   try{
@@ -7201,57 +7198,14 @@ async function cartaMove(pid, seccionId){
     await renderCosteoCarta();
   }catch(e){ alert(e.message); }
 }
-async function cartaPdf(){
-  const btn=document.getElementById('ctPdfBtn'); const ver=document.getElementById('ctPdfVer').value; const scope=document.getElementById('ctPdfScope').value;
-  const targets = scope==='both' ? ['garden','badass'] : [costeoRest];
-  btn.disabled=true; const prev=btn.textContent; btn.textContent='Generando…';
-  try{
-    const datasets=[];
-    for(const rt of targets){ const d=await (await fetch('/admin/costeo/carta?rest='+rt)).json(); datasets.push({ rest:rt, data:d }); }
-    const w=window.open('', '_blank');
-    if(!w){ alert('Permití las ventanas emergentes para descargar el PDF.'); return; }
-    w.document.write(buildCartaPrintHtml(datasets, ver));
-    w.document.close();
-  }catch(e){ alert('No se pudo generar el PDF: '+(e.message||e)); }
-  finally{ btn.disabled=false; btn.textContent=prev; }
-}
-function buildCartaPrintHtml(datasets, ver){
-  const interna = ver==='interna';
-  const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const money = (n)=>'$'+Math.round(Number(n)||0).toLocaleString('es-CL');
-  const restBlocks = datasets.map(({rest,data})=>{
-    const secs = data.secciones.map(s=>{
-      const rows = s.platos.map(p=>`<tr><td class="d">${esc(p.nombre)}</td>${interna?`<td class="c">${p.pctCosto}%</td>`:''}<td class="p">${money(p.precioVenta)}</td></tr>`).join('');
-      const sinc = (interna && s.sinCostear.length) ? `<tr><td class="sc" colspan="${interna?3:2}">Sin costear: ${s.sinCostear.map(esc).join(' · ')}</td></tr>` : '';
-      if(!s.platos.length && !(interna && s.sinCostear.length)) return '';
-      return `<div class="sec"><h3>${esc(s.nombre)}</h3><table>${rows}${sinc}</table></div>`;
-    }).join('');
-    const sa = (interna && data.sinAsignar.length)
-      ? `<div class="sec sa"><h3>Sin asignar</h3><table>${data.sinAsignar.map(p=>`<tr><td class="d">${esc(p.nombre)}</td><td class="c">${p.pctCosto}%</td><td class="p">${money(p.precioVenta)}</td></tr>`).join('')}</table></div>`
-      : '';
-    return `<section class="rest"><h1>${esc(REST_LABEL[rest]||rest)}</h1><div class="sub">${interna?'Versión interna · precio sugerido + % de costo':'Carta · precios sugeridos'}</div><div class="cols">${secs}${sa}</div></section>`;
-  }).join('');
-  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Carta ${interna?'interna':'limpia'} — Zorbo</title>
-<style>
-  *{box-sizing:border-box}
-  body{font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;margin:0;padding:28px 34px;background:#fff}
-  .rest{page-break-after:always}
-  .rest:last-child{page-break-after:auto}
-  h1{font-size:26px;margin:0 0 2px;letter-spacing:.5px;text-align:center;text-transform:uppercase}
-  .sub{text-align:center;font-size:11px;color:#8a6d1f;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #d4af37}
-  .cols{column-count:2;column-gap:30px}
-  .sec{break-inside:avoid;margin-bottom:16px}
-  .sec.sa h3{color:#c0392b;border-color:#c0392b}
-  h3{font-size:14px;text-transform:uppercase;letter-spacing:.8px;color:#111;margin:0 0 6px;padding-bottom:3px;border-bottom:1.5px solid #d4af37}
-  table{width:100%;border-collapse:collapse}
-  td{padding:3px 0;font-size:12.5px;vertical-align:bottom}
-  td.d{width:100%}
-  td.c{white-space:nowrap;text-align:right;padding-right:12px;font-size:10.5px;color:#999}
-  td.p{white-space:nowrap;text-align:right;font-weight:bold;color:#8a6d1f}
-  td.sc{font-size:9.5px;font-style:italic;color:#b33;padding-top:1px}
-  @media print{ body{padding:0} @page{margin:16mm} }
-</style></head>
-<body>${restBlocks}<script>window.onload=function(){setTimeout(function(){window.print();},350);};<\/script></body></html>`;
+// Descarga la carta en Excel (.xlsx). El servidor arma el archivo con una hoja por
+// restaurante y las columnas Plato · Precio de venta · Costo · % de costo.
+function cartaExcel(){
+  const scope=document.getElementById('ctXlScope').value;
+  const rest = scope==='both' ? 'both' : costeoRest;
+  const a=document.createElement('a');
+  a.href='/admin/costeo/carta/export.xlsx?rest='+encodeURIComponent(rest);
+  a.download=''; document.body.appendChild(a); a.click(); a.remove();
 }
 
 // ─── Boot ───────────────────────────────────────────────────────────────────

@@ -4509,8 +4509,9 @@ function costeoNormalizeCarta(c){
       .filter(it => it.nombre) : [],
   })) : [];
   const asignaciones = (c.asignaciones && typeof c.asignaciones === 'object' && !Array.isArray(c.asignaciones)) ? { ...c.asignaciones } : {};
-  const v = Number.isFinite(c.v) ? c.v : 0; // versión del sembrado de secciones (para migrar una sola vez)
-  return { v, secciones, asignaciones };
+  const v = Number.isFinite(c.v) ? c.v : 0;   // versión del sembrado de secciones (migra una sola vez)
+  const pv = Number.isFinite(c.pv) ? c.pv : 0; // versión de la migración de platos (renombres + categorías)
+  return { v, pv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -4592,6 +4593,83 @@ function costeoEnsureRealCarta(doc, rest){
   }
   return false;
 }
+
+// ── Migración de platos al vocabulario de la carta real (Nivel 3 + Carta) ──
+// 1) Renombra platos que son la misma comida con distinta escritura, usando el
+//    nombre de la carta pública como el correcto (así calzan solos).
+// 2) Recategoriza cada plato a su sección de carta.
+// 3) Deja las categorías del Nivel 3 = secciones reales del menú.
+// Corre una sola vez (PLATOS_MIG_V) y NO toca las reasignaciones manuales ni las
+// secciones (eso lo maneja costeoEnsureRealCarta / la versión v).
+const PLATOS_MIG_V = 1;
+// Renombres por restaurante: { nombreViejoDelCosteo: NombreDeLaCarta }. El match
+// es por nombre normalizado suelto, así que da igual mayúsculas/acentos.
+const COSTEO_PLATO_RENAMES = {
+  garden: {
+    'gnocchi di zuca': 'Gnocchi Di Zucca',
+    'Salmon florentina': 'Salmon Fiorentina',
+    'SALTEADO CREMOSO dizuca con lomo': 'Salteado Cremoso Di Zucca',
+  },
+  badass: {
+    'milamores': 'Mil-Amores',
+    'milagro al pesto': 'Mila-gro al Pesto',
+    'Salmon florentina': 'Salmon Fiorentina',
+    'Salmon risoto fungi': 'Salmon Risotto Fungi',
+    'Rissoto dizuca con lomo': 'Salteado Cremoso Di Zucca',
+    'ENSALADA SALMON': 'Ensalada de salmón',
+  },
+};
+// Reglas por palabra clave (se aplican solo si esa sección existe en el restaurante).
+const COSTEO_CAT_KEYWORDS = {
+  garden: [{ re: /ensalada|cesar/, sec: 'Ensaladas' }, { re: /ceviche|tiradito|carpaccio/, sec: 'Ceviches' }],
+  badass: [{ re: /ensalada/, sec: 'Ensaladas' }],
+};
+// Mapeo de las categorías viejas (Excel) → secciones de la carta real.
+const COSTEO_OLDCAT_MAP = {
+  garden: { 'Rolls': 'Makis', 'Burgers': 'Entre panes (Burgers)', 'Papas': 'Guarniciones', 'Ceviches/Tiraditos/Ensaladas': 'Ceviches', 'Principales': 'Platos Principales', 'Huella del chef': 'La Huella del Chef' },
+  badass: { 'Rolls': 'Makis', 'Burgers': 'Entre panes (Burgers)', 'Entradas': 'Para Empezar', 'Principales': 'Platos Principales', 'Guarniciones': 'Guarniciones' },
+};
+function costeoMigratePlatos(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.pv >= PLATOS_MIG_V) return false;
+  const key = costeoRestKey(rest);
+  const seed = COSTEO_CARTA_SEED[key];
+  if (!seed) { doc.carta.pv = PLATOS_MIG_V; return true; }
+  // 1) Renombres.
+  const renameByNorm = new Map(Object.entries(COSTEO_PLATO_RENAMES[key] || {}).map(([from, to]) => [costeoNormLoose(from), to]));
+  (doc.platos || []).forEach(p => { const t = renameByNorm.get(costeoNormLoose(p.nombre)); if (t) p.nombre = t; });
+  // 2) Recategorización a secciones reales.
+  const sectionNames = seed.map(s => s.nombre);
+  const sectionSet = new Set(sectionNames);
+  const itemIndex = [];
+  seed.forEach(s => (s.items || []).forEach(it => itemIndex.push({ sec: s.nombre, norm: costeoNormLoose(it) })));
+  const asign = doc.carta.asignaciones || {};
+  const secNameById = new Map(doc.carta.secciones.map(s => [s.id, s.nombre]));
+  const kw = COSTEO_CAT_KEYWORDS[key] || [];
+  const oldMap = COSTEO_OLDCAT_MAP[key] || {};
+  (doc.platos || []).forEach(p => {
+    // a) reasignación manual válida (respeta el trabajo manual del usuario)
+    const man = asign[p.id];
+    if (man && secNameById.has(man)) { p.categoria = secNameById.get(man); return; }
+    const pn = costeoNormLoose(p.nombre);
+    // b) match por ítem de la carta
+    let hit = itemIndex.find(it => it.norm === pn) || itemIndex.find(it => it.norm && (it.norm.includes(pn) || pn.includes(it.norm)));
+    if (hit) { p.categoria = hit.sec; return; }
+    // c) palabra clave
+    const k = kw.find(x => x.re.test(pn));
+    if (k && sectionSet.has(k.sec)) { p.categoria = k.sec; return; }
+    // d) mapa categoría vieja → sección
+    const m = oldMap[p.categoria];
+    if (m && sectionSet.has(m)) { p.categoria = m; return; }
+    // e) fallback: si ya es una sección válida se deja; si no, primera sección real
+    if (!sectionSet.has(p.categoria)) p.categoria = sectionNames[0];
+  });
+  // 3) Categorías del Nivel 3 = secciones reales del menú.
+  doc.categorias = sectionNames.slice();
+  doc.carta.pv = PLATOS_MIG_V;
+  return true;
+}
 // Migración de platos: el archivo costeo.json ya existía (con insumos/RB guardados)
 // antes de que existiera el Nivel 3, así que la semilla nunca inyectó los platos.
 // Acá se siembran los 75 platos del seed resolviendo cada línea POR NOMBRE contra
@@ -4619,10 +4697,10 @@ function costeoSeedPlatosInto(doc){
 const costeoDocEmpty = (doc) => !doc || (!(doc.insumos && doc.insumos.length) && !(doc.recetasBase && doc.recetasBase.length) && !(doc.platos && doc.platos.length));
 function loadCosteoAll(){
   try {
-    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.garden, 'garden'); costeoEnsureRealCarta(all.badass, 'badass'); saveCosteoAll(all); return all; }
+    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.garden, 'garden'); costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.garden, 'garden'); costeoMigratePlatos(all.badass, 'badass'); saveCosteoAll(all); return all; }
     const p = JSON.parse(readFileSync(COSTEO_FILE, 'utf-8'));
     // Migración: archivo viejo con la data en la raíz → pasa a "garden".
-    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoEnsureRealCarta(g, 'garden'); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.badass, 'badass'); saveCosteoAll(all); return all; }
+    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoEnsureRealCarta(g, 'garden'); costeoMigratePlatos(g, 'garden'); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.badass, 'badass'); saveCosteoAll(all); return all; }
     const all = { garden: costeoNormalizeDoc(p.garden), badass: costeoNormalizeDoc(p.badass) };
     let changed = false;
     if (costeoSeedPlatosInto(all.garden)) changed = true;
@@ -4631,6 +4709,9 @@ function loadCosteoAll(){
     // Carta (Nivel 4): planta/actualiza las secciones REALES del menú (una vez por versión).
     if (costeoEnsureRealCarta(all.garden, 'garden')) changed = true;
     if (costeoEnsureRealCarta(all.badass, 'badass')) changed = true;
+    // Migración de platos: renombres + categorías = secciones reales (una vez).
+    if (costeoMigratePlatos(all.garden, 'garden')) changed = true;
+    if (costeoMigratePlatos(all.badass, 'badass')) changed = true;
     if (changed) saveCosteoAll(all);
     return all;
   } catch (e) { console.warn('costeo load:', e.message); return { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; }
@@ -4801,21 +4882,25 @@ function resolveCarta(doc){
   const asign = carta.asignaciones || {};
   const platos = resolved.platos;
   const secIds = new Set(carta.secciones.map(s => s.id));
-  // Índice de ítems del menú para el auto-match por nombre (normalización suelta).
+  // Índice de secciones por NOMBRE (para calzar por la categoría del plato) y de
+  // ítems del menú (para el auto-match por nombre). Todo con normalización suelta.
+  const secByName = new Map(carta.secciones.map(s => [costeoNormLoose(s.nombre), s.id]));
   const itemIndex = [];
   carta.secciones.forEach(s => (s.items || []).forEach(it => itemIndex.push({ seccionId: s.id, norm: costeoNormLoose(it.nombre) })));
-  // Sección resuelta de cada plato: manual > auto por nombre > (sin asignar).
+  // Sección resuelta de cada plato: manual > categoría = sección > auto por nombre > (sin asignar).
   const platoSection = new Map();
   platos.forEach(p => {
     const manual = asign[p.id];
     if (manual !== undefined) { if (manual && secIds.has(manual)) platoSection.set(p.id, manual); return; }
+    const cat = secByName.get(costeoNormLoose(p.categoria));
+    if (cat) { platoSection.set(p.id, cat); return; }
     const pn = costeoNormLoose(p.nombre);
     if (!pn) return;
     let hit = itemIndex.find(it => it.norm === pn);
     if (!hit) hit = itemIndex.find(it => it.norm && (it.norm.includes(pn) || pn.includes(it.norm)));
     if (hit) platoSection.set(p.id, hit.seccionId);
   });
-  const slim = (p) => ({ id: p.id, nombre: p.nombre, categoria: p.categoria, precioVenta: p.precioVentaRedondeado, pctCosto: p.pctCosto });
+  const slim = (p) => ({ id: p.id, nombre: p.nombre, categoria: p.categoria, precioVenta: p.precioVentaRedondeado, costo: p.costoFinal, pctCosto: p.pctCosto });
   const secciones = carta.secciones.map(s => {
     const platosSec = platos.filter(p => platoSection.get(p.id) === s.id).map(slim).sort((a, b) => a.nombre.localeCompare(b.nombre));
     const secNorms = platosSec.map(p => costeoNormLoose(p.nombre));
@@ -4852,6 +4937,105 @@ app.put('/admin/costeo/carta/secciones', requireAdmin, (req, res) => {
   const d = loadCosteo(rest); d.carta = costeoNormalizeCarta(d.carta);
   d.carta.secciones = costeoNormalizeCarta({ secciones: b.secciones }).secciones;
   saveCosteo(rest, d); res.json({ ok: true });
+});
+
+// ── Export de la Carta a Excel (.xlsx) ──────────────────────────────────────
+// Genera un .xlsx real (OOXML) SIN dependencias: arma el ZIP a mano con entradas
+// STORE (sin compresión) + las partes XML mínimas. Una hoja por restaurante, con
+// las secciones y por plato: Plato | Precio de venta | Costo | % de costo.
+const CRC_TABLE = (() => { const t = new Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; } return t; })();
+function crc32(buf){ let c = 0xFFFFFFFF; for (let i = 0; i < buf.length; i++) c = CRC_TABLE[(c ^ buf[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(files){
+  const parts = [], central = []; let offset = 0;
+  for (const f of files) {
+    const name = Buffer.from(f.name, 'utf8'), data = Buffer.isBuffer(f.data) ? f.data : Buffer.from(f.data, 'utf8'), crc = crc32(data);
+    const lh = Buffer.alloc(30);
+    lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4); lh.writeUInt16LE(0x0800, 6); // flag: UTF-8
+    lh.writeUInt16LE(0, 8); lh.writeUInt16LE(0, 10); lh.writeUInt16LE(0, 12);
+    lh.writeUInt32LE(crc, 14); lh.writeUInt32LE(data.length, 18); lh.writeUInt32LE(data.length, 22);
+    lh.writeUInt16LE(name.length, 26); lh.writeUInt16LE(0, 28);
+    parts.push(lh, name, data);
+    const ch = Buffer.alloc(46);
+    ch.writeUInt32LE(0x02014b50, 0); ch.writeUInt16LE(20, 4); ch.writeUInt16LE(20, 6); ch.writeUInt16LE(0x0800, 8);
+    ch.writeUInt16LE(0, 10); ch.writeUInt16LE(0, 12); ch.writeUInt16LE(0, 14);
+    ch.writeUInt32LE(crc, 16); ch.writeUInt32LE(data.length, 20); ch.writeUInt32LE(data.length, 24);
+    ch.writeUInt16LE(name.length, 28); ch.writeUInt16LE(0, 30); ch.writeUInt16LE(0, 32);
+    ch.writeUInt16LE(0, 34); ch.writeUInt16LE(0, 36); ch.writeUInt32LE(0, 38); ch.writeUInt32LE(offset, 42);
+    central.push(ch, name);
+    offset += 30 + name.length + data.length;
+  }
+  const centralBuf = Buffer.concat(central);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(0, 4); eocd.writeUInt16LE(0, 6);
+  eocd.writeUInt16LE(files.length, 8); eocd.writeUInt16LE(files.length, 10);
+  eocd.writeUInt32LE(centralBuf.length, 12); eocd.writeUInt32LE(offset, 16); eocd.writeUInt16LE(0, 20);
+  return Buffer.concat([...parts, centralBuf, eocd]);
+}
+const xmlEsc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const colLetter = (n) => { let s = ''; n++; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+// cell: { v, t:'s'|'n', s:styleIndex }
+function xlsxSheetXml(rows){
+  const rowXml = rows.map((cells, r) => {
+    const cs = cells.map((c, ci) => {
+      if (c == null) return '';
+      const ref = colLetter(ci) + (r + 1);
+      const s = c.s ? ` s="${c.s}"` : '';
+      if (c.t === 'n') return `<c r="${ref}"${s}><v>${c.v}</v></c>`;
+      return `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${xmlEsc(c.v)}</t></is></c>`;
+    }).join('');
+    return `<row r="${r + 1}">${cs}</row>`;
+  }).join('');
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="1" width="46"/><col min="2" max="3" width="16"/><col min="4" max="4" width="12"/></cols><sheetData>${rowXml}</sheetData></worksheet>`;
+}
+const XLSX_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="&quot;$&quot;#,##0"/><numFmt numFmtId="165" formatCode="0.0%"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF5E6C8"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+// Filas de una hoja a partir de la carta resuelta.
+function cartaSheetRows(carta){
+  const S = { title: 5, header: 1, sec: 2, money: 3, pct: 4 };
+  const rows = [];
+  rows.push([{ v: 'Plato', s: S.header }, { v: 'Precio de venta', s: S.header }, { v: 'Costo', s: S.header }, { v: '% de costo', s: S.header }]);
+  const pushSec = (nombre, platos, sinCostear) => {
+    if (!platos.length && !(sinCostear && sinCostear.length)) return;
+    rows.push([]); // fila en blanco
+    rows.push([{ v: nombre, s: S.sec }, { v: '', s: S.sec }, { v: '', s: S.sec }, { v: '', s: S.sec }]);
+    platos.forEach(p => rows.push([
+      { v: p.nombre }, { v: p.precioVenta, t: 'n', s: S.money }, { v: p.costo, t: 'n', s: S.money }, { v: (Number(p.pctCosto) || 0) / 100, t: 'n', s: S.pct },
+    ]));
+    (sinCostear || []).forEach(n => rows.push([{ v: n + '  (sin costear)' }]));
+  };
+  carta.secciones.forEach(s => pushSec(s.nombre, s.platos, s.sinCostear));
+  pushSec('Sin asignar', carta.sinAsignar, []);
+  return rows;
+}
+app.get('/admin/costeo/carta/export.xlsx', requireAdmin, (req, res) => {
+  const scope = String(req.query.rest || 'garden');
+  const rests = scope === 'both' ? ['garden', 'badass'] : [costeoRestKey(scope)];
+  const label = { garden: 'Kairos Garden', badass: 'Badass' };
+  const sheets = rests.map(rt => ({ name: label[rt], rows: (() => {
+    const carta = resolveCarta(loadCosteo(rt));
+    return [[{ v: label[rt], s: 5 }], []].concat(cartaSheetRows(carta));
+  })() }));
+  // Partes del paquete OOXML.
+  const files = [];
+  const overrides = sheets.map((s, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('');
+  files.push({ name: '[Content_Types].xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${overrides}</Types>` });
+  files.push({ name: '_rels/.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>` });
+  const sheetTags = sheets.map((s, i) => `<sheet name="${xmlEsc(s.name).slice(0, 31)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('');
+  files.push({ name: 'xl/workbook.xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${sheetTags}</sheets></workbook>` });
+  const wbRels = sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('');
+  files.push({ name: 'xl/_rels/workbook.xml.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${wbRels}<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>` });
+  files.push({ name: 'xl/styles.xml', data: XLSX_STYLES });
+  sheets.forEach((s, i) => files.push({ name: `xl/worksheets/sheet${i + 1}.xml`, data: xlsxSheetXml(s.rows) }));
+  const buf = zipStore(files);
+  const fname = scope === 'both' ? 'carta-zorbo.xlsx' : `carta-${costeoRestKey(scope)}.xlsx`;
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename="${fname}"`);
+  res.send(buf);
 });
 
 // ─── PORTAL DEL PROVEEDOR (Fase 2) ──────────────────────────────────────────
