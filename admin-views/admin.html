@@ -1388,6 +1388,11 @@ body.drawer-open{overflow:hidden}
 .tc-rank{font-family:var(--mono,monospace);font-weight:700;color:var(--gold-deep,#a05f00)}
 
 /* ── DISTRIBUIDORA ── */
+.costeo-rest{display:flex;align-items:center;gap:.5rem;margin:.3rem 0 1rem}
+.costeo-rest-lbl{font-size:.66rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted,#666);margin-right:.3rem}
+.costeo-rest-btn{font-family:var(--sans);font-size:.82rem;font-weight:700;color:var(--muted,#666);background:transparent;border:1px solid var(--line,#e5e5e5);border-radius:999px;padding:.4rem .95rem;cursor:pointer;transition:all .15s}
+.costeo-rest-btn:hover{border-color:var(--gold-bd,#f1c97b);color:var(--text,#111)}
+.costeo-rest-btn.on{background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623) 60%);color:#1a1408;border-color:transparent}
 .dist-subnav{display:flex;gap:.4rem;flex-wrap:wrap;margin:0 0 1.1rem;padding-bottom:.9rem;border-bottom:1px solid var(--line,#eee)}
 .dist-subtab{font-family:var(--sans);font-size:.78rem;font-weight:700;color:var(--muted,#666);background:transparent;border:1px solid var(--line,#e5e5e5);border-radius:999px;padding:.45rem .9rem;cursor:pointer;transition:all .15s}
 .dist-subtab:hover{border-color:var(--gold-bd,#f1c97b);color:var(--text,#111)}
@@ -1843,6 +1848,11 @@ body.drawer-open{overflow:hidden}
         <div class="adm-actions">
           <button class="adm-btn adm-btn-ghost" id="btnCosteoReload" type="button">Recargar</button>
         </div>
+      </div>
+      <div class="costeo-rest" id="costeoRest">
+        <span class="costeo-rest-lbl">Restaurante</span>
+        <button type="button" class="costeo-rest-btn on" data-rest="garden">Garden</button>
+        <button type="button" class="costeo-rest-btn" data-rest="badass">Badass</button>
       </div>
       <div class="dist-subnav" id="costeoSubnav">
         <button type="button" class="dist-subtab on" data-csub="insumos">Insumos</button>
@@ -6729,21 +6739,29 @@ document.getElementById('tcBtn').onclick = runTopClientes;
 document.getElementById('tcInput').addEventListener('keydown', e => { if (e.key === 'Enter') runTopClientes(); });
 
 // ─── Costeo de carta (insumos · recetas base) ────────────────────────────────
-let costeoData = null, costeoSub = 'insumos', insumoSearch = '', rbSearch = '';
+let costeoData = null, costeoSub = 'insumos', insumoSearch = '', rbSearch = '', costeoRest = 'garden';
 const cMoney = (n) => '$' + Math.round(Number(n)||0).toLocaleString('es-CL');
 // Acepta coma como separador decimal (ej: "9,5")
 const cNum = (v) => { const n = parseFloat(String(v==null?'':v).trim().replace(',', '.')); return Number.isFinite(n) ? n : 0; };
+const cRest = (url) => url + (url.includes('?') ? '&' : '?') + 'rest=' + costeoRest;
 const C_UNITS = (cur) => ['litro','kilogramo','unidad'].map(u=>`<option value="${u}" ${cur===u?'selected':''}>${u}</option>`).join('');
 
 async function loadCosteo(){
   const body = document.getElementById('costeoBody');
   body.innerHTML = '<div class="adm-loading">Cargando…</div>';
   try {
-    costeoData = await (await fetch('/admin/costeo')).json();
+    costeoData = await (await fetch(cRest('/admin/costeo'))).json();
     document.getElementById('costeoMeta').textContent = `${costeoData.insumos.length} insumos · ${costeoData.recetasBase.length} recetas base · ${(costeoData.platos||[]).length} platos`;
     renderCosteoSub();
   } catch(e){ body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
 }
+document.getElementById('costeoRest').addEventListener('click', e=>{
+  const b=e.target.closest('.costeo-rest-btn'); if(!b || b.dataset.rest===costeoRest) return;
+  costeoRest=b.dataset.rest;
+  document.querySelectorAll('#costeoRest .costeo-rest-btn').forEach(x=>x.classList.toggle('on', x.dataset.rest===costeoRest));
+  rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch='';
+  loadCosteo();
+});
 function renderCosteoSub(){
   document.querySelectorAll('#costeoSubnav .dist-subtab').forEach(b=>b.classList.toggle('on', b.dataset.csub===costeoSub));
   if (costeoSub==='insumos') return renderCosteoInsumos();
@@ -6794,7 +6812,7 @@ async function addInsumo(){
   if(!desc){ st.className='dist-status err'; st.textContent='Falta la descripción.'; return; }
   st.className='dist-status'; st.textContent='…';
   try{
-    const r=await fetch('/admin/costeo/insumos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({descripcion:desc,precioNeto:cNum(document.getElementById('niPrecio').value),unidad:document.getElementById('niUnidad').value,rendimiento:cNum(document.getElementById('niRend').value)})});
+    const r=await fetch(cRest('/admin/costeo/insumos'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({descripcion:desc,precioNeto:cNum(document.getElementById('niPrecio').value),unidad:document.getElementById('niUnidad').value,rendimiento:cNum(document.getElementById('niRend').value)})});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
     insumoSearch=''; await loadCosteo();
   }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
@@ -6804,7 +6822,7 @@ async function saveInsumo(id){
   const g=(f)=>tr.querySelector(`[data-f="${f}"]`).value;
   const st=tr.querySelector('[data-ist]'); st.className='dist-status'; st.textContent='…';
   try{
-    const r=await fetch(`/admin/costeo/insumos/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({descripcion:g('descripcion'),precioNeto:cNum(g('precioNeto')),unidad:g('unidad'),rendimiento:cNum(g('rendimiento'))})});
+    const r=await fetch(cRest(`/admin/costeo/insumos/${id}`),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({descripcion:g('descripcion'),precioNeto:cNum(g('precioNeto')),unidad:g('unidad'),rendimiento:cNum(g('rendimiento'))})});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
     const pn=cNum(g('precioNeto')), rd=cNum(g('rendimiento'));
     const real=(rd>0&&rd<=1)?Math.round(pn/rd):Math.round(pn);
@@ -6816,7 +6834,7 @@ async function saveInsumo(id){
 async function delInsumo(id){
   const i=costeoData.insumos.find(x=>x.id===id);
   if(!confirm(`Eliminar "${i?i.descripcion:''}"?`)) return;
-  try{ const r=await fetch(`/admin/costeo/insumos/${id}`,{method:'DELETE'}); if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');} await loadCosteo(); }catch(e){ alert(e.message); }
+  try{ const r=await fetch(cRest(`/admin/costeo/insumos/${id}`),{method:'DELETE'}); if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');} await loadCosteo(); }catch(e){ alert(e.message); }
 }
 
 // ── Recetas base (Nivel 2) ──
@@ -6862,7 +6880,7 @@ function renderCosteoRecetas(){
       </table></div>
       <div class="oc-totales"><div class="oc-tot-box">
         <div><span>Costo total</span><b>${cMoney(draftCosto)}</b></div>
-        <div class="oc-tot-final"><span>Precio por ${document.getElementById('rbUnidad')?document.getElementById('rbUnidad').value:(rbEditing?rbEditing.unidad:'unidad')}</span><b>${cMoney(prod>0?draftCosto/prod:0)}</b></div>
+        <div class="oc-tot-final"><span>Precio por <span id="rbUnidadLbl">${escapeHtml(rbEditing?rbEditing.unidad:'litro')}</span></span><b id="rbPUPrev">${cMoney(prod>0?draftCosto/prod:0)}</b></div>
       </div></div>
       <div class="dist-form-actions">
         <button class="adm-btn" id="rbSave" type="button">${rbEditing?'Guardar cambios':'Crear receta base'}</button>
@@ -6875,8 +6893,9 @@ function renderCosteoRecetas(){
     <div class="oc-list">${list || '<div class="dist-empty">No hay recetas que coincidan.</div>'}</div>`;
   document.getElementById('rbAddLine').onclick=rbAddLine;
   document.getElementById('rbSave').onclick=rbSave;
-  document.getElementById('rbProd').oninput=()=>renderCosteoRecetasKeep();
-  document.getElementById('rbUnidad').onchange=()=>renderCosteoRecetasKeep();
+  // Actualiza la vista previa SIN re-renderizar (para no perder el foco al tipear)
+  document.getElementById('rbProd').oninput=()=>{ const p=cNum(document.getElementById('rbProd').value); const el=document.getElementById('rbPUPrev'); if(el) el.textContent=cMoney(p>0?draftCosto/p:0); };
+  document.getElementById('rbUnidad').onchange=()=>{ const el=document.getElementById('rbUnidadLbl'); if(el) el.textContent=document.getElementById('rbUnidad').value; };
   const c=document.getElementById('rbCancel'); if(c) c.onclick=()=>{ rbEditing=null; rbDraft=[]; renderCosteoRecetas(); };
   document.querySelectorAll('#costeoBody [data-rbqty]').forEach(el=>el.onchange=()=>{ rbDraft[+el.dataset.rbqty].cantidad=cNum(el.value); renderCosteoRecetasKeep(); });
   document.querySelectorAll('#costeoBody [data-rbrm]').forEach(b=>b.onclick=()=>{ rbDraft.splice(+b.dataset.rbrm,1); renderCosteoRecetasKeep(); });
@@ -6910,7 +6929,7 @@ async function rbSave(){
   st.className='dist-status'; st.textContent='Guardando…';
   try{
     const url=rbEditing?`/admin/costeo/recetas/${rbEditing.id}`:'/admin/costeo/recetas';
-    const r=await fetch(url,{method:rbEditing?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const r=await fetch(cRest(url),{method:rbEditing?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
     rbEditing=null; rbDraft=[]; await loadCosteo();
   }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
@@ -6924,7 +6943,7 @@ function rbLoadEdit(id){
 async function rbDelete(id){
   const rb=costeoData.recetasBase.find(x=>x.id===id);
   if(!confirm(`Eliminar la receta "${rb?rb.nombre:''}"?`)) return;
-  try{ const r=await fetch(`/admin/costeo/recetas/${id}`,{method:'DELETE'}); if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');} if(rbEditing&&rbEditing.id===id){rbEditing=null;rbDraft=[];} await loadCosteo(); }catch(e){ alert(e.message); }
+  try{ const r=await fetch(cRest(`/admin/costeo/recetas/${id}`),{method:'DELETE'}); if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');} if(rbEditing&&rbEditing.id===id){rbEditing=null;rbDraft=[];} await loadCosteo(); }catch(e){ alert(e.message); }
 }
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
