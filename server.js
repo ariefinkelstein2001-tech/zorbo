@@ -4486,7 +4486,49 @@ function costeoNormalizeDoc(p){
     recetasBase: Array.isArray(p.recetasBase) ? p.recetasBase : [],
     platos: Array.isArray(p.platos) ? p.platos : [],
     categorias: (Array.isArray(p.categorias) && p.categorias.length) ? p.categorias : costeoEmpty().categorias,
+    carta: costeoNormalizeCarta(p.carta),
   };
+}
+// Estructura de la CARTA real (Nivel 4): secciones ordenadas tal cual salen del
+// menú público (gour.media), cada una con sus ítems (nombres de platos, incluso
+// los que todavía no están costeados). El precio que se muestra SIEMPRE sale del
+// costeo, la carta pública solo aporta el orden y las secciones.
+//   asignaciones: platoId → seccionId (override manual). Valor '' = forzado a
+//   "Sin asignar"; sin clave = auto-match por nombre.
+function costeoNormalizeCarta(c){
+  c = c || {};
+  const secciones = Array.isArray(c.secciones) ? c.secciones.map(s => ({
+    id: costeoStr(s && s.id, 60) || randomUUID(),
+    nombre: costeoStr(s && s.nombre, 120) || 'Sección',
+    items: Array.isArray(s && s.items) ? s.items
+      .map(it => ({ nombre: costeoStr(typeof it === 'string' ? it : (it && it.nombre), 200) }))
+      .filter(it => it.nombre) : [],
+  })) : [];
+  const asignaciones = (c.asignaciones && typeof c.asignaciones === 'object' && !Array.isArray(c.asignaciones)) ? { ...c.asignaciones } : {};
+  return { secciones, asignaciones };
+}
+// Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
+// el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
+// cargar el orden real del menú público.
+function costeoDefaultCarta(doc){
+  const order = (doc.categorias && doc.categorias.length) ? doc.categorias.slice() : [];
+  const byCat = new Map();
+  (doc.platos || []).forEach(p => {
+    const c = costeoStr(p.categoria, 120) || 'Sin categoría';
+    if (!byCat.has(c)) byCat.set(c, []);
+    byCat.get(c).push(p.nombre);
+  });
+  const cats = [...order.filter(c => byCat.has(c)), ...[...byCat.keys()].filter(c => !order.includes(c))];
+  return { secciones: cats.map(c => ({ id: randomUUID(), nombre: c, items: byCat.get(c).map(n => ({ nombre: n })) })), asignaciones: {} };
+}
+// Siembra una carta por defecto si el doc todavía no tiene secciones. Corre una
+// sola vez (igual que el sembrado de platos). Devuelve true si mutó el doc.
+function costeoSeedCartaInto(doc){
+  if (!doc) return false;
+  if (doc.carta && Array.isArray(doc.carta.secciones) && doc.carta.secciones.length) return false;
+  if (!(doc.platos && doc.platos.length)) return false;
+  doc.carta = costeoDefaultCarta(doc);
+  return true;
 }
 // Migración de platos: el archivo costeo.json ya existía (con insumos/RB guardados)
 // antes de que existiera el Nivel 3, así que la semilla nunca inyectó los platos.
@@ -4515,15 +4557,18 @@ function costeoSeedPlatosInto(doc){
 const costeoDocEmpty = (doc) => !doc || (!(doc.insumos && doc.insumos.length) && !(doc.recetasBase && doc.recetasBase.length) && !(doc.platos && doc.platos.length));
 function loadCosteoAll(){
   try {
-    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; saveCosteoAll(all); return all; }
+    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoSeedCartaInto(all.garden); costeoSeedCartaInto(all.badass); saveCosteoAll(all); return all; }
     const p = JSON.parse(readFileSync(COSTEO_FILE, 'utf-8'));
     // Migración: archivo viejo con la data en la raíz → pasa a "garden".
-    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); const all = { garden: g, badass: costeoDefaultsBadass() }; saveCosteoAll(all); return all; }
+    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoSeedCartaInto(g); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoSeedCartaInto(all.badass); saveCosteoAll(all); return all; }
     const all = { garden: costeoNormalizeDoc(p.garden), badass: costeoNormalizeDoc(p.badass) };
     let changed = false;
     if (costeoSeedPlatosInto(all.garden)) changed = true;
     // Badass: si está completamente vacío, se siembra full desde el Excel de Badass.
     if (costeoDocEmpty(all.badass)) { all.badass = costeoDefaultsBadass(); changed = true; }
+    // Carta (Nivel 4): siembra la estructura por categorías si aún no existe.
+    if (costeoSeedCartaInto(all.garden)) changed = true;
+    if (costeoSeedCartaInto(all.badass)) changed = true;
     if (changed) saveCosteoAll(all);
     return all;
   } catch (e) { console.warn('costeo load:', e.message); return { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; }
@@ -4681,6 +4726,69 @@ app.delete('/admin/costeo/platos/:id', requireAdmin, (req, res) => {
   const rest = req.query.rest; const d = loadCosteo(rest); const before = d.platos.length;
   d.platos = d.platos.filter(x => x.id !== String(req.params.id));
   if (d.platos.length === before) return res.status(404).json({ error: 'Plato no encontrado.' });
+  saveCosteo(rest, d); res.json({ ok: true });
+});
+
+// ── Carta (Nivel 4): platos costeados organizados por las secciones del menú ──
+// Cruza los platos costeados (con su precio de venta sugerido) contra la
+// estructura de secciones/ítems del menú público. El match es por nombre
+// normalizado; la asignación manual (asignaciones) siempre gana.
+function resolveCarta(doc){
+  const resolved = resolveCosteo(doc);
+  const carta = costeoNormalizeCarta(doc.carta);
+  const asign = carta.asignaciones || {};
+  const platos = resolved.platos;
+  const secIds = new Set(carta.secciones.map(s => s.id));
+  // Índice de ítems del menú para el auto-match por nombre.
+  const itemIndex = [];
+  carta.secciones.forEach(s => (s.items || []).forEach(it => itemIndex.push({ seccionId: s.id, norm: costeoNorm(it.nombre) })));
+  // Sección resuelta de cada plato: manual > auto por nombre > (sin asignar).
+  const platoSection = new Map();
+  platos.forEach(p => {
+    const manual = asign[p.id];
+    if (manual !== undefined) { if (manual && secIds.has(manual)) platoSection.set(p.id, manual); return; }
+    const pn = costeoNorm(p.nombre);
+    if (!pn) return;
+    let hit = itemIndex.find(it => it.norm === pn);
+    if (!hit) hit = itemIndex.find(it => it.norm && (it.norm.includes(pn) || pn.includes(it.norm)));
+    if (hit) platoSection.set(p.id, hit.seccionId);
+  });
+  const slim = (p) => ({ id: p.id, nombre: p.nombre, categoria: p.categoria, precioVenta: p.precioVentaRedondeado, pctCosto: p.pctCosto });
+  const secciones = carta.secciones.map(s => {
+    const platosSec = platos.filter(p => platoSection.get(p.id) === s.id).map(slim).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const secNorms = platosSec.map(p => costeoNorm(p.nombre));
+    // Ítem "sin costear" = nombre del menú que ningún plato costeado de la sección cubre.
+    const sinCostear = (s.items || []).filter(it => {
+      const n = costeoNorm(it.nombre);
+      return n && !secNorms.some(pn => pn === n || pn.includes(n) || n.includes(pn));
+    }).map(it => it.nombre);
+    return { id: s.id, nombre: s.nombre, platos: platosSec, sinCostear };
+  });
+  const sinAsignar = platos.filter(p => !platoSection.has(p.id)).map(slim).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  return { secciones, sinAsignar, meta: { totalPlatos: platos.length, totalSecciones: carta.secciones.length } };
+}
+
+app.get('/admin/costeo/carta', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest);
+  res.json({ restaurante: rest, ...resolveCarta(loadCosteo(rest)) });
+});
+// Reasignar un plato a otra sección. seccionId: id válido → esa sección;
+// '' → forzar "Sin asignar"; '__auto__' → volver al auto-match por nombre.
+app.post('/admin/costeo/carta/asignar', requireAdmin, (req, res) => {
+  const rest = req.query.rest; const b = req.body || {};
+  const platoId = String(b.platoId || ''); if (!platoId) return res.status(400).json({ error: 'Falta platoId.' });
+  const d = loadCosteo(rest); d.carta = costeoNormalizeCarta(d.carta);
+  const seccionId = String(b.seccionId == null ? '' : b.seccionId);
+  if (seccionId === '__auto__') delete d.carta.asignaciones[platoId];
+  else d.carta.asignaciones[platoId] = seccionId;
+  saveCosteo(rest, d); res.json({ ok: true });
+});
+// Reemplaza la estructura de secciones/ítems (para cargar el orden real del menú).
+app.put('/admin/costeo/carta/secciones', requireAdmin, (req, res) => {
+  const rest = req.query.rest; const b = req.body || {};
+  if (!Array.isArray(b.secciones)) return res.status(400).json({ error: 'Falta secciones (array).' });
+  const d = loadCosteo(rest); d.carta = costeoNormalizeCarta(d.carta);
+  d.carta.secciones = costeoNormalizeCarta({ secciones: b.secciones }).secciones;
   saveCosteo(rest, d); res.json({ ok: true });
 });
 

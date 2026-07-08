@@ -1480,6 +1480,20 @@ body.drawer-open{overflow:hidden}
 .ci-rb-sep td{background:var(--surface-2,#faf6ec);font-size:.68rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#8a7a52);padding:.4rem .6rem!important}
 .ci-rb-row td{background:rgba(245,166,35,.04)}
 
+/* ── CARTA (Nivel 4) ── */
+.ct-toolbar{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;padding:.7rem .9rem;border:1px solid var(--line,#eee);border-radius:12px;background:var(--surface-2,#faf6ec)}
+.ct-toolbar-info{font-size:.82rem;color:var(--muted,#666);line-height:1.4;max-width:520px}
+.ct-pdf{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap}
+.ct-pdf>span{font-size:.78rem;font-weight:700;color:var(--muted,#777)}
+.ct-pdf select{padding:.35rem .5rem;border:1px solid var(--line,#ddd);border-radius:8px;background:var(--surface,#fff);font-size:.8rem;color:var(--text,#111)}
+.ct-sec{margin-bottom:1.4rem}
+.ct-sec-h{font-family:var(--display,inherit);font-size:1.05rem;font-weight:800;color:var(--text,#111);margin:0 0 .5rem;padding-bottom:.25rem;border-bottom:2px solid var(--gold,#f5a623)}
+.ct-sec-h span{color:var(--muted,#999);font-weight:600;font-size:.8rem}
+.ct-sec-sa .ct-sec-h{border-bottom-color:#c0392b}
+.ct-sincost{margin-top:.5rem;font-size:.74rem;color:var(--muted,#888);line-height:1.7}
+.ct-sincost span{display:inline-block;background:rgba(192,57,43,.08);color:#a53125;border:1px dashed rgba(192,57,43,.35);border-radius:6px;padding:.05rem .4rem;margin:.1rem .25rem .1rem 0}
+.ct-move{padding:.25rem .35rem;border:1px solid var(--line,#ddd);border-radius:7px;background:var(--surface,#fff);font-size:.75rem;color:var(--text,#111);max-width:150px}
+
 /* ── PUNTOS DE VENTA ── */
 .pv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;margin-bottom:1rem}
 .pv-stat{border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.85rem 1rem;background:var(--surface,#fff)}
@@ -6786,7 +6800,7 @@ function renderCosteoSub(){
   if (costeoSub==='insumos') return renderCosteoInsumos();
   if (costeoSub==='recetas') return renderCosteoRecetas();
   if (costeoSub==='platos') return renderCosteoPlatos();
-  document.getElementById('costeoBody').innerHTML = '<div class="dist-empty">El resumen de Carta llega en la próxima parte.</div>';
+  if (costeoSub==='resumen') return renderCosteoCarta();
 }
 document.getElementById('costeoSubnav').addEventListener('click', e=>{ const b=e.target.closest('.dist-subtab'); if(!b) return; costeoSub=b.dataset.csub; loadCosteo(); });
 document.getElementById('btnCosteoReload').onclick = ()=>loadCosteo();
@@ -7119,6 +7133,125 @@ async function platoDelete(id){
   const p=(costeoData.platos||[]).find(x=>x.id===id);
   if(!confirm(`Eliminar el plato "${p?p.nombre:''}"?`)) return;
   try{ const r=await fetch(cRest(`/admin/costeo/platos/${id}`),{method:'DELETE'}); if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');} if(platoEditing&&platoEditing.id===id){platoEditing=null;platoDraft=[];} await loadCosteo(); }catch(e){ alert(e.message); }
+}
+
+// ── Carta (Nivel 4): platos costeados organizados por las secciones del menú ──
+// El precio mostrado SIEMPRE es el sugerido por el costeo (no el de la carta
+// pública). La carta pública solo aporta el orden y las secciones.
+let cartaData = null;
+const REST_LABEL = { garden:'Kairos Garden', badass:'Badass' };
+async function renderCosteoCarta(){
+  const body=document.getElementById('costeoBody');
+  body.innerHTML='<div class="adm-loading">Cargando carta…</div>';
+  try{ cartaData = await (await fetch(cRest('/admin/costeo/carta'))).json(); }
+  catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+  drawCarta();
+}
+function cartaSecSelect(pid, currentSecId, isSinAsignar){
+  const opts = cartaData.secciones.map(x=>`<option value="${x.id}" ${x.id===currentSecId?'selected':''}>${escapeHtml(x.nombre)}</option>`).join('');
+  return `<select class="ct-move" data-pid="${pid}">
+    <option value="__auto__">↺ Auto</option>${opts}
+    <option value="" ${isSinAsignar?'selected':''}>— Sin asignar —</option></select>`;
+}
+function drawCarta(){
+  const c=cartaData;
+  const secBlocks = c.secciones.map(s=>{
+    const rows = s.platos.map(p=>`
+      <tr>
+        <td><b>${escapeHtml(p.nombre)}</b></td>
+        <td class="dist-num"><b class="pl-precio">${cMoney(p.precioVenta)}</b></td>
+        <td class="dist-num"><span class="pl-pct ${p.pctCosto>40?'hi':''}">${p.pctCosto}%</span></td>
+        <td class="dist-num">${cartaSecSelect(p.id, s.id, false)}</td>
+      </tr>`).join('');
+    const table = s.platos.length
+      ? `<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Plato</th><th style="text-align:right">Precio venta</th><th style="text-align:right">% costo</th><th style="text-align:right;width:160px">Sección</th></tr></thead><tbody>${rows}</tbody></table></div>`
+      : '<div class="dist-empty" style="padding:.6rem">Sin platos costeados en esta sección.</div>';
+    const sc = s.sinCostear.length ? `<div class="ct-sincost"><b>Sin costear:</b> ${s.sinCostear.map(n=>`<span>${escapeHtml(n)}</span>`).join('')}</div>` : '';
+    return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.platos.length})</span></div>${table}${sc}</div>`;
+  }).join('');
+  const saRows = c.sinAsignar.map(p=>`
+    <tr>
+      <td><b>${escapeHtml(p.nombre)}</b> <span class="mun-bk">${escapeHtml(p.categoria)}</span></td>
+      <td class="dist-num"><b class="pl-precio">${cMoney(p.precioVenta)}</b></td>
+      <td class="dist-num"><span class="pl-pct ${p.pctCosto>40?'hi':''}">${p.pctCosto}%</span></td>
+      <td class="dist-num">${cartaSecSelect(p.id, null, true)}</td>
+    </tr>`).join('');
+  const saBlock = c.sinAsignar.length
+    ? `<div class="ct-sec ct-sec-sa"><div class="ct-sec-h">Sin asignar <span>(${c.sinAsignar.length})</span></div><div class="mun-wrap"><table class="mun-table"><thead><tr><th>Plato</th><th style="text-align:right">Precio venta</th><th style="text-align:right">% costo</th><th style="text-align:right;width:160px">Sección</th></tr></thead><tbody>${saRows}</tbody></table></div></div>`
+    : '';
+  document.getElementById('costeoBody').innerHTML = `
+    <div class="ct-toolbar">
+      <div class="ct-toolbar-info">Precios <b>sugeridos por tu costeo</b> (no los de la carta pública). ${c.meta.totalSecciones} secciones · ${c.meta.totalPlatos} platos costeados. Reasigná un plato con el selector de sección.</div>
+      <div class="ct-pdf">
+        <span>PDF</span>
+        <select id="ctPdfVer"><option value="interna">Interna (precio + % costo)</option><option value="limpia">Limpia (nombre + precio)</option></select>
+        <select id="ctPdfScope"><option value="one">${escapeHtml(REST_LABEL[costeoRest]||costeoRest)}</option><option value="both">Ambos restaurantes</option></select>
+        <button class="adm-btn adm-btn-gold" id="ctPdfBtn" type="button">Descargar PDF</button>
+      </div>
+    </div>
+    ${secBlocks || '<div class="dist-empty">No hay secciones todavía.</div>'}
+    ${saBlock}`;
+  document.querySelectorAll('#costeoBody .ct-move').forEach(sel=>sel.onchange=()=>cartaMove(sel.dataset.pid, sel.value));
+  document.getElementById('ctPdfBtn').onclick=cartaPdf;
+}
+async function cartaMove(pid, seccionId){
+  try{
+    const r=await fetch(cRest('/admin/costeo/carta/asignar'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({platoId:pid, seccionId})});
+    if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
+    await renderCosteoCarta();
+  }catch(e){ alert(e.message); }
+}
+async function cartaPdf(){
+  const btn=document.getElementById('ctPdfBtn'); const ver=document.getElementById('ctPdfVer').value; const scope=document.getElementById('ctPdfScope').value;
+  const targets = scope==='both' ? ['garden','badass'] : [costeoRest];
+  btn.disabled=true; const prev=btn.textContent; btn.textContent='Generando…';
+  try{
+    const datasets=[];
+    for(const rt of targets){ const d=await (await fetch('/admin/costeo/carta?rest='+rt)).json(); datasets.push({ rest:rt, data:d }); }
+    const w=window.open('', '_blank');
+    if(!w){ alert('Permití las ventanas emergentes para descargar el PDF.'); return; }
+    w.document.write(buildCartaPrintHtml(datasets, ver));
+    w.document.close();
+  }catch(e){ alert('No se pudo generar el PDF: '+(e.message||e)); }
+  finally{ btn.disabled=false; btn.textContent=prev; }
+}
+function buildCartaPrintHtml(datasets, ver){
+  const interna = ver==='interna';
+  const esc = (s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const money = (n)=>'$'+Math.round(Number(n)||0).toLocaleString('es-CL');
+  const restBlocks = datasets.map(({rest,data})=>{
+    const secs = data.secciones.map(s=>{
+      const rows = s.platos.map(p=>`<tr><td class="d">${esc(p.nombre)}</td>${interna?`<td class="c">${p.pctCosto}%</td>`:''}<td class="p">${money(p.precioVenta)}</td></tr>`).join('');
+      const sinc = (interna && s.sinCostear.length) ? `<tr><td class="sc" colspan="${interna?3:2}">Sin costear: ${s.sinCostear.map(esc).join(' · ')}</td></tr>` : '';
+      if(!s.platos.length && !(interna && s.sinCostear.length)) return '';
+      return `<div class="sec"><h3>${esc(s.nombre)}</h3><table>${rows}${sinc}</table></div>`;
+    }).join('');
+    const sa = (interna && data.sinAsignar.length)
+      ? `<div class="sec sa"><h3>Sin asignar</h3><table>${data.sinAsignar.map(p=>`<tr><td class="d">${esc(p.nombre)}</td><td class="c">${p.pctCosto}%</td><td class="p">${money(p.precioVenta)}</td></tr>`).join('')}</table></div>`
+      : '';
+    return `<section class="rest"><h1>${esc(REST_LABEL[rest]||rest)}</h1><div class="sub">${interna?'Versión interna · precio sugerido + % de costo':'Carta · precios sugeridos'}</div><div class="cols">${secs}${sa}</div></section>`;
+  }).join('');
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Carta ${interna?'interna':'limpia'} — Zorbo</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:Georgia,'Times New Roman',serif;color:#1a1a1a;margin:0;padding:28px 34px;background:#fff}
+  .rest{page-break-after:always}
+  .rest:last-child{page-break-after:auto}
+  h1{font-size:26px;margin:0 0 2px;letter-spacing:.5px;text-align:center;text-transform:uppercase}
+  .sub{text-align:center;font-size:11px;color:#8a6d1f;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid #d4af37}
+  .cols{column-count:2;column-gap:30px}
+  .sec{break-inside:avoid;margin-bottom:16px}
+  .sec.sa h3{color:#c0392b;border-color:#c0392b}
+  h3{font-size:14px;text-transform:uppercase;letter-spacing:.8px;color:#111;margin:0 0 6px;padding-bottom:3px;border-bottom:1.5px solid #d4af37}
+  table{width:100%;border-collapse:collapse}
+  td{padding:3px 0;font-size:12.5px;vertical-align:bottom}
+  td.d{width:100%}
+  td.c{white-space:nowrap;text-align:right;padding-right:12px;font-size:10.5px;color:#999}
+  td.p{white-space:nowrap;text-align:right;font-weight:bold;color:#8a6d1f}
+  td.sc{font-size:9.5px;font-style:italic;color:#b33;padding-top:1px}
+  @media print{ body{padding:0} @page{margin:16mm} }
+</style></head>
+<body>${restBlocks}<script>window.onload=function(){setTimeout(function(){window.print();},350);};<\/script></body></html>`;
 }
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
