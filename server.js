@@ -4479,13 +4479,42 @@ function costeoNormalizeDoc(p){
     categorias: (Array.isArray(p.categorias) && p.categorias.length) ? p.categorias : costeoEmpty().categorias,
   };
 }
+// Migración de platos: el archivo costeo.json ya existía (con insumos/RB guardados)
+// antes de que existiera el Nivel 3, así que la semilla nunca inyectó los platos.
+// Acá se siembran los 75 platos del seed resolviendo cada línea POR NOMBRE contra
+// los insumos/RB reales del doc (no contra los ids del seed). Solo corre una vez:
+// si el doc tiene insumos pero 0 platos. Devuelve true si mutó el doc.
+function costeoSeedPlatosInto(doc){
+  if (!doc || (doc.platos && doc.platos.length) || !(doc.insumos && doc.insumos.length)) return false;
+  let seed = { platos: [] };
+  try { seed = JSON.parse(readFileSync(join(__dirname, 'costeo-seed.json'), 'utf-8')); } catch { return false; }
+  if (!Array.isArray(seed.platos) || !seed.platos.length) return false;
+  const byName = new Map(); doc.insumos.forEach(i => byName.set(costeoNorm(i.descripcion), i.id));
+  const rbByName = new Map(); (doc.recetasBase || []).forEach(r => rbByName.set(costeoNorm(r.nombre), r.id));
+  doc.platos = seed.platos.map(x => {
+    const lineas = (x.lineas || []).map(l => {
+      const k = costeoNorm(l.ref);
+      if (rbByName.has(k)) return { refType: 'rb', refId: rbByName.get(k), cantidad: Number(l.cantidad) || 0 };
+      if (byName.has(k)) return { refType: 'insumo', refId: byName.get(k), cantidad: Number(l.cantidad) || 0 };
+      return null;
+    }).filter(Boolean);
+    const m = Number(x.margenPct); const margenPct = (m > 0 && m <= 100) ? m : 30;
+    return { id: randomUUID(), nombre: costeoStr(x.nombre, 200), categoria: costeoStr(x.categoria, 120) || 'Sin categoría', margenPct, lineas };
+  });
+  return true;
+}
 function loadCosteoAll(){
   try {
     if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoEmpty() }; saveCosteoAll(all); return all; }
     const p = JSON.parse(readFileSync(COSTEO_FILE, 'utf-8'));
     // Migración: archivo viejo con la data en la raíz → pasa a "garden".
-    if (Array.isArray(p.insumos)) { const all = { garden: costeoNormalizeDoc(p), badass: costeoEmpty() }; saveCosteoAll(all); return all; }
-    return { garden: costeoNormalizeDoc(p.garden), badass: costeoNormalizeDoc(p.badass) };
+    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); const all = { garden: g, badass: costeoEmpty() }; saveCosteoAll(all); return all; }
+    const all = { garden: costeoNormalizeDoc(p.garden), badass: costeoNormalizeDoc(p.badass) };
+    let changed = false;
+    if (costeoSeedPlatosInto(all.garden)) changed = true;
+    if (costeoSeedPlatosInto(all.badass)) changed = true;
+    if (changed) saveCosteoAll(all);
+    return all;
   } catch (e) { console.warn('costeo load:', e.message); return { garden: costeoDefaults(), badass: costeoEmpty() }; }
 }
 function saveCosteoAll(all){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTEO_FILE, JSON.stringify(all, null, 2)); }
