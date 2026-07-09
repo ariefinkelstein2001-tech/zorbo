@@ -4875,7 +4875,8 @@ function saveCosteo(rest, svc, doc){ const all = loadCosteoAll(); all[costeoDocK
 // Comida: precioNeto ÷ rendimiento (o precioNeto). El ILA solo aplica a barra.
 function insumoPrecioReal(i){
   if (i.volumen && i.volumen > 0) {
-    const conIla = (Number(i.precioNeto) || 0) * (1 + (Number(i.ila) || 0) / 100);
+    // (neto + ILA) + despacho (el despacho es neto, sin ILA), todo ÷ volumen.
+    const conIla = (Number(i.precioNeto) || 0) * (1 + (Number(i.ila) || 0) / 100) + (Number(i.despacho) || 0);
     return Math.round(conIla / i.volumen);
   }
   return (i.rendimiento && i.rendimiento > 0) ? Math.round(i.precioNeto / i.rendimiento) : Math.round(i.precioNeto);
@@ -4964,7 +4965,8 @@ app.post('/admin/costeo/insumos', requireAdmin, (req, res) => {
   const d = loadCosteo(rest, req.query.svc);
   const volumen = (Number(b.volumen) > 0) ? Number(b.volumen) : null;
   const ila = (Number(b.ila) > 0) ? Number(b.ila) : (volumen ? 0 : null);
-  d.insumos.push({ id: randomUUID(), descripcion: desc, precioNeto: Number(b.precioNeto) || 0, unidad: costeoUnit(b.unidad), rendimiento: (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null, volumen, ila });
+  const despacho = (Number(b.despacho) > 0) ? Math.round(Number(b.despacho)) : (volumen ? 0 : null);
+  d.insumos.push({ id: randomUUID(), descripcion: desc, precioNeto: Number(b.precioNeto) || 0, unidad: costeoUnit(b.unidad), rendimiento: (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null, volumen, ila, despacho });
   saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 app.put('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
@@ -4977,6 +4979,7 @@ app.put('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
   if (b.rendimiento !== undefined) i.rendimiento = (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null;
   if (b.volumen !== undefined) i.volumen = (Number(b.volumen) > 0) ? Number(b.volumen) : null;
   if (b.ila !== undefined) i.ila = (Number(b.ila) > 0) ? Number(b.ila) : 0;
+  if (b.despacho !== undefined) i.despacho = (Number(b.despacho) > 0) ? Math.round(Number(b.despacho)) : 0;
   saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 app.delete('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
