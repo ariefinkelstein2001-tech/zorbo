@@ -89,6 +89,8 @@ body{
 
 /* ── HOME / categorías ── */
 body.admin-home .adm-shell{grid-template-columns:1fr}
+body.role-costeo .adm-shell{grid-template-columns:1fr}
+body.role-costeo .adm-chat{display:none}
 body.admin-home .adm-chat,body.admin-home .adm-chat-fab{display:none!important}
 .adm-home{padding:1.5rem .5rem 2.5rem;max-width:1000px;margin:0 auto;text-align:center;animation:homeIn .4s ease}
 @keyframes homeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -1500,6 +1502,7 @@ body.drawer-open{overflow:hidden}
 .ct-real::placeholder{font-weight:400;font-style:italic;color:#bbb}
 .ct-real:focus{outline:none;border-color:var(--gold,#f5a623);box-shadow:0 0 0 2px rgba(245,166,35,.18)}
 .ct-sec-hd{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
+.ro-note{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.35);color:#8a6d1f;border-radius:10px;padding:.5rem .8rem;margin-bottom:.9rem;font-size:.82rem;font-weight:600}
 .ren-cell{display:inline-flex;align-items:center;gap:.25rem;justify-content:flex-end}
 .ren-inp{width:44px;text-align:right;padding:.2rem .3rem;border:1px solid var(--line,#ddd);border-radius:6px;font-size:.8rem}
 .ren-inp.on{border-color:var(--gold,#f5a623);background:rgba(245,166,35,.1);font-weight:700;color:var(--gold-deep,#a05f00)}
@@ -2401,7 +2404,10 @@ let previewCatalog = { minorista: null, mayorista: null };
 // ─── Home (selección de categoría) ───────────────────────────────────────────
 function sectionsForCat(catId){ return SECCIONES.filter(s => s.cat === catId); }
 
+// Rol del usuario logueado. 'costeo' = acceso limitado (solo Costeo de carta).
+let adminRole = 'admin';
 function showHome(){
+  if (adminRole === 'costeo') { selectSeccion('costeo'); return; }
   if (dirty && !confirm('Tenés cambios sin guardar. Descartar?')) return;
   dirty = false;
   activeCategory = null;
@@ -2446,6 +2452,7 @@ function openCategory(catId){
 // ─── Tabs ───────────────────────────────────────────────────────────────────
 function renderTabs(){
   const wrap = document.getElementById('tabs');
+  if (adminRole === 'costeo') { wrap.innerHTML = '<div class="adm-catbar"><span class="adm-catbar-label">🧾 Costeo de carta</span></div>'; return; }
   if (!activeCategory) { wrap.innerHTML = ''; return; }
   const cat = ADMIN_CATEGORIES.find(c => c.id === activeCategory);
   const pills = sectionsForCat(activeCategory).map(s => `
@@ -2467,6 +2474,7 @@ function renderTabs(){
 }
 
 async function selectSeccion(id){
+  if (adminRole === 'costeo') id = 'costeo'; // rol limitado: siempre Costeo de carta
   if (dirty && !confirm('Tenés cambios sin guardar en esta sección. Descartar?')) return;
   activeSeccion = id;
   const sec = SECCIONES.find(s => s.id === id);
@@ -6850,6 +6858,23 @@ function renderCosteoSub(){
   if (costeoSub==='platos') return renderCosteoPlatos();
   if (costeoSub==='resumen') return renderCosteoCarta();
 }
+// Rol "costeo": ve todo pero solo edita Recetas base y Platos/Tragos. En Insumos y
+// Carta desactiva los controles de edición (el backend igual lo bloquea).
+function costeoLockView(){
+  if (adminRole !== 'costeo') return;
+  const body=document.getElementById('costeoBody'); if(!body) return;
+  const note='<div class="ro-note">👁️ Solo lectura · esta sección la editan los administradores. Vos editás Recetas base y '+(isBarra()?'Tragos':'Platos')+'.</div>';
+  if (costeoSub==='insumos'){
+    const f=body.querySelector('.dist-form'); if(f) f.style.display='none';
+    body.querySelectorAll('.ci-inp').forEach(el=>{el.disabled=true;el.readOnly=true;});
+    body.querySelectorAll('[data-idel]').forEach(el=>el.remove());
+    body.insertAdjacentHTML('afterbegin', note);
+  } else if (costeoSub==='resumen'){
+    body.querySelectorAll('.ct-real').forEach(el=>{el.disabled=true;el.readOnly=true;});
+    body.querySelectorAll('.ct-move').forEach(el=>el.disabled=true);
+    body.insertAdjacentHTML('afterbegin', note);
+  }
+}
 document.getElementById('costeoSubnav').addEventListener('click', e=>{ const b=e.target.closest('.dist-subtab'); if(!b) return; costeoSub=b.dataset.csub; loadCosteo(); });
 document.getElementById('btnCosteoReload').onclick = ()=>loadCosteo();
 
@@ -6941,6 +6966,7 @@ function renderCosteoInsumos(){
   document.querySelectorAll('#costeoBody .ci-inp').forEach(el=>{ const h=()=>saveInsumo(el.closest('tr').dataset.iid); el.onblur=h; if(el.tagName==='SELECT') el.onchange=h; });
   document.querySelectorAll('#costeoBody [data-idel]').forEach(b=>b.onclick=()=>delInsumo(b.dataset.idel));
   document.querySelectorAll('#costeoBody [data-rbgoto]').forEach(b=>b.onclick=()=>{ costeoSub='recetas'; loadCosteo().then(()=>{ setTimeout(()=>rbLoadEdit(b.dataset.rbgoto),50); }); });
+  costeoLockView();
 }
 async function addInsumo(){
   const desc=document.getElementById('niDesc').value.trim(); const st=document.getElementById('niSt');
@@ -7310,6 +7336,7 @@ function drawCarta(){
   document.querySelectorAll('#costeoBody .ct-move').forEach(sel=>sel.onchange=()=>cartaMove(sel.dataset.pid, sel.value));
   document.querySelectorAll('#costeoBody .ct-real').forEach(inp=>{ inp.onchange=()=>cartaSaveReal(inp); });
   document.getElementById('ctXlBtn').onclick=cartaExcel;
+  costeoLockView();
 }
 async function cartaMove(pid, seccionId){
   try{
@@ -7353,13 +7380,18 @@ function costeoExportXlsx(kind){
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();
-// Mostrar botón "Salir" si la sesión está activa (login habilitado)
+// Arranque: primero el rol, para decidir qué mostrar.
 fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
   if (d && d.username) document.getElementById('btnLogout').style.display = '';
-}).catch(()=>{});
-loadCustomBrands().then(() => {
-  showHome();
-});
+  adminRole = (d && d.role) || 'admin';
+  if (adminRole === 'costeo') {
+    // Acceso limitado: directo a Costeo de carta, sin cargar el resto del panel.
+    document.body.classList.add('role-costeo');
+    selectSeccion('costeo');
+  } else {
+    loadCustomBrands().then(() => showHome());
+  }
+}).catch(() => { loadCustomBrands().then(() => showHome()); });
 </script>
 </body>
 </html>

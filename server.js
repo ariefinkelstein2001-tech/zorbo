@@ -1694,6 +1694,23 @@ function adminCreds(){
 function isAdminConfigured(){
   return true; // siempre hay credenciales (env o default)
 }
+// Usuarios con rol LIMITADO "costeo": solo ven el módulo Costeo de carta, y dentro
+// solo pueden EDITAR Recetas base y Platos/Tragos (el resto: ver, no editar).
+const COSTEO_USERS = ['mcastillo@grupomilsabores.com', 'rquispe@kairosdrinks.com'];
+const COSTEO_USERS_PASS = 'Kairos2026.-';
+// ¿Puede el rol "costeo" tocar esta request? Ve todo lo de costeo (GET) pero solo
+// edita recetas base y platos/tragos. Fuera de /admin/costeo: nada (salvo panel/sesión).
+function costeoRoleAllows(req){
+  const p = req.path, m = req.method;
+  if (p === '/admin' || p === '/admin/' || p === '/admin/me' || p === '/admin/logout') return true;
+  if (p.startsWith('/admin/costeo')) {
+    if (m === 'GET' || m === 'HEAD') return true;
+    if (/^\/admin\/costeo\/recetas(\/|$)/.test(p)) return true;
+    if (/^\/admin\/costeo\/platos(\/|$)/.test(p)) return true;
+    return false; // insumos, carta/asignar, carta/secciones, carta/precio-real → solo ver
+  }
+  return false;
+}
 
 function wantsHtml(req){
   const accept = String(req.headers.accept || '');
@@ -1704,9 +1721,17 @@ function wantsHtml(req){
 // ADMIN_AUTH_ENABLED=0.
 function requireAdmin(req, res, next){
   if (process.env.ADMIN_AUTH_ENABLED === '0') return next();
-  if (adminSessionFor(req)) return next();
-  if (wantsHtml(req)) return res.redirect(302, '/admin/login');
-  return res.status(401).json({ error: 'No autorizado. Iniciá sesión en /admin/login.' });
+  const sess = adminSessionFor(req);
+  if (!sess) {
+    if (wantsHtml(req)) return res.redirect(302, '/admin/login');
+    return res.status(401).json({ error: 'No autorizado. Iniciá sesión en /admin/login.' });
+  }
+  // Rol limitado "costeo": bloquea todo lo que no sea ver/editar lo permitido.
+  if (sess.role === 'costeo' && !costeoRoleAllows(req)) {
+    if (wantsHtml(req)) return res.redirect(302, '/admin');
+    return res.status(403).json({ error: 'No tenés permiso para editar esta sección.' });
+  }
+  return next();
 }
 
 // Limpieza periódica de sesiones expiradas (cada hora)
@@ -1731,21 +1756,26 @@ app.post('/admin/login', async (req, res) => {
   }
 
   const creds = adminCreds();
+  const userLc = username.trim().toLowerCase();
 
-  // Comparación constante en tiempo para evitar timing attacks
-  const eqUser = safeStrEq(username.trim().toLowerCase(), String(creds.user).trim().toLowerCase());
-  const eqPass = safeStrEq(password, String(creds.pass));
+  // Admin completo (env/default) o usuario de rol "costeo".
+  let account = null;
+  if (safeStrEq(userLc, String(creds.user).trim().toLowerCase()) && safeStrEq(password, String(creds.pass))) {
+    account = { username: creds.user, role: 'admin' };
+  } else if (COSTEO_USERS.includes(userLc) && safeStrEq(password, COSTEO_USERS_PASS)) {
+    account = { username: userLc, role: 'costeo' };
+  }
 
   // Pequeño delay artificial para frenar fuerza bruta
   await new Promise(r => setTimeout(r, 250));
 
-  if (!eqUser || !eqPass) {
+  if (!account) {
     return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
   }
 
   const token = randomBytes(32).toString('hex');
   const expiresAt = Date.now() + ADMIN_TTL_MS;
-  ADMIN_SESSIONS.set(token, { username: creds.user, expiresAt });
+  ADMIN_SESSIONS.set(token, { username: account.username, role: account.role, expiresAt });
 
   const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
   const parts = [
@@ -1786,8 +1816,8 @@ app.get('/admin', requireAdmin, (_req, res) => {
 
 app.get('/admin/me', requireAdmin, (req, res) => {
   const s = adminSessionFor(req);
-  if (!s) return res.json({ username: null, expiresAt: null }); // auth deshabilitada
-  res.json({ username: s.username, expiresAt: s.expiresAt });
+  if (!s) return res.json({ username: null, role: 'admin', expiresAt: null }); // auth deshabilitada
+  res.json({ username: s.username, role: s.role || 'admin', expiresAt: s.expiresAt });
 });
 
 app.get('/admin/brand/:seccion', requireAdmin, (req, res) => {
