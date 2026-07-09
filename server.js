@@ -1695,19 +1695,28 @@ function isAdminConfigured(){
   return true; // siempre hay credenciales (env o default)
 }
 // Usuarios con rol LIMITADO "costeo": solo ven el módulo Costeo de carta, y dentro
-// solo pueden EDITAR Recetas base y Platos/Tragos (el resto: ver, no editar).
-const COSTEO_USERS = ['mcastillo@grupomilsabores.com', 'rquispe@kairosdrinks.com'];
+// solo pueden EDITAR Recetas base y Platos/Tragos. Cada uno acotado a UN servicio
+// (svc): Mao → comida, Raúl → barra. Ven ambos, pero editan solo el suyo.
+const COSTEO_USERS = {
+  'mcastillo@grupomilsabores.com': { svc: 'comida' },
+  'rquispe@kairosdrinks.com': { svc: 'barra' },
+};
 const COSTEO_USERS_PASS = 'Kairos2026.-';
 // ¿Puede el rol "costeo" tocar esta request? Ve todo lo de costeo (GET) pero solo
-// edita recetas base y platos/tragos. Fuera de /admin/costeo: nada (salvo panel/sesión).
-function costeoRoleAllows(req){
+// edita recetas base y platos/tragos, y solo en su servicio (sess.costeoSvc).
+function costeoRoleAllows(req, sess){
   const p = req.path, m = req.method;
   if (p === '/admin' || p === '/admin/' || p === '/admin/me' || p === '/admin/logout') return true;
   if (p.startsWith('/admin/costeo')) {
-    if (m === 'GET' || m === 'HEAD') return true;
-    if (/^\/admin\/costeo\/recetas(\/|$)/.test(p)) return true;
-    if (/^\/admin\/costeo\/platos(\/|$)/.test(p)) return true;
-    return false; // insumos, carta/asignar, carta/secciones, carta/precio-real → solo ver
+    if (m === 'GET' || m === 'HEAD') return true; // ver todo (comida y barra)
+    const isEdit = /^\/admin\/costeo\/recetas(\/|$)/.test(p) || /^\/admin\/costeo\/platos(\/|$)/.test(p);
+    if (!isEdit) return false; // insumos, carta/asignar, secciones, precio-real → solo ver
+    const scope = sess && sess.costeoSvc; // 'comida' | 'barra' | undefined(=todo)
+    if (scope) {
+      const svc = (req.query.svc === 'barra') ? 'barra' : 'comida';
+      if (svc !== scope) return false;
+    }
+    return true;
   }
   return false;
 }
@@ -1727,7 +1736,7 @@ function requireAdmin(req, res, next){
     return res.status(401).json({ error: 'No autorizado. Iniciá sesión en /admin/login.' });
   }
   // Rol limitado "costeo": bloquea todo lo que no sea ver/editar lo permitido.
-  if (sess.role === 'costeo' && !costeoRoleAllows(req)) {
+  if (sess.role === 'costeo' && !costeoRoleAllows(req, sess)) {
     if (wantsHtml(req)) return res.redirect(302, '/admin');
     return res.status(403).json({ error: 'No tenés permiso para editar esta sección.' });
   }
@@ -1762,8 +1771,8 @@ app.post('/admin/login', async (req, res) => {
   let account = null;
   if (safeStrEq(userLc, String(creds.user).trim().toLowerCase()) && safeStrEq(password, String(creds.pass))) {
     account = { username: creds.user, role: 'admin' };
-  } else if (COSTEO_USERS.includes(userLc) && safeStrEq(password, COSTEO_USERS_PASS)) {
-    account = { username: userLc, role: 'costeo' };
+  } else if (COSTEO_USERS[userLc] && safeStrEq(password, COSTEO_USERS_PASS)) {
+    account = { username: userLc, role: 'costeo', costeoSvc: COSTEO_USERS[userLc].svc };
   }
 
   // Pequeño delay artificial para frenar fuerza bruta
@@ -1775,7 +1784,7 @@ app.post('/admin/login', async (req, res) => {
 
   const token = randomBytes(32).toString('hex');
   const expiresAt = Date.now() + ADMIN_TTL_MS;
-  ADMIN_SESSIONS.set(token, { username: account.username, role: account.role, expiresAt });
+  ADMIN_SESSIONS.set(token, { username: account.username, role: account.role, costeoSvc: account.costeoSvc, expiresAt });
 
   const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
   const parts = [
@@ -1816,8 +1825,8 @@ app.get('/admin', requireAdmin, (_req, res) => {
 
 app.get('/admin/me', requireAdmin, (req, res) => {
   const s = adminSessionFor(req);
-  if (!s) return res.json({ username: null, role: 'admin', expiresAt: null }); // auth deshabilitada
-  res.json({ username: s.username, role: s.role || 'admin', expiresAt: s.expiresAt });
+  if (!s) return res.json({ username: null, role: 'admin', costeoSvc: null, expiresAt: null }); // auth deshabilitada
+  res.json({ username: s.username, role: s.role || 'admin', costeoSvc: s.costeoSvc || null, expiresAt: s.expiresAt });
 });
 
 app.get('/admin/brand/:seccion', requireAdmin, (req, res) => {

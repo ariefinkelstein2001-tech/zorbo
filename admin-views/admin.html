@@ -2405,7 +2405,8 @@ let previewCatalog = { minorista: null, mayorista: null };
 function sectionsForCat(catId){ return SECCIONES.filter(s => s.cat === catId); }
 
 // Rol del usuario logueado. 'costeo' = acceso limitado (solo Costeo de carta).
-let adminRole = 'admin';
+// adminCosteoSvc: servicio que el usuario costeo puede EDITAR ('comida'|'barra'|null=ambos).
+let adminRole = 'admin', adminCosteoSvc = null;
 function showHome(){
   if (adminRole === 'costeo') { selectSeccion('costeo'); return; }
   if (dirty && !confirm('Tenés cambios sin guardar. Descartar?')) return;
@@ -6858,22 +6859,33 @@ function renderCosteoSub(){
   if (costeoSub==='platos') return renderCosteoPlatos();
   if (costeoSub==='resumen') return renderCosteoCarta();
 }
-// Rol "costeo": ve todo pero solo edita Recetas base y Platos/Tragos. En Insumos y
-// Carta desactiva los controles de edición (el backend igual lo bloquea).
+// ¿Puede el usuario costeo editar la sub-pestaña actual? Solo Recetas base y
+// Platos/Tragos, y solo en el servicio que tiene asignado (adminCosteoSvc).
+function costeoSubEditable(){
+  if (adminRole !== 'costeo') return true;
+  if (costeoSub !== 'recetas' && costeoSub !== 'platos') return false; // insumos/carta: solo ver
+  if (adminCosteoSvc && adminCosteoSvc !== costeoSvc) return false;    // otro servicio: solo ver
+  return true;
+}
+// Rol "costeo": ve todo pero solo edita lo permitido. En lo no editable desactiva
+// todos los controles de edición (el backend igual lo bloquea).
 function costeoLockView(){
-  if (adminRole !== 'costeo') return;
+  if (adminRole !== 'costeo' || costeoSubEditable()) return;
   const body=document.getElementById('costeoBody'); if(!body) return;
-  const note='<div class="ro-note">👁️ Solo lectura · esta sección la editan los administradores. Vos editás Recetas base y '+(isBarra()?'Tragos':'Platos')+'.</div>';
-  if (costeoSub==='insumos'){
-    const f=body.querySelector('.dist-form'); if(f) f.style.display='none';
-    body.querySelectorAll('.ci-inp').forEach(el=>{el.disabled=true;el.readOnly=true;});
-    body.querySelectorAll('[data-idel]').forEach(el=>el.remove());
-    body.insertAdjacentHTML('afterbegin', note);
-  } else if (costeoSub==='resumen'){
-    body.querySelectorAll('.ct-real').forEach(el=>{el.disabled=true;el.readOnly=true;});
-    body.querySelectorAll('.ct-move').forEach(el=>el.disabled=true);
-    body.insertAdjacentHTML('afterbegin', note);
-  }
+  // Controles que se mantienen (búsqueda, filtros, export).
+  const keep = new Set(['ciSearch','rbSearchInp','plSearchInp','plCatFilter','ctXlScope','rbXlBtn','plXlBtn','ctXlBtn']);
+  body.querySelectorAll('.dist-form').forEach(f=>f.style.display='none'); // formularios de alta/edición
+  body.querySelectorAll('input,select,textarea,button').forEach(el=>{
+    if (keep.has(el.id)) return;
+    el.disabled=true; if (el.tagName==='INPUT'||el.tagName==='TEXTAREA') el.readOnly=true;
+  });
+  body.querySelectorAll('[data-rbedit],[data-rbdel],[data-pledit],[data-pldel],[data-idel]').forEach(el=>el.remove());
+  let msg;
+  if (costeoSub==='recetas' || costeoSub==='platos')
+    msg = 'Estás viendo '+(isBarra()?'Barra':'Comida')+' en modo lectura. Solo podés editar '+(adminCosteoSvc==='barra'?'Barra':'Comida')+'.';
+  else
+    msg = 'Solo lectura · esta sección la editan los administradores.';
+  body.insertAdjacentHTML('afterbegin', '<div class="ro-note">👁️ '+msg+'</div>');
 }
 document.getElementById('costeoSubnav').addEventListener('click', e=>{ const b=e.target.closest('.dist-subtab'); if(!b) return; costeoSub=b.dataset.csub; loadCosteo(); });
 document.getElementById('btnCosteoReload').onclick = ()=>loadCosteo();
@@ -7082,6 +7094,7 @@ function renderCosteoRecetas(){
   document.querySelectorAll('#costeoBody [data-rbdel]').forEach(b=>b.onclick=()=>rbDelete(b.dataset.rbdel));
   const rs=document.getElementById('rbSearchInp');
   if(rs) rs.oninput=()=>{ rbSearch=rs.value; const p=rs.selectionStart; renderCosteoRecetasKeep(); const n=document.getElementById('rbSearchInp'); if(n){n.focus(); try{n.setSelectionRange(p,p);}catch{}} };
+  costeoLockView();
 }
 let rbFormCache={};
 function renderCosteoRecetasKeep(){
@@ -7235,6 +7248,7 @@ function renderCosteoPlatos(){
   const ps=document.getElementById('plSearchInp');
   if(ps) ps.oninput=()=>{ platoSearch=ps.value; const p=ps.selectionStart; renderCosteoPlatosKeep(); const n=document.getElementById('plSearchInp'); if(n){n.focus(); try{n.setSelectionRange(p,p);}catch{}} };
   const pcf=document.getElementById('plCatFilter'); if(pcf) pcf.onchange=()=>{ platoCatFilter=pcf.value; renderCosteoPlatosKeep(); };
+  costeoLockView();
 }
 let platoFormCache={};
 function renderCosteoPlatosKeep(){
@@ -7384,9 +7398,12 @@ updateChatModeLabel();
 fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
   if (d && d.username) document.getElementById('btnLogout').style.display = '';
   adminRole = (d && d.role) || 'admin';
+  adminCosteoSvc = (d && d.costeoSvc) || null;
   if (adminRole === 'costeo') {
     // Acceso limitado: directo a Costeo de carta, sin cargar el resto del panel.
     document.body.classList.add('role-costeo');
+    // Arranca en el servicio que puede editar.
+    if (adminCosteoSvc) { costeoSvc = adminCosteoSvc; const sel=document.getElementById('costeoSvc'); if(sel) sel.value=adminCosteoSvc; }
     selectSeccion('costeo');
   } else {
     loadCustomBrands().then(() => showHome());
