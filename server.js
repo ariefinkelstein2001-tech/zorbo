@@ -4570,7 +4570,8 @@ function costeoNormalizeCarta(c){
   const cv = Number.isFinite(c.cv) ? c.cv : 0;   // versión: secciones reales + tragos de barra
   const smv = Number.isFinite(c.smv) ? c.smv : 0; // versión: override 100% carne RB SMASH
   const urv = Number.isFinite(c.urv) ? c.urv : 0; // versión: quitar flag "reventa" (todo se costea)
-  return { v, pv, rv, biv, cv, smv, urv, secciones, asignaciones };
+  const rvb = Number.isFinite(c.rvb) ? c.rvb : 0; // versión: sembrar productos de reventa de barra (destilados)
+  return { v, pv, rv, biv, cv, smv, urv, rvb, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -4898,6 +4899,38 @@ function costeoUnreventaBarra(doc){
   doc.carta.urv = BARRA_UNREVENTA_V;
   return true;
 }
+// Siembra los productos de REVENTA de barra (destilados: cortos + botellas) desde
+// el bloque seed.reventa (hoja PRECIO CORTOS del Excel). Cada marca → un insumo
+// (precio por litro NETO = precioPromedio÷1,19, ILA en 0 como el resto de barra) y
+// uno o dos productos: corto (60/45ml) y botella (0,7L). Dedupe de insumos por
+// nombre para no duplicar los que ya existen. Corre una vez por doc (carta.rvb).
+// Solo Garden trae seed.reventa; Badass no → no-op. Devuelve true si mutó.
+const BARRA_REVENTA_V = 1;
+function costeoSeedReventaBarra(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.rvb >= BARRA_REVENTA_V) return false;
+  let seed; try { seed = JSON.parse(readFileSync(join(__dirname, costeoBarraSeedFile(rest)), 'utf-8')); } catch { seed = null; }
+  const rev = seed && seed.reventa;
+  if (rev && Array.isArray(rev.insumos) && rev.insumos.length) {
+    const byName = new Map(); (doc.insumos || []).forEach(i => byName.set(costeoNorm(i.descripcion), i.id));
+    rev.insumos.forEach(ri => {
+      const desc = costeoStr(ri.descripcion, 200); if (!desc) return;
+      const k = costeoNorm(desc); if (byName.has(k)) return;
+      const id = randomUUID();
+      doc.insumos.push({ id, descripcion: desc, precioNeto: Math.round(Number(ri.precioNeto) || 0), unidad: costeoUnit(ri.unidad || 'litro'), volumen: (Number(ri.volumen) > 0) ? Number(ri.volumen) : 1, ila: Number(ri.ila) || 0, despacho: 0, rendimiento: null });
+      byName.set(k, id);
+    });
+    (rev.productos || []).forEach(rp => {
+      const lineas = (rp.lineas || []).map(l => { const id = byName.get(costeoNorm(l.ref)); return id ? { refType: 'insumo', refId: id, cantidad: Number(l.cantidad) || 0 } : null; }).filter(Boolean);
+      if (!lineas.length) return;
+      const m = Number(rp.margenPct); const margenPct = (m > 0 && m <= 100) ? m : 30;
+      doc.platos.push({ id: randomUUID(), nombre: costeoStr(rp.nombre, 200), categoria: costeoStr(rp.categoria, 120) || 'Sin categoría', margenPct, lineas, precioReal: null, iva: false });
+    });
+  }
+  doc.carta.rvb = BARRA_REVENTA_V;
+  return true;
+}
 // Asegura los 2 docs de barra (garden_barra / badass_barra): los siembra desde el
 // Excel de barra si están vacíos y planta sus secciones de carta. Devuelve true si mutó.
 function costeoEnsureBarraDocs(all){
@@ -4909,6 +4942,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoMigrateBarraIla(all[key])) ch = true;
     if (costeoMigrateBarraCarta(all[key], rest)) ch = true;
     if (costeoUnreventaBarra(all[key])) ch = true;
+    if (costeoSeedReventaBarra(all[key], rest)) ch = true;
   }
   return ch;
 }

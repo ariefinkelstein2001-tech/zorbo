@@ -5228,5 +5228,2467 @@
    "nombre": "Ice tea",
    "reventa": 1
   }
- ]
+ ],
+ "reventa": {
+  "insumos": [
+   {
+    "descripcion": "Citadelle",
+    "precioNeto": 29020,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Hendricks",
+    "precioNeto": 20324,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Tanqueray Ten",
+    "precioNeto": 31922,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Tanqueray London Dry",
+    "precioNeto": 14549,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Tanqueray Sevilla",
+    "precioNeto": 11979,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Tanqueray Royale",
+    "precioNeto": 12025,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Gin Mare",
+    "precioNeto": 44807,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Republica Amazonica",
+    "precioNeto": 12014,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Bombay",
+    "precioNeto": 18738,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Beefeter",
+    "precioNeto": 18022,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Beefeter Pink",
+    "precioNeto": 22505,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Gin Banny",
+    "precioNeto": 11785,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Johnnie Walker Blue",
+    "precioNeto": 284415,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Johnnie Walker Gold",
+    "precioNeto": 73367,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Johnnie Walker Red",
+    "precioNeto": 15245,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Johnnie Walker Black",
+    "precioNeto": 38540,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Johnnie Walker Double Black",
+    "precioNeto": 46496,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Jack Daniels Gentleman",
+    "precioNeto": 32722,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Jack Daniels Old 7",
+    "precioNeto": 32722,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Jack Daniels Honey",
+    "precioNeto": 32722,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Jack Daniels Apple",
+    "precioNeto": 32722,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Chivas Regal 18",
+    "precioNeto": 73519,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Chivas Regal 12",
+    "precioNeto": 30055,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Jim Beam Bourbon",
+    "precioNeto": 21072,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Bulliet Bourbon",
+    "precioNeto": 30350,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Ballantines",
+    "precioNeto": 15675,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Ballantines Blended 7 Años",
+    "precioNeto": 11812,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Buchanan´S 12",
+    "precioNeto": 26947,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Glenfiddich 12",
+    "precioNeto": 34294,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "The Singleton 12",
+    "precioNeto": 32914,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Johnnie Walker Blonde",
+    "precioNeto": 15371,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Grey Goose",
+    "precioNeto": 20241,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Stolichnaya",
+    "precioNeto": 12307,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Absolute",
+    "precioNeto": 13928,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Absolute Vainilla",
+    "precioNeto": 13681,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Belvedere",
+    "precioNeto": 30376,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Cuatro Gallos Italia",
+    "precioNeto": 26884,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Alto Del Carmen Etiqueta Negra",
+    "precioNeto": 10109,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Alto Del Carmen 40°",
+    "precioNeto": 10012,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Alto Del Carmen Transparente 40°",
+    "precioNeto": 10015,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Alto Del Carmen 35°",
+    "precioNeto": 5966,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Mistral Nobel",
+    "precioNeto": 14661,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Mistral Nobel Honey",
+    "precioNeto": 14661,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Mistral Nobel Apple",
+    "precioNeto": 14661,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Mistral 40°",
+    "precioNeto": 8152,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Mistral 35°",
+    "precioNeto": 7039,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Orcon Quemado Añejado Reservado 40°",
+    "precioNeto": 12999,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Pampero Aniversario",
+    "precioNeto": 21258,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Flor De Caña 12",
+    "precioNeto": 26989,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Bacardi Carta De Oro",
+    "precioNeto": 9420,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Bacardi Carta Blanca",
+    "precioNeto": 11749,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Bacardi Añejo",
+    "precioNeto": 9634,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Havana Club Especial",
+    "precioNeto": 7539,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Havana Club 7",
+    "precioNeto": 23032,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Havana Club Selección De Maestros",
+    "precioNeto": 53245,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Zacapa 23",
+    "precioNeto": 53351,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Pampero Especial",
+    "precioNeto": 13838,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Ron Rey De Copas",
+    "precioNeto": 6429,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Herradura Silver",
+    "precioNeto": 38565,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Herradura Reposado",
+    "precioNeto": 31004,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Olmeca Silver",
+    "precioNeto": 22140,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Olmeca Reposado",
+    "precioNeto": 22140,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Jose Cuervo Silver",
+    "precioNeto": 19811,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Jose Cuervo Reposado",
+    "precioNeto": 19926,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Don Julio Blanco",
+    "precioNeto": 40110,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Don Julio Reposado",
+    "precioNeto": 47919,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Frangelico",
+    "precioNeto": 17364,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Pobre Vermouth Rosso",
+    "precioNeto": 11081,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Pobre Vermouth Blanco",
+    "precioNeto": 11081,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Baileys",
+    "precioNeto": 8384,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Disaronno",
+    "precioNeto": 28059,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Fernet Branca",
+    "precioNeto": 11947,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Jagermeister",
+    "precioNeto": 18741,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Martini Fiero",
+    "precioNeto": 7337,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Drambui",
+    "precioNeto": 28062,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   },
+   {
+    "descripcion": "Campari",
+    "precioNeto": 18741,
+    "volumen": 1,
+    "unidad": "litro",
+    "ila": 0
+   }
+  ],
+  "productos": [
+   {
+    "nombre": "Citadelle",
+    "categoria": "Gin",
+    "margenPct": 27.9,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Citadelle",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Citadelle (botella)",
+    "categoria": "Gin Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Citadelle",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Hendricks",
+    "categoria": "Gin",
+    "margenPct": 21.0,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Hendricks",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Hendricks (botella)",
+    "categoria": "Gin Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Hendricks",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Tanqueray Ten",
+    "categoria": "Gin",
+    "margenPct": 25.1,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Tanqueray Ten",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Tanqueray Ten (botella)",
+    "categoria": "Gin Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Tanqueray Ten",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Tanqueray London Dry",
+    "categoria": "Gin",
+    "margenPct": 18.3,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Tanqueray London Dry",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Tanqueray London Dry (botella)",
+    "categoria": "Gin Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Tanqueray London Dry",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Tanqueray Sevilla",
+    "categoria": "Gin",
+    "margenPct": 17.0,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Tanqueray Sevilla",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Tanqueray Sevilla (botella)",
+    "categoria": "Gin Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Tanqueray Sevilla",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Tanqueray Royale",
+    "categoria": "Gin",
+    "margenPct": 17.1,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Tanqueray Royale",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Tanqueray Royale (botella)",
+    "categoria": "Gin Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Tanqueray Royale",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Gin Mare",
+    "categoria": "Gin",
+    "margenPct": 26.8,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Gin Mare",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Gin Mare (botella)",
+    "categoria": "Gin Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Gin Mare",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Republica Amazonica",
+    "categoria": "Gin",
+    "margenPct": 18.1,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Republica Amazonica",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Republica Amazonica (botella)",
+    "categoria": "Gin Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Republica Amazonica",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Bombay",
+    "categoria": "Gin",
+    "margenPct": 20.8,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Bombay",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Bombay (botella)",
+    "categoria": "Gin Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Bombay",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Beefeter",
+    "categoria": "Gin",
+    "margenPct": 19.2,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Beefeter",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Beefeter (botella)",
+    "categoria": "Gin Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Beefeter",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Beefeter Pink",
+    "categoria": "Gin",
+    "margenPct": 22.7,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Beefeter Pink",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Beefeter Pink (botella)",
+    "categoria": "Gin Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Beefeter Pink",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Gin Banny",
+    "categoria": "Gin",
+    "margenPct": 19.2,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Gin Banny",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Gin Banny (botella)",
+    "categoria": "Gin Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Gin Banny",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Johnnie Walker Blue",
+    "categoria": "Whisky",
+    "margenPct": 31.9,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Johnnie Walker Blue",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Johnnie Walker Blue (botella)",
+    "categoria": "Whisky Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Johnnie Walker Blue",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Johnnie Walker Gold",
+    "categoria": "Whisky",
+    "margenPct": 31.4,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Johnnie Walker Gold",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Johnnie Walker Gold (botella)",
+    "categoria": "Whisky Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Johnnie Walker Gold",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Johnnie Walker Red",
+    "categoria": "Whisky",
+    "margenPct": 22.8,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Johnnie Walker Red",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Johnnie Walker Red (botella)",
+    "categoria": "Whisky Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Johnnie Walker Red",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Johnnie Walker Black",
+    "categoria": "Whisky",
+    "margenPct": 35.4,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Johnnie Walker Black",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Johnnie Walker Black (botella)",
+    "categoria": "Whisky Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Johnnie Walker Black",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Johnnie Walker Double Black",
+    "categoria": "Whisky",
+    "margenPct": 27.7,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Johnnie Walker Double Black",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Johnnie Walker Double Black (botella)",
+    "categoria": "Whisky Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Johnnie Walker Double Black",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Jack Daniels Gentleman",
+    "categoria": "Bourbon",
+    "margenPct": 23.7,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Jack Daniels Gentleman",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Jack Daniels Old 7",
+    "categoria": "Bourbon",
+    "margenPct": 34.2,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Jack Daniels Old 7",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Jack Daniels Honey",
+    "categoria": "Bourbon",
+    "margenPct": 34.2,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Jack Daniels Honey",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Jack Daniels Apple",
+    "categoria": "Bourbon",
+    "margenPct": 34.2,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Jack Daniels Apple",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Chivas Regal 18",
+    "categoria": "Whisky",
+    "margenPct": 41.9,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Chivas Regal 18",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Chivas Regal 18 (botella)",
+    "categoria": "Whisky Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Chivas Regal 18",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Chivas Regal 12",
+    "categoria": "Whisky",
+    "margenPct": 28.7,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Chivas Regal 12",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Chivas Regal 12 (botella)",
+    "categoria": "Whisky Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Chivas Regal 12",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Jim Beam Bourbon",
+    "categoria": "Bourbon",
+    "margenPct": 21.6,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Jim Beam Bourbon",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Bulliet Bourbon",
+    "categoria": "Bourbon",
+    "margenPct": 20.6,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Bulliet Bourbon",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Ballantines",
+    "categoria": "Whisky",
+    "margenPct": 21.7,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Ballantines",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Ballantines (botella)",
+    "categoria": "Whisky Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Ballantines",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Ballantines Blended 7 Años",
+    "categoria": "Whisky",
+    "margenPct": 15.9,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Ballantines Blended 7 Años",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Ballantines Blended 7 Años (botella)",
+    "categoria": "Whisky Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Ballantines Blended 7 Años",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Buchanan´S 12",
+    "categoria": "Whisky",
+    "margenPct": 26.2,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Buchanan´S 12",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Buchanan´S 12 (botella)",
+    "categoria": "Whisky Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Buchanan´S 12",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Glenfiddich 12",
+    "categoria": "Whisky",
+    "margenPct": 18.8,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Glenfiddich 12",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Glenfiddich 12 (botella)",
+    "categoria": "Whisky Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Glenfiddich 12",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "The Singleton 12",
+    "categoria": "Whisky",
+    "margenPct": 23.8,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "The Singleton 12",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "The Singleton 12 (botella)",
+    "categoria": "Whisky Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "The Singleton 12",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Johnnie Walker Blonde",
+    "categoria": "Whisky",
+    "margenPct": 20.2,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Johnnie Walker Blonde",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Johnnie Walker Blonde (botella)",
+    "categoria": "Whisky Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Johnnie Walker Blonde",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Grey Goose",
+    "categoria": "Vodka",
+    "margenPct": 19.1,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Grey Goose",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Grey Goose (botella)",
+    "categoria": "Vodka Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Grey Goose",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Stolichnaya",
+    "categoria": "Vodka",
+    "margenPct": 21.1,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Stolichnaya",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Stolichnaya (botella)",
+    "categoria": "Vodka Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Stolichnaya",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Absolute",
+    "categoria": "Vodka",
+    "margenPct": 20.0,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Absolute",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Absolute (botella)",
+    "categoria": "Vodka Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Absolute",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Absolute Vainilla",
+    "categoria": "Vodka",
+    "margenPct": 17.6,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Absolute Vainilla",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Absolute Vainilla (botella)",
+    "categoria": "Vodka Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Absolute Vainilla",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Belvedere",
+    "categoria": "Vodka",
+    "margenPct": 22.3,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Belvedere",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Belvedere (botella)",
+    "categoria": "Vodka Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Belvedere",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Cuatro Gallos Italia",
+    "categoria": "Pisco",
+    "margenPct": 25,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Cuatro Gallos Italia",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Cuatro Gallos Italia (botella)",
+    "categoria": "Pisco Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Cuatro Gallos Italia",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Alto Del Carmen Etiqueta Negra",
+    "categoria": "Pisco",
+    "margenPct": 20.0,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Alto Del Carmen Etiqueta Negra",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Alto Del Carmen Etiqueta Negra (botella)",
+    "categoria": "Pisco Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Alto Del Carmen Etiqueta Negra",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Alto Del Carmen 40°",
+    "categoria": "Pisco",
+    "margenPct": 21.6,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Alto Del Carmen 40°",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Alto Del Carmen 40° (botella)",
+    "categoria": "Pisco Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Alto Del Carmen 40°",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Alto Del Carmen Transparente 40°",
+    "categoria": "Pisco",
+    "margenPct": 20.0,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Alto Del Carmen Transparente 40°",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Alto Del Carmen Transparente 40° (botella)",
+    "categoria": "Pisco Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Alto Del Carmen Transparente 40°",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Alto Del Carmen 35°",
+    "categoria": "Pisco",
+    "margenPct": 17.7,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Alto Del Carmen 35°",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Alto Del Carmen 35° (botella)",
+    "categoria": "Pisco Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Alto Del Carmen 35°",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Mistral Nobel",
+    "categoria": "Pisco",
+    "margenPct": 19.5,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Mistral Nobel",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Mistral Nobel (botella)",
+    "categoria": "Pisco Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Mistral Nobel",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Mistral Nobel Honey",
+    "categoria": "Pisco",
+    "margenPct": 19.5,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Mistral Nobel Honey",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Mistral Nobel Honey (botella)",
+    "categoria": "Pisco Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Mistral Nobel Honey",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Mistral Nobel Apple",
+    "categoria": "Pisco",
+    "margenPct": 19.5,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Mistral Nobel Apple",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Mistral Nobel Apple (botella)",
+    "categoria": "Pisco Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Mistral Nobel Apple",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Mistral 40°",
+    "categoria": "Pisco",
+    "margenPct": 19.1,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Mistral 40°",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Mistral 40° (botella)",
+    "categoria": "Pisco Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Mistral 40°",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Mistral 35°",
+    "categoria": "Pisco",
+    "margenPct": 19.3,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Mistral 35°",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Mistral 35° (botella)",
+    "categoria": "Pisco Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Mistral 35°",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Orcon Quemado Añejado Reservado 40°",
+    "categoria": "Pisco",
+    "margenPct": 19.1,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Orcon Quemado Añejado Reservado 40°",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Orcon Quemado Añejado Reservado 40° (botella)",
+    "categoria": "Pisco Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Orcon Quemado Añejado Reservado 40°",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Pampero Aniversario",
+    "categoria": "Ron",
+    "margenPct": 20.0,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Pampero Aniversario",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Pampero Aniversario (botella)",
+    "categoria": "Ron Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Pampero Aniversario",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Flor De Caña 12",
+    "categoria": "Ron",
+    "margenPct": 21.9,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Flor De Caña 12",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Flor De Caña 12 (botella)",
+    "categoria": "Ron Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Flor De Caña 12",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Bacardi Carta De Oro",
+    "categoria": "Ron",
+    "margenPct": 19.2,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Bacardi Carta De Oro",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Bacardi Carta De Oro (botella)",
+    "categoria": "Ron Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Bacardi Carta De Oro",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Bacardi Carta Blanca",
+    "categoria": "Ron",
+    "margenPct": 20.4,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Bacardi Carta Blanca",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Bacardi Carta Blanca (botella)",
+    "categoria": "Ron Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Bacardi Carta Blanca",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Bacardi Añejo",
+    "categoria": "Ron",
+    "margenPct": 18.0,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Bacardi Añejo",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Bacardi Añejo (botella)",
+    "categoria": "Ron Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Bacardi Añejo",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Havana Club Especial",
+    "categoria": "Ron",
+    "margenPct": 16.9,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Havana Club Especial",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Havana Club Especial (botella)",
+    "categoria": "Ron Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Havana Club Especial",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Havana Club 7",
+    "categoria": "Ron",
+    "margenPct": 21.2,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Havana Club 7",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Havana Club 7 (botella)",
+    "categoria": "Ron Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Havana Club 7",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Havana Club Selección De Maestros",
+    "categoria": "Ron",
+    "margenPct": 27.6,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Havana Club Selección De Maestros",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Havana Club Selección De Maestros (botella)",
+    "categoria": "Ron Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Havana Club Selección De Maestros",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Zacapa 23",
+    "categoria": "Ron",
+    "margenPct": 27.6,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Zacapa 23",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Zacapa 23 (botella)",
+    "categoria": "Ron Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Zacapa 23",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Pampero Especial",
+    "categoria": "Ron",
+    "margenPct": 22.8,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Pampero Especial",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Pampero Especial (botella)",
+    "categoria": "Ron Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Pampero Especial",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Ron Rey De Copas",
+    "categoria": "Ron",
+    "margenPct": 20.0,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Ron Rey De Copas",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Ron Rey De Copas (botella)",
+    "categoria": "Ron Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Ron Rey De Copas",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Herradura Silver",
+    "categoria": "Tequila",
+    "margenPct": 22.7,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Herradura Silver",
+      "cantidad": 0.045
+     }
+    ]
+   },
+   {
+    "nombre": "Herradura Silver (botella)",
+    "categoria": "Tequila Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Herradura Silver",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Herradura Reposado",
+    "categoria": "Tequila",
+    "margenPct": 18.3,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Herradura Reposado",
+      "cantidad": 0.045
+     }
+    ]
+   },
+   {
+    "nombre": "Herradura Reposado (botella)",
+    "categoria": "Tequila Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Herradura Reposado",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Olmeca Silver",
+    "categoria": "Tequila",
+    "margenPct": 21.8,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Olmeca Silver",
+      "cantidad": 0.045
+     }
+    ]
+   },
+   {
+    "nombre": "Olmeca Silver (botella)",
+    "categoria": "Tequila Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Olmeca Silver",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Olmeca Reposado",
+    "categoria": "Tequila",
+    "margenPct": 21.8,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Olmeca Reposado",
+      "cantidad": 0.045
+     }
+    ]
+   },
+   {
+    "nombre": "Olmeca Reposado (botella)",
+    "categoria": "Tequila Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Olmeca Reposado",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Jose Cuervo Silver",
+    "categoria": "Tequila",
+    "margenPct": 23.4,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Jose Cuervo Silver",
+      "cantidad": 0.045
+     }
+    ]
+   },
+   {
+    "nombre": "Jose Cuervo Silver (botella)",
+    "categoria": "Tequila Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Jose Cuervo Silver",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Jose Cuervo Reposado",
+    "categoria": "Tequila",
+    "margenPct": 23.5,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Jose Cuervo Reposado",
+      "cantidad": 0.045
+     }
+    ]
+   },
+   {
+    "nombre": "Jose Cuervo Reposado (botella)",
+    "categoria": "Tequila Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Jose Cuervo Reposado",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Don Julio Blanco",
+    "categoria": "Tequila",
+    "margenPct": 21.5,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Don Julio Blanco",
+      "cantidad": 0.045
+     }
+    ]
+   },
+   {
+    "nombre": "Don Julio Blanco (botella)",
+    "categoria": "Tequila Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Don Julio Blanco",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Don Julio Reposado",
+    "categoria": "Tequila",
+    "margenPct": 25.7,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Don Julio Reposado",
+      "cantidad": 0.045
+     }
+    ]
+   },
+   {
+    "nombre": "Don Julio Reposado (botella)",
+    "categoria": "Tequila Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Don Julio Reposado",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Frangelico",
+    "categoria": "Licores",
+    "margenPct": 23.4,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Frangelico",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Frangelico (botella)",
+    "categoria": "Licores Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Frangelico",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Pobre Vermouth Rosso",
+    "categoria": "Licores",
+    "margenPct": 25,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Pobre Vermouth Rosso",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Pobre Vermouth Rosso (botella)",
+    "categoria": "Licores Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Pobre Vermouth Rosso",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Pobre Vermouth Blanco",
+    "categoria": "Licores",
+    "margenPct": 25,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Pobre Vermouth Blanco",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Pobre Vermouth Blanco (botella)",
+    "categoria": "Licores Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Pobre Vermouth Blanco",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Baileys",
+    "categoria": "Licores",
+    "margenPct": 19.4,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Baileys",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Baileys (botella)",
+    "categoria": "Licores Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Baileys",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Disaronno",
+    "categoria": "Licores",
+    "margenPct": 41.7,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Disaronno",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Disaronno (botella)",
+    "categoria": "Licores Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Disaronno",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Fernet Branca",
+    "categoria": "Licores",
+    "margenPct": 20.6,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Fernet Branca",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Fernet Branca (botella)",
+    "categoria": "Licores Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Fernet Branca",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Jagermeister",
+    "categoria": "Licores",
+    "margenPct": 25,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Jagermeister",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Jagermeister (botella)",
+    "categoria": "Licores Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Jagermeister",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Martini Fiero",
+    "categoria": "Licores",
+    "margenPct": 21.7,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Martini Fiero",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Martini Fiero (botella)",
+    "categoria": "Licores Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Martini Fiero",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Drambui",
+    "categoria": "Licores",
+    "margenPct": 39.3,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Drambui",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Drambui (botella)",
+    "categoria": "Licores Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Drambui",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Jagermeister",
+    "categoria": "Licores",
+    "margenPct": 39.8,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Jagermeister",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Jagermeister (botella)",
+    "categoria": "Licores Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Jagermeister",
+      "cantidad": 0.7
+     }
+    ]
+   },
+   {
+    "nombre": "Campari",
+    "categoria": "Licores",
+    "margenPct": 39.8,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Campari",
+      "cantidad": 0.06
+     }
+    ]
+   },
+   {
+    "nombre": "Campari (botella)",
+    "categoria": "Licores Botella",
+    "margenPct": 30,
+    "iva": false,
+    "precioReal": null,
+    "lineas": [
+     {
+      "ref": "Campari",
+      "cantidad": 0.7
+     }
+    ]
+   }
+  ]
+ }
 }
