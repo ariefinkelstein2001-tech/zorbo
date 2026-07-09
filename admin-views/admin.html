@@ -7177,14 +7177,13 @@ function renderCosteoPlatos(){
       <tr>
         <td><b>${escapeHtml(p.nombre)}</b><div class="pl-items">${p.lineas.map(l=>`${l.cantidad}× ${escapeHtml(l.nombre)}`).join(' · ')||'<i style="color:#999">sin insumos</i>'}</div></td>
         <td class="dist-num">${cMoney(p.costoFinal)}</td>
-        <td class="dist-num">${p.margenPct}%</td>
         <td class="dist-num"><b class="pl-precio">${cMoney(p.precioVentaRedondeado)}</b></td>
         <td class="dist-num"><span class="pl-pct ${p.pctCosto>40?'hi':''}">${p.pctCosto}%</span></td>
         <td class="dist-num"><button class="dist-portal-link" data-pledit="${p.id}">Editar</button> <button class="dist-portal-link del" data-pldel="${p.id}">✕</button></td>
       </tr>`).join('');
     return `<div class="pl-cat-title">${escapeHtml(cat)} <span>(${byCat[cat].length})</span></div>
       <div class="mun-wrap"><table class="mun-table">
-        <thead><tr><th>Plato</th><th style="text-align:right">Costo final</th><th style="text-align:right">Margen</th><th style="text-align:right">Precio sugerido</th><th style="text-align:right">% costo</th><th></th></tr></thead>
+        <thead><tr><th>Plato</th><th style="text-align:right">Costo final</th><th style="text-align:right">Precio sugerido</th><th style="text-align:right">% costo</th><th></th></tr></thead>
         <tbody>${rows}</tbody></table></div>`;
   }).join('');
   const catOptions = cats.map(c=>`<option value="${escapeAttr(c)}" ${(platoEditing?platoEditing.categoria:'')===c?'selected':''}>${escapeHtml(c)}</option>`).join('');
