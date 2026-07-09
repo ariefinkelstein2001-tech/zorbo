@@ -5152,17 +5152,8 @@ function cartaSheetRows(carta){
   pushSec('Sin asignar', carta.sinAsignar, []);
   return rows;
 }
-app.get('/admin/costeo/carta/export.xlsx', requireAdmin, (req, res) => {
-  const scope = String(req.query.rest || 'garden');
-  const svc = costeoSvcKey(req.query.svc);
-  const rests = scope === 'both' ? ['garden', 'badass'] : [costeoRestKey(scope)];
-  const svcLabel = svc === 'barra' ? ' — Barra' : '';
-  const label = { garden: 'Kairos Garden', badass: 'Badass' };
-  const sheets = rests.map(rt => ({ name: (label[rt] + svcLabel), rows: (() => {
-    const carta = resolveCarta(loadCosteo(rt, svc));
-    return [[{ v: label[rt] + svcLabel, s: 5 }], []].concat(cartaSheetRows(carta));
-  })() }));
-  // Partes del paquete OOXML.
+// Empaqueta N hojas [{name, rows}] en un .xlsx (OOXML) y devuelve el Buffer.
+function xlsxPackage(sheets){
   const files = [];
   const overrides = sheets.map((s, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('');
   files.push({ name: '[Content_Types].xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -5177,12 +5168,76 @@ app.get('/admin/costeo/carta/export.xlsx', requireAdmin, (req, res) => {
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${wbRels}<Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>` });
   files.push({ name: 'xl/styles.xml', data: XLSX_STYLES });
   sheets.forEach((s, i) => files.push({ name: `xl/worksheets/sheet${i + 1}.xml`, data: xlsxSheetXml(s.rows) }));
-  const buf = zipStore(files);
-  const sfx = svc === 'barra' ? '-barra' : '';
-  const fname = scope === 'both' ? `carta${sfx}-zorbo.xlsx` : `carta${sfx}-${costeoRestKey(scope)}.xlsx`;
+  return zipStore(files);
+}
+function sendXlsx(res, buf, fname){
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', `attachment; filename="${fname}"`);
   res.send(buf);
+}
+const REST_LABELS = { garden: 'Kairos Garden', badass: 'Badass' };
+const svcSheetLabel = (rest, svc) => REST_LABELS[costeoRestKey(rest)] + (costeoSvcKey(svc) === 'barra' ? ' — Barra' : '');
+
+// Filas de la hoja de Recetas base.
+function rbSheetRows(doc){
+  const S = { header: 1, money: 3 };
+  const rows = [[{ v: 'Receta base', s: S.header }, { v: 'Ingredientes', s: S.header }, { v: 'Producción', s: S.header }, { v: 'Unidad', s: S.header }, { v: 'Costo total', s: S.header }, { v: 'Costo x unidad', s: S.header }]];
+  (doc.recetasBase || []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).forEach(r => {
+    const ings = (r.lineas || []).map(l => `${l.cantidad}× ${l.nombre}`).join(' · ');
+    rows.push([{ v: r.nombre }, { v: ings }, { v: r.produccion, t: 'n' }, { v: r.unidad || '' }, { v: r.costoTotal, t: 'n', s: S.money }, { v: r.precioUnidad, t: 'n', s: S.money }]);
+  });
+  return rows;
+}
+// Filas de la hoja de Platos / Tragos (agrupados por categoría, con la cadena de costo).
+function platosSheetRows(doc){
+  const S = { header: 1, sec: 2, money: 3, pct: 4 };
+  const rows = [[{ v: 'Plato', s: S.header }, { v: 'Costo total', s: S.header }, { v: 'Protección', s: S.header }, { v: 'IVA', s: S.header }, { v: 'Costo final', s: S.header }, { v: 'Margen', s: S.header }, { v: 'Precio sugerido', s: S.header }, { v: '% costo', s: S.header }, { v: 'Precio real', s: S.header }, { v: '% costo real', s: S.header }]];
+  const cats = doc.categorias || [];
+  const byCat = new Map();
+  (doc.platos || []).forEach(p => { const c = p.categoria || 'Sin categoría'; if (!byCat.has(c)) byCat.set(c, []); byCat.get(c).push(p); });
+  const order = [...cats.filter(c => byCat.has(c)), ...[...byCat.keys()].filter(c => !cats.includes(c))];
+  order.forEach(cat => {
+    rows.push([]);
+    rows.push([{ v: cat, s: S.sec }, { v: '', s: S.sec }, { v: '', s: S.sec }, { v: '', s: S.sec }, { v: '', s: S.sec }, { v: '', s: S.sec }, { v: '', s: S.sec }, { v: '', s: S.sec }, { v: '', s: S.sec }, { v: '', s: S.sec }]);
+    byCat.get(cat).slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).forEach(p => {
+      const real = (p.precioReal != null) ? { v: p.precioReal, t: 'n', s: S.money } : { v: 'sin precio' };
+      const pctReal = (p.precioReal != null && p.pctCostoReal != null) ? { v: (Number(p.pctCostoReal) || 0) / 100, t: 'n', s: S.pct } : { v: '' };
+      rows.push([
+        { v: p.nombre },
+        { v: p.costoTotal, t: 'n', s: S.money }, { v: p.proteccion, t: 'n', s: S.money }, { v: p.iva, t: 'n', s: S.money }, { v: p.costoFinal, t: 'n', s: S.money },
+        { v: (Number(p.margenPct) || 0) / 100, t: 'n', s: S.pct }, { v: p.precioVentaRedondeado, t: 'n', s: S.money }, { v: (Number(p.pctCosto) || 0) / 100, t: 'n', s: S.pct },
+        real, pctReal,
+      ]);
+    });
+  });
+  return rows;
+}
+
+app.get('/admin/costeo/carta/export.xlsx', requireAdmin, (req, res) => {
+  const scope = String(req.query.rest || 'garden');
+  const svc = costeoSvcKey(req.query.svc);
+  const rests = scope === 'both' ? ['garden', 'badass'] : [costeoRestKey(scope)];
+  const sheets = rests.map(rt => ({ name: svcSheetLabel(rt, svc), rows: [[{ v: svcSheetLabel(rt, svc), s: 5 }], []].concat(cartaSheetRows(resolveCarta(loadCosteo(rt, svc)))) }));
+  const sfx = svc === 'barra' ? '-barra' : '';
+  const fname = scope === 'both' ? `carta${sfx}-zorbo.xlsx` : `carta${sfx}-${costeoRestKey(scope)}.xlsx`;
+  sendXlsx(res, xlsxPackage(sheets), fname);
+});
+// Export de Recetas base a Excel.
+app.get('/admin/costeo/recetas/export.xlsx', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest); const svc = costeoSvcKey(req.query.svc);
+  const doc = resolveCosteo(loadCosteo(rest, svc));
+  const rows = [[{ v: svcSheetLabel(rest, svc) + ' · Recetas base', s: 5 }], []].concat(rbSheetRows(doc));
+  const sfx = svc === 'barra' ? '-barra' : '';
+  sendXlsx(res, xlsxPackage([{ name: svcSheetLabel(rest, svc), rows }]), `recetas-base${sfx}-${rest}.xlsx`);
+});
+// Export de Platos / Tragos a Excel.
+app.get('/admin/costeo/platos/export.xlsx', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest); const svc = costeoSvcKey(req.query.svc);
+  const prod = svc === 'barra' ? 'Tragos' : 'Platos';
+  const doc = resolveCosteo(loadCosteo(rest, svc));
+  const rows = [[{ v: svcSheetLabel(rest, svc) + ' · ' + prod, s: 5 }], []].concat(platosSheetRows(doc));
+  const sfx = svc === 'barra' ? '-barra' : '';
+  sendXlsx(res, xlsxPackage([{ name: svcSheetLabel(rest, svc), rows }]), `${prod.toLowerCase()}${sfx}-${rest}.xlsx`);
 });
 
 // ─── PORTAL DEL PROVEEDOR (Fase 2) ──────────────────────────────────────────
