@@ -4560,7 +4560,8 @@ function costeoNormalizeCarta(c){
   const biv = Number.isFinite(c.biv) ? c.biv : 0; // versión: barra bruto → neto+ILA (quita IVA)
   const cv = Number.isFinite(c.cv) ? c.cv : 0;   // versión: secciones reales + tragos de barra
   const smv = Number.isFinite(c.smv) ? c.smv : 0; // versión: override 100% carne RB SMASH
-  return { v, pv, rv, biv, cv, smv, secciones, asignaciones };
+  const urv = Number.isFinite(c.urv) ? c.urv : 0; // versión: quitar flag "reventa" (todo se costea)
+  return { v, pv, rv, biv, cv, smv, urv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -4852,7 +4853,7 @@ function costeoMigrateBarraCarta(doc, rest){
   let seed; try { seed = JSON.parse(readFileSync(join(__dirname, costeoBarraSeedFile(rest)), 'utf-8')); } catch { return false; }
   const secs = Array.isArray(seed.cartaSecciones) ? seed.cartaSecciones : (seed.categorias || []).map(n => ({ nombre: n }));
   const key = costeoRestKey(rest);
-  doc.carta.secciones = secs.map((sc, i) => ({ id: `${key}-b${i + 1}`, nombre: costeoStr(typeof sc === 'string' ? sc : sc.nombre, 120), reventa: !!(sc && sc.reventa), items: [] }));
+  doc.carta.secciones = secs.map((sc, i) => ({ id: `${key}-b${i + 1}`, nombre: costeoStr(typeof sc === 'string' ? sc : sc.nombre, 120), reventa: false, items: [] }));
   doc.carta.asignaciones = {};
   doc.categorias = doc.carta.secciones.map(s => s.nombre);
   costeoSeedBarraTragosInto(doc, rest);
@@ -4877,6 +4878,17 @@ function costeoApplySmashOverride(doc){
   doc.carta.smv = SMASH_REND_V;
   return true;
 }
+// Quita el flag "reventa" de las secciones de barra ya existentes: ahora todo se
+// costea (cervezas, botellas, destilados, etc. también llevan costo y precio).
+const BARRA_UNREVENTA_V = 1;
+function costeoUnreventaBarra(doc){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.urv >= BARRA_UNREVENTA_V) return false;
+  (doc.carta.secciones || []).forEach(s => { s.reventa = false; });
+  doc.carta.urv = BARRA_UNREVENTA_V;
+  return true;
+}
 // Asegura los 2 docs de barra (garden_barra / badass_barra): los siembra desde el
 // Excel de barra si están vacíos y planta sus secciones de carta. Devuelve true si mutó.
 function costeoEnsureBarraDocs(all){
@@ -4887,6 +4899,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoEnsureBarraCarta(all[key])) ch = true;
     if (costeoMigrateBarraIla(all[key])) ch = true;
     if (costeoMigrateBarraCarta(all[key], rest)) ch = true;
+    if (costeoUnreventaBarra(all[key])) ch = true;
   }
   return ch;
 }
