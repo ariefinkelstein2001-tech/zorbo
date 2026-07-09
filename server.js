@@ -5092,16 +5092,28 @@ function xlsxSheetXml(rows){
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><cols><col min="1" max="1" width="46"/><col min="2" max="3" width="16"/><col min="4" max="4" width="12"/></cols><sheetData>${rowXml}</sheetData></worksheet>`;
 }
 const XLSX_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="&quot;$&quot;#,##0"/><numFmt numFmtId="165" formatCode="0.0%"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF5E6C8"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="2"><numFmt numFmtId="164" formatCode="&quot;$&quot;#,##0"/><numFmt numFmtId="165" formatCode="0.0%"/></numFmts><fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF5E6C8"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="8"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="164" fontId="1" fillId="2" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/><xf numFmtId="165" fontId="1" fillId="2" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
 // Filas de una hoja a partir de la carta resuelta.
 function cartaSheetRows(carta){
-  const S = { title: 5, header: 1, sec: 2, money: 3, pct: 4 };
+  const S = { title: 5, header: 1, sec: 2, money: 3, pct: 4, secMoney: 6, secPct: 7 };
   const rows = [];
   rows.push([{ v: 'Plato', s: S.header }, { v: 'Precio de venta', s: S.header }, { v: 'Costo', s: S.header }, { v: '% de costo', s: S.header }]);
+  const avg = (arr) => arr.length ? arr.reduce((a, x) => a + x, 0) / arr.length : null;
   const pushSec = (nombre, platos, sinCostear) => {
     if (!platos.length && !(sinCostear && sinCostear.length)) return;
     rows.push([]); // fila en blanco
-    rows.push([{ v: nombre, s: S.sec }, { v: '', s: S.sec }, { v: '', s: S.sec }, { v: '', s: S.sec }]);
+    // Promedios de la sección (en la misma fila del nombre), sobre los platos con
+    // precio real cargado, así precio · costo · % quedan coherentes entre sí.
+    const conPrecio = platos.filter(p => p.precioReal != null);
+    const avgPrecio = avg(conPrecio.map(p => p.precioReal));
+    const avgCosto = avg(conPrecio.map(p => Number(p.costo) || 0));
+    const avgPct = avg(conPrecio.filter(p => p.pctCosto != null).map(p => Number(p.pctCosto) || 0));
+    rows.push([
+      { v: nombre, s: S.sec },
+      avgPrecio != null ? { v: Math.round(avgPrecio), t: 'n', s: S.secMoney } : { v: '', s: S.sec },
+      avgCosto != null ? { v: Math.round(avgCosto), t: 'n', s: S.secMoney } : { v: '', s: S.sec },
+      avgPct != null ? { v: avgPct / 100, t: 'n', s: S.secPct } : { v: '', s: S.sec },
+    ]);
     platos.forEach(p => {
       // Precio de venta REAL (el que se cobra). % de costo = costo ÷ precio real.
       const precioCell = (p.precioReal != null) ? { v: p.precioReal, t: 'n', s: S.money } : { v: 'sin precio' };
