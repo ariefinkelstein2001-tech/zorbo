@@ -6789,6 +6789,9 @@ const cMoney = (n) => '$' + Math.round(Number(n)||0).toLocaleString('es-CL');
 const cNum = (v) => { const n = parseFloat(String(v==null?'':v).trim().replace(',', '.')); return Number.isFinite(n) ? n : 0; };
 const cRest = (url) => url + (url.includes('?') ? '&' : '?') + 'rest=' + costeoRest + '&svc=' + costeoSvc;
 const C_UNITS = (cur) => ['litro','kilogramo','unidad'].map(u=>`<option value="${u}" ${cur===u?'selected':''}>${u}</option>`).join('');
+// Opciones de ILA (impuesto adicional a bebidas alcohólicas) para insumos de barra.
+const C_ILA_OPTS = [0, 10, 18, 20.5, 31.5];
+const C_ILA = (cur) => { const c=Number(cur)||0; const opts=C_ILA_OPTS.includes(c)?C_ILA_OPTS:[c,...C_ILA_OPTS]; return opts.map(v=>`<option value="${v}" ${c===v?'selected':''}>${String(v).replace('.',',')}%</option>`).join(''); };
 function costeoResetState(){ rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch=''; platoEditing=null; platoDraft=[]; platoSearch=''; platoCatFilter=''; }
 
 async function loadCosteo(){
@@ -6837,8 +6840,10 @@ function renderCosteoInsumos(){
   const rows = list.map(i=> barra ? `
     <tr data-iid="${i.id}">
       <td><input class="ci-inp" style="width:100%" data-f="descripcion" value="${escapeAttr(i.descripcion)}"></td>
-      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:110px" data-f="precioNeto" value="${i.precioNeto||''}"></td>
-      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:80px" data-f="volumen" value="${i.volumen||''}" placeholder="1"></td>
+      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:100px" data-f="precioNeto" value="${i.precioNeto||''}"></td>
+      <td class="dist-num"><select class="ci-inp dist-num" data-f="ila" style="width:78px">${C_ILA(i.ila)}</select></td>
+      <td class="dist-num" data-netoila>${cMoney((Number(i.precioNeto)||0)*(1+(Number(i.ila)||0)/100))}</td>
+      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:72px" data-f="volumen" value="${i.volumen||''}" placeholder="1"></td>
       <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b></td>
       <td><button class="pv-del" data-idel="${i.id}">✕</button> <span class="dist-status" data-ist></span></td>
     </tr>` : `
@@ -6850,10 +6855,12 @@ function renderCosteoInsumos(){
       <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b></td>
       <td><button class="pv-del" data-idel="${i.id}">✕</button> <span class="dist-status" data-ist></span></td>
     </tr>`).join('');
-  const cols = barra ? 5 : 6;
+  const cols = barra ? 7 : 6;
   const rbRows = rbList.map(r=> barra ? `
     <tr class="ci-rb-row">
       <td>${escapeHtml(r.nombre)} <span class="mun-bk">RB</span></td>
+      <td class="dist-num" style="color:#aaa">—</td>
+      <td class="dist-num" style="color:#aaa">—</td>
       <td class="dist-num" style="color:#aaa">—</td>
       <td class="dist-num" style="color:#aaa">—</td>
       <td class="dist-num"><b>${cMoney(r.precioUnidad)}</b></td>
@@ -6871,7 +6878,8 @@ function renderCosteoInsumos(){
       <div class="dist-sec-title">Nuevo insumo de barra</div>
       <div class="dist-form-grid" style="margin-top:.7rem">
         <div class="dist-field wide"><label>Descripción</label><input id="niDesc" placeholder="Ej: Absolut"></div>
-        <div class="dist-field"><label>Precio bruto (botella)</label><input id="niPrecio" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="dist-field"><label>Precio neto (botella)</label><input id="niPrecio" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="dist-field"><label>ILA</label><select id="niIla">${C_ILA(0)}</select></div>
         <div class="dist-field"><label>Volumen botella (L)</label><input id="niVol" type="text" inputmode="decimal" placeholder="ej: 0,75"></div>
       </div>` : `
       <div class="dist-sec-title">Nuevo insumo</div>
@@ -6882,9 +6890,9 @@ function renderCosteoInsumos(){
         <div class="dist-field"><label>% Rendimiento (0-1, opcional)</label><input id="niRend" type="text" inputmode="decimal" placeholder="ej: 0,6"></div>
       </div>`;
   const thead = barra
-    ? `<tr><th>Descripción</th><th style="text-align:right">Precio bruto</th><th style="text-align:right">Volumen bot.</th><th style="text-align:right">Precio 1L</th><th></th></tr>`
+    ? `<tr><th>Descripción</th><th style="text-align:right">Precio neto</th><th style="text-align:right">ILA</th><th style="text-align:right">Neto + ILA</th><th style="text-align:right">Volumen bot.</th><th style="text-align:right">Precio 1L</th><th></th></tr>`
     : `<tr><th>Descripción</th><th style="text-align:right">Precio neto</th><th>Unidad</th><th style="text-align:right">% Rend.</th><th style="text-align:right">Precio real</th><th></th></tr>`;
-  const countTxt = barra ? 'precio 1L = precio bruto ÷ volumen de botella' : 'precio real = precio neto ÷ rendimiento';
+  const countTxt = barra ? 'precio 1L = (neto + ILA) ÷ volumen de botella · sin IVA (el IVA va a nivel de trago)' : 'precio real = precio neto ÷ rendimiento';
   document.getElementById('costeoBody').innerHTML = `
     <div class="dist-form" style="margin-bottom:1rem">
       ${form}
@@ -6908,7 +6916,7 @@ async function addInsumo(){
   if(!desc){ st.className='dist-status err'; st.textContent='Falta la descripción.'; return; }
   st.className='dist-status'; st.textContent='…';
   const payload = isBarra()
-    ? { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), volumen:cNum(document.getElementById('niVol').value), unidad:'litro' }
+    ? { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), ila:cNum(document.getElementById('niIla').value), volumen:cNum(document.getElementById('niVol').value), unidad:'litro' }
     : { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), unidad:document.getElementById('niUnidad').value, rendimiento:cNum(document.getElementById('niRend').value) };
   try{
     const r=await fetch(cRest('/admin/costeo/insumos'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
@@ -6921,10 +6929,10 @@ async function saveInsumo(id){
   const g=(f)=>{const el=tr.querySelector(`[data-f="${f}"]`);return el?el.value:undefined;};
   const st=tr.querySelector('[data-ist]'); st.className='dist-status'; st.textContent='…';
   const barra=isBarra(); const pn=cNum(g('precioNeto')); const ins=costeoData.insumos.find(x=>x.id===id);
-  let real, payload;
+  let real, payload, netoIla, ila;
   if(barra){
-    const vol=cNum(g('volumen')); real=(vol>0)?Math.round(pn/vol):Math.round(pn);
-    payload={descripcion:g('descripcion'),precioNeto:pn,volumen:vol,unidad:(ins?ins.unidad:'litro')};
+    ila=cNum(g('ila')); const vol=cNum(g('volumen')); netoIla=pn*(1+ila/100); real=(vol>0)?Math.round(netoIla/vol):Math.round(netoIla);
+    payload={descripcion:g('descripcion'),precioNeto:pn,ila:ila,volumen:vol,unidad:(ins?ins.unidad:'litro')};
   } else {
     const rd=cNum(g('rendimiento')); real=(rd>0&&rd<=1)?Math.round(pn/rd):Math.round(pn);
     payload={descripcion:g('descripcion'),precioNeto:pn,unidad:g('unidad'),rendimiento:rd};
@@ -6933,7 +6941,8 @@ async function saveInsumo(id){
     const r=await fetch(cRest(`/admin/costeo/insumos/${id}`),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
     tr.querySelector('[data-real]').textContent=cMoney(real);
-    if(ins){ins.precioNeto=pn;ins.descripcion=g('descripcion');ins.precioReal=real; if(barra){ins.volumen=cNum(g('volumen'))||null;} else {const rd=cNum(g('rendimiento'));ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');}}
+    if(barra){ const ni=tr.querySelector('[data-netoila]'); if(ni) ni.textContent=cMoney(netoIla); }
+    if(ins){ins.precioNeto=pn;ins.descripcion=g('descripcion');ins.precioReal=real; if(barra){ins.volumen=cNum(g('volumen'))||null;ins.ila=ila;} else {const rd=cNum(g('rendimiento'));ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');}}
     st.className='dist-status ok'; st.textContent='✓'; setTimeout(()=>{st.textContent='';},1400);
   }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
 }

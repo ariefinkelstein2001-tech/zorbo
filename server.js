@@ -4522,7 +4522,8 @@ function costeoNormalizeCarta(c){
   const v = Number.isFinite(c.v) ? c.v : 0;   // versión del sembrado de secciones (migra una sola vez)
   const pv = Number.isFinite(c.pv) ? c.pv : 0; // versión de la migración de platos (renombres + categorías)
   const rv = Number.isFinite(c.rv) ? c.rv : 0; // versión del sembrado de precios de venta reales
-  return { v, pv, rv, secciones, asignaciones };
+  const biv = Number.isFinite(c.biv) ? c.biv : 0; // versión: barra bruto → neto+ILA (quita IVA)
+  return { v, pv, rv, biv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -4759,6 +4760,24 @@ function costeoEnsureBarraCarta(doc){
   doc.carta.secciones = costeoSeccionesFromCategorias(doc.categorias);
   return true;
 }
+// Migración de precios de barra: el valor cargado era BRUTO (con IVA e ILA). Se
+// pasa a NETO + ILA quitando el IVA (÷1,19) y el ILA por insumo arranca en 0. Así
+// el costo del trago usa (neto+ILA)÷volumen y el IVA queda a nivel de trago. Corre
+// una sola vez por doc de barra (biv). Devuelve true si mutó.
+const BARRA_ILA_V = 1;
+function costeoMigrateBarraIla(doc){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.biv >= BARRA_ILA_V) return false;
+  (doc.insumos || []).forEach(i => {
+    if (i.volumen && i.volumen > 0) {
+      i.precioNeto = Math.round((Number(i.precioNeto) || 0) / 1.19);
+      if (i.ila == null) i.ila = 0;
+    }
+  });
+  doc.carta.biv = BARRA_ILA_V;
+  return true;
+}
 // Asegura los 2 docs de barra (garden_barra / badass_barra): los siembra desde el
 // Excel de barra si están vacíos y planta sus secciones de carta. Devuelve true si mutó.
 function costeoEnsureBarraDocs(all){
@@ -4767,6 +4786,7 @@ function costeoEnsureBarraDocs(all){
     all[key] = costeoNormalizeDoc(all[key]);
     if (costeoDocEmpty(all[key])) { all[key] = costeoDefaultsBarra(rest); ch = true; }
     if (costeoEnsureBarraCarta(all[key])) ch = true;
+    if (costeoMigrateBarraIla(all[key])) ch = true;
   }
   return ch;
 }
@@ -4776,7 +4796,7 @@ function loadCosteoAll(){
     const p = JSON.parse(readFileSync(COSTEO_FILE, 'utf-8'));
     // Migración: archivo viejo con la data en la raíz → pasa a "garden".
     if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoEnsureRealCarta(g, 'garden'); costeoMigratePlatos(g, 'garden'); costeoSeedPreciosReales(g, 'garden'); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.badass, 'badass'); costeoEnsureBarraDocs(all); saveCosteoAll(all); return all; }
-    const all = { garden: costeoNormalizeDoc(p.garden), badass: costeoNormalizeDoc(p.badass) };
+    const all = { garden: costeoNormalizeDoc(p.garden), badass: costeoNormalizeDoc(p.badass), garden_barra: p.garden_barra, badass_barra: p.badass_barra };
     let changed = false;
     if (costeoSeedPlatosInto(all.garden)) changed = true;
     // Badass: si está completamente vacío, se siembra full desde el Excel de Badass.
@@ -4799,10 +4819,14 @@ function loadCosteoAll(){
 function saveCosteoAll(all){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTEO_FILE, JSON.stringify(all, null, 2)); }
 function loadCosteo(rest, svc){ return loadCosteoAll()[costeoDocKey(rest, svc)]; }
 function saveCosteo(rest, svc, doc){ const all = loadCosteoAll(); all[costeoDocKey(rest, svc)] = doc; saveCosteoAll(all); }
-// Precio por unidad usado en el costeo. Barra: precioNeto (bruto) ÷ volumen de
-// botella (= precio por litro). Comida: precioNeto ÷ rendimiento (o precioNeto).
+// Precio por unidad usado en el costeo. Barra: (precio neto + ILA) ÷ volumen de
+// botella (= precio por litro, sin IVA — el IVA se aplica a nivel de trago).
+// Comida: precioNeto ÷ rendimiento (o precioNeto). El ILA solo aplica a barra.
 function insumoPrecioReal(i){
-  if (i.volumen && i.volumen > 0) return Math.round(i.precioNeto / i.volumen);
+  if (i.volumen && i.volumen > 0) {
+    const conIla = (Number(i.precioNeto) || 0) * (1 + (Number(i.ila) || 0) / 100);
+    return Math.round(conIla / i.volumen);
+  }
   return (i.rendimiento && i.rendimiento > 0) ? Math.round(i.precioNeto / i.rendimiento) : Math.round(i.precioNeto);
 }
 
@@ -4886,7 +4910,8 @@ app.post('/admin/costeo/insumos', requireAdmin, (req, res) => {
   if (!desc) return res.status(400).json({ error: 'La descripción es obligatoria.' });
   const d = loadCosteo(rest, req.query.svc);
   const volumen = (Number(b.volumen) > 0) ? Number(b.volumen) : null;
-  d.insumos.push({ id: randomUUID(), descripcion: desc, precioNeto: Number(b.precioNeto) || 0, unidad: costeoUnit(b.unidad), rendimiento: (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null, volumen });
+  const ila = (Number(b.ila) > 0) ? Number(b.ila) : (volumen ? 0 : null);
+  d.insumos.push({ id: randomUUID(), descripcion: desc, precioNeto: Number(b.precioNeto) || 0, unidad: costeoUnit(b.unidad), rendimiento: (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null, volumen, ila });
   saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 app.put('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
@@ -4898,6 +4923,7 @@ app.put('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
   if (b.unidad !== undefined) i.unidad = costeoUnit(b.unidad);
   if (b.rendimiento !== undefined) i.rendimiento = (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null;
   if (b.volumen !== undefined) i.volumen = (Number(b.volumen) > 0) ? Number(b.volumen) : null;
+  if (b.ila !== undefined) i.ila = (Number(b.ila) > 0) ? Number(b.ila) : 0;
   saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 app.delete('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
