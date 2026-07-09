@@ -4529,7 +4529,8 @@ function costeoNormalizeCarta(c){
   const rv = Number.isFinite(c.rv) ? c.rv : 0; // versión del sembrado de precios de venta reales
   const biv = Number.isFinite(c.biv) ? c.biv : 0; // versión: barra bruto → neto+ILA (quita IVA)
   const cv = Number.isFinite(c.cv) ? c.cv : 0;   // versión: secciones reales + tragos de barra
-  return { v, pv, rv, biv, cv, secciones, asignaciones };
+  const smv = Number.isFinite(c.smv) ? c.smv : 0; // versión: override 100% carne RB SMASH
+  return { v, pv, rv, biv, cv, smv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -4828,6 +4829,24 @@ function costeoMigrateBarraCarta(doc, rest){
   doc.carta.cv = BARRA_CARTA_V;
   return true;
 }
+// Aplica una sola vez override de rendimiento 100% (sin merma) a las líneas de carne
+// de la RB SMASH: la carne se muele entera, no se limpia. Corre por doc de comida.
+const SMASH_REND_V = 1;
+function costeoApplySmashOverride(doc){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.smv >= SMASH_REND_V) return false;
+  (doc.recetasBase || []).forEach(rb => {
+    if (!/smash/i.test(rb.nombre || '')) return;
+    (rb.lineas || []).forEach(l => {
+      if (l.refType !== 'insumo' || l.rend != null) return;
+      const ins = (doc.insumos || []).find(i => i.id === l.refId);
+      if (ins && /tapapecho|sobrecostilla|carne|posta/i.test(ins.descripcion || '')) l.rend = 1;
+    });
+  });
+  doc.carta.smv = SMASH_REND_V;
+  return true;
+}
 // Asegura los 2 docs de barra (garden_barra / badass_barra): los siembra desde el
 // Excel de barra si están vacíos y planta sus secciones de carta. Devuelve true si mutó.
 function costeoEnsureBarraDocs(all){
@@ -4843,10 +4862,10 @@ function costeoEnsureBarraDocs(all){
 }
 function loadCosteoAll(){
   try {
-    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.garden, 'garden'); costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.garden, 'garden'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.garden, 'garden'); costeoSeedPreciosReales(all.badass, 'badass'); costeoEnsureBarraDocs(all); saveCosteoAll(all); return all; }
+    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.garden, 'garden'); costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.garden, 'garden'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.garden, 'garden'); costeoSeedPreciosReales(all.badass, 'badass'); costeoEnsureBarraDocs(all); costeoApplySmashOverride(all.garden); costeoApplySmashOverride(all.badass); saveCosteoAll(all); return all; }
     const p = JSON.parse(readFileSync(COSTEO_FILE, 'utf-8'));
     // Migración: archivo viejo con la data en la raíz → pasa a "garden".
-    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoEnsureRealCarta(g, 'garden'); costeoMigratePlatos(g, 'garden'); costeoSeedPreciosReales(g, 'garden'); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.badass, 'badass'); costeoEnsureBarraDocs(all); saveCosteoAll(all); return all; }
+    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoEnsureRealCarta(g, 'garden'); costeoMigratePlatos(g, 'garden'); costeoSeedPreciosReales(g, 'garden'); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.badass, 'badass'); costeoEnsureBarraDocs(all); costeoApplySmashOverride(all.garden); costeoApplySmashOverride(all.badass); saveCosteoAll(all); return all; }
     const all = { garden: costeoNormalizeDoc(p.garden), badass: costeoNormalizeDoc(p.badass), garden_barra: p.garden_barra, badass_barra: p.badass_barra };
     let changed = false;
     if (costeoSeedPlatosInto(all.garden)) changed = true;
@@ -4863,6 +4882,9 @@ function loadCosteoAll(){
     if (costeoSeedPreciosReales(all.badass, 'badass')) changed = true;
     // Barra: siembra los 2 conjuntos de tragos (una vez). Comida queda intacta.
     if (costeoEnsureBarraDocs(all)) changed = true;
+    // Override 100% en la carne de RB SMASH (una vez por doc de comida).
+    if (costeoApplySmashOverride(all.garden)) changed = true;
+    if (costeoApplySmashOverride(all.badass)) changed = true;
     if (changed) saveCosteoAll(all);
     return all;
   } catch (e) { console.warn('costeo load:', e.message); const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureBarraDocs(all); return all; }
@@ -4873,14 +4895,25 @@ function saveCosteo(rest, svc, doc){ const all = loadCosteoAll(); all[costeoDocK
 // Precio por unidad usado en el costeo. Barra: (precio neto + ILA) ÷ volumen de
 // botella (= precio por litro, sin IVA — el IVA se aplica a nivel de trago).
 // Comida: precioNeto ÷ rendimiento (o precioNeto). El ILA solo aplica a barra.
-function insumoPrecioReal(i){
+// Un rendimiento override (0<r<=1) por línea pisa el del insumo SOLO para esa línea
+// (ej: carne molida de smash → 100%, sin merma). El precio neto sigue viviendo en el
+// insumo; el override solo cambia el divisor de rendimiento. No aplica a barra (volumen).
+function insumoPrecioReal(i, rendOverride){
   if (i.volumen && i.volumen > 0) {
     // (neto + ILA) + despacho (el despacho es neto, sin ILA), todo ÷ volumen.
     const conIla = (Number(i.precioNeto) || 0) * (1 + (Number(i.ila) || 0) / 100) + (Number(i.despacho) || 0);
     return Math.round(conIla / i.volumen);
   }
-  return (i.rendimiento && i.rendimiento > 0) ? Math.round(i.precioNeto / i.rendimiento) : Math.round(i.precioNeto);
+  // Comida: precio por unidad = (neto ÷ formato) ÷ rendimiento. El formato es la
+  // cantidad que cubre el precio neto (ej: $500 por 0,5 kg → $1.000/kg). Default 1.
+  const base = (Number(i.formato) > 0) ? (Number(i.precioNeto) || 0) / Number(i.formato) : (Number(i.precioNeto) || 0);
+  const rend = (Number(rendOverride) > 0 && Number(rendOverride) <= 1) ? Number(rendOverride) : i.rendimiento;
+  return (rend && rend > 0) ? Math.round(base / rend) : Math.round(base);
 }
+// ¿El rendimiento/override aplica a esta línea? Solo si referencia un insumo de comida
+// (sin volumen) que tenga rendimiento cargado.
+function costeoRendAplica(ins){ return !!(ins && !(ins.volumen > 0) && Number(ins.rendimiento) > 0); }
+const costeoRendOv = (r) => (Number(r) > 0 && Number(r) <= 1) ? Number(r) : null;
 
 // Resuelve todo en cascada (RB con memo + guard de ciclos). Un cambio de precio
 // de insumo se propaga solo porque nada derivado está guardado.
@@ -4889,8 +4922,12 @@ function resolveCosteo(d){
   const rbById = new Map(d.recetasBase.map(r => [r.id, r]));
   const insReal = new Map(d.insumos.map(i => [i.id, insumoPrecioReal(i)]));
   const rbMemo = new Map();
-  const priceOf = (refType, refId, stack) => {
-    if (refType === 'insumo') return insReal.get(refId) || 0;
+  // rendOv: override de rendimiento de la línea (0<r<=1) — solo afecta insumos de comida.
+  const priceOf = (refType, refId, stack, rendOv) => {
+    if (refType === 'insumo') {
+      const ins = insById.get(refId); if (!ins) return 0;
+      return (rendOv != null && costeoRendAplica(ins)) ? insumoPrecioReal(ins, rendOv) : (insReal.get(refId) || 0);
+    }
     if (refType === 'rb') { const r = rbById.get(refId); return r ? rbUnit(r, stack) : 0; }
     return 0;
   };
@@ -4899,7 +4936,7 @@ function resolveCosteo(d){
     if (stack.includes(rb.id)) return 0;
     const s = [...stack, rb.id];
     let costo = 0;
-    for (const l of (rb.lineas || [])) costo += (Number(l.cantidad) || 0) * priceOf(l.refType, l.refId, s);
+    for (const l of (rb.lineas || [])) costo += (Number(l.cantidad) || 0) * priceOf(l.refType, l.refId, s, l.rend);
     const pu = rb.produccion > 0 ? Math.round(costo / rb.produccion) : 0;
     rbMemo.set(rb.id, pu);
     rb._costoTotal = Math.round(costo); rb._precioUnidad = pu;
@@ -4907,28 +4944,33 @@ function resolveCosteo(d){
   }
   d.recetasBase.forEach(rb => rbUnit(rb, []));
   const ingredientes = [
-    ...d.insumos.map(i => ({ type: 'insumo', id: i.id, nombre: i.descripcion, unidad: i.unidad, precio: insReal.get(i.id) })),
-    ...d.recetasBase.map(r => ({ type: 'rb', id: r.id, nombre: r.nombre, unidad: r.unidad, precio: r._precioUnidad || 0 })),
+    ...d.insumos.map(i => ({ type: 'insumo', id: i.id, nombre: i.descripcion, unidad: i.unidad, precio: insReal.get(i.id), rendimiento: costeoRendAplica(i) ? i.rendimiento : null, base100: insumoPrecioReal(i, 1) })),
+    ...d.recetasBase.map(r => ({ type: 'rb', id: r.id, nombre: r.nombre, unidad: r.unidad, precio: r._precioUnidad || 0, rendimiento: null, base100: null })),
   ];
   const insumos = d.insumos.map(i => ({ ...i, precioReal: insReal.get(i.id) }));
+  // Salida de una línea con toda la info de rendimiento (para la UI y el override).
+  const lineOut = (l) => {
+    const ins = l.refType === 'insumo' ? insById.get(l.refId) : null;
+    const ing = ins || (l.refType === 'rb' ? rbById.get(l.refId) : null);
+    const rendAplica = costeoRendAplica(ins);
+    const rend = rendAplica ? costeoRendOv(l.rend) : null;
+    const precio = priceOf(l.refType, l.refId, [], l.rend);
+    return {
+      refType: l.refType, refId: l.refId, nombre: ing ? (ing.descripcion || ing.nombre) : '(eliminado)',
+      unidad: ing ? ing.unidad : '', precio, cantidad: l.cantidad, costo: Math.round((Number(l.cantidad) || 0) * precio),
+      rendAplica, rendInsumo: rendAplica ? ins.rendimiento : null, rend, base100: (ins && rendAplica) ? insumoPrecioReal(ins, 1) : null,
+    };
+  };
   const recetasBase = d.recetasBase.map(rb => ({
     id: rb.id, nombre: rb.nombre, unidad: rb.unidad, produccion: rb.produccion,
     costoTotal: rb._costoTotal || 0, precioUnidad: rb._precioUnidad || 0,
-    lineas: (rb.lineas || []).map(l => {
-      const ing = l.refType === 'insumo' ? insById.get(l.refId) : rbById.get(l.refId);
-      const precio = priceOf(l.refType, l.refId, []);
-      return { refType: l.refType, refId: l.refId, nombre: ing ? (ing.descripcion || ing.nombre) : '(eliminado)', unidad: ing ? ing.unidad : '', precio, cantidad: l.cantidad, costo: Math.round((Number(l.cantidad) || 0) * precio) };
-    }),
+    lineas: (rb.lineas || []).map(lineOut),
   }));
   // Platos (Nivel 3): cadena de costo exacta.
   // CostoTotal insumos → Protección 10% → IVA 19% sobre (CostoTotal+Protección)
   // → Costo Final → Precio Venta = Costo Final / margen → % costo = CostoFinal / PrecioVenta.
   const platos = (d.platos || []).map(p => {
-    const lineas = (p.lineas || []).map(l => {
-      const ing = l.refType === 'insumo' ? insById.get(l.refId) : rbById.get(l.refId);
-      const precio = priceOf(l.refType, l.refId, []);
-      return { refType: l.refType, refId: l.refId, nombre: ing ? (ing.descripcion || ing.nombre) : '(eliminado)', unidad: ing ? ing.unidad : '', precio, cantidad: l.cantidad, costo: Math.round((Number(l.cantidad) || 0) * precio) };
-    });
+    const lineas = (p.lineas || []).map(lineOut);
     const costoTotal = lineas.reduce((a, l) => a + l.costo, 0);
     const proteccion = costoTotal * 0.10;
     // IVA opcional por producto (barra: algunos tragos no llevan IVA). Default: sí.
@@ -4966,7 +5008,8 @@ app.post('/admin/costeo/insumos', requireAdmin, (req, res) => {
   const volumen = (Number(b.volumen) > 0) ? Number(b.volumen) : null;
   const ila = (Number(b.ila) > 0) ? Number(b.ila) : (volumen ? 0 : null);
   const despacho = (Number(b.despacho) > 0) ? Math.round(Number(b.despacho)) : (volumen ? 0 : null);
-  d.insumos.push({ id: randomUUID(), descripcion: desc, precioNeto: Number(b.precioNeto) || 0, unidad: costeoUnit(b.unidad), rendimiento: (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null, volumen, ila, despacho });
+  const formato = (Number(b.formato) > 0) ? Number(b.formato) : null;
+  d.insumos.push({ id: randomUUID(), descripcion: desc, precioNeto: Number(b.precioNeto) || 0, unidad: costeoUnit(b.unidad), rendimiento: (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null, formato, volumen, ila, despacho });
   saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 app.put('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
@@ -4977,6 +5020,7 @@ app.put('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
   if (b.precioNeto !== undefined) i.precioNeto = Number(b.precioNeto) || 0;
   if (b.unidad !== undefined) i.unidad = costeoUnit(b.unidad);
   if (b.rendimiento !== undefined) i.rendimiento = (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null;
+  if (b.formato !== undefined) i.formato = (Number(b.formato) > 0) ? Number(b.formato) : null;
   if (b.volumen !== undefined) i.volumen = (Number(b.volumen) > 0) ? Number(b.volumen) : null;
   if (b.ila !== undefined) i.ila = (Number(b.ila) > 0) ? Number(b.ila) : 0;
   if (b.despacho !== undefined) i.despacho = (Number(b.despacho) > 0) ? Math.round(Number(b.despacho)) : 0;
@@ -4991,7 +5035,13 @@ app.delete('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
 
 // ── Recetas base (Nivel 2) ──
 function normalizeRBLineas(raw){
-  return (Array.isArray(raw) ? raw : []).map(l => ({ refType: l.refType === 'rb' ? 'rb' : 'insumo', refId: String(l.refId || ''), cantidad: Number(l.cantidad) || 0 })).filter(l => l.refId);
+  return (Array.isArray(raw) ? raw : []).map(l => {
+    const out = { refType: l.refType === 'rb' ? 'rb' : 'insumo', refId: String(l.refId || ''), cantidad: Number(l.cantidad) || 0 };
+    // Override de rendimiento por línea (0<r<=1). Solo se guarda si viene válido.
+    const rend = Number(l.rend);
+    if (rend > 0 && rend <= 1) out.rend = rend;
+    return out;
+  }).filter(l => l.refId);
 }
 app.post('/admin/costeo/recetas', requireAdmin, (req, res) => {
   const rest = req.query.rest; const b = req.body || {}; const nombre = costeoStr(b.nombre, 200);

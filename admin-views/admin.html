@@ -1500,6 +1500,13 @@ body.drawer-open{overflow:hidden}
 .ct-real::placeholder{font-weight:400;font-style:italic;color:#bbb}
 .ct-real:focus{outline:none;border-color:var(--gold,#f5a623);box-shadow:0 0 0 2px rgba(245,166,35,.18)}
 .ct-sec-hd{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
+.ren-cell{display:inline-flex;align-items:center;gap:.25rem;justify-content:flex-end}
+.ren-inp{width:44px;text-align:right;padding:.2rem .3rem;border:1px solid var(--line,#ddd);border-radius:6px;font-size:.8rem}
+.ren-inp.on{border-color:var(--gold,#f5a623);background:rgba(245,166,35,.1);font-weight:700;color:var(--gold-deep,#a05f00)}
+.ren-inp:focus{outline:none;border-color:var(--gold,#f5a623)}
+.ren-nm{border:1px solid var(--line,#ddd);background:var(--surface,#fff);border-radius:6px;padding:.1rem .25rem;cursor:pointer;font-size:.75rem;line-height:1}
+.ren-nm:hover{border-color:var(--gold,#f5a623)}
+.ren-chip{font-size:.58rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#8a6d1f;background:rgba(245,166,35,.16);border-radius:5px;padding:.05rem .3rem}
 .ct-reventa{font-size:.6rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8a6d1f;background:rgba(245,166,35,.14);border:1px solid rgba(245,166,35,.4);border-radius:6px;padding:.1rem .4rem;vertical-align:middle}
 .pl-iva{display:inline-flex;align-items:center;gap:.35rem;font-size:.8rem;color:var(--text,#111);cursor:pointer;user-select:none}
 .pl-iva input{width:15px;height:15px;accent-color:var(--gold,#f5a623)}
@@ -6796,6 +6803,20 @@ const C_UNITS = (cur) => ['litro','kilogramo','unidad'].map(u=>`<option value="$
 // Opciones de ILA (impuesto adicional a bebidas alcohólicas) para insumos de barra.
 const C_ILA_OPTS = [0, 10, 18, 20.5, 31.5];
 const C_ILA = (cur) => { const c=Number(cur)||0; const opts=C_ILA_OPTS.includes(c)?C_ILA_OPTS:[c,...C_ILA_OPTS]; return opts.map(v=>`<option value="${v}" ${c===v?'selected':''}>${String(v).replace('.',',')}%</option>`).join(''); };
+// Override de rendimiento por línea (RB y plato). Precio efectivo = base100 ÷ (override o rendimiento del insumo).
+function lineEffPrecio(l){
+  if(!l.rendAplica) return Number(l.precio)||0;
+  const r=(l.rend!=null && l.rend>0 && l.rend<=1)?l.rend:l.rendInsumo;
+  return (Number(l.base100)>0 && r>0)?Math.round(l.base100/r):(Number(l.precio)||0);
+}
+function lineRendCell(l, idx, pfx){
+  if(!l.rendAplica) return '<span style="color:#ccc">—</span>';
+  const cur=l.rend!=null?String(Math.round(l.rend*100)):'';
+  const ph=Math.round((l.rendInsumo||1)*100);
+  const chip=l.rend!=null?'<span class="ren-chip">override</span>':'';
+  return `<div class="ren-cell"><input type="text" inputmode="numeric" class="ren-inp${l.rend!=null?' on':''}" data-${pfx}ren="${idx}" value="${cur}" placeholder="${ph}" title="Rendimiento de esta línea (hereda ${ph}% del insumo). Vacío = heredado.">
+    <button type="button" class="ren-nm" data-${pfx}nm="${idx}" title="Sin merma = 100%">💯</button>${chip}</div>`;
+}
 function costeoResetState(){ rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch=''; platoEditing=null; platoDraft=[]; platoSearch=''; platoCatFilter=''; }
 
 async function loadCosteo(){
@@ -6854,13 +6875,14 @@ function renderCosteoInsumos(){
     </tr>` : `
     <tr data-iid="${i.id}">
       <td><input class="ci-inp" style="width:100%" data-f="descripcion" value="${escapeAttr(i.descripcion)}"></td>
-      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:100px" data-f="precioNeto" value="${i.precioNeto||''}"></td>
+      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:95px" data-f="precioNeto" value="${i.precioNeto||''}"></td>
+      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:60px" data-f="formato" value="${i.formato||''}" placeholder="1"></td>
       <td><select class="ci-inp" data-f="unidad">${C_UNITS(i.unidad)}</select></td>
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:70px" data-f="rendimiento" value="${i.rendimiento||''}" placeholder="—"></td>
       <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b></td>
       <td><button class="pv-del" data-idel="${i.id}">✕</button> <span class="dist-status" data-ist></span></td>
     </tr>`).join('');
-  const cols = barra ? 8 : 6;
+  const cols = barra ? 8 : 7;
   const rbRows = rbList.map(r=> barra ? `
     <tr class="ci-rb-row">
       <td>${escapeHtml(r.nombre)} <span class="mun-bk">RB</span></td>
@@ -6874,6 +6896,7 @@ function renderCosteoInsumos(){
     </tr>` : `
     <tr class="ci-rb-row">
       <td>${escapeHtml(r.nombre)} <span class="mun-bk">RB</span></td>
+      <td class="dist-num" style="color:#aaa">—</td>
       <td class="dist-num" style="color:#aaa">—</td>
       <td>${r.unidad||''}</td>
       <td class="dist-num" style="color:#aaa">—</td>
@@ -6893,13 +6916,14 @@ function renderCosteoInsumos(){
       <div class="dist-form-grid" style="margin-top:.7rem">
         <div class="dist-field wide"><label>Descripción</label><input id="niDesc" placeholder="Ej: Salmón fresco"></div>
         <div class="dist-field"><label>Precio neto</label><input id="niPrecio" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="dist-field"><label>Formato (cantidad, opcional)</label><input id="niFormato" type="text" inputmode="decimal" placeholder="ej: 0,5"></div>
         <div class="dist-field"><label>Unidad</label><select id="niUnidad">${C_UNITS('kilogramo')}</select></div>
         <div class="dist-field"><label>% Rendimiento (0-1, opcional)</label><input id="niRend" type="text" inputmode="decimal" placeholder="ej: 0,6"></div>
       </div>`;
   const thead = barra
     ? `<tr><th>Descripción</th><th style="text-align:right">Precio neto</th><th style="text-align:right">ILA</th><th style="text-align:right">Despacho</th><th style="text-align:right">Neto + ILA + Desp.</th><th style="text-align:right">Volumen bot.</th><th style="text-align:right">Precio 1L</th><th></th></tr>`
-    : `<tr><th>Descripción</th><th style="text-align:right">Precio neto</th><th>Unidad</th><th style="text-align:right">% Rend.</th><th style="text-align:right">Precio real</th><th></th></tr>`;
-  const countTxt = barra ? 'precio 1L = (neto + ILA + despacho) ÷ volumen de botella · sin IVA (el IVA va a nivel de trago)' : 'precio real = precio neto ÷ rendimiento';
+    : `<tr><th>Descripción</th><th style="text-align:right">Precio neto</th><th style="text-align:right">Formato</th><th>Unidad</th><th style="text-align:right">% Rend.</th><th style="text-align:right">Precio real</th><th></th></tr>`;
+  const countTxt = barra ? 'precio 1L = (neto + ILA + despacho) ÷ volumen de botella · sin IVA (el IVA va a nivel de trago)' : 'precio real = (neto ÷ formato) ÷ rendimiento';
   document.getElementById('costeoBody').innerHTML = `
     <div class="dist-form" style="margin-bottom:1rem">
       ${form}
@@ -6924,7 +6948,7 @@ async function addInsumo(){
   st.className='dist-status'; st.textContent='…';
   const payload = isBarra()
     ? { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), ila:cNum(document.getElementById('niIla').value), despacho:cNum(document.getElementById('niDesp').value), volumen:cNum(document.getElementById('niVol').value), unidad:'litro' }
-    : { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), unidad:document.getElementById('niUnidad').value, rendimiento:cNum(document.getElementById('niRend').value) };
+    : { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), formato:cNum(document.getElementById('niFormato').value), unidad:document.getElementById('niUnidad').value, rendimiento:cNum(document.getElementById('niRend').value) };
   try{
     const r=await fetch(cRest('/admin/costeo/insumos'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
@@ -6941,15 +6965,15 @@ async function saveInsumo(id){
     ila=cNum(g('ila')); const desp=cNum(g('despacho')); const vol=cNum(g('volumen')); netoIla=pn*(1+ila/100)+desp; real=(vol>0)?Math.round(netoIla/vol):Math.round(netoIla);
     payload={descripcion:g('descripcion'),precioNeto:pn,ila:ila,despacho:desp,volumen:vol,unidad:(ins?ins.unidad:'litro')};
   } else {
-    const rd=cNum(g('rendimiento')); real=(rd>0&&rd<=1)?Math.round(pn/rd):Math.round(pn);
-    payload={descripcion:g('descripcion'),precioNeto:pn,unidad:g('unidad'),rendimiento:rd};
+    const rd=cNum(g('rendimiento')); const fmt=cNum(g('formato')); const base=(fmt>0)?pn/fmt:pn; real=(rd>0&&rd<=1)?Math.round(base/rd):Math.round(base);
+    payload={descripcion:g('descripcion'),precioNeto:pn,formato:fmt,unidad:g('unidad'),rendimiento:rd};
   }
   try{
     const r=await fetch(cRest(`/admin/costeo/insumos/${id}`),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
     tr.querySelector('[data-real]').textContent=cMoney(real);
     if(barra){ const ni=tr.querySelector('[data-netoila]'); if(ni) ni.textContent=cMoney(netoIla); }
-    if(ins){ins.precioNeto=pn;ins.descripcion=g('descripcion');ins.precioReal=real; if(barra){ins.volumen=cNum(g('volumen'))||null;ins.ila=ila;ins.despacho=cNum(g('despacho'))||0;} else {const rd=cNum(g('rendimiento'));ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');}}
+    if(ins){ins.precioNeto=pn;ins.descripcion=g('descripcion');ins.precioReal=real; if(barra){ins.volumen=cNum(g('volumen'))||null;ins.ila=ila;ins.despacho=cNum(g('despacho'))||0;} else {const rd=cNum(g('rendimiento'));ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');const fmt=cNum(g('formato'));ins.formato=(fmt>0)?fmt:null;}}
     st.className='dist-status ok'; st.textContent='✓'; setTimeout(()=>{st.textContent='';},1400);
   }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
 }
@@ -6965,14 +6989,15 @@ function costeoIngDatalist(){
   return '<datalist id="cIngList">' + (costeoData.ingredientes||[]).map(g=>`<option data-gid="${g.id}" data-gt="${g.type}" data-gu="${g.unidad}" data-gp="${g.precio}" value="${escapeAttr(g.nombre)}${g.type==='rb'?' (RB)':''}">`).join('') + '</datalist>';
 }
 function renderCosteoRecetas(){
-  const draftCosto = rbDraft.reduce((s,l)=>s+(Number(l.cantidad)||0)*(Number(l.precio)||0),0);
+  const draftCosto = rbDraft.reduce((s,l)=>s+(Number(l.cantidad)||0)*lineEffPrecio(l),0);
   const prod = document.getElementById('rbProd') ? cNum(document.getElementById('rbProd').value) : (rbEditing?rbEditing.produccion:0);
-  const drows = rbDraft.length ? rbDraft.map((l,idx)=>`
+  const drows = rbDraft.length ? rbDraft.map((l,idx)=>{ const ep=lineEffPrecio(l); return `
     <tr><td>${escapeHtml(l.nombre)}${l.refType==='rb'?' <span class="mun-bk">RB</span>':''}</td><td>${l.unidad||''}</td>
-    <td class="dist-num">${cMoney(l.precio)}</td>
+    <td class="dist-num">${lineRendCell(l,idx,'rb')}</td>
+    <td class="dist-num">${cMoney(ep)}</td>
     <td class="dist-num"><input type="text" inputmode="decimal" class="dist-input-sm dist-num" data-rbqty="${idx}" value="${l.cantidad}" style="width:80px"></td>
-    <td class="dist-num">${cMoney((Number(l.cantidad)||0)*(Number(l.precio)||0))}</td>
-    <td><button class="pv-del" data-rbrm="${idx}">✕</button></td></tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:#aaa;padding:.7rem">Agregá insumos o recetas…</td></tr>`;
+    <td class="dist-num">${cMoney((Number(l.cantidad)||0)*ep)}</td>
+    <td><button class="pv-del" data-rbrm="${idx}">✕</button></td></tr>`;}).join('') : `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:.7rem">Agregá insumos o recetas…</td></tr>`;
   const rq = rbSearch.toLowerCase();
   const rbAll = (costeoData.recetasBase||[]).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
   const list = rbAll.filter(rb=>!rq || rb.nombre.toLowerCase().includes(rq)).map(rb=>`
@@ -6997,7 +7022,7 @@ function renderCosteoRecetas(){
         <button class="adm-btn adm-btn-ghost" id="rbAddLine" type="button">+ Agregar</button>
       </div>
       <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table" style="min-width:0">
-        <thead><tr><th>Insumo/RB</th><th>Unidad</th><th style="text-align:right">Precio</th><th style="text-align:right">Cantidad</th><th style="text-align:right">Costo</th><th></th></tr></thead>
+        <thead><tr><th>Insumo/RB</th><th>Unidad</th><th style="text-align:right">% Rend.</th><th style="text-align:right">Precio</th><th style="text-align:right">Cantidad</th><th style="text-align:right">Costo</th><th></th></tr></thead>
         <tbody>${drows}</tbody>
       </table></div>
       <div class="oc-totales"><div class="oc-tot-box">
@@ -7021,6 +7046,8 @@ function renderCosteoRecetas(){
   document.getElementById('rbUnidad').onchange=()=>{ const el=document.getElementById('rbUnidadLbl'); if(el) el.textContent=document.getElementById('rbUnidad').value; };
   const c=document.getElementById('rbCancel'); if(c) c.onclick=()=>{ rbEditing=null; rbDraft=[]; renderCosteoRecetas(); };
   document.querySelectorAll('#costeoBody [data-rbqty]').forEach(el=>el.onchange=()=>{ rbDraft[+el.dataset.rbqty].cantidad=cNum(el.value); renderCosteoRecetasKeep(); });
+  document.querySelectorAll('#costeoBody [data-rbren]').forEach(el=>el.onchange=()=>{ const v=cNum(el.value); rbDraft[+el.dataset.rbren].rend=(v>0&&v<=100)?v/100:null; renderCosteoRecetasKeep(); });
+  document.querySelectorAll('#costeoBody [data-rbnm]').forEach(b=>b.onclick=()=>{ rbDraft[+b.dataset.rbnm].rend=1; renderCosteoRecetasKeep(); });
   document.querySelectorAll('#costeoBody [data-rbrm]').forEach(b=>b.onclick=()=>{ rbDraft.splice(+b.dataset.rbrm,1); renderCosteoRecetasKeep(); });
   document.querySelectorAll('#costeoBody [data-rbedit]').forEach(b=>b.onclick=()=>rbLoadEdit(b.dataset.rbedit));
   document.querySelectorAll('#costeoBody [data-rbdel]').forEach(b=>b.onclick=()=>rbDelete(b.dataset.rbdel));
@@ -7039,7 +7066,7 @@ function rbAddLine(){
   const cant=cNum(document.getElementById('rbCant').value);
   if(!g){ alert('Elegí un insumo o receta de la lista.'); return; }
   if(rbEditing && g.type==='rb' && g.id===rbEditing.id){ alert('Una receta no puede usarse a sí misma.'); return; }
-  rbDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant });
+  rbDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant, rendAplica:g.rendimiento!=null, rendInsumo:g.rendimiento||null, base100:g.base100||null, rend:null });
   document.getElementById('rbIng').value=''; document.getElementById('rbCant').value='';
   renderCosteoRecetasKeep();
 }
@@ -7048,7 +7075,7 @@ async function rbSave(){
   const nombre=document.getElementById('rbNombre').value.trim();
   if(!nombre){ st.className='dist-status err'; st.textContent='Falta el nombre.'; return; }
   if(!rbDraft.length){ st.className='dist-status err'; st.textContent='Agregá al menos un insumo.'; return; }
-  const payload={ nombre, unidad:document.getElementById('rbUnidad').value, produccion:cNum(document.getElementById('rbProd').value), lineas:rbDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad)})) };
+  const payload={ nombre, unidad:document.getElementById('rbUnidad').value, produccion:cNum(document.getElementById('rbProd').value), lineas:rbDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad),rend:l.rend})) };
   st.className='dist-status'; st.textContent='Guardando…';
   try{
     const url=rbEditing?`/admin/costeo/recetas/${rbEditing.id}`:'/admin/costeo/recetas';
@@ -7060,7 +7087,7 @@ async function rbSave(){
 function rbLoadEdit(id){
   const rb=costeoData.recetasBase.find(x=>x.id===id); if(!rb) return;
   rbEditing={ id:rb.id, nombre:rb.nombre, unidad:rb.unidad, produccion:rb.produccion };
-  rbDraft=rb.lineas.map(l=>({ refType:l.refType, refId:l.refId, nombre:l.nombre, unidad:l.unidad, precio:l.precio, cantidad:l.cantidad }));
+  rbDraft=rb.lineas.map(l=>({ refType:l.refType, refId:l.refId, nombre:l.nombre, unidad:l.unidad, precio:l.precio, cantidad:l.cantidad, rendAplica:l.rendAplica, rendInsumo:l.rendInsumo, base100:l.base100, rend:l.rend }));
   renderCosteoRecetas(); window.scrollTo({top:0,behavior:'smooth'});
 }
 async function rbDelete(id){
@@ -7082,7 +7109,7 @@ function platoChain(costoTotal, margenPct, aplicaIva=true){
   const pctCosto = precioVenta>0 ? (costoFinal/precioVenta)*100 : 0;
   return { proteccion, iva, costoFinal, precioVenta, precioVentaRedondeado, pctCosto };
 }
-function platoDraftCosto(){ return platoDraft.reduce((s,l)=>s+(Number(l.cantidad)||0)*(Number(l.precio)||0),0); }
+function platoDraftCosto(){ return platoDraft.reduce((s,l)=>s+(Number(l.cantidad)||0)*lineEffPrecio(l),0); }
 function renderCosteoPlatos(){
   const cats = costeoData.categorias||[];
   const draftCosto = platoDraftCosto();
@@ -7090,12 +7117,13 @@ function renderCosteoPlatos(){
   // IVA por producto: al editar respeta lo guardado; al crear, comida sí / barra no.
   const curIva = document.getElementById('plIva') ? document.getElementById('plIva').checked : (platoEditing ? (platoEditing.iva!==false) : !isBarra());
   const ch = platoChain(draftCosto, curMargen||30, curIva);
-  const drows = platoDraft.length ? platoDraft.map((l,idx)=>`
+  const drows = platoDraft.length ? platoDraft.map((l,idx)=>{ const ep=lineEffPrecio(l); return `
     <tr><td>${escapeHtml(l.nombre)}${l.refType==='rb'?' <span class="mun-bk">RB</span>':''}</td><td>${l.unidad||''}</td>
-    <td class="dist-num">${cMoney(l.precio)}</td>
+    <td class="dist-num">${lineRendCell(l,idx,'pl')}</td>
+    <td class="dist-num">${cMoney(ep)}</td>
     <td class="dist-num"><input type="text" inputmode="decimal" class="dist-input-sm dist-num" data-plqty="${idx}" value="${l.cantidad}" style="width:80px"></td>
-    <td class="dist-num">${cMoney((Number(l.cantidad)||0)*(Number(l.precio)||0))}</td>
-    <td><button class="pv-del" data-plrm="${idx}">✕</button></td></tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:#aaa;padding:.7rem">Agregá insumos o recetas base…</td></tr>`;
+    <td class="dist-num">${cMoney((Number(l.cantidad)||0)*ep)}</td>
+    <td><button class="pv-del" data-plrm="${idx}">✕</button></td></tr>`;}).join('') : `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:.7rem">Agregá insumos o recetas base…</td></tr>`;
   // Lista agrupada por categoría
   const q = platoSearch.toLowerCase();
   const platos = (costeoData.platos||[]).filter(p=>(!platoCatFilter||p.categoria===platoCatFilter) && (!q||p.nombre.toLowerCase().includes(q)));
@@ -7134,7 +7162,7 @@ function renderCosteoPlatos(){
         <button class="adm-btn adm-btn-ghost" id="plAddLine" type="button">+ Agregar</button>
       </div>
       <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table" style="min-width:0">
-        <thead><tr><th>Insumo/RB</th><th>Unidad</th><th style="text-align:right">Precio</th><th style="text-align:right">Gramaje</th><th style="text-align:right">Costo</th><th></th></tr></thead>
+        <thead><tr><th>Insumo/RB</th><th>Unidad</th><th style="text-align:right">% Rend.</th><th style="text-align:right">Precio</th><th style="text-align:right">Gramaje</th><th style="text-align:right">Costo</th><th></th></tr></thead>
         <tbody>${drows}</tbody>
       </table></div>
       <div class="pl-chain">
@@ -7167,6 +7195,8 @@ function renderCosteoPlatos(){
   { const x=document.getElementById('plIva'); if(x) x.onchange=upd; }
   const cc=document.getElementById('plCancel'); if(cc) cc.onclick=()=>{ platoEditing=null; platoDraft=[]; renderCosteoPlatos(); };
   document.querySelectorAll('#costeoBody [data-plqty]').forEach(el=>el.onchange=()=>{ platoDraft[+el.dataset.plqty].cantidad=cNum(el.value); renderCosteoPlatosKeep(); });
+  document.querySelectorAll('#costeoBody [data-plren]').forEach(el=>el.onchange=()=>{ const v=cNum(el.value); platoDraft[+el.dataset.plren].rend=(v>0&&v<=100)?v/100:null; renderCosteoPlatosKeep(); });
+  document.querySelectorAll('#costeoBody [data-plnm]').forEach(b=>b.onclick=()=>{ platoDraft[+b.dataset.plnm].rend=1; renderCosteoPlatosKeep(); });
   document.querySelectorAll('#costeoBody [data-plrm]').forEach(b=>b.onclick=()=>{ platoDraft.splice(+b.dataset.plrm,1); renderCosteoPlatosKeep(); });
   document.querySelectorAll('#costeoBody [data-pledit]').forEach(b=>b.onclick=()=>platoLoadEdit(b.dataset.pledit));
   document.querySelectorAll('#costeoBody [data-pldel]').forEach(b=>b.onclick=()=>platoDelete(b.dataset.pldel));
@@ -7186,7 +7216,7 @@ function platoAddLine(){
   const g=(costeoData.ingredientes||[]).find(x=>x.nombre===val);
   const cant=cNum(document.getElementById('plCant').value);
   if(!g){ alert('Elegí un insumo o receta base de la lista.'); return; }
-  platoDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant });
+  platoDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant, rendAplica:g.rendimiento!=null, rendInsumo:g.rendimiento||null, base100:g.base100||null, rend:null });
   document.getElementById('plIng').value=''; document.getElementById('plCant').value='';
   renderCosteoPlatosKeep();
 }
@@ -7194,7 +7224,7 @@ async function platoSave(){
   const st=document.getElementById('plSt');
   const nombre=document.getElementById('plNombre').value.trim();
   if(!nombre){ st.className='dist-status err'; st.textContent='Falta el nombre.'; return; }
-  const payload={ nombre, categoria:document.getElementById('plCat').value, margenPct:cNum(document.getElementById('plMargen').value)||30, iva:document.getElementById('plIva').checked, lineas:platoDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad)})) };
+  const payload={ nombre, categoria:document.getElementById('plCat').value, margenPct:cNum(document.getElementById('plMargen').value)||30, iva:document.getElementById('plIva').checked, lineas:platoDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad),rend:l.rend})) };
   st.className='dist-status'; st.textContent='Guardando…';
   try{
     const url=platoEditing?`/admin/costeo/platos/${platoEditing.id}`:'/admin/costeo/platos';
@@ -7206,7 +7236,7 @@ async function platoSave(){
 function platoLoadEdit(id){
   const p=(costeoData.platos||[]).find(x=>x.id===id); if(!p) return;
   platoEditing={ id:p.id, nombre:p.nombre, categoria:p.categoria, margenPct:p.margenPct, iva:p.ivaAplica };
-  platoDraft=p.lineas.map(l=>({ refType:l.refType, refId:l.refId, nombre:l.nombre, unidad:l.unidad, precio:l.precio, cantidad:l.cantidad }));
+  platoDraft=p.lineas.map(l=>({ refType:l.refType, refId:l.refId, nombre:l.nombre, unidad:l.unidad, precio:l.precio, cantidad:l.cantidad, rendAplica:l.rendAplica, rendInsumo:l.rendInsumo, base100:l.base100, rend:l.rend }));
   renderCosteoPlatos(); window.scrollTo({top:0,behavior:'smooth'});
 }
 async function platoDelete(id){
