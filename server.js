@@ -5178,13 +5178,22 @@ function sendXlsx(res, buf, fname){
 const REST_LABELS = { garden: 'Kairos Garden', badass: 'Badass' };
 const svcSheetLabel = (rest, svc) => REST_LABELS[costeoRestKey(rest)] + (costeoSvcKey(svc) === 'barra' ? ' — Barra' : '');
 
-// Filas de la hoja de Recetas base.
+// Filas de la hoja de Recetas base: por cada RB, un bloque con el desglose de sus
+// insumos/RB (Insumo/RB · Unidad · Precio · Cantidad · Costo) + producción y totales.
 function rbSheetRows(doc){
-  const S = { header: 1, money: 3 };
-  const rows = [[{ v: 'Receta base', s: S.header }, { v: 'Ingredientes', s: S.header }, { v: 'Producción', s: S.header }, { v: 'Unidad', s: S.header }, { v: 'Costo total', s: S.header }, { v: 'Costo x unidad', s: S.header }]];
+  const S = { header: 1, sec: 2, money: 3, secMoney: 6 };
+  const rows = [];
   (doc.recetasBase || []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre)).forEach(r => {
-    const ings = (r.lineas || []).map(l => `${l.cantidad}× ${l.nombre}`).join(' · ');
-    rows.push([{ v: r.nombre }, { v: ings }, { v: r.produccion, t: 'n' }, { v: r.unidad || '' }, { v: r.costoTotal, t: 'n', s: S.money }, { v: r.precioUnidad, t: 'n', s: S.money }]);
+    rows.push([
+      { v: r.nombre, s: S.sec }, { v: `Producción: ${r.produccion} ${r.unidad || ''}`.trim(), s: S.sec }, { v: '', s: S.sec },
+      { v: 'Costo x unidad', s: S.sec }, { v: r.precioUnidad, t: 'n', s: S.secMoney },
+    ]);
+    rows.push([{ v: 'Insumo/RB', s: S.header }, { v: 'Unidad', s: S.header }, { v: 'Precio', s: S.header }, { v: 'Cantidad', s: S.header }, { v: 'Costo', s: S.header }]);
+    (r.lineas || []).forEach(l => rows.push([
+      { v: l.nombre }, { v: l.unidad || '' }, { v: l.precio, t: 'n', s: S.money }, { v: l.cantidad, t: 'n' }, { v: l.costo, t: 'n', s: S.money },
+    ]));
+    rows.push([{ v: '' }, { v: '' }, { v: '' }, { v: 'Costo total', s: S.header }, { v: r.costoTotal, t: 'n', s: S.money }]);
+    rows.push([]);
   });
   return rows;
 }
