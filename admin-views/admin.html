@@ -7035,7 +7035,10 @@ function renderCosteoRecetas(){
         <span class="dist-status" id="rbSt"></span>
       </div>
     </div>
-    <div class="ct-sec-hd"><div class="dist-sec-title" style="margin-top:1.4rem">Recetas base (${(costeoData.recetasBase||[]).length})</div><button class="adm-btn adm-btn-ghost" id="rbXlBtn" type="button">⬇ Excel</button></div>
+    <div class="ct-toolbar" style="margin-top:1.4rem">
+      <div class="ct-toolbar-info"><b>Recetas base (${(costeoData.recetasBase||[]).length})</b> · descargá el detalle con el desglose de cada insumo por RB.</div>
+      <div class="ct-pdf"><span>Excel</span><button class="adm-btn adm-btn-gold" id="rbXlBtn" type="button">Descargar Excel</button></div>
+    </div>
     <div class="tc-search"><input type="text" id="rbSearchInp" placeholder="Buscar receta base…" value="${escapeAttr(rbSearch)}"></div>
     <div class="oc-list">${list || '<div class="dist-empty">No hay recetas que coincidan.</div>'}</div>`;
   document.getElementById('rbAddLine').onclick=rbAddLine;
@@ -7179,7 +7182,10 @@ function renderCosteoPlatos(){
         <span class="dist-status" id="plSt"></span>
       </div>
     </div>
-    <div class="ct-sec-hd"><div class="dist-sec-title" style="margin-top:1.4rem">${isBarra()?'Tragos':'Platos'} (${(costeoData.platos||[]).length})</div><button class="adm-btn adm-btn-ghost" id="plXlBtn" type="button">⬇ Excel</button></div>
+    <div class="ct-toolbar" style="margin-top:1.4rem">
+      <div class="ct-toolbar-info"><b>${isBarra()?'Tragos':'Platos'} (${(costeoData.platos||[]).length})</b> · descargá el listado con la cadena de costo y el precio real.</div>
+      <div class="ct-pdf"><span>Excel</span><button class="adm-btn adm-btn-gold" id="plXlBtn" type="button">Descargar Excel</button></div>
+    </div>
     <div class="tc-search" style="display:flex;gap:.5rem;flex-wrap:wrap">
       <input type="text" id="plSearchInp" placeholder="Buscar plato…" value="${escapeAttr(platoSearch)}" style="flex:1;min-width:180px">
       <select id="plCatFilter" style="max-width:220px"><option value="">Todas las categorías</option>${cats.map(c=>`<option value="${escapeAttr(c)}" ${platoCatFilter===c?'selected':''}>${escapeHtml(c)}</option>`).join('')}</select>
