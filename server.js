@@ -4471,7 +4471,11 @@ function costeoBuildFromSeed(seedFile){
       return null;
     }).filter(Boolean);
     const m = Number(x.margenPct); const margenPct = (m > 0 && m <= 100) ? m : 30;
-    return { id: randomUUID(), nombre: costeoStr(x.nombre, 200), categoria: costeoStr(x.categoria, 120) || 'Sin categoría', margenPct, lineas };
+    const precioReal = (Number(x.precioReal) > 0) ? Math.round(Number(x.precioReal)) : null;
+    const iva = (x.iva === false) ? false : (x.iva === true ? true : undefined);
+    const p = { id: randomUUID(), nombre: costeoStr(x.nombre, 200), categoria: costeoStr(x.categoria, 120) || 'Sin categoría', margenPct, lineas, precioReal };
+    if (iva !== undefined) p.iva = iva;
+    return p;
   });
   // Categorías: explícitas del seed (barra) > orden de aparición de platos > set base.
   const cats = []; platos.forEach(p => { if (p.categoria && !cats.includes(p.categoria)) cats.push(p.categoria); });
@@ -4514,6 +4518,7 @@ function costeoNormalizeCarta(c){
   const secciones = Array.isArray(c.secciones) ? c.secciones.map(s => ({
     id: costeoStr(s && s.id, 60) || randomUUID(),
     nombre: costeoStr(s && s.nombre, 120) || 'Sección',
+    reventa: !!(s && s.reventa), // secciones de reventa (cervezas, botellas, etc.): sin costeo
     items: Array.isArray(s && s.items) ? s.items
       .map(it => ({ nombre: costeoStr(typeof it === 'string' ? it : (it && it.nombre), 200) }))
       .filter(it => it.nombre) : [],
@@ -4523,7 +4528,8 @@ function costeoNormalizeCarta(c){
   const pv = Number.isFinite(c.pv) ? c.pv : 0; // versión de la migración de platos (renombres + categorías)
   const rv = Number.isFinite(c.rv) ? c.rv : 0; // versión del sembrado de precios de venta reales
   const biv = Number.isFinite(c.biv) ? c.biv : 0; // versión: barra bruto → neto+ILA (quita IVA)
-  return { v, pv, rv, biv, secciones, asignaciones };
+  const cv = Number.isFinite(c.cv) ? c.cv : 0;   // versión: secciones reales + tragos de barra
+  return { v, pv, rv, biv, cv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -4778,6 +4784,50 @@ function costeoMigrateBarraIla(doc){
   doc.carta.biv = BARRA_ILA_V;
   return true;
 }
+const costeoBarraSeedFile = (rest) => costeoRestKey(rest) === 'badass' ? 'costeo-barra-seed-badass.json' : 'costeo-barra-seed-garden.json';
+// Siembra los TRAGOS de barra desde el seed, resolviendo cada línea POR NOMBRE contra
+// los insumos/RB del doc (como costeoSeedPlatosInto, pero con precioReal/iva/categoría).
+// Solo corre si el doc no tiene platos todavía. Devuelve true si mutó.
+function costeoSeedBarraTragosInto(doc, rest){
+  if (!doc || (doc.platos && doc.platos.length)) return false;
+  let seed; try { seed = JSON.parse(readFileSync(join(__dirname, costeoBarraSeedFile(rest)), 'utf-8')); } catch { return false; }
+  if (!Array.isArray(seed.platos) || !seed.platos.length) return false;
+  const byName = new Map(); (doc.insumos || []).forEach(i => byName.set(costeoNorm(i.descripcion), i.id));
+  const rbByName = new Map(); (doc.recetasBase || []).forEach(r => rbByName.set(costeoNorm(r.nombre), r.id));
+  doc.platos = seed.platos.map(x => {
+    const lineas = (x.lineas || []).map(l => {
+      const k = costeoNorm(l.ref);
+      if (rbByName.has(k)) return { refType: 'rb', refId: rbByName.get(k), cantidad: Number(l.cantidad) || 0 };
+      if (byName.has(k)) return { refType: 'insumo', refId: byName.get(k), cantidad: Number(l.cantidad) || 0 };
+      return null;
+    }).filter(Boolean);
+    const m = Number(x.margenPct); const margenPct = (m > 0 && m <= 100) ? m : 30;
+    const precioReal = (Number(x.precioReal) > 0) ? Math.round(Number(x.precioReal)) : null;
+    const p = { id: randomUUID(), nombre: costeoStr(x.nombre, 200), categoria: costeoStr(x.categoria, 120) || 'Sin categoría', margenPct, lineas, precioReal };
+    if (x.iva === false) p.iva = false; else if (x.iva === true) p.iva = true;
+    return p;
+  });
+  return true;
+}
+// Migración de la CARTA de barra (Nivel 4): planta las secciones reales del menú de
+// tragos (orden + reventa) desde el seed, categorías = secciones, y siembra los tragos.
+// Una vez por doc de barra (carta.cv). No pisa reasignaciones porque las viejas
+// apuntaban a secciones que ya no existen.
+const BARRA_CARTA_V = 1;
+function costeoMigrateBarraCarta(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.cv >= BARRA_CARTA_V) return false;
+  let seed; try { seed = JSON.parse(readFileSync(join(__dirname, costeoBarraSeedFile(rest)), 'utf-8')); } catch { return false; }
+  const secs = Array.isArray(seed.cartaSecciones) ? seed.cartaSecciones : (seed.categorias || []).map(n => ({ nombre: n }));
+  const key = costeoRestKey(rest);
+  doc.carta.secciones = secs.map((sc, i) => ({ id: `${key}-b${i + 1}`, nombre: costeoStr(typeof sc === 'string' ? sc : sc.nombre, 120), reventa: !!(sc && sc.reventa), items: [] }));
+  doc.carta.asignaciones = {};
+  doc.categorias = doc.carta.secciones.map(s => s.nombre);
+  costeoSeedBarraTragosInto(doc, rest);
+  doc.carta.cv = BARRA_CARTA_V;
+  return true;
+}
 // Asegura los 2 docs de barra (garden_barra / badass_barra): los siembra desde el
 // Excel de barra si están vacíos y planta sus secciones de carta. Devuelve true si mutó.
 function costeoEnsureBarraDocs(all){
@@ -4787,6 +4837,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoDocEmpty(all[key])) { all[key] = costeoDefaultsBarra(rest); ch = true; }
     if (costeoEnsureBarraCarta(all[key])) ch = true;
     if (costeoMigrateBarraIla(all[key])) ch = true;
+    if (costeoMigrateBarraCarta(all[key], rest)) ch = true;
   }
   return ch;
 }
@@ -4879,7 +4930,9 @@ function resolveCosteo(d){
     });
     const costoTotal = lineas.reduce((a, l) => a + l.costo, 0);
     const proteccion = costoTotal * 0.10;
-    const iva = (costoTotal + proteccion) * 0.19;
+    // IVA opcional por producto (barra: algunos tragos no llevan IVA). Default: sí.
+    const ivaAplica = (p.iva === false) ? false : true;
+    const iva = ivaAplica ? (costoTotal + proteccion) * 0.19 : 0;
     const costoFinal = costoTotal + proteccion + iva;
     const margenPct = (Number(p.margenPct) > 0 && Number(p.margenPct) <= 100) ? Number(p.margenPct) : 30;
     const precioVenta = margenPct > 0 ? costoFinal / (margenPct / 100) : 0;
@@ -4893,7 +4946,7 @@ function resolveCosteo(d){
       costoTotal: Math.round(costoTotal), proteccion: Math.round(proteccion), iva: Math.round(iva),
       costoFinal: Math.round(costoFinal), precioVenta: Math.round(precioVenta),
       precioVentaRedondeado, pctCosto: Math.round(pctCosto * 10) / 10,
-      precioReal, pctCostoReal,
+      precioReal, pctCostoReal, ivaAplica,
     };
   });
   return { insumos, recetasBase, ingredientes, platos, categorias: d.categorias };
@@ -4970,7 +5023,9 @@ app.post('/admin/costeo/platos', requireAdmin, (req, res) => {
   const d = loadCosteo(rest, req.query.svc);
   const categoria = costeoStr(b.categoria, 120) || (d.categorias[0] || 'Sin categoría');
   const precioReal = (Number(b.precioReal) > 0) ? Math.round(Number(b.precioReal)) : null;
-  d.platos.push({ id: randomUUID(), nombre, categoria, margenPct: costeoMargen(b.margenPct), precioReal, lineas: normalizeRBLineas(b.lineas) });
+  const plato = { id: randomUUID(), nombre, categoria, margenPct: costeoMargen(b.margenPct), precioReal, lineas: normalizeRBLineas(b.lineas) };
+  if (b.iva === false || b.iva === true) plato.iva = b.iva;
+  d.platos.push(plato);
   saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 app.put('/admin/costeo/platos/:id', requireAdmin, (req, res) => {
@@ -4981,6 +5036,7 @@ app.put('/admin/costeo/platos/:id', requireAdmin, (req, res) => {
   if (b.categoria !== undefined) p.categoria = costeoStr(b.categoria, 120) || p.categoria;
   if (b.margenPct !== undefined) p.margenPct = costeoMargen(b.margenPct);
   if (b.precioReal !== undefined) p.precioReal = (Number(b.precioReal) > 0) ? Math.round(Number(b.precioReal)) : null;
+  if (b.iva !== undefined) p.iva = (b.iva === false) ? false : true;
   if (b.lineas !== undefined) p.lineas = normalizeRBLineas(b.lineas);
   saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
@@ -5038,7 +5094,7 @@ function resolveCarta(doc){
       const n = costeoNormLoose(it.nombre);
       return n && !secNorms.some(pn => pn === n || pn.includes(n) || n.includes(pn));
     }).map(it => it.nombre);
-    return { id: s.id, nombre: s.nombre, platos: platosSec, sinCostear };
+    return { id: s.id, nombre: s.nombre, reventa: !!s.reventa, platos: platosSec, sinCostear };
   });
   const sinAsignar = platos.filter(p => !platoSection.has(p.id)).map(slim).sort((a, b) => a.nombre.localeCompare(b.nombre));
   return { secciones, sinAsignar, meta: { totalPlatos: platos.length, totalSecciones: carta.secciones.length } };

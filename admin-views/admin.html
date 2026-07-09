@@ -1500,6 +1500,9 @@ body.drawer-open{overflow:hidden}
 .ct-real::placeholder{font-weight:400;font-style:italic;color:#bbb}
 .ct-real:focus{outline:none;border-color:var(--gold,#f5a623);box-shadow:0 0 0 2px rgba(245,166,35,.18)}
 .ct-sec-hd{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
+.ct-reventa{font-size:.6rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8a6d1f;background:rgba(245,166,35,.14);border:1px solid rgba(245,166,35,.4);border-radius:6px;padding:.1rem .4rem;vertical-align:middle}
+.pl-iva{display:inline-flex;align-items:center;gap:.35rem;font-size:.8rem;color:var(--text,#111);cursor:pointer;user-select:none}
+.pl-iva input{width:15px;height:15px;accent-color:var(--gold,#f5a623)}
 
 /* ── PUNTOS DE VENTA ── */
 .pv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;margin-bottom:1rem}
@@ -7066,9 +7069,9 @@ async function rbDelete(id){
 // ── Platos (Nivel 3) ──
 // Cadena de costo: CostoTotal → Protección 10% → IVA 19% → Costo Final
 // → Precio Venta = Costo Final / margen → % costo = Costo Final / Precio Venta.
-function platoChain(costoTotal, margenPct){
+function platoChain(costoTotal, margenPct, aplicaIva=true){
   const proteccion = costoTotal*0.10;
-  const iva = (costoTotal+proteccion)*0.19;
+  const iva = aplicaIva ? (costoTotal+proteccion)*0.19 : 0;
   const costoFinal = costoTotal+proteccion+iva;
   const m = (Number(margenPct)>0 && Number(margenPct)<=100) ? Number(margenPct) : 30;
   const precioVenta = costoFinal/(m/100);
@@ -7081,7 +7084,9 @@ function renderCosteoPlatos(){
   const cats = costeoData.categorias||[];
   const draftCosto = platoDraftCosto();
   const curMargen = document.getElementById('plMargen') ? cNum(document.getElementById('plMargen').value) : (platoEditing?platoEditing.margenPct:30);
-  const ch = platoChain(draftCosto, curMargen||30);
+  // IVA por producto: al editar respeta lo guardado; al crear, comida sí / barra no.
+  const curIva = document.getElementById('plIva') ? document.getElementById('plIva').checked : (platoEditing ? (platoEditing.iva!==false) : !isBarra());
+  const ch = platoChain(draftCosto, curMargen||30, curIva);
   const drows = platoDraft.length ? platoDraft.map((l,idx)=>`
     <tr><td>${escapeHtml(l.nombre)}${l.refType==='rb'?' <span class="mun-bk">RB</span>':''}</td><td>${l.unidad||''}</td>
     <td class="dist-num">${cMoney(l.precio)}</td>
@@ -7118,6 +7123,7 @@ function renderCosteoPlatos(){
         <div class="dist-field wide"><label>Nombre del plato</label><input id="plNombre" placeholder="Ej: Acevichado 420" value="${platoEditing?escapeAttr(platoEditing.nombre):''}"></div>
         <div class="dist-field"><label>Categoría</label><select id="plCat">${catOptions}</select></div>
         <div class="dist-field"><label>Margen % (default 30)</label><input id="plMargen" type="text" inputmode="decimal" placeholder="30" value="${platoEditing?platoEditing.margenPct:'30'}"></div>
+        <div class="dist-field"><label>IVA</label><label class="pl-iva"><input type="checkbox" id="plIva" ${curIva?'checked':''}> Incluir IVA 19%</label></div>
       </div>
       <div class="oc-line">
         <div class="dist-field" style="flex:2"><label>Insumo o receta base</label><input id="plIng" list="cIngList" placeholder="Escribí para buscar…"></div>
@@ -7151,10 +7157,11 @@ function renderCosteoPlatos(){
   document.getElementById('plAddLine').onclick=platoAddLine;
   { const x=document.getElementById('plXlBtn'); if(x) x.onclick=()=>costeoExportXlsx('platos'); }
   document.getElementById('plSave').onclick=platoSave;
-  const upd=()=>{ const ct=platoDraftCosto(); const m=cNum(document.getElementById('plMargen').value)||30; const c=platoChain(ct,m);
+  const upd=()=>{ const ct=platoDraftCosto(); const m=cNum(document.getElementById('plMargen').value)||30; const iv=document.getElementById('plIva').checked; const c=platoChain(ct,m,iv);
     const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
     set('plCT',cMoney(ct)); set('plPR',cMoney(c.proteccion)); set('plIVA',cMoney(c.iva)); set('plCF',cMoney(c.costoFinal)); set('plPV',cMoney(c.precioVentaRedondeado)); set('plPC',(Math.round(c.pctCosto*10)/10)+'%'); };
   document.getElementById('plMargen').oninput=upd;
+  { const x=document.getElementById('plIva'); if(x) x.onchange=upd; }
   const cc=document.getElementById('plCancel'); if(cc) cc.onclick=()=>{ platoEditing=null; platoDraft=[]; renderCosteoPlatos(); };
   document.querySelectorAll('#costeoBody [data-plqty]').forEach(el=>el.onchange=()=>{ platoDraft[+el.dataset.plqty].cantidad=cNum(el.value); renderCosteoPlatosKeep(); });
   document.querySelectorAll('#costeoBody [data-plrm]').forEach(b=>b.onclick=()=>{ platoDraft.splice(+b.dataset.plrm,1); renderCosteoPlatosKeep(); });
@@ -7184,7 +7191,7 @@ async function platoSave(){
   const st=document.getElementById('plSt');
   const nombre=document.getElementById('plNombre').value.trim();
   if(!nombre){ st.className='dist-status err'; st.textContent='Falta el nombre.'; return; }
-  const payload={ nombre, categoria:document.getElementById('plCat').value, margenPct:cNum(document.getElementById('plMargen').value)||30, lineas:platoDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad)})) };
+  const payload={ nombre, categoria:document.getElementById('plCat').value, margenPct:cNum(document.getElementById('plMargen').value)||30, iva:document.getElementById('plIva').checked, lineas:platoDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad)})) };
   st.className='dist-status'; st.textContent='Guardando…';
   try{
     const url=platoEditing?`/admin/costeo/platos/${platoEditing.id}`:'/admin/costeo/platos';
@@ -7195,7 +7202,7 @@ async function platoSave(){
 }
 function platoLoadEdit(id){
   const p=(costeoData.platos||[]).find(x=>x.id===id); if(!p) return;
-  platoEditing={ id:p.id, nombre:p.nombre, categoria:p.categoria, margenPct:p.margenPct };
+  platoEditing={ id:p.id, nombre:p.nombre, categoria:p.categoria, margenPct:p.margenPct, iva:p.ivaAplica };
   platoDraft=p.lineas.map(l=>({ refType:l.refType, refId:l.refId, nombre:l.nombre, unidad:l.unidad, precio:l.precio, cantidad:l.cantidad }));
   renderCosteoPlatos(); window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -7238,11 +7245,13 @@ function drawCarta(){
   const c=cartaData;
   const secBlocks = c.secciones.map(s=>{
     const rows = s.platos.map(p=>cartaRow(p, s.id, false)).join('');
+    const emptyMsg = s.reventa ? 'Sección de reventa (se compra y se vende, sin costeo).' : 'Sin platos costeados en esta sección.';
     const table = s.platos.length
       ? `<div class="mun-wrap"><table class="mun-table">${CT_THEAD}<tbody>${rows}</tbody></table></div>`
-      : '<div class="dist-empty" style="padding:.6rem">Sin platos costeados en esta sección.</div>';
+      : `<div class="dist-empty" style="padding:.6rem">${emptyMsg}</div>`;
     const sc = s.sinCostear.length ? `<div class="ct-sincost"><b>Sin costear:</b> ${s.sinCostear.map(n=>`<span>${escapeHtml(n)}</span>`).join('')}</div>` : '';
-    return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.platos.length})</span></div>${table}${sc}</div>`;
+    const badge = s.reventa ? ' <span class="ct-reventa">reventa</span>' : '';
+    return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.platos.length})</span>${badge}</div>${table}${sc}</div>`;
   }).join('');
   const saRows = c.sinAsignar.map(p=>cartaRow(p, null, true)).join('');
   const saBlock = c.sinAsignar.length

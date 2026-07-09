@@ -2120,17 +2120,3113 @@
    ]
   }
  ],
- "platos": [],
+ "platos": [
+  {
+   "nombre": "Bad Banny",
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "kuyper grapefruit",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.022
+    },
+    {
+     "ref": "rb syrup arandanos",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "bt jerry tomas own decanter",
+     "cantidad": 0.002
+    },
+    {
+     "ref": "arandanos FRUTA",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "naranja fruta",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "menta",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos de la casa",
+   "precioReal": 9970
+  },
+  {
+   "nombre": "El amor que nunca fue",
+   "lineas": [
+    {
+     "ref": "gin banny",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "PULPA MARACUYA C/PEPA S/AZUCAR",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.0225
+    },
+    {
+     "ref": "rb shrub cacho de cabra",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "rb shrub pimenton rojo",
+     "cantidad": 0.0225
+    },
+    {
+     "ref": "jugo de pomelo",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "kairos neipa",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "CACHO DE CABRA AHUMADO",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "tajin",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "pomelo fruta",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos de la casa",
+   "precioReal": 9970
+  },
+  {
+   "nombre": "Pineapple Express",
+   "lineas": [
+    {
+     "ref": "gin banny",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "KUYPER PINEAPPLE",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "PULPA PIÑA",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "rb jarabe de goma",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "albahaca",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "GINGER BEER FEVER TREE",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "piña fruta",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos de la casa",
+   "precioReal": 9970
+  },
+  {
+   "nombre": "Posima De La Maldad",
+   "lineas": [
+    {
+     "ref": "gin banny",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "VINO TINTO",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "JUGO DE NARANJA SOPROLE",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "rb syrup canela",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "rb shrub durazno albahaca",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "albahaca",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "canela astilla",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "naranja fruta",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos de la casa"
+  },
+  {
+   "nombre": "Pócima de la Maldad",
+   "lineas": [
+    {
+     "ref": "gin banny",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "vino blanco",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "JUGO DE NARANJA SOPROLE",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "rb syrup canela",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "rb shrub durazno albahaca",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "albahaca",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "canela astilla",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "naranja FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Jarras de la casa",
+   "precioReal": 19970
+  },
+  {
+   "nombre": "Piscolon De La Casa",
+   "lineas": [
+    {
+     "ref": "ALTO DEL CARMEN 35°",
+     "cantidad": 0.12
+    },
+    {
+     "ref": "COCA COLA LIGHT LATA",
+     "cantidad": 1.0
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos de la casa"
+  },
+  {
+   "nombre": "Badass",
+   "lineas": [
+    {
+     "ref": "rb gin banny hibiscus",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.0225
+    },
+    {
+     "ref": "rb syrup hibiscus",
+     "cantidad": 0.0225
+    },
+    {
+     "ref": "rb syrup jengibre",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "kuyper mango",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "albumina",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "ginger beer fever tree",
+     "cantidad": 0.06
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos de la casa"
+  },
+  {
+   "nombre": "Tropical Garden",
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.0225
+    },
+    {
+     "ref": "RB SHRUB DURAZNO ALBAHACA",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "RB SYRUP MARACUYA NARANJA",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "MONSTER RIPPER 473",
+     "cantidad": 0.09
+    },
+    {
+     "ref": "PULPA MARACUYA C/PEPA S/AZUCAR",
+     "cantidad": 0.025
+    },
+    {
+     "ref": "PEPINO",
+     "cantidad": 0.015
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tropicals",
+   "precioReal": 7970
+  },
+  {
+   "nombre": "Tropical Gin",
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "JUGO DE NARANJA SOPROLE",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "PULPA MARACUYA C/PEPA S/AZUCAR",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "MONSTER RIPPER 473",
+     "cantidad": 0.09
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tropicals"
+  },
+  {
+   "nombre": "Tropical Walker",
+   "lineas": [
+    {
+     "ref": "JOHNNIE WALKER BLONDE",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "PULPA MARACUYA C/PEPA S/AZUCAR",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "JUGO DE NARANJA SOFRUCO",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.0225
+    },
+    {
+     "ref": "POMELO fruta",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "MENTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tropicals",
+   "precioReal": 9990
+  },
+  {
+   "nombre": "Tropical Pink",
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "KUYPER WATERMELON",
+     "cantidad": 0.0225
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "RB SYRUP ARANDANOS",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "AGUA TONICA SCHWEPPES 1,5lt",
+     "cantidad": 0.09
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tropicals",
+   "precioReal": 7590
+  },
+  {
+   "nombre": "Tropical Apple",
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "KUYPER APPLE",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "MONSTER ULTRA PARADISE 473",
+     "cantidad": 0.09
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tropicals",
+   "precioReal": 7590
+  },
+  {
+   "nombre": "Tropical Apple",
+   "lineas": [
+    {
+     "ref": "RON REY DE COPAS",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "peachtree",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "rb syrup hibiscus",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "rb jugo de limon",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "pulpa mango",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "MONSTER ULTRA PARADISE 473",
+     "cantidad": 0.1
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tropicals"
+  },
+  {
+   "nombre": "Pana Rabbit",
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "PULPA MARACUYA C/PEPA S/AZUCAR",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB SYRUP MARACUYA NARANJA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "JUGO DE NARANJA SOPROLE",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "KAIROS NEIPA",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "MENTA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "POMELO FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos de autor",
+   "precioReal": 6870
+  },
+  {
+   "nombre": "Liebre Presumida",
+   "lineas": [
+    {
+     "ref": "HAVANA CLUB ESPECIAL",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "JUGO DE MANDARINA",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "RB SHRUB DURAZNO ALBAHACA",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "RB SYRUP MARACUYA NARANJA",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "BT AROMATIC BITTERS",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "FLORES COMESTIBLES",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "KAIROS APA",
+     "cantidad": 0.05
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos de autor"
+  },
+  {
+   "nombre": "Madriguera",
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "RB BLEND ST GERMAIN",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB SYRUP ROMERO",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "KAIROS NEIPA",
+     "cantidad": 0.06
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos de autor"
+  },
+  {
+   "nombre": "Playboy",
+   "lineas": [
+    {
+     "ref": "JACK DANIELS HONEY",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "ALTO DEL CARMEN MANZANA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB SYRUP JENGIBRE",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "JENGIBRE",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos de autor",
+   "precioReal": 7990
+  },
+  {
+   "nombre": "Salto Alto",
+   "lineas": [
+    {
+     "ref": "CUATRO GALLOS",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "JAGERMEISTER",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "POBRE VERMOUTH ROSSO",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "PULPA PIÑA",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "PULPA MARACUYA C/PEPA S/AZUCAR",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "RB SYRUP HIBISCUS",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "KAIROS NEIPA",
+     "cantidad": 0.04
+    },
+    {
+     "ref": "TAJIN",
+     "cantidad": 0.003
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos de autor"
+  },
+  {
+   "nombre": "Como Conejos",
+   "lineas": [
+    {
+     "ref": "SOMBRERO NEGRO",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "PULPA MARACUYA C/PEPA S/AZUCAR",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "RB SYRUP HIBISCUS",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB SHRUB CACHO DE CABRA",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "KAIROS NEIPA",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "TAJIN",
+     "cantidad": 0.003
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos de autor",
+   "precioReal": 8990
+  },
+  {
+   "nombre": "Bugs",
+   "lineas": [
+    {
+     "ref": "PULPA MANGO",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "PULPA PIÑA",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "KOMBUCHA MOMENTUN",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "MENTA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "PIÑA FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Mocktails",
+   "precioReal": 5990
+  },
+  {
+   "nombre": "White Rabbit",
+   "lineas": [
+    {
+     "ref": "PULPA PIÑA",
+     "cantidad": 0.09
+    },
+    {
+     "ref": "JUGO DE NARANJA SOFRUCO",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "RB SYRUP COCO LOPEZ",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "RB PASTA DE JENGIBRE",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "KOMBUCHA ELIXIR",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "PIÑA FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Mocktails",
+   "precioReal": 5990
+  },
+  {
+   "nombre": "Tambor",
+   "lineas": [
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB SYRUP JENGIBRE",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "JUGO DE MANDARINA",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "JUGO DE NARANJA SOFRUCO",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "ALBAHACA",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "GINGER BEER FEVER TREE",
+     "cantidad": 0.06
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Mocktails",
+   "precioReal": 5990
+  },
+  {
+   "nombre": "Roger",
+   "lineas": [
+    {
+     "ref": "RB SYRUP COCO LOPEZ",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "JUGO DE NARANJA SOFRUCO",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "PULPA MARACUYA C/PEPA S/AZUCAR",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "GINGER BEER FEVER TREE",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "PEPINO",
+     "cantidad": 0.015
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Mocktails",
+   "precioReal": 5990
+  },
+  {
+   "nombre": "Lola",
+   "lineas": [
+    {
+     "ref": "RB SYRUP ROMERO",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "PULPA FRUTILLA",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "JUGO DE POMELO",
+     "cantidad": 0.09
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "HEINEKEN S/ALCOHOL",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "SAL FINA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "ROMERO",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Mocktails",
+   "precioReal": 5990
+  },
+  {
+   "nombre": "Piscola",
+   "lineas": [
+    {
+     "ref": "ALTO DEL CARMEN 35°",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "COCA COLA LIGHT LATA",
+     "cantidad": 1.0
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Margarita Maracuya",
+   "lineas": [
+    {
+     "ref": "SOMBRERO NEGRO",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "KUYPER TRIPLE SEC",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "SAL FINA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "PULPA MARACUYA C/PEPA S/AZUCAR",
+     "cantidad": 0.03
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Pisco Sour",
+   "lineas": [
+    {
+     "ref": "ALTO DEL CARMEN 35°",
+     "cantidad": 0.09
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "ALBUMINA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "amargo angostura",
+     "cantidad": 0.002
+    }
+   ],
+   "margenPct": 20.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6470
+  },
+  {
+   "nombre": "Caipirinha",
+   "lineas": [
+    {
+     "ref": "CACHAZA 51",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.02
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 5970
+  },
+  {
+   "nombre": "Margarita Blue",
+   "lineas": [
+    {
+     "ref": "SOMBRERO NEGRO",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "KUYPER TRIPLE SEC",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "SAL FINA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Pisco Sour Catedral",
+   "lineas": [
+    {
+     "ref": "ALTO DEL CARMEN 35°",
+     "cantidad": 0.21
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "ALBUMINA",
+     "cantidad": 0.008
+    },
+    {
+     "ref": "amargo angostura",
+     "cantidad": 0.002
+    }
+   ],
+   "margenPct": 20.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Caipirinha Frutos Rojos",
+   "lineas": [
+    {
+     "ref": "CACHAZA 51",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "PULPA FRAMBUESA",
+     "cantidad": 0.03
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Margarita Frutos Rojos",
+   "lineas": [
+    {
+     "ref": "SOMBRERO NEGRO",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "KUYPER TRIPLE SEC",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "SAL FINA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "PULPA FRAMBUESA",
+     "cantidad": 0.03
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Pisco Sour Mango",
+   "lineas": [
+    {
+     "ref": "ALTO DEL CARMEN 35°",
+     "cantidad": 0.09
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "PULPA MANGO",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "ALBUMINA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Caipirinha Mango",
+   "lineas": [
+    {
+     "ref": "CACHAZA 51",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "PULPA MANGO",
+     "cantidad": 0.03
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Margarita Mango",
+   "lineas": [
+    {
+     "ref": "SOMBRERO NEGRO",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "KUYPER TRIPLE SEC",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "SAL FINA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "PULPA MANGO",
+     "cantidad": 0.03
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Pisco Sour Frutos Rojos",
+   "lineas": [
+    {
+     "ref": "ALTO DEL CARMEN 35°",
+     "cantidad": 0.09
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "PULPA FRAMBUESA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "ALBUMINA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Pisco Sour Maracuya",
+   "lineas": [
+    {
+     "ref": "ALTO DEL CARMEN 35°",
+     "cantidad": 0.09
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "PULPA MARACUYA C/PEPA S/AZUCAR",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "ALBUMINA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Caipirinha Maracuya",
+   "lineas": [
+    {
+     "ref": "CACHAZA 51",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "PULPA MARACUYA C/PEPA S/AZUCAR",
+     "cantidad": 0.03
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Mojito",
+   "lineas": [
+    {
+     "ref": "RON REY DE COPAS",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "MENTA",
+     "cantidad": 0.008
+    },
+    {
+     "ref": "AGUA C/GAS 5LT",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6470
+  },
+  {
+   "nombre": "Daikiri",
+   "lineas": [
+    {
+     "ref": "RON REY DE COPAS",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Mojito Frutos Rojos",
+   "lineas": [
+    {
+     "ref": "RON REY DE COPAS",
+     "cantidad": 0.075
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "MENTA",
+     "cantidad": 0.008
+    },
+    {
+     "ref": "AGUA C/GAS 5LT",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "PULPA FRAMBUESA",
+     "cantidad": 0.06
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Daikiri Frutos Rojos",
+   "lineas": [
+    {
+     "ref": "RON REY DE COPAS",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "PULPA FRAMBUESA",
+     "cantidad": 0.06
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Mojito Maracuya",
+   "lineas": [
+    {
+     "ref": "RON REY DE COPAS",
+     "cantidad": 0.075
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "MENTA",
+     "cantidad": 0.008
+    },
+    {
+     "ref": "AGUA C/GAS 5LT",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "PULPA MARACUYA C/PEPA S/AZUCAR",
+     "cantidad": 0.06
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Daikiri Maracuya",
+   "lineas": [
+    {
+     "ref": "RON REY DE COPAS",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "PULPA MARACUYA C/PEPA S/AZUCAR",
+     "cantidad": 0.06
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Mojito Mango",
+   "lineas": [
+    {
+     "ref": "RON REY DE COPAS",
+     "cantidad": 0.075
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "MENTA",
+     "cantidad": 0.008
+    },
+    {
+     "ref": "AGUA C/GAS 5LT",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "PULPA MANGO",
+     "cantidad": 0.06
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Daikiri Mango",
+   "lineas": [
+    {
+     "ref": "RON REY DE COPAS",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "PULPA MANGO",
+     "cantidad": 0.06
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Margarita Tradicional",
+   "lineas": [
+    {
+     "ref": "SOMBRERO NEGRO",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "KUYPER TRIPLE SEC",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "SAL FINA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Piña Colada",
+   "lineas": [
+    {
+     "ref": "RON REY DE COPAS",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "PULPA PIÑA",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "RB CREMA DE COCO",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "PIÑA FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6970
+  },
+  {
+   "nombre": "Manhattan",
+   "lineas": [
+    {
+     "ref": "JIM BEAM BOURBON",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "martini rosso",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "amargo angostura",
+     "cantidad": 0.001
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 8470
+  },
+  {
+   "nombre": "Cosmopolitan",
+   "lineas": [
+    {
+     "ref": "STOLICHNAYA",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "KUYPER TRIPLE SEC",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB SYRUP ARANDANOS",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6970
+  },
+  {
+   "nombre": "Paloma",
+   "lineas": [
+    {
+     "ref": "SOMBRERO NEGRO",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "JUGO DE POMELO",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "PINK GRAPEFRUIT FEVER TREE",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "TAJIN",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "POMELO FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6970
+  },
+  {
+   "nombre": "Godfather",
+   "lineas": [
+    {
+     "ref": "BALLANTINES BLENDED 7 AÑOS",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "RB BLEND AMARETTO",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "MARRASQUINOS / CEREZAS",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 7970
+  },
+  {
+   "nombre": "Bloody Mary",
+   "lineas": [
+    {
+     "ref": "STOLICHNAYA",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "SALSA INGLESA GOURMET",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "PIMIENTA",
+     "cantidad": 0.002
+    },
+    {
+     "ref": "SAL FINA",
+     "cantidad": 0.002
+    },
+    {
+     "ref": "TABASCO",
+     "cantidad": 0.003
+    },
+    {
+     "ref": "JUGO DE TOMATE BY BMARIA",
+     "cantidad": 0.1
+    },
+    {
+     "ref": "APIO",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6970
+  },
+  {
+   "nombre": "Ron Fashioned",
+   "lineas": [
+    {
+     "ref": "BACARDI AÑEJO",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "HAVANA CLUB 7",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB SYRUP DEMERARA",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "amargo angostura",
+     "cantidad": 0.002
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6970
+  },
+  {
+   "nombre": "Rusty Nail",
+   "lineas": [
+    {
+     "ref": "BALLANTINES BLENDED 7 AÑOS",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "DRAMBUI",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "CLAVO DE OLOR",
+     "cantidad": 0.003
+    },
+    {
+     "ref": "MARRASQUINOS / CEREZAS",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 7490
+  },
+  {
+   "nombre": "Tom Collins",
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "AGUA C/GAS 5LT",
+     "cantidad": 0.09
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "MARRASQUINOS / CEREZAS",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6490
+  },
+  {
+   "nombre": "Old Fashioned",
+   "lineas": [
+    {
+     "ref": "JIM BEAM BOURBON",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "RB SYRUP DEMERARA",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "amargo angostura",
+     "cantidad": 0.002
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 7970
+  },
+  {
+   "nombre": "Negroni",
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "CAMPARI",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "martini rosso",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6970
+  },
+  {
+   "nombre": "Carajillo",
+   "lineas": [
+    {
+     "ref": "licor 43",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "CAFE ESPRESSO",
+     "cantidad": 1.0
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6970
+  },
+  {
+   "nombre": "Dry Martini",
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "martini rosso",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "ACEITUNAS SEVILLANAS VERDES S/PEPA",
+     "cantidad": 0.02
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6470
+  },
+  {
+   "nombre": "Berline Mule",
+   "lineas": [
+    {
+     "ref": "JAGERMEISTER",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "RB SYRUP JENGIBRE",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "GINGER BEER FEVER TREE",
+     "cantidad": 0.12
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "MENTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Tennesse Mule",
+   "lineas": [
+    {
+     "ref": "BALLANTINES BLENDED 7 AÑOS",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "RB SYRUP JENGIBRE",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "GINGER BEER FEVER TREE",
+     "cantidad": 0.12
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "MENTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Moscow Mule",
+   "lineas": [
+    {
+     "ref": "STOLICHNAYA",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "RB SYRUP JENGIBRE",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "GINGER BEER FEVER TREE",
+     "cantidad": 0.12
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 7970
+  },
+  {
+   "nombre": "London Mule",
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "RB SYRUP JENGIBRE",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "GINGER BEER FEVER TREE",
+     "cantidad": 0.12
+    },
+    {
+     "ref": "PEPINO",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Caipiroska",
+   "lineas": [
+    {
+     "ref": "STOLICHNAYA",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 5970
+  },
+  {
+   "nombre": "Ruso Blanco",
+   "lineas": [
+    {
+     "ref": "STOLICHNAYA",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "leche entera",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "KUYPER CAFÉ",
+     "cantidad": 0.045
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6970
+  },
+  {
+   "nombre": "Ruso Negro",
+   "lineas": [
+    {
+     "ref": "STOLICHNAYA",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "KUYPER CAFÉ",
+     "cantidad": 0.04
+    },
+    {
+     "ref": "CAFE GRANO",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6970
+  },
+  {
+   "nombre": "Gin Tonic",
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "AGUA TONICA SCHWEPPES 1,5lt",
+     "cantidad": 0.18
+    },
+    {
+     "ref": "PEPINO",
+     "cantidad": 0.015
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Espresso Martini",
+   "lineas": [
+    {
+     "ref": "STOLICHNAYA",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "CAFE ESPRESSO",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "kuyper café",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "CAFE GRANO",
+     "cantidad": 0.003
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6970
+  },
+  {
+   "nombre": "Whisky Sour",
+   "lineas": [
+    {
+     "ref": "BALLANTINES BLENDED 7 AÑOS",
+     "cantidad": 0.07
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "ALBUMINA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 8470
+  },
+  {
+   "nombre": "Disaronno Sour",
+   "lineas": [
+    {
+     "ref": "BALLANTINES BLENDED 7 AÑOS",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "ALBUMINA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 7470
+  },
+  {
+   "nombre": "Negroni Spagliato",
+   "lineas": [
+    {
+     "ref": "ESPUMANTE DIVA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "CAMPARI",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "martini rosso",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Negroni Boulevardier",
+   "lineas": [
+    {
+     "ref": "JIM BEAM BOURBON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "CAMPARI",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "martini rosso",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "St Germain Spritz",
+   "lineas": [
+    {
+     "ref": "RB BLEND ST GERMAIN",
+     "cantidad": 0.075
+    },
+    {
+     "ref": "ESPUMANTE DIVA",
+     "cantidad": 0.1
+    },
+    {
+     "ref": "AGUA C/GAS 5LT",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "FLORES COMESTIBLES",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Ramazzoti Rossato Spritz",
+   "lineas": [
+    {
+     "ref": "RAMAZZOTI ROSSATO",
+     "cantidad": 0.075
+    },
+    {
+     "ref": "ESPUMANTE DIVA",
+     "cantidad": 0.09
+    },
+    {
+     "ref": "AGUA C/GAS 5LT",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "ALBAHACA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Peachtree Spritz",
+   "lineas": [
+    {
+     "ref": "PEACHTREE",
+     "cantidad": 0.075
+    },
+    {
+     "ref": "ESPUMANTE DIVA",
+     "cantidad": 0.1
+    },
+    {
+     "ref": "AGUA C/GAS 5LT",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "PULPA MARACUYA C/PEPA S/AZUCAR",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "FLORES COMESTIBLES",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "rb jarabe de goma",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Aperol Spritz",
+   "lineas": [
+    {
+     "ref": "APEROL",
+     "cantidad": 0.075
+    },
+    {
+     "ref": "ESPUMANTE DIVA",
+     "cantidad": 0.1
+    },
+    {
+     "ref": "AGUA C/GAS 5LT",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos",
+   "precioReal": 6970
+  },
+  {
+   "nombre": "Ramazzoti Violeto Spritz",
+   "lineas": [
+    {
+     "ref": "RAMAZZOTI VIOLETTO",
+     "cantidad": 0.075
+    },
+    {
+     "ref": "ESPUMANTE DIVA",
+     "cantidad": 0.1
+    },
+    {
+     "ref": "AGUA C/GAS 5LT",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "ROMERO",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "ARANDANOS FRUTA",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 20.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "El Dorado Spritz",
+   "lineas": [
+    {
+     "ref": "JOHNNIE WALKER GOLD",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "rb jarabe de goma",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "ESPUMANTE DIVA",
+     "cantidad": 0.1
+    },
+    {
+     "ref": "MARTINI BIANCO",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Jaggermaister Pomelo Spritz",
+   "lineas": [
+    {
+     "ref": "JAGERMEISTER",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "KUYPER GRAPEFRUIT",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "JUGO DE POMELO",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "rb jarabe de goma",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "ESPUMANTE DIVA",
+     "cantidad": 0.1
+    },
+    {
+     "ref": "POMELO FRUTA",
+     "cantidad": 0.015
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos clásicos"
+  },
+  {
+   "nombre": "Pócima de la maldad tinta",
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 0.17
+    },
+    {
+     "ref": "VINO TINTO",
+     "cantidad": 0.25
+    },
+    {
+     "ref": "JUGO DE NARANJA SOPROLE",
+     "cantidad": 0.24
+    },
+    {
+     "ref": "RB SYRUP CANELA",
+     "cantidad": 0.15
+    },
+    {
+     "ref": "RB SHRUB DURAZNO ALBAHACA",
+     "cantidad": 0.15
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.04
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "POMELO FRUTA",
+     "cantidad": 0.04
+    },
+    {
+     "ref": "CANELA ASTILLA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "ROMERO",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 20.0,
+   "iva": false,
+   "categoria": "Tragos de la casa",
+   "precioReal": 8970
+  },
+  {
+   "nombre": "Pócima de la maldad blanca",
+   "lineas": [
+    {
+     "ref": "GIN BANNY",
+     "cantidad": 0.17
+    },
+    {
+     "ref": "VINO BLANCO",
+     "cantidad": 0.25
+    },
+    {
+     "ref": "JUGO DE NARANJA SOPROLE",
+     "cantidad": 0.24
+    },
+    {
+     "ref": "RB SYRUP CANELA",
+     "cantidad": 0.15
+    },
+    {
+     "ref": "RB SHRUB DURAZNO ALBAHACA",
+     "cantidad": 0.15
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.05
+    },
+    {
+     "ref": "NARANJA FRUTA",
+     "cantidad": 0.04
+    },
+    {
+     "ref": "LIMON SUTIL FRUTA",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "POMELO FRUTA",
+     "cantidad": 0.04
+    },
+    {
+     "ref": "CANELA ASTILLA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "ROMERO",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 20.0,
+   "iva": false,
+   "categoria": "Tragos de la casa",
+   "precioReal": 8970
+  },
+  {
+   "nombre": "Bigotes de la Abuela",
+   "lineas": [
+    {
+     "ref": "DRAMBUI",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "CAFE ESPRESSO",
+     "cantidad": 1.0
+    },
+    {
+     "ref": "RB JARABE DE GOMA",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "KUYPER CACAO",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "LECHE ENTERA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "ROLLS CROCANTE CHOCOLATE",
+     "cantidad": 0.01
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos postre y nostalgicos",
+   "precioReal": 8970
+  },
+  {
+   "nombre": "Pacífico",
+   "lineas": [
+    {
+     "ref": "RON REY DE COPAS",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "KUYPER BLUE CURACAO",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "PULPA PIÑA",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "SPRITE ZERO",
+     "cantidad": 0.09
+    },
+    {
+     "ref": "GOMITAS FLIPY",
+     "cantidad": 0.015
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos postre y nostalgicos",
+   "precioReal": 8970
+  },
+  {
+   "nombre": "Sentella",
+   "lineas": [
+    {
+     "ref": "RON REY DE COPAS",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "PULPA PIÑA",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "KUYPER APPLE",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "KUYPER MENTA",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "RB SHRUB DURAZNO ALBAHACA",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.02
+    },
+    {
+     "ref": "AGUA TONICA FEVER TREE",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "MENTA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos postre y nostalgicos"
+  },
+  {
+   "nombre": "Monita Martini",
+   "lineas": [
+    {
+     "ref": "BAILEYS",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "KUYPER CACAO",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "STOLICHNAYA",
+     "cantidad": 0.03
+    },
+    {
+     "ref": "SALSA DE CHOCOLATE",
+     "cantidad": 0.04
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Tragos postre y nostalgicos",
+   "precioReal": 8970
+  },
+  {
+   "nombre": "Maria Chelada",
+   "lineas": [
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "SALSA INGLESA GOURMET",
+     "cantidad": 0.01
+    },
+    {
+     "ref": "SIRACHA BY MARIA",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "JUGO DE TOMATE BY BMARIA",
+     "cantidad": 0.06
+    },
+    {
+     "ref": "SAL FINA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "merken",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "kairos weizen",
+     "cantidad": 0.4
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Sin asignar"
+  },
+  {
+   "nombre": "Chelada De La Casa",
+   "lineas": [
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "kairos pils",
+     "cantidad": 0.48
+    },
+    {
+     "ref": "SAL FINA",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Sin asignar"
+  },
+  {
+   "nombre": "Michelada De La Casa",
+   "lineas": [
+    {
+     "ref": "RB JUGO DE LIMON",
+     "cantidad": 0.045
+    },
+    {
+     "ref": "kairos pils",
+     "cantidad": 0.45
+    },
+    {
+     "ref": "SAL FINA",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "merken",
+     "cantidad": 0.005
+    },
+    {
+     "ref": "salsa inglesa gourmet",
+     "cantidad": 0.015
+    },
+    {
+     "ref": "tabasco",
+     "cantidad": 0.005
+    }
+   ],
+   "margenPct": 30.0,
+   "iva": false,
+   "categoria": "Sin asignar"
+  },
+  {
+   "nombre": "Pink Royal",
+   "categoria": "Trago del mes",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 10990
+  },
+  {
+   "nombre": "La Dama del Mago",
+   "categoria": "Jarras de la casa",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 19970
+  },
+  {
+   "nombre": "Infierno Tropical",
+   "categoria": "Jarras de la casa",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 19970
+  },
+  {
+   "nombre": "Doña Clota Sangría Tinta",
+   "categoria": "Tragos de la casa",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 5470
+  },
+  {
+   "nombre": "Doña Clota Sangría Blanca",
+   "categoria": "Tragos de la casa",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 5470
+  },
+  {
+   "nombre": "Tropical Peach",
+   "categoria": "Tropicals",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 6970
+  },
+  {
+   "nombre": "Conejillo Prohibido",
+   "categoria": "Tragos de autor",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 7470
+  },
+  {
+   "nombre": "Elixir Nativo",
+   "categoria": "Tragos de autor",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 7470
+  },
+  {
+   "nombre": "Jardín del Edén",
+   "categoria": "Tragos de autor",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 7470
+  },
+  {
+   "nombre": "Cueva del Desierto",
+   "categoria": "Tragos de autor",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 7470
+  },
+  {
+   "nombre": "Daiquiri Tradicional",
+   "categoria": "Tragos clásicos",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 6470
+  },
+  {
+   "nombre": "Ramazzotti",
+   "categoria": "Tragos clásicos",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 6970
+  },
+  {
+   "nombre": "Margarita",
+   "categoria": "Tragos clásicos",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 6970
+  },
+  {
+   "nombre": "Gin & Tonic de la casa",
+   "categoria": "Tragos clásicos",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 7470
+  },
+  {
+   "nombre": "Sour Catedral Peruano",
+   "categoria": "Tragos clásicos",
+   "lineas": [],
+   "margenPct": 30,
+   "iva": false,
+   "precioReal": 11470
+  }
+ ],
  "categorias": [
-  "De la casa",
-  "Especiales",
+  "Trago del mes",
+  "Colección de la casa (cervezas)",
+  "Colección de temporada (cervezas)",
+  "Colección de artistas (cervezas)",
+  "Firulais Craft Mix",
+  "Especial Chelas",
+  "Jarras de la casa",
+  "Tragos de la casa",
   "Tropicals",
-  "De autor",
+  "Tragos de autor",
   "Mocktails",
-  "Spritz",
-  "Jarras",
-  "Nostálgicos y postres",
-  "Cortos",
-  "Clásicos"
+  "Tragos clásicos",
+  "Tragos postre y nostalgicos",
+  "Copas",
+  "Ron",
+  "Pisco",
+  "Vodka",
+  "Whisky",
+  "Bourbon",
+  "Gin",
+  "Licores",
+  "Tequila",
+  "Shots",
+  "Ron Botella",
+  "Pisco Botella",
+  "Vodka Botella",
+  "Whisky Botella",
+  "Gin Botella",
+  "Tequila Botella",
+  "Licores Botella",
+  "Vino",
+  "Espumantes",
+  "Chelas Sin Alcohol",
+  "Kombucha",
+  "Gaseosas",
+  "Agua",
+  "Jugos",
+  "Ice tea"
+ ],
+ "cartaSecciones": [
+  {
+   "nombre": "Trago del mes",
+   "reventa": false
+  },
+  {
+   "nombre": "Colección de la casa (cervezas)",
+   "reventa": 1
+  },
+  {
+   "nombre": "Colección de temporada (cervezas)",
+   "reventa": 1
+  },
+  {
+   "nombre": "Colección de artistas (cervezas)",
+   "reventa": 1
+  },
+  {
+   "nombre": "Firulais Craft Mix",
+   "reventa": 1
+  },
+  {
+   "nombre": "Especial Chelas",
+   "reventa": 1
+  },
+  {
+   "nombre": "Jarras de la casa",
+   "reventa": false
+  },
+  {
+   "nombre": "Tragos de la casa",
+   "reventa": false
+  },
+  {
+   "nombre": "Tropicals",
+   "reventa": false
+  },
+  {
+   "nombre": "Tragos de autor",
+   "reventa": false
+  },
+  {
+   "nombre": "Mocktails",
+   "reventa": false
+  },
+  {
+   "nombre": "Tragos clásicos",
+   "reventa": false
+  },
+  {
+   "nombre": "Tragos postre y nostalgicos",
+   "reventa": false
+  },
+  {
+   "nombre": "Copas",
+   "reventa": 1
+  },
+  {
+   "nombre": "Ron",
+   "reventa": 1
+  },
+  {
+   "nombre": "Pisco",
+   "reventa": 1
+  },
+  {
+   "nombre": "Vodka",
+   "reventa": 1
+  },
+  {
+   "nombre": "Whisky",
+   "reventa": 1
+  },
+  {
+   "nombre": "Bourbon",
+   "reventa": 1
+  },
+  {
+   "nombre": "Gin",
+   "reventa": 1
+  },
+  {
+   "nombre": "Licores",
+   "reventa": 1
+  },
+  {
+   "nombre": "Tequila",
+   "reventa": 1
+  },
+  {
+   "nombre": "Shots",
+   "reventa": 1
+  },
+  {
+   "nombre": "Ron Botella",
+   "reventa": 1
+  },
+  {
+   "nombre": "Pisco Botella",
+   "reventa": 1
+  },
+  {
+   "nombre": "Vodka Botella",
+   "reventa": 1
+  },
+  {
+   "nombre": "Whisky Botella",
+   "reventa": 1
+  },
+  {
+   "nombre": "Gin Botella",
+   "reventa": 1
+  },
+  {
+   "nombre": "Tequila Botella",
+   "reventa": 1
+  },
+  {
+   "nombre": "Licores Botella",
+   "reventa": 1
+  },
+  {
+   "nombre": "Vino",
+   "reventa": 1
+  },
+  {
+   "nombre": "Espumantes",
+   "reventa": 1
+  },
+  {
+   "nombre": "Chelas Sin Alcohol",
+   "reventa": 1
+  },
+  {
+   "nombre": "Kombucha",
+   "reventa": 1
+  },
+  {
+   "nombre": "Gaseosas",
+   "reventa": 1
+  },
+  {
+   "nombre": "Agua",
+   "reventa": 1
+  },
+  {
+   "nombre": "Jugos",
+   "reventa": 1
+  },
+  {
+   "nombre": "Ice tea",
+   "reventa": 1
+  }
  ]
 }
