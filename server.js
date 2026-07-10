@@ -4094,12 +4094,13 @@ app.delete('/admin/puntos-venta/:id', requireAdmin, (req, res) => {
 
 // ─── Top clientes por producto (histórico Shopify) ──────────────────────────
 // Busca en los line items de TODOS los pedidos los que matchean el texto y
-// rankea por cliente: cuántas unidades compró y cuánto gastó.
-app.get('/admin/top-clientes', requireAdmin, async (req, res) => {
-  const q = String(req.query.q || '').trim().toLowerCase();
-  if (!q) return res.json({ available: true, query: '', count: 0, totalUnits: 0, rows: [] });
-  const result = await loadOrders(String(req.query.refresh || '') === '1');
-  if (!result.available) return res.json({ available: false, reason: result.reason });
+// rankea por cliente: cuántas unidades compró, cuánto gastó y el detalle de
+// cada pedido. Función compartida por el JSON y el export a Excel.
+async function topClientesData(q, refresh){
+  q = String(q || '').trim().toLowerCase();
+  if (!q) return { available: true, query: '', count: 0, totalUnits: 0, totalPedidos: 0, matchedProducts: [], rows: [] };
+  const result = await loadOrders(refresh === true || refresh === '1');
+  if (!result.available) return { available: false, reason: result.reason };
   const map = new Map();
   const matchedTitles = new Set();
   for (const o of result.orders) {
@@ -4134,13 +4135,49 @@ app.get('/admin/top-clientes', requireAdmin, async (req, res) => {
       pedidos: p.pedidos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)),
     }))
     .sort((a, b) => b.units - a.units);
-  res.json({
+  return {
     available: true, query: q, count: rows.length,
     totalUnits: rows.reduce((s, p) => s + p.units, 0),
     totalPedidos: rows.reduce((s, p) => s + p.orders, 0),
     matchedProducts: [...matchedTitles].slice(0, 12),
     rows,
-  });
+  };
+}
+app.get('/admin/top-clientes', requireAdmin, async (req, res) => {
+  const d = await topClientesData(req.query.q, req.query.refresh);
+  res.json(d);
+});
+// Export a Excel del ranking + detalle pedido por pedido. Dos hojas: "Ranking"
+// (un cliente por fila) y "Detalle pedidos" (una fila por línea de pedido).
+app.get('/admin/top-clientes/export.xlsx', requireAdmin, async (req, res) => {
+  const d = await topClientesData(req.query.q, req.query.refresh);
+  if (!d.available) return res.status(400).json({ error: d.reason || 'No disponible.' });
+  if (!d.rows.length) return res.status(404).json({ error: 'Sin resultados para exportar.' });
+  const S = { header: 2, money: 3, num: 0 };
+  const fdate = (iso) => { if (!iso) return ''; const dt = new Date(iso); return isNaN(dt) ? '' : `${String(dt.getDate()).padStart(2,'0')}-${String(dt.getMonth()+1).padStart(2,'0')}-${dt.getFullYear()}`; };
+  // Hoja 1: ranking por cliente
+  const rank = [];
+  rank.push([{ v: `Producto: "${d.query}"`, s: 1 }]);
+  rank.push([{ v: `${d.count} clientes · ${d.totalUnits} unidades · ${d.totalPedidos} pedidos`, s: 0 }]);
+  rank.push([]);
+  rank.push(['#', 'Cliente', 'Teléfono', 'Email', 'Unidades', 'Gasto', 'Pedidos', 'Última compra'].map(v => ({ v, s: S.header })));
+  d.rows.forEach((p, i) => rank.push([
+    { v: i + 1, t: 'n' }, { v: p.nombre || '—' }, { v: p.telefono || '' }, { v: p.email || '' },
+    { v: p.units, t: 'n' }, { v: p.spent, t: 'n', s: S.money }, { v: p.orders, t: 'n' }, { v: fdate(p.lastOrder) },
+  ]));
+  // Hoja 2: detalle pedido por pedido (una fila por línea)
+  const det = [];
+  det.push(['Cliente', 'Pedido', 'Fecha', 'Producto', 'Variante', 'Unidades', 'Monto'].map(v => ({ v, s: S.header })));
+  d.rows.forEach(p => (p.pedidos || []).forEach(o => {
+    const lins = (o.lineas && o.lineas.length) ? o.lineas : [{ title: d.query, variante: '', qty: o.units, amount: o.monto }];
+    lins.forEach(l => det.push([
+      { v: p.nombre || '—' }, { v: o.pedido }, { v: fdate(o.fecha) },
+      { v: l.title || '' }, { v: l.variante || '' }, { v: l.qty, t: 'n' }, { v: l.amount, t: 'n', s: S.money },
+    ]));
+  }));
+  const buf = xlsxPackage([{ name: 'Ranking', rows: rank }, { name: 'Detalle pedidos', rows: det }]);
+  const safe = d.query.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'producto';
+  sendXlsx(res, buf, `top-clientes-${safe}.xlsx`);
 });
 
 // ─── Centro de Ads (Marketing) ──────────────────────────────────────────────

@@ -1388,6 +1388,8 @@ body.drawer-open{overflow:hidden}
 .tc-search input{flex:1;min-width:220px;font-family:var(--sans);font-size:.95rem;padding:.7rem .9rem;border:1px solid var(--border,#e5e5e5);border-radius:10px;background:var(--surface,#fff);color:var(--text,#111);outline:none}
 .tc-search input:focus{border-color:var(--gold-bd-h,#f5a623)}
 .tc-rank{font-family:var(--mono,monospace);font-weight:700;color:var(--gold-deep,#a05f00)}
+.tc-resulthd{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.tc-resulthd .mun-count{margin:.2rem 0}
 .mun-hint{font-size:.72rem;color:var(--muted,#888);margin:-.5rem 0 .7rem}
 .tc-row{cursor:pointer}
 .tc-row:hover{background:var(--gold-soft,#fff8ec)}
@@ -6814,7 +6816,10 @@ async function runTopClientes(){
         </table></div>
       </td></tr>`).join('');
     body.innerHTML = `
-      <div class="mun-count">${d.count} clientes · ${d.totalUnits.toLocaleString('es-CL')} unidades · ${(d.totalPedidos||0).toLocaleString('es-CL')} pedidos · coincidencias: ${d.matchedProducts.map(escapeHtml).join(' · ')||'—'}</div>
+      <div class="tc-resulthd">
+        <div class="mun-count">${d.count} clientes · ${d.totalUnits.toLocaleString('es-CL')} unidades · ${(d.totalPedidos||0).toLocaleString('es-CL')} pedidos · coincidencias: ${d.matchedProducts.map(escapeHtml).join(' · ')||'—'}</div>
+        <button class="adm-btn adm-btn-gold" id="tcXlBtn" type="button">Descargar Excel</button>
+      </div>
       <div class="mun-hint">Tocá un cliente para ver el detalle de cada pedido.</div>
       <div class="mun-wrap"><table class="mun-table">
         <thead><tr><th>#</th><th>Cliente</th><th>Contacto</th><th style="text-align:right">Unidades</th><th style="text-align:right">Gasto</th><th style="text-align:right">Pedidos</th><th>Última</th></tr></thead>
@@ -6828,6 +6833,8 @@ async function runTopClientes(){
       det.style.display = open ? 'table-row' : 'none';
       if (caret) caret.textContent = open ? '▼' : '▶';
     }));
+    const xl = document.getElementById('tcXlBtn');
+    if (xl) xl.onclick = () => costeoDownload('/admin/top-clientes/export.xlsx?q=' + encodeURIComponent(q));
   } catch (e) {
     body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`;
   }
