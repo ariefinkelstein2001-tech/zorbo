@@ -1388,6 +1388,15 @@ body.drawer-open{overflow:hidden}
 .tc-search input{flex:1;min-width:220px;font-family:var(--sans);font-size:.95rem;padding:.7rem .9rem;border:1px solid var(--border,#e5e5e5);border-radius:10px;background:var(--surface,#fff);color:var(--text,#111);outline:none}
 .tc-search input:focus{border-color:var(--gold-bd-h,#f5a623)}
 .tc-rank{font-family:var(--mono,monospace);font-weight:700;color:var(--gold-deep,#a05f00)}
+.mun-hint{font-size:.72rem;color:var(--muted,#888);margin:-.5rem 0 .7rem}
+.tc-row{cursor:pointer}
+.tc-row:hover{background:var(--gold-soft,#fff8ec)}
+.tc-caret{display:inline-block;width:.9em;font-size:.65rem;color:var(--gold-deep,#a05f00)}
+.tc-detail-box{padding:.4rem .2rem .7rem}
+.tc-ped-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.tc-ped-table th{text-align:left;font-family:var(--mono,monospace);font-size:.62rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted,#888);padding:.25rem .5rem;border-bottom:1px solid var(--border,#eee)}
+.tc-ped-table td{padding:.35rem .5rem;border-bottom:1px solid var(--border,#f2f2f2);vertical-align:top}
+.tc-ped-table .tc-ped:last-child td{border-bottom:none}
 
 /* ── DISTRIBUIDORA ── */
 .costeo-rest{display:flex;align-items:center;gap:.5rem;margin:.3rem 0 1rem}
@@ -6777,22 +6786,48 @@ async function runTopClientes(){
     if (!d.available) { body.innerHTML = `<div class="dist-empty">${escapeHtml(d.reason||'No disponible')}</div>`; return; }
     if (!d.rows.length) { body.innerHTML = `<div class="dist-empty">No se encontraron compras de "${escapeHtml(q)}".</div>`; return; }
     const fmtDate = (iso) => { try { return new Date(iso).toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'2-digit'}); } catch { return ''; } };
+    // Detalle pedido por pedido de un cliente (fila que se despliega).
+    const detalle = (p) => (p.pedidos||[]).map(o => {
+      const lin = (o.lineas||[]).map(l => `${escapeHtml(l.title)}${l.variante?(' · '+escapeHtml(l.variante)):''} ×${l.qty}`).join('<br>');
+      return `<tr class="tc-ped">
+        <td>${escapeHtml(o.pedido)}</td>
+        <td>${fmtDate(o.fecha)}</td>
+        <td>${lin||'—'}</td>
+        <td class="dist-num"><b>${(o.units||0).toLocaleString('es-CL')}</b></td>
+        <td class="dist-num">${distMoney(o.monto)}</td>
+      </tr>`;
+    }).join('');
     const rows = d.rows.map((p,i) => `
-      <tr>
+      <tr class="tc-row" data-tc="${i}">
         <td><span class="tc-rank">${i+1}</span></td>
-        <td>${escapeHtml(p.nombre) || '<span class="mun-empty">—</span>'}</td>
+        <td><span class="tc-caret" data-tc-c="${i}">▶</span> ${escapeHtml(p.nombre) || '<span class="mun-empty">—</span>'}</td>
         <td class="mun-meta-cell">${escapeHtml(p.telefono)||'—'}<br>${escapeHtml(p.email)||'—'}</td>
         <td class="dist-num"><b>${(p.units||0).toLocaleString('es-CL')}</b></td>
         <td class="dist-num">${distMoney(p.spent)}</td>
         <td class="dist-num">${p.orders}</td>
         <td class="mun-meta-cell">${fmtDate(p.lastOrder)}</td>
-      </tr>`).join('');
+      </tr>
+      <tr class="tc-detail" id="tcDet${i}" style="display:none"><td colspan="7">
+        <div class="tc-detail-box"><table class="tc-ped-table">
+          <thead><tr><th>Pedido</th><th>Fecha</th><th>Producto</th><th style="text-align:right">Unid.</th><th style="text-align:right">Monto</th></tr></thead>
+          <tbody>${detalle(p)}</tbody>
+        </table></div>
+      </td></tr>`).join('');
     body.innerHTML = `
-      <div class="mun-count">${d.count} clientes · ${d.totalUnits.toLocaleString('es-CL')} unidades en total · coincidencias: ${d.matchedProducts.map(escapeHtml).join(' · ')||'—'}</div>
+      <div class="mun-count">${d.count} clientes · ${d.totalUnits.toLocaleString('es-CL')} unidades · ${(d.totalPedidos||0).toLocaleString('es-CL')} pedidos · coincidencias: ${d.matchedProducts.map(escapeHtml).join(' · ')||'—'}</div>
+      <div class="mun-hint">Tocá un cliente para ver el detalle de cada pedido.</div>
       <div class="mun-wrap"><table class="mun-table">
         <thead><tr><th>#</th><th>Cliente</th><th>Contacto</th><th style="text-align:right">Unidades</th><th style="text-align:right">Gasto</th><th style="text-align:right">Pedidos</th><th>Última</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>`;
+    body.querySelectorAll('.tc-row').forEach(tr => tr.addEventListener('click', () => {
+      const i = tr.getAttribute('data-tc');
+      const det = document.getElementById('tcDet'+i);
+      const caret = body.querySelector(`[data-tc-c="${i}"]`);
+      const open = det.style.display === 'none';
+      det.style.display = open ? 'table-row' : 'none';
+      if (caret) caret.textContent = open ? '▼' : '▶';
+    }));
   } catch (e) {
     body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`;
   }

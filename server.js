@@ -4104,30 +4104,40 @@ app.get('/admin/top-clientes', requireAdmin, async (req, res) => {
   const matchedTitles = new Set();
   for (const o of result.orders) {
     let units = 0, spent = 0, matched = false;
+    const lineas = [];
     for (const li of (o.lineItems || [])) {
       if (String(li.title || '').toLowerCase().includes(q)) {
         units += Number(li.qty || 0);
         spent += Number(li.amount || 0);
         matched = true;
         if (li.title) matchedTitles.add(li.title);
+        lineas.push({ title: li.title, variante: li.variantTitle || '', qty: Number(li.qty || 0), amount: Math.round(Number(li.amount || 0)) });
       }
     }
     if (!matched) continue;
     const key = o.customerId || (o.customerEmail ? 'e:' + normEmail(o.customerEmail) : 'o:' + o.id);
     let p = map.get(key);
-    if (!p) { p = { nombre: '', email: o.customerEmail || '', telefono: o.customerPhone || '', units: 0, spent: 0, orders: 0, last: 0 }; map.set(key, p); }
+    if (!p) { p = { nombre: '', email: o.customerEmail || '', telefono: o.customerPhone || '', units: 0, spent: 0, orders: 0, last: 0, pedidos: [] }; map.set(key, p); }
     p.units += units; p.spent += spent; p.orders += 1;
-    const nm = [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim();
+    // Detalle de este pedido (solo las líneas que matchean el producto buscado).
+    p.pedidos.push({ pedido: o.name || ('#' + o.id), fecha: o.createdAt, units, monto: Math.round(spent), estado: o.status || '', lineas });
+    const nm = (o.shippingAddress && o.shippingAddress.company) || [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim();
     if (nm && !p.nombre) p.nombre = nm;
     const t = new Date(o.createdAt).getTime();
     if (t > p.last) p.last = t;
   }
   const rows = [...map.values()]
-    .map(p => ({ nombre: p.nombre, email: p.email, telefono: p.telefono, units: p.units, spent: Math.round(p.spent), orders: p.orders, lastOrder: p.last ? new Date(p.last).toISOString() : null }))
+    .map(p => ({
+      nombre: p.nombre, email: p.email, telefono: p.telefono,
+      units: p.units, spent: Math.round(p.spent), orders: p.orders,
+      lastOrder: p.last ? new Date(p.last).toISOString() : null,
+      pedidos: p.pedidos.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)),
+    }))
     .sort((a, b) => b.units - a.units);
   res.json({
     available: true, query: q, count: rows.length,
     totalUnits: rows.reduce((s, p) => s + p.units, 0),
+    totalPedidos: rows.reduce((s, p) => s + p.orders, 0),
     matchedProducts: [...matchedTitles].slice(0, 12),
     rows,
   });
