@@ -1501,8 +1501,6 @@ body.drawer-open{overflow:hidden}
 .ct-toolbar-info{font-size:.82rem;color:var(--muted,#666);line-height:1.4;max-width:520px}
 .ct-pdf{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap}
 .ct-pdf>span{font-size:.78rem;font-weight:700;color:var(--muted,#777)}
-.ct-toggle{display:inline-flex;align-items:center;gap:.35rem;margin-left:.5rem;font-size:.78rem;font-weight:700;color:var(--gold-deep,#a05f00);cursor:pointer}
-.ct-toggle input{cursor:pointer}
 .ct-pdf select{padding:.35rem .5rem;border:1px solid var(--line,#ddd);border-radius:8px;background:var(--surface,#fff);font-size:.8rem;color:var(--text,#111)}
 .ct-sec{margin-bottom:1.4rem}
 .ct-sec-h{font-family:var(--display,inherit);font-size:1.05rem;font-weight:800;color:var(--text,#111);margin:0 0 .5rem;padding-bottom:.25rem;border-bottom:2px solid var(--gold,#f5a623)}
@@ -7337,7 +7335,7 @@ async function platoDelete(id){
 // ── Carta (Nivel 4): platos costeados organizados por las secciones del menú ──
 // El precio mostrado SIEMPRE es el sugerido por el costeo (no el de la carta
 // pública). La carta pública solo aporta el orden y las secciones.
-let cartaData = null, cartaShowEmpty = false;
+let cartaData = null;
 const REST_LABEL = { garden:'Kairos Garden', badass:'Badass' };
 async function renderCosteoCarta(){
   const body=document.getElementById('costeoBody');
@@ -7365,11 +7363,7 @@ function cartaRow(p, secId, isSinAsignar){
 const CT_THEAD = '<thead><tr><th>Plato</th><th style="text-align:right">Precio de venta</th><th style="text-align:right">Costo</th><th style="text-align:right">% de costo</th><th style="text-align:right;width:150px">Sección</th></tr></thead>';
 function drawCarta(){
   const c=cartaData;
-  // Una sección está "vacía" si no tiene platos costeados ni ítems sin costear.
-  const isEmptySec = s => !s.platos.length && !s.sinCostear.length;
-  const visibles = c.secciones.filter(s => cartaShowEmpty || !isEmptySec(s));
-  const ocultas = c.secciones.length - visibles.length;
-  const secBlocks = visibles.map(s=>{
+  const secBlocks = c.secciones.map(s=>{
     const rows = s.platos.map(p=>cartaRow(p, s.id, false)).join('');
     const emptyMsg = s.reventa ? 'Sección de reventa (se compra y se vende, sin costeo).' : 'Sin platos costeados en esta sección.';
     const table = s.platos.length
@@ -7385,7 +7379,7 @@ function drawCarta(){
     : '';
   document.getElementById('costeoBody').innerHTML = `
     <div class="ct-toolbar">
-      <div class="ct-toolbar-info"><b>Precio de venta REAL</b> (el que cobrás al público, editable acá). El <b>% de costo</b> es contra ese precio real; el <b>costo</b> sale del costeo. ${c.meta.totalSecciones} secciones · ${c.meta.totalPlatos} platos.${ocultas?` <label class="ct-toggle"><input type="checkbox" id="ctShowEmpty" ${cartaShowEmpty?'checked':''}> Mostrar ${ocultas} secciones vacías</label>`:''}</div>
+      <div class="ct-toolbar-info"><b>Precio de venta REAL</b> (el que cobrás al público, editable acá). El <b>% de costo</b> es contra ese precio real; el <b>costo</b> sale del costeo. ${c.meta.totalSecciones} secciones · ${c.meta.totalPlatos} platos.</div>
       <div class="ct-pdf">
         <span>Descargar</span>
         <select id="ctXlScope"><option value="one">${escapeHtml(REST_LABEL[costeoRest]||costeoRest)}</option><option value="both">Ambos restaurantes</option></select>
@@ -7399,7 +7393,6 @@ function drawCarta(){
   document.querySelectorAll('#costeoBody .ct-real').forEach(inp=>{ inp.onchange=()=>cartaSaveReal(inp); });
   document.getElementById('ctXlBtn').onclick=cartaExcel;
   document.getElementById('ctPdfBtn').onclick=cartaPdf;
-  const se=document.getElementById('ctShowEmpty'); if(se) se.onchange=()=>{ cartaShowEmpty=se.checked; drawCarta(); };
   costeoLockView();
 }
 async function cartaMove(pid, seccionId){
