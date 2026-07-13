@@ -1526,6 +1526,7 @@ body.drawer-open{overflow:hidden}
 .ren-nm{border:1px solid var(--line,#ddd);background:var(--surface,#fff);border-radius:6px;padding:.1rem .25rem;cursor:pointer;font-size:.75rem;line-height:1}
 .ren-nm:hover{border-color:var(--gold,#f5a623)}
 .ren-chip{font-size:.58rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#8a6d1f;background:rgba(245,166,35,.16);border-radius:5px;padding:.05rem .3rem}
+.ren-pct{font-size:.72rem;font-weight:700;color:var(--muted,#888);margin-left:-.1rem}
 .ct-reventa{font-size:.6rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8a6d1f;background:rgba(245,166,35,.14);border:1px solid rgba(245,166,35,.4);border-radius:6px;padding:.1rem .4rem;vertical-align:middle}
 .pl-iva{display:inline-flex;align-items:center;gap:.35rem;font-size:.8rem;color:var(--text,#111);cursor:pointer;user-select:none}
 .pl-iva input{width:15px;height:15px;accent-color:var(--gold,#f5a623)}
@@ -6869,8 +6870,8 @@ function lineRendCell(l, idx, pfx){
   if(!l.rendAplica) return '<span style="color:#ccc">—</span>';
   const cur=l.rend!=null?String(Math.round(l.rend*100)):'';
   const ph=Math.round((l.rendInsumo||1)*100);
-  const chip=l.rend!=null?'<span class="ren-chip">override</span>':'';
-  return `<div class="ren-cell"><input type="text" inputmode="numeric" class="ren-inp${l.rend!=null?' on':''}" data-${pfx}ren="${idx}" value="${cur}" placeholder="${ph}" title="Rendimiento de esta línea (hereda ${ph}% del insumo). Vacío = heredado.">
+  const chip=l.rend!=null?'<span class="ren-chip">manual</span>':'';
+  return `<div class="ren-cell"><input type="text" inputmode="numeric" class="ren-inp${l.rend!=null?' on':''}" data-${pfx}ren="${idx}" value="${cur}" placeholder="${ph}" title="Rendimiento de esta línea (hereda ${ph}% del insumo). Vacío = heredado."><span class="ren-pct">%</span>
     <button type="button" class="ren-nm" data-${pfx}nm="${idx}" title="Sin merma = 100%">💯</button>${chip}</div>`;
 }
 function costeoResetState(){ rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch=''; platoEditing=null; platoDraft=[]; platoSearch=''; platoCatFilter=''; }
