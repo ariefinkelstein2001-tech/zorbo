@@ -5491,6 +5491,91 @@ app.get('/admin/costeo/platos/export.xlsx', requireAdmin, (req, res) => {
   sendXlsx(res, xlsxPackage([{ name: svcSheetLabel(rest, svc), rows }]), `${prod.toLowerCase()}${sfx}-${rest}.xlsx`);
 });
 
+// ── Export de la Carta a PDF (multipágina, sin dependencias) ─────────────────
+// Mismo contenido que el Excel: por restaurante, secciones con Plato · Precio de
+// venta (real) · Costo · % de costo, más "sin costear" y "Sin asignar".
+function buildCartaPdf(bloques){
+  const W = 595.28, H = 841.89, M = 42, CW = W - 2 * M;
+  const esc = (s) => String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+  const cw = (c, b) => { const n = "ijl.,:;'|!ift()[]/ "; const wi = "mwMW@"; const up = "ABCDEFGHIJKLNOPQRSTUVXYZ0123456789"; let w = n.includes(c) ? .30 : wi.includes(c) ? .86 : up.includes(c) ? .70 : .52; return w * (b ? 1.04 : 1); };
+  const tw = (s, sz, b) => [...String(s)].reduce((a, c) => a + cw(c, b), 0) * sz;
+  const GOLD = [0.63, 0.37, 0], DARK = [0.12, 0.12, 0.12], GREY = [0.45, 0.45, 0.45], LINE = [0.82, 0.82, 0.82];
+  const pages = []; let ops = []; let y = 0;
+  const txt = (x, yy, s, sz, col, b, align, maxw) => {
+    let str = String(s == null ? '' : s);
+    if (maxw) { while (str.length > 1 && tw(str, sz, b) > maxw) str = str.slice(0, -1); }
+    let xx = x; const width = tw(str, sz, b);
+    if (align === 'r') xx = x - width; else if (align === 'c') xx = x - width / 2;
+    const [r, g, bl] = col; const f = b ? 'F2' : 'F1';
+    ops.push(`BT /${f} ${sz} Tf ${r} ${g} ${bl} rg ${xx.toFixed(1)} ${(H - yy - sz).toFixed(1)} Td (${esc(str)}) Tj ET`);
+  };
+  const line = (x1, y1, x2, y2, col) => { const [r, g, bl] = col; ops.push(`${r} ${g} ${bl} RG 0.6 w ${x1.toFixed(1)} ${(H - y1).toFixed(1)} m ${x2.toFixed(1)} ${(H - y2).toFixed(1)} l S`); };
+  const startPage = () => { if (ops.length) pages.push(ops); ops = []; y = M; };
+  const ensure = (h) => { if (y + h > H - M) startPage(); };
+  // Columnas (derecha): % costo · costo · precio de venta.
+  const cPct = W - M, cCosto = W - M - 70, cPrecio = W - M - 150;
+  const rowPlato = (nombre, precio, costo, pct) => {
+    ensure(16);
+    txt(M + 4, y, nombre, 10, DARK, false, null, cPrecio - M - 60);
+    txt(cPrecio, y, precio, 10.5, GOLD, true, 'r');
+    txt(cCosto, y, costo, 9, GREY, false, 'r');
+    txt(cPct, y, pct, 9, DARK, false, 'r');
+    y += 15;
+  };
+  bloques.forEach((bl, bi) => {
+    if (bi > 0) startPage(); else startPage();
+    txt(M, y, bl.titulo, 19, GOLD, true); y += 24;
+    txt(M, y, 'Precio de venta al público · costo y % de costo del costeo. Uso interno.', 9, GREY, false); y += 6;
+    line(M, y + 6, W - M, y + 6, GOLD); y += 20;
+    const sections = [...bl.carta.secciones, { nombre: 'Sin asignar', platos: bl.carta.sinAsignar || [], sinCostear: [] }];
+    sections.forEach(s => {
+      if (!(s.platos && s.platos.length) && !(s.sinCostear && s.sinCostear.length)) return;
+      ensure(40);
+      txt(M, y, String(s.nombre).toUpperCase() + '  (' + (s.platos ? s.platos.length : 0) + ')', 12.5, DARK, true); y += 4;
+      line(M, y + 6, W - M, y + 6, LINE); y += 15;
+      txt(cPrecio, y, 'Precio', 7, GREY, true, 'r'); txt(cCosto, y, 'Costo', 7, GREY, true, 'r'); txt(cPct, y, '% costo', 7, GREY, true, 'r'); y += 11;
+      (s.platos || []).forEach(p => {
+        const precio = (p.precioReal != null) ? clp(p.precioReal) : 'sin precio';
+        const pct = (p.precioReal != null && p.pctCosto != null) ? (p.pctCosto + '%') : '—';
+        rowPlato(p.nombre, precio, clp(p.costo), pct);
+      });
+      (s.sinCostear || []).forEach(n => { ensure(15); txt(M + 4, y, n + '  (sin costear)', 9, GREY, false, null, CW - 40); y += 14; });
+      y += 12;
+    });
+  });
+  startPage();
+  const objs = {}; let n = 4;
+  objs[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>';
+  objs[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>';
+  const kids = [];
+  pages.forEach(pOps => {
+    const content = pOps.join('\n');
+    const contentId = ++n; objs[contentId] = `<< /Length ${content.length} >>\nstream\n${content}\nendstream`;
+    const pageId = ++n; objs[pageId] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentId} 0 R >>`;
+    kids.push(`${pageId} 0 R`);
+  });
+  objs[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+  objs[2] = `<< /Type /Pages /Count ${kids.length} /Kids [${kids.join(' ')}] >>`;
+  let buf = '%PDF-1.4\n'; const off = {};
+  for (let i = 1; i <= n; i++) { off[i] = buf.length; buf += `${i} 0 obj\n${objs[i]}\nendobj\n`; }
+  const xref = buf.length;
+  buf += `xref\n0 ${n + 1}\n0000000000 65535 f \n`;
+  for (let i = 1; i <= n; i++) buf += `${String(off[i]).padStart(10, '0')} 00000 n \n`;
+  buf += `trailer\n<< /Size ${n + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return Buffer.from(buf, 'latin1');
+}
+app.get('/admin/costeo/carta/export.pdf', requireAdmin, (req, res) => {
+  const scope = String(req.query.rest || 'garden');
+  const svc = costeoSvcKey(req.query.svc);
+  const rests = scope === 'both' ? ['garden', 'badass'] : [costeoRestKey(scope)];
+  const bloques = rests.map(rt => ({ titulo: 'Carta · ' + svcSheetLabel(rt, svc), carta: resolveCarta(loadCosteo(rt, svc)) }));
+  const sfx = svc === 'barra' ? '-barra' : '';
+  const fname = scope === 'both' ? `carta${sfx}-zorbo.pdf` : `carta${sfx}-${costeoRestKey(scope)}.pdf`;
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="${fname}"`);
+  res.send(buildCartaPdf(bloques));
+});
+
 // ─── PORTAL DEL PROVEEDOR (Fase 2) ──────────────────────────────────────────
 // Portal SEPARADO del /admin. Cada marca entra con su propio login y ve SOLO su
 // data. Sesión con cookie propia (zprov), distinta a la del admin (zadm).

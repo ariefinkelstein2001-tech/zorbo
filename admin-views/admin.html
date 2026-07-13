@@ -6915,7 +6915,7 @@ function costeoLockView(){
   if (adminRole !== 'costeo' || costeoSubEditable()) return;
   const body=document.getElementById('costeoBody'); if(!body) return;
   // Controles que se mantienen (búsqueda, filtros, export).
-  const keep = new Set(['ciSearch','rbSearchInp','plSearchInp','plCatFilter','ctXlScope','rbXlBtn','plXlBtn','ctXlBtn']);
+  const keep = new Set(['ciSearch','rbSearchInp','plSearchInp','plCatFilter','ctXlScope','rbXlBtn','plXlBtn','ctXlBtn','ctPdfBtn']);
   body.querySelectorAll('.dist-form').forEach(f=>f.style.display='none'); // formularios de alta/edición
   body.querySelectorAll('input,select,textarea,button').forEach(el=>{
     if (keep.has(el.id)) return;
@@ -7381,9 +7381,10 @@ function drawCarta(){
     <div class="ct-toolbar">
       <div class="ct-toolbar-info"><b>Precio de venta REAL</b> (el que cobrás al público, editable acá). El <b>% de costo</b> es contra ese precio real; el <b>costo</b> sale del costeo. ${c.meta.totalSecciones} secciones · ${c.meta.totalPlatos} platos.</div>
       <div class="ct-pdf">
-        <span>Excel</span>
+        <span>Descargar</span>
         <select id="ctXlScope"><option value="one">${escapeHtml(REST_LABEL[costeoRest]||costeoRest)}</option><option value="both">Ambos restaurantes</option></select>
-        <button class="adm-btn adm-btn-gold" id="ctXlBtn" type="button">Descargar Excel</button>
+        <button class="adm-btn adm-btn-gold" id="ctXlBtn" type="button">Excel</button>
+        <button class="adm-btn adm-btn-gold" id="ctPdfBtn" type="button">PDF</button>
       </div>
     </div>
     ${secBlocks || '<div class="dist-empty">No hay secciones todavía.</div>'}
@@ -7391,6 +7392,7 @@ function drawCarta(){
   document.querySelectorAll('#costeoBody .ct-move').forEach(sel=>sel.onchange=()=>cartaMove(sel.dataset.pid, sel.value));
   document.querySelectorAll('#costeoBody .ct-real').forEach(inp=>{ inp.onchange=()=>cartaSaveReal(inp); });
   document.getElementById('ctXlBtn').onclick=cartaExcel;
+  document.getElementById('ctPdfBtn').onclick=cartaPdf;
   costeoLockView();
 }
 async function cartaMove(pid, seccionId){
@@ -7427,6 +7429,13 @@ function cartaExcel(){
   const scope=document.getElementById('ctXlScope').value;
   const rest = scope==='both' ? 'both' : costeoRest;
   costeoDownload('/admin/costeo/carta/export.xlsx?rest='+encodeURIComponent(rest)+'&svc='+encodeURIComponent(costeoSvc));
+}
+// Descarga la carta en PDF (se abre en una pestaña para ver/guardar). Respeta el
+// mismo scope (restaurante actual o ambos) que el Excel.
+function cartaPdf(){
+  const scope=document.getElementById('ctXlScope').value;
+  const rest = scope==='both' ? 'both' : costeoRest;
+  window.open('/admin/costeo/carta/export.pdf?rest='+encodeURIComponent(rest)+'&svc='+encodeURIComponent(costeoSvc),'_blank');
 }
 // Descarga a Excel de Recetas base ('recetas') o Platos/Tragos ('platos').
 function costeoExportXlsx(kind){
