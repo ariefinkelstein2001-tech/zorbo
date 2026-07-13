@@ -7371,28 +7371,43 @@ function cartaRow(p, secId, isSinAsignar){
 const CT_THEAD = '<thead><tr><th>Plato</th><th style="text-align:right">Precio de venta</th><th style="text-align:right">Costo</th><th style="text-align:right">% de costo</th><th style="text-align:right;width:150px">Sección</th></tr></thead>';
 function drawCarta(){
   const c=cartaData;
+  // Reventa (solo barra): indexo por nombre suelto para llenar las secciones de
+  // coctel que en realidad son de reventa (cervezas, etc.) con sus productos.
+  const revByName = new Map();
+  if (isBarra() && reventaData && reventaData.secciones) reventaData.secciones.forEach(rs=>revByName.set(ctLooseNorm(rs.nombre), rs));
+  const usedRev = new Set();
   const secBlocks = c.secciones.map(s=>{
+    // Si la sección no tiene platos costeados pero calza con una de reventa,
+    // muestro los productos de reventa ahí mismo (editables).
+    const rs = (!s.platos.length && isBarra()) ? revByName.get(ctLooseNorm(s.nombre)) : null;
+    if (rs){
+      usedRev.add(rs.id);
+      return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${rs.productos.length})</span> <span class="ct-reventa">reventa</span></div>${reventaTableHtml(rs)}</div>`;
+    }
     const rows = s.platos.map(p=>cartaRow(p, s.id, false)).join('');
-    const emptyMsg = s.reventa ? 'Sección de reventa (se compra y se vende, sin costeo).' : 'Sin platos costeados en esta sección.';
     const table = s.platos.length
       ? `<div class="mun-wrap"><table class="mun-table">${CT_THEAD}<tbody>${rows}</tbody></table></div>`
-      : `<div class="dist-empty" style="padding:.6rem">${emptyMsg}</div>`;
+      : `<div class="dist-empty" style="padding:.6rem">Sin platos costeados en esta sección.</div>`;
     const sc = s.sinCostear.length ? `<div class="ct-sincost"><b>Sin costear:</b> ${s.sinCostear.map(n=>`<span>${escapeHtml(n)}</span>`).join('')}</div>` : '';
-    const badge = s.reventa ? ' <span class="ct-reventa">reventa</span>' : '';
-    return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.platos.length})</span>${badge}</div>${table}${sc}</div>`;
+    return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.platos.length})</span></div>${table}${sc}</div>`;
   }).join('');
   const saRows = c.sinAsignar.map(p=>cartaRow(p, null, true)).join('');
   const saBlock = c.sinAsignar.length
     ? `<div class="ct-sec ct-sec-sa"><div class="ct-sec-h">Sin asignar <span>(${c.sinAsignar.length})</span></div><div class="mun-wrap"><table class="mun-table">${CT_THEAD}<tbody>${saRows}</tbody></table></div></div>`
     : '';
-  // Bloque de REVENTA (solo barra): secciones de venta directa, sin receta.
-  const revBlock = (isBarra() && reventaData && reventaData.secciones) ? `
-    <div class="ct-rev-head">
-      <div class="ct-sec-h" style="border:none">Reventa <span>(venta directa · ${reventaData.meta.totalProductos} productos)</span></div>
-      <button class="adm-btn adm-btn-ghost" id="rvAddSec" type="button">+ Sección</button>
-    </div>
-    <div class="ct-toolbar-info" style="margin:-.3rem 0 .6rem">Productos que se compran hechos y se revenden (cervezas, vinos, destilados, bebidas). Cargá el <b>precio de compra</b> y el <b>% de costo</b> = compra ÷ venta se calcula solo.</div>
-    ${reventaSectionsHtml(reventaData, '')}` : '';
+  // Reventa que NO calzó con ninguna sección de coctel (Copas, Ron, Vinos, Gaseosas,
+  // Jugos, etc.): se listan al final, en su orden de carta.
+  let revBlock = '';
+  if (isBarra() && reventaData && reventaData.secciones){
+    const rest = reventaData.secciones.filter(s=>!usedRev.has(s.id));
+    revBlock = `
+      <div class="ct-rev-head">
+        <div class="ct-sec-h" style="border:none">Reventa · destilados y bebidas <span>(venta directa)</span></div>
+        <button class="adm-btn adm-btn-ghost" id="rvAddSec" type="button">+ Sección</button>
+      </div>
+      <div class="ct-toolbar-info" style="margin:-.3rem 0 .6rem">Se compran hechos y se revenden. Cargá el <b>precio de compra</b> y el <b>% de costo</b> = compra ÷ venta se calcula solo.</div>
+      ${rest.map(reventaSectionBlock).join('')}`;
+  }
   document.getElementById('costeoBody').innerHTML = `
     <div class="ct-toolbar">
       <div class="ct-toolbar-info"><b>Precio de venta REAL</b> (el que cobrás al público, editable acá). El <b>% de costo</b> es contra ese precio real; el <b>costo</b> sale del costeo. ${c.meta.totalSecciones} secciones · ${c.meta.totalPlatos} platos.</div>
@@ -7464,26 +7479,33 @@ function costeoExportXlsx(kind){
 // Cada producto = nombre + precio venta + precio compra (editable). % costo = compra/venta.
 // Se muestra DENTRO de la pestaña Carta (barra), no en una pestaña aparte.
 let reventaData = null;
-function reventaSectionsHtml(d){
-  return d.secciones.map(s=>{
-    const rows=s.productos.map(p=>`
-      <tr data-rvp="${p.id}">
-        <td>${escapeHtml(p.nombre)}</td>
-        <td class="dist-num"><input type="text" inputmode="decimal" class="rv-inp dist-num" data-f="precioVenta" value="${p.precioVenta!=null?p.precioVenta:''}" placeholder="—" style="width:95px"></td>
-        <td class="dist-num"><input type="text" inputmode="decimal" class="rv-inp dist-num" data-f="precioCompra" value="${p.precioCompra!=null?p.precioCompra:''}" placeholder="cargar" style="width:95px"></td>
-        <td class="dist-num"><span class="pl-pct ${p.pctCosto!=null&&p.pctCosto>40?'hi':''}" data-rvpct>${p.pctCosto!=null?p.pctCosto+'%':'—'}</span></td>
-        <td><button class="pv-del" data-rvdel="${p.id}">✕</button> <span class="dist-status" data-rvst></span></td>
-      </tr>`).join('');
-    return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.productos.length})</span> <span class="ct-reventa">reventa</span></div>
-      <div class="mun-wrap"><table class="mun-table">
-        <thead><tr><th>Producto</th><th style="text-align:right">Precio venta</th><th style="text-align:right">Precio compra</th><th style="text-align:right">% costo</th><th></th></tr></thead>
-        <tbody>${rows}
-          <tr class="rv-add-row"><td><input class="rv-new" data-s="${s.id}" data-nf="nombre" placeholder="+ Nuevo producto…" style="width:100%"></td>
-          <td class="dist-num"><input class="rv-new dist-num" data-s="${s.id}" data-nf="precioVenta" type="text" inputmode="decimal" placeholder="venta" style="width:95px"></td>
-          <td class="dist-num"><input class="rv-new dist-num" data-s="${s.id}" data-nf="precioCompra" type="text" inputmode="decimal" placeholder="compra" style="width:95px"></td>
-          <td></td><td><button class="adm-btn adm-btn-ghost rv-addbtn" data-s="${s.id}" type="button">+</button></td></tr>
-        </tbody></table></div></div>`;
-  }).join('');
+// Normalización suelta para calzar secciones de reventa con secciones del coctel
+// (ignora acentos, mayúsculas y paréntesis: "Colección de temporada (cervezas)"
+// calza con "Colección de temporada").
+function ctLooseNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\(.*?\)/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
+// Solo la tabla de productos de una sección de reventa (sin encabezado de sección).
+function reventaTableHtml(s){
+  const rows=s.productos.map(p=>`
+    <tr data-rvp="${p.id}">
+      <td>${escapeHtml(p.nombre)}</td>
+      <td class="dist-num"><input type="text" inputmode="decimal" class="rv-inp dist-num" data-f="precioVenta" value="${p.precioVenta!=null?p.precioVenta:''}" placeholder="—" style="width:95px"></td>
+      <td class="dist-num"><input type="text" inputmode="decimal" class="rv-inp dist-num" data-f="precioCompra" value="${p.precioCompra!=null?p.precioCompra:''}" placeholder="cargar" style="width:95px"></td>
+      <td class="dist-num"><span class="pl-pct ${p.pctCosto!=null&&p.pctCosto>40?'hi':''}" data-rvpct>${p.pctCosto!=null?p.pctCosto+'%':'—'}</span></td>
+      <td><button class="pv-del" data-rvdel="${p.id}">✕</button> <span class="dist-status" data-rvst></span></td>
+    </tr>`).join('');
+  return `<div class="mun-wrap"><table class="mun-table">
+      <thead><tr><th>Producto</th><th style="text-align:right">Precio venta</th><th style="text-align:right">Precio compra</th><th style="text-align:right">% costo</th><th></th></tr></thead>
+      <tbody>${rows}
+        <tr class="rv-add-row"><td><input class="rv-new" data-s="${s.id}" data-nf="nombre" placeholder="+ Nuevo producto…" style="width:100%"></td>
+        <td class="dist-num"><input class="rv-new dist-num" data-s="${s.id}" data-nf="precioVenta" type="text" inputmode="decimal" placeholder="venta" style="width:95px"></td>
+        <td class="dist-num"><input class="rv-new dist-num" data-s="${s.id}" data-nf="precioCompra" type="text" inputmode="decimal" placeholder="compra" style="width:95px"></td>
+        <td></td><td><button class="adm-btn adm-btn-ghost rv-addbtn" data-s="${s.id}" type="button">+</button></td></tr>
+      </tbody></table></div>`;
+}
+// Bloque completo (encabezado + tabla) para una sección de reventa que NO calza
+// con ninguna sección del coctel (Copas, Ron, Vinos, Gaseosas, etc.).
+function reventaSectionBlock(s){
+  return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.productos.length})</span> <span class="ct-reventa">reventa</span></div>${reventaTableHtml(s)}</div>`;
 }
 function wireReventaHandlers(){
   const sec=document.getElementById('rvAddSec'); if(sec) sec.onclick=reventaAddSeccion;
