@@ -1512,6 +1512,10 @@ body.drawer-open{overflow:hidden}
 .ct-real{width:110px;text-align:right;padding:.3rem .5rem;border:1px solid var(--line,#ddd);border-radius:7px;background:var(--surface,#fff);font-size:.85rem;font-weight:700;color:var(--gold-deep,#a05f00)}
 .ct-real::placeholder{font-weight:400;font-style:italic;color:#bbb}
 .ct-real:focus{outline:none;border-color:var(--gold,#f5a623);box-shadow:0 0 0 2px rgba(245,166,35,.18)}
+.rv-add-row td{background:var(--surface-2,#faf6ec)}
+.rv-new{border:1px solid var(--line,#ddd);border-radius:7px;padding:.35rem .5rem;font-size:.82rem;background:var(--surface,#fff);color:var(--text,#111)}
+.rv-inp{border:1px solid var(--line,#e2e2e2);border-radius:7px;padding:.35rem .5rem;background:var(--surface,#fff);color:var(--text,#111);text-align:right;font-weight:600}
+.rv-inp:focus,.rv-new:focus{outline:none;border-color:var(--gold,#f5a623);box-shadow:0 0 0 2px rgba(245,166,35,.18)}
 .ct-sec-hd{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
 .ro-note{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.35);color:#8a6d1f;border-radius:10px;padding:.5rem .8rem;margin-bottom:.9rem;font-size:.82rem;font-weight:600}
 .ren-cell{display:inline-flex;align-items:center;gap:.25rem;justify-content:flex-end}
@@ -1925,6 +1929,7 @@ body.drawer-open{overflow:hidden}
         <button type="button" class="dist-subtab on" data-csub="insumos">Insumos</button>
         <button type="button" class="dist-subtab" data-csub="recetas">Recetas base</button>
         <button type="button" class="dist-subtab" data-csub="platos" id="costeoTabProd">Platos</button>
+        <button type="button" class="dist-subtab" data-csub="reventa" id="costeoTabReventa" style="display:none">Reventa</button>
         <button type="button" class="dist-subtab" data-csub="resumen">Carta (resumen)</button>
       </div>
       <div id="costeoBody"><div class="adm-loading">Cargando…</div></div>
@@ -6868,13 +6873,18 @@ function lineRendCell(l, idx, pfx){
   return `<div class="ren-cell"><input type="text" inputmode="numeric" class="ren-inp${l.rend!=null?' on':''}" data-${pfx}ren="${idx}" value="${cur}" placeholder="${ph}" title="Rendimiento de esta línea (hereda ${ph}% del insumo). Vacío = heredado.">
     <button type="button" class="ren-nm" data-${pfx}nm="${idx}" title="Sin merma = 100%">💯</button>${chip}</div>`;
 }
-function costeoResetState(){ rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch=''; platoEditing=null; platoDraft=[]; platoSearch=''; platoCatFilter=''; }
+function costeoResetState(){ rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch=''; platoEditing=null; platoDraft=[]; platoSearch=''; platoCatFilter=''; reventaSearch=''; }
 
 async function loadCosteo(){
   const body = document.getElementById('costeoBody');
   body.innerHTML = '<div class="adm-loading">Cargando…</div>';
   // La pestaña de productos se llama "Platos" en comida y "Tragos" en barra.
   const prodTab = document.getElementById('costeoTabProd'); if (prodTab) prodTab.textContent = isBarra() ? 'Tragos' : 'Platos';
+  // La pestaña Reventa (venta directa) solo existe en barra.
+  const revTab = document.getElementById('costeoTabReventa'); if (revTab) revTab.style.display = isBarra() ? '' : 'none';
+  if (costeoSub === 'reventa' && !isBarra()) costeoSub = 'insumos';
+  // La reventa no pasa por /admin/costeo (no tiene insumos/RB): se maneja aparte.
+  if (costeoSub === 'reventa') { renderCosteoSub(); return; }
   try {
     costeoData = await (await fetch(cRest('/admin/costeo'))).json();
     const prodLbl = isBarra() ? 'tragos' : 'platos';
@@ -6899,6 +6909,7 @@ function renderCosteoSub(){
   if (costeoSub==='insumos') return renderCosteoInsumos();
   if (costeoSub==='recetas') return renderCosteoRecetas();
   if (costeoSub==='platos') return renderCosteoPlatos();
+  if (costeoSub==='reventa') return renderCosteoReventa();
   if (costeoSub==='resumen') return renderCosteoCarta();
 }
 // ¿Puede el usuario costeo editar la sub-pestaña actual? Solo Recetas base y
@@ -7440,6 +7451,87 @@ function cartaPdf(){
 // Descarga a Excel de Recetas base ('recetas') o Platos/Tragos ('platos').
 function costeoExportXlsx(kind){
   costeoDownload('/admin/costeo/'+kind+'/export.xlsx?rest='+encodeURIComponent(costeoRest)+'&svc='+encodeURIComponent(costeoSvc));
+}
+
+// ── Reventa (venta directa, solo barra): productos comprados hechos y revendidos.
+// Cada producto = nombre + precio venta + precio compra (editable). % costo = compra/venta.
+let reventaData = null, reventaSearch = '';
+async function renderCosteoReventa(){
+  const body=document.getElementById('costeoBody');
+  body.innerHTML='<div class="adm-loading">Cargando reventa…</div>';
+  try{ reventaData = await (await fetch(cRest('/admin/costeo/reventa'))).json(); }
+  catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+  drawReventa();
+}
+function drawReventa(){
+  const d=reventaData; const q=reventaSearch.toLowerCase();
+  const meta=document.getElementById('costeoMeta'); if(meta) meta.textContent=`${d.meta.totalSecciones} secciones de reventa · ${d.meta.totalProductos} productos`;
+  const secs=d.secciones.map(s=>{
+    const prods=s.productos.filter(p=>!q||p.nombre.toLowerCase().includes(q));
+    if(q && !prods.length) return '';
+    const rows=prods.map(p=>`
+      <tr data-rvp="${p.id}">
+        <td>${escapeHtml(p.nombre)}</td>
+        <td class="dist-num"><input type="text" inputmode="decimal" class="rv-inp dist-num" data-f="precioVenta" value="${p.precioVenta!=null?p.precioVenta:''}" placeholder="—" style="width:95px"></td>
+        <td class="dist-num"><input type="text" inputmode="decimal" class="rv-inp dist-num" data-f="precioCompra" value="${p.precioCompra!=null?p.precioCompra:''}" placeholder="cargar" style="width:95px"></td>
+        <td class="dist-num"><span class="pl-pct ${p.pctCosto!=null&&p.pctCosto>40?'hi':''}" data-rvpct>${p.pctCosto!=null?p.pctCosto+'%':'—'}</span></td>
+        <td><button class="pv-del" data-rvdel="${p.id}">✕</button> <span class="dist-status" data-rvst></span></td>
+      </tr>`).join('');
+    return `<div class="pl-cat-title">${escapeHtml(s.nombre)} <span>(${s.productos.length})</span></div>
+      <div class="mun-wrap"><table class="mun-table">
+        <thead><tr><th>Producto</th><th style="text-align:right">Precio venta</th><th style="text-align:right">Precio compra</th><th style="text-align:right">% costo</th><th></th></tr></thead>
+        <tbody>${rows}
+          <tr class="rv-add-row"><td><input class="rv-new" data-s="${s.id}" data-nf="nombre" placeholder="+ Nuevo producto…" style="width:100%"></td>
+          <td class="dist-num"><input class="rv-new dist-num" data-s="${s.id}" data-nf="precioVenta" type="text" inputmode="decimal" placeholder="venta" style="width:95px"></td>
+          <td class="dist-num"><input class="rv-new dist-num" data-s="${s.id}" data-nf="precioCompra" type="text" inputmode="decimal" placeholder="compra" style="width:95px"></td>
+          <td></td><td><button class="adm-btn adm-btn-ghost rv-addbtn" data-s="${s.id}" type="button">+</button></td></tr>
+        </tbody></table></div>`;
+  }).join('');
+  body.innerHTML=`
+    <div class="ct-toolbar">
+      <div class="ct-toolbar-info"><b>Reventa</b> (venta directa: cervezas, vinos, destilados, bebidas). No llevan receta. El <b>precio de compra</b> lo cargás vos y el <b>% de costo</b> = compra ÷ venta se calcula solo.</div>
+      <div class="ct-pdf"><button class="adm-btn adm-btn-gold" id="rvAddSec" type="button">+ Sección</button></div>
+    </div>
+    <div class="tc-search"><input type="text" id="rvSearch" placeholder="Buscar producto…" value="${escapeAttr(reventaSearch)}"></div>
+    ${secs||'<div class="dist-empty">No hay productos que coincidan.</div>'}`;
+  const se=document.getElementById('rvSearch'); if(se) se.oninput=()=>{ reventaSearch=se.value; const p=se.selectionStart; drawReventa(); const n=document.getElementById('rvSearch'); if(n){n.focus(); try{n.setSelectionRange(p,p);}catch{}} };
+  document.getElementById('rvAddSec').onclick=reventaAddSeccion;
+  document.querySelectorAll('#costeoBody .rv-inp').forEach(el=>{ el.onblur=()=>reventaSaveProd(el.closest('tr').dataset.rvp); });
+  document.querySelectorAll('#costeoBody [data-rvdel]').forEach(b=>b.onclick=()=>reventaDelProd(b.dataset.rvdel));
+  document.querySelectorAll('#costeoBody .rv-addbtn').forEach(b=>b.onclick=()=>reventaAddProd(b.dataset.s));
+  costeoLockView();
+}
+function reventaFindProd(id){ for(const s of reventaData.secciones){ const p=s.productos.find(x=>x.id===id); if(p) return p; } return null; }
+async function reventaSaveProd(id){
+  const tr=document.querySelector(`#costeoBody tr[data-rvp="${id}"]`); if(!tr) return;
+  const g=f=>tr.querySelector(`[data-f="${f}"]`).value;
+  const st=tr.querySelector('[data-rvst]'); st.className='dist-status'; st.textContent='…';
+  const venta=cNum(g('precioVenta')), compra=cNum(g('precioCompra'));
+  try{
+    const r=await fetch(cRest(`/admin/costeo/reventa/producto/${id}`),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({precioVenta:venta,precioCompra:compra})});
+    if(!r.ok){const e=await r.json();throw new Error(e.error||'Error');}
+    const p=reventaFindProd(id); if(p){ p.precioVenta=venta>0?Math.round(venta):null; p.precioCompra=compra>0?Math.round(compra):null; p.pctCosto=(p.precioVenta&&p.precioCompra!=null)?Math.round((p.precioCompra/p.precioVenta)*1000)/10:null; }
+    const pctEl=tr.querySelector('[data-rvpct]'); if(pctEl){ const pct=p?p.pctCosto:null; pctEl.textContent=pct!=null?pct+'%':'—'; pctEl.classList.toggle('hi', pct!=null&&pct>40); }
+    st.className='dist-status ok'; st.textContent='✓'; setTimeout(()=>{st.textContent='';},1200);
+  }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
+}
+async function reventaAddProd(seccionId){
+  const wrap=document.querySelector(`#costeoBody .rv-addbtn[data-s="${seccionId}"]`).closest('tr');
+  const g=nf=>wrap.querySelector(`.rv-new[data-nf="${nf}"]`).value;
+  const nombre=g('nombre').trim(); if(!nombre){ alert('Escribí el nombre del producto.'); return; }
+  try{
+    const r=await fetch(cRest('/admin/costeo/reventa/producto'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seccionId,nombre,precioVenta:cNum(g('precioVenta')),precioCompra:cNum(g('precioCompra'))})});
+    if(!r.ok){const e=await r.json();throw new Error(e.error||'Error');}
+    await renderCosteoReventa();
+  }catch(e){ alert(e.message); }
+}
+async function reventaDelProd(id){
+  const p=reventaFindProd(id); if(!confirm(`Eliminar "${p?p.nombre:''}"?`)) return;
+  try{ const r=await fetch(cRest(`/admin/costeo/reventa/producto/${id}`),{method:'DELETE'}); if(!r.ok){const e=await r.json();throw new Error(e.error||'Error');} await renderCosteoReventa(); }catch(e){ alert(e.message); }
+}
+async function reventaAddSeccion(){
+  const nombre=prompt('Nombre de la nueva sección de reventa:'); if(!nombre||!nombre.trim()) return;
+  try{ const r=await fetch(cRest('/admin/costeo/reventa/seccion'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre:nombre.trim()})}); if(!r.ok){const e=await r.json();throw new Error(e.error||'Error');} await renderCosteoReventa(); }catch(e){ alert(e.message); }
 }
 
 // ─── Boot ───────────────────────────────────────────────────────────────────

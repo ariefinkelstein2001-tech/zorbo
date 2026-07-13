@@ -4582,6 +4582,26 @@ const costeoRestKey = (r) => (r === 'badass' ? 'badass' : 'garden');
 const costeoSvcKey = (s) => (s === 'barra' ? 'barra' : 'comida');
 const costeoDocKey = (rest, svc) => costeoSvcKey(svc) === 'barra' ? costeoRestKey(rest) + '_barra' : costeoRestKey(rest);
 function costeoEmpty(){ return { version: 1, insumos: [], recetasBase: [], platos: [], categorias: ['Rolls', 'Burgers', 'Papas', 'Ceviches/Tiraditos/Ensaladas', 'Principales', 'Huella del chef'] }; }
+// REVENTA (solo barra): productos que se compran hechos y se revenden (cervezas,
+// vinos, destilados, bebidas). NO llevan receta ni insumo: cada uno es
+// { nombre, precioVenta, precioCompra }. El % de costo = compra ÷ venta y se
+// calcula al vuelo. Estructura paralela al costeo con receta, no lo toca.
+function costeoNumOrNull(v){ const n = Number(v); return (Number.isFinite(n) && n > 0) ? Math.round(n) : null; }
+function costeoNormalizeReventa(r){
+  r = r || {};
+  const secciones = Array.isArray(r.secciones) ? r.secciones.map(s => ({
+    id: costeoStr(s && s.id, 60) || randomUUID(),
+    nombre: costeoStr(s && s.nombre, 120) || 'Sección',
+    productos: Array.isArray(s && s.productos) ? s.productos.map(p => ({
+      id: costeoStr(p && p.id, 60) || randomUUID(),
+      nombre: costeoStr(p && p.nombre, 200) || 'Producto',
+      precioVenta: costeoNumOrNull(p && p.precioVenta),
+      precioCompra: costeoNumOrNull(p && p.precioCompra),
+    })).filter(p => p.nombre) : [],
+  })) : [];
+  const v = Number.isFinite(r.v) ? r.v : 0;
+  return { v, secciones };
+}
 function costeoNormalizeDoc(p){
   p = p || {};
   return {
@@ -4591,6 +4611,7 @@ function costeoNormalizeDoc(p){
     platos: Array.isArray(p.platos) ? p.platos : [],
     categorias: (Array.isArray(p.categorias) && p.categorias.length) ? p.categorias : costeoEmpty().categorias,
     carta: costeoNormalizeCarta(p.carta),
+    reventa: costeoNormalizeReventa(p.reventa),
   };
 }
 // Estructura de la CARTA real (Nivel 4): secciones ordenadas tal cual salen del
@@ -5574,6 +5595,101 @@ app.get('/admin/costeo/carta/export.pdf', requireAdmin, (req, res) => {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `inline; filename="${fname}"`);
   res.send(buildCartaPdf(bloques));
+});
+
+// ─── REVENTA de barra (venta directa: sin receta) ───────────────────────────
+// Siembra las secciones/productos de reventa desde el seed versionado. En un bump
+// de versión reemplaza el catálogo pero CONSERVA el precio de compra que el usuario
+// ya cargó (match por sección+nombre normalizados). Solo aplica a barra.
+const REVENTA_SEED_V = 1;
+const reventaSeedFile = (rest) => costeoRestKey(rest) === 'badass' ? 'costeo-reventa-seed-badass.json' : 'costeo-reventa-seed-garden.json';
+function costeoSeedReventa(doc, rest){
+  if (!doc) return false;
+  doc.reventa = costeoNormalizeReventa(doc.reventa);
+  if (doc.reventa.v >= REVENTA_SEED_V) return false;
+  let seed; try { seed = JSON.parse(readFileSync(join(__dirname, reventaSeedFile(rest)), 'utf-8')); } catch { return false; }
+  if (!seed || !Array.isArray(seed.secciones)) return false;
+  const key = costeoRestKey(rest);
+  const old = doc.reventa.secciones || [];
+  // Índice del precio de compra ya cargado: "seccion||producto" → precioCompra.
+  const prevCompra = new Map();
+  old.forEach(s => (s.productos || []).forEach(p => { if (p.precioCompra != null) prevCompra.set(costeoNorm(s.nombre) + '||' + costeoNorm(p.nombre), p.precioCompra); }));
+  const seedSecNorms = new Set(seed.secciones.map(s => costeoNorm(s.nombre)));
+  const built = seed.secciones.map((s, si) => {
+    const secNorm = costeoNorm(s.nombre);
+    const seedNorms = new Set((s.productos || []).map(p => costeoNorm(p.nombre)));
+    const productos = (s.productos || []).map(p => {
+      const nombre = costeoStr(p.nombre, 200) || 'Producto';
+      const carry = prevCompra.get(secNorm + '||' + costeoNorm(nombre));
+      return { id: randomUUID(), nombre, precioVenta: costeoNumOrNull(p.precioVenta), precioCompra: carry != null ? carry : null };
+    });
+    // Productos que el usuario agregó a mano en esta sección (no vienen del seed): se conservan.
+    const oldSec = old.find(o => costeoNorm(o.nombre) === secNorm);
+    if (oldSec) (oldSec.productos || []).forEach(p => { if (!seedNorms.has(costeoNorm(p.nombre))) productos.push({ id: p.id || randomUUID(), nombre: p.nombre, precioVenta: costeoNumOrNull(p.precioVenta), precioCompra: p.precioCompra }); });
+    return { id: `${key}-r${si + 1}`, nombre: costeoStr(s.nombre, 120) || 'Sección', productos };
+  });
+  // Secciones que el usuario agregó a mano (no están en el seed): se conservan al final.
+  old.forEach(s => { if (!seedSecNorms.has(costeoNorm(s.nombre))) built.push({ id: s.id || randomUUID(), nombre: s.nombre, productos: s.productos || [] }); });
+  doc.reventa.secciones = built;
+  doc.reventa.v = REVENTA_SEED_V;
+  return true;
+}
+// Carga la reventa de un restaurante (siempre barra), sembrando si hace falta.
+function loadReventa(rest){
+  const doc = loadCosteo(rest, 'barra');
+  if (costeoSeedReventa(doc, rest)) saveCosteo(rest, 'barra', doc);
+  return doc;
+}
+function resolveReventa(doc){
+  const secciones = (doc.reventa.secciones || []).map(s => ({
+    id: s.id, nombre: s.nombre,
+    productos: (s.productos || []).map(p => ({
+      id: p.id, nombre: p.nombre, precioVenta: p.precioVenta, precioCompra: p.precioCompra,
+      pctCosto: (p.precioVenta && p.precioCompra != null) ? Math.round((p.precioCompra / p.precioVenta) * 1000) / 10 : null,
+    })),
+  }));
+  const totalProd = secciones.reduce((a, s) => a + s.productos.length, 0);
+  return { secciones, meta: { totalSecciones: secciones.length, totalProductos: totalProd } };
+}
+app.get('/admin/costeo/reventa', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest);
+  res.json({ restaurante: rest, ...resolveReventa(loadReventa(rest)) });
+});
+// Editar un producto de reventa (precio de compra / venta / nombre).
+app.put('/admin/costeo/reventa/producto/:id', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest); const b = req.body || {};
+  const doc = loadReventa(rest); const id = String(req.params.id);
+  let prod = null; (doc.reventa.secciones || []).forEach(s => (s.productos || []).forEach(p => { if (p.id === id) prod = p; }));
+  if (!prod) return res.status(404).json({ error: 'Producto no encontrado.' });
+  if (b.nombre !== undefined) { const v = costeoStr(b.nombre, 200); if (v) prod.nombre = v; }
+  if (b.precioVenta !== undefined) prod.precioVenta = costeoNumOrNull(b.precioVenta);
+  if (b.precioCompra !== undefined) prod.precioCompra = costeoNumOrNull(b.precioCompra);
+  saveCosteo(rest, 'barra', doc); res.json({ ok: true });
+});
+// Agregar un producto a una sección de reventa.
+app.post('/admin/costeo/reventa/producto', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest); const b = req.body || {};
+  const nombre = costeoStr(b.nombre, 200); if (!nombre) return res.status(400).json({ error: 'Falta el nombre.' });
+  const doc = loadReventa(rest);
+  const s = (doc.reventa.secciones || []).find(x => x.id === String(b.seccionId));
+  if (!s) return res.status(404).json({ error: 'Sección no encontrada.' });
+  s.productos.push({ id: randomUUID(), nombre, precioVenta: costeoNumOrNull(b.precioVenta), precioCompra: costeoNumOrNull(b.precioCompra) });
+  saveCosteo(rest, 'barra', doc); res.json({ ok: true });
+});
+app.delete('/admin/costeo/reventa/producto/:id', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest); const doc = loadReventa(rest); const id = String(req.params.id);
+  let found = false;
+  (doc.reventa.secciones || []).forEach(s => { const n = s.productos.length; s.productos = s.productos.filter(p => p.id !== id); if (s.productos.length !== n) found = true; });
+  if (!found) return res.status(404).json({ error: 'Producto no encontrado.' });
+  saveCosteo(rest, 'barra', doc); res.json({ ok: true });
+});
+// Agregar una sección de reventa (para las que no venían en el seed).
+app.post('/admin/costeo/reventa/seccion', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest); const nombre = costeoStr((req.body || {}).nombre, 120);
+  if (!nombre) return res.status(400).json({ error: 'Falta el nombre de la sección.' });
+  const doc = loadReventa(rest);
+  doc.reventa.secciones.push({ id: randomUUID(), nombre, productos: [] });
+  saveCosteo(rest, 'barra', doc); res.json({ ok: true });
 });
 
 // ─── PORTAL DEL PROVEEDOR (Fase 2) ──────────────────────────────────────────

@@ -1,0 +1,918 @@
+{
+  "secciones": [
+    {
+      "nombre": "Colección de la casa (cervezas)",
+      "productos": [
+        {
+          "nombre": "Nada Personal",
+          "precioVenta": 3770
+        },
+        {
+          "nombre": "Galactic",
+          "precioVenta": 3770
+        },
+        {
+          "nombre": "Alerta Roja",
+          "precioVenta": 3770
+        },
+        {
+          "nombre": "Secret Lab",
+          "precioVenta": 3770
+        },
+        {
+          "nombre": "Imperio Perdido",
+          "precioVenta": 3770
+        }
+      ]
+    },
+    {
+      "nombre": "Colección de temporada",
+      "productos": [
+        {
+          "nombre": "Ritual de la Banana",
+          "precioVenta": 3770
+        },
+        {
+          "nombre": "Samba",
+          "precioVenta": 3770
+        }
+      ]
+    },
+    {
+      "nombre": "Colección de artistas",
+      "productos": [
+        {
+          "nombre": "Valle Nevado",
+          "precioVenta": 4470
+        },
+        {
+          "nombre": "Goat Father",
+          "precioVenta": 4470
+        }
+      ]
+    },
+    {
+      "nombre": "Firulais Craft Mix",
+      "productos": [
+        {
+          "nombre": "Firulais Chelada Craft Mix",
+          "precioVenta": 3770
+        }
+      ]
+    },
+    {
+      "nombre": "Especial Chelas",
+      "productos": [
+        {
+          "nombre": "Kairos Taste",
+          "precioVenta": 9770
+        },
+        {
+          "nombre": "Maria Chelada",
+          "precioVenta": 6970
+        }
+      ]
+    },
+    {
+      "nombre": "Cervezas Invitadas",
+      "productos": [
+        {
+          "nombre": "Porter Del Puerto",
+          "precioVenta": 4770
+        }
+      ]
+    },
+    {
+      "nombre": "Copas",
+      "productos": [
+        {
+          "nombre": "Copa Espumante Extra Brut",
+          "precioVenta": 5970
+        },
+        {
+          "nombre": "Copa Espumante Brut",
+          "precioVenta": 5970
+        },
+        {
+          "nombre": "Copa Chardonnay",
+          "precioVenta": 5970
+        },
+        {
+          "nombre": "Copa Sauvignon Blanc",
+          "precioVenta": 5970
+        },
+        {
+          "nombre": "Copa Merlot",
+          "precioVenta": 5970
+        },
+        {
+          "nombre": "Copa Cabernet Sauvignon",
+          "precioVenta": 5970
+        },
+        {
+          "nombre": "Copa Carmenere",
+          "precioVenta": 5970
+        }
+      ]
+    },
+    {
+      "nombre": "Ron (con bebida 220ml)",
+      "productos": [
+        {
+          "nombre": "Rey de Copas",
+          "precioVenta": 4970
+        },
+        {
+          "nombre": "Pampero Especial",
+          "precioVenta": 6990
+        },
+        {
+          "nombre": "Havana Selección de Maestros",
+          "precioVenta": 16990
+        },
+        {
+          "nombre": "Havana Club 7",
+          "precioVenta": 10970
+        },
+        {
+          "nombre": "Havana Club Especial",
+          "precioVenta": 6490
+        },
+        {
+          "nombre": "Bacardi Añejo",
+          "precioVenta": 6990
+        },
+        {
+          "nombre": "Bacardi Carta Blanca",
+          "precioVenta": 6970
+        },
+        {
+          "nombre": "Flor de Caña 12",
+          "precioVenta": 11970
+        },
+        {
+          "nombre": "Zacapa 23",
+          "precioVenta": 16990
+        },
+        {
+          "nombre": "Bacardi Carta Oro",
+          "precioVenta": 6490
+        }
+      ]
+    },
+    {
+      "nombre": "Pisco (con bebida 220ml)",
+      "productos": [
+        {
+          "nombre": "Alto del Carmen 35°",
+          "precioVenta": 4970
+        },
+        {
+          "nombre": "Alto del Carmen 40°",
+          "precioVenta": 5990
+        },
+        {
+          "nombre": "Alto del Carmen Etiqueta Negra",
+          "precioVenta": 6490
+        },
+        {
+          "nombre": "Horcón Quemado 40°",
+          "precioVenta": 7990
+        },
+        {
+          "nombre": "Mistral Nobel Honey",
+          "precioVenta": 8490
+        },
+        {
+          "nombre": "Mistral Nobel Apple",
+          "precioVenta": 8490
+        },
+        {
+          "nombre": "Mistral Nobel",
+          "precioVenta": 8490
+        },
+        {
+          "nombre": "Mistral 40°",
+          "precioVenta": 6490
+        },
+        {
+          "nombre": "Mistral 35°",
+          "precioVenta": 5470
+        }
+      ]
+    },
+    {
+      "nombre": "Vodka (con bebida 220ml)",
+      "productos": [
+        {
+          "nombre": "Absolut Vainilla",
+          "precioVenta": 8990
+        },
+        {
+          "nombre": "Belvedere",
+          "precioVenta": 12990
+        },
+        {
+          "nombre": "Absolut Original",
+          "precioVenta": 7990
+        },
+        {
+          "nombre": "Grey Goose",
+          "precioVenta": 10990
+        },
+        {
+          "nombre": "Stolichnaya",
+          "precioVenta": 6990
+        }
+      ]
+    },
+    {
+      "nombre": "Whisky (con bebida 220ml)",
+      "productos": [
+        {
+          "nombre": "Johnnie Walker Blonde",
+          "precioVenta": 8470
+        },
+        {
+          "nombre": "The Singleton 12",
+          "precioVenta": 12990
+        },
+        {
+          "nombre": "Buchanan's 12",
+          "precioVenta": 9990
+        },
+        {
+          "nombre": "Ballantines 7",
+          "precioVenta": 8990
+        },
+        {
+          "nombre": "Ballantines",
+          "precioVenta": 7990
+        },
+        {
+          "nombre": "Glenfiddich",
+          "precioVenta": 16990
+        },
+        {
+          "nombre": "Chivas Regal 18",
+          "precioVenta": 14990
+        },
+        {
+          "nombre": "Chivas Regal 12",
+          "precioVenta": 9990
+        },
+        {
+          "nombre": "JW Gold",
+          "precioVenta": 19990
+        },
+        {
+          "nombre": "JW Double Black",
+          "precioVenta": 14990
+        },
+        {
+          "nombre": "JW Black",
+          "precioVenta": 9990
+        },
+        {
+          "nombre": "JW Red",
+          "precioVenta": 7490
+        }
+      ]
+    },
+    {
+      "nombre": "Bourbon (con bebida 220ml)",
+      "productos": [
+        {
+          "nombre": "Jim Beam",
+          "precioVenta": 9990
+        },
+        {
+          "nombre": "Jack Daniels Gentleman",
+          "precioVenta": 12990
+        },
+        {
+          "nombre": "Jack Daniels Honey",
+          "precioVenta": 8990
+        },
+        {
+          "nombre": "Jack Daniels Apple",
+          "precioVenta": 8990
+        },
+        {
+          "nombre": "Jack Daniels Old 7",
+          "precioVenta": 8990
+        },
+        {
+          "nombre": "Bulleit Bourbon",
+          "precioVenta": 13990
+        }
+      ]
+    },
+    {
+      "nombre": "Gin (con bebida 220ml)",
+      "productos": [
+        {
+          "nombre": "Banny",
+          "precioVenta": 7470
+        },
+        {
+          "nombre": "Beefeater Pink",
+          "precioVenta": 9990
+        },
+        {
+          "nombre": "Beefeater",
+          "precioVenta": 9990
+        },
+        {
+          "nombre": "Bombay",
+          "precioVenta": 9490
+        },
+        {
+          "nombre": "República Amazónica",
+          "precioVenta": 7990
+        },
+        {
+          "nombre": "Mare",
+          "precioVenta": 14990
+        },
+        {
+          "nombre": "Citadelle",
+          "precioVenta": 9990
+        },
+        {
+          "nombre": "Hendricks",
+          "precioVenta": 9990
+        },
+        {
+          "nombre": "Tanqueray Royale",
+          "precioVenta": 8490
+        },
+        {
+          "nombre": "Tanqueray Sevilla",
+          "precioVenta": 8490
+        },
+        {
+          "nombre": "Tanqueray London Dry",
+          "precioVenta": 8990
+        },
+        {
+          "nombre": "Tanqueray Ten",
+          "precioVenta": 11990
+        }
+      ]
+    },
+    {
+      "nombre": "Licores",
+      "productos": [
+        {
+          "nombre": "Disaronno",
+          "precioVenta": 4990
+        },
+        {
+          "nombre": "Jägermeister",
+          "precioVenta": 6970
+        },
+        {
+          "nombre": "Frangelico",
+          "precioVenta": 7970
+        },
+        {
+          "nombre": "Drambuie",
+          "precioVenta": 6870
+        },
+        {
+          "nombre": "Martini Fiero",
+          "precioVenta": 4990
+        },
+        {
+          "nombre": "Campari",
+          "precioVenta": 4970
+        },
+        {
+          "nombre": "Baileys",
+          "precioVenta": 6470
+        },
+        {
+          "nombre": "Fernet Branca",
+          "precioVenta": 6990
+        }
+      ]
+    },
+    {
+      "nombre": "Tequila (con limón y sal)",
+      "productos": [
+        {
+          "nombre": "Don Julio Reposado",
+          "precioVenta": 10990
+        },
+        {
+          "nombre": "Don Julio Blanco",
+          "precioVenta": 10990
+        },
+        {
+          "nombre": "Herradura Reposado",
+          "precioVenta": 9990
+        },
+        {
+          "nombre": "Herradura Silver",
+          "precioVenta": 9990
+        },
+        {
+          "nombre": "José Cuervo Reposado",
+          "precioVenta": 4990
+        },
+        {
+          "nombre": "José Cuervo Silver",
+          "precioVenta": 4990
+        },
+        {
+          "nombre": "Olmeca Reposado",
+          "precioVenta": 5990
+        },
+        {
+          "nombre": "Olmeca Silver",
+          "precioVenta": 5990
+        }
+      ]
+    },
+    {
+      "nombre": "Shots",
+      "productos": [
+        {
+          "nombre": "Don Julio Blanco",
+          "precioVenta": 10990
+        },
+        {
+          "nombre": "Don Julio Reposado",
+          "precioVenta": 10990
+        },
+        {
+          "nombre": "Jägermeister",
+          "precioVenta": 4170
+        },
+        {
+          "nombre": "Jägerbomb",
+          "precioVenta": 8990
+        }
+      ]
+    },
+    {
+      "nombre": "Ron botella",
+      "productos": [
+        {
+          "nombre": "Bacardi Carta Blanca",
+          "precioVenta": 45000
+        },
+        {
+          "nombre": "Bacardi Carta Oro",
+          "precioVenta": 45000
+        },
+        {
+          "nombre": "Havana Club 7",
+          "precioVenta": 70000
+        },
+        {
+          "nombre": "Flor de Caña 12",
+          "precioVenta": 85000
+        },
+        {
+          "nombre": "Havana Selección de Maestros",
+          "precioVenta": 130000
+        },
+        {
+          "nombre": "Zacapa 23",
+          "precioVenta": 150000
+        }
+      ]
+    },
+    {
+      "nombre": "Pisco botella",
+      "productos": [
+        {
+          "nombre": "Alto del Carmen 35°",
+          "precioVenta": 45000
+        },
+        {
+          "nombre": "Mistral 35°",
+          "precioVenta": 45000
+        },
+        {
+          "nombre": "Mistral 40°",
+          "precioVenta": 50000
+        },
+        {
+          "nombre": "Alto del Carmen 40°",
+          "precioVenta": 50000
+        },
+        {
+          "nombre": "Alto del Carmen Envejecido",
+          "precioVenta": 55000
+        },
+        {
+          "nombre": "Horcón Quemado 40°",
+          "precioVenta": 60000
+        },
+        {
+          "nombre": "Mistral Nobel Honey",
+          "precioVenta": 60000
+        },
+        {
+          "nombre": "Mistral Nobel Apple",
+          "precioVenta": 60000
+        },
+        {
+          "nombre": "Mistral Nobel",
+          "precioVenta": 60000
+        }
+      ]
+    },
+    {
+      "nombre": "Vodka botella",
+      "productos": [
+        {
+          "nombre": "Absolut Original",
+          "precioVenta": 45000
+        },
+        {
+          "nombre": "Stolichnaya",
+          "precioVenta": 45000
+        },
+        {
+          "nombre": "Absolut Vainilla",
+          "precioVenta": 50000
+        },
+        {
+          "nombre": "Grey Goose",
+          "precioVenta": 75000
+        },
+        {
+          "nombre": "Belvedere",
+          "precioVenta": 100000
+        }
+      ]
+    },
+    {
+      "nombre": "Whisky botella",
+      "productos": [
+        {
+          "nombre": "Jim Beam Bourbon",
+          "precioVenta": 55000
+        },
+        {
+          "nombre": "JW Red",
+          "precioVenta": 60000
+        },
+        {
+          "nombre": "Buchanan's 12",
+          "precioVenta": 70000
+        },
+        {
+          "nombre": "Jack Daniels Honey",
+          "precioVenta": 85000
+        },
+        {
+          "nombre": "JW Black",
+          "precioVenta": 85000
+        },
+        {
+          "nombre": "Jack Daniels Apple",
+          "precioVenta": 85000
+        },
+        {
+          "nombre": "Jack Daniels Old 7",
+          "precioVenta": 85000
+        },
+        {
+          "nombre": "Chivas Regal 12",
+          "precioVenta": 85000
+        },
+        {
+          "nombre": "JW Double Black",
+          "precioVenta": 90000
+        },
+        {
+          "nombre": "The Singleton 12",
+          "precioVenta": 90000
+        },
+        {
+          "nombre": "Bulleit Bourbon",
+          "precioVenta": 90000
+        },
+        {
+          "nombre": "Jack Daniels Gentleman",
+          "precioVenta": 100000
+        },
+        {
+          "nombre": "Glenfiddich",
+          "precioVenta": 100000
+        },
+        {
+          "nombre": "JW Gold",
+          "precioVenta": 125000
+        },
+        {
+          "nombre": "Chivas Regal 18",
+          "precioVenta": 130000
+        }
+      ]
+    },
+    {
+      "nombre": "Gin botella",
+      "productos": [
+        {
+          "nombre": "Tanqueray London Dry",
+          "precioVenta": 50000
+        },
+        {
+          "nombre": "Bombay",
+          "precioVenta": 55000
+        },
+        {
+          "nombre": "Beefeater",
+          "precioVenta": 55000
+        },
+        {
+          "nombre": "Beefeater Pink",
+          "precioVenta": 60000
+        },
+        {
+          "nombre": "Hendricks",
+          "precioVenta": 80000
+        },
+        {
+          "nombre": "Citadelle",
+          "precioVenta": 90000
+        },
+        {
+          "nombre": "Tanqueray Ten",
+          "precioVenta": 90000
+        },
+        {
+          "nombre": "Gin Mare",
+          "precioVenta": 130000
+        }
+      ]
+    },
+    {
+      "nombre": "Tequila botella (con limón y sal)",
+      "productos": [
+        {
+          "nombre": "Olmeca Silver",
+          "precioVenta": 60000
+        },
+        {
+          "nombre": "Olmeca Reposado",
+          "precioVenta": 60000
+        },
+        {
+          "nombre": "Herradura Silver",
+          "precioVenta": 85000
+        },
+        {
+          "nombre": "Herradura Reposado",
+          "precioVenta": 85000
+        },
+        {
+          "nombre": "Don Julio Blanco",
+          "precioVenta": 100000
+        },
+        {
+          "nombre": "Don Julio Reposado",
+          "precioVenta": 115000
+        }
+      ]
+    },
+    {
+      "nombre": "Licores botella",
+      "productos": [
+        {
+          "nombre": "Jägermeister",
+          "precioVenta": 50000
+        },
+        {
+          "nombre": "Baileys",
+          "precioVenta": 60000
+        },
+        {
+          "nombre": "Fernet Branca",
+          "precioVenta": 55000
+        }
+      ]
+    },
+    {
+      "nombre": "Vino (botella 750cc)",
+      "productos": [
+        {
+          "nombre": "Apaltagua Chardonnay Reserva",
+          "precioVenta": 15770
+        },
+        {
+          "nombre": "Errázuriz Sauvignon Blanc Reserva",
+          "precioVenta": 14770
+        },
+        {
+          "nombre": "Santa Ema Merlot Reserva",
+          "precioVenta": 13770
+        },
+        {
+          "nombre": "Aliwen Cabernet Sauvignon Reserva",
+          "precioVenta": 12770
+        },
+        {
+          "nombre": "Casas Patronales Carmenere Reserva",
+          "precioVenta": 13770
+        }
+      ]
+    },
+    {
+      "nombre": "Espumantes",
+      "productos": [
+        {
+          "nombre": "Undurraga Extra Brut",
+          "precioVenta": 18800
+        },
+        {
+          "nombre": "Undurraga Brut",
+          "precioVenta": 14800
+        }
+      ]
+    },
+    {
+      "nombre": "Chelas sin alcohol",
+      "productos": [
+        {
+          "nombre": "Heineken Cero°",
+          "precioVenta": 3990
+        },
+        {
+          "nombre": "Weissbier 0,0% Paulaner",
+          "precioVenta": 3990
+        }
+      ]
+    },
+    {
+      "nombre": "Kombucha",
+      "productos": [
+        {
+          "nombre": "Kombucha Biloba Zen",
+          "precioVenta": 4970
+        },
+        {
+          "nombre": "Kombucha Biloba Elixir",
+          "precioVenta": 4970
+        },
+        {
+          "nombre": "Kombucha Biloba Momentum",
+          "precioVenta": 4970
+        }
+      ]
+    },
+    {
+      "nombre": "Gaseosas",
+      "productos": [
+        {
+          "nombre": "Monster Tropical",
+          "precioVenta": 5190
+        },
+        {
+          "nombre": "Monster Tradicional",
+          "precioVenta": 5190
+        },
+        {
+          "nombre": "Fever Tree Pink Grapefruit",
+          "precioVenta": 5970
+        },
+        {
+          "nombre": "Fever Tree Ginger Ale",
+          "precioVenta": 5970
+        },
+        {
+          "nombre": "Fever Tree Agua Tónica",
+          "precioVenta": 5970
+        },
+        {
+          "nombre": "Red Bull Tropical",
+          "precioVenta": 5190
+        },
+        {
+          "nombre": "Red Bull Tradicional",
+          "precioVenta": 5190
+        },
+        {
+          "nombre": "Agua con Gas 330cc",
+          "precioVenta": 3970
+        },
+        {
+          "nombre": "Schweppes Zero",
+          "precioVenta": 3970
+        },
+        {
+          "nombre": "Schweppes",
+          "precioVenta": 3970
+        },
+        {
+          "nombre": "Fanta Zero",
+          "precioVenta": 3790
+        },
+        {
+          "nombre": "Fanta",
+          "precioVenta": 3790
+        },
+        {
+          "nombre": "Sprite Zero",
+          "precioVenta": 3790
+        },
+        {
+          "nombre": "Sprite",
+          "precioVenta": 3790
+        },
+        {
+          "nombre": "Coca Cola Light",
+          "precioVenta": 3790
+        },
+        {
+          "nombre": "Coca Cola Zero",
+          "precioVenta": 3790
+        },
+        {
+          "nombre": "Coca Cola",
+          "precioVenta": 3790
+        },
+        {
+          "nombre": "Vital sin gas",
+          "precioVenta": 2970
+        },
+        {
+          "nombre": "Vital con gas",
+          "precioVenta": 2970
+        }
+      ]
+    },
+    {
+      "nombre": "Jugos",
+      "productos": [
+        {
+          "nombre": "Jugo de Berries",
+          "precioVenta": 3970
+        },
+        {
+          "nombre": "Limonada Menta Jengibre",
+          "precioVenta": 3970
+        },
+        {
+          "nombre": "Limonada Jengibre",
+          "precioVenta": 3970
+        },
+        {
+          "nombre": "Limonada Menta",
+          "precioVenta": 3970
+        },
+        {
+          "nombre": "Limonada Clásica",
+          "precioVenta": 3970
+        },
+        {
+          "nombre": "Jugo de Chirimoya",
+          "precioVenta": 3970
+        },
+        {
+          "nombre": "Jugo de Piña",
+          "precioVenta": 3970
+        },
+        {
+          "nombre": "Jugo de Frutilla",
+          "precioVenta": 3970
+        },
+        {
+          "nombre": "Jugo de Frambuesa",
+          "precioVenta": 3970
+        },
+        {
+          "nombre": "Jugo de Maracuyá",
+          "precioVenta": 3970
+        },
+        {
+          "nombre": "Jugo de Mango",
+          "precioVenta": 3970
+        },
+        {
+          "nombre": "Jugo de Naranja",
+          "precioVenta": 3970
+        }
+      ]
+    },
+    {
+      "nombre": "Ice Tea",
+      "productos": [
+        {
+          "nombre": "Ice Tea Naranja Maracuyá",
+          "precioVenta": 3570
+        },
+        {
+          "nombre": "Ice Tea Mango",
+          "precioVenta": 3570
+        }
+      ]
+    }
+  ]
+}
