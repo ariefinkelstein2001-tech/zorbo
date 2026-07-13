@@ -7464,6 +7464,7 @@ async function renderCosteoReventa(){
   drawReventa();
 }
 function drawReventa(){
+  const body=document.getElementById('costeoBody');
   const d=reventaData; const q=reventaSearch.toLowerCase();
   const meta=document.getElementById('costeoMeta'); if(meta) meta.textContent=`${d.meta.totalSecciones} secciones de reventa · ${d.meta.totalProductos} productos`;
   const secs=d.secciones.map(s=>{
