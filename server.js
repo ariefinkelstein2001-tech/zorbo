@@ -2376,6 +2376,7 @@ const CD_CODE_MAP = {
   PEDIDOSNORTE: { bucket: 'cruzada', pdv: 'Plaza Norte' },
   'PEDIDOSEGAÑA': { bucket: 'cruzada', pdv: 'Plaza Egaña' },
   PEDIDOSEGANA: { bucket: 'cruzada', pdv: 'Plaza Egaña' },
+  PEDIDOSDOMINICOS: { bucket: 'cruzada', pdv: 'Dominicos' },
   // CD Kairos (resto de mayoristas)
   PEDIDOSCOSTANERA: { bucket: 'cd_kairos' },
   PEDIDOSSKYCOSTANERA: { bucket: 'cd_kairos' },
@@ -2388,6 +2389,7 @@ const CD_CODE_MAP = {
   PEDIDOOSAKA: { bucket: 'cd_kairos' },
   PEDIDOSOPEN: { bucket: 'cd_kairos' },
   PEDIDOSMARINA: { bucket: 'cd_kairos' },
+  PEDIDOSBULNES: { bucket: 'cd_kairos' },
 };
 // Resuelve el bucket de un pedido por sus códigos (match EXACTO en el diccionario).
 // Devuelve {bucket, loc?, pdv?, code} conocido, o {bucket:'codigo_nuevo', code} si
@@ -2549,95 +2551,99 @@ function cdClassifyCustomer(customer){
   return { grupo: null, estado: 'ambiguo', pdv: cand.slice(0, 4).map(p => p.local + '/' + p.zona).join(' | ') };
 }
 const cdMoney = (n) => Math.round(Number(n) || 0);
-function cdOrderIsMayorista(o){ return (o.customer && (o.customer.tags || []).some(t => /mayorista/i.test(t))); }
+const cdR3 = (n) => Math.round((Number(n) || 0) * 1000) / 1000;
+// Núcleo compartido: computa los números de Shopify de un mes (transferencias
+// revaluadas, buckets con cobrado/original, y el DETALLE por pedido para el
+// drill-down). Precios de transferencia configurables (precios). Un pedido va a
+// UN bucket por su código exacto; transferencias primero.
+async function cdShopifyMonth(month, precios){
+  const P = precios || CD_PRECIOS;
+  const orders = await cdLoadMonthOrders(month);
+  const estiloUnmapped = new Map();
+  const litrosByEstiloGrupo = {};
+  const addLitros = (g, e, t, lt) => { litrosByEstiloGrupo[g] = litrosByEstiloGrupo[g] || {}; const k = e + '|' + t; litrosByEstiloGrupo[g][k] = (litrosByEstiloGrupo[g][k] || 0) + lt; };
+  const transfers = { garden: { litros: 0, valor: 0, ordenes: 0, porCodigo: 0, porCliente: 0, pedidos: [] }, badass: { litros: 0, valor: 0, ordenes: 0, porCodigo: 0, porCliente: 0, pedidos: [] } };
+  const bucket = {
+    transferencias: { n: 0, cobrado: 0, original: 0, usa: 'revaluado', pedidos: [] },
+    ventas_cruzada: { n: 0, cobrado: 0, original: 0, usa: 'original', pedidos: [] },
+    cd_kairos_mall: { n: 0, cobrado: 0, original: 0, usa: 'original', pedidos: [] },
+    retail: { n: 0, cobrado: 0, original: 0, usa: 'cobrado', pedidos: [] },
+    codigo_nuevo: { n: 0, cobrado: 0, original: 0, usa: '—', pedidos: [] },
+  };
+  let totalCobrado = 0, totalOriginal = 0, sinCodigo = 0;
+  const codesHist = {}; const codigosNuevos = new Set();
+  for (const o of orders) {
+    const codes = (o.discountCodes || []).map(c => String(c).toUpperCase().trim()).filter(Boolean);
+    if (!codes.length) sinCodigo++;
+    codes.forEach(c => { codesHist[c] = (codesHist[c] || 0) + 1; });
+    const cm = cdBucketForCodes(codes);
+    const cn = cdNorm(o.customer && o.customer.displayName);
+    const byCust = /kairos garden/.test(cn) ? 'garden' : /badass/.test(cn) ? 'badass' : null;
+    let bucketName, transferLocal = null;
+    if (cm && cm.bucket === 'transfer') { transferLocal = cm.loc; bucketName = 'transferencias'; transfers[transferLocal].porCodigo++; }
+    else if (byCust && !(cm && cm.bucket && cm.bucket !== 'codigo_nuevo')) { transferLocal = byCust; bucketName = 'transferencias'; transfers[transferLocal].porCliente++; }
+    else if (cm && cm.bucket === 'cruzada') bucketName = 'ventas_cruzada';
+    else if (cm && cm.bucket === 'cd_kairos') bucketName = 'cd_kairos_mall';
+    else if (cm && cm.bucket === 'codigo_nuevo') { bucketName = 'codigo_nuevo'; codigosNuevos.add(cm.code); }
+    else bucketName = 'retail';
+    const orig = (o.lineItems && o.lineItems.nodes || []).reduce((a, li) => a + parseFloat((li.originalTotalSet && li.originalTotalSet.shopMoney && li.originalTotalSet.shopMoney.amount) || 0), 0);
+    const total = parseFloat((o.totalPriceSet && o.totalPriceSet.shopMoney && o.totalPriceSet.shopMoney.amount) || 0);
+    totalCobrado += total; totalOriginal += orig;
+    const rec = { pedido: o.name || '', fecha: (o.createdAt || '').slice(0, 10), cliente: (o.customer && o.customer.displayName) || '—', codigo: codes.join(', ') || '—', original: cdMoney(orig), cobrado: cdMoney(total) };
+    if (transferLocal) {
+      const lineas = [];
+      for (const li of (o.lineItems && o.lineItems.nodes) || []) {
+        const est = cdEstiloOf(li.product && li.product.title, li.variant && li.variant.title);
+        const ltU = cdLitrosUnidad(li.product && li.product.title, li.variant && li.variant.title);
+        const litros = (Number(li.quantity) || 0) * ltU;
+        if (est) { addLitros(transferLocal, est.estilo, est.tipo, litros); lineas.push({ producto: (li.product && li.product.title) || '', variante: (li.variant && li.variant.title) || '', cantidad: li.quantity, estilo: est.estilo, tipo: est.tipo, litros: cdR3(litros) }); }
+        else if (li.product) { const k = li.product.title + ' :: ' + (li.variant ? li.variant.title : ''); estiloUnmapped.set(k, (estiloUnmapped.get(k) || 0) + 1); lineas.push({ producto: li.product.title, variante: (li.variant && li.variant.title) || '', cantidad: li.quantity, estilo: 'sin mapear', litros: cdR3(litros) }); }
+      }
+      transfers[transferLocal].ordenes++;
+      transfers[transferLocal].pedidos.push({ ...rec, lineas });
+    }
+    bucket[bucketName].n++; bucket[bucketName].cobrado += total; bucket[bucketName].original += orig;
+    if (bucket[bucketName].pedidos.length < 500) bucket[bucketName].pedidos.push(rec);
+  }
+  for (const k of Object.keys(bucket)) { bucket[k].cobrado = cdMoney(bucket[k].cobrado); bucket[k].original = cdMoney(bucket[k].original); }
+  bucket.retail.promedio = bucket.retail.n ? cdMoney(bucket.retail.cobrado / bucket.retail.n) : 0;
+  for (const loc of ['garden', 'badass']) {
+    const byE = litrosByEstiloGrupo[loc] || {};
+    let litros = 0, valor = 0; const porTipo = { cerveza: 0, gin: 0, ron: 0 };
+    for (const [key, lt] of Object.entries(byE)) {
+      const tipo = key.split('|')[1];
+      const precio = P[tipo] || P.cerveza;
+      litros += lt; valor += lt * precio + P.despacho * lt;
+      porTipo[tipo] = (porTipo[tipo] || 0) + lt;
+    }
+    transfers[loc].litros = cdR3(litros);
+    transfers[loc].litrosCerveza = cdR3(porTipo.cerveza); transfers[loc].litrosGin = cdR3(porTipo.gin); transfers[loc].litrosRon = cdR3(porTipo.ron);
+    transfers[loc].valor = cdMoney(valor);
+    transfers[loc].porEstilo = Object.entries(byE).map(([k, lt]) => ({ estilo: k.split('|')[0], tipo: k.split('|')[1], litros: cdR3(lt) })).sort((a, b) => b.litros - a.litros);
+  }
+  return { ordenes: orders.length, transfers, bucket, totalCobrado: cdMoney(totalCobrado), totalOriginal: cdMoney(totalOriginal), sinCodigo, codesHist, codigosNuevos: [...codigosNuevos], sinMapear: [...estiloUnmapped.entries()].map(([producto, lineas]) => ({ producto, lineas })) };
+}
 app.get('/admin/cd/diag', requireAdmin, async (req, res) => {
   if (!process.env.SHOPIFY_ADMIN_TOKEN) return res.status(503).json({ error: 'Shopify no conectado.' });
   const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : '2026-07';
   try {
-    // (a) tags de clientes
     const tagsHist = await cdCustomerTagHistogram();
-    // órdenes del mes
-    const orders = await cdLoadMonthOrders(month);
-    // (e-pre) resolver estilo/litros por línea reutilizable
-    const estiloUnmapped = new Map(); // productTitle -> {variant, count}
-    const litrosByEstiloGrupo = {}; // grupo -> estilo -> litros
-    const addLitros = (grupo, estilo, tipo, lt) => {
-      litrosByEstiloGrupo[grupo] = litrosByEstiloGrupo[grupo] || {};
-      const key = estilo + '|' + tipo;
-      litrosByEstiloGrupo[grupo][key] = (litrosByEstiloGrupo[grupo][key] || 0) + lt;
-    };
-    const transfers = { garden: { litros: 0, valor: 0, ordenes: 0, porCodigo: 0, porCliente: 0 }, badass: { litros: 0, valor: 0, ordenes: 0, porCodigo: 0, porCliente: 0 } };
-    // Total DURO por bucket: COBRADO y ORIGINAL (pre-descuento). El precio que
-    // usa cada uno en el Estado: transferencias→revaluado · cruzada/cd_kairos→
-    // ORIGINAL · retail→COBRADO.
-    const bucket = { transferencias: { n: 0, cobrado: 0, original: 0, usa: 'revaluado' }, ventas_cruzada: { n: 0, cobrado: 0, original: 0, usa: 'original' }, cd_kairos_mall: { n: 0, cobrado: 0, original: 0, usa: 'original' }, retail: { n: 0, cobrado: 0, original: 0, usa: 'cobrado' }, codigo_nuevo: { n: 0, cobrado: 0, original: 0, usa: '—' } };
-    let totalCobrado = 0, totalOriginal = 0, sinCodigo = 0;
-    const codesHist = {}; // código de descuento -> nº de pedidos
-    const codigosNuevos = new Set();
-    for (const o of orders) {
-      const codes = (o.discountCodes || []).map(c => String(c).toUpperCase().trim()).filter(Boolean);
-      if (!codes.length) sinCodigo++;
-      codes.forEach(c => { codesHist[c] = (codesHist[c] || 0) + 1; });
-      // Bucket por CÓDIGO EXACTO. Transferencias PRIMERO (respaldo por cliente).
-      const cm = cdBucketForCodes(codes);
-      const cn = cdNorm(o.customer && o.customer.displayName);
-      const byCust = /kairos garden/.test(cn) ? 'garden' : /badass/.test(cn) ? 'badass' : null;
-      let bucketName, transferLocal = null;
-      if (cm && cm.bucket === 'transfer') { transferLocal = cm.loc; bucketName = 'transferencias'; transfers[transferLocal].porCodigo++; }
-      else if (byCust && !(cm && cm.bucket && cm.bucket !== 'codigo_nuevo')) { transferLocal = byCust; bucketName = 'transferencias'; transfers[transferLocal].porCliente++; }
-      else if (cm && cm.bucket === 'cruzada') bucketName = 'ventas_cruzada';
-      else if (cm && cm.bucket === 'cd_kairos') bucketName = 'cd_kairos_mall';
-      else if (cm && cm.bucket === 'codigo_nuevo') { bucketName = 'codigo_nuevo'; codigosNuevos.add(cm.code); }
-      else bucketName = 'retail';
-      // Líneas → litros/estilo (solo transferencias, para revaluar)
-      if (transferLocal) {
-        for (const li of (o.lineItems && o.lineItems.nodes) || []) {
-          const est = cdEstiloOf(li.product && li.product.title, li.variant && li.variant.title);
-          const litros = (Number(li.quantity) || 0) * cdLitrosUnidad(li.product && li.product.title, li.variant && li.variant.title);
-          if (est) addLitros(transferLocal, est.estilo, est.tipo, litros);
-          else if (li.product) { const k = li.product.title + ' :: ' + (li.variant ? li.variant.title : ''); estiloUnmapped.set(k, (estiloUnmapped.get(k) || 0) + 1); }
-        }
-        transfers[transferLocal].ordenes++;
-      }
-      const orig = (o.lineItems && o.lineItems.nodes || []).reduce((a, li) => a + parseFloat((li.originalTotalSet && li.originalTotalSet.shopMoney && li.originalTotalSet.shopMoney.amount) || 0), 0);
-      const total = parseFloat((o.totalPriceSet && o.totalPriceSet.shopMoney && o.totalPriceSet.shopMoney.amount) || 0);
-      totalCobrado += total; totalOriginal += orig;
-      bucket[bucketName].n++; bucket[bucketName].cobrado += total; bucket[bucketName].original += orig;
-    }
-    for (const k of Object.keys(bucket)) { bucket[k].cobrado = cdMoney(bucket[k].cobrado); bucket[k].original = cdMoney(bucket[k].original); }
-    bucket.retail.promedio = bucket.retail.n ? cdMoney(bucket.retail.cobrado / bucket.retail.n) : 0;
-    // Valor que iría al Estado de Resultado por bucket (precio correcto de cada uno):
-    const valorEstado = { ventas_cruzada: bucket.ventas_cruzada.original, cd_kairos_mall: bucket.cd_kairos_mall.original, retail: bucket.retail.cobrado };
-    // valorizar transferencias garden/badass a precio de transferencia
-    for (const loc of ['garden', 'badass']) {
-      const byE = litrosByEstiloGrupo[loc] || {};
-      let litros = 0, valor = 0; const porTipo = { cerveza: 0, gin: 0, ron: 0 };
-      for (const [key, lt] of Object.entries(byE)) {
-        const tipo = key.split('|')[1];
-        const precio = CD_PRECIOS[tipo] || CD_PRECIOS.cerveza;
-        litros += lt; valor += lt * precio + CD_PRECIOS.despacho * lt;
-        porTipo[tipo] = (porTipo[tipo] || 0) + lt;
-      }
-      const r3 = (n) => Math.round(n * 1000) / 1000;
-      transfers[loc].litros = r3(litros);
-      transfers[loc].litrosCerveza = r3(porTipo.cerveza); transfers[loc].litrosGin = r3(porTipo.gin); transfers[loc].litrosRon = r3(porTipo.ron);
-      transfers[loc].valor = cdMoney(valor);
-      transfers[loc].porEstilo = Object.entries(byE).map(([k, lt]) => ({ estilo: k.split('|')[0], tipo: k.split('|')[1], litros: r3(lt) })).sort((a, b) => b.litros - a.litros);
-    }
+    const m = await cdShopifyMonth(month);
+    const { transfers, bucket } = m;
     res.json({
       month,
       a_tags: tagsHist,
       e_transferencias: transfers,
       e_test_garden: { esperado: { litros_cerveza: 2700, gin: 160, ron: 140, valor: 10157900 }, obtenido: transfers.garden },
-      e_sin_mapear: [...estiloUnmapped.entries()].map(([k, c]) => ({ producto: k, lineas: c })),
+      e_sin_mapear: m.sinMapear,
       hard_total: {
-        ordenes: orders.length, total_cobrado_shopify: cdMoney(totalCobrado), total_original_pre_descuento: cdMoney(totalOriginal),
+        ordenes: m.ordenes, total_cobrado_shopify: m.totalCobrado, total_original_pre_descuento: m.totalOriginal,
         excel: { ingresos_julio: 52085893, cd_kairos: 30496638, ventas_cruzada: 5695733, ventas_web: 949112 },
         desglose: bucket,
-        valor_para_estado: { transferencias_revaluado: transfers.garden.valor + transfers.badass.valor, ...valorEstado },
+        valor_para_estado: { transferencias_revaluado: transfers.garden.valor + transfers.badass.valor, ventas_cruzada: bucket.ventas_cruzada.original, cd_kairos_mall: bucket.cd_kairos_mall.original, retail: bucket.retail.cobrado },
       },
-      g_codigos_descuento: Object.entries(codesHist).sort((a, b) => b[1] - a[1]).map(([codigo, pedidos]) => ({ codigo, pedidos, bucket: (CD_CODE_MAP[codigo] && CD_CODE_MAP[codigo].bucket) || (/^PEDIDOS?/.test(codigo) ? 'CODIGO NUEVO SIN CLASIFICAR' : 'retail') })),
-      g_codigos_nuevos_sin_clasificar: [...codigosNuevos],
+      g_codigos_descuento: Object.entries(m.codesHist).sort((a, b) => b[1] - a[1]).map(([codigo, pedidos]) => ({ codigo, pedidos, bucket: (CD_CODE_MAP[codigo] && CD_CODE_MAP[codigo].bucket) || (/^PEDIDOS?/.test(codigo) ? 'CODIGO NUEVO SIN CLASIFICAR' : 'retail') })),
+      g_codigos_nuevos_sin_clasificar: m.codigosNuevos,
       desvios_vs_excel: (() => {
         const ref = CD_EXCEL_REF[month]; if (!ref) return { nota: 'No hay referencia de Excel para este mes.' };
         const pct = (obt, exc) => (exc ? Math.round(((obt - exc) / exc) * 1000) / 10 + '%' : '—');
@@ -2648,13 +2654,97 @@ app.get('/admin/cd/diag', requireAdmin, async (req, res) => {
           ventas_cruzada_original: { shopify: bucket.ventas_cruzada.original, excel: ref.cruzada_base, desvio: pct(bucket.ventas_cruzada.original, ref.cruzada_base) },
         };
       })(),
-      meta: { ordenes_mes: orders.length, pedidos_sin_codigo: sinCodigo, precios: CD_PRECIOS, codigos_transfer: CD_TRANSFER_CODES },
+      meta: { ordenes_mes: m.ordenes, pedidos_sin_codigo: m.sinCodigo, precios: CD_PRECIOS, codigos_transfer: CD_TRANSFER_CODES },
     });
   } catch (e) {
     const msg = String(e.message || e);
     if (/read_orders|read_customers|access denied|scope|not approved/i.test(msg)) return res.status(403).json({ error: 'Falta permiso Shopify (read_orders/read_customers). Re-autorizá la app.' });
     res.status(500).json({ error: 'Error en diagnóstico: ' + msg.slice(0, 400) });
   }
+});
+
+// ─── ESTADO DE RESULTADO MENSUAL (CD) ───────────────────────────────────────
+// Ingresos: parte AUTOMÁTICA de Shopify (transferencias revaluadas, cruzada y
+// cd_kairos original, retail cobrado) + parte MANUAL (líneas con nombre). El
+// número automático NO se edita: si falta plata, se agrega una línea. Persistencia
+// por mes en JSON. Los costos/gastos llegan en la parte 2.
+const ESTADO_FILE = join(PROMPTS_EFFECTIVE_DIR, 'estado-resultado.json');
+const estadoNum = (v) => { const n = Number(String(v == null ? '' : v).replace(/[^\d.-]/g, '')); return Number.isFinite(n) ? Math.round(n) : 0; };
+const estadoStr = (v, m = 200) => String(v == null ? '' : v).trim().slice(0, m);
+function estadoLineList(arr, fields){ return (Array.isArray(arr) ? arr : []).map(x => { const o = {}; fields.forEach(f => { o[f.k] = f.num ? estadoNum(x && x[f.k]) : estadoStr(x && x[f.k], f.max || 200); }); return o; }); }
+const F_FUERA = [{ k: 'desc' }, { k: 'factura', max: 60 }, { k: 'fecha', max: 20 }, { k: 'monto', num: true }];
+const F_NC = [{ k: 'proveedor' }, { k: 'fecha', max: 20 }, { k: 'factura', max: 60 }, { k: 'monto', num: true }];
+function estadoNormPeriodo(p){
+  p = p || {}; const pr = p.preciosTransfer || {};
+  const ck = p.cdKairos || {}; const vc = p.ventasCruzada || {}; const wm = p.walmart || {};
+  return {
+    preciosTransfer: { cerveza: estadoNum(pr.cerveza || CD_PRECIOS.cerveza), gin: estadoNum(pr.gin || CD_PRECIOS.gin), ron: estadoNum(pr.ron || CD_PRECIOS.ron), despacho: estadoNum(pr.despacho || CD_PRECIOS.despacho) },
+    cdKairos: { fueraShopify: estadoLineList(ck.fueraShopify, F_FUERA), notasCredito: estadoLineList(ck.notasCredito, F_NC), otrosIngresos: estadoLineList(ck.otrosIngresos, [{ k: 'desc' }, { k: 'monto', num: true }]) },
+    ventasCruzada: { fueraShopify: estadoLineList(vc.fueraShopify, F_FUERA) },
+    antofagasta: estadoLineList(p.antofagasta, [{ k: 'estilo', max: 60 }, { k: 'litros', num: true }]),
+    activo: estadoNum(p.activo),
+    walmart: { cajas: estadoNum(wm.cajas), valorCaja: estadoNum(wm.valorCaja || 48409) },
+  };
+}
+function estadoLoad(){ try { if (!existsSync(ESTADO_FILE)) return { version: 1, periodos: {} }; const p = JSON.parse(readFileSync(ESTADO_FILE, 'utf-8')); return { version: 1, periodos: (p && p.periodos) || {} }; } catch (e) { console.warn('estado load:', e.message); return { version: 1, periodos: {} }; } }
+function estadoSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(ESTADO_FILE, JSON.stringify(d, null, 2)); }
+async function estadoResolve(month){
+  const all = estadoLoad(); const per = estadoNormPeriodo(all.periodos[month]);
+  const precios = per.preciosTransfer;
+  const sh = await cdShopifyMonth(month, precios).catch(e => ({ error: String(e.message || e) }));
+  const shOk = !sh.error;
+  const sum = (arr) => (arr || []).reduce((a, x) => a + (Number(x.monto) || 0), 0);
+  const shCd = shOk ? sh.bucket.cd_kairos_mall.original : 0;
+  const shCruz = shOk ? sh.bucket.ventas_cruzada.original : 0;
+  const shWeb = shOk ? sh.bucket.retail.cobrado : 0;
+  const ratio = (shop, base) => (base ? Math.round((shop / base) * 1000) / 10 : (shop ? 100 : 0));
+  // Antofagasta: tabla manual valorizada a precio de transferencia (cerveza).
+  const antoTabla = per.antofagasta.map(r => ({ estilo: r.estilo, precioLt: precios.cerveza, despachoLt: precios.despacho, litros: r.litros, valor: Math.round(r.litros * precios.cerveza + precios.despacho * r.litros) }));
+  const antoLitros = antoTabla.reduce((a, r) => a + r.litros, 0);
+  const antoValor = antoTabla.reduce((a, r) => a + r.valor, 0);
+  antoTabla.forEach(r => r.pct = antoLitros ? Math.round((r.litros / antoLitros) * 1000) / 10 : 0);
+  const mkTabla = (t) => (t && t.porEstilo || []).map(e => ({ estilo: e.estilo, tipo: e.tipo, precioLt: precios[e.tipo] || precios.cerveza, despachoLt: precios.despacho, litros: e.litros, valor: Math.round(e.litros * (precios[e.tipo] || precios.cerveza) + precios.despacho * e.litros), pct: t.litros ? Math.round((e.litros / t.litros) * 1000) / 10 : 0 }));
+  const cdFuera = sum(per.cdKairos.fueraShopify), cdNC = sum(per.cdKairos.notasCredito), cdOtros = sum(per.cdKairos.otrosIngresos);
+  const cdBase = shCd + cdFuera; const cdNeto = cdBase - cdNC + cdOtros;
+  const cruzFuera = sum(per.ventasCruzada.fueraShopify); const cruzTotal = shCruz + cruzFuera + antoValor;
+  const gardenValor = shOk ? sh.transfers.garden.valor : 0, badassValor = shOk ? sh.transfers.badass.valor : 0;
+  const walmartTotal = per.walmart.cajas * per.walmart.valorCaja;
+  const ingresos = {
+    cd_kairos: { shopify: shCd, fuera: per.cdKairos.fueraShopify, fueraTotal: cdFuera, notasCredito: per.cdKairos.notasCredito, ncTotal: cdNC, otrosIngresos: per.cdKairos.otrosIngresos, otrosTotal: cdOtros, neto: cdNeto, ratioShopify: ratio(shCd, cdBase), pedidos: shOk ? sh.bucket.cd_kairos_mall.pedidos : [] },
+    ventas_cruzada: { shopify: shCruz, fuera: per.ventasCruzada.fueraShopify, fueraTotal: cruzFuera, antofagastaValor: antoValor, total: cruzTotal, ratioShopify: ratio(shCruz, shCruz + cruzFuera + antoValor), pedidos: shOk ? sh.bucket.ventas_cruzada.pedidos : [] },
+    ventas_web: { cobrado: shWeb, n: shOk ? sh.bucket.retail.n : 0, pedidos: shOk ? sh.bucket.retail.pedidos : [] },
+    activo: per.activo,
+    transferencias: {
+      garden: { litros: shOk ? sh.transfers.garden.litros : 0, valor: gardenValor, tabla: shOk ? mkTabla(sh.transfers.garden) : [], pedidos: shOk ? sh.transfers.garden.pedidos : [] },
+      badass: { litros: shOk ? sh.transfers.badass.litros : 0, valor: badassValor, tabla: shOk ? mkTabla(sh.transfers.badass) : [], pedidos: shOk ? sh.transfers.badass.pedidos : [] },
+      antofagasta: { litros: antoLitros, valor: antoValor, tabla: antoTabla, manual: per.antofagasta },
+    },
+    walmart: { cajas: per.walmart.cajas, valorCaja: per.walmart.valorCaja, total: walmartTotal },
+  };
+  const totalIngresos = cdNeto + cruzTotal + shWeb + per.activo + gardenValor + badassValor + walmartTotal;
+  return {
+    month, precios, periodo: per, ingresos, totalIngresos,
+    shopifyOk: shOk, shopifyError: sh.error || null,
+    alertas: { codigosNuevos: shOk ? sh.codigosNuevos : [], sinMapear: shOk ? sh.sinMapear : [], sinCodigo: shOk ? sh.sinCodigo : 0 },
+    excelRef: CD_EXCEL_REF[month] || null,
+  };
+}
+app.get('/admin/estado/periodos', requireAdmin, (req, res) => { res.json({ periodos: Object.keys(estadoLoad().periodos).sort().reverse() }); });
+app.get('/admin/estado', requireAdmin, async (req, res) => {
+  const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
+  if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
+  try { res.json(await estadoResolve(month)); } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 300) }); }
+});
+app.put('/admin/estado/:month', requireAdmin, (req, res) => {
+  const month = String(req.params.month); if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: 'Mes inválido.' });
+  const all = estadoLoad(); all.periodos[month] = estadoNormPeriodo(req.body || {}); estadoSave(all); res.json({ ok: true });
+});
+app.post('/admin/estado/:month/duplicar', requireAdmin, (req, res) => {
+  const month = String(req.params.month); const from = String((req.body && req.body.from) || '');
+  if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: 'Mes inválido.' });
+  const all = estadoLoad(); const src = all.periodos[from];
+  all.periodos[month] = estadoNormPeriodo(src ? JSON.parse(JSON.stringify(src)) : {});
+  estadoSave(all); res.json({ ok: true });
 });
 
 // ─── Conversaciones (embudo) ────────────────────────────────────────────────
