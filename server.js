@@ -2353,6 +2353,12 @@ function cdLoadPdv(){
 }
 // Precios de transferencia (config; hoy fijos, luego editables en el módulo).
 const CD_PRECIOS = { cerveza: 1830, gin: 7447, ron: 6617, despacho: 1033 };
+// Referencias del Excel por mes (para el % de desvío del diagnóstico). "base" =
+// facturación base sin los "otros ingresos" ni Antofagasta.
+const CD_EXCEL_REF = {
+  '2026-07': { garden_lt_cerveza: 2700, garden_gin: 160, garden_ron: 140, garden_valor: 10157900, web: 949112, cd_kairos_base: 30496638, cruzada_base: 5695733 },
+  '2026-06': { garden_lt_cerveza: 5280, web: 5001805, cd_kairos_base: 29673041, cruzada_base: 15659104 },
+};
 // Códigos de descuento con que se marcan las transferencias 100% off.
 const CD_TRANSFER_CODES = { PEDIDOGARDENVSP: 'garden', PEDIDOSBADASSPA: 'badass' };
 // Diccionario DEFINITIVO código→bucket. Match EXACTO (===), nunca substring:
@@ -2605,15 +2611,18 @@ app.get('/admin/cd/diag', requireAdmin, async (req, res) => {
     // valorizar transferencias garden/badass a precio de transferencia
     for (const loc of ['garden', 'badass']) {
       const byE = litrosByEstiloGrupo[loc] || {};
-      let litros = 0, valor = 0;
+      let litros = 0, valor = 0; const porTipo = { cerveza: 0, gin: 0, ron: 0 };
       for (const [key, lt] of Object.entries(byE)) {
         const tipo = key.split('|')[1];
         const precio = CD_PRECIOS[tipo] || CD_PRECIOS.cerveza;
         litros += lt; valor += lt * precio + CD_PRECIOS.despacho * lt;
+        porTipo[tipo] = (porTipo[tipo] || 0) + lt;
       }
-      transfers[loc].litros = Math.round(litros * 1000) / 1000;
+      const r3 = (n) => Math.round(n * 1000) / 1000;
+      transfers[loc].litros = r3(litros);
+      transfers[loc].litrosCerveza = r3(porTipo.cerveza); transfers[loc].litrosGin = r3(porTipo.gin); transfers[loc].litrosRon = r3(porTipo.ron);
       transfers[loc].valor = cdMoney(valor);
-      transfers[loc].porEstilo = Object.entries(byE).map(([k, lt]) => ({ estilo: k.split('|')[0], tipo: k.split('|')[1], litros: Math.round(lt * 1000) / 1000 })).sort((a, b) => b.litros - a.litros);
+      transfers[loc].porEstilo = Object.entries(byE).map(([k, lt]) => ({ estilo: k.split('|')[0], tipo: k.split('|')[1], litros: r3(lt) })).sort((a, b) => b.litros - a.litros);
     }
     res.json({
       month,
@@ -2629,6 +2638,16 @@ app.get('/admin/cd/diag', requireAdmin, async (req, res) => {
       },
       g_codigos_descuento: Object.entries(codesHist).sort((a, b) => b[1] - a[1]).map(([codigo, pedidos]) => ({ codigo, pedidos, bucket: (CD_CODE_MAP[codigo] && CD_CODE_MAP[codigo].bucket) || (/^PEDIDOS?/.test(codigo) ? 'CODIGO NUEVO SIN CLASIFICAR' : 'retail') })),
       g_codigos_nuevos_sin_clasificar: [...codigosNuevos],
+      desvios_vs_excel: (() => {
+        const ref = CD_EXCEL_REF[month]; if (!ref) return { nota: 'No hay referencia de Excel para este mes.' };
+        const pct = (obt, exc) => (exc ? Math.round(((obt - exc) / exc) * 1000) / 10 + '%' : '—');
+        return {
+          garden_cerveza_lt: { shopify: transfers.garden.litrosCerveza, excel: ref.garden_lt_cerveza, desvio: pct(transfers.garden.litrosCerveza, ref.garden_lt_cerveza) },
+          retail_web: { shopify: bucket.retail.cobrado, excel: ref.web, desvio: pct(bucket.retail.cobrado, ref.web) },
+          cd_kairos_original: { shopify: bucket.cd_kairos_mall.original, excel: ref.cd_kairos_base, desvio: pct(bucket.cd_kairos_mall.original, ref.cd_kairos_base) },
+          ventas_cruzada_original: { shopify: bucket.ventas_cruzada.original, excel: ref.cruzada_base, desvio: pct(bucket.ventas_cruzada.original, ref.cruzada_base) },
+        };
+      })(),
       meta: { ordenes_mes: orders.length, pedidos_sin_codigo: sinCodigo, precios: CD_PRECIOS, codigos_transfer: CD_TRANSFER_CODES },
     });
   } catch (e) {
