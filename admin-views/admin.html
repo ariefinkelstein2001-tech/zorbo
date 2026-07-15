@@ -2125,7 +2125,10 @@ body.drawer-open{overflow:hidden}
                 <label class="adm-np-pack"><input type="checkbox" class="np-pk-on" checked> <input type="number" class="np-pk-qty" value="12" min="1" step="1"> Pack <input class="adm-input adm-np-price" type="number" placeholder="precio"></label>
                 <label class="adm-np-pack"><input type="checkbox" class="np-pk-on" checked> <input type="number" class="np-pk-qty" value="24" min="1" step="1"> Pack <input class="adm-input adm-np-price" type="number" placeholder="precio"></label>
               </div>
-              <button type="button" class="adm-btn adm-btn-ghost" id="npAddPack" style="margin-top:.5rem">+ Agregar pack</button>
+              <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem">
+                <button type="button" class="adm-btn adm-btn-ghost" id="npAddPack">+ Agregar pack</button>
+                <button type="button" class="adm-btn adm-btn-ghost" id="npAddBarril">+ Agregar barril</button>
+              </div>
             </div>
             <div class="adm-fb-col"><label class="adm-fb-label">Foto de la lata (PNG/JPG)</label>
               <label class="adm-prod-upload"><input type="file" id="npCan" accept="image/png,image/jpeg,image/webp" hidden><span>📷 Subir foto de la lata</span></label>
@@ -3201,7 +3204,9 @@ function drawMaqueta(packLabel){
   const desc = document.getElementById('npDesc').value || '';
   const abv  = (document.getElementById('npAbv').value || '0').replace('%','').trim() + '%';
   const size = document.getElementById('npSize').value || '473ml';
-  const pkNum = ((packLabel || '6 Pack').match(/\d+/) || ['6'])[0];
+  const isBarril = /barril/i.test(packLabel || '');
+  const pkNum = isBarril ? (((packLabel.match(/\d+/) || ['30'])[0]) + 'L') : ((packLabel || '6 Pack').match(/\d+/) || ['6'])[0];
+  const pkWord = isBarril ? 'BARRIL' : 'PACK';
 
   const D = 'Bricolage Grotesque', S = 'DM Sans';
   const TEAL = '#2c7a86', INK = '#111';
@@ -3221,7 +3226,7 @@ function drawMaqueta(packLabel){
   ctx.font = `800 ${numSize}px '${D}', sans-serif`;
   const numW = ctx.measureText(pkNum).width;
   ctx.font = `700 ${Math.round(headH*0.16)}px '${S}', sans-serif`;
-  const packW = ctx.measureText('PACK').width;
+  const packW = ctx.measureText(pkWord).width;
   const gap = pw*0.03;
   const blockW = numW + gap + packW;
   const startX = px + (pw - blockW)/2;
@@ -3229,7 +3234,7 @@ function drawMaqueta(packLabel){
   ctx.font = `800 ${numSize}px '${D}', sans-serif`;
   ctx.fillText(pkNum, startX, baseY);
   ctx.font = `700 ${Math.round(headH*0.16)}px '${S}', sans-serif`;
-  ctx.fillText('PACK', startX + numW + gap, baseY);
+  ctx.fillText(pkWord, startX + numW + gap, baseY);
 
   // cuerpo blanco
   ctx.fillStyle = '#fff'; ctx.fillRect(px, midTop, pw, midH);
@@ -3287,9 +3292,16 @@ function getSelectedPacks(){
   const packs = [];
   document.querySelectorAll('#npPacks .adm-np-pack').forEach(row => {
     const cb = row.querySelector('.np-pk-on');
-    const qty = parseInt(row.querySelector('.np-pk-qty').value, 10);
     const price = row.querySelector('.adm-np-price');
-    if (cb.checked && qty > 0) packs.push({ title: qty + ' Pack', price: price.value || '0' });
+    if (!cb.checked) return;
+    if (row.classList.contains('adm-np-barril')){
+      // Formato barril: el "qty" son los litros. Título "Barril 30L".
+      const lt = parseInt(row.querySelector('.np-pk-liters').value, 10);
+      if (lt > 0) packs.push({ title: 'Barril ' + lt + 'L', price: price.value || '0' });
+    } else {
+      const qty = parseInt(row.querySelector('.np-pk-qty').value, 10);
+      if (qty > 0) packs.push({ title: qty + ' Pack', price: price.value || '0' });
+    }
   });
   return packs;
 }
@@ -3299,6 +3311,13 @@ document.getElementById('npAddPack')?.addEventListener('click', () => {
   row.innerHTML = '<input type="checkbox" class="np-pk-on" checked> <input type="number" class="np-pk-qty" min="1" step="1" placeholder="6"> Pack <input class="adm-input adm-np-price" type="number" placeholder="precio">';
   document.getElementById('npPacks').appendChild(row);
   row.querySelector('.np-pk-qty').focus();
+});
+document.getElementById('npAddBarril')?.addEventListener('click', () => {
+  const row = document.createElement('label');
+  row.className = 'adm-np-pack adm-np-barril';
+  row.innerHTML = '<input type="checkbox" class="np-pk-on" checked> Barril <input type="number" class="np-pk-liters" value="30" min="1" step="1"> L <input class="adm-input adm-np-price" type="number" placeholder="precio">';
+  document.getElementById('npPacks').appendChild(row);
+  row.querySelector('.np-pk-liters').focus();
 });
 
 document.getElementById('npCreate').onclick = async () => {
