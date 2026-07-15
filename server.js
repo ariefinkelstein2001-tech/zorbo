@@ -2383,24 +2383,33 @@ const CD_ESTILO_DICT = [
   { k: 'good bye my lover', estilo: 'Colección de Artista', tipo: 'cerveza' },
   { k: 'valle nevado', estilo: 'Colección de Artista', tipo: 'cerveza' },
   { k: 'goat father', estilo: 'Colección de Artista', tipo: 'cerveza' },
+  { k: 'goatfather', estilo: 'Colección de Artista', tipo: 'cerveza' },
+  { k: 'goattfather', estilo: 'Colección de Artista', tipo: 'cerveza' },
+  { k: 'american amber ale', estilo: 'Ambar', tipo: 'cerveza' },
+  { k: 'amber ale', estilo: 'Ambar', tipo: 'cerveza' },
+  { k: 'amber', estilo: 'Ambar', tipo: 'cerveza' },
+  { k: 'stout', estilo: 'Obertura', tipo: 'cerveza' },
 ];
 function cdEstiloOf(prodTitle, varTitle){
   const t = ' ' + cdNorm((prodTitle || '') + ' ' + (varTitle || '')) + ' ';
   for (const d of CD_ESTILO_DICT) if (t.includes(' ' + cdNorm(d.k) + ' ')) return { estilo: d.estilo, tipo: d.tipo };
   return null;
 }
-// Litros por unidad de la variante, derivado del título (barril NNL, pack N×473cc…).
+// Litros por unidad de la variante, derivado del título. Reglas reales de Shopify:
+//   - Barriles/growlers: el número + "Litros"/"lt"/"l" (ej "Barril ... :: 30 Litros")
+//   - Latas/botellas: tamaño sub-litro en cc/cm3/ml (ej "Lata (473 cm3)")
+//     multiplicado por la cantidad del pack (6/12/24 Pack, N latas, caja N).
 function cdLitrosUnidad(prodTitle, varTitle){
   const t = ((prodTitle || '') + ' ' + (varTitle || '')).toLowerCase();
-  let m = t.match(/barril\s*(\d+(?:[.,]\d+)?)\s*l/); if (m) return parseFloat(m[1].replace(',', '.'));
-  m = t.match(/growler\s*(\d+(?:[.,]\d+)?)\s*l/); if (m) return parseFloat(m[1].replace(',', '.'));
-  // tamaño de la lata/botella
-  let size = 0.473;
-  let s = t.match(/(\d+)\s*cc/); if (s) size = parseInt(s[1], 10) / 1000;
-  else { s = t.match(/(\d+)\s*ml/); if (s) size = parseInt(s[1], 10) / 1000; }
-  // cantidad de unidades (pack N, N latas)
+  // Litros explícitos (barril, growler): "30 litros", "30 lt", "30 l", "1,5 l".
+  const litM = t.match(/(\d+(?:[.,]\d+)?)\s*(?:litros?|lts?|l)\b/);
+  // Tamaño sub-litro: cc / cm3 / ml.
+  const subM = t.match(/(\d+)\s*(?:cm3|cc|ml)\b/);
+  if (litM && !subM) return parseFloat(litM[1].replace(',', '.'));
+  const size = subM ? parseInt(subM[1], 10) / 1000 : 0.473;
+  // Cantidad de unidades del formato (pack N / N latas / caja N). Barril y lata suelta = 1.
   let n = 1;
-  let p = (varTitle || '').match(/(\d+)\s*pack/i) || t.match(/(\d+)\s*pack/) || t.match(/(\d+)\s*latas?/) || t.match(/caja\s*(\d+)/);
+  const p = (varTitle || '').match(/(\d+)\s*pack/i) || t.match(/(\d+)\s*pack/) || t.match(/(\d+)\s*latas?/) || t.match(/caja\s*(\d+)/);
   if (p) n = parseInt(p[1], 10);
   return Math.round(n * size * 1000) / 1000;
 }
@@ -2473,14 +2482,20 @@ function cdClassifyCustomer(customer){
   if (/500 sabores/.test(name) || /500 sabores/.test(company)) return { grupo: 'cruzada', estado: 'limpio', pdv: '500 Sabores SpA' };
   if (/kairos garden/.test(name) || /badass/.test(name)) return { grupo: 'transfer', estado: 'limpio', pdv: customer.displayName };
   const pdv = cdLoadPdv();
-  const hay = name + ' ' + company;
-  const matches = pdv.filter(p => { const ln = cdNorm(p.local); return ln && hay.includes(ln); });
-  if (!matches.length) return { grupo: null, estado: 'sin_clasificar', pdv: null };
-  if (matches.length === 1) return { grupo: matches[0].grupo, estado: 'limpio', pdv: matches[0].local + ' (' + matches[0].zona + ')' };
-  // Ambiguo por nombre: desambiguar por zona en la dirección.
-  const byZona = matches.filter(p => { const z = cdNorm(p.zona); return z && addr.includes(z); });
-  if (byZona.length === 1) return { grupo: byZona[0].grupo, estado: 'limpio', pdv: byZona[0].local + ' (' + byZona[0].zona + ')' };
-  return { grupo: null, estado: 'ambiguo', pdv: matches.map(p => p.local + '/' + p.zona).join(' | ') };
+  const hay = name + ' ' + company + ' ' + addr;
+  // Candidatos: puntos de venta cuyo LOCAL o ZONA aparece en el cliente.
+  const cand = pdv.filter(p => { const ln = cdNorm(p.local), zn = cdNorm(p.zona); return (ln && hay.includes(ln)) || (zn && hay.includes(zn)); });
+  if (!cand.length) return { grupo: null, estado: 'sin_clasificar', pdv: null };
+  const grupos = [...new Set(cand.map(p => p.grupo))];
+  if (grupos.length === 1) {
+    const best = cand.find(p => { const zn = cdNorm(p.zona); return zn && hay.includes(zn); }) || cand[0];
+    return { grupo: grupos[0], estado: 'limpio', pdv: best.local + ' (' + best.zona + ')' };
+  }
+  // Zonas de distinto grupo: desambiguar por zona explícita en el cliente.
+  const byZona = cand.filter(p => { const zn = cdNorm(p.zona); return zn && hay.includes(zn); });
+  const zg = [...new Set(byZona.map(p => p.grupo))];
+  if (zg.length === 1) return { grupo: zg[0], estado: 'limpio', pdv: byZona[0].local + ' (' + byZona[0].zona + ')' };
+  return { grupo: null, estado: 'ambiguo', pdv: cand.slice(0, 4).map(p => p.local + '/' + p.zona).join(' | ') };
 }
 const cdMoney = (n) => Math.round(Number(n) || 0);
 function cdOrderIsMayorista(o){ return (o.customer && (o.customer.tags || []).some(t => /mayorista/i.test(t))); }
@@ -2501,12 +2516,17 @@ app.get('/admin/cd/diag', requireAdmin, async (req, res) => {
       litrosByEstiloGrupo[grupo][key] = (litrosByEstiloGrupo[grupo][key] || 0) + lt;
     };
     let webNeto = 0, cdKairosMayoristaNeto = 0;
-    const transfers = { garden: { litros: 0, valor: 0, ordenes: 0 }, badass: { litros: 0, valor: 0, ordenes: 0 } };
+    const transfers = { garden: { litros: 0, valor: 0, ordenes: 0, porCodigo: 0, porCliente: 0 }, badass: { litros: 0, valor: 0, ordenes: 0, porCodigo: 0, porCliente: 0 } };
     let clean = 0, ambiguo = 0, sinClasificar = 0;
     const sinClasificarList = new Set();
     for (const o of orders) {
       const codes = (o.discountCodes || []).map(c => String(c).toUpperCase());
-      const transferLocal = codes.map(c => CD_TRANSFER_CODES[c]).find(Boolean);
+      const byCode = codes.map(c => CD_TRANSFER_CODES[c]).find(Boolean);
+      // Respaldo: por cliente "Kairos Garden VSP" / "Badass PA".
+      const cn = cdNorm(o.customer && o.customer.displayName);
+      const byCust = /kairos garden/.test(cn) ? 'garden' : /badass/.test(cn) ? 'badass' : null;
+      const transferLocal = byCode || byCust;
+      if (transferLocal) { if (byCode) transfers[transferLocal].porCodigo++; else transfers[transferLocal].porCliente++; }
       const isMayo = cdOrderIsMayorista(o);
       const cls = cdClassifyCustomer(o.customer);
       if (cls.estado === 'limpio') clean++; else if (cls.estado === 'ambiguo') ambiguo++; else { sinClasificar++; if (o.customer) sinClasificarList.add(o.customer.displayName || o.customer.email || o.customer.id); }
