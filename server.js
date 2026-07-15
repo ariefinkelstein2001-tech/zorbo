@@ -2338,6 +2338,230 @@ app.delete('/admin/products/:id/file', requireAdmin, (req, res) => {
   }
 });
 
+// ─── Estado de Resultado CD · DIAGNÓSTICO (read-only) ────────────────────────
+// Solo lee de Shopify (órdenes + clientes + productos), NO escribe nada. Sirve
+// para validar, antes de construir el módulo: detección de transferencias por
+// código de descuento, clasificación cliente→punto de venta→grupo, mapeo
+// producto→estilo→litros→tipo, y los tests contra el Excel de julio.
+const cdNorm = (s) => String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+let CD_PDV_CACHE = null;
+function cdLoadPdv(){
+  if (CD_PDV_CACHE) return CD_PDV_CACHE;
+  try { CD_PDV_CACHE = JSON.parse(readFileSync(join(__dirname, 'cd-pdv-seed.json'), 'utf-8')).puntos || []; }
+  catch { CD_PDV_CACHE = []; }
+  return CD_PDV_CACHE;
+}
+// Precios de transferencia (config; hoy fijos, luego editables en el módulo).
+const CD_PRECIOS = { cerveza: 1830, gin: 7447, ron: 6617, despacho: 1033 };
+// Códigos de descuento con que se marcan las transferencias 100% off.
+const CD_TRANSFER_CODES = { PEDIDOGARDENVSP: 'garden', PEDIDOSBADASSPA: 'badass' };
+// Diccionario keyword→{estilo,tipo}. El primero que matchee en el título gana.
+// Lo que no matchee queda "sin mapear" (no se adivina).
+const CD_ESTILO_DICT = [
+  { k: 'rey de copas', estilo: 'Ron Rey de Copas', tipo: 'ron' },
+  { k: 'ron', estilo: 'Ron Rey de Copas', tipo: 'ron' },
+  { k: 'gin', estilo: 'Gin', tipo: 'gin' },
+  { k: 'banny', estilo: 'Gin', tipo: 'gin' },
+  { k: 'neipa', estilo: 'NEIPA', tipo: 'cerveza' },
+  { k: 'weizen', estilo: 'Weizen', tipo: 'cerveza' },
+  { k: 'golden', estilo: 'Golden', tipo: 'cerveza' },
+  { k: 'pils', estilo: 'Pils', tipo: 'cerveza' },
+  { k: 'apa', estilo: 'APA', tipo: 'cerveza' },
+  { k: 'alerta roja', estilo: 'Red', tipo: 'cerveza' },
+  { k: 'red', estilo: 'Red', tipo: 'cerveza' },
+  { k: 'oatmeal', estilo: 'Obertura', tipo: 'cerveza' },
+  { k: 'obertura', estilo: 'Obertura', tipo: 'cerveza' },
+  { k: 'hoyo en uno', estilo: 'Hoppy Lagger', tipo: 'cerveza' },
+  { k: 'hoppy', estilo: 'Hoppy Lagger', tipo: 'cerveza' },
+  { k: 'samba', estilo: 'IPA', tipo: 'cerveza' },
+  { k: 'ipa', estilo: 'IPA', tipo: 'cerveza' },
+  { k: 'kenny bell', estilo: 'Ambar', tipo: 'cerveza' },
+  { k: 'ambar', estilo: 'Ambar', tipo: 'cerveza' },
+  { k: 'cachupin', estilo: 'Cachupín', tipo: 'cerveza' },
+  { k: 'osagui', estilo: 'Osagui', tipo: 'cerveza' },
+  { k: 'acholada', estilo: 'Acholada', tipo: 'cerveza' },
+  { k: 'good bye my lover', estilo: 'Colección de Artista', tipo: 'cerveza' },
+  { k: 'valle nevado', estilo: 'Colección de Artista', tipo: 'cerveza' },
+  { k: 'goat father', estilo: 'Colección de Artista', tipo: 'cerveza' },
+];
+function cdEstiloOf(prodTitle, varTitle){
+  const t = ' ' + cdNorm((prodTitle || '') + ' ' + (varTitle || '')) + ' ';
+  for (const d of CD_ESTILO_DICT) if (t.includes(' ' + cdNorm(d.k) + ' ')) return { estilo: d.estilo, tipo: d.tipo };
+  return null;
+}
+// Litros por unidad de la variante, derivado del título (barril NNL, pack N×473cc…).
+function cdLitrosUnidad(prodTitle, varTitle){
+  const t = ((prodTitle || '') + ' ' + (varTitle || '')).toLowerCase();
+  let m = t.match(/barril\s*(\d+(?:[.,]\d+)?)\s*l/); if (m) return parseFloat(m[1].replace(',', '.'));
+  m = t.match(/growler\s*(\d+(?:[.,]\d+)?)\s*l/); if (m) return parseFloat(m[1].replace(',', '.'));
+  // tamaño de la lata/botella
+  let size = 0.473;
+  let s = t.match(/(\d+)\s*cc/); if (s) size = parseInt(s[1], 10) / 1000;
+  else { s = t.match(/(\d+)\s*ml/); if (s) size = parseInt(s[1], 10) / 1000; }
+  // cantidad de unidades (pack N, N latas)
+  let n = 1;
+  let p = (varTitle || '').match(/(\d+)\s*pack/i) || t.match(/(\d+)\s*pack/) || t.match(/(\d+)\s*latas?/) || t.match(/caja\s*(\d+)/);
+  if (p) n = parseInt(p[1], 10);
+  return Math.round(n * size * 1000) / 1000;
+}
+async function cdShopifyGraph(query, variables){
+  return shopifyAdminFetch('/graphql.json', { method: 'POST', body: JSON.stringify({ query, variables }) });
+}
+// Órdenes de un mes con código de descuento + tags del cliente + líneas.
+const CD_ORDERS_QUERY = `query($cursor:String,$q:String){
+  orders(first:100, after:$cursor, query:$q, sortKey:CREATED_AT){
+    edges{ cursor node{
+      id name createdAt discountCodes
+      totalPriceSet{ shopMoney{ amount } }
+      customer{ id displayName email tags defaultAddress{ company address1 city province } }
+      lineItems(first:50){ nodes{
+        quantity
+        originalTotalSet{ shopMoney{ amount } }
+        variant{ id title sku }
+        product{ id title tags }
+      } }
+    } }
+    pageInfo{ hasNextPage }
+  }
+}`;
+async function cdLoadMonthOrders(month){
+  const [y, mo] = month.split('-').map(Number);
+  const start = `${y}-${String(mo).padStart(2, '0')}-01`;
+  const endD = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+  const end = `${y}-${String(mo).padStart(2, '0')}-${String(endD).padStart(2, '0')}`;
+  const q = `created_at:>=${start} created_at:<=${end} status:any`;
+  const orders = []; let cursor = null;
+  for (let page = 0; page < 20; page++) {
+    const resp = await cdShopifyGraph(CD_ORDERS_QUERY, { cursor, q });
+    if (resp.errors) throw new Error(JSON.stringify(resp.errors));
+    const conn = resp.data.orders;
+    for (const e of conn.edges) orders.push(e.node);
+    if (!conn.pageInfo.hasNextPage) break;
+    cursor = conn.edges[conn.edges.length - 1].cursor;
+  }
+  return orders;
+}
+// Histograma de tags de clientes (para ver si hay uno que distinga 500 Sabores/zonas).
+const CD_CUSTOMERS_QUERY = `query($cursor:String){
+  customers(first:200, after:$cursor){
+    edges{ cursor node{ id displayName tags } }
+    pageInfo{ hasNextPage }
+  }
+}`;
+async function cdCustomerTagHistogram(){
+  const hist = {}; let cursor = null; let total = 0;
+  for (let page = 0; page < 30; page++) {
+    const resp = await cdShopifyGraph(CD_CUSTOMERS_QUERY, { cursor });
+    if (resp.errors) throw new Error(JSON.stringify(resp.errors));
+    const conn = resp.data.customers;
+    for (const e of conn.edges) {
+      total++;
+      (e.node.tags || []).forEach(t => { const k = String(t).trim(); if (k) hist[k] = (hist[k] || 0) + 1; });
+    }
+    if (!conn.pageInfo.hasNextPage) break;
+    cursor = conn.edges[conn.edges.length - 1].cursor;
+  }
+  return { totalClientes: total, tags: Object.entries(hist).sort((a, b) => b[1] - a[1]).map(([tag, count]) => ({ tag, count })) };
+}
+// Clasifica un cliente Shopify → punto de venta → grupo (cruzada/cd_kairos), usando
+// el maestro. Devuelve {grupo, pdv, estado: limpio|ambiguo|sin_clasificar}.
+function cdClassifyCustomer(customer){
+  const name = cdNorm(customer && customer.displayName);
+  const company = cdNorm(customer && customer.defaultAddress && customer.defaultAddress.company);
+  const addr = cdNorm([customer && customer.defaultAddress && customer.defaultAddress.address1, customer && customer.defaultAddress && customer.defaultAddress.city, customer && customer.defaultAddress && customer.defaultAddress.province].filter(Boolean).join(' '));
+  if (!name && !company) return { grupo: null, estado: 'sin_clasificar', pdv: null };
+  if (/500 sabores/.test(name) || /500 sabores/.test(company)) return { grupo: 'cruzada', estado: 'limpio', pdv: '500 Sabores SpA' };
+  if (/kairos garden/.test(name) || /badass/.test(name)) return { grupo: 'transfer', estado: 'limpio', pdv: customer.displayName };
+  const pdv = cdLoadPdv();
+  const hay = name + ' ' + company;
+  const matches = pdv.filter(p => { const ln = cdNorm(p.local); return ln && hay.includes(ln); });
+  if (!matches.length) return { grupo: null, estado: 'sin_clasificar', pdv: null };
+  if (matches.length === 1) return { grupo: matches[0].grupo, estado: 'limpio', pdv: matches[0].local + ' (' + matches[0].zona + ')' };
+  // Ambiguo por nombre: desambiguar por zona en la dirección.
+  const byZona = matches.filter(p => { const z = cdNorm(p.zona); return z && addr.includes(z); });
+  if (byZona.length === 1) return { grupo: byZona[0].grupo, estado: 'limpio', pdv: byZona[0].local + ' (' + byZona[0].zona + ')' };
+  return { grupo: null, estado: 'ambiguo', pdv: matches.map(p => p.local + '/' + p.zona).join(' | ') };
+}
+const cdMoney = (n) => Math.round(Number(n) || 0);
+function cdOrderIsMayorista(o){ return (o.customer && (o.customer.tags || []).some(t => /mayorista/i.test(t))); }
+app.get('/admin/cd/diag', requireAdmin, async (req, res) => {
+  if (!process.env.SHOPIFY_ADMIN_TOKEN) return res.status(503).json({ error: 'Shopify no conectado.' });
+  const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : '2026-07';
+  try {
+    // (a) tags de clientes
+    const tagsHist = await cdCustomerTagHistogram();
+    // órdenes del mes
+    const orders = await cdLoadMonthOrders(month);
+    // (e-pre) resolver estilo/litros por línea reutilizable
+    const estiloUnmapped = new Map(); // productTitle -> {variant, count}
+    const litrosByEstiloGrupo = {}; // grupo -> estilo -> litros
+    const addLitros = (grupo, estilo, tipo, lt) => {
+      litrosByEstiloGrupo[grupo] = litrosByEstiloGrupo[grupo] || {};
+      const key = estilo + '|' + tipo;
+      litrosByEstiloGrupo[grupo][key] = (litrosByEstiloGrupo[grupo][key] || 0) + lt;
+    };
+    let webNeto = 0, cdKairosMayoristaNeto = 0;
+    const transfers = { garden: { litros: 0, valor: 0, ordenes: 0 }, badass: { litros: 0, valor: 0, ordenes: 0 } };
+    let clean = 0, ambiguo = 0, sinClasificar = 0;
+    const sinClasificarList = new Set();
+    for (const o of orders) {
+      const codes = (o.discountCodes || []).map(c => String(c).toUpperCase());
+      const transferLocal = codes.map(c => CD_TRANSFER_CODES[c]).find(Boolean);
+      const isMayo = cdOrderIsMayorista(o);
+      const cls = cdClassifyCustomer(o.customer);
+      if (cls.estado === 'limpio') clean++; else if (cls.estado === 'ambiguo') ambiguo++; else { sinClasificar++; if (o.customer) sinClasificarList.add(o.customer.displayName || o.customer.email || o.customer.id); }
+      // Líneas → litros/estilo (para transferencias) + neto revalorizado
+      for (const li of (o.lineItems && o.lineItems.nodes) || []) {
+        const est = cdEstiloOf(li.product && li.product.title, li.variant && li.variant.title);
+        const ltUnid = cdLitrosUnidad(li.product && li.product.title, li.variant && li.variant.title);
+        const litros = (Number(li.quantity) || 0) * ltUnid;
+        if (transferLocal) {
+          if (est) addLitros(transferLocal, est.estilo, est.tipo, litros);
+          else if (li.product) { const k = li.product.title + ' :: ' + (li.variant ? li.variant.title : ''); estiloUnmapped.set(k, (estiloUnmapped.get(k) || 0) + 1); }
+        }
+      }
+      // Clasificación de ingresos
+      const orig = (o.lineItems && o.lineItems.nodes || []).reduce((a, li) => a + parseFloat((li.originalTotalSet && li.originalTotalSet.shopMoney && li.originalTotalSet.shopMoney.amount) || 0), 0);
+      const total = parseFloat((o.totalPriceSet && o.totalPriceSet.shopMoney && o.totalPriceSet.shopMoney.amount) || 0);
+      if (transferLocal) {
+        transfers[transferLocal].ordenes++;
+      } else if (isMayo && cls.grupo === 'cd_kairos') {
+        cdKairosMayoristaNeto += total;
+      } else if (!isMayo && cls.grupo !== 'cruzada' && cls.grupo !== 'transfer') {
+        webNeto += total; // retail real (aprox; excluye mayoristas/500/garden/badass)
+      }
+    }
+    // valorizar transferencias garden/badass a precio de transferencia
+    for (const loc of ['garden', 'badass']) {
+      const byE = litrosByEstiloGrupo[loc] || {};
+      let litros = 0, valor = 0;
+      for (const [key, lt] of Object.entries(byE)) {
+        const tipo = key.split('|')[1];
+        const precio = CD_PRECIOS[tipo] || CD_PRECIOS.cerveza;
+        litros += lt; valor += lt * precio + CD_PRECIOS.despacho * lt;
+      }
+      transfers[loc].litros = Math.round(litros * 1000) / 1000;
+      transfers[loc].valor = cdMoney(valor);
+      transfers[loc].porEstilo = Object.entries(byE).map(([k, lt]) => ({ estilo: k.split('|')[0], tipo: k.split('|')[1], litros: Math.round(lt * 1000) / 1000 })).sort((a, b) => b.litros - a.litros);
+    }
+    res.json({
+      month,
+      a_tags: tagsHist,
+      c_clasificacion: { limpio: clean, ambiguo, sin_clasificar: sinClasificar, ejemplos_sin_clasificar: [...sinClasificarList].slice(0, 40) },
+      d_cd_kairos: { total_mayorista_no_500_garden_badass: cdMoney(cdKairosMayoristaNeto), excel: 30496638, diferencia: cdMoney(cdKairosMayoristaNeto - 30496638) },
+      e_transferencias: transfers,
+      e_test_garden: { esperado: { litros_cerveza: 2700, gin: 160, ron: 140, valor: 10157900 }, obtenido: transfers.garden },
+      e_sin_mapear: [...estiloUnmapped.entries()].map(([k, c]) => ({ producto: k, lineas: c })),
+      f_web_retail_aprox: cdMoney(webNeto),
+      meta: { ordenes_mes: orders.length, precios: CD_PRECIOS, codigos_transfer: CD_TRANSFER_CODES },
+    });
+  } catch (e) {
+    const msg = String(e.message || e);
+    if (/read_orders|read_customers|access denied|scope|not approved/i.test(msg)) return res.status(403).json({ error: 'Falta permiso Shopify (read_orders/read_customers). Re-autorizá la app.' });
+    res.status(500).json({ error: 'Error en diagnóstico: ' + msg.slice(0, 400) });
+  }
+});
+
 // ─── Conversaciones (embudo) ────────────────────────────────────────────────
 // Listado y detalle de las sesiones de chat ya persistidas en CONV_LOG. El
 // listado va liviano (resumen + primer/último mensaje); el detalle trae la
