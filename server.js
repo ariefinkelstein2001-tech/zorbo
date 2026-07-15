@@ -2477,24 +2477,30 @@ async function cdCustomerTagHistogram(){
 // Clasifica un cliente Shopify → punto de venta → grupo (cruzada/cd_kairos), usando
 // el maestro. Devuelve {grupo, pdv, estado: limpio|ambiguo|sin_clasificar}.
 function cdClassifyCustomer(customer){
+  // SOLO nombre del cliente + company. NO la dirección: las calles/comunas de
+  // clientes retail (personas) matcheaban zonas por error. Nunca se defaultea a
+  // mayorista: si no matchea un local o zona del maestro, es retail.
   const name = cdNorm(customer && customer.displayName);
   const company = cdNorm(customer && customer.defaultAddress && customer.defaultAddress.company);
-  const addr = cdNorm([customer && customer.defaultAddress && customer.defaultAddress.address1, customer && customer.defaultAddress && customer.defaultAddress.city, customer && customer.defaultAddress && customer.defaultAddress.province].filter(Boolean).join(' '));
   if (!name && !company) return { grupo: null, estado: 'sin_clasificar', pdv: null };
   if (/500 sabores/.test(name) || /500 sabores/.test(company)) return { grupo: 'cruzada', estado: 'limpio', pdv: '500 Sabores SpA' };
   if (/kairos garden/.test(name) || /badass/.test(name)) return { grupo: 'transfer', estado: 'limpio', pdv: customer.displayName };
   const pdv = cdLoadPdv();
-  const hay = name + ' ' + company + ' ' + addr;
-  // Candidatos: puntos de venta cuyo LOCAL o ZONA aparece en el cliente.
-  const cand = pdv.filter(p => { const ln = cdNorm(p.local), zn = cdNorm(p.zona); return (ln && hay.includes(ln)) || (zn && hay.includes(zn)); });
+  // Comparación sin espacios (tolera "Mallplaza" vs "Mall plaza") y solo nombres
+  // de local/zona de ≥5 chars (evita ruido de nombres cortos tipo Muu/Mila/Udon).
+  const squish = s => cdNorm(s).replace(/\s+/g, '');
+  const hay = squish((customer && customer.displayName) + ' ' + (company ? customer.defaultAddress.company : ''));
+  const matchLocal = p => { const k = squish(p.local); return k.length >= 5 && hay.includes(k); };
+  const matchZona = p => { const k = squish(p.zona); return k.length >= 5 && hay.includes(k); };
+  const cand = pdv.filter(p => matchLocal(p) || matchZona(p));
   if (!cand.length) return { grupo: null, estado: 'sin_clasificar', pdv: null };
   const grupos = [...new Set(cand.map(p => p.grupo))];
   if (grupos.length === 1) {
-    const best = cand.find(p => { const zn = cdNorm(p.zona); return zn && hay.includes(zn); }) || cand[0];
+    const best = cand.find(matchZona) || cand[0];
     return { grupo: grupos[0], estado: 'limpio', pdv: best.local + ' (' + best.zona + ')' };
   }
-  // Zonas de distinto grupo: desambiguar por zona explícita en el cliente.
-  const byZona = cand.filter(p => { const zn = cdNorm(p.zona); return zn && hay.includes(zn); });
+  // Local ambiguo entre grupos: desambiguar por la ZONA presente en el nombre.
+  const byZona = cand.filter(matchZona);
   const zg = [...new Set(byZona.map(p => p.grupo))];
   if (zg.length === 1) return { grupo: zg[0], estado: 'limpio', pdv: byZona[0].local + ' (' + byZona[0].zona + ')' };
   return { grupo: null, estado: 'ambiguo', pdv: cand.slice(0, 4).map(p => p.local + '/' + p.zona).join(' | ') };
@@ -2521,11 +2527,14 @@ app.get('/admin/cd/diag', requireAdmin, async (req, res) => {
     const transfers = { garden: { litros: 0, valor: 0, ordenes: 0, porCodigo: 0, porCliente: 0 }, badass: { litros: 0, valor: 0, ordenes: 0, porCodigo: 0, porCliente: 0 } };
     let clean = 0, ambiguo = 0, sinClasificar = 0;
     const sinClasificarList = new Set();
-    // Total DURO de todos los pedidos (evidencia CD Kairos no está en Shopify).
-    const bucket = { transferencias: { n: 0, cobrado: 0, original: 0 }, ventas_cruzada: { n: 0, cobrado: 0 }, cd_kairos_mall: { n: 0, cobrado: 0 }, retail: { n: 0, cobrado: 0 }, ambiguo: { n: 0, cobrado: 0 } };
+    // Total DURO de todos los pedidos, con COBRADO y ORIGINAL (pre-descuento) por
+    // bucket: revela si los mayoristas piden por Shopify a $0 (como las transferencias).
+    const bucket = { transferencias: { n: 0, cobrado: 0, original: 0 }, ventas_cruzada: { n: 0, cobrado: 0, original: 0 }, cd_kairos_mall: { n: 0, cobrado: 0, original: 0 }, retail: { n: 0, cobrado: 0, original: 0 }, ambiguo: { n: 0, cobrado: 0, original: 0 } };
     let totalCobrado = 0, totalOriginal = 0;
+    const codesHist = {}; // código de descuento -> nº de pedidos
     for (const o of orders) {
       const codes = (o.discountCodes || []).map(c => String(c).toUpperCase());
+      codes.forEach(c => { if (c) codesHist[c] = (codesHist[c] || 0) + 1; });
       const byCode = codes.map(c => CD_TRANSFER_CODES[c]).find(Boolean);
       // Respaldo: por cliente "Kairos Garden VSP" / "Badass PA".
       const cn = cdNorm(o.customer && o.customer.displayName);
@@ -2553,18 +2562,18 @@ app.get('/admin/cd/diag', requireAdmin, async (req, res) => {
         transfers[transferLocal].ordenes++;
         bucket.transferencias.n++; bucket.transferencias.cobrado += total; bucket.transferencias.original += orig;
       } else if (cls.grupo === 'cruzada') {
-        bucket.ventas_cruzada.n++; bucket.ventas_cruzada.cobrado += total;
+        bucket.ventas_cruzada.n++; bucket.ventas_cruzada.cobrado += total; bucket.ventas_cruzada.original += orig;
       } else if (cls.grupo === 'cd_kairos') {
-        bucket.cd_kairos_mall.n++; bucket.cd_kairos_mall.cobrado += total;
+        bucket.cd_kairos_mall.n++; bucket.cd_kairos_mall.cobrado += total; bucket.cd_kairos_mall.original += orig;
         cdKairosMayoristaNeto += total;
       } else if (cls.estado === 'ambiguo') {
-        bucket.ambiguo.n++; bucket.ambiguo.cobrado += total;
+        bucket.ambiguo.n++; bucket.ambiguo.cobrado += total; bucket.ambiguo.original += orig;
       } else {
-        bucket.retail.n++; bucket.retail.cobrado += total; // personas / sin clasificar = retail
+        bucket.retail.n++; bucket.retail.cobrado += total; bucket.retail.original += orig; // personas / sin clasificar = retail
         webNeto += total;
       }
     }
-    for (const k of Object.keys(bucket)) { bucket[k].cobrado = cdMoney(bucket[k].cobrado); if (bucket[k].original != null) bucket[k].original = cdMoney(bucket[k].original); }
+    for (const k of Object.keys(bucket)) { bucket[k].cobrado = cdMoney(bucket[k].cobrado); bucket[k].original = cdMoney(bucket[k].original); }
     bucket.retail.promedio = bucket.retail.n ? cdMoney(bucket.retail.cobrado / bucket.retail.n) : 0;
     // valorizar transferencias garden/badass a precio de transferencia
     for (const loc of ['garden', 'badass']) {
@@ -2588,7 +2597,8 @@ app.get('/admin/cd/diag', requireAdmin, async (req, res) => {
       e_test_garden: { esperado: { litros_cerveza: 2700, gin: 160, ron: 140, valor: 10157900 }, obtenido: transfers.garden },
       e_sin_mapear: [...estiloUnmapped.entries()].map(([k, c]) => ({ producto: k, lineas: c })),
       f_web_retail_aprox: cdMoney(webNeto),
-      hard_total: { ordenes: orders.length, total_cobrado_shopify: cdMoney(totalCobrado), total_original_pre_descuento: cdMoney(totalOriginal), excel_ingresos_julio: 52085893, desglose: bucket },
+      hard_total: { ordenes: orders.length, total_cobrado_shopify: cdMoney(totalCobrado), total_original_pre_descuento: cdMoney(totalOriginal), excel_ingresos_julio: 52085893, excel_cd_kairos: 30496638, excel_ventas_cruzada: 5695733, desglose: bucket },
+      g_codigos_descuento: Object.entries(codesHist).sort((a, b) => b[1] - a[1]).map(([codigo, pedidos]) => ({ codigo, pedidos })),
       meta: { ordenes_mes: orders.length, precios: CD_PRECIOS, codigos_transfer: CD_TRANSFER_CODES },
     });
   } catch (e) {
