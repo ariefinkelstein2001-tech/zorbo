@@ -2483,19 +2483,25 @@ function cdWebDetalle(o){
   const fos = (o.fulfillmentOrders && o.fulfillmentOrders.nodes) || [];
   const fo = fos.find(f => f && f.deliveryMethod) || fos[0] || null;
   const methodType = (fo && fo.deliveryMethod && fo.deliveryMethod.methodType) || '';
-  const asignada = (fo && fo.assignedLocation && fo.assignedLocation.name) || '';
   const shipTitle = (o.shippingLine && o.shippingLine.title) || '';
   const shipCode = (o.shippingLine && o.shippingLine.code) || '';
-  let trackCompany = '';
-  for (const f of (o.fulfillments || [])) { const c = (f.trackingInfo || []).map(t => t && t.company).filter(Boolean)[0]; if (c) { trackCompany = c; break; } }
+  let trackCompany = '', fulfLoc = '';
+  for (const f of (o.fulfillments || [])) {
+    if (!trackCompany) { const c = (f.trackingInfo || []).map(t => t && t.company).filter(Boolean)[0]; if (c) trackCompany = c; }
+    if (!fulfLoc && f && f.location && f.location.name) fulfLoc = f.location.name;
+  }
+  const retailLoc = (o.retailLocation && o.retailLocation.name) || '';
+  // Ubicación de la que sale/donde ocurre el pedido, en orden de preferencia.
+  const asignada = (fo && fo.assignedLocation && fo.assignedLocation.name) || fulfLoc || retailLoc || '';
   const appName = (o.app && o.app.name) || '';
   const source = o.sourceName || '';
   // El texto que describe el método de envío / origen elegido.
   const metodoTxt = shipTitle || trackCompany || shipCode || '';
-  // 1) Presencial: Kioskify / POS.
+  // 1) Presencial: Kioskify / POS. La tienda es la retailLocation (o assignedLocation).
   if (/kioskify|point of sale|\bpos\b/i.test(appName + ' ' + source)) {
-    const tienda = cdKairosTienda(asignada) || cdKairosTienda(appName);
-    return { entrega: 'Tienda', canal: 'tienda', tienda, local: asignada || 'Kioskify', courier: '', origen: asignada || '', metodo: appName || 'Kioskify' };
+    const tiendaLoc = retailLoc || asignada || '';
+    const tienda = cdKairosTienda(tiendaLoc) || cdKairosTienda(appName);
+    return { entrega: 'Tienda', canal: 'tienda', tienda, local: tiendaLoc || 'Kioskify', courier: '', origen: tiendaLoc || '', metodo: appName || 'Kioskify' };
   }
   // 2) Retiro en tienda: el método/origen nombra un local Kairos (o es PICK_UP).
   const tiendaMetodo = cdKairosTienda(metodoTxt) || cdKairosTienda(asignada);
@@ -2504,7 +2510,7 @@ function cdWebDetalle(o){
     const tienda = tiendaMetodo;
     return { entrega: 'Retiro', canal: 'retiro', tienda, local: metodoTxt || asignada || (tienda ? 'Kairos ' + tienda : ''), courier: '', origen: metodoTxt || asignada || '', metodo: metodoTxt };
   }
-  // 3) Despacho: courier PKT1 / Flapp ("Other") / otro.
+  // 3) Despacho: courier PKT1 / Flapp ("Other") / otro. Origen = de dónde sale.
   const courier = cdCourierName(metodoTxt);
   return { entrega: 'Despacho', canal: 'despacho', tienda: '', local: '', courier, origen: asignada || '', metodo: metodoTxt };
 }
@@ -2585,16 +2591,22 @@ const CD_ORDER_FIELDS_BASE = `
         variant{ id title sku }
         product{ id title vendor tags }
       } }`;
-// Detalle de entrega (courier + método) — read_orders. Para saber si un pedido
-// web fue con despacho (PKT1/Flapp) o retiro en local.
+// Detalle de entrega (courier + método + tienda POS) — read_orders. `retailLocation`
+// es la tienda física donde se hizo la venta presencial (Kioskify / POS).
 const CD_ORDER_FIELDS_SHIP = `
       displayFulfillmentStatus
       app{ name }
+      retailLocation{ name }
       shippingLine{ title code }
       fulfillments(first:5){ trackingInfo{ company } }`;
-// Origen del despacho + retiro/despacho fiable (necesita scope de fulfillment
-// orders). assignedLocation.name es un string, no requiere read_locations.
-const CD_ORDER_FIELDS_FULL = CD_ORDER_FIELDS_SHIP + `
+// Origen del despacho: de dónde sale (fulfillment location / assignedLocation).
+// Necesita el scope de fulfillment orders. assignedLocation.name es un string.
+const CD_ORDER_FIELDS_FULL = `
+      displayFulfillmentStatus
+      app{ name }
+      retailLocation{ name }
+      shippingLine{ title code }
+      fulfillments(first:5){ trackingInfo{ company } location{ name } }
       fulfillmentOrders(first:5){ nodes{ deliveryMethod{ methodType } assignedLocation{ name } } }`;
 const cdOrdersQuery = (extra) => `query($cursor:String,$q:String){
   orders(first:100, after:$cursor, query:$q, sortKey:CREATED_AT){
@@ -2867,27 +2879,21 @@ function estadoNormPeriodo(p){
     antofagasta: estadoLineList(p.antofagasta, [{ k: 'estilo', max: 60 }, { k: 'litros', num: true }]),
     activo: estadoNum(p.activo),
     walmart: { cajas: estadoNum(wm.cajas), valorCaja: estadoNum(wm.valorCaja || 48409) },
-    // Retail manual: pedidos hechos fuera de Shopify (previos a la automatización
-    // con PEDIDOSWALMART). Suman al Walmart automático en ③ Retail. Nunca pisan el
-    // número de Shopify: son líneas con nombre.
-    retailManual: estadoLineList(p.retailManual, [{ k: 'nombre', max: 120 }, { k: 'fecha', max: 20 }, { k: 'nota', max: 200 }, { k: 'monto', num: true }]),
   };
 }
 function estadoLoad(){ try { if (!existsSync(ESTADO_FILE)) return { version: 1, periodos: {} }; const p = JSON.parse(readFileSync(ESTADO_FILE, 'utf-8')); return { version: 1, periodos: (p && p.periodos) || {} }; } catch (e) { console.warn('estado load:', e.message); return { version: 1, periodos: {} }; } }
 function estadoSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(ESTADO_FILE, JSON.stringify(d, null, 2)); }
-// Pedidos de Retail hechos a mano ANTES de la automatización con PEDIDOSWALMART.
-// Se muestran pre-cargados la primera vez que se abre el mes (si nunca se guardó);
-// una vez que el mes se guarda, manda lo que quede persistido (respeta ediciones
-// y borrados). Así el pedido manual de julio queda en ③ Retail sin pisar el auto.
-const ESTADO_RETAIL_SEED = {
+// Pedidos de Retail (Walmart) hechos en el sistema viejo, ANTES de la
+// automatización con PEDIDOSWALMART. Se inyectan en el bucket Walmart como si
+// vinieran de Shopify (mismo formato de pedido). Los pedidos nuevos ya entran
+// solos por el código, así que esto es solo para los históricos puntuales.
+const CD_WALMART_SEED = {
   '2026-07': [
-    { nombre: 'Aquavitae · Pedido 00004262', fecha: '14/7/2026', nota: 'Galactic Mission · 51 Pack 24x Lata 473ml (578,95 L) · MAYORISTA · manual pre-Shopify', monto: 2468808 },
+    { pedido: '00004262', fecha: '2026-07-14', cliente: 'Aquavitae', codigo: 'PEDIDOSWALMART', original: 2468808, cobrado: 2468808, detalle: [{ producto: 'Galactic Mission', variante: 'Pack de 24x Lata (473 ml)', cantidad: 51, proveedor: 'Kairos Brewing', monto: 2468808 }] },
   ],
 };
 async function estadoResolve(month, rango){
-  const all = estadoLoad(); const rawPer = all.periodos[month]; const per = estadoNormPeriodo(rawPer);
-  // Seed de Retail manual solo si el mes nunca se guardó.
-  if (!rawPer && ESTADO_RETAIL_SEED[month]) per.retailManual = estadoLineList(ESTADO_RETAIL_SEED[month], [{ k: 'nombre', max: 120 }, { k: 'fecha', max: 20 }, { k: 'nota', max: 200 }, { k: 'monto', num: true }]);
+  const all = estadoLoad(); const per = estadoNormPeriodo(all.periodos[month]);
   const precios = per.preciosTransfer;
   const r = (rango && rango.from && rango.to) ? rango : cdMonthRange(month);
   const sh = await cdShopifyMonth(month, precios, r).catch(e => ({ error: String(e.message || e) }));
@@ -2912,11 +2918,11 @@ async function estadoResolve(month, rango){
   const cdNeto = shCd;
   const cruzTotal = shCruz;
   const hospitalityTotal = gardenValor + badassValor;
-  // ③ Retail = Walmart automático (Shopify · PEDIDOSWALMART) + líneas manuales
-  // (pedidos previos a la automatización). Las manuales nunca pisan el auto.
-  const retailManualLineas = (per.retailManual || []).filter(x => x.nombre || x.monto);
-  const retailManualTotal = retailManualLineas.reduce((a, x) => a + (Number(x.monto) || 0), 0);
-  const retail = shWalmart + retailManualTotal;
+  // ③ Retail = Walmart, 100% automático de Shopify (código PEDIDOSWALMART) +
+  // pedidos históricos puntuales inyectados como si vinieran de Shopify.
+  const walmartSeed = CD_WALMART_SEED[month] || [];
+  const walmartPedidos = [...(shOk ? sh.bucket.walmart.pedidos : []), ...walmartSeed];
+  const retail = shWalmart + walmartSeed.reduce((a, p) => a + (Number(p.original) || 0), 0);
   // HORECA por canal de venta: Grupo Mil Sabores vs Otros. Cada pedido trae su
   // punto de venta (marca/razón/sector) para filtrar.
   const horecaPedidos = shOk ? [...sh.bucket.cd_kairos_mall.pedidos, ...sh.bucket.ventas_cruzada.pedidos] : [];
@@ -2943,10 +2949,9 @@ async function estadoResolve(month, rango){
     ventas_cruzada: { shopify: shCruz, total: cruzTotal, pedidos: shOk ? sh.bucket.ventas_cruzada.pedidos : [] },
     horeca,
     hospitality: { garden, badass, total: hospitalityTotal },
-    ventas_web: { cobrado: shWeb, n: shOk ? sh.bucket.retail.n : 0, pedidos: webPedidos, porProveedor: webPorProv, proveedores: provKeys, detalleEntrega: !!(cdOrdersTier && cdOrdersTier.key !== 'base') },
+    ventas_web: { cobrado: shWeb, n: shOk ? sh.bucket.retail.n : 0, pedidos: webPedidos, porProveedor: webPorProv, proveedores: provKeys, detalleEntrega: !!(cdOrdersTier && cdOrdersTier.key !== 'base'), origenDespacho: !!(cdOrdersTier && cdOrdersTier.key === 'full') },
     retail,
-    walmart: { total: shWalmart, n: shOk ? sh.bucket.walmart.n : 0, pedidos: shOk ? sh.bucket.walmart.pedidos : [] },
-    retailManual: { total: retailManualTotal, lineas: retailManualLineas },
+    walmart: { total: retail, n: walmartPedidos.length, pedidos: walmartPedidos },
   };
   const totalIngresos = cdNeto + cruzTotal + hospitalityTotal + shWeb + retail;
   return {
@@ -3026,10 +3031,9 @@ function estadoSheetRows(data, month){
   });
   rows.push([T('Total web (' + i.ventas_web.n + ' pedidos)'), T(''), T(''), T(''), T(''), M(i.ventas_web.cobrado)]);
   blank();
-  // ③ Retail (Walmart) — Shopify por código PEDIDOSWALMART + líneas manuales
+  // ③ Retail (Walmart) — Shopify por código PEDIDOSWALMART
   rows.push([SEC('③ RETAIL (Walmart)'), SEC(''), SEC(''), SEC(''), SEC(''), SM(retail)]);
-  rows.push([T('Walmart auto (código PEDIDOSWALMART · ' + ((i.walmart && i.walmart.n) || 0) + ' pedidos)'), T(''), T(''), T(''), T(''), M((i.walmart && i.walmart.total) || 0)]);
-  ((i.retailManual && i.retailManual.lineas) || []).forEach(l => rows.push([T((l.nombre || 'Manual') + (l.fecha ? ' · ' + l.fecha : '')), T(''), T(''), T(''), T(''), M(l.monto)]));
+  rows.push([T('Walmart (código PEDIDOSWALMART · ' + ((i.walmart && i.walmart.n) || 0) + ' pedidos)'), T(''), T(''), T(''), T(''), M(retail)]);
   blank();
   // ④ Hospitality (locales propios)
   rows.push([SEC('④ HOSPITALITY (locales propios)'), SEC(''), SEC(''), SEC(''), SEC(''), SM(hospitality)]);

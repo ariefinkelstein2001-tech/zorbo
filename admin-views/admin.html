@@ -7787,7 +7787,6 @@ async function estadoFetch(){
     const r=await fetch('/admin/estado?month='+estadoMonth+estRangeQS()); estadoData=await r.json();
     if(estadoData.error) throw new Error(estadoData.error);
     estadoDraft=JSON.parse(JSON.stringify(estadoData.periodo));
-    if(!Array.isArray(estadoDraft.retailManual)) estadoDraft.retailManual=[];
     renderEstado();
   }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
 }
@@ -7800,9 +7799,7 @@ function estCompute(){
   const shCd=a.ingresos.cd_kairos.shopify, shCruz=a.ingresos.ventas_cruzada.shopify, shWeb=a.ingresos.ventas_web.cobrado;
   const gardenValor=a.ingresos.hospitality.garden.valor, badassValor=a.ingresos.hospitality.badass.valor;
   const cdNeto=shCd, cruzTotal=shCruz;
-  // ③ Retail = Walmart automático (Shopify) + líneas manuales del draft (en vivo).
-  const walmartAuto=(a.ingresos.walmart&&a.ingresos.walmart.total)||0;
-  const retail=walmartAuto+S(d.retailManual);
+  const retail=a.ingresos.retail!=null?a.ingresos.retail:0; // Walmart 100% auto (Shopify)
   const hospitality=gardenValor+badassValor;
   const horeca=cdNeto+cruzTotal, online=shWeb;
   const total=horeca+online+retail+hospitality;
@@ -7825,7 +7822,7 @@ function estRecalc(){
   set('estTotal',eM(c.total));
   set('estCdNeto',eM(c.cdNeto));
   set('estCruzTotal',eM(c.cruzTotal));
-  // estWalmart es la parte AUTO (Shopify) y no cambia con las líneas manuales: no se pisa acá.
+  set('estWalmart',eM(c.retail));
   set('estHoreca',eM(c.horeca)); set('estHorecaPct',c.pctHoreca+'%'); set('estHorecaG',eM(c.horeca));
   set('estOnline',eM(c.online)); set('estOnlinePct',c.pctOnline+'%');
   set('estRetail',eM(c.retail)); set('estRetailPct',c.pctRetail+'%'); set('estRetailG',eM(c.retail));
@@ -7887,16 +7884,14 @@ function renderEstado(){
         ${(a.ingresos.ventas_web.proveedores||[]).map(pv=>{const b=(a.ingresos.ventas_web.porProveedor||{})[pv]||{total:0,n:0};return `<button class="est-hchan" data-wprov="${escapeHtml(pv)}"><b>${escapeHtml(pv)}</b><span>${eM(b.total)} · ${b.n} pedidos</span></button>`;}).join('')}
       </div>
       <div id="estWebPanel"></div>
-      ${a.ingresos.ventas_web.detalleEntrega===false?`<div class="est-auto" style="margin-top:.5rem">ℹ️ El detalle de entrega (retiro/despacho, courier, origen) no está disponible: falta el permiso de Shopify de <b>fulfillment orders</b>. Re-autorizá la app para verlo.</div>`:''}
+      ${a.ingresos.ventas_web.detalleEntrega===false?`<div class="est-auto" style="margin-top:.5rem">ℹ️ El detalle de entrega (retiro/despacho, courier, origen, tienda) no está disponible: falta el permiso de Shopify de <b>fulfillment orders</b>. Re-autorizá la app para verlo.</div>`:(a.ingresos.ventas_web.origenDespacho===false?`<div class="est-auto" style="margin-top:.5rem">ℹ️ El <b>origen del despacho</b> (de dónde sale) necesita el permiso de Shopify de <b>fulfillment orders</b>. La tienda del Kioskify y el courier sí se muestran.</div>`:'')}
     </div>
 
     <div class="est-group">③ Retail <span>· Walmart</span><b id="estRetailG">${eM(c.retail)}</b></div>
     <div class="est-line est-auto-line">
-      <div class="est-line-h"><span>Walmart auto <span class="est-tag ok">Shopify · PEDIDOSWALMART</span></span><b id="estWalmart">${eM((a.ingresos.walmart&&a.ingresos.walmart.total)||0)}</b></div>
+      <div class="est-line-h"><span>Walmart <span class="est-tag ok">Shopify · PEDIDOSWALMART</span></span><b id="estWalmart">${eM(c.retail)}</b></div>
       <div class="est-auto">${(a.ingresos.walmart&&a.ingresos.walmart.n)||0} pedidos${((a.ingresos.walmart&&a.ingresos.walmart.n)||0)?` <button class="dist-portal-link" data-drill="walmart">ver detalle</button>`:' — cuando entren los pedidos con ese código aparecen acá'}</div>
       <div class="est-drill-box" id="estDrill_walmart"></div>
-      <div class="est-sub" style="margin-top:.8rem">Pedidos manuales de Retail <span style="color:#999;font-weight:400">(previos a la automatización · suman al total)</span></div>
-      <div class="mun-wrap">${estLineRows(estadoDraft.retailManual,[{k:'nombre',label:'Cliente / pedido',w:'220px',ph:'Aquavitae · N° 00004262'},{k:'fecha',label:'Fecha',w:'90px',ph:'14/7/2026'},{k:'nota',label:'Nota',w:'160px'},{k:'monto',label:'Monto',num:true,w:'120px'}],'retailManual')}</div>
     </div>
 
     <div class="est-group">④ Hospitality <span>· locales propios (Garden Vespucio · Garden Antofagasta · Badass)</span><b id="estHospitalityG">${eM(c.hospitality)}</b></div>
@@ -7935,9 +7930,9 @@ function estWebOpen(prov){
 const EST_CANALES=[{v:'tienda',l:'Tienda (Kioskify)'},{v:'retiro',l:'Retiro en tienda'},{v:'despacho',l:'Despacho'}];
 function estWebDest(w){
   if(!w) return '—';
-  if(w.canal==='tienda') return 'Tienda'+(w.tienda?' · '+escapeHtml(w.tienda):'')+' <span style="color:#999">(Kioskify)</span>';
+  if(w.canal==='tienda'){ const t=w.tienda||w.local; return 'Tienda'+(t?' · '+escapeHtml(t):'')+' <span style="color:#999">(Kioskify)</span>'; }
   if(w.canal==='retiro') return 'Retiro'+(w.tienda?' · '+escapeHtml(w.tienda):(w.local?' · '+escapeHtml(w.local):''));
-  if(w.canal==='despacho') return 'Despacho'+(w.courier?' · '+escapeHtml(w.courier):'')+(w.origen?' desde '+escapeHtml(w.origen):'');
+  if(w.canal==='despacho') return 'Despacho'+(w.courier?' · '+escapeHtml(w.courier):'')+(w.origen?' <span style="color:#999">desde '+escapeHtml(w.origen)+'</span>':'');
   return '—';
 }
 function estWebDrawPanel(){
