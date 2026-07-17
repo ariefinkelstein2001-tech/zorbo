@@ -2819,6 +2819,24 @@ app.get('/admin/estado/export.xlsx', requireAdmin, async (req, res) => {
     sendXlsx(res, buf, 'Estado_Resultado_' + month + '.xlsx');
   } catch (e) { res.status(500).send('Error: ' + String(e.message || e).slice(0, 200)); }
 });
+// Preview del Excel DENTRO de Zorbo (grilla tipo planilla, solo lectura): mismas
+// filas que el .xlsx pero con el texto ya formateado y una clase de estilo.
+const EST_STYLE_CLASS = { 1: 'h', 2: 'sec', 3: 'money', 4: 'pct', 5: 'title', 6: 'secmoney', 7: 'secpct' };
+app.get('/admin/estado/preview', requireAdmin, async (req, res) => {
+  const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
+  if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
+  try {
+    const data = await estadoResolve(month);
+    const rows = estadoSheetRows(data, month).map(r => (r || []).map(c => {
+      if (!c) return { t: '' };
+      let t;
+      if (c.t === 'n') t = (c.s === 4 || c.s === 7) ? (Math.round((Number(c.v) || 0) * 1000) / 10 + '%') : ('$' + Math.round(Number(c.v) || 0).toLocaleString('es-CL'));
+      else t = String(c.v == null ? '' : c.v);
+      return { t, s: EST_STYLE_CLASS[c.s] || '', n: c.t === 'n' };
+    }));
+    res.json({ month, rows });
+  } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+});
 
 // ─── Conversaciones (embudo) ────────────────────────────────────────────────
 // Listado y detalle de las sesiones de chat ya persistidas en CONV_LOG. El
