@@ -7842,7 +7842,7 @@ function renderEstado(){
   body.innerHTML=`
     <div class="est-top">
       <div class="est-total-box"><div class="est-total-l">Total Ingresos</div><div class="est-total-v" id="estTotal">${eM(c.total)}</div>${a.excelRef?`<div class="est-delta" id="estDeltaExcel"></div>`:''}</div>
-      <div class="est-note">Ingresos por <b>3 canales</b>: HORECA (restaurantes/bares = CD Kairos + Cruzada) · Venta Online (web) · Retail (Walmart). El número <b>automático de Shopify no se edita</b>: si falta plata, se agrega una línea con nombre.</div>
+      <div class="est-note">Ingresos por <b>4 canales</b>: HORECA (CD Kairos + Cruzada) · Venta Online (web) · Retail (Walmart) · Hospitality (locales propios). El número <b>automático de Shopify no se edita</b>: si falta plata, se agrega una línea con nombre.</div>
     </div>
     <div class="est-chans">
       ${chanCard('estHoreca','① HORECA','CD Kairos + Ventas Cruzada',c.horeca,c.pctHoreca)}
@@ -7921,7 +7921,7 @@ function estWire(){
 }
 function estDrill(which){
   const a=estadoData;
-  const map={ cd:a.ingresos.cd_kairos.pedidos, cruz:a.ingresos.ventas_cruzada.pedidos, web:a.ingresos.ventas_web.pedidos, garden:a.ingresos.cd_kairos.garden.pedidos, badass:a.ingresos.cd_kairos.badass.pedidos };
+  const map={ cd:a.ingresos.cd_kairos.pedidos, cruz:a.ingresos.ventas_cruzada.pedidos, web:a.ingresos.ventas_web.pedidos, garden:a.ingresos.hospitality.garden.pedidos, badass:a.ingresos.hospitality.badass.pedidos };
   const box=document.getElementById('estDrill_'+which); if(!box) return;
   if(box.innerHTML){ box.innerHTML=''; return; } // toggle: segundo click cierra
   const peds=map[which]||[]; const isTransfer=(which==='garden'||which==='badass');
