@@ -91,6 +91,8 @@ body{
 body.admin-home .adm-shell{grid-template-columns:1fr}
 body.role-costeo .adm-shell{grid-template-columns:1fr}
 body.role-costeo .adm-chat{display:none}
+body.estado-active .adm-shell{grid-template-columns:1fr}
+body.estado-active .adm-chat{display:none}
 body.admin-home .adm-chat,body.admin-home .adm-chat-fab{display:none!important}
 .adm-home{padding:1.5rem .5rem 2.5rem;max-width:1000px;margin:0 auto;text-align:center;animation:homeIn .4s ease}
 @keyframes homeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -2641,6 +2643,8 @@ async function selectSeccion(id){
 }
 
 function showView(kind){
+  // El Estado de Resultado no usa el preview de Zorbot: se oculta y la vista ocupa todo el ancho.
+  document.body.classList.toggle('estado-active', kind === 'estado');
   document.getElementById('homeView').style.display       = kind === 'home'       ? '' : 'none';
   document.getElementById('mdView').style.display         = kind === 'md'         ? '' : 'none';
   document.getElementById('productsView').style.display   = kind === 'products'   ? '' : 'none';
