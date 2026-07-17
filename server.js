@@ -2918,6 +2918,36 @@ const CD_WALMART_SEED = {
     { pedido: '00004262', fecha: '2026-07-14', cliente: 'Aquavitae', codigo: 'PEDIDOSWALMART', original: 2468808, cobrado: 2468808, proveedor: 'Kairos Brewing', porProveedor: [{ proveedor: 'Kairos Brewing', monto: 2468808 }], detalle: [{ producto: 'Galactic Mission', variante: 'Pack de 24x Lata (473 ml)', cantidad: 51, proveedor: 'Kairos Brewing', monto: 2468808 }] },
   ],
 };
+// Transferencias a Kairos Garden ANTOFAGASTA hechas en el sistema viejo, antes de
+// la automatización con Shopify. Se inyectan en el bucket garden como si vinieran
+// de Shopify (mismo formato: pedido con líneas estilo/tipo/litros). El cliente dice
+// "Antofagasta" para que caiga en el sub-filtro. Los nuevos entran solos por Shopify.
+const CD_GARDEN_SEED = {
+  '2026-07': [
+    { pedido: '00004263', fecha: '2026-07-14', cliente: 'Kairos Garden Antofagasta', codigo: '', original: 0, cobrado: 0, lineas: [
+      { producto: 'Nada Personal', variante: 'Barril 30 lts', cantidad: 15, estilo: 'Nada Personal', tipo: 'cerveza', litros: 450 },
+      { producto: 'Galactic Mission', variante: 'Barril PET (20000 ml)', cantidad: 15, estilo: 'Galactic Mission', tipo: 'cerveza', litros: 300 },
+      { producto: 'Imperio Perdido', variante: 'Barril 30 lts', cantidad: 3, estilo: 'NEIPA', tipo: 'cerveza', litros: 90 },
+      { producto: 'SAMBA', variante: 'Barril 30 lts', cantidad: 6, estilo: 'IPA', tipo: 'cerveza', litros: 180 },
+      { producto: 'Alerta Roja', variante: 'Barril 30 lts', cantidad: 3, estilo: 'Red', tipo: 'cerveza', litros: 90 },
+      { producto: 'Bidon Ron Rey de copas 20lts', variante: 'Bidón 20 L', cantidad: 2, estilo: 'Ron Rey de Copas', tipo: 'ron', litros: 40 },
+      { producto: 'Bidon Gin Banny 20L', variante: 'Bidón 20 L', cantidad: 1, estilo: 'Gin', tipo: 'gin', litros: 20 },
+      { producto: 'Goodbye my lover', variante: 'Barril 30 lts', cantidad: 3, estilo: 'Colección de Artista', tipo: 'cerveza', litros: 90 },
+      { producto: 'Goodbye my lover', variante: 'Lata (473 ml)', cantidad: 24, estilo: 'Colección de Artista', tipo: 'cerveza', litros: 11.35 },
+    ] },
+    { pedido: '00004204', fecha: '2026-07-08', cliente: 'Kairos Garden Antofagasta', codigo: '', original: 0, cobrado: 0, lineas: [
+      { producto: 'Ritual De La Banana', variante: 'Barril 30 lts', cantidad: 5, estilo: 'Ritual De La Banana', tipo: 'cerveza', litros: 150 },
+      { producto: 'Hoyo en uno', variante: 'Barril 30 lts', cantidad: 4, estilo: 'Hoppy Lagger', tipo: 'cerveza', litros: 120 },
+      { producto: 'Alerta Roja', variante: 'Barril 30 lts', cantidad: 5, estilo: 'Red', tipo: 'cerveza', litros: 150 },
+      { producto: 'Obertura', variante: 'Barril 30 lts', cantidad: 4, estilo: 'Obertura', tipo: 'cerveza', litros: 120 },
+      { producto: 'Secret Lab', variante: 'Barril 30 lts', cantidad: 3, estilo: 'Secret Lab', tipo: 'cerveza', litros: 90 },
+      { producto: 'Imperio Perdido', variante: 'Barril 30 lts', cantidad: 3, estilo: 'NEIPA', tipo: 'cerveza', litros: 90 },
+      { producto: 'SAMBA', variante: 'Barril 30 lts', cantidad: 3, estilo: 'IPA', tipo: 'cerveza', litros: 90 },
+      { producto: 'Bidon Ron Rey de copas 20lts', variante: 'Bidón 20 L', cantidad: 2, estilo: 'Ron Rey de Copas', tipo: 'ron', litros: 40 },
+      { producto: 'Nada Personal', variante: 'Barril 30 lts', cantidad: 14, estilo: 'Nada Personal', tipo: 'cerveza', litros: 420 },
+    ] },
+  ],
+};
 async function estadoResolve(month, rango){
   const all = estadoLoad(); const per = estadoNormPeriodo(all.periodos[month]);
   const precios = per.preciosTransfer;
@@ -2936,8 +2966,14 @@ async function estadoResolve(month, rango){
   const antoValor = antoTabla.reduce((a, r) => a + r.valor, 0);
   antoTabla.forEach(r => r.pct = antoLitros ? Math.round((r.litros / antoLitros) * 1000) / 10 : 0);
   const mkTabla = (t) => (t && t.porEstilo || []).map(e => ({ estilo: e.estilo, tipo: e.tipo, precioLt: precios[e.tipo] || precios.cerveza, despachoLt: precios.despacho, litros: e.litros, valor: Math.round(e.litros * (precios[e.tipo] || precios.cerveza) + precios.despacho * e.litros), pct: t.litros ? Math.round((e.litros / t.litros) * 1000) / 10 : 0 }));
-  const gardenValor = shOk ? sh.transfers.garden.valor : 0, badassValor = shOk ? sh.transfers.badass.valor : 0;
-  const garden = { litros: shOk ? sh.transfers.garden.litros : 0, valor: gardenValor, tabla: shOk ? mkTabla(sh.transfers.garden) : [], pedidos: shOk ? sh.transfers.garden.pedidos : [] };
+  // Seed de transferencias históricas a Garden Antofagasta (pre-Shopify): se suma
+  // al garden como si fueran pedidos de Shopify (litros + valor revaluado).
+  const gardenSeed = CD_GARDEN_SEED[month] || [];
+  const seedLitros = gardenSeed.reduce((a, p) => a + (p.lineas || []).reduce((s, l) => s + (Number(l.litros) || 0), 0), 0);
+  const seedValor = gardenSeed.reduce((a, p) => a + (p.lineas || []).reduce((s, l) => s + (Number(l.litros) || 0) * ((precios[l.tipo] || precios.cerveza) + precios.despacho), 0), 0);
+  const gardenValor = (shOk ? sh.transfers.garden.valor : 0) + Math.round(seedValor);
+  const badassValor = shOk ? sh.transfers.badass.valor : 0;
+  const garden = { litros: cdR3((shOk ? sh.transfers.garden.litros : 0) + seedLitros), valor: gardenValor, tabla: shOk ? mkTabla(sh.transfers.garden) : [], pedidos: [...(shOk ? sh.transfers.garden.pedidos : []), ...gardenSeed] };
   const badass = { litros: shOk ? sh.transfers.badass.litros : 0, valor: badassValor, tabla: shOk ? mkTabla(sh.transfers.badass) : [], pedidos: shOk ? sh.transfers.badass.pedidos : [] };
   const antofagasta = { litros: antoLitros, valor: antoValor, tabla: antoTabla, manual: per.antofagasta };
   // 100% automático de Shopify: sin líneas manuales.
