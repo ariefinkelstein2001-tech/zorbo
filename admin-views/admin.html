@@ -412,6 +412,7 @@ body.admin-home .adm-chat,body.admin-home .adm-chat-fab{display:none!important}
 .adm-np-preview{display:flex;flex-direction:column;gap:.4rem;align-items:center}
 #npCanvas{width:100%;max-width:340px;aspect-ratio:1;border:1px solid var(--border);border-radius:10px;background:#fff}
 .adm-np-hint{font-size:.74rem;color:var(--dim);text-align:center;font-style:italic}
+.adm-np-err{background:rgba(211,51,51,.1);border:1px solid rgba(211,51,51,.35);color:#c0392b;border-radius:8px;padding:.55rem .8rem;font-size:.82rem;font-weight:600;margin:0 0 .6rem}
 
 /* ── CONVERSACIONES (embudo) ── */
 .adm-stats{
@@ -2189,6 +2190,7 @@ body.drawer-open{overflow:hidden}
             <div class="adm-np-hint" id="npHint">Subí la foto de la lata para ver la maqueta.</div>
           </div>
         </div>
+        <div class="adm-np-err" id="npErr" style="display:none"></div>
         <div class="adm-fb-acts">
           <button type="button" class="adm-btn adm-btn-ghost" data-act="close-np">Cancelar</button>
           <button type="button" class="adm-btn adm-btn-gold" id="npCreate">Crear en Shopify</button>
@@ -3201,6 +3203,7 @@ function openNewProd(){
   document.querySelectorAll('#npSection button').forEach(b => b.classList.toggle('on', b.dataset.v === npSection));
   document.getElementById('newProdModal').classList.add('open');
   document.body.classList.add('drawer-open');
+  const e = document.getElementById('npErr'); if (e) { e.style.display = 'none'; e.textContent = ''; }
 }
 function closeNewProd(){
   document.getElementById('newProdModal').classList.remove('open');
@@ -3374,12 +3377,13 @@ document.getElementById('npAddBarril')?.addEventListener('click', () => {
   row.querySelector('.np-pk-liters').focus();
 });
 
+function npShowErr(msg){ const e=document.getElementById('npErr'); if(!e) return; if(!msg){ e.style.display='none'; e.textContent=''; return; } e.textContent=msg; e.style.display=''; }
 document.getElementById('npCreate').onclick = async () => {
+  npShowErr('');
   const title = document.getElementById('npName').value.trim();
-  if (!title) { showToast('Falta el nombre del producto.', 'err'); return; }
-  if (!npCanImg) { showToast('Subí la foto de la lata.', 'err'); return; }
+  if (!title) { npShowErr('Falta el nombre del producto.'); document.getElementById('npName').focus(); return; }
   const packs = getSelectedPacks();
-  if (!packs.length) { showToast('Elegí al menos un pack.', 'err'); return; }
+  if (!packs.length) { npShowErr('Elegí al menos un pack o barril (marcá el check y poné la cantidad).'); return; }
   const btn = document.getElementById('npCreate');
   btn.disabled = true; const o = btn.textContent; btn.textContent = 'Creando…';
   try {
@@ -3388,13 +3392,17 @@ document.getElementById('npCreate').onclick = async () => {
     if (document.fonts && document.fonts.ready) {
       try { await document.fonts.load("800 80px 'Bricolage Grotesque'"); await document.fonts.ready; } catch {}
     }
-    // Generar una maqueta por pack
-    const cv = document.getElementById('npCanvas');
-    const images = packs.map(p => {
-      drawMaqueta(p.title);
-      return { alt: p.title, dataBase64: cv.toDataURL('image/png').split(',')[1] };
-    });
-    drawMaqueta(); // volver al preview default
+    // La foto de la lata es OPCIONAL. Si la subieron, se genera una maqueta por
+    // pack; si no (ej: un barril), se crea el producto sin imagen.
+    let images = [];
+    if (npCanImg) {
+      const cv = document.getElementById('npCanvas');
+      images = packs.map(p => {
+        drawMaqueta(p.title);
+        return { alt: p.title, dataBase64: cv.toDataURL('image/png').split(',')[1] };
+      });
+      drawMaqueta(); // volver al preview default
+    }
     const body = {
       section: npSection,
       status: npStatus,
@@ -3414,6 +3422,7 @@ document.getElementById('npCreate').onclick = async () => {
     document.querySelectorAll('.adm-pillgroup[data-filter="prodSection"] button').forEach(x => x.classList.toggle('on', x.dataset.v === npSection));
     loadProductos();
   } catch (e) {
+    npShowErr('Error: ' + e.message);
     showToast('Error: ' + e.message, 'err');
   } finally { btn.disabled = false; btn.textContent = o; }
 };
