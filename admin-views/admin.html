@@ -1980,6 +1980,7 @@ body.drawer-open{overflow:hidden}
         <div class="adm-actions">
           <select id="estadoMonth" class="costeo-svc"></select>
           <button class="adm-btn adm-btn-ghost" id="estadoNuevo" type="button">+ Mes</button>
+          <button class="adm-btn adm-btn-gold" id="estadoExcel" type="button">⬇ Excel</button>
           <button class="adm-btn adm-btn-ghost" id="estadoReload" type="button">Recargar</button>
         </div>
       </div>
@@ -7644,6 +7645,7 @@ async function estadoBoot(){
   sel.onchange=()=>{ estadoMonth=sel.value; estadoFetch(); };
   document.getElementById('estadoReload').onclick=()=>estadoFetch();
   document.getElementById('estadoNuevo').onclick=estadoNuevoMes;
+  document.getElementById('estadoExcel').onclick=()=>window.open('/admin/estado/export.xlsx?month='+estadoMonth,'_blank');
   estadoFetch();
 }
 async function estadoNuevoMes(){
@@ -7692,7 +7694,7 @@ function estRecalc(){
   set('estCruzTotal',eM(c.cruzTotal)); set('estCruzRatio',c.ratioCruz+'% Shopify');
   set('estAntoValor',eM(c.antoValor));
   set('estWalmart',eM(c.walmart));
-  if(estadoData.excelRef){ const ex=estadoData.excelRef.ingresos_julio||52085893; const el=document.getElementById('estDeltaExcel'); if(el){ const dif=c.total-ex; el.textContent=(dif>=0?'+':'')+eM(dif)+' vs Excel ('+eM(ex)+')'; } }
+  if(estadoData.excelRef && estadoData.excelRef.ingresos_total){ const ex=estadoData.excelRef.ingresos_total; const el=document.getElementById('estDeltaExcel'); if(el){ const dif=c.total-ex; el.textContent=(dif>=0?'+':'')+eM(dif)+' vs Excel ('+eM(ex)+')'; } }
 }
 function renderEstado(){
   const a=estadoData, body=document.getElementById('estadoBody');

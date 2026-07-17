@@ -2356,9 +2356,11 @@ const CD_PRECIOS = { cerveza: 1830, gin: 7447, ron: 6617, despacho: 1033 };
 // Referencias del Excel por mes (para el % de desvío del diagnóstico). "base" =
 // facturación base sin los "otros ingresos" ni Antofagasta.
 const CD_EXCEL_REF = {
-  '2026-07': { garden_lt_cerveza: 2700, garden_gin: 160, garden_ron: 140, garden_valor: 10157900, web: 949112, cd_kairos_base: 30496638, cruzada_base: 5695733 },
+  '2026-07': { garden_lt_cerveza: 2700, garden_gin: 160, garden_ron: 140, garden_valor: 10157900, web: 949112, cd_kairos_base: 30496638, cruzada_base: 5695733, ingresos_total: 52085893 },
   '2026-06': { garden_lt_cerveza: 5280, web: 5001805, cd_kairos_base: 29673041, cruzada_base: 15659104 },
 };
+const ESTADO_MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const estadoMonthLabel = (m) => { const [y, mo] = String(m).split('-'); return (ESTADO_MESES[+mo] || m) + ' ' + y; };
 // Códigos de descuento con que se marcan las transferencias 100% off.
 const CD_TRANSFER_CODES = { PEDIDOGARDENVSP: 'garden', PEDIDOSBADASSPA: 'badass' };
 // Diccionario DEFINITIVO código→bucket. Match EXACTO (===), nunca substring:
@@ -2745,6 +2747,77 @@ app.post('/admin/estado/:month/duplicar', requireAdmin, (req, res) => {
   const all = estadoLoad(); const src = all.periodos[from];
   all.periodos[month] = estadoNormPeriodo(src ? JSON.parse(JSON.stringify(src)) : {});
   estadoSave(all); res.json({ ok: true });
+});
+// Exporta el Estado de Resultado a Excel (.xlsx) — solo lectura, misma estructura
+// que el Excel manual pero con la info de Zorbo. Los datos se cambian en Zorbo.
+function estadoSheetRows(data, month){
+  const S = { title: 5, header: 1, sec: 2, money: 3, pct: 4, secMoney: 6, secPct: 7 };
+  const M = (v) => ({ v: Math.round(Number(v) || 0), t: 'n', s: S.money });
+  const SM = (v) => ({ v: Math.round(Number(v) || 0), t: 'n', s: S.secMoney });
+  const PCT = (v) => ({ v: (Number(v) || 0) / 100, t: 'n', s: S.pct });
+  const N = (v) => ({ v: Number(v) || 0, t: 'n' });
+  const T = (v) => ({ v: v == null ? '' : String(v) });
+  const H = (v) => ({ v: v == null ? '' : String(v), s: S.header });
+  const SEC = (v) => ({ v: v == null ? '' : String(v), s: S.sec });
+  const i = data.ingresos; const rows = [];
+  const blank = () => rows.push([]);
+  rows.push([{ v: 'ESTADO DE RESULTADO · CD KAIROS · ' + estadoMonthLabel(month), s: S.title }]);
+  rows.push([T(data.shopifyOk ? 'Ingresos automáticos de Shopify + líneas manuales · solo lectura (se edita en Zorbo)' : '⚠️ Shopify no disponible al exportar — solo líneas manuales')]);
+  blank();
+  rows.push([SEC('INGRESOS'), SEC(''), SEC(''), SEC(''), SEC(''), SM(data.totalIngresos)]);
+  blank();
+  // 1 · CD Kairos
+  rows.push([H('1 · CD KAIROS (híbrido)'), H(''), H(''), H(''), H('Ratio'), H('Monto')]);
+  rows.push([T('Shopify (automático)'), T(''), T(''), T(''), PCT(i.cd_kairos.ratioShopify), M(i.cd_kairos.shopify)]);
+  i.cd_kairos.fuera.forEach(l => rows.push([T('   Fuera Shopify · ' + l.desc), T(l.factura), T(l.fecha), T(''), T(''), M(l.monto)]));
+  i.cd_kairos.otrosIngresos.forEach(l => rows.push([T('   Otro ingreso · ' + l.desc), T(''), T(''), T(''), T(''), M(l.monto)]));
+  i.cd_kairos.notasCredito.forEach(l => rows.push([T('   (−) Nota de Crédito · ' + l.proveedor), T(l.factura), T(l.fecha), T(''), T(''), M(-l.monto)]));
+  rows.push([SEC('CD Kairos neto'), SEC(''), SEC(''), SEC(''), SEC(''), SM(i.cd_kairos.neto)]);
+  blank();
+  // 2 · Ventas Cruzada
+  rows.push([H('2 · VENTAS CRUZADA (500 Sabores) — híbrido'), H(''), H(''), H(''), H('Ratio'), H('Monto')]);
+  rows.push([T('Shopify (automático)'), T(''), T(''), T(''), PCT(i.ventas_cruzada.ratioShopify), M(i.ventas_cruzada.shopify)]);
+  i.ventas_cruzada.fuera.forEach(l => rows.push([T('   Fuera Shopify · ' + l.desc), T(l.factura), T(l.fecha), T(''), T(''), M(l.monto)]));
+  rows.push([T('   Antofagasta (transferencia)'), T(''), T(''), T(''), T(''), M(i.ventas_cruzada.antofagastaValor)]);
+  rows.push([SEC('Ventas Cruzada total'), SEC(''), SEC(''), SEC(''), SEC(''), SM(i.ventas_cruzada.total)]);
+  blank();
+  // 3 · Ventas WEB
+  rows.push([H('3 · VENTAS WEB / EVENTOS / REGALOS — 100% automático'), H(''), H(''), H(''), H(''), H('Monto')]);
+  rows.push([T('Retail cobrado (' + i.ventas_web.n + ' pedidos)'), T(''), T(''), T(''), T(''), M(i.ventas_web.cobrado)]);
+  blank();
+  // 4 · Activo
+  rows.push([H('4 · INGRESOS POR VENTA DE ACTIVO — manual'), H(''), H(''), H(''), H(''), M(i.activo)]);
+  blank();
+  // 5 · Transferencias
+  rows.push([SEC('5 · TRANSFERENCIAS (locales propios)')]);
+  const transTable = (nombre, t) => {
+    rows.push([SEC(nombre), SEC(''), SEC(''), SEC(t.litros + ' lt'), SEC(''), SM(t.valor)]);
+    rows.push([H('Estilo'), H('$/lt'), H('Despacho'), H('Litros'), H('%'), H('Valor')]);
+    (t.tabla || []).forEach(r => rows.push([T(r.estilo), M(r.precioLt), M(r.despachoLt), N(r.litros), PCT(r.pct), M(r.valor)]));
+    blank();
+  };
+  transTable('Garden (auto)', i.transferencias.garden);
+  transTable('Badass (auto)', i.transferencias.badass);
+  transTable('Antofagasta (manual)', i.transferencias.antofagasta);
+  // 6 · Walmart
+  rows.push([H('6 · WALMART — manual'), H('Cajas'), H('Valor caja'), H(''), H(''), H('Monto')]);
+  rows.push([T('Cajas de 24 latas'), N(i.walmart.cajas), M(i.walmart.valorCaja), T(''), T(''), M(i.walmart.total)]);
+  blank();
+  rows.push([SEC('TOTAL INGRESOS'), SEC(''), SEC(''), SEC(''), SEC(''), SM(data.totalIngresos)]);
+  if (data.excelRef && data.excelRef.ingresos_total) {
+    rows.push([T('Excel manual (referencia)'), T(''), T(''), T(''), T(''), M(data.excelRef.ingresos_total)]);
+    rows.push([T('Diferencia (módulo − Excel)'), T(''), T(''), T(''), T(''), M(data.totalIngresos - data.excelRef.ingresos_total)]);
+  }
+  return rows;
+}
+app.get('/admin/estado/export.xlsx', requireAdmin, async (req, res) => {
+  const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
+  if (!month) return res.status(400).send('Falta el mes (YYYY-MM).');
+  try {
+    const data = await estadoResolve(month);
+    const buf = xlsxPackage([{ name: estadoMonthLabel(month) + ' CD', rows: estadoSheetRows(data, month) }]);
+    sendXlsx(res, buf, 'Estado_Resultado_' + month + '.xlsx');
+  } catch (e) { res.status(500).send('Error: ' + String(e.message || e).slice(0, 200)); }
 });
 
 // ─── Conversaciones (embudo) ────────────────────────────────────────────────
