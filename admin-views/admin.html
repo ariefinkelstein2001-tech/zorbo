@@ -1611,6 +1611,9 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .cg-card-n{font-size:.7rem;color:var(--dim,#999);margin-top:.1rem}
 .cg-tag{display:inline-block;font-size:.72rem;font-weight:700;color:var(--gold-deep,#a05f00);background:var(--gold-dim,rgba(245,166,35,.1));border:1px solid var(--gold-bd,#f1c97b);border-radius:20px;padding:.1rem .55rem}
 .cg-table td{vertical-align:middle}
+.cg-file-name{font-size:.68rem;color:var(--dim,#999);margin-top:.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.cg-doc-link{color:var(--gold-deep,#a05f00);font-weight:600;font-size:.82rem;text-decoration:none}
+.cg-doc-link:hover{text-decoration:underline}
 /* Estado de Resultado (P&L) */
 .pnl-table td{padding:.5rem .7rem}
 .pnl-table tr.pnl-sub td:first-child{padding-left:1.8rem;color:var(--muted,#666);font-size:.86rem}
@@ -8190,7 +8193,7 @@ function estDrill(which){
 }
 
 // ─── Costos y Gastos ────────────────────────────────────────────────────────
-let costosData=null, costosForm={proveedor:'',categoria:'',fecha:'',folio:'',valor:''};
+let costosData=null, costosForm={proveedor:'',categoria:'',fecha:'',folio:'',valor:'',adjunto:null};
 const COSTOS_CAT_LABEL={costo_directo:'Costo directo',costo_indirecto:'Costo indirecto',gastos_operativos:'Gastos operativos',gastos_admin_venta:'Gastos de administración y venta',activos_fijos:'Activos fijos'};
 async function loadCostos(){
   const body=document.getElementById('costosBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
@@ -8217,6 +8220,7 @@ function renderCostos(){
       <td><span class="cg-tag">${escapeHtml(COSTOS_CAT_LABEL[e.categoria]||e.categoria)}</span></td>
       <td>${escapeHtml(e.folio||'—')}</td>
       <td class="dist-num">${eM(e.valor)}</td>
+      <td>${e.adjunto&&e.adjunto.url?`<a class="cg-doc-link" href="${escapeAttr(e.adjunto.url)}" target="_blank" title="${escapeAttr(e.adjunto.name||'documento')}">📎 ver</a>`:'<span style="color:#ccc">—</span>'}</td>
       <td><button class="pv-del" data-cgdel="${e.id}" title="Eliminar">✕</button></td>
     </tr>`).join('');
   body.innerHTML=`
@@ -8228,12 +8232,13 @@ function renderCostos(){
         <label class="cg-field"><span>Fecha del documento</span><input type="date" id="cgFecha" value="${escapeAttr(f.fecha)}"></label>
         <label class="cg-field"><span>Folio / N° documento</span><input type="text" id="cgFolio" value="${escapeAttr(f.folio)}" placeholder="Ej: 46211"></label>
         <label class="cg-field"><span>Valor ($)</span><input type="text" inputmode="numeric" id="cgValor" value="${escapeAttr(f.valor)}" placeholder="0"></label>
+        <label class="cg-field"><span>Documento (PDF / imagen)</span><input type="file" id="cgFile" accept="application/pdf,image/png,image/jpeg,image/webp,image/gif"><small class="cg-file-name" id="cgFileName">${f.adjunto?escapeHtml(f.adjunto.filename):'opcional · máx 8 MB'}</small></label>
         <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="cgAdd" type="button">+ Agregar</button></div>
       </div>
       <div class="cg-err" id="cgErr"></div>
     </div>
     <div class="cg-resumen">${resumenCards}<div class="cg-card cg-card-total"><div class="cg-card-l">Total</div><div class="cg-card-v">${eM(rs.total)}</div><div class="cg-card-n">${(a.entradas||[]).length} doc${(a.entradas||[]).length===1?'':'s'}</div></div></div>
-    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Categoría</th><th>Folio</th><th style="text-align:right">Valor</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:.8rem">Todavía no hay costos ni gastos registrados</td></tr>'}</tbody></table></div>`;
+    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Categoría</th><th>Folio</th><th style="text-align:right">Valor</th><th>Doc</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:#999;padding:.8rem">Todavía no hay costos ni gastos registrados</td></tr>'}</tbody></table></div>`;
   wireCostos();
 }
 function wireCostos(){
@@ -8250,6 +8255,14 @@ function wireCostos(){
   fecha.onchange=()=>costosForm.fecha=fecha.value; fecha.oninput=()=>costosForm.fecha=fecha.value;
   folio.oninput=()=>costosForm.folio=folio.value;
   valor.oninput=()=>costosForm.valor=valor.value;
+  const file=document.getElementById('cgFile'), fname=document.getElementById('cgFileName');
+  if(file) file.onchange=()=>{
+    const f=file.files&&file.files[0]; if(!f){ costosForm.adjunto=null; return; }
+    if(f.size>8*1024*1024){ costosShowErr('El archivo supera los 8 MB.'); file.value=''; costosForm.adjunto=null; if(fname) fname.textContent='opcional · máx 8 MB'; return; }
+    const rd=new FileReader();
+    rd.onload=()=>{ const b64=String(rd.result).split(',')[1]||''; costosForm.adjunto={dataBase64:b64,contentType:f.type,filename:f.name}; if(fname) fname.textContent='📎 '+f.name; };
+    rd.readAsDataURL(f);
+  };
   document.getElementById('cgAdd').onclick=costosAgregar;
   document.querySelectorAll('[data-cgdel]').forEach(b=>b.onclick=()=>costosEliminar(b.dataset.cgdel));
 }
@@ -8257,7 +8270,7 @@ function costosSyncForm(){ const p=document.getElementById('cgProv'); if(p) p.va
 function costosShowErr(msg){ const e=document.getElementById('cgErr'); if(e){ e.textContent='⚠ '+msg; e.classList.add('show'); } }
 async function costosAgregar(){
   const e=document.getElementById('cgErr'); if(e){ e.textContent=''; e.classList.remove('show'); }
-  const payload={ proveedor:costosForm.proveedor, categoria:costosForm.categoria, fecha:costosForm.fecha, folio:costosForm.folio, valor:cNum(costosForm.valor) };
+  const payload={ proveedor:costosForm.proveedor, categoria:costosForm.categoria, fecha:costosForm.fecha, folio:costosForm.folio, valor:cNum(costosForm.valor), adjunto:costosForm.adjunto||null };
   if(!payload.proveedor||payload.proveedor==='__nuevo__') return costosShowErr('Elegí un proveedor.');
   if(!payload.categoria) return costosShowErr('Elegí una categoría.');
   if(!/^\d{4}-\d{2}-\d{2}$/.test(payload.fecha)) return costosShowErr('Elegí la fecha del documento.');
@@ -8265,7 +8278,7 @@ async function costosAgregar(){
   try{
     const r=await fetch('/admin/costos/entrada',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json();
     if(!r.ok) throw new Error(d.error||'Error');
-    costosForm={proveedor:'',categoria:'',fecha:'',folio:'',valor:''};
+    costosForm={proveedor:'',categoria:'',fecha:'',folio:'',valor:'',adjunto:null};
     await loadCostos();
   }catch(err){ costosShowErr(String(err.message||err)); }
 }

@@ -3234,17 +3234,34 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
   if (!COSTOS_CATEGORIAS.some(c => c.id === categoria)) return res.status(400).json({ error: 'Elegí una categoría válida.' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return res.status(400).json({ error: 'Elegí la fecha del documento.' });
   if (!valor) return res.status(400).json({ error: 'Ingresá el valor.' });
+  // Adjunto opcional (factura/documento) en base64 → se guarda en UPLOADS_DIR.
+  let adjunto = null;
+  const adj = b.adjunto;
+  if (adj && adj.dataBase64) {
+    const ext = UPLOAD_TYPES[String(adj.contentType).toLowerCase()];
+    if (!ext) return res.status(415).json({ error: 'Archivo no permitido. Subí PDF o imagen (png/jpg/webp).' });
+    let buf; try { buf = Buffer.from(adj.dataBase64, 'base64'); } catch { return res.status(400).json({ error: 'Archivo inválido.' }); }
+    if (!buf.length) return res.status(400).json({ error: 'Archivo vacío.' });
+    if (buf.length > MAX_UPLOAD_BYTES) return res.status(413).json({ error: 'Máximo 8 MB por archivo.' });
+    try { const safeName = randomUUID() + '.' + ext; writeFileSync(join(UPLOADS_DIR, safeName), buf); adjunto = { url: '/uploads/' + safeName, name: costosStr(adj.filename, 200) || ('documento.' + ext) }; }
+    catch (e) { return res.status(500).json({ error: 'Error guardando archivo: ' + e.message }); }
+  }
   const data = costosLoad();
   // Si el proveedor no está creado, lo crea al vuelo (viene de "crear nuevo").
   if (!data.proveedores.some(p => p.nombre === proveedor)) data.proveedores.push({ id: costosNewId('prov'), nombre: proveedor });
-  const entrada = { id: costosNewId('cg'), proveedor, categoria, fecha, folio, valor };
+  const entrada = { id: costosNewId('cg'), proveedor, categoria, fecha, folio, valor, adjunto };
   data.entradas.push(entrada); costosSave(data);
   res.json({ ok: true, entrada });
 });
 app.delete('/admin/costos/entrada/:id', requireAdmin, (req, res) => {
   const id = String(req.params.id); const data = costosLoad();
+  const removed = data.entradas.find(e => e.id === id);
   const n = data.entradas.length; data.entradas = data.entradas.filter(e => e.id !== id);
   if (data.entradas.length === n) return res.status(404).json({ error: 'No se encontró la entrada.' });
+  // Borrar el adjunto del disco (solo dentro de /uploads/ — anti path traversal).
+  if (removed && removed.adjunto && removed.adjunto.url && removed.adjunto.url.startsWith('/uploads/')) {
+    try { const p = join(UPLOADS_DIR, removed.adjunto.url.replace('/uploads/', '')); if (existsSync(p)) unlinkSync(p); } catch {}
+  }
   costosSave(data); res.json({ ok: true });
 });
 
