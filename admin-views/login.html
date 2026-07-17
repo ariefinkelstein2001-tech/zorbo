@@ -91,6 +91,15 @@ body{
   transition:background-color 9999s ease-in-out 0s;
 }
 
+.lg-remember{
+  display:flex;align-items:center;gap:.55rem;
+  font-size:.78rem;color:var(--muted);cursor:pointer;user-select:none;
+  padding-left:.2rem;margin-top:-.15rem;
+}
+.lg-remember input{
+  width:16px;height:16px;accent-color:var(--gold);cursor:pointer;flex:none;
+}
+
 .lg-err{
   display:none;align-items:center;gap:.5rem;
   background:var(--red-dim);border:1px solid rgba(224,101,79,.28);color:var(--red);
@@ -147,6 +156,11 @@ body{
              placeholder="••••••••" autocomplete="current-password" required>
     </div>
 
+    <label class="lg-remember" for="rememberMe">
+      <input type="checkbox" id="rememberMe" checked>
+      Recordar mi correo y contraseña en este equipo
+    </label>
+
     <button class="lg-submit" id="btn" type="submit">Iniciar sesión</button>
   </form>
 
@@ -158,10 +172,36 @@ const form = document.getElementById('loginForm');
 const btn  = document.getElementById('btn');
 const err  = document.getElementById('err');
 const errMsg = document.getElementById('errMsg');
+const uEl  = document.getElementById('username');
+const pEl  = document.getElementById('password');
+const rem  = document.getElementById('rememberMe');
+
+// "Recordarme": guarda correo y clave en este equipo (localStorage). Es un panel
+// interno, así que se ofrece por comodidad; los datos quedan solo en el navegador
+// de este equipo (ofuscados, no cifrados). Si se destilda, se borra lo guardado.
+const REMEMBER_KEY = 'zorbo_admin_login';
+const enc = (s) => { try { return btoa(encodeURIComponent(s)); } catch (_) { return ''; } };
+const dec = (s) => { try { return decodeURIComponent(atob(s)); } catch (_) { return ''; } };
+try {
+  const saved = JSON.parse(localStorage.getItem(REMEMBER_KEY) || 'null');
+  if (saved && saved.r) {
+    uEl.value = dec(saved.u || '');
+    pEl.value = dec(saved.p || '');
+    rem.checked = true;
+    if (uEl.value && pEl.value) setTimeout(() => btn.focus(), 60);
+  } else if (saved === null) {
+    rem.checked = true; // por defecto, recordar
+  }
+} catch (_) {}
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   err.classList.remove('show');
+  // Guardar / limpiar credenciales según "Recordarme".
+  try {
+    if (rem.checked) localStorage.setItem(REMEMBER_KEY, JSON.stringify({ u: enc(uEl.value), p: enc(pEl.value), r: true }));
+    else localStorage.removeItem(REMEMBER_KEY);
+  } catch (_) {}
   btn.disabled = true;
   const original = btn.textContent;
   btn.textContent = 'Validando…';
@@ -170,8 +210,8 @@ form.addEventListener('submit', async (e) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username: document.getElementById('username').value,
-        password: document.getElementById('password').value,
+        username: uEl.value,
+        password: pEl.value,
       }),
     });
     const data = await r.json().catch(() => ({}));

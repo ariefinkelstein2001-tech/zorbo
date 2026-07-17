@@ -2491,28 +2491,27 @@ function cdWebDetalle(o){
     if (!fulfLoc && f && f.location && f.location.name) fulfLoc = f.location.name;
   }
   const retailLoc = (o.retailLocation && o.retailLocation.name) || '';
-  // Ubicación de la que sale/donde ocurre el pedido, en orden de preferencia.
+  // SUCURSAL de la que sale / donde ocurre el pedido. Es la location del fulfillment
+  // (assignedLocation → location del fulfillment → retailLocation). SIRVE PARA TODOS
+  // los canales: es el "de dónde sale" del despacho y el "de qué local" del retiro/tienda.
   const asignada = (fo && fo.assignedLocation && fo.assignedLocation.name) || fulfLoc || retailLoc || '';
+  const tienda = cdKairosTienda(asignada);                                   // Badass/Garden/Antofagasta
+  const sucursal = tienda ? ('Kairos ' + tienda) : asignada;                 // nombre lindo de la sucursal
   const appName = (o.app && o.app.name) || '';
   const source = o.sourceName || '';
-  // El texto que describe el método de envío / origen elegido.
-  const metodoTxt = shipTitle || trackCompany || shipCode || '';
-  // 1) Presencial: Kioskify / POS. La tienda es la retailLocation (o assignedLocation).
+  // 1) Presencial: Kioskify / POS (por el ORIGEN del pedido, no por la sucursal).
   if (/kioskify|point of sale|\bpos\b/i.test(appName + ' ' + source)) {
-    const tiendaLoc = retailLoc || asignada || '';
-    const tienda = cdKairosTienda(tiendaLoc) || cdKairosTienda(appName);
-    return { entrega: 'Tienda', canal: 'tienda', tienda, local: tiendaLoc || 'Kioskify', courier: '', origen: tiendaLoc || '', metodo: appName || 'Kioskify' };
+    return { entrega: 'Tienda', canal: 'tienda', tienda, sucursal, local: sucursal || 'Kioskify', courier: '', origen: sucursal, metodo: appName || 'Kioskify' };
   }
-  // 2) Retiro en tienda: el método/origen nombra un local Kairos (o es PICK_UP).
-  const tiendaMetodo = cdKairosTienda(metodoTxt) || cdKairosTienda(asignada);
-  const esRetiro = /PICK_UP|PICKUP/i.test(methodType) || /retiro|pickup/i.test(metodoTxt) || !!tiendaMetodo;
+  // 2) Retiro: SOLO por el método (PICK_UP o "retiro/recoger" en el título). La
+  // sucursal es Kairos igual que en el despacho, así que NO define el canal.
+  const esRetiro = /PICK_UP|PICKUP|PICK.?UP/i.test(methodType) || /retiro|pickup|pick.?up|recog|recoge/i.test(shipTitle + ' ' + shipCode);
   if (esRetiro) {
-    const tienda = tiendaMetodo;
-    return { entrega: 'Retiro', canal: 'retiro', tienda, local: metodoTxt || asignada || (tienda ? 'Kairos ' + tienda : ''), courier: '', origen: metodoTxt || asignada || '', metodo: metodoTxt };
+    return { entrega: 'Retiro', canal: 'retiro', tienda, sucursal, local: sucursal, courier: '', origen: sucursal, metodo: shipTitle };
   }
-  // 3) Despacho: courier PKT1 / Flapp ("Other") / otro. Origen = de dónde sale.
-  const courier = cdCourierName(metodoTxt);
-  return { entrega: 'Despacho', canal: 'despacho', tienda: '', local: '', courier, origen: asignada || '', metodo: metodoTxt };
+  // 3) Despacho: courier PKT1 / Flapp ("Otro"/"Other" = Flapp). Sale desde la sucursal.
+  const courier = cdCourierName(trackCompany || shipTitle || shipCode);
+  return { entrega: 'Despacho', canal: 'despacho', tienda, sucursal, local: '', courier, origen: sucursal, metodo: shipTitle };
 }
 // Diccionario keyword→{estilo,tipo}. El primero que matchee en el título gana.
 // Lo que no matchee queda "sin mapear" (no se adivina).
@@ -2599,14 +2598,17 @@ const CD_ORDER_FIELDS_SHIP = `
       retailLocation{ name }
       shippingLine{ title code }
       fulfillments(first:5){ trackingInfo{ company } }`;
-// Origen del despacho: de dónde sale (fulfillment location / assignedLocation).
-// Necesita el scope de fulfillment orders. assignedLocation.name es un string.
-const CD_ORDER_FIELDS_FULL = `
+// + Sucursal desde la que sale el pedido (location del fulfillment). Puede requerir
+// read_locations; si falta, se cae al nivel SHIP (sin sucursal).
+const CD_ORDER_FIELDS_LOC = `
       displayFulfillmentStatus
       app{ name }
       retailLocation{ name }
       shippingLine{ title code }
-      fulfillments(first:5){ trackingInfo{ company } location{ name } }
+      fulfillments(first:5){ trackingInfo{ company } location{ name } }`;
+// + Método de entrega fiable (retiro/despacho) y assignedLocation. Necesita el
+// scope de fulfillment orders. assignedLocation.name es un string.
+const CD_ORDER_FIELDS_FULL = CD_ORDER_FIELDS_LOC + `
       fulfillmentOrders(first:5){ nodes{ deliveryMethod{ methodType } assignedLocation{ name } } }`;
 const cdOrdersQuery = (extra) => `query($cursor:String,$q:String){
   orders(first:100, after:$cursor, query:$q, sortKey:CREATED_AT){
@@ -2620,6 +2622,7 @@ const cdOrdersQuery = (extra) => `query($cursor:String,$q:String){
 // los números del Estado nunca se rompen aunque falte un permiso de fulfillment.
 const CD_ORDER_TIERS = [
   { key: 'full', extra: CD_ORDER_FIELDS_FULL },
+  { key: 'loc', extra: CD_ORDER_FIELDS_LOC },
   { key: 'ship', extra: CD_ORDER_FIELDS_SHIP },
   { key: 'base', extra: '' },
 ];
@@ -2949,7 +2952,7 @@ async function estadoResolve(month, rango){
     ventas_cruzada: { shopify: shCruz, total: cruzTotal, pedidos: shOk ? sh.bucket.ventas_cruzada.pedidos : [] },
     horeca,
     hospitality: { garden, badass, total: hospitalityTotal },
-    ventas_web: { cobrado: shWeb, n: shOk ? sh.bucket.retail.n : 0, pedidos: webPedidos, porProveedor: webPorProv, proveedores: provKeys, detalleEntrega: !!(cdOrdersTier && cdOrdersTier.key !== 'base'), origenDespacho: !!(cdOrdersTier && cdOrdersTier.key === 'full') },
+    ventas_web: { cobrado: shWeb, n: shOk ? sh.bucket.retail.n : 0, pedidos: webPedidos, porProveedor: webPorProv, proveedores: provKeys, detalleEntrega: !!(cdOrdersTier && cdOrdersTier.key !== 'base'), origenDespacho: !!(cdOrdersTier && (cdOrdersTier.key === 'full' || cdOrdersTier.key === 'loc')) },
     retail,
     walmart: { total: retail, n: walmartPedidos.length, pedidos: walmartPedidos },
   };

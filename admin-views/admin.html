@@ -7930,8 +7930,9 @@ function estWebOpen(prov){
 const EST_CANALES=[{v:'tienda',l:'Tienda (Kioskify)'},{v:'retiro',l:'Retiro en tienda'},{v:'despacho',l:'Despacho'}];
 function estWebDest(w){
   if(!w) return '—';
-  if(w.canal==='tienda'){ const t=w.tienda||w.local; return 'Tienda'+(t?' · '+escapeHtml(t):'')+' <span style="color:#999">(Kioskify)</span>'; }
-  if(w.canal==='retiro') return 'Retiro'+(w.tienda?' · '+escapeHtml(w.tienda):(w.local?' · '+escapeHtml(w.local):''));
+  const suc=w.sucursal||w.local||'';
+  if(w.canal==='tienda') return 'Tienda'+(suc?' · '+escapeHtml(suc):'')+' <span style="color:#999">(Kioskify)</span>';
+  if(w.canal==='retiro') return 'Retiro'+(suc?' · '+escapeHtml(suc):'');
   if(w.canal==='despacho') return 'Despacho'+(w.courier?' · '+escapeHtml(w.courier):'')+(w.origen?' <span style="color:#999">desde '+escapeHtml(w.origen)+'</span>':'');
   return '—';
 }
