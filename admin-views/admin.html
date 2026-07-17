@@ -1551,14 +1551,11 @@ body.drawer-open{overflow:hidden}
 .est-lt{font-size:.75rem;font-weight:600;color:var(--muted,#999)}
 .est-warn{font-size:.7rem;color:#c0392b;font-weight:700}
 .est-anto-edit{margin-top:.5rem}
-/* Preview tipo planilla */
-.est-xl-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(20,15,5,.55);align-items:center;justify-content:center;padding:2rem}
-.est-xl-card{background:#fff;border-radius:14px;width:min(1000px,96vw);max-height:92vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden}
-.est-xl-load{padding:2rem;text-align:center;color:#666}
-.est-xl-top{display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:.9rem 1.1rem;border-bottom:1px solid #eee;flex-wrap:wrap}
+/* Vista planilla inline */
+.est-xl-bar{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:.7rem;flex-wrap:wrap}
 .est-xl-title{font-family:var(--display,inherit);font-weight:800;color:#111;font-size:1rem}
 .est-xl-acts{display:flex;gap:.5rem}
-.est-xl-scroll{overflow:auto;flex:1}
+.est-xl-scroll{overflow:auto;border:1px solid #d9d9d9;border-radius:8px;max-height:70vh}
 .est-xl-table{border-collapse:collapse;font-size:.78rem;color:#111;white-space:nowrap}
 .est-xl-table th{background:#f3f3f3;border:1px solid #d9d9d9;color:#888;font-weight:700;padding:.2rem .5rem;position:sticky;top:0;text-align:center;font-size:.7rem}
 .est-xl-table td{border:1px solid #e2e2e2;padding:.28rem .55rem;min-width:60px}
@@ -1574,8 +1571,7 @@ body.drawer-open{overflow:hidden}
 .est-xl-pct{text-align:right}
 .est-xl-title{font-weight:800}
 td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
-.est-xl-note{padding:.6rem 1.1rem;border-top:1px solid #eee;font-size:.74rem;color:#888}
-@media(prefers-color-scheme:dark){.est-xl-card{background:#fff}}
+.est-xl-note{margin-top:.5rem;font-size:.74rem;color:#888}
 .ct-sec-hd{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
 .ro-note{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.35);color:#8a6d1f;border-radius:10px;padding:.5rem .8rem;margin-bottom:.9rem;font-size:.82rem;font-weight:600}
 .ren-cell{display:inline-flex;align-items:center;gap:.25rem;justify-content:flex-end}
@@ -7677,7 +7673,7 @@ async function reventaAddSeccion(){
 }
 
 // ── Estado de Resultado mensual (CD) — Parte 1: ingresos ──
-let estadoMonth=null, estadoData=null, estadoDraft=null, estadoSaveTmr=null;
+let estadoMonth=null, estadoData=null, estadoDraft=null, estadoSaveTmr=null, estadoShowExcel=false;
 const estMonthLabel=(m)=>{ const [y,mo]=m.split('-'); const N=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']; return N[+mo]+' '+y; };
 async function estadoBoot(){
   const sel=document.getElementById('estadoMonth');
@@ -7688,39 +7684,38 @@ async function estadoBoot(){
   sel.innerHTML=months.map(m=>`<option value="${m}">${estMonthLabel(m)}${periodos.includes(m)?'':' ·'}</option>`).join('');
   estadoMonth = estadoMonth || periodos[0] || months[0];
   sel.value=estadoMonth;
-  sel.onchange=()=>{ estadoMonth=sel.value; estadoFetch(); };
-  document.getElementById('estadoReload').onclick=()=>estadoFetch();
+  sel.onchange=()=>{ estadoMonth=sel.value; if(estadoShowExcel) estadoRenderExcel(); else estadoFetch(); };
+  document.getElementById('estadoReload').onclick=()=>{ if(estadoShowExcel) estadoRenderExcel(); else estadoFetch(); };
   document.getElementById('estadoNuevo').onclick=estadoNuevoMes;
-  document.getElementById('estadoExcel').onclick=estadoPreviewExcel;
+  document.getElementById('estadoExcel').onclick=()=>{ estadoShowExcel=!estadoShowExcel; if(estadoShowExcel) estadoRenderExcel(); else estadoFetch(); };
   estadoFetch();
 }
-async function estadoPreviewExcel(){
-  let ov=document.getElementById('estXlOverlay');
-  if(!ov){ ov=document.createElement('div'); ov.id='estXlOverlay'; ov.className='est-xl-overlay'; document.body.appendChild(ov); }
-  const L=(n)=>{let s='';n++;while(n>0){s=String.fromCharCode(65+(n-1)%26)+s;n=Math.floor((n-1)/26);}return s;};
-  ov.innerHTML='<div class="est-xl-card"><div class="est-xl-load">Cargando planilla…</div></div>';
-  ov.style.display='flex';
+// Muestra la planilla Excel INLINE dentro del Estado de Resultado (solo lectura).
+async function estadoRenderExcel(){
+  estadoShowExcel=true;
+  const btn=document.getElementById('estadoExcel'); if(btn) btn.textContent='📝 Volver a editar';
+  const body=document.getElementById('estadoBody'); body.innerHTML='<div class="adm-loading">Cargando planilla…</div>';
   let data; try{ data=await (await fetch('/admin/estado/preview?month='+estadoMonth)).json(); if(data.error) throw new Error(data.error); }
-  catch(e){ ov.querySelector('.est-xl-card').innerHTML='<div class="est-xl-load">Error: '+escapeHtml(String(e.message||e))+'</div>'; return; }
+  catch(e){ body.innerHTML='<div class="dist-empty">Error: '+escapeHtml(String(e.message||e))+'</div>'; return; }
+  const L=(n)=>{let s='';n++;while(n>0){s=String.fromCharCode(65+(n-1)%26)+s;n=Math.floor((n-1)/26);}return s;};
   const maxCols=Math.max(1,...data.rows.map(r=>r.length));
   const head='<tr><th class="est-xl-corner"></th>'+Array.from({length:maxCols},(_,c)=>`<th>${L(c)}</th>`).join('')+'</tr>';
-  const body=data.rows.map((r,ri)=>{
+  const grid=data.rows.map((r,ri)=>{
     const cells=Array.from({length:maxCols},(_,c)=>{ const cell=r[c]||{t:''}; return `<td class="est-xl-${cell.s||''}${cell.n?' est-xl-num':''}">${escapeHtml(cell.t||'')}</td>`; }).join('');
     return `<tr><td class="est-xl-rownum">${ri+1}</td>${cells}</tr>`;
   }).join('');
-  ov.querySelector('.est-xl-card').innerHTML=`
-    <div class="est-xl-top">
-      <div class="est-xl-title">Estado de Resultado · ${estMonthLabel(estadoMonth)} · vista planilla (solo lectura)</div>
+  body.innerHTML=`
+    <div class="est-xl-bar">
+      <div class="est-xl-title">📊 Vista planilla · ${estMonthLabel(estadoMonth)} <span class="est-tag man">solo lectura</span></div>
       <div class="est-xl-acts">
         <button class="adm-btn adm-btn-gold" id="estXlDl" type="button">⬇ Descargar .xlsx</button>
-        <button class="adm-btn adm-btn-ghost" id="estXlClose" type="button">Cerrar</button>
+        <button class="adm-btn adm-btn-ghost" id="estXlEdit" type="button">📝 Volver a editar</button>
       </div>
     </div>
-    <div class="est-xl-scroll"><table class="est-xl-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>
-    <div class="est-xl-note">Esto es solo para ver. Los datos se cambian, agregan y quitan desde Zorbo — el Excel siempre refleja el módulo.</div>`;
-  document.getElementById('estXlClose').onclick=()=>{ ov.style.display='none'; };
+    <div class="est-xl-scroll"><table class="est-xl-table"><thead>${head}</thead><tbody>${grid}</tbody></table></div>
+    <div class="est-xl-note">Se ve como en Excel. Los datos se cambian, agregan y quitan desde Zorbo (botón "Volver a editar") — la planilla siempre refleja el módulo.</div>`;
   document.getElementById('estXlDl').onclick=()=>window.open('/admin/estado/export.xlsx?month='+estadoMonth,'_blank');
-  ov.onclick=(e)=>{ if(e.target===ov) ov.style.display='none'; };
+  document.getElementById('estXlEdit').onclick=()=>{ estadoShowExcel=false; if(btn) btn.textContent='📊 Ver Excel'; estadoFetch(); };
 }
 async function estadoNuevoMes(){
   const m=prompt('Nuevo mes (YYYY-MM):', estadoMonth); if(!m||!/^\d{4}-\d{2}$/.test(m)){ if(m) alert('Formato: YYYY-MM'); return; }
