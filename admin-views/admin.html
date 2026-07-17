@@ -2181,6 +2181,17 @@ body.drawer-open{overflow:hidden}
                 <button type="button" class="adm-btn adm-btn-ghost" id="npAddBarril">+ Agregar barril</button>
               </div>
             </div>
+            <div class="adm-fb-col"><label class="adm-fb-label">Costos de compra (para la orden de compra · opcional)</label>
+              <div class="adm-np-row3">
+                <div class="adm-fb-col"><label class="adm-fb-label" style="font-size:.62rem">Precio neto</label>
+                  <input class="adm-input" id="npNeto" type="number" min="0" step="1" placeholder="0"></div>
+                <div class="adm-fb-col"><label class="adm-fb-label" style="font-size:.62rem">Despacho x unidad</label>
+                  <input class="adm-input" id="npDespacho" type="number" min="0" step="1" placeholder="0"></div>
+                <div class="adm-fb-col"><label class="adm-fb-label" style="font-size:.62rem">ILA</label>
+                  <select class="adm-input" id="npIla"><option value="0">Sin ILA</option><option value="10">10%</option><option value="18">18%</option><option value="20.5">20,5%</option><option value="31.5">31,5%</option></select></div>
+              </div>
+              <div class="adm-np-hint" style="text-align:left;margin-top:.25rem">En la OC: ILA se calcula sobre el neto, IVA sobre neto + despacho.</div>
+            </div>
             <div class="adm-fb-col"><label class="adm-fb-label">Foto de la lata (PNG/JPG)</label>
               <label class="adm-prod-upload"><input type="file" id="npCan" accept="image/png,image/jpeg,image/webp" hidden><span>📷 Subir foto de la lata</span></label>
             </div>
@@ -3416,6 +3427,13 @@ document.getElementById('npCreate').onclick = async () => {
     const r = await fetch('/admin/products/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+    // Guardar costos de compra (neto / despacho / ILA) para la orden de compra.
+    const neto = Number(document.getElementById('npNeto').value)||0;
+    const despacho = Number(document.getElementById('npDespacho').value)||0;
+    const ila = Number(document.getElementById('npIla').value)||0;
+    if (data.id && (neto || despacho || ila)) {
+      try { await fetch('/admin/distribuidora/costs/'+encodeURIComponent(data.id), { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ precioNeto: neto||null, dispatch: despacho, ilaPct: ila }) }); } catch {}
+    }
     showToast(`Producto creado en Shopify ✓ (${data.title})`, 'ok');
     closeNewProd();
     // refrescar catálogo
@@ -5825,19 +5843,20 @@ async function renderDistOrdenes(){
   const sups = distData?.suppliers || [];
   let prods = [];
   try { const pd = await loadDistProducts(); if (pd && pd.available) prods = pd.products || []; } catch {}
-  const datalist = prods.map(p => `<option data-cost="${p.cost||''}" data-neto="${p.precioNeto||''}" data-ila="${p.ilaPct||''}" data-price="${p.price||''}" value="${escapeAttr(p.title)}">`).join('');
+  const datalist = prods.map(p => `<option data-cost="${p.cost||''}" data-neto="${p.precioNeto||''}" data-ila="${p.ilaPct||''}" data-despacho="${p.dispatch||''}" data-price="${p.price||''}" value="${escapeAttr(p.title)}">`).join('');
   const supOpts = '<option value="">Elegí un proveedor…</option>' + sups.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
   const orders = (distData?.purchaseOrders || []).slice().sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt));
 
   // Totales del borrador
   const subtotal = ocDraft.reduce((s,it)=>s+it.cantidad*it.precioUnitario,0);
+  const despachoTotal = ocDraft.reduce((s,it)=>s+Math.round(it.cantidad*(it.despachoUnitario||0)),0);
   const desc = document.getElementById('ocDesc') ? Number(document.getElementById('ocDesc').value)||0 : 0;
   const descMonto = Math.round(subtotal*desc/100);
   const subConDesc = subtotal-descMonto;
   const ilaBruto = ocDraft.reduce((s,it)=>s+Math.round(it.cantidad*it.precioUnitario*(it.ilaPct||0)/100),0);
   const ilaMonto = Math.round(ilaBruto*(1-desc/100));
-  const iva = Math.round(subConDesc*0.19);
-  const total = subConDesc+ilaMonto+iva;
+  const iva = Math.round((subConDesc+despachoTotal)*0.19); // IVA sobre neto + despacho
+  const total = subConDesc+despachoTotal+ilaMonto+iva;
 
   const draftRows = ocDraft.length ? ocDraft.map((it,i)=>`
     <tr>
@@ -5909,6 +5928,7 @@ async function renderDistOrdenes(){
           <div><span>Descuento (${desc}%)</span><b>-${ocMoney(descMonto)}</b></div>
           <div><span>Sub-total c/desc.</span><b>${ocMoney(subConDesc)}</b></div>
           <div><span>ILA</span><b>${ocMoney(ilaMonto)}</b></div>
+          ${despachoTotal?`<div><span>Despacho</span><b>${ocMoney(despachoTotal)}</b></div>`:''}
           <div><span>IVA (19%)</span><b>${ocMoney(iva)}</b></div>
           <div class="oc-tot-final"><span>TOTAL</span><b>${ocMoney(total)}</b></div>
         </div>
@@ -5983,7 +6003,8 @@ function addOcLine(){
   if(!articulo||cantidad<=0){ alert('Poné un artículo y una cantidad.'); return; }
   const opt=[...document.querySelectorAll('#ocProds option')].find(o=>o.value===articulo);
   const ilaPct=opt?Number(opt.dataset.ila)||0:0;
-  ocDraft.push({ articulo, cantidad, precioUnitario, ilaPct });
+  const despachoUnitario=opt?Number(opt.dataset.despacho)||0:0;
+  ocDraft.push({ articulo, cantidad, precioUnitario, ilaPct, despachoUnitario });
   renderDistOrdenesKeepInputs();
 }
 async function saveOc(){

@@ -4142,25 +4142,29 @@ function normalizeOCItems(raw){
       articulo: distriStr(it.articulo ?? it.title, 200),
       cantidad: Math.max(0, Number(it.cantidad ?? it.qty) || 0),
       precioUnitario: Math.max(0, Math.round(Number(it.precioUnitario ?? it.unitCost) || 0)),
-      // ILA (Impuesto a las bebidas alcohólicas) por producto. Por ahora 0;
-      // más adelante se carga el % que corresponde a cada producto.
+      // ILA (Impuesto a las bebidas alcohólicas) por producto. Se calcula sobre el
+      // NETO (sin despacho).
       ilaPct: Math.max(0, Number(it.ilaPct) || 0),
+      // Despacho por unidad. NO paga ILA, pero SÍ entra en la base del IVA.
+      despachoUnitario: Math.max(0, Math.round(Number(it.despachoUnitario ?? it.dispatch) || 0)),
     }))
     .filter(it => it.articulo && it.cantidad > 0)
     .map(it => {
       const precioTotal = Math.round(it.cantidad * it.precioUnitario);
-      return { ...it, precioTotal, ilaMonto: Math.round(precioTotal * it.ilaPct / 100) };
+      const despachoTotal = Math.round(it.cantidad * it.despachoUnitario);
+      return { ...it, precioTotal, despachoTotal, ilaMonto: Math.round(precioTotal * it.ilaPct / 100) };
     });
 }
 function computeOCTotals(items, descuentoPct){
-  const subtotal = items.reduce((s, it) => s + it.precioTotal, 0);
+  const subtotal = items.reduce((s, it) => s + it.precioTotal, 0);           // NETO
+  const despachoTotal = items.reduce((s, it) => s + (it.despachoTotal || 0), 0); // no paga ILA, sí IVA
   const dPct = Math.min(100, Math.max(0, Number(descuentoPct) || 0));
-  const descuento = Math.round(subtotal * dPct / 100);
+  const descuento = Math.round(subtotal * dPct / 100);                        // descuento solo sobre el neto
   const subtotalConDescuento = subtotal - descuento;
   const ilaBruto = items.reduce((s, it) => s + (it.ilaMonto || 0), 0);
-  const ila = Math.round(ilaBruto * (1 - dPct / 100));
-  const iva = Math.round(subtotalConDescuento * 0.19);
-  return { subtotal, descuentoPct: dPct, descuento, subtotalConDescuento, ila, iva, total: subtotalConDescuento + ila + iva };
+  const ila = Math.round(ilaBruto * (1 - dPct / 100));                        // ILA sobre neto
+  const iva = Math.round((subtotalConDescuento + despachoTotal) * 0.19);      // IVA sobre neto + despacho
+  return { subtotal, despachoTotal, descuentoPct: dPct, descuento, subtotalConDescuento, ila, iva, total: subtotalConDescuento + despachoTotal + ila + iva };
 }
 function buildOCFromBody(b, supplier){
   const items = normalizeOCItems(b.items);
@@ -4331,6 +4335,7 @@ function buildPurchaseOrderPdf(po){
   trow('DESCUENTO (' + (po.descuentoPct || 0) + '%)', '-' + clp(po.descuento));
   trow('SUB-TOTAL C/DESC.', clp(po.subtotalConDescuento));
   trow('ILA', clp(po.ila || 0));
+  if (po.despachoTotal) trow('DESPACHO', clp(po.despachoTotal));
   trow('IVA (19%)', clp(po.iva));
   trow('TOTAL', clp(po.total), true);
   y += 12;
