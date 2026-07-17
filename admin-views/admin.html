@@ -7712,6 +7712,7 @@ async function reventaAddSeccion(){
 // ── Estado de Resultado mensual (CD) — Parte 1: ingresos ──
 let estadoMonth=null, estadoData=null, estadoDraft=null, estadoSaveTmr=null, estadoShowExcel=false;
 let estHorecaChan=null, estHorecaFilter={marca:'',razon:'',sector:''};
+let estWebProv=null, estWebFilter={entrega:''};
 // Rango de fechas por defecto de un mes: del 1 a HOY si es el mes actual, si no al último día.
 function estMonthRange(m){
   const from=m+'-01'; const [y,mo]=m.split('-').map(Number); const t=new Date();
@@ -7829,6 +7830,7 @@ function estRecalc(){
 function renderEstado(){
   const a=estadoData, body=document.getElementById('estadoBody');
   estHorecaChan=null; estHorecaFilter={marca:'',razon:'',sector:''};
+  estWebProv=null; estWebFilter={entrega:''};
   const rg = a.rango ? `${a.rango.from.slice(8)}/${a.rango.from.slice(5,7)}–${a.rango.to.slice(8)}/${a.rango.to.slice(5,7)}${a.mesCompleto?' (mes completo)':' (rango parcial)'}` : '';
   document.getElementById('estadoMeta').textContent = (a.shopifyOk ? `Shopify OK · ${estMonthLabel(a.month)}` : `⚠️ ${a.shopifyError||'Shopify no disponible'} — solo líneas manuales`) + (rg?` · Shopify entre ${rg}`:'');
   const c=estCompute();
@@ -7873,11 +7875,13 @@ function renderEstado(){
       <div id="estHorecaPanel"></div>
     </div>
 
-    <div class="est-group">② Venta Online <span>· página web</span><b>${eM(c.online)}</b></div>
+    <div class="est-group">② Venta Online <span>· página web · por proveedor</span><b>${eM(c.online)}</b></div>
     <div class="est-line est-auto-line">
-      <div class="est-line-h"><span>Ventas WEB / Eventos / Regalos <span class="est-tag ok">100% auto</span></span><b>${eM(a.ingresos.ventas_web.cobrado)}</b></div>
-      <div class="est-auto">Retail cobrado de Shopify · ${a.ingresos.ventas_web.n} pedidos <button class="dist-portal-link" data-drill="web">ver detalle</button></div>
-      <div class="est-drill-box" id="estDrill_web"></div>
+      <div class="est-hchans">
+        ${(a.ingresos.ventas_web.proveedores||[]).map(pv=>{const b=(a.ingresos.ventas_web.porProveedor||{})[pv]||{total:0,n:0};return `<button class="est-hchan" data-wprov="${escapeHtml(pv)}"><b>${escapeHtml(pv)}</b><span>${eM(b.total)} · ${b.n} pedidos</span></button>`;}).join('')}
+      </div>
+      <div id="estWebPanel"></div>
+      ${a.ingresos.ventas_web.detalleEntrega===false?`<div class="est-auto" style="margin-top:.5rem">ℹ️ El detalle de entrega (retiro/despacho, courier, origen) no está disponible: falta el permiso de Shopify de <b>fulfillment orders</b>. Re-autorizá la app para verlo.</div>`:''}
     </div>
 
     <div class="est-group">③ Retail <span>· Walmart</span><b id="estRetailG">${eM(c.retail)}</b></div>
@@ -7909,6 +7913,46 @@ function estWire(){
   body.querySelectorAll('[data-wm]').forEach(inp=>inp.oninput=()=>{ estadoDraft.walmart[inp.dataset.wm]=cNum(inp.value); estRecalc(); estPersist(false); });
   body.querySelectorAll('[data-drill]').forEach(b=>b.onclick=()=>estDrill(b.dataset.drill));
   body.querySelectorAll('[data-hchan]').forEach(b=>b.onclick=()=>estHorecaOpen(b.dataset.hchan));
+  body.querySelectorAll('[data-wprov]').forEach(b=>b.onclick=()=>estWebOpen(b.dataset.wprov));
+}
+// Venta web por proveedor (Kairos Brewing / Firulais / Banny / ZORBO / Otros).
+function estWebOpen(prov){
+  estWebProv = (estWebProv===prov) ? null : prov;
+  estWebFilter={entrega:''};
+  document.querySelectorAll('[data-wprov]').forEach(b=>b.classList.toggle('on', b.dataset.wprov===estWebProv));
+  estWebDrawPanel();
+}
+function estWebDrawPanel(){
+  const panel=document.getElementById('estWebPanel'); if(!panel) return;
+  if(!estWebProv){ panel.innerHTML=''; return; }
+  const b=(estadoData.ingresos.ventas_web.porProveedor||{})[estWebProv]||{pedidos:[]};
+  const all=b.pedidos||[];
+  const f=estWebFilter;
+  const filtered=all.filter(p=>!f.entrega || (p.web&&p.web.entrega===f.entrega));
+  const totalPlata=filtered.reduce((a,p)=>a+(p.montoProveedor!=null?p.montoProveedor:p.cobrado),0);
+  const entregas=[...new Set(all.map(p=>p.web&&p.web.entrega).filter(v=>v&&v!=='—'))].sort();
+  const opt=(list,cur)=>['<option value="">Todas</option>',...list.map(v=>`<option ${v===cur?'selected':''}>${escapeHtml(v)}</option>`)].join('');
+  const rows=filtered.slice(0,800).map((p,i)=>{
+    const w=p.web||{};
+    const dest = w.entrega==='Retiro local' ? ('Retiro'+(w.local?' · '+escapeHtml(w.local):'')) : (w.entrega==='Despacho' ? ('Despacho'+(w.courier?' · '+escapeHtml(w.courier):'')+(w.origen?' desde '+escapeHtml(w.origen):'')) : '—');
+    return `<tr data-wped="${i}"><td>${escapeHtml(p.pedido)}</td><td>${escapeHtml(p.fecha)}</td><td>${escapeHtml(p.cliente)}</td><td>${escapeHtml(w.entrega||'—')}</td><td style="font-size:.74rem">${dest}</td><td class="dist-num">${eM(p.montoProveedor!=null?p.montoProveedor:p.cobrado)}</td><td>${(p.detalle||[]).length?`<button class="dist-portal-link" data-wdet="${i}">detalle</button>`:''}</td></tr>
+    <tr class="est-hdet-row"><td colspan="7" id="estWdet_${i}" style="padding:0"></td></tr>`;
+  }).join('');
+  panel.innerHTML=`
+    <div class="est-h-summary">📊 <b>${escapeHtml(estWebProv)}</b> — ${filtered.length} pedidos · venta total <b>${eM(totalPlata)}</b>${f.entrega?' <span style="color:#999">(filtrado: '+escapeHtml(f.entrega)+')</span>':''}</div>
+    <div class="est-h-filters">
+      <label>Entrega <select data-wf="entrega">${opt(entregas,f.entrega)}</select></label>
+      <button class="dist-portal-link" data-wclear>limpiar filtros</button>
+    </div>
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Entrega</th><th>Local / Origen</th><th style="text-align:right">Monto</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:#999;padding:.6rem">Sin pedidos</td></tr>'}</tbody></table></div>`;
+  panel.querySelectorAll('[data-wf]').forEach(s=>s.onchange=()=>{ estWebFilter[s.dataset.wf]=s.value; estWebDrawPanel(); });
+  const cl=panel.querySelector('[data-wclear]'); if(cl) cl.onclick=()=>{ estWebFilter={entrega:''}; estWebDrawPanel(); };
+  panel.querySelectorAll('[data-wdet]').forEach(btn=>btn.onclick=()=>{
+    const i=+btn.dataset.wdet; const row=document.getElementById('estWdet_'+i);
+    if(row.innerHTML){ row.innerHTML=''; return; }
+    const p=filtered[i]; const det=(p.detalle||[]).map(d=>`${d.cantidad}× ${escapeHtml(d.producto)}${d.variante?' ('+escapeHtml(d.variante)+')':''} <span style="color:#999">— ${escapeHtml(d.proveedor||d.vendor||'')} · ${eM(d.monto)}</span>`).join('<br>');
+    row.innerHTML=`<div class="est-hdet-cell">${det||'sin líneas'}</div>`;
+  });
 }
 // HORECA por canal (Grupo Mil Sabores / Otros) con filtros marca/razón/sector.
 function estHorecaOpen(chan){

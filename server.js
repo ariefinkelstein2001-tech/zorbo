@@ -2443,6 +2443,46 @@ function cdResolveHoreca(o, cm, bucketName){
   if (bucketName === 'ventas_cruzada') return { grupo: 'mil_sabores', sector: '', razon: '500 Sabores SpA', marca: '' };
   return { grupo: 'otros', sector: '', razon: '', marca: '' };
 }
+// ── Venta web: proveedor (vendor de Shopify) + detalle de entrega ──
+// Las 4 secciones de venta web se dividen por el vendor del producto. Lo que no
+// caiga en las 4 marcas conocidas va a "Otros".
+const CD_WEB_PROVEEDORES = ['Kairos Brewing', 'Firulais', 'Banny', 'ZORBO'];
+function cdWebProveedor(vendor){
+  const nv = cdNorm(vendor);
+  if (/kairos/.test(nv)) return 'Kairos Brewing';
+  if (/firulais/.test(nv)) return 'Firulais';
+  if (/banny/.test(nv)) return 'Banny';
+  if (/zorbo/.test(nv)) return 'ZORBO';
+  return 'Otros';
+}
+// Normaliza el courier a PKT1 / Flapp (o deja el texto tal cual si es otro).
+function cdCourierName(s){
+  const n = cdNorm(s);
+  if (!n) return '';
+  if (/pkt\s*1|pkt1|\bpkt\b/.test(n)) return 'PKT1';
+  if (/flapp/.test(n)) return 'Flapp';
+  return String(s || '').trim();
+}
+// De un pedido web: retiro local vs despacho, courier, y de dónde sale.
+function cdWebDetalle(o){
+  const fos = (o.fulfillmentOrders && o.fulfillmentOrders.nodes) || [];
+  const fo = fos.find(f => f && f.deliveryMethod) || fos[0] || null;
+  const methodType = (fo && fo.deliveryMethod && fo.deliveryMethod.methodType) || '';
+  const asignada = (fo && fo.assignedLocation && fo.assignedLocation.name) || '';
+  const shipTitle = (o.shippingLine && o.shippingLine.title) || '';
+  const shipCode = (o.shippingLine && o.shippingLine.code) || '';
+  let trackCompany = '';
+  for (const f of (o.fulfillments || [])) { const c = (f.trackingInfo || []).map(t => t && t.company).filter(Boolean)[0]; if (c) { trackCompany = c; break; } }
+  const esRetiro = /PICK_UP|PICKUP/i.test(methodType) || /retiro|pickup|tienda|local pickup/i.test(shipTitle) || /retiro|pickup/i.test(shipCode);
+  const courier = esRetiro ? '' : cdCourierName(trackCompany || shipTitle || shipCode);
+  return {
+    entrega: esRetiro ? 'Retiro local' : ((methodType || shipTitle || trackCompany) ? 'Despacho' : '—'),
+    local: esRetiro ? (asignada || shipTitle || '') : '',   // en qué local se retira
+    courier,                                                  // PKT1 / Flapp / otro
+    origen: asignada || '',                                   // de dónde sale el despacho
+    metodo: shipTitle || '',                                  // nombre del método de envío
+  };
+}
 // Diccionario keyword→{estilo,tipo}. El primero que matchee en el título gana.
 // Lo que no matchee queda "sin mapear" (no se adivina).
 const CD_ESTILO_DICT = [
@@ -2507,9 +2547,10 @@ async function cdShopifyGraph(query, variables){
   return shopifyAdminFetch('/graphql.json', { method: 'POST', body: JSON.stringify({ query, variables }) });
 }
 // Órdenes de un mes con código de descuento + tags del cliente + líneas.
-const CD_ORDERS_QUERY = `query($cursor:String,$q:String){
-  orders(first:100, after:$cursor, query:$q, sortKey:CREATED_AT){
-    edges{ cursor node{
+// Campos base (solo read_orders). El `vendor` del producto es lo que en Shopify
+// marca el proveedor (Kairos Brewing / Firulais / Banny / ZORBO) → se usa para
+// dividir la venta web por proveedor.
+const CD_ORDER_FIELDS_BASE = `
       id name createdAt discountCodes
       totalPriceSet{ shopMoney{ amount } }
       customer{ id displayName email tags defaultAddress{ company address1 city province } }
@@ -2517,12 +2558,35 @@ const CD_ORDERS_QUERY = `query($cursor:String,$q:String){
         quantity
         originalTotalSet{ shopMoney{ amount } }
         variant{ id title sku }
-        product{ id title tags }
-      } }
+        product{ id title vendor tags }
+      } }`;
+// Detalle de entrega (courier + método) — read_orders. Para saber si un pedido
+// web fue con despacho (PKT1/Flapp) o retiro en local.
+const CD_ORDER_FIELDS_SHIP = `
+      displayFulfillmentStatus
+      shippingLine{ title code }
+      fulfillments(first:5){ trackingInfo{ company } }`;
+// Origen del despacho + retiro/despacho fiable (necesita scope de fulfillment
+// orders). assignedLocation.name es un string, no requiere read_locations.
+const CD_ORDER_FIELDS_FULL = CD_ORDER_FIELDS_SHIP + `
+      fulfillmentOrders(first:5){ nodes{ deliveryMethod{ methodType } assignedLocation{ name } } }`;
+const cdOrdersQuery = (extra) => `query($cursor:String,$q:String){
+  orders(first:100, after:$cursor, query:$q, sortKey:CREATED_AT){
+    edges{ cursor node{${CD_ORDER_FIELDS_BASE}${extra || ''}
     } }
     pageInfo{ hasNextPage }
   }
 }`;
+// Niveles de detalle: FULL (retiro/origen), SHIP (courier), BASE (solo core).
+// Se prueba el más completo primero y se cae al siguiente si falta scope, así
+// los números del Estado nunca se rompen aunque falte un permiso de fulfillment.
+const CD_ORDER_TIERS = [
+  { key: 'full', extra: CD_ORDER_FIELDS_FULL },
+  { key: 'ship', extra: CD_ORDER_FIELDS_SHIP },
+  { key: 'base', extra: '' },
+];
+let cdOrdersTier = null; // se memoiza el primer nivel que funciona
+const CD_ORDERS_QUERY = cdOrdersQuery(CD_ORDER_FIELDS_FULL);
 // Rango por defecto de un mes (día 1 al último). Devuelve {from, to} en YYYY-MM-DD.
 function cdMonthRange(month){
   const [y, mo] = month.split('-').map(Number);
@@ -2534,9 +2598,23 @@ function cdMonthRange(month){
 // Carga órdenes de Shopify entre dos fechas exactas (inclusive), YYYY-MM-DD.
 async function cdLoadOrdersRange(from, to){
   const q = `created_at:>=${from} created_at:<=${to} status:any`;
+  // Elegí el nivel de detalle (una vez). Si falla por scope de fulfillment,
+  // bajá de nivel; el core (read_orders) siempre queda disponible.
+  if (!cdOrdersTier) {
+    for (const tier of CD_ORDER_TIERS) {
+      const resp = await cdShopifyGraph(cdOrdersQuery(tier.extra), { cursor: null, q });
+      if (!resp.errors) { cdOrdersTier = tier; break; }
+      const msg = JSON.stringify(resp.errors);
+      const esScope = /fulfillment|access denied|scope|permission|doesn't exist|Field/i.test(msg);
+      // Sólo bajamos de nivel ante error de permiso/campo de fulfillment. Si es
+      // otro error, o ya estamos en el nivel base, se propaga.
+      if (!esScope || tier.key === 'base') throw new Error(msg);
+    }
+  }
+  const query = cdOrdersQuery(cdOrdersTier.extra);
   const orders = []; let cursor = null;
   for (let page = 0; page < 20; page++) {
-    const resp = await cdShopifyGraph(CD_ORDERS_QUERY, { cursor, q });
+    const resp = await cdShopifyGraph(query, { cursor, q });
     if (resp.errors) throw new Error(JSON.stringify(resp.errors));
     const conn = resp.data.orders;
     for (const e of conn.edges) orders.push(e.node);
@@ -2652,6 +2730,20 @@ async function cdShopifyMonth(month, precios, rango){
       rec.grupo = pdv.grupo; rec.sector = pdv.sector; rec.razon = pdv.razon; rec.marca = pdv.marca; rec.litros = cdR3(litros); rec.detalle = det;
       // El "plata" del pedido HORECA es el ORIGINAL (pre-descuento).
       rec.monto = rec.original;
+    }
+    // VENTA WEB (retail): dividir por proveedor (vendor de Shopify) + detalle de entrega.
+    if (bucketName === 'retail') {
+      rec.web = cdWebDetalle(o);
+      const porProv = {}; const det = [];
+      for (const li of (o.lineItems && o.lineItems.nodes) || []) {
+        const prov = cdWebProveedor(li.product && li.product.vendor);
+        const monto = parseFloat((li.originalTotalSet && li.originalTotalSet.shopMoney && li.originalTotalSet.shopMoney.amount) || 0);
+        porProv[prov] = (porProv[prov] || 0) + monto;
+        det.push({ producto: (li.product && li.product.title) || '', variante: (li.variant && li.variant.title) || '', cantidad: li.quantity, vendor: (li.product && li.product.vendor) || '', proveedor: prov, monto: cdMoney(monto) });
+      }
+      rec.detalle = det;
+      rec.porProveedor = Object.entries(porProv).map(([proveedor, monto]) => ({ proveedor, monto: cdMoney(monto) }));
+      rec.proveedor = (rec.porProveedor.slice().sort((a, b) => b.monto - a.monto)[0] || {}).proveedor || 'Otros';
     }
     if (transferLocal) {
       const lineas = [];
@@ -2782,12 +2874,28 @@ async function estadoResolve(month, rango){
   const horecaPedidos = shOk ? [...sh.bucket.cd_kairos_mall.pedidos, ...sh.bucket.ventas_cruzada.pedidos] : [];
   const chanTotal = (g) => horecaPedidos.filter(p => p.grupo === g).reduce((a, p) => a + (p.monto || 0), 0);
   const horeca = { total: cdNeto + cruzTotal, milSabores: chanTotal('mil_sabores'), otros: chanTotal('otros'), pedidos: horecaPedidos };
+  // VENTA WEB por proveedor (vendor de Shopify): 4 secciones + Otros. El monto de
+  // cada sección se prorratea del cobrado real del pedido según la participación
+  // de cada proveedor en las líneas, así las secciones suman ≈ el total web.
+  const webPedidos = shOk ? sh.bucket.retail.pedidos : [];
+  const provKeys = [...CD_WEB_PROVEEDORES, 'Otros'];
+  const webPorProv = {}; for (const k of provKeys) webPorProv[k] = { total: 0, n: 0, pedidos: [] };
+  for (const ped of webPedidos) {
+    const provs = (ped.porProveedor && ped.porProveedor.length) ? ped.porProveedor : [{ proveedor: 'Otros', monto: ped.cobrado }];
+    const base = provs.reduce((a, x) => a + (x.monto || 0), 0) || 1;
+    for (const pp of provs) {
+      const key = webPorProv[pp.proveedor] ? pp.proveedor : 'Otros';
+      const alloc = Math.round(ped.cobrado * ((pp.monto || 0) / base));
+      webPorProv[key].total += alloc; webPorProv[key].n++;
+      webPorProv[key].pedidos.push({ ...ped, montoProveedor: alloc });
+    }
+  }
   const ingresos = {
     cd_kairos: { shopify: shCd, neto: cdNeto, pedidos: shOk ? sh.bucket.cd_kairos_mall.pedidos : [] },
     ventas_cruzada: { shopify: shCruz, total: cruzTotal, pedidos: shOk ? sh.bucket.ventas_cruzada.pedidos : [] },
     horeca,
     hospitality: { garden, badass, total: hospitalityTotal },
-    ventas_web: { cobrado: shWeb, n: shOk ? sh.bucket.retail.n : 0, pedidos: shOk ? sh.bucket.retail.pedidos : [] },
+    ventas_web: { cobrado: shWeb, n: shOk ? sh.bucket.retail.n : 0, pedidos: webPedidos, porProveedor: webPorProv, proveedores: provKeys, detalleEntrega: !!(cdOrdersTier && cdOrdersTier.key !== 'base') },
     retail,
     walmart: { total: retail },
   };
@@ -2860,9 +2968,14 @@ function estadoSheetRows(data, month){
   rows.push([T('CD Kairos (Shopify malls · ' + i.cd_kairos.pedidos.length + ' pedidos)'), T(''), T(''), T(''), T(''), M(i.cd_kairos.neto)]);
   rows.push([T('Ventas Cruzada (500 Sabores · ' + i.ventas_cruzada.pedidos.length + ' pedidos)'), T(''), T(''), T(''), T(''), M(i.ventas_cruzada.total)]);
   blank();
-  // ② Venta Online (web)
+  // ② Venta Online (web) — dividida por proveedor (vendor de Shopify)
   rows.push([SEC('② VENTA ONLINE (página web)'), SEC(''), SEC(''), SEC(''), SEC(''), SM(online)]);
-  rows.push([T('Retail cobrado (' + i.ventas_web.n + ' pedidos)'), T(''), T(''), T(''), T(''), M(i.ventas_web.cobrado)]);
+  const wpp = i.ventas_web.porProveedor || {};
+  (i.ventas_web.proveedores || Object.keys(wpp)).forEach(prov => {
+    const b = wpp[prov]; if (!b || (!b.n && !b.total)) return;
+    rows.push([T(prov + ' (' + b.n + ' pedidos)'), T(''), T(''), T(''), T(''), M(b.total)]);
+  });
+  rows.push([T('Total web (' + i.ventas_web.n + ' pedidos)'), T(''), T(''), T(''), T(''), M(i.ventas_web.cobrado)]);
   blank();
   // ③ Retail (Walmart) — de Shopify cuando migre
   rows.push([SEC('③ RETAIL (Walmart)'), SEC(''), SEC(''), SEC(''), SEC(''), SM(retail)]);
