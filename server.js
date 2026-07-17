@@ -3384,7 +3384,9 @@ function nominaLoad(){
   let data = { costoEmpresa: NOMINA_COSTO_DEFAULT, personas: [] };
   try { if (existsSync(NOMINA_FILE)) { const p = JSON.parse(readFileSync(NOMINA_FILE, 'utf-8')); if (Array.isArray(p.personas)) data.personas = p.personas; if (Number.isFinite(Number(p.costoEmpresa))) data.costoEmpresa = Math.round(Number(p.costoEmpresa)); data._saved = true; } }
   catch (e) { console.warn('nomina load:', e.message); }
-  if (!data._saved && !data.personas.length) data.personas = NOMINA_SEED.map(p => nominaPersonaNorm(p));
+  // IDs deterministas para la semilla (estables entre cargas mientras no se guarde,
+  // así editar/eliminar una persona semilla funciona antes del primer guardado).
+  if (!data._saved && !data.personas.length) data.personas = NOMINA_SEED.map((p, i) => nominaPersonaNorm(p, 'per_seed_' + i));
   delete data._saved;
   return data;
 }
@@ -3402,6 +3404,14 @@ app.post('/admin/nomina/persona', requireAdmin, (req, res) => {
   const p = nominaPersonaNorm(req.body || {});
   if (!p.nombre) return res.status(400).json({ error: 'Ingresá el nombre completo.' });
   const d = nominaLoad(); d.personas.push(p); nominaSave(d); res.json({ ok: true, persona: p });
+});
+app.put('/admin/nomina/persona/:id', requireAdmin, (req, res) => {
+  const id = String(req.params.id); const d = nominaLoad();
+  const idx = d.personas.findIndex(p => p.id === id);
+  if (idx < 0) return res.status(404).json({ error: 'No se encontró la persona.' });
+  const upd = nominaPersonaNorm(req.body || {}, id);
+  if (!upd.nombre) return res.status(400).json({ error: 'Ingresá el nombre completo.' });
+  d.personas[idx] = upd; nominaSave(d); res.json({ ok: true, persona: upd });
 });
 app.delete('/admin/nomina/persona/:id', requireAdmin, (req, res) => {
   const id = String(req.params.id); const d = nominaLoad();

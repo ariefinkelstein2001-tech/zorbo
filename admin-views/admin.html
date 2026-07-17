@@ -1625,6 +1625,9 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .nom-costo-edit .adm-btn{background:#1a1408;color:var(--gold-bright,#ffb840)}
 .nom-costo-hint{font-size:.74rem;font-weight:600;margin-top:.4rem;opacity:.85}
 .nom-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.nom-edit-inp{width:100%;min-width:70px;padding:.3rem .35rem;border:1px solid var(--gold-bd,#f1c97b);border-radius:6px;font:inherit;font-size:.82rem;background:var(--gold-dim,#fff8ea);color:var(--text,#111)}
+.nom-edit-inp:focus{outline:none;border-color:var(--gold,#f5a623)}
+.nom-edit-btn{color:var(--gold-deep,#a05f00)!important}
 /* Estado de Resultado (P&L) */
 .pnl-table td{padding:.5rem .7rem}
 .pnl-table tr.pnl-sub td:first-child{padding-left:1.8rem;color:var(--muted,#666);font-size:.86rem}
@@ -8322,7 +8325,7 @@ document.getElementById('costosReload').onclick=loadCostos;
 document.getElementById('costosMes').onchange=loadCostos;
 
 // ─── Gestión de Personas (nómina) ───────────────────────────────────────────
-let nominaData=null, nominaForm={rut:'',nombre:'',ingreso:'',cargo:'',jornada:'42',contrato:'Indefinido',centroCosto:'BEER GARDEN KAIROS',afp:'',salud:''};
+let nominaData=null, nominaEditId=null, nominaForm={rut:'',nombre:'',ingreso:'',cargo:'',jornada:'42',contrato:'Indefinido',centroCosto:'BEER GARDEN KAIROS',afp:'',salud:''};
 async function loadNomina(){
   const body=document.getElementById('nominaBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   try{ const r=await fetch('/admin/nomina'); nominaData=await r.json(); if(nominaData.error) throw new Error(nominaData.error); renderNomina(); }
@@ -8331,14 +8334,27 @@ async function loadNomina(){
 function renderNomina(){
   const a=nominaData, body=document.getElementById('nominaBody'), f=nominaForm;
   const contratoOpts=(a.contratos||['Indefinido','Plazo fijo']).map(c=>`<option ${c===f.contrato?'selected':''}>${escapeHtml(c)}</option>`).join('');
-  const rows=(a.personas||[]).map(p=>`
-    <tr>
+  const contratoSel=(cur)=>(a.contratos||['Indefinido','Plazo fijo']).map(c=>`<option ${c===cur?'selected':''}>${escapeHtml(c)}</option>`).join('');
+  const rows=(a.personas||[]).map(p=>{
+    if(p.id===nominaEditId){
+      const inp=(k,ph)=>`<input class="nom-edit-inp" data-ef="${k}" value="${escapeAttr(p[k]||'')}" placeholder="${ph||''}">`;
+      return `<tr data-erow="${p.id}">
+        <td>${inp('rut','RUT')}</td><td>${inp('nombre')}</td>
+        <td><input class="nom-edit-inp" type="date" data-ef="ingreso" value="${escapeAttr(p.ingreso||'')}"></td>
+        <td>${inp('cargo')}</td><td>${inp('jornada')}</td>
+        <td><select class="nom-edit-inp" data-ef="contrato">${contratoSel(p.contrato)}</select></td>
+        <td>${inp('centroCosto')}</td><td>${inp('afp')}</td><td>${inp('salud')}</td>
+        <td style="white-space:nowrap"><button class="dist-portal-link" data-persave="${p.id}" title="Guardar">✓</button> <button class="dist-portal-link" data-percancel title="Cancelar">✕</button></td>
+      </tr>`;
+    }
+    return `<tr>
       <td>${escapeHtml(p.rut||'—')}</td><td>${escapeHtml(p.nombre)}</td><td>${escapeHtml(p.ingreso||'—')}</td>
       <td>${escapeHtml(p.cargo||'—')}</td><td class="dist-num">${escapeHtml(p.jornada||'—')}</td>
       <td>${escapeHtml(p.contrato||'—')}</td><td>${escapeHtml(p.centroCosto||'—')}</td>
       <td>${escapeHtml(p.afp||'—')}</td><td>${escapeHtml(p.salud||'—')}</td>
-      <td><button class="pv-del" data-perdel="${p.id}" title="Eliminar">✕</button></td>
-    </tr>`).join('');
+      <td style="white-space:nowrap"><button class="pv-del nom-edit-btn" data-peredit="${p.id}" title="Editar">✎</button> <button class="pv-del" data-perdel="${p.id}" title="Eliminar">✕</button></td>
+    </tr>`;
+  }).join('');
   body.innerHTML=`
     <div class="nom-costo">
       <div class="nom-costo-l">Costo empresa de la nómina <span>(resta al Estado de Resultado como gasto de personal)</span></div>
@@ -8375,6 +8391,16 @@ function wireNomina(){
   Object.entries(bind).forEach(([id,k])=>{ const el=g(id); if(el){ const ev=el.tagName==='SELECT'?'onchange':'oninput'; el[ev]=()=>nominaForm[k]=el.value; } });
   g('nmAdd').onclick=nominaAgregar;
   document.querySelectorAll('[data-perdel]').forEach(b=>b.onclick=()=>nominaEliminar(b.dataset.perdel));
+  document.querySelectorAll('[data-peredit]').forEach(b=>b.onclick=()=>{ nominaEditId=b.dataset.peredit; renderNomina(); });
+  document.querySelectorAll('[data-percancel]').forEach(b=>b.onclick=()=>{ nominaEditId=null; renderNomina(); });
+  document.querySelectorAll('[data-persave]').forEach(b=>b.onclick=()=>nominaGuardar(b.dataset.persave));
+}
+async function nominaGuardar(id){
+  const row=document.querySelector(`tr[data-erow="${id}"]`); if(!row) return;
+  const payload={}; row.querySelectorAll('[data-ef]').forEach(el=>payload[el.dataset.ef]=el.value);
+  if(!(payload.nombre||'').trim()){ alert('Ingresá el nombre completo.'); return; }
+  try{ const r=await fetch('/admin/nomina/persona/'+encodeURIComponent(id),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); nominaEditId=null; await loadNomina(); }
+  catch(e){ alert(String(e.message||e)); }
 }
 async function nominaAgregar(){
   const err=document.getElementById('nmErr'); err.textContent=''; err.classList.remove('show');
