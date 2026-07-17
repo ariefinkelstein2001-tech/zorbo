@@ -1614,6 +1614,17 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .cg-file-name{font-size:.68rem;color:var(--dim,#999);margin-top:.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .cg-doc-link{color:var(--gold-deep,#a05f00);font-weight:600;font-size:.82rem;text-decoration:none}
 .cg-doc-link:hover{text-decoration:underline}
+/* Gestión de Personas */
+.nom-costo{background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623) 55%,var(--gold-deep,#a05f00));border-radius:16px;padding:1.1rem 1.3rem;margin-bottom:1.1rem;color:#1a1408}
+.nom-costo-l{font-size:.82rem;font-weight:700;letter-spacing:.02em}
+.nom-costo-l span{font-weight:500;opacity:.8}
+.nom-costo-edit{display:flex;align-items:center;gap:.5rem;margin-top:.4rem}
+.nom-costo-sign{font-family:var(--display,inherit);font-weight:800;font-size:1.8rem}
+.nom-costo-edit input{flex:0 1 260px;font-family:var(--display,inherit);font-weight:800;font-size:1.8rem;border:none;border-radius:10px;padding:.2rem .6rem;background:rgba(255,255,255,.75);color:#1a1408;min-width:0}
+.nom-costo-edit input:focus{outline:2px solid rgba(0,0,0,.25)}
+.nom-costo-edit .adm-btn{background:#1a1408;color:var(--gold-bright,#ffb840)}
+.nom-costo-hint{font-size:.74rem;font-weight:600;margin-top:.4rem;opacity:.85}
+.nom-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 /* Estado de Resultado (P&L) */
 .pnl-table td{padding:.5rem .7rem}
 .pnl-table tr.pnl-sub td:first-child{padding-left:1.8rem;color:var(--muted,#666);font-size:.86rem}
@@ -2095,6 +2106,21 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <div id="costosBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
+    <!-- Gestión de Personas: nómina + costo empresa -->
+    <div class="adm-panel" id="nominaView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Gestión de Personas</div>
+          <div class="adm-panel-meta">nómina de trabajadores · costo empresa · resta al Estado de Resultado como gasto de personal</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-gold" id="nominaExcel" type="button">⬇ Descargar Excel</button>
+          <button class="adm-btn adm-btn-ghost" id="nominaReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div id="nominaBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
     <!-- Estado de Resultado (P&L): ingresos − costos y gastos -->
     <div class="adm-panel" id="pnlView" style="display:none">
       <div class="adm-panel-head">
@@ -2503,6 +2529,7 @@ const BASE_SECCIONES = [
   { id:'costeo',    kind:'costeo',   label:'Costeo de carta', cat:'operaciones', desc:'insumos · recetas base · platos · precios de venta' },
   { id:'estado',    kind:'estado',   label:'Ingreso por Venta', cat:'operaciones', desc:'CD Kairos · ingresos por 4 canales · 100% automáticos de Shopify' },
   { id:'costos',    kind:'costos',   label:'Costos y Gastos', cat:'operaciones', desc:'registro de costos y gastos por proveedor · categoría · folio · valor' },
+  { id:'nomina',    kind:'nomina',   label:'Gestión de Personas', cat:'operaciones', desc:'nómina de trabajadores · costo empresa · descarga de Excel' },
   { id:'pnl',       kind:'pnl',      label:'Estado de Resultado', cat:'operaciones', desc:'ingresos − costos y gastos · margen bruto · EBITDA mensual' },
 ];
 
@@ -2712,6 +2739,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'costos') {
     showView('costos');
     await loadCostos();
+  } else if (sec.kind === 'nomina') {
+    showView('nomina');
+    await loadNomina();
   } else if (sec.kind === 'pnl') {
     showView('pnl');
     await loadPnl();
@@ -2757,6 +2787,7 @@ function showView(kind){
   document.getElementById('costeoView').style.display     = kind === 'costeo'     ? '' : 'none';
   document.getElementById('estadoView').style.display     = kind === 'estado'     ? '' : 'none';
   document.getElementById('costosView').style.display     = kind === 'costos'     ? '' : 'none';
+  document.getElementById('nominaView').style.display     = kind === 'nomina'     ? '' : 'none';
   document.getElementById('pnlView').style.display        = kind === 'pnl'        ? '' : 'none';
   if (kind === 'estado') estadoBoot();
   document.getElementById('feedbackView').style.display   = kind === 'feedback'   ? '' : 'none';
@@ -8290,6 +8321,79 @@ async function costosEliminar(id){
 document.getElementById('costosReload').onclick=loadCostos;
 document.getElementById('costosMes').onchange=loadCostos;
 
+// ─── Gestión de Personas (nómina) ───────────────────────────────────────────
+let nominaData=null, nominaForm={rut:'',nombre:'',ingreso:'',cargo:'',jornada:'42',contrato:'Indefinido',centroCosto:'BEER GARDEN KAIROS',afp:'',salud:''};
+async function loadNomina(){
+  const body=document.getElementById('nominaBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  try{ const r=await fetch('/admin/nomina'); nominaData=await r.json(); if(nominaData.error) throw new Error(nominaData.error); renderNomina(); }
+  catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function renderNomina(){
+  const a=nominaData, body=document.getElementById('nominaBody'), f=nominaForm;
+  const contratoOpts=(a.contratos||['Indefinido','Plazo fijo']).map(c=>`<option ${c===f.contrato?'selected':''}>${escapeHtml(c)}</option>`).join('');
+  const rows=(a.personas||[]).map(p=>`
+    <tr>
+      <td>${escapeHtml(p.rut||'—')}</td><td>${escapeHtml(p.nombre)}</td><td>${escapeHtml(p.ingreso||'—')}</td>
+      <td>${escapeHtml(p.cargo||'—')}</td><td class="dist-num">${escapeHtml(p.jornada||'—')}</td>
+      <td>${escapeHtml(p.contrato||'—')}</td><td>${escapeHtml(p.centroCosto||'—')}</td>
+      <td>${escapeHtml(p.afp||'—')}</td><td>${escapeHtml(p.salud||'—')}</td>
+      <td><button class="pv-del" data-perdel="${p.id}" title="Eliminar">✕</button></td>
+    </tr>`).join('');
+  body.innerHTML=`
+    <div class="nom-costo">
+      <div class="nom-costo-l">Costo empresa de la nómina <span>(resta al Estado de Resultado como gasto de personal)</span></div>
+      <div class="nom-costo-edit"><span class="nom-costo-sign">$</span><input type="text" inputmode="numeric" id="nomCosto" value="${a.costoEmpresa.toLocaleString('es-CL')}"><button class="adm-btn adm-btn-gold" id="nomCostoSave" type="button">Guardar</button></div>
+      <div class="nom-costo-hint" id="nomCostoHint">${(a.personas||[]).length} personas en la nómina</div>
+    </div>
+    <div class="cg-form">
+      <div class="cg-form-title">Agregar persona a la nómina</div>
+      <div class="cg-form-grid nom-grid">
+        <label class="cg-field"><span>RUT</span><input type="text" id="nmRut" value="${escapeAttr(f.rut)}" placeholder="12.345.678-9"></label>
+        <label class="cg-field"><span>Nombre completo</span><input type="text" id="nmNombre" value="${escapeAttr(f.nombre)}" placeholder="Apellidos Nombres"></label>
+        <label class="cg-field"><span>Fecha de ingreso</span><input type="date" id="nmIngreso" value="${escapeAttr(f.ingreso)}"></label>
+        <label class="cg-field"><span>Cargo</span><input type="text" id="nmCargo" value="${escapeAttr(f.cargo)}" placeholder="Ej: BODEGUERO(A)"></label>
+        <label class="cg-field"><span>Jornada (hrs)</span><input type="text" inputmode="numeric" id="nmJornada" value="${escapeAttr(f.jornada)}" placeholder="42"></label>
+        <label class="cg-field"><span>Contrato</span><select id="nmContrato">${contratoOpts}</select></label>
+        <label class="cg-field"><span>Centro de costos</span><input type="text" id="nmCC" value="${escapeAttr(f.centroCosto)}" placeholder="BEER GARDEN KAIROS"></label>
+        <label class="cg-field"><span>AFP</span><input type="text" id="nmAfp" value="${escapeAttr(f.afp)}" placeholder="Ej: modelo"></label>
+        <label class="cg-field"><span>Salud</span><input type="text" id="nmSalud" value="${escapeAttr(f.salud)}" placeholder="Ej: fonasa"></label>
+        <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="nmAdd" type="button">+ Agregar</button></div>
+      </div>
+      <div class="cg-err" id="nmErr"></div>
+    </div>
+    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>RUT</th><th>Nombre</th><th>Ingreso</th><th>Cargo</th><th>Jornada</th><th>Contrato</th><th>Centro de costos</th><th>AFP</th><th>Salud</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="10" style="text-align:center;color:#999;padding:.8rem">Sin personas en la nómina</td></tr>'}</tbody></table></div>`;
+  wireNomina();
+}
+function wireNomina(){
+  const g=(id)=>document.getElementById(id);
+  g('nomCostoSave').onclick=async()=>{
+    const v=cNum(g('nomCosto').value);
+    try{ const r=await fetch('/admin/nomina/costo',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({costoEmpresa:v})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); const h=g('nomCostoHint'); h.textContent='✓ guardado · '+(nominaData.personas||[]).length+' personas'; nominaData.costoEmpresa=v; }
+    catch(e){ g('nomCostoHint').textContent='⚠ '+String(e.message||e); }
+  };
+  const bind={nmRut:'rut',nmNombre:'nombre',nmIngreso:'ingreso',nmCargo:'cargo',nmJornada:'jornada',nmContrato:'contrato',nmCC:'centroCosto',nmAfp:'afp',nmSalud:'salud'};
+  Object.entries(bind).forEach(([id,k])=>{ const el=g(id); if(el){ const ev=el.tagName==='SELECT'?'onchange':'oninput'; el[ev]=()=>nominaForm[k]=el.value; } });
+  g('nmAdd').onclick=nominaAgregar;
+  document.querySelectorAll('[data-perdel]').forEach(b=>b.onclick=()=>nominaEliminar(b.dataset.perdel));
+}
+async function nominaAgregar(){
+  const err=document.getElementById('nmErr'); err.textContent=''; err.classList.remove('show');
+  if(!nominaForm.nombre.trim()){ err.textContent='⚠ Ingresá el nombre completo.'; err.classList.add('show'); return; }
+  try{
+    const r=await fetch('/admin/nomina/persona',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(nominaForm)}); const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Error');
+    nominaForm={rut:'',nombre:'',ingreso:'',cargo:'',jornada:'42',contrato:'Indefinido',centroCosto:'BEER GARDEN KAIROS',afp:'',salud:''};
+    await loadNomina();
+  }catch(e){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); }
+}
+async function nominaEliminar(id){
+  if(!confirm('Eliminar esta persona de la nómina?')) return;
+  try{ const r=await fetch('/admin/nomina/persona/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadNomina(); }
+  catch(e){ alert(String(e.message||e)); }
+}
+document.getElementById('nominaReload').onclick=loadNomina;
+document.getElementById('nominaExcel').onclick=()=>window.open('/admin/nomina/export.xlsx','_blank');
+
 // ─── Estado de Resultado (P&L) ──────────────────────────────────────────────
 let pnlData=null;
 async function loadPnl(){
@@ -8335,6 +8439,7 @@ function renderPnl(){
       ${res('MARGEN BRUTO', a.margenBruto, rt.margenBruto, a.margenBruto>=0?'pnl-pos':'pnl-red')}
       ${line('Gastos operativos', co.gastosOper, {neg:true, pctv:rt.gastosOper, doc:dc.gastos_operativos||0})}
       ${line('Gastos de administración y venta', co.gastosAdmin, {neg:true, pctv:rt.gastosAdmin, doc:dc.gastos_admin_venta||0})}
+      ${line('Gasto de personal · nómina', co.gastoPersonal, {neg:true, pctv:rt.gastoPersonal})}
       ${res('EBITDA · Resultado operativo', a.ebitda, rt.ebitda, ebitdaCls)}
     </tbody></table></div>
     <div class="pnl-activos"><span>Activos fijos <span style="font-size:.78rem;color:var(--dim,#999)">inversión, no afecta el resultado operativo</span></span><b>${eM(co.activos)}</b> <span class="pnl-doc">${dc.activos_fijos||0} doc${(dc.activos_fijos||0)===1?'':'s'}</span></div>

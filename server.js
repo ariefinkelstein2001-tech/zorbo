@@ -3277,8 +3277,9 @@ async function pnlCompute(month, rango){
   const ingresos = est.totalIngresos;
   const costoDirecto = catTot('costo_directo'), costoIndirecto = catTot('costo_indirecto');
   const gastosOper = catTot('gastos_operativos'), gastosAdmin = catTot('gastos_admin_venta'), activos = catTot('activos_fijos');
+  const gastoPersonal = nominaLoad().costoEmpresa || 0; // costo empresa de la nómina (Gestión de Personas)
   const margenBruto = ingresos - costoDirecto - costoIndirecto;
-  const ebitda = margenBruto - gastosOper - gastosAdmin;
+  const ebitda = margenBruto - gastosOper - gastosAdmin - gastoPersonal;
   const ratio = (v) => ingresos ? Math.round((v / ingresos) * 1000) / 10 : 0;
   const i = est.ingresos;
   return {
@@ -3289,12 +3290,12 @@ async function pnlCompute(month, rango){
       retail: (i.retail != null ? i.retail : 0),
       hospitality: i.hospitality.total,
     } },
-    costos: { costoDirecto, costoIndirecto, gastosOper, gastosAdmin, activos },
+    costos: { costoDirecto, costoIndirecto, gastosOper, gastosAdmin, gastoPersonal, activos },
     docs: Object.fromEntries(Object.entries(rs.porCategoria).map(([k, v]) => [k, v.n])),
     margenBruto, ebitda,
     ratios: {
       costoDirecto: ratio(costoDirecto), costoIndirecto: ratio(costoIndirecto),
-      gastosOper: ratio(gastosOper), gastosAdmin: ratio(gastosAdmin),
+      gastosOper: ratio(gastosOper), gastosAdmin: ratio(gastosAdmin), gastoPersonal: ratio(gastoPersonal),
       margenBruto: ratio(margenBruto), ebitda: ratio(ebitda), activos: ratio(activos),
     },
   };
@@ -3325,6 +3326,7 @@ function pnlSheetRows(data, month){
   blank();
   rows.push([T('Gastos operativos'), PCT(-rt.gastosOper), M(-co.gastosOper)]);
   rows.push([T('Gastos de administración y venta'), PCT(-rt.gastosAdmin), M(-co.gastosAdmin)]);
+  rows.push([T('Gasto de personal (nómina)'), PCT(-rt.gastoPersonal), M(-co.gastoPersonal)]);
   rows.push([SEC('EBITDA · RESULTADO OPERATIVO'), SPCT(rt.ebitda), SM(data.ebitda)]);
   blank();
   rows.push([T('Activos fijos'), T(''), M(co.activos)]);
@@ -3343,6 +3345,89 @@ app.get('/admin/pnl/export.xlsx', requireAdmin, async (req, res) => {
     const data = await pnlCompute(month, estadoRangeFromReq(req));
     const buf = xlsxPackage([{ name: 'Estado Resultado', rows: pnlSheetRows(data, month) }]);
     sendXlsx(res, buf, 'Estado_Resultado_' + month + '.xlsx');
+  } catch (e) { res.status(500).send('Error: ' + String(e.message || e).slice(0, 200)); }
+});
+
+// ─── GESTIÓN DE PERSONAS (nómina) ───────────────────────────────────────────
+// Nómina de trabajadores + costo empresa (editable a mano). El costo empresa
+// resta como "gasto de personal" en el Estado de Resultado.
+const NOMINA_FILE = join(PROMPTS_EFFECTIVE_DIR, 'nomina.json');
+const NOMINA_CONTRATOS = ['Indefinido', 'Plazo fijo'];
+const NOMINA_COSTO_DEFAULT = 28500000;
+const NOMINA_SEED = [
+  { rut: '', nombre: 'Alvarado Fernandez Jesus Jhonatthan Michael', ingreso: '2024-06-11', cargo: 'BODEGUERO(A)', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'uno', salud: 'fonasa' },
+  { rut: '', nombre: 'Conejeros Bravo Sebastian Andres', ingreso: '2025-05-14', cargo: 'MARKETING_MANAGER', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'cuprum', salud: 'colmena' },
+  { rut: '', nombre: 'Cupamo Hernandez Richard Alexander', ingreso: '2025-12-01', cargo: 'BODEGUERO(A)', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'uno', salud: 'fonasa' },
+  { rut: '', nombre: 'Gajardo Rivera Tomas Ignacio', ingreso: '2025-07-07', cargo: 'Sommelier Ejecutivo', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'planvital', salud: 'colmena' },
+  { rut: '', nombre: 'Luque Quintero Andres Emilio', ingreso: '2025-10-01', cargo: 'BODEGUERO(A)', jornada: '42', contrato: 'Plazo fijo', centroCosto: 'BEER GARDEN KAIROS', afp: 'uno', salud: 'fonasa' },
+  { rut: '', nombre: 'Mundaca Zenteno David Antonio', ingreso: '2024-04-01', cargo: 'AYUDANTE DE PRODUCCION', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'planvital', salud: 'banco_estado' },
+  { rut: '', nombre: 'Mundaca Zenteno Julio Andres', ingreso: '2024-06-03', cargo: 'ENCARGADO DE PRODUCCION', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'modelo', salud: 'banco_estado' },
+  { rut: '', nombre: 'Nudman Risnik Diego', ingreso: '2024-04-02', cargo: 'GERENTE DE OPERACIONES Y FINANZAS', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'uno', salud: 'colmena' },
+  { rut: '', nombre: 'Quezada Oropeza Luis Francisco', ingreso: '2023-01-03', cargo: 'ENCARGADO DE ADMINISTRACION Y LOGÍSTICA', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'planvital', salud: 'fonasa' },
+  { rut: '', nombre: 'Reyes Pinto Vicente Andres', ingreso: '2026-01-05', cargo: 'AYUDANTE DE PRODUCCION', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'modelo', salud: 'fonasa' },
+  { rut: '', nombre: 'Rojas Ureta Carlos Sebastian', ingreso: '2023-03-01', cargo: 'ENCARGADO DE PRODUCCION', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'provida', salud: 'banmedica' },
+  { rut: '', nombre: 'Tello Allende Matias Hernan', ingreso: '2023-05-01', cargo: 'ADMINISTRADOR VENTA Y PRODUCTOS', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'planvital', salud: 'fonasa' },
+  { rut: '', nombre: 'Zuñiga Ibarra Valentin Ignacio', ingreso: '2026-04-09', cargo: 'CONTENT CREATOR', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'uno', salud: 'fonasa' },
+  { rut: '', nombre: 'Fernandez Zuñiga Vicente', ingreso: '2026-04-01', cargo: 'ENCARGADO DE VENTAS', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'modelo', salud: 'fonasa' },
+  { rut: '', nombre: 'Finkelstein Dorfman Arie Jean', ingreso: '2025-12-04', cargo: 'ACCOUNT MANAGER', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'uno', salud: 'Masvida' },
+];
+function nominaPersonaNorm(p, id){
+  return {
+    id: id || costosNewId('per'),
+    rut: costosStr(p.rut, 20), nombre: costosStr(p.nombre, 120), ingreso: costosStr(p.ingreso, 20),
+    cargo: costosStr(p.cargo, 80), jornada: costosStr(p.jornada, 20),
+    contrato: NOMINA_CONTRATOS.includes(costosStr(p.contrato, 40)) ? costosStr(p.contrato, 40) : 'Indefinido',
+    centroCosto: costosStr(p.centroCosto, 80), afp: costosStr(p.afp, 40), salud: costosStr(p.salud, 40),
+  };
+}
+function nominaLoad(){
+  let data = { costoEmpresa: NOMINA_COSTO_DEFAULT, personas: [] };
+  try { if (existsSync(NOMINA_FILE)) { const p = JSON.parse(readFileSync(NOMINA_FILE, 'utf-8')); if (Array.isArray(p.personas)) data.personas = p.personas; if (Number.isFinite(Number(p.costoEmpresa))) data.costoEmpresa = Math.round(Number(p.costoEmpresa)); data._saved = true; } }
+  catch (e) { console.warn('nomina load:', e.message); }
+  if (!data._saved && !data.personas.length) data.personas = NOMINA_SEED.map(p => nominaPersonaNorm(p));
+  delete data._saved;
+  return data;
+}
+function nominaSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(NOMINA_FILE, JSON.stringify(d, null, 2)); }
+app.get('/admin/nomina', requireAdmin, (req, res) => {
+  const d = nominaLoad();
+  res.json({ costoEmpresa: d.costoEmpresa, personas: d.personas, contratos: NOMINA_CONTRATOS });
+});
+app.put('/admin/nomina/costo', requireAdmin, (req, res) => {
+  const v = costosNum(req.body && req.body.costoEmpresa);
+  if (v < 0) return res.status(400).json({ error: 'Valor inválido.' });
+  const d = nominaLoad(); d.costoEmpresa = v; nominaSave(d); res.json({ ok: true, costoEmpresa: v });
+});
+app.post('/admin/nomina/persona', requireAdmin, (req, res) => {
+  const p = nominaPersonaNorm(req.body || {});
+  if (!p.nombre) return res.status(400).json({ error: 'Ingresá el nombre completo.' });
+  const d = nominaLoad(); d.personas.push(p); nominaSave(d); res.json({ ok: true, persona: p });
+});
+app.delete('/admin/nomina/persona/:id', requireAdmin, (req, res) => {
+  const id = String(req.params.id); const d = nominaLoad();
+  const n = d.personas.length; d.personas = d.personas.filter(p => p.id !== id);
+  if (d.personas.length === n) return res.status(404).json({ error: 'No se encontró la persona.' });
+  nominaSave(d); res.json({ ok: true });
+});
+// Descarga del Excel de la nómina (mismas columnas que el proceso de sueldos).
+function nominaSheetRows(d){
+  const S = { title: 5, header: 1, sec: 2 };
+  const H = (v) => ({ v: v == null ? '' : String(v), s: S.header });
+  const T = (v) => ({ v: v == null ? '' : String(v) });
+  const N = (v) => ({ v: Number(v) || 0, t: 'n' });
+  const rows = [];
+  rows.push([H('RUT'), H('NOMBRE'), H('INGRESO'), H('CARGO'), H('JORNADA'), H('CONTRATO'), H('CENTRO DE COSTO'), H('AFP'), H('SALUD'), H('DIAS TRAB.'), H('DIAS LICENCIAS'), H('AUSENTISMO')]);
+  for (const p of d.personas) {
+    const fecha = /^\d{4}-\d{2}-\d{2}$/.test(p.ingreso) ? p.ingreso.split('-').reverse().join('-') : (p.ingreso || '');
+    rows.push([T(p.rut), T(p.nombre), T(fecha), T(p.cargo), N(p.jornada || 42), T(p.contrato), T(p.centroCosto), T(p.afp), T(p.salud), N(30), N(0), N(0)]);
+  }
+  return rows;
+}
+app.get('/admin/nomina/export.xlsx', requireAdmin, (req, res) => {
+  try {
+    const d = nominaLoad();
+    const buf = xlsxPackage([{ name: 'PROCESO DE SUELDOS', rows: nominaSheetRows(d) }]);
+    sendXlsx(res, buf, 'Proceso_de_sueldos_KAIROS.xlsx');
   } catch (e) { res.status(500).send('Error: ' + String(e.message || e).slice(0, 200)); }
 });
 
