@@ -7712,7 +7712,7 @@ async function reventaAddSeccion(){
 // ── Estado de Resultado mensual (CD) — Parte 1: ingresos ──
 let estadoMonth=null, estadoData=null, estadoDraft=null, estadoSaveTmr=null, estadoShowExcel=false;
 let estHorecaChan=null, estHorecaFilter={marca:'',razon:'',sector:''};
-let estWebProv=null, estWebFilter={entrega:''};
+let estWebProv=null, estWebFilter={entrega:'',tienda:''};
 // Rango de fechas por defecto de un mes: del 1 a HOY si es el mes actual, si no al último día.
 function estMonthRange(m){
   const from=m+'-01'; const [y,mo]=m.split('-').map(Number); const t=new Date();
@@ -7830,7 +7830,7 @@ function estRecalc(){
 function renderEstado(){
   const a=estadoData, body=document.getElementById('estadoBody');
   estHorecaChan=null; estHorecaFilter={marca:'',razon:'',sector:''};
-  estWebProv=null; estWebFilter={entrega:''};
+  estWebProv=null; estWebFilter={entrega:'',tienda:''};
   const rg = a.rango ? `${a.rango.from.slice(8)}/${a.rango.from.slice(5,7)}–${a.rango.to.slice(8)}/${a.rango.to.slice(5,7)}${a.mesCompleto?' (mes completo)':' (rango parcial)'}` : '';
   document.getElementById('estadoMeta').textContent = (a.shopifyOk ? `Shopify OK · ${estMonthLabel(a.month)}` : `⚠️ ${a.shopifyError||'Shopify no disponible'} — solo líneas manuales`) + (rg?` · Shopify entre ${rg}`:'');
   const c=estCompute();
@@ -7878,6 +7878,7 @@ function renderEstado(){
     <div class="est-group">② Venta Online <span>· página web · por proveedor</span><b>${eM(c.online)}</b></div>
     <div class="est-line est-auto-line">
       <div class="est-hchans">
+        <button class="est-hchan" data-wprov="__todos__"><b>Todos</b><span>${eM(a.ingresos.ventas_web.cobrado)} · ${a.ingresos.ventas_web.n} pedidos</span></button>
         ${(a.ingresos.ventas_web.proveedores||[]).map(pv=>{const b=(a.ingresos.ventas_web.porProveedor||{})[pv]||{total:0,n:0};return `<button class="est-hchan" data-wprov="${escapeHtml(pv)}"><b>${escapeHtml(pv)}</b><span>${eM(b.total)} · ${b.n} pedidos</span></button>`;}).join('')}
       </div>
       <div id="estWebPanel"></div>
@@ -7915,38 +7916,53 @@ function estWire(){
   body.querySelectorAll('[data-hchan]').forEach(b=>b.onclick=()=>estHorecaOpen(b.dataset.hchan));
   body.querySelectorAll('[data-wprov]').forEach(b=>b.onclick=()=>estWebOpen(b.dataset.wprov));
 }
-// Venta web por proveedor (Kairos Brewing / Firulais / Banny / ZORBO / Otros).
+// Venta web por proveedor (Todos / Kairos Brewing / Firulais / Banny / ZORBO / Otros).
 function estWebOpen(prov){
   estWebProv = (estWebProv===prov) ? null : prov;
-  estWebFilter={entrega:''};
+  estWebFilter={entrega:'',tienda:''};
   document.querySelectorAll('[data-wprov]').forEach(b=>b.classList.toggle('on', b.dataset.wprov===estWebProv));
   estWebDrawPanel();
+}
+// Etiquetas del canal de entrega para el filtro.
+const EST_CANALES=[{v:'tienda',l:'Tienda (Kioskify)'},{v:'retiro',l:'Retiro en tienda'},{v:'despacho',l:'Despacho'}];
+function estWebDest(w){
+  if(!w) return '—';
+  if(w.canal==='tienda') return 'Tienda'+(w.tienda?' · '+escapeHtml(w.tienda):'')+' <span style="color:#999">(Kioskify)</span>';
+  if(w.canal==='retiro') return 'Retiro'+(w.tienda?' · '+escapeHtml(w.tienda):(w.local?' · '+escapeHtml(w.local):''));
+  if(w.canal==='despacho') return 'Despacho'+(w.courier?' · '+escapeHtml(w.courier):'')+(w.origen?' desde '+escapeHtml(w.origen):'');
+  return '—';
 }
 function estWebDrawPanel(){
   const panel=document.getElementById('estWebPanel'); if(!panel) return;
   if(!estWebProv){ panel.innerHTML=''; return; }
-  const b=(estadoData.ingresos.ventas_web.porProveedor||{})[estWebProv]||{pedidos:[]};
-  const all=b.pedidos||[];
+  const wv=estadoData.ingresos.ventas_web;
+  const isAll = estWebProv==='__todos__';
+  const all = isAll ? (wv.pedidos||[]) : ((wv.porProveedor||{})[estWebProv]||{pedidos:[]}).pedidos||[];
+  const montoOf = p => isAll ? p.cobrado : (p.montoProveedor!=null?p.montoProveedor:p.cobrado);
   const f=estWebFilter;
-  const filtered=all.filter(p=>!f.entrega || (p.web&&p.web.entrega===f.entrega));
-  const totalPlata=filtered.reduce((a,p)=>a+(p.montoProveedor!=null?p.montoProveedor:p.cobrado),0);
-  const entregas=[...new Set(all.map(p=>p.web&&p.web.entrega).filter(v=>v&&v!=='—'))].sort();
-  const opt=(list,cur)=>['<option value="">Todas</option>',...list.map(v=>`<option ${v===cur?'selected':''}>${escapeHtml(v)}</option>`)].join('');
-  const rows=filtered.slice(0,800).map((p,i)=>{
+  const filtered=all.filter(p=>(!f.entrega || (p.web&&p.web.canal===f.entrega)) && (!f.tienda || (p.web&&p.web.tienda===f.tienda)));
+  const totalPlata=filtered.reduce((a,p)=>a+montoOf(p),0);
+  const tiendas=[...new Set(all.map(p=>p.web&&p.web.tienda).filter(Boolean))].sort();
+  const canalOpt=['<option value="">Todos</option>',...EST_CANALES.filter(c=>all.some(p=>p.web&&p.web.canal===c.v)).map(c=>`<option value="${c.v}" ${c.v===f.entrega?'selected':''}>${c.l}</option>`)].join('');
+  const tiendaOpt=['<option value="">Todas</option>',...tiendas.map(v=>`<option ${v===f.tienda?'selected':''}>${escapeHtml(v)}</option>`)].join('');
+  const label=isAll?'Todos los proveedores':escapeHtml(estWebProv);
+  const filtName=f.entrega?(EST_CANALES.find(c=>c.v===f.entrega)||{}).l:'';
+  const filtTxt=[filtName,f.tienda].filter(Boolean).join(' · ');
+  const rows=filtered.slice(0,1000).map((p,i)=>{
     const w=p.web||{};
-    const dest = w.entrega==='Retiro local' ? ('Retiro'+(w.local?' · '+escapeHtml(w.local):'')) : (w.entrega==='Despacho' ? ('Despacho'+(w.courier?' · '+escapeHtml(w.courier):'')+(w.origen?' desde '+escapeHtml(w.origen):'')) : '—');
-    return `<tr data-wped="${i}"><td>${escapeHtml(p.pedido)}</td><td>${escapeHtml(p.fecha)}</td><td>${escapeHtml(p.cliente)}</td><td>${escapeHtml(w.entrega||'—')}</td><td style="font-size:.74rem">${dest}</td><td class="dist-num">${eM(p.montoProveedor!=null?p.montoProveedor:p.cobrado)}</td><td>${(p.detalle||[]).length?`<button class="dist-portal-link" data-wdet="${i}">detalle</button>`:''}</td></tr>
+    return `<tr data-wped="${i}"><td>${escapeHtml(p.pedido)}</td><td>${escapeHtml(p.fecha)}</td><td>${escapeHtml(p.cliente)}</td><td>${escapeHtml((w.entrega)||'—')}</td><td style="font-size:.74rem">${estWebDest(w)}</td><td class="dist-num">${eM(montoOf(p))}</td><td>${(p.detalle||[]).length?`<button class="dist-portal-link" data-wdet="${i}">detalle</button>`:''}</td></tr>
     <tr class="est-hdet-row"><td colspan="7" id="estWdet_${i}" style="padding:0"></td></tr>`;
   }).join('');
   panel.innerHTML=`
-    <div class="est-h-summary">📊 <b>${escapeHtml(estWebProv)}</b> — ${filtered.length} pedidos · venta total <b>${eM(totalPlata)}</b>${f.entrega?' <span style="color:#999">(filtrado: '+escapeHtml(f.entrega)+')</span>':''}</div>
+    <div class="est-h-summary">📊 <b>${label}</b> — ${filtered.length} pedidos · venta total <b>${eM(totalPlata)}</b>${filtTxt?' <span style="color:#999">(filtrado: '+escapeHtml(filtTxt)+')</span>':''}</div>
     <div class="est-h-filters">
-      <label>Entrega <select data-wf="entrega">${opt(entregas,f.entrega)}</select></label>
+      <label>Entrega <select data-wf="entrega">${canalOpt}</select></label>
+      <label>Tienda <select data-wf="tienda">${tiendaOpt}</select></label>
       <button class="dist-portal-link" data-wclear>limpiar filtros</button>
     </div>
     <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Entrega</th><th>Local / Origen</th><th style="text-align:right">Monto</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:#999;padding:.6rem">Sin pedidos</td></tr>'}</tbody></table></div>`;
   panel.querySelectorAll('[data-wf]').forEach(s=>s.onchange=()=>{ estWebFilter[s.dataset.wf]=s.value; estWebDrawPanel(); });
-  const cl=panel.querySelector('[data-wclear]'); if(cl) cl.onclick=()=>{ estWebFilter={entrega:''}; estWebDrawPanel(); };
+  const cl=panel.querySelector('[data-wclear]'); if(cl) cl.onclick=()=>{ estWebFilter={entrega:'',tienda:''}; estWebDrawPanel(); };
   panel.querySelectorAll('[data-wdet]').forEach(btn=>btn.onclick=()=>{
     const i=+btn.dataset.wdet; const row=document.getElementById('estWdet_'+i);
     if(row.innerHTML){ row.innerHTML=''; return; }

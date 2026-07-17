@@ -2455,15 +2455,28 @@ function cdWebProveedor(vendor){
   if (/zorbo/.test(nv)) return 'ZORBO';
   return 'Otros';
 }
-// Normaliza el courier a PKT1 / Flapp (o deja el texto tal cual si es otro).
+// Normaliza el courier a PKT1 / Flapp. "Other" en Shopify = Flapp (según el
+// mapeo real de la tienda). Deja el texto tal cual si es otro courier.
 function cdCourierName(s){
   const n = cdNorm(s);
   if (!n) return '';
   if (/pkt\s*1|pkt1|\bpkt\b/.test(n)) return 'PKT1';
   if (/flapp/.test(n)) return 'Flapp';
+  if (/^other$|^otro$|generic/.test(n)) return 'Flapp'; // "Other" = Flapp
   return String(s || '').trim();
 }
-// De un pedido web: retiro local vs despacho, courier, y de dónde sale.
+// Normaliza a la tienda física de Kairos: Antofagasta / Garden / Badass, o ''.
+function cdKairosTienda(s){
+  const n = cdNorm(s);
+  if (/antofa/.test(n)) return 'Antofagasta';
+  if (/badass/.test(n)) return 'Badass';
+  if (/garden/.test(n)) return 'Garden';
+  return '';
+}
+// De un pedido web, resuelve el canal de entrega en 3:
+//  - Tienda: compra presencial (Kioskify / POS)
+//  - Retiro: compra online con retiro en un local Kairos (Garden/Badass/Antofa)
+//  - Despacho: envío por courier (PKT1 / Flapp)
 function cdWebDetalle(o){
   const fos = (o.fulfillmentOrders && o.fulfillmentOrders.nodes) || [];
   const fo = fos.find(f => f && f.deliveryMethod) || fos[0] || null;
@@ -2473,15 +2486,25 @@ function cdWebDetalle(o){
   const shipCode = (o.shippingLine && o.shippingLine.code) || '';
   let trackCompany = '';
   for (const f of (o.fulfillments || [])) { const c = (f.trackingInfo || []).map(t => t && t.company).filter(Boolean)[0]; if (c) { trackCompany = c; break; } }
-  const esRetiro = /PICK_UP|PICKUP/i.test(methodType) || /retiro|pickup|tienda|local pickup/i.test(shipTitle) || /retiro|pickup/i.test(shipCode);
-  const courier = esRetiro ? '' : cdCourierName(trackCompany || shipTitle || shipCode);
-  return {
-    entrega: esRetiro ? 'Retiro local' : ((methodType || shipTitle || trackCompany) ? 'Despacho' : '—'),
-    local: esRetiro ? (asignada || shipTitle || '') : '',   // en qué local se retira
-    courier,                                                  // PKT1 / Flapp / otro
-    origen: asignada || '',                                   // de dónde sale el despacho
-    metodo: shipTitle || '',                                  // nombre del método de envío
-  };
+  const appName = (o.app && o.app.name) || '';
+  const source = o.sourceName || '';
+  // El texto que describe el método de envío / origen elegido.
+  const metodoTxt = shipTitle || trackCompany || shipCode || '';
+  // 1) Presencial: Kioskify / POS.
+  if (/kioskify|point of sale|\bpos\b/i.test(appName + ' ' + source)) {
+    const tienda = cdKairosTienda(asignada) || cdKairosTienda(appName);
+    return { entrega: 'Tienda', canal: 'tienda', tienda, local: asignada || 'Kioskify', courier: '', origen: asignada || '', metodo: appName || 'Kioskify' };
+  }
+  // 2) Retiro en tienda: el método/origen nombra un local Kairos (o es PICK_UP).
+  const tiendaMetodo = cdKairosTienda(metodoTxt) || cdKairosTienda(asignada);
+  const esRetiro = /PICK_UP|PICKUP/i.test(methodType) || /retiro|pickup/i.test(metodoTxt) || !!tiendaMetodo;
+  if (esRetiro) {
+    const tienda = tiendaMetodo;
+    return { entrega: 'Retiro', canal: 'retiro', tienda, local: metodoTxt || asignada || (tienda ? 'Kairos ' + tienda : ''), courier: '', origen: metodoTxt || asignada || '', metodo: metodoTxt };
+  }
+  // 3) Despacho: courier PKT1 / Flapp ("Other") / otro.
+  const courier = cdCourierName(metodoTxt);
+  return { entrega: 'Despacho', canal: 'despacho', tienda: '', local: '', courier, origen: asignada || '', metodo: metodoTxt };
 }
 // Diccionario keyword→{estilo,tipo}. El primero que matchee en el título gana.
 // Lo que no matchee queda "sin mapear" (no se adivina).
@@ -2551,7 +2574,7 @@ async function cdShopifyGraph(query, variables){
 // marca el proveedor (Kairos Brewing / Firulais / Banny / ZORBO) → se usa para
 // dividir la venta web por proveedor.
 const CD_ORDER_FIELDS_BASE = `
-      id name createdAt discountCodes
+      id name createdAt discountCodes sourceName
       totalPriceSet{ shopMoney{ amount } }
       customer{ id displayName email tags defaultAddress{ company address1 city province } }
       lineItems(first:50){ nodes{
@@ -2564,6 +2587,7 @@ const CD_ORDER_FIELDS_BASE = `
 // web fue con despacho (PKT1/Flapp) o retiro en local.
 const CD_ORDER_FIELDS_SHIP = `
       displayFulfillmentStatus
+      app{ name }
       shippingLine{ title code }
       fulfillments(first:5){ trackingInfo{ company } }`;
 // Origen del despacho + retiro/despacho fiable (necesita scope de fulfillment
