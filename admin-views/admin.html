@@ -1591,6 +1591,18 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .est-group{font-family:var(--display,inherit);font-size:1.05rem;font-weight:800;color:var(--text,#111);margin:1.3rem 0 .5rem;padding-bottom:.3rem;border-bottom:2px solid var(--gold,#f5a623);display:flex;align-items:baseline;gap:.5rem}
 .est-group span{font-size:.75rem;font-weight:600;color:var(--muted,#999)}
 .est-group b{margin-left:auto;color:var(--gold-deep,#a05f00)}
+.est-hchans{display:flex;gap:.7rem;flex-wrap:wrap}
+.est-hchan{flex:1;min-width:200px;text-align:left;border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.7rem .9rem;background:var(--surface,#fff);cursor:pointer;transition:all .15s}
+.est-hchan:hover{border-color:var(--gold-bd-h,#e8b84e)}
+.est-hchan.on{border-color:var(--gold,#f5a623);background:var(--gold-dim,rgba(245,166,35,.08));box-shadow:0 2px 8px rgba(245,166,35,.15)}
+.est-hchan b{display:block;font-family:var(--display,inherit);font-size:.98rem;color:var(--text,#111)}
+.est-hchan span{font-size:.8rem;color:var(--gold-deep,#a05f00);font-weight:700}
+.est-h-summary{margin:.9rem 0 .5rem;padding:.6rem .9rem;background:#e3f6ea;border-radius:10px;font-size:.9rem;color:#1f7a44}
+.est-h-summary b{color:#155e33}
+.est-h-filters{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;margin-bottom:.6rem}
+.est-h-filters label{font-size:.72rem;font-weight:700;color:var(--muted,#777);display:inline-flex;flex-direction:column;gap:.2rem}
+.est-h-filters select{padding:.35rem .5rem;border:1px solid var(--line,#ddd);border-radius:8px;font-size:.82rem;background:var(--surface,#fff);color:var(--text,#111);min-width:150px}
+.est-hdet-cell{padding:.5rem .8rem;background:var(--surface-2,#fffdf7);font-size:.75rem;color:var(--muted,#666);line-height:1.6;border-left:3px solid var(--gold,#f5a623)}
 .ct-sec-hd{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
 .ro-note{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.35);color:#8a6d1f;border-radius:10px;padding:.5rem .8rem;margin-bottom:.9rem;font-size:.82rem;font-weight:600}
 .ren-cell{display:inline-flex;align-items:center;gap:.25rem;justify-content:flex-end}
@@ -7699,6 +7711,7 @@ async function reventaAddSeccion(){
 
 // ── Estado de Resultado mensual (CD) — Parte 1: ingresos ──
 let estadoMonth=null, estadoData=null, estadoDraft=null, estadoSaveTmr=null, estadoShowExcel=false;
+let estHorecaChan=null, estHorecaFilter={marca:'',razon:'',sector:''};
 // Rango de fechas por defecto de un mes: del 1 a HOY si es el mes actual, si no al último día.
 function estMonthRange(m){
   const from=m+'-01'; const [y,mo]=m.split('-').map(Number); const t=new Date();
@@ -7815,6 +7828,7 @@ function estRecalc(){
 }
 function renderEstado(){
   const a=estadoData, body=document.getElementById('estadoBody');
+  estHorecaChan=null; estHorecaFilter={marca:'',razon:'',sector:''};
   const rg = a.rango ? `${a.rango.from.slice(8)}/${a.rango.from.slice(5,7)}–${a.rango.to.slice(8)}/${a.rango.to.slice(5,7)}${a.mesCompleto?' (mes completo)':' (rango parcial)'}` : '';
   document.getElementById('estadoMeta').textContent = (a.shopifyOk ? `Shopify OK · ${estMonthLabel(a.month)}` : `⚠️ ${a.shopifyError||'Shopify no disponible'} — solo líneas manuales`) + (rg?` · Shopify entre ${rg}`:'');
   const c=estCompute();
@@ -7850,16 +7864,13 @@ function renderEstado(){
       ${['cerveza','gin','ron','despacho'].map(k=>`<label class="est-pr">${k}<input class="est-pr-inp" data-pr="${k}" type="text" inputmode="decimal" value="${pr[k]}"></label>`).join('')}
     </div>
 
-    <div class="est-group">① HORECA <span>· restaurantes y bares</span><b id="estHorecaG">${eM(c.horeca)}</b></div>
+    <div class="est-group">① HORECA <span>· canales de venta</span><b id="estHorecaG">${eM(c.horeca)}</b></div>
     <div class="est-line est-auto-line">
-      <div class="est-line-h"><span>CD Kairos <span class="est-tag ok">100% auto</span></span><b id="estCdNeto">${eM(c.cdNeto)}</b></div>
-      <div class="est-auto">Shopify malls · ${ci.pedidos.length} pedidos <button class="dist-portal-link" data-drill="cd">ver detalle</button></div>
-      <div class="est-drill-box" id="estDrill_cd"></div>
-    </div>
-    <div class="est-line est-auto-line">
-      <div class="est-line-h"><span>Ventas Cruzada (500 Sabores) <span class="est-tag ok">100% auto</span></span><b id="estCruzTotal">${eM(c.cruzTotal)}</b></div>
-      <div class="est-auto">Shopify · ${vi.pedidos.length} pedidos <button class="dist-portal-link" data-drill="cruz">ver detalle</button></div>
-      <div class="est-drill-box" id="estDrill_cruz"></div>
+      <div class="est-hchans">
+        <button class="est-hchan" data-hchan="mil_sabores"><b>Grupo Mil Sabores</b><span>${eM(a.ingresos.horeca.milSabores)} · ${a.ingresos.horeca.pedidos.filter(p=>p.grupo==='mil_sabores').length} pedidos</span></button>
+        <button class="est-hchan" data-hchan="otros"><b>Otros</b><span>${eM(a.ingresos.horeca.otros)} · ${a.ingresos.horeca.pedidos.filter(p=>p.grupo==='otros').length} pedidos</span></button>
+      </div>
+      <div id="estHorecaPanel"></div>
     </div>
 
     <div class="est-group">② Venta Online <span>· página web</span><b>${eM(c.online)}</b></div>
@@ -7897,6 +7908,45 @@ function estWire(){
   const act=body.querySelector('[data-single="activo"]'); if(act) act.oninput=()=>{ estadoDraft.activo=cNum(act.value); estRecalc(); estPersist(false); };
   body.querySelectorAll('[data-wm]').forEach(inp=>inp.oninput=()=>{ estadoDraft.walmart[inp.dataset.wm]=cNum(inp.value); estRecalc(); estPersist(false); });
   body.querySelectorAll('[data-drill]').forEach(b=>b.onclick=()=>estDrill(b.dataset.drill));
+  body.querySelectorAll('[data-hchan]').forEach(b=>b.onclick=()=>estHorecaOpen(b.dataset.hchan));
+}
+// HORECA por canal (Grupo Mil Sabores / Otros) con filtros marca/razón/sector.
+function estHorecaOpen(chan){
+  estHorecaChan = (estHorecaChan===chan) ? null : chan;
+  estHorecaFilter={marca:'',razon:'',sector:''};
+  document.querySelectorAll('[data-hchan]').forEach(b=>b.classList.toggle('on', b.dataset.hchan===estHorecaChan));
+  estHorecaDrawPanel();
+}
+function estHorecaDrawPanel(){
+  const panel=document.getElementById('estHorecaPanel'); if(!panel) return;
+  if(!estHorecaChan){ panel.innerHTML=''; return; }
+  const all=(estadoData.ingresos.horeca.pedidos||[]).filter(p=>p.grupo===estHorecaChan);
+  const f=estHorecaFilter;
+  const filtered=all.filter(p=>(!f.marca||p.marca===f.marca)&&(!f.razon||p.razon===f.razon)&&(!f.sector||p.sector===f.sector));
+  const distinct=k=>[...new Set(all.map(p=>p[k]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  const opt=(list,cur)=>['<option value="">Todas</option>',...list.map(v=>`<option ${v===cur?'selected':''}>${escapeHtml(v)}</option>`)].join('');
+  const totalPlata=filtered.reduce((a,p)=>a+(p.monto||0),0), totalLt=Math.round(filtered.reduce((a,p)=>a+(p.litros||0),0)*10)/10;
+  const chanLabel=estHorecaChan==='mil_sabores'?'Grupo Mil Sabores':'Otros';
+  const rows=filtered.slice(0,800).map((p,i)=>`
+    <tr data-hped="${i}"><td>${escapeHtml(p.pedido)}</td><td>${escapeHtml(p.fecha)}</td><td>${escapeHtml(p.marca||p.cliente)}</td><td>${escapeHtml(p.razon||'—')}</td><td>${escapeHtml(p.sector||'—')}</td><td class="dist-num">${p.litros}</td><td class="dist-num">${eM(p.monto)}</td><td>${(p.detalle||[]).length?`<button class="dist-portal-link" data-hdet="${i}">detalle</button>`:''}</td></tr>
+    <tr class="est-hdet-row"><td colspan="8" id="estHdet_${i}" style="padding:0"></td></tr>`).join('');
+  panel.innerHTML=`
+    <div class="est-h-summary">📊 <b>${chanLabel}</b> — ${filtered.length} pedidos · venta total <b>${eM(totalPlata)}</b> · ${totalLt} lt${(f.marca||f.razon||f.sector)?' <span style="color:#999">(filtrado)</span>':''}</div>
+    <div class="est-h-filters">
+      <label>Marca <select data-hf="marca">${opt(distinct('marca'),f.marca)}</select></label>
+      <label>Razón social <select data-hf="razon">${opt(distinct('razon'),f.razon)}</select></label>
+      <label>Sector <select data-hf="sector">${opt(distinct('sector'),f.sector)}</select></label>
+      <button class="dist-portal-link" data-hclear>limpiar filtros</button>
+    </div>
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Pedido</th><th>Fecha</th><th>Marca/Cliente</th><th>Razón social</th><th>Sector</th><th style="text-align:right">Litros</th><th style="text-align:right">Monto</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="8" style="text-align:center;color:#999;padding:.6rem">Sin pedidos</td></tr>'}</tbody></table></div>`;
+  panel.querySelectorAll('[data-hf]').forEach(s=>s.onchange=()=>{ estHorecaFilter[s.dataset.hf]=s.value; estHorecaDrawPanel(); });
+  const cl=panel.querySelector('[data-hclear]'); if(cl) cl.onclick=()=>{ estHorecaFilter={marca:'',razon:'',sector:''}; estHorecaDrawPanel(); };
+  panel.querySelectorAll('[data-hdet]').forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.hdet; const row=document.getElementById('estHdet_'+i);
+    if(row.innerHTML){ row.innerHTML=''; return; }
+    const p=filtered[i]; const det=(p.detalle||[]).map(d=>`${d.cantidad}× ${escapeHtml(d.producto)}${d.variante?' ('+escapeHtml(d.variante)+')':''} — ${escapeHtml(d.estilo)} · ${d.litros}L`).join('<br>');
+    row.innerHTML=`<div class="est-hdet-cell">${det||'sin líneas'}</div>`;
+  });
 }
 function estDrill(which){
   const a=estadoData;

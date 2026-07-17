@@ -2402,6 +2402,47 @@ function cdBucketForCodes(codes){
   if (nuevo) return { code: nuevo, bucket: 'codigo_nuevo' };
   return null;
 }
+// Zona (sector) que aporta cada código (para resolver el PdV del pedido HORECA).
+const CD_CODE_ZONA = {
+  PEDIDOSTOBALABA: 'Plaza Tobalaba', PEDIDOSVSP: 'Plaza Vespucio', PEDIDOSOESTE: 'Plaza oeste', PEDIDOSNORTE: 'Plaza norte', 'PEDIDOSEGAÑA': 'Plaza Egaña', PEDIDOSEGANA: 'Plaza Egaña', PEDIDOSDOMINICOS: 'Dominicos',
+  PEDIDOSCOSTANERA: 'Costanera Center', PEDIDOSSKYCOSTANERA: 'Costanera Center', PEDIDOSALTO: 'Alto las condes', PEDIDOSPANORAMICO: 'Panoramico', PEDIDOSFLORIDACENTER: 'Florida center', PEDIDOSHOTELW: 'Hotel W', PEDIDOSLADEHESA: 'Portal La Dehesa', PEDIDOSPA: 'Parque Arauco', PEDIDOSOPEN: 'Open Kennedy', PEDIDOSMARINA: 'Viña (Mall)', PEDIDOSBULNES: 'Bulnes/Vivo imperio',
+};
+// Índice del maestro de puntos de venta (memoizado): por local (marca) y por zona.
+let CD_PDV_INDEX = null;
+function cdPdvIndex(){
+  if (CD_PDV_INDEX) return CD_PDV_INDEX;
+  const byLocal = new Map(), byZona = new Map();
+  for (const p of cdLoadPdv()) {
+    const ln = cdNorm(p.local).replace(/\s+/g, '');
+    if (ln.length >= 5 && !byLocal.has(ln)) byLocal.set(ln, p);
+    const zn = cdNorm(p.zona);
+    if (zn) { if (!byZona.has(zn)) byZona.set(zn, []); byZona.get(zn).push(p); }
+  }
+  CD_PDV_INDEX = { byLocal, byZona };
+  return CD_PDV_INDEX;
+}
+// Grupo/razón representativos de una zona (el más frecuente).
+function cdZonaRepr(pdvs){
+  const cnt = (arr, k) => { const m = {}; arr.forEach(x => { const v = x[k] || ''; m[v] = (m[v] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1])[0]; };
+  const grupo = (pdvs.filter(p => p.grupo === 'mil_sabores').length >= pdvs.length / 2) ? 'mil_sabores' : 'otros';
+  const razon = (cnt(pdvs, 'razon') || [''])[0];
+  return { grupo, razon };
+}
+// Resuelve un pedido HORECA a su punto de venta: {grupo, sector, razon, marca}.
+// marca (local exacto) solo si el cliente lo nombra; si es a nivel mall, marca=''.
+function cdResolveHoreca(o, cm, bucketName){
+  const idx = cdPdvIndex();
+  const hay = cdNorm((o.customer && o.customer.displayName) + ' ' + (o.customer && o.customer.defaultAddress && o.customer.defaultAddress.company || '')).replace(/\s+/g, '');
+  // 1) Local (marca) exacto por el nombre del cliente.
+  for (const [ln, p] of idx.byLocal) if (hay.includes(ln)) return { grupo: p.grupo, sector: p.zona, razon: p.razon, marca: p.local };
+  // 2) Zona: del código o del nombre del cliente.
+  let zona = (cm && cm.pdv) || (cm && cm.code && CD_CODE_ZONA[cm.code]) || '';
+  if (!zona) { for (const [zn, arr] of idx.byZona) if (zn.length >= 5 && hay.includes(zn.replace(/\s+/g, ''))) { zona = arr[0].zona; break; } }
+  if (zona && idx.byZona.has(cdNorm(zona))) { const arr = idx.byZona.get(cdNorm(zona)); const r = cdZonaRepr(arr); return { grupo: r.grupo, sector: zona, razon: r.razon, marca: '' }; }
+  // 3) Sin resolver: Cruzada = 500 Sabores (mil_sabores); CD Kairos sin match = otros.
+  if (bucketName === 'ventas_cruzada') return { grupo: 'mil_sabores', sector: '', razon: '500 Sabores SpA', marca: '' };
+  return { grupo: 'otros', sector: '', razon: '', marca: '' };
+}
 // Diccionario keyword→{estilo,tipo}. El primero que matchee en el título gana.
 // Lo que no matchee queda "sin mapear" (no se adivina).
 const CD_ESTILO_DICT = [
@@ -2599,6 +2640,19 @@ async function cdShopifyMonth(month, precios, rango){
     const total = parseFloat((o.totalPriceSet && o.totalPriceSet.shopMoney && o.totalPriceSet.shopMoney.amount) || 0);
     totalCobrado += total; totalOriginal += orig;
     const rec = { pedido: o.name || '', fecha: (o.createdAt || '').slice(0, 10), cliente: (o.customer && o.customer.displayName) || '—', codigo: codes.join(', ') || '—', original: cdMoney(orig), cobrado: cdMoney(total) };
+    // HORECA (cd_kairos + cruzada): resolver punto de venta + litros + detalle para el filtrado.
+    if (bucketName === 'cd_kairos_mall' || bucketName === 'ventas_cruzada') {
+      const pdv = cdResolveHoreca(o, cm, bucketName);
+      let litros = 0; const det = [];
+      for (const li of (o.lineItems && o.lineItems.nodes) || []) {
+        const lt = (Number(li.quantity) || 0) * cdLitrosUnidad(li.product && li.product.title, li.variant && li.variant.title);
+        litros += lt;
+        if (li.product) det.push({ producto: li.product.title, variante: (li.variant && li.variant.title) || '', cantidad: li.quantity, litros: cdR3(lt), estilo: (cdEstiloOf(li.product.title, li.variant && li.variant.title) || {}).estilo || 'sin mapear' });
+      }
+      rec.grupo = pdv.grupo; rec.sector = pdv.sector; rec.razon = pdv.razon; rec.marca = pdv.marca; rec.litros = cdR3(litros); rec.detalle = det;
+      // El "plata" del pedido HORECA es el ORIGINAL (pre-descuento).
+      rec.monto = rec.original;
+    }
     if (transferLocal) {
       const lineas = [];
       for (const li of (o.lineItems && o.lineItems.nodes) || []) {
@@ -2723,9 +2777,15 @@ async function estadoResolve(month, rango){
   const cruzTotal = shCruz;
   const hospitalityTotal = gardenValor + badassValor;
   const retail = 0; // Walmart: de Shopify cuando migren los pedidos
+  // HORECA por canal de venta: Grupo Mil Sabores vs Otros. Cada pedido trae su
+  // punto de venta (marca/razón/sector) para filtrar.
+  const horecaPedidos = shOk ? [...sh.bucket.cd_kairos_mall.pedidos, ...sh.bucket.ventas_cruzada.pedidos] : [];
+  const chanTotal = (g) => horecaPedidos.filter(p => p.grupo === g).reduce((a, p) => a + (p.monto || 0), 0);
+  const horeca = { total: cdNeto + cruzTotal, milSabores: chanTotal('mil_sabores'), otros: chanTotal('otros'), pedidos: horecaPedidos };
   const ingresos = {
     cd_kairos: { shopify: shCd, neto: cdNeto, pedidos: shOk ? sh.bucket.cd_kairos_mall.pedidos : [] },
     ventas_cruzada: { shopify: shCruz, total: cruzTotal, pedidos: shOk ? sh.bucket.ventas_cruzada.pedidos : [] },
+    horeca,
     hospitality: { garden, badass, total: hospitalityTotal },
     ventas_web: { cobrado: shWeb, n: shOk ? sh.bucket.retail.n : 0, pedidos: shOk ? sh.bucket.retail.pedidos : [] },
     retail,

@@ -8,9 +8,8 @@
    "direccion": "Presidente Kennedy 9001, Las Condes, Santiago",
    "tipo": "Mil sabores",
    "contacto": "Jorge Barrueta",
-   "litrosProm": "4",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Alto las condes",
@@ -20,9 +19,8 @@
    "direccion": "Presidente Kennedy 9001, Las Condes, Santiago",
    "tipo": "Mil sabores",
    "contacto": "Jorge Barrueta",
-   "litrosProm": "100.0",
-   "nivel": "2",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Alto las condes",
@@ -32,9 +30,8 @@
    "direccion": "Presidente Kennedy 9001, Las Condes, Santiago",
    "tipo": "Mil sabores",
    "contacto": "Danny",
-   "litrosProm": "3",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Alto las condes",
@@ -44,9 +41,8 @@
    "direccion": "Presidente Kennedy 9001, Las Condes, Santiago",
    "tipo": "Mil sabores",
    "contacto": "Danny",
-   "litrosProm": "3",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Alto las condes",
@@ -56,9 +52,8 @@
    "direccion": "Presidente Kennedy 9001, Las Condes, Santiago",
    "tipo": "Mil sabores",
    "contacto": "Danny",
-   "litrosProm": "2",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Alto las condes",
@@ -68,9 +63,8 @@
    "direccion": "Presidente Kennedy 9001, Las Condes, Santiago",
    "tipo": "Mil sabores",
    "contacto": "Manuel",
-   "litrosProm": "2",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Portal La Dehesa",
@@ -80,9 +74,8 @@
    "direccion": "Avenida La Dehesa 1445, Lo Barnechea",
    "tipo": "Mil sabores",
    "contacto": "Angelica",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Portal La Dehesa",
@@ -92,9 +85,8 @@
    "direccion": "Avenida La Dehesa 1445, Lo Barnechea",
    "tipo": "Mil sabores",
    "contacto": "Angelica",
-   "litrosProm": "1.0",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Parque Arauco",
@@ -104,9 +96,8 @@
    "direccion": "Avenida Presidente Kennedy 5413",
    "tipo": "Mil sabores",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Parque Arauco",
@@ -116,9 +107,8 @@
    "direccion": "Avenida Presidente Kennedy 5413",
    "tipo": "Mil sabores",
    "contacto": "William",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Parque Arauco",
@@ -128,9 +118,8 @@
    "direccion": "Avenida Presidente Kennedy 5413",
    "tipo": "Mil sabores",
    "contacto": "Renzo",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Parque Arauco",
@@ -140,9 +129,8 @@
    "direccion": "Avenida Presidente Kennedy 5413",
    "tipo": "Mil sabores",
    "contacto": "William",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Parque Arauco",
@@ -152,9 +140,8 @@
    "direccion": "Avenida Presidente Kennedy 5413",
    "tipo": "Mil sabores",
    "contacto": "Daniel Diaz",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Parque Arauco",
@@ -164,9 +151,8 @@
    "direccion": "Avenida Presidente Kennedy 5413",
    "tipo": "Mil sabores",
    "contacto": "Diego",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Parque Arauco",
@@ -176,9 +162,8 @@
    "direccion": "Avenida Presidente Kennedy 5413",
    "tipo": "Mil sabores",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Panoramico",
@@ -188,9 +173,8 @@
    "direccion": "Nueva Providencia 2155",
    "tipo": "Mil sabores",
    "contacto": "Maydelson",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Panoramico",
@@ -200,9 +184,8 @@
    "direccion": "Nueva Providencia 2155",
    "tipo": "Mil sabores",
    "contacto": "Maydelson",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Panoramico",
@@ -212,9 +195,8 @@
    "direccion": "Nueva Providencia 2155",
    "tipo": "Mil sabores",
    "contacto": "Maydelson",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Panoramico",
@@ -224,9 +206,8 @@
    "direccion": "Nueva Providencia 2155",
    "tipo": "Mil sabores",
    "contacto": "Maydelson",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Panoramico",
@@ -236,9 +217,8 @@
    "direccion": "Nueva Providencia 2155",
    "tipo": "Mil sabores",
    "contacto": "Maydelson",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open Kennedy",
@@ -248,9 +228,8 @@
    "direccion": "Avenida Presidente Kennedy 5601",
    "tipo": "Mil sabores",
    "contacto": "Renzo",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open Kennedy",
@@ -260,9 +239,8 @@
    "direccion": "Avenida Presidente Kennedy 5601",
    "tipo": "Mil sabores",
    "contacto": "Renzo",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open Kennedy",
@@ -272,9 +250,8 @@
    "direccion": "Avenida Presidente Kennedy 5601",
    "tipo": "Mil sabores",
    "contacto": "Renzo",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open Kennedy",
@@ -284,9 +261,8 @@
    "direccion": "Avenida Presidente Kennedy 5601",
    "tipo": "Mil sabores",
    "contacto": "Renzo",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open Kennedy",
@@ -296,9 +272,8 @@
    "direccion": "Avenida Presidente Kennedy 5601",
    "tipo": "Mil sabores",
    "contacto": "Renzo",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open Kennedy",
@@ -308,9 +283,8 @@
    "direccion": "Avenida Presidente Kennedy 5601",
    "tipo": "Mil sabores",
    "contacto": "Renzo",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open Kennedy",
@@ -320,9 +294,8 @@
    "direccion": "Avenida Presidente Kennedy 5601",
    "tipo": "Mil sabores",
    "contacto": "Renzo",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Nueva Costanera",
@@ -332,9 +305,8 @@
    "direccion": "Av. Nueva Costanera 3979",
    "tipo": "Mil sabores",
    "contacto": "Helar",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Nueva Costanera",
@@ -344,9 +316,8 @@
    "direccion": "Av. Nueva Costanera 3736",
    "tipo": "Mil sabores",
    "contacto": "Helar",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Nueva Costanera",
@@ -356,9 +327,8 @@
    "direccion": "Avenida Nueva Costanera, 4076 Vitacura",
    "tipo": "Mil sabores",
    "contacto": "Eduar",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Hotel W",
@@ -368,9 +338,8 @@
    "direccion": "Isidora Goyenechea 3000",
    "tipo": "Mil sabores",
    "contacto": "Santiago",
-   "litrosProm": "19",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Hotel W",
@@ -380,9 +349,8 @@
    "direccion": "Isidora Goyenechea 3000",
    "tipo": "Mil sabores",
    "contacto": "Santiago",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Hotel W",
@@ -392,9 +360,8 @@
    "direccion": "Isidora Goyenechea 3000",
    "tipo": "Mil sabores",
    "contacto": "Santiago",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Costanera Center",
@@ -404,9 +371,8 @@
    "direccion": "Avenida Andrés Bello 2425",
    "tipo": "Mil sabores",
    "contacto": "Endry Bracho",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Costanera Center",
@@ -416,9 +382,8 @@
    "direccion": "Avenida Andrés Bello 2425",
    "tipo": "Mil sabores",
    "contacto": "Marcos",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Costanera Center",
@@ -428,9 +393,8 @@
    "direccion": "Avenida Andrés Bello 2425",
    "tipo": "Mil sabores",
    "contacto": "Marcos",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Costanera Center",
@@ -440,9 +404,8 @@
    "direccion": "Avenida Andrés Bello 2425",
    "tipo": "Mil sabores",
    "contacto": "Marcos",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Costanera Center",
@@ -452,9 +415,8 @@
    "direccion": "Avenida Andrés Bello 2425",
    "tipo": "Mil sabores",
    "contacto": "Marcos",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Costanera Center",
@@ -464,9 +426,8 @@
    "direccion": "Avenida Andrés Bello 2425",
    "tipo": "Mil sabores",
    "contacto": "Marcos",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Costanera Center",
@@ -476,9 +437,8 @@
    "direccion": "Avenida Andrés Bello 2425",
    "tipo": "Mil sabores",
    "contacto": "Marcos",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Costanera Center",
@@ -488,9 +448,8 @@
    "direccion": "Avenida Andrés Bello 2425",
    "tipo": "Mil sabores",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Costanera Center",
@@ -500,9 +459,8 @@
    "direccion": "Avenida Andrés Bello 2425",
    "tipo": "Mil sabores",
    "contacto": "Carlos",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Costanera Center",
@@ -512,9 +470,8 @@
    "direccion": "Avenida Andrés Bello 2425",
    "tipo": "Mil sabores",
    "contacto": "Jerson Arana",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Bulnes/Vivo imperio",
@@ -524,9 +481,8 @@
    "direccion": "P.º Phillips 3, 8320138 Santiago, Región Metropolitana",
    "tipo": "Mil sabores",
    "contacto": "Moises",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Bulnes/Vivo imperio",
@@ -536,9 +492,8 @@
    "direccion": "P.º Phillips 3, 8320138 Santiago, Región Metropolitana",
    "tipo": "Mil sabores",
    "contacto": "Moises",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Bulnes/Vivo imperio",
@@ -548,9 +503,8 @@
    "direccion": "P.º Phillips 3, 8320138 Santiago, Región Metropolitana",
    "tipo": "Mil sabores",
    "contacto": "Moises",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Bulnes/Vivo imperio",
@@ -560,9 +514,8 @@
    "direccion": "P.º Phillips 3, 8320138 Santiago, Región Metropolitana",
    "tipo": "Mil sabores",
    "contacto": "Moises",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Bulnes/Vivo imperio",
@@ -572,9 +525,8 @@
    "direccion": "P.º Phillips 3, 8320138 Santiago, Región Metropolitana",
    "tipo": "Mil sabores",
    "contacto": "Moises",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Bulnes/Vivo imperio",
@@ -584,9 +536,8 @@
    "direccion": "P.º Phillips 3, 8320138 Santiago, Región Metropolitana",
    "tipo": "Mil sabores",
    "contacto": "Moises",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Bulnes/Vivo imperio",
@@ -596,9 +547,8 @@
    "direccion": "P.º Phillips 3, 8320138 Santiago, Región Metropolitana",
    "tipo": "Mil sabores",
    "contacto": "Moises",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Florida center",
@@ -608,9 +558,8 @@
    "direccion": "AV. VICUÑA MACKENNA ORIENTE  6100",
    "tipo": "Mil sabores",
    "contacto": "Jairo",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Florida center",
@@ -620,9 +569,8 @@
    "direccion": "AV. VICUÑA MACKENNA ORIENTE  6100",
    "tipo": "Mil sabores",
    "contacto": "Jairo",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Viña (Mall)",
@@ -632,9 +580,8 @@
    "direccion": "Av. Libertad 1348",
    "tipo": "Mil sabores",
    "contacto": "Jared",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Viña (Mall)",
@@ -644,9 +591,8 @@
    "direccion": "Av. Libertad 1348",
    "tipo": "Mil sabores",
    "contacto": "Jared",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Viña (Mall)",
@@ -656,9 +602,8 @@
    "direccion": "Av. Libertad 1348",
    "tipo": "Mil sabores",
    "contacto": "Jared",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Viña (Mall)",
@@ -668,9 +613,8 @@
    "direccion": "Av. Libertad 1348",
    "tipo": "Mil sabores",
    "contacto": "Jared",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Viña (Mall)",
@@ -680,9 +624,8 @@
    "direccion": "Av. Libertad 1348",
    "tipo": "Mil sabores",
    "contacto": "Jared",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "MUT",
@@ -692,9 +635,8 @@
    "direccion": "AV APORQUINDO 2730",
    "tipo": "Retail",
    "contacto": "Alejandro",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "MUT",
@@ -704,9 +646,8 @@
    "direccion": "",
    "tipo": "Retail",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "vitacura",
@@ -716,9 +657,8 @@
    "direccion": "",
    "tipo": "Retail",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open kennedy",
@@ -728,9 +668,8 @@
    "direccion": "",
    "tipo": "Retail",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open kennedy",
@@ -740,9 +679,8 @@
    "direccion": "",
    "tipo": "Retail",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open kennedy",
@@ -752,9 +690,8 @@
    "direccion": "",
    "tipo": "Retail",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open kennedy",
@@ -764,9 +701,8 @@
    "direccion": "",
    "tipo": "Retail",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open kennedy",
@@ -776,9 +712,8 @@
    "direccion": "",
    "tipo": "Retail",
    "contacto": "Guillermo",
-   "litrosProm": "11.0",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open kennedy",
@@ -788,9 +723,8 @@
    "direccion": "",
    "tipo": "Retail",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open kennedy",
@@ -800,9 +734,8 @@
    "direccion": "",
    "tipo": "Retail",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open kennedy",
@@ -812,9 +745,8 @@
    "direccion": "AV. RANCAGUA 0157 OF 301",
    "tipo": "Retail",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open kennedy",
@@ -824,9 +756,8 @@
    "direccion": "",
    "tipo": "Retail",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Open kennedy",
@@ -836,9 +767,8 @@
    "direccion": "",
    "tipo": "Retail",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Del Puerto",
@@ -848,9 +778,8 @@
    "direccion": "EL ROBLE 670, BODEGA 2, lampa",
    "tipo": "cervecera",
    "contacto": "Elsa Vargas",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Rancagua",
@@ -860,9 +789,8 @@
    "direccion": "Javiera Carrera 1085 local 2",
    "tipo": "Retail",
    "contacto": "Nicolas",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Curacabi",
@@ -872,9 +800,8 @@
    "direccion": "",
    "tipo": "Retail",
    "contacto": "Luna",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Mil Sabores",
@@ -884,9 +811,8 @@
    "direccion": "Av. del valle 928",
    "tipo": "Mil sabores",
    "contacto": "Josefina Lewin",
-   "litrosProm": "",
-   "nivel": "0.0",
-   "grupo": "cd_kairos"
+   "grupo": "mil_sabores",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Estrella china",
@@ -896,9 +822,8 @@
    "direccion": "San Alberto Hurtado2241",
    "tipo": "Restaurant",
    "contacto": "Gioswald Rivero",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Beershop",
@@ -908,9 +833,8 @@
    "direccion": "Madame bolland 11 La cisterna",
    "tipo": "Botilleria",
    "contacto": "Gio",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Argentina pizzeria",
@@ -920,9 +844,8 @@
    "direccion": "ITALIA 989",
    "tipo": "Restaurant",
    "contacto": "Juanma",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Enfermentados",
@@ -932,9 +855,8 @@
    "direccion": "San Martin 611, local 7 Viña del Mar, Valparaiso",
    "tipo": "Botilleria",
    "contacto": "Fernando",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Botilleria Santo Remedio",
@@ -944,9 +866,8 @@
    "direccion": "SEGUNDA TRANSVERSAL 3624, Maipu",
    "tipo": "Botilleria",
    "contacto": "Joselyn Flores",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Club de Golf",
@@ -956,9 +877,8 @@
    "direccion": "Camino club de golf 2501 Lo Barnechea",
    "tipo": "Restaurant",
    "contacto": "Ricardo Testa",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Estacion tropera",
@@ -968,9 +888,8 @@
    "direccion": "AV, Vitacura 3285, vitacura",
    "tipo": "Restaurant",
    "contacto": "Gabriela",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Club Laser",
@@ -980,9 +899,8 @@
    "direccion": "Arauco131, Santiago",
    "tipo": "Servicios de publicidad",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Licoreria Osiris",
@@ -992,9 +910,8 @@
    "direccion": "Av Italia 1654",
    "tipo": "Botilleria",
    "contacto": "Rafael",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Cerveceria Oasis",
@@ -1004,9 +921,8 @@
    "direccion": "O'higgins 1354",
    "tipo": "Bar",
    "contacto": "Takeshi",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Song & Gao",
@@ -1016,9 +932,8 @@
    "direccion": "Manuel Montt 75",
    "tipo": "Botilleria",
    "contacto": "Lucas",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Tumaki Nikkei",
@@ -1028,9 +943,8 @@
    "direccion": "DEL REY 1810",
    "tipo": "Restobar",
    "contacto": "Mauricio",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Brigid Bar",
@@ -1040,9 +954,8 @@
    "direccion": "Av Colon sur 1001, San Bernardo",
    "tipo": "Restobar",
    "contacto": "Cesar",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Booz",
@@ -1052,9 +965,8 @@
    "direccion": "Los Maitenes sur 11600",
    "tipo": "Disbtribuidor",
    "contacto": "Estaban Tamayo",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Destileria Zunda",
@@ -1064,9 +976,8 @@
    "direccion": "Franklin 741",
    "tipo": "",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Los fabulosos bar",
@@ -1076,9 +987,8 @@
    "direccion": "Mannuel Montt 195",
    "tipo": "Restaurant",
    "contacto": "Fabian",
-   "litrosProm": "30.0",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Club Hipico",
@@ -1088,9 +998,8 @@
    "direccion": "Club Hipico714",
    "tipo": "Botilleria",
    "contacto": "Gianina",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Fundacion Leon Avayu",
@@ -1100,9 +1009,8 @@
    "direccion": "Malbec 1320",
    "tipo": "Fundacion",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Automan",
@@ -1112,9 +1020,8 @@
    "direccion": "Los industriales 615,  Huechuraba",
    "tipo": "Mecanico",
    "contacto": "Vittorio",
-   "litrosProm": "",
-   "nivel": "",
-   "grupo": "cd_kairos"
+   "grupo": "otros",
+   "origen": "cd_kairos"
   },
   {
    "zona": "Plaza Tobalaba",
@@ -1124,9 +1031,8 @@
    "direccion": "Avenida Camilo Henríquez 3692",
    "tipo": "Mil sabores",
    "contacto": "Javier",
-   "litrosProm": "21.0",
-   "nivel": "3.0",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Tobalaba",
@@ -1136,9 +1042,8 @@
    "direccion": "Avenida Camilo Henríquez 3692",
    "tipo": "Mil sabores",
    "contacto": "Javier",
-   "litrosProm": "21.0",
-   "nivel": "3.0",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Tobalaba",
@@ -1148,9 +1053,8 @@
    "direccion": "Avenida Camilo Henríquez 3692",
    "tipo": "Mil sabores",
    "contacto": "Javier",
-   "litrosProm": "21.0",
-   "nivel": "3.0",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Tobalaba",
@@ -1160,9 +1064,8 @@
    "direccion": "Avenida Camilo Henríquez 3692",
    "tipo": "Mil sabores",
    "contacto": "Javier",
-   "litrosProm": "21.0",
-   "nivel": "3.0",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Tobalaba",
@@ -1172,9 +1075,8 @@
    "direccion": "Avenida Camilo Henríquez 3692",
    "tipo": "Mil sabores",
    "contacto": "Javier",
-   "litrosProm": "21.0",
-   "nivel": "3.0",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1184,9 +1086,8 @@
    "direccion": "Avenida Camilo Henríquez 3692",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1196,9 +1097,8 @@
    "direccion": "Avenida Camilo Henríquez 3692",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1208,9 +1108,8 @@
    "direccion": "Avenida Camilo Henríquez 3692",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1220,9 +1119,8 @@
    "direccion": "Avenida Camilo Henríquez 3692",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1232,9 +1130,8 @@
    "direccion": "Avenida Camilo Henríquez 3692",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1244,9 +1141,8 @@
    "direccion": "Avenida Camilo Henríquez 3692",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1256,9 +1152,8 @@
    "direccion": "Avenida Camilo Henríquez 3692",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1268,9 +1163,8 @@
    "direccion": "Avenida Camilo Henríquez 3692",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1280,9 +1174,8 @@
    "direccion": "Avenida Camilo Henríquez 3692",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1292,9 +1185,8 @@
    "direccion": "",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1304,9 +1196,8 @@
    "direccion": "Avenida Vicuña Mackenna 7110",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1316,9 +1207,8 @@
    "direccion": "Avenida Vicuña Mackenna 7110",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1328,9 +1218,8 @@
    "direccion": "Avenida Vicuña Mackenna 7110",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1340,9 +1229,8 @@
    "direccion": "Avenida Vicuña Mackenna 7110",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1352,9 +1240,8 @@
    "direccion": "Avenida Vicuña Mackenna 7110",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1364,9 +1251,8 @@
    "direccion": "Avenida Vicuña Mackenna 7110",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1376,9 +1262,8 @@
    "direccion": "Avenida Vicuña Mackenna 7110",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1388,9 +1273,8 @@
    "direccion": "Avenida Vicuña Mackenna 7110",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Vespucio",
@@ -1400,9 +1284,8 @@
    "direccion": "Avenida Vicuña Mackenna 7110",
    "tipo": "Mil sabores",
    "contacto": "Richard",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza oeste",
@@ -1412,9 +1295,8 @@
    "direccion": "Americo Vespucio 1501, Cerrillos",
    "tipo": "Mil sabores",
    "contacto": "Katherine",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza oeste",
@@ -1424,9 +1306,8 @@
    "direccion": "Americo Vespucio 1501, Cerrillos",
    "tipo": "Mil sabores",
    "contacto": "Katherine",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza oeste",
@@ -1436,9 +1317,8 @@
    "direccion": "Americo Vespucio 1501, Cerrillos",
    "tipo": "Mil sabores",
    "contacto": "Katherine",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza oeste",
@@ -1448,9 +1328,8 @@
    "direccion": "Americo Vespucio 1501, Cerrillos",
    "tipo": "Mil sabores",
    "contacto": "Katherine",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza oeste",
@@ -1460,9 +1339,8 @@
    "direccion": "Americo Vespucio 1501, Cerrillos",
    "tipo": "Mil sabores",
    "contacto": "Katherine",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza oeste",
@@ -1472,9 +1350,8 @@
    "direccion": "Americo Vespucio 1501, Cerrillos",
    "tipo": "Mil sabores",
    "contacto": "Katherine",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza oeste",
@@ -1484,9 +1361,8 @@
    "direccion": "Americo Vespucio 1501, Cerrillos",
    "tipo": "",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza oeste",
@@ -1496,9 +1372,8 @@
    "direccion": "Americo Vespucio 1501, Cerrillos",
    "tipo": "Mil sabores",
    "contacto": "Daniel",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza norte",
@@ -1508,9 +1383,8 @@
    "direccion": "Av. Américo Vespucio 1737",
    "tipo": "Mil sabores",
    "contacto": "Nixon",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza norte",
@@ -1520,9 +1394,8 @@
    "direccion": "Av. Américo Vespucio 1737",
    "tipo": "Mil sabores",
    "contacto": "Nixon",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza norte",
@@ -1532,9 +1405,8 @@
    "direccion": "Av. Américo Vespucio 1737",
    "tipo": "Mil sabores",
    "contacto": "Nixon",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza norte",
@@ -1544,9 +1416,8 @@
    "direccion": "Av. Américo Vespucio 1737",
    "tipo": "Mil sabores",
    "contacto": "Nixon",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Egaña",
@@ -1556,9 +1427,8 @@
    "direccion": "Avenida Larraín 5862",
    "tipo": "Mil sabores",
    "contacto": "Luis",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Egaña",
@@ -1568,9 +1438,8 @@
    "direccion": "Avenida Larraín 5862",
    "tipo": "Mil sabores",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Egaña",
@@ -1580,9 +1449,8 @@
    "direccion": "Avenida Larraín 5862",
    "tipo": "Mil sabores",
    "contacto": "Noel",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Egaña",
@@ -1592,9 +1460,8 @@
    "direccion": "Avenida Larraín 5862",
    "tipo": "Mil sabores",
    "contacto": "Jhean",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Egaña",
@@ -1604,9 +1471,8 @@
    "direccion": "Avenida Larraín 5862",
    "tipo": "Mil sabores",
    "contacto": "",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Plaza Egaña",
@@ -1616,9 +1482,8 @@
    "direccion": "Avenida Larraín 5862",
    "tipo": "Mil sabores",
    "contacto": "Luis Diaz",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Dominicos",
@@ -1628,9 +1493,8 @@
    "direccion": "Av. Padre Hurtado Sur 875, Las Condes",
    "tipo": "Mil sabores",
    "contacto": "Ibrahim",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Dominicos",
@@ -1640,9 +1504,8 @@
    "direccion": "Av. Padre Hurtado Sur 875, Las Condes",
    "tipo": "Mil sabores",
    "contacto": "Ibrahim",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Dominicos",
@@ -1652,9 +1515,8 @@
    "direccion": "Av. Padre Hurtado Sur 875, Las Condes",
    "tipo": "Mil sabores",
    "contacto": "Ibrahim",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Dominicos",
@@ -1664,9 +1526,8 @@
    "direccion": "Av. Padre Hurtado Sur 875, Las Condes",
    "tipo": "Mil sabores",
    "contacto": "Ibrahim",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Dominicos",
@@ -1676,9 +1537,8 @@
    "direccion": "Av. Padre Hurtado Sur 875, Las Condes",
    "tipo": "Mil sabores",
    "contacto": "Ibrahim",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Antofagasta",
@@ -1688,9 +1548,8 @@
    "direccion": "Avenida Cementerio 1025",
    "tipo": "Mil sabores",
    "contacto": "Keyler",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Antofagasta",
@@ -1700,9 +1559,8 @@
    "direccion": "Avenida Cementerio 1025",
    "tipo": "Mil sabores",
    "contacto": "Keyler",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Antofagasta",
@@ -1712,9 +1570,8 @@
    "direccion": "Avenida Cementerio 1025",
    "tipo": "Mil sabores",
    "contacto": "Keyler",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Antofagasta",
@@ -1724,9 +1581,8 @@
    "direccion": "Avenida Cementerio 1025",
    "tipo": "Mil sabores",
    "contacto": "Keyler",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Antofagasta",
@@ -1736,9 +1592,8 @@
    "direccion": "Avenida Cementerio 1025",
    "tipo": "Mil sabores",
    "contacto": "Keyler",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Antofagasta",
@@ -1748,9 +1603,8 @@
    "direccion": "Avenida Cementerio 1025",
    "tipo": "Mil sabores",
    "contacto": "Keyler",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Antofagasta",
@@ -1760,9 +1614,8 @@
    "direccion": "Avenida Cementerio 1025",
    "tipo": "Mil sabores",
    "contacto": "Keyler",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   },
   {
    "zona": "Antofagasta",
@@ -1772,9 +1625,8 @@
    "direccion": "Avenida Cementerio 1025",
    "tipo": "Mil sabores",
    "contacto": "Keyler",
-   "litrosProm": "",
-   "nivel": "3",
-   "grupo": "cruzada"
+   "grupo": "mil_sabores",
+   "origen": "cruzada"
   }
  ]
 }
