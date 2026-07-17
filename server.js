@@ -2719,21 +2719,23 @@ async function estadoResolve(month, rango){
   const badass = { litros: shOk ? sh.transfers.badass.litros : 0, valor: badassValor, tabla: shOk ? mkTabla(sh.transfers.badass) : [], pedidos: shOk ? sh.transfers.badass.pedidos : [] };
   const antofagasta = { litros: antoLitros, valor: antoValor, tabla: antoTabla, manual: per.antofagasta };
   const cdFuera = sum(per.cdKairos.fueraShopify), cdNC = sum(per.cdKairos.notasCredito), cdOtros = sum(per.cdKairos.otrosIngresos);
-  // CD Kairos incluye las transferencias a locales PROPIOS (Garden y Badass).
-  const cdBase = shCd + cdFuera + gardenValor + badassValor;
+  // CD Kairos = mayoristas externos (malls). NO incluye locales propios.
+  const cdBase = shCd + cdFuera;
   const cdNeto = cdBase - cdNC + cdOtros;
-  // Ventas Cruzada incluye la transferencia de Antofagasta (500 Sabores).
-  const cruzFuera = sum(per.ventasCruzada.fueraShopify); const cruzTotal = shCruz + cruzFuera + antoValor;
+  // Ventas Cruzada = 500 Sabores externos (Antofagasta pasa a Hospitality como Garden Antofagasta).
+  const cruzFuera = sum(per.ventasCruzada.fueraShopify); const cruzTotal = shCruz + cruzFuera;
+  // Hospitality = locales PROPIOS: Garden Vespucio, Badass, Garden Antofagasta.
+  const hospitalityTotal = gardenValor + badassValor + antoValor;
   const walmartTotal = per.walmart.cajas * per.walmart.valorCaja;
   const ingresos = {
-    cd_kairos: { shopify: shCd, fuera: per.cdKairos.fueraShopify, fueraTotal: cdFuera, notasCredito: per.cdKairos.notasCredito, ncTotal: cdNC, otrosIngresos: per.cdKairos.otrosIngresos, otrosTotal: cdOtros, garden, badass, transferValor: gardenValor + badassValor, neto: cdNeto, ratioShopify: ratio(shCd, cdBase), pedidos: shOk ? sh.bucket.cd_kairos_mall.pedidos : [] },
-    ventas_cruzada: { shopify: shCruz, fuera: per.ventasCruzada.fueraShopify, fueraTotal: cruzFuera, antofagasta, antofagastaValor: antoValor, total: cruzTotal, ratioShopify: ratio(shCruz, shCruz + cruzFuera + antoValor), pedidos: shOk ? sh.bucket.ventas_cruzada.pedidos : [] },
+    cd_kairos: { shopify: shCd, fuera: per.cdKairos.fueraShopify, fueraTotal: cdFuera, notasCredito: per.cdKairos.notasCredito, ncTotal: cdNC, otrosIngresos: per.cdKairos.otrosIngresos, otrosTotal: cdOtros, neto: cdNeto, ratioShopify: ratio(shCd, cdBase), pedidos: shOk ? sh.bucket.cd_kairos_mall.pedidos : [] },
+    ventas_cruzada: { shopify: shCruz, fuera: per.ventasCruzada.fueraShopify, fueraTotal: cruzFuera, total: cruzTotal, ratioShopify: ratio(shCruz, shCruz + cruzFuera), pedidos: shOk ? sh.bucket.ventas_cruzada.pedidos : [] },
+    hospitality: { garden, badass, antofagasta, total: hospitalityTotal },
     ventas_web: { cobrado: shWeb, n: shOk ? sh.bucket.retail.n : 0, pedidos: shOk ? sh.bucket.retail.pedidos : [] },
     activo: per.activo,
     walmart: { cajas: per.walmart.cajas, valorCaja: per.walmart.valorCaja, total: walmartTotal },
   };
-  // Garden/Badass ya están dentro de CD Kairos, Antofagasta dentro de Cruzada: no se suman aparte.
-  const totalIngresos = cdNeto + cruzTotal + shWeb + per.activo + walmartTotal;
+  const totalIngresos = cdNeto + cruzTotal + hospitalityTotal + shWeb + per.activo + walmartTotal;
   return {
     month, precios, periodo: per, ingresos, totalIngresos,
     rango: r, mesCompleto: (r.from === cdMonthRange(month).from && r.to === cdMonthRange(month).to),
@@ -2783,39 +2785,50 @@ function estadoSheetRows(data, month){
   blank();
   rows.push([SEC('INGRESOS'), SEC(''), SEC(''), SEC(''), SEC(''), SM(data.totalIngresos)]);
   blank();
+  const horeca = i.cd_kairos.neto + i.ventas_cruzada.total, online = i.ventas_web.cobrado, retail = i.walmart.total, hospitality = i.hospitality.total;
+  const pctOf = (v) => data.totalIngresos ? Math.round(v / data.totalIngresos * 1000) / 10 : 0;
+  rows.push([SEC('CANALES'), SEC(''), SEC(''), SEC(''), SEC('%'), SEC('Monto')]);
+  rows.push([T('① HORECA (restaurantes/bares)'), T(''), T(''), T(''), PCT(pctOf(horeca)), SM(horeca)]);
+  rows.push([T('② Venta Online (web)'), T(''), T(''), T(''), PCT(pctOf(online)), SM(online)]);
+  rows.push([T('③ Retail (Walmart)'), T(''), T(''), T(''), PCT(pctOf(retail)), SM(retail)]);
+  rows.push([T('④ Hospitality (locales propios)'), T(''), T(''), T(''), PCT(pctOf(hospitality)), SM(hospitality)]);
+  blank();
   const transTable = (nombre, t) => {
     rows.push([SEC(nombre), SEC(''), SEC(''), SEC(t.litros + ' lt'), SEC(''), SM(t.valor)]);
     rows.push([H('Estilo'), H('$/lt'), H('Despacho'), H('Litros'), H('%'), H('Valor')]);
     (t.tabla || []).forEach(r => rows.push([T(r.estilo), M(r.precioLt), M(r.despachoLt), N(r.litros), PCT(r.pct), M(r.valor)]));
     blank();
   };
-  // 1 · CD Kairos (incluye transferencias Garden y Badass)
-  rows.push([H('1 · CD KAIROS (híbrido)'), H(''), H(''), H(''), H('Ratio'), H('Monto')]);
+  // ① HORECA = CD Kairos + Ventas Cruzada
+  rows.push([SEC('① HORECA'), SEC(''), SEC(''), SEC(''), SEC(''), SM(horeca)]);
+  rows.push([H('CD KAIROS (híbrido)'), H(''), H(''), H(''), H('Ratio'), H('Monto')]);
   rows.push([T('Shopify malls (automático)'), T(''), T(''), T(''), PCT(i.cd_kairos.ratioShopify), M(i.cd_kairos.shopify)]);
   i.cd_kairos.fuera.forEach(l => rows.push([T('   Fuera Shopify · ' + l.desc), T(l.factura), T(l.fecha), T(''), T(''), M(l.monto)]));
   i.cd_kairos.otrosIngresos.forEach(l => rows.push([T('   Otro ingreso · ' + l.desc), T(''), T(''), T(''), T(''), M(l.monto)]));
   i.cd_kairos.notasCredito.forEach(l => rows.push([T('   (−) Nota de Crédito · ' + l.proveedor), T(l.factura), T(l.fecha), T(''), T(''), M(-l.monto)]));
-  transTable('Transferencia Garden (auto)', i.cd_kairos.garden);
-  transTable('Transferencia Badass (auto)', i.cd_kairos.badass);
   rows.push([SEC('CD Kairos neto'), SEC(''), SEC(''), SEC(''), SEC(''), SM(i.cd_kairos.neto)]);
   blank();
-  // 2 · Ventas Cruzada (incluye Antofagasta)
-  rows.push([H('2 · VENTAS CRUZADA (500 Sabores) — híbrido'), H(''), H(''), H(''), H('Ratio'), H('Monto')]);
+  // Ventas Cruzada (500 Sabores) — dentro de HORECA
+  rows.push([H('VENTAS CRUZADA (500 Sabores) — híbrido'), H(''), H(''), H(''), H('Ratio'), H('Monto')]);
   rows.push([T('Shopify (automático)'), T(''), T(''), T(''), PCT(i.ventas_cruzada.ratioShopify), M(i.ventas_cruzada.shopify)]);
   i.ventas_cruzada.fuera.forEach(l => rows.push([T('   Fuera Shopify · ' + l.desc), T(l.factura), T(l.fecha), T(''), T(''), M(l.monto)]));
-  transTable('Transferencia Antofagasta (manual)', i.ventas_cruzada.antofagasta);
   rows.push([SEC('Ventas Cruzada total'), SEC(''), SEC(''), SEC(''), SEC(''), SM(i.ventas_cruzada.total)]);
   blank();
-  // 3 · Ventas WEB
-  rows.push([H('3 · VENTAS WEB / EVENTOS / REGALOS — 100% automático'), H(''), H(''), H(''), H(''), H('Monto')]);
+  // ② Venta Online (web)
+  rows.push([SEC('② VENTA ONLINE (página web)'), SEC(''), SEC(''), SEC(''), SEC(''), SM(online)]);
   rows.push([T('Retail cobrado (' + i.ventas_web.n + ' pedidos)'), T(''), T(''), T(''), T(''), M(i.ventas_web.cobrado)]);
   blank();
-  // 4 · Activo
-  rows.push([H('4 · INGRESOS POR VENTA DE ACTIVO — manual'), H(''), H(''), H(''), H(''), M(i.activo)]);
-  blank();
-  // 5 · Walmart
-  rows.push([H('5 · WALMART — manual'), H('Cajas'), H('Valor caja'), H(''), H(''), H('Monto')]);
+  // ③ Retail (Walmart)
+  rows.push([SEC('③ RETAIL (Walmart)'), SEC('Cajas'), SEC('Valor caja'), SEC(''), SEC(''), SM(retail)]);
   rows.push([T('Cajas de 24 latas'), N(i.walmart.cajas), M(i.walmart.valorCaja), T(''), T(''), M(i.walmart.total)]);
+  blank();
+  // ④ Hospitality (locales propios)
+  rows.push([SEC('④ HOSPITALITY (locales propios)'), SEC(''), SEC(''), SEC(''), SEC(''), SM(hospitality)]);
+  transTable('Garden Vespucio (auto)', i.hospitality.garden);
+  transTable('Garden Antofagasta (manual)', i.hospitality.antofagasta);
+  transTable('Badass (auto)', i.hospitality.badass);
+  // Otros
+  rows.push([H('OTROS · Venta de Activo — manual'), H(''), H(''), H(''), H(''), M(i.activo)]);
   blank();
   rows.push([SEC('TOTAL INGRESOS'), SEC(''), SEC(''), SEC(''), SEC(''), SM(data.totalIngresos)]);
   if (data.excelRef && data.excelRef.ingresos_total) {
