@@ -2714,24 +2714,26 @@ async function estadoResolve(month, rango){
   const antoValor = antoTabla.reduce((a, r) => a + r.valor, 0);
   antoTabla.forEach(r => r.pct = antoLitros ? Math.round((r.litros / antoLitros) * 1000) / 10 : 0);
   const mkTabla = (t) => (t && t.porEstilo || []).map(e => ({ estilo: e.estilo, tipo: e.tipo, precioLt: precios[e.tipo] || precios.cerveza, despachoLt: precios.despacho, litros: e.litros, valor: Math.round(e.litros * (precios[e.tipo] || precios.cerveza) + precios.despacho * e.litros), pct: t.litros ? Math.round((e.litros / t.litros) * 1000) / 10 : 0 }));
-  const cdFuera = sum(per.cdKairos.fueraShopify), cdNC = sum(per.cdKairos.notasCredito), cdOtros = sum(per.cdKairos.otrosIngresos);
-  const cdBase = shCd + cdFuera; const cdNeto = cdBase - cdNC + cdOtros;
-  const cruzFuera = sum(per.ventasCruzada.fueraShopify); const cruzTotal = shCruz + cruzFuera + antoValor;
   const gardenValor = shOk ? sh.transfers.garden.valor : 0, badassValor = shOk ? sh.transfers.badass.valor : 0;
+  const garden = { litros: shOk ? sh.transfers.garden.litros : 0, valor: gardenValor, tabla: shOk ? mkTabla(sh.transfers.garden) : [], pedidos: shOk ? sh.transfers.garden.pedidos : [] };
+  const badass = { litros: shOk ? sh.transfers.badass.litros : 0, valor: badassValor, tabla: shOk ? mkTabla(sh.transfers.badass) : [], pedidos: shOk ? sh.transfers.badass.pedidos : [] };
+  const antofagasta = { litros: antoLitros, valor: antoValor, tabla: antoTabla, manual: per.antofagasta };
+  const cdFuera = sum(per.cdKairos.fueraShopify), cdNC = sum(per.cdKairos.notasCredito), cdOtros = sum(per.cdKairos.otrosIngresos);
+  // CD Kairos incluye las transferencias a locales PROPIOS (Garden y Badass).
+  const cdBase = shCd + cdFuera + gardenValor + badassValor;
+  const cdNeto = cdBase - cdNC + cdOtros;
+  // Ventas Cruzada incluye la transferencia de Antofagasta (500 Sabores).
+  const cruzFuera = sum(per.ventasCruzada.fueraShopify); const cruzTotal = shCruz + cruzFuera + antoValor;
   const walmartTotal = per.walmart.cajas * per.walmart.valorCaja;
   const ingresos = {
-    cd_kairos: { shopify: shCd, fuera: per.cdKairos.fueraShopify, fueraTotal: cdFuera, notasCredito: per.cdKairos.notasCredito, ncTotal: cdNC, otrosIngresos: per.cdKairos.otrosIngresos, otrosTotal: cdOtros, neto: cdNeto, ratioShopify: ratio(shCd, cdBase), pedidos: shOk ? sh.bucket.cd_kairos_mall.pedidos : [] },
-    ventas_cruzada: { shopify: shCruz, fuera: per.ventasCruzada.fueraShopify, fueraTotal: cruzFuera, antofagastaValor: antoValor, total: cruzTotal, ratioShopify: ratio(shCruz, shCruz + cruzFuera + antoValor), pedidos: shOk ? sh.bucket.ventas_cruzada.pedidos : [] },
+    cd_kairos: { shopify: shCd, fuera: per.cdKairos.fueraShopify, fueraTotal: cdFuera, notasCredito: per.cdKairos.notasCredito, ncTotal: cdNC, otrosIngresos: per.cdKairos.otrosIngresos, otrosTotal: cdOtros, garden, badass, transferValor: gardenValor + badassValor, neto: cdNeto, ratioShopify: ratio(shCd, cdBase), pedidos: shOk ? sh.bucket.cd_kairos_mall.pedidos : [] },
+    ventas_cruzada: { shopify: shCruz, fuera: per.ventasCruzada.fueraShopify, fueraTotal: cruzFuera, antofagasta, antofagastaValor: antoValor, total: cruzTotal, ratioShopify: ratio(shCruz, shCruz + cruzFuera + antoValor), pedidos: shOk ? sh.bucket.ventas_cruzada.pedidos : [] },
     ventas_web: { cobrado: shWeb, n: shOk ? sh.bucket.retail.n : 0, pedidos: shOk ? sh.bucket.retail.pedidos : [] },
     activo: per.activo,
-    transferencias: {
-      garden: { litros: shOk ? sh.transfers.garden.litros : 0, valor: gardenValor, tabla: shOk ? mkTabla(sh.transfers.garden) : [], pedidos: shOk ? sh.transfers.garden.pedidos : [] },
-      badass: { litros: shOk ? sh.transfers.badass.litros : 0, valor: badassValor, tabla: shOk ? mkTabla(sh.transfers.badass) : [], pedidos: shOk ? sh.transfers.badass.pedidos : [] },
-      antofagasta: { litros: antoLitros, valor: antoValor, tabla: antoTabla, manual: per.antofagasta },
-    },
     walmart: { cajas: per.walmart.cajas, valorCaja: per.walmart.valorCaja, total: walmartTotal },
   };
-  const totalIngresos = cdNeto + cruzTotal + shWeb + per.activo + gardenValor + badassValor + walmartTotal;
+  // Garden/Badass ya están dentro de CD Kairos, Antofagasta dentro de Cruzada: no se suman aparte.
+  const totalIngresos = cdNeto + cruzTotal + shWeb + per.activo + walmartTotal;
   return {
     month, precios, periodo: per, ingresos, totalIngresos,
     rango: r, mesCompleto: (r.from === cdMonthRange(month).from && r.to === cdMonthRange(month).to),
@@ -2781,19 +2783,27 @@ function estadoSheetRows(data, month){
   blank();
   rows.push([SEC('INGRESOS'), SEC(''), SEC(''), SEC(''), SEC(''), SM(data.totalIngresos)]);
   blank();
-  // 1 · CD Kairos
+  const transTable = (nombre, t) => {
+    rows.push([SEC(nombre), SEC(''), SEC(''), SEC(t.litros + ' lt'), SEC(''), SM(t.valor)]);
+    rows.push([H('Estilo'), H('$/lt'), H('Despacho'), H('Litros'), H('%'), H('Valor')]);
+    (t.tabla || []).forEach(r => rows.push([T(r.estilo), M(r.precioLt), M(r.despachoLt), N(r.litros), PCT(r.pct), M(r.valor)]));
+    blank();
+  };
+  // 1 · CD Kairos (incluye transferencias Garden y Badass)
   rows.push([H('1 · CD KAIROS (híbrido)'), H(''), H(''), H(''), H('Ratio'), H('Monto')]);
-  rows.push([T('Shopify (automático)'), T(''), T(''), T(''), PCT(i.cd_kairos.ratioShopify), M(i.cd_kairos.shopify)]);
+  rows.push([T('Shopify malls (automático)'), T(''), T(''), T(''), PCT(i.cd_kairos.ratioShopify), M(i.cd_kairos.shopify)]);
   i.cd_kairos.fuera.forEach(l => rows.push([T('   Fuera Shopify · ' + l.desc), T(l.factura), T(l.fecha), T(''), T(''), M(l.monto)]));
   i.cd_kairos.otrosIngresos.forEach(l => rows.push([T('   Otro ingreso · ' + l.desc), T(''), T(''), T(''), T(''), M(l.monto)]));
   i.cd_kairos.notasCredito.forEach(l => rows.push([T('   (−) Nota de Crédito · ' + l.proveedor), T(l.factura), T(l.fecha), T(''), T(''), M(-l.monto)]));
+  transTable('Transferencia Garden (auto)', i.cd_kairos.garden);
+  transTable('Transferencia Badass (auto)', i.cd_kairos.badass);
   rows.push([SEC('CD Kairos neto'), SEC(''), SEC(''), SEC(''), SEC(''), SM(i.cd_kairos.neto)]);
   blank();
-  // 2 · Ventas Cruzada
+  // 2 · Ventas Cruzada (incluye Antofagasta)
   rows.push([H('2 · VENTAS CRUZADA (500 Sabores) — híbrido'), H(''), H(''), H(''), H('Ratio'), H('Monto')]);
   rows.push([T('Shopify (automático)'), T(''), T(''), T(''), PCT(i.ventas_cruzada.ratioShopify), M(i.ventas_cruzada.shopify)]);
   i.ventas_cruzada.fuera.forEach(l => rows.push([T('   Fuera Shopify · ' + l.desc), T(l.factura), T(l.fecha), T(''), T(''), M(l.monto)]));
-  rows.push([T('   Antofagasta (transferencia)'), T(''), T(''), T(''), T(''), M(i.ventas_cruzada.antofagastaValor)]);
+  transTable('Transferencia Antofagasta (manual)', i.ventas_cruzada.antofagasta);
   rows.push([SEC('Ventas Cruzada total'), SEC(''), SEC(''), SEC(''), SEC(''), SM(i.ventas_cruzada.total)]);
   blank();
   // 3 · Ventas WEB
@@ -2803,19 +2813,8 @@ function estadoSheetRows(data, month){
   // 4 · Activo
   rows.push([H('4 · INGRESOS POR VENTA DE ACTIVO — manual'), H(''), H(''), H(''), H(''), M(i.activo)]);
   blank();
-  // 5 · Transferencias
-  rows.push([SEC('5 · TRANSFERENCIAS (locales propios)')]);
-  const transTable = (nombre, t) => {
-    rows.push([SEC(nombre), SEC(''), SEC(''), SEC(t.litros + ' lt'), SEC(''), SM(t.valor)]);
-    rows.push([H('Estilo'), H('$/lt'), H('Despacho'), H('Litros'), H('%'), H('Valor')]);
-    (t.tabla || []).forEach(r => rows.push([T(r.estilo), M(r.precioLt), M(r.despachoLt), N(r.litros), PCT(r.pct), M(r.valor)]));
-    blank();
-  };
-  transTable('Garden (auto)', i.transferencias.garden);
-  transTable('Badass (auto)', i.transferencias.badass);
-  transTable('Antofagasta (manual)', i.transferencias.antofagasta);
-  // 6 · Walmart
-  rows.push([H('6 · WALMART — manual'), H('Cajas'), H('Valor caja'), H(''), H(''), H('Monto')]);
+  // 5 · Walmart
+  rows.push([H('5 · WALMART — manual'), H('Cajas'), H('Valor caja'), H(''), H(''), H('Monto')]);
   rows.push([T('Cajas de 24 latas'), N(i.walmart.cajas), M(i.walmart.valorCaja), T(''), T(''), M(i.walmart.total)]);
   blank();
   rows.push([SEC('TOTAL INGRESOS'), SEC(''), SEC(''), SEC(''), SEC(''), SM(data.totalIngresos)]);

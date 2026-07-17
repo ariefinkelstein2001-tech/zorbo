@@ -1575,6 +1575,9 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .est-daterange{display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;font-weight:700;color:var(--muted,#777)}
 .est-date{padding:.35rem .5rem;border:1px solid var(--line,#ddd);border-radius:8px;font-size:.8rem;background:var(--surface,#fff);color:var(--text,#111)}
 .est-date:focus{outline:none;border-color:var(--gold,#f5a623)}
+.est-drill-box:empty{display:none}
+.est-drill-inner{border:1px solid var(--gold-bd,#f1c97b);border-radius:10px;background:var(--surface-2,#fffdf7);padding:.5rem .7rem;margin:.4rem 0 .7rem}
+.est-drill-h{display:flex;justify-content:space-between;align-items:center;font-size:.78rem;font-weight:800;color:var(--gold-deep,#a05f00);margin-bottom:.35rem}
 .ct-sec-hd{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
 .ro-note{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.35);color:#8a6d1f;border-radius:10px;padding:.5rem .8rem;margin-bottom:.9rem;font-size:.82rem;font-weight:600}
 .ren-cell{display:inline-flex;align-items:center;gap:.25rem;justify-content:flex-end}
@@ -7764,16 +7767,18 @@ function estCompute(){
   const a=estadoData, d=estadoDraft, pr=d.preciosTransfer;
   const S=arr=>(arr||[]).reduce((s,x)=>s+(Number(x.monto)||0),0);
   const shCd=a.ingresos.cd_kairos.shopify, shCruz=a.ingresos.ventas_cruzada.shopify, shWeb=a.ingresos.ventas_web.cobrado;
+  const gardenValor=a.ingresos.cd_kairos.garden.valor, badassValor=a.ingresos.cd_kairos.badass.valor;
   const cdFuera=S(d.cdKairos.fueraShopify), cdNC=S(d.cdKairos.notasCredito), cdOtros=S(d.cdKairos.otrosIngresos);
-  const cdBase=shCd+cdFuera, cdNeto=cdBase-cdNC+cdOtros;
+  // CD Kairos incluye las transferencias a locales propios (Garden + Badass).
+  const cdBase=shCd+cdFuera+gardenValor+badassValor, cdNeto=cdBase-cdNC+cdOtros;
   const cruzFuera=S(d.ventasCruzada.fueraShopify);
   const antoValor=(d.antofagasta||[]).reduce((s,r)=>{const lt=Number(r.litros)||0;return s+Math.round(lt*pr.cerveza+pr.despacho*lt);},0);
   const cruzTotal=shCruz+cruzFuera+antoValor;
-  const gardenValor=a.ingresos.transferencias.garden.valor, badassValor=a.ingresos.transferencias.badass.valor;
   const walmart=(Number(d.walmart.cajas)||0)*(Number(d.walmart.valorCaja)||0);
-  const total=cdNeto+cruzTotal+shWeb+(Number(d.activo)||0)+gardenValor+badassValor+walmart;
+  const total=cdNeto+cruzTotal+shWeb+(Number(d.activo)||0)+walmart;
+  const shAuto=shCd+gardenValor+badassValor;
   return {shCd,shCruz,shWeb,cdFuera,cdNC,cdOtros,cdBase,cdNeto,cruzFuera,antoValor,cruzTotal,gardenValor,badassValor,walmart,total,
-    ratioCd:cdBase?Math.round(shCd/cdBase*1000)/10:0, ratioCruz:cruzTotal-shWeb? Math.round(shCruz/(shCruz+cruzFuera+antoValor||1)*1000)/10:0 };
+    ratioCd:cdBase?Math.round(shAuto/cdBase*1000)/10:0, ratioCruz:(shCruz+cruzFuera+antoValor)?Math.round(shCruz/(shCruz+cruzFuera+antoValor)*1000)/10:0 };
 }
 const eM=(n)=>'$'+(Math.round(Number(n)||0)).toLocaleString('es-CL');
 // Tabla editable genérica de líneas manuales. cols: [{k,label,w,num,ph}]. path: ruta en draft.
@@ -7788,7 +7793,6 @@ function estRecalc(){
   set('estTotal',eM(c.total));
   set('estCdNeto',eM(c.cdNeto)); set('estCdRatio',c.ratioCd+'% Shopify');
   set('estCruzTotal',eM(c.cruzTotal)); set('estCruzRatio',c.ratioCruz+'% Shopify');
-  set('estAntoValor',eM(c.antoValor));
   set('estWalmart',eM(c.walmart));
   if(estadoData.excelRef && estadoData.excelRef.ingresos_total){ const ex=estadoData.excelRef.ingresos_total; const el=document.getElementById('estDeltaExcel'); if(el){ const dif=c.total-ex; el.textContent=(dif>=0?'+':'')+eM(dif)+' vs Excel ('+eM(ex)+')'; } }
 }
@@ -7802,16 +7806,19 @@ function renderEstado(){
   if((a.alertas.sinMapear||[]).length) alertas.push(`<b>Productos sin mapear (transferencias):</b> ${a.alertas.sinMapear.map(x=>escapeHtml(x.producto)).join(' · ')}`);
   const alertBox = alertas.length? `<div class="est-alert">⚠️ ${alertas.join('<br>')}</div>`:'';
   const pr=estadoDraft.preciosTransfer;
-  const transTabla=(t,titulo,editable)=>{
+  const transTabla=(t,titulo,editable,drillKey)=>{
     const rows=(t.tabla||[]).map(r=>`<tr><td>${escapeHtml(r.estilo)}</td><td class="dist-num">${eM(r.precioLt)}</td><td class="dist-num">${eM(r.despachoLt)}</td><td class="dist-num">${r.litros}</td><td class="dist-num">${r.pct}%</td><td class="dist-num">${eM(r.valor)}</td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:#999;padding:.6rem">Sin litros${editable?' — agregá abajo':''}</td></tr>`;
-    return `<div class="est-sec"><div class="est-sec-h">${titulo} <b>${eM(t.valor)}</b> <span class="est-lt">${t.litros} lt</span></div>
+    const verPed = (drillKey && (t.pedidos||[]).length) ? ` <button class="dist-portal-link" data-drill="${drillKey}">ver pedidos</button>` : '';
+    return `<div class="est-sec"><div class="est-sec-h">${titulo} <b>${eM(t.valor)}</b> <span class="est-lt">${t.litros} lt</span>${verPed}</div>
+      ${drillKey?`<div class="est-drill-box" id="estDrill_${drillKey}"></div>`:''}
       <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Estilo</th><th style="text-align:right">$/lt</th><th style="text-align:right">Despacho</th><th style="text-align:right">Litros</th><th style="text-align:right">%</th><th style="text-align:right">Valor</th></tr></thead><tbody>${rows}</tbody></table></div>
       ${editable?`<div class="est-anto-edit"><div class="est-sub">Litros manuales de Antofagasta (por estilo):</div><div class="mun-wrap">${estLineRows(estadoDraft.antofagasta,[{k:'estilo',label:'Estilo',w:'160px'},{k:'litros',label:'Litros',num:true,w:'90px'}],'antofagasta')}</div></div>`:''}</div>`;
   };
+  const ci=a.ingresos.cd_kairos, vi=a.ingresos.ventas_cruzada;
   body.innerHTML=`
     <div class="est-top">
       <div class="est-total-box"><div class="est-total-l">Total Ingresos</div><div class="est-total-v" id="estTotal">${eM(c.total)}</div>${a.excelRef?`<div class="est-delta" id="estDeltaExcel"></div>`:''}</div>
-      <div class="est-note">El número <b>automático de Shopify no se edita</b>. Si falta plata, se agrega una <b>línea con nombre</b>. Precio por bucket: transferencias revaluado · cruzada/CD Kairos original · retail cobrado.</div>
+      <div class="est-note">El número <b>automático de Shopify no se edita</b>. Si falta plata, se agrega una <b>línea con nombre</b>. Garden y Badass son transferencias a locales propios → van dentro de <b>CD Kairos</b>; Antofagasta dentro de <b>Ventas Cruzada</b>.</div>
     </div>
     ${alertBox}
     <div class="est-precios">
@@ -7822,42 +7829,40 @@ function renderEstado(){
     <div class="est-line est-hybrid">
       <div class="est-line-h"><span>1 · CD Kairos <span class="est-tag">híbrido</span></span><b id="estCdNeto">${eM(c.cdNeto)}</b></div>
       <div class="est-ratio"><span id="estCdRatio">${c.ratioCd}% Shopify</span></div>
-      <div class="est-auto">Shopify (auto, no editable): <b>${eM(a.ingresos.cd_kairos.shopify)}</b> · ${a.ingresos.cd_kairos.pedidos.length} pedidos <button class="dist-portal-link" data-drill="cd">ver detalle</button></div>
+      <div class="est-auto">Shopify malls (auto, no editable): <b>${eM(ci.shopify)}</b> · ${ci.pedidos.length} pedidos <button class="dist-portal-link" data-drill="cd">ver detalle</button></div>
+      <div class="est-drill-box" id="estDrill_cd"></div>
       <div class="est-sub">Ventas fuera de Shopify (manual):</div><div class="mun-wrap">${estLineRows(estadoDraft.cdKairos.fueraShopify,[{k:'desc',label:'Detalle'},{k:'factura',label:'N° factura',w:'110px'},{k:'fecha',label:'Fecha',w:'90px'},{k:'monto',label:'Monto',num:true,w:'110px'}],'cdKairos.fueraShopify')}</div>
       <div class="est-sub">Otros ingresos CD Kairos (manual):</div><div class="mun-wrap">${estLineRows(estadoDraft.cdKairos.otrosIngresos,[{k:'desc',label:'Descripción'},{k:'monto',label:'Monto',num:true,w:'110px'}],'cdKairos.otrosIngresos')}</div>
       <div class="est-sub">Notas de Crédito (se restan):</div><div class="mun-wrap">${estLineRows(estadoDraft.cdKairos.notasCredito,[{k:'proveedor',label:'Proveedor'},{k:'fecha',label:'Fecha',w:'90px'},{k:'factura',label:'Factura/NC',w:'110px'},{k:'monto',label:'Monto',num:true,w:'110px'}],'cdKairos.notasCredito')}</div>
+      ${transTabla(ci.garden,'Transferencia Garden <span class="est-tag ok">auto</span>',false,'garden')}
+      ${transTabla(ci.badass,'Transferencia Badass <span class="est-tag ok">auto</span>',false,'badass')}
     </div>
 
     <div class="est-line est-hybrid">
-      <div class="est-line-h"><span>3 · Ventas Cruzada (500 Sabores) <span class="est-tag">híbrido</span></span><b id="estCruzTotal">${eM(c.cruzTotal)}</b></div>
+      <div class="est-line-h"><span>2 · Ventas Cruzada (500 Sabores) <span class="est-tag">híbrido</span></span><b id="estCruzTotal">${eM(c.cruzTotal)}</b></div>
       <div class="est-ratio"><span id="estCruzRatio">${c.ratioCruz}% Shopify</span></div>
-      <div class="est-auto">Shopify (auto): <b>${eM(a.ingresos.ventas_cruzada.shopify)}</b> · ${a.ingresos.ventas_cruzada.pedidos.length} pedidos <button class="dist-portal-link" data-drill="cruz">ver detalle</button> · Antofagasta: <b id="estAntoValor">${eM(c.antoValor)}</b></div>
+      <div class="est-auto">Shopify (auto): <b>${eM(vi.shopify)}</b> · ${vi.pedidos.length} pedidos <button class="dist-portal-link" data-drill="cruz">ver detalle</button></div>
+      <div class="est-drill-box" id="estDrill_cruz"></div>
       <div class="est-sub">Ventas fuera de Shopify (manual):</div><div class="mun-wrap">${estLineRows(estadoDraft.ventasCruzada.fueraShopify,[{k:'desc',label:'Detalle'},{k:'factura',label:'N° factura',w:'110px'},{k:'fecha',label:'Fecha',w:'90px'},{k:'monto',label:'Monto',num:true,w:'110px'}],'ventasCruzada.fueraShopify')}</div>
+      ${transTabla(vi.antofagasta,'Transferencia Antofagasta <span class="est-tag man">manual</span>',true)}
     </div>
 
     <div class="est-line est-auto-line">
-      <div class="est-line-h"><span>4 · Ventas WEB / Eventos / Regalos <span class="est-tag ok">100% auto</span></span><b>${eM(a.ingresos.ventas_web.cobrado)}</b></div>
+      <div class="est-line-h"><span>3 · Ventas WEB / Eventos / Regalos <span class="est-tag ok">100% auto</span></span><b>${eM(a.ingresos.ventas_web.cobrado)}</b></div>
       <div class="est-auto">Retail cobrado de Shopify · ${a.ingresos.ventas_web.n} pedidos <button class="dist-portal-link" data-drill="web">ver detalle</button></div>
+      <div class="est-drill-box" id="estDrill_web"></div>
     </div>
 
     <div class="est-line">
-      <div class="est-line-h"><span>5 · Ingresos por venta de Activo <span class="est-tag man">manual</span></span></div>
+      <div class="est-line-h"><span>4 · Ingresos por venta de Activo <span class="est-tag man">manual</span></span></div>
       <label class="est-single">Monto <input class="est-inp dist-num" data-single="activo" type="text" inputmode="decimal" value="${estadoDraft.activo||''}" style="width:140px"></label>
     </div>
 
     <div class="est-line">
-      <div class="est-line-h"><span>6 · Transferencias (locales propios)</span></div>
-      ${transTabla(a.ingresos.transferencias.garden,'Garden <span class="est-tag ok">auto</span>',false)}
-      ${transTabla(a.ingresos.transferencias.badass,'Badass <span class="est-tag ok">auto</span> <span class="est-warn">· ver duda abierta (a)</span>',false)}
-      ${transTabla(a.ingresos.transferencias.antofagasta,'Antofagasta <span class="est-tag man">manual</span>',true)}
-    </div>
-
-    <div class="est-line">
-      <div class="est-line-h"><span>7 · Walmart <span class="est-tag man">manual</span></span><b id="estWalmart">${eM(c.walmart)}</b></div>
+      <div class="est-line-h"><span>5 · Walmart <span class="est-tag man">manual</span></span><b id="estWalmart">${eM(c.walmart)}</b></div>
       <label class="est-single">Cajas (24 latas) <input class="est-inp dist-num" data-wm="cajas" type="text" inputmode="decimal" value="${estadoDraft.walmart.cajas||''}" style="width:90px"></label>
       <label class="est-single">Valor caja <input class="est-inp dist-num" data-wm="valorCaja" type="text" inputmode="decimal" value="${estadoDraft.walmart.valorCaja||''}" style="width:110px"></label>
-    </div>
-    <div id="estDrill"></div>`;
+    </div>`;
   estWire();
   if(a.excelRef) estRecalc();
 }
@@ -7877,12 +7882,18 @@ function estWire(){
   body.querySelectorAll('[data-drill]').forEach(b=>b.onclick=()=>estDrill(b.dataset.drill));
 }
 function estDrill(which){
-  const a=estadoData; const map={cd:a.ingresos.cd_kairos.pedidos,cruz:a.ingresos.ventas_cruzada.pedidos,web:a.ingresos.ventas_web.pedidos};
-  const peds=map[which]||[]; const box=document.getElementById('estDrill');
-  const rows=peds.slice(0,500).map(p=>`<tr><td>${escapeHtml(p.pedido)}</td><td>${escapeHtml(p.fecha)}</td><td>${escapeHtml(p.cliente)}</td><td>${escapeHtml(p.codigo)}</td><td class="dist-num">${eM(p.original)}</td><td class="dist-num">${eM(p.cobrado)}</td></tr>`).join('');
-  box.innerHTML=`<div class="est-sec"><div class="est-sec-h">Detalle · ${peds.length} pedidos <button class="dist-portal-link" id="estDrillClose">cerrar</button></div><div class="mun-wrap"><table class="mun-table"><thead><tr><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Código</th><th style="text-align:right">Original</th><th style="text-align:right">Cobrado</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
-  document.getElementById('estDrillClose').onclick=()=>{box.innerHTML='';};
-  box.scrollIntoView({behavior:'smooth',block:'start'});
+  const a=estadoData;
+  const map={ cd:a.ingresos.cd_kairos.pedidos, cruz:a.ingresos.ventas_cruzada.pedidos, web:a.ingresos.ventas_web.pedidos, garden:a.ingresos.cd_kairos.garden.pedidos, badass:a.ingresos.cd_kairos.badass.pedidos };
+  const box=document.getElementById('estDrill_'+which); if(!box) return;
+  if(box.innerHTML){ box.innerHTML=''; return; } // toggle: segundo click cierra
+  const peds=map[which]||[]; const isTransfer=(which==='garden'||which==='badass');
+  const rows=peds.slice(0,500).map(p=>{
+    if(isTransfer){ const lin=(p.lineas||[]).map(l=>`${l.cantidad}× ${escapeHtml(l.producto)} <span style="color:#999">(${escapeHtml(l.estilo)}, ${l.litros}L)</span>`).join(' · '); return `<tr><td>${escapeHtml(p.pedido)}</td><td>${escapeHtml(p.fecha)}</td><td>${escapeHtml(p.cliente)}</td><td style="font-size:.72rem">${lin}</td></tr>`; }
+    return `<tr><td>${escapeHtml(p.pedido)}</td><td>${escapeHtml(p.fecha)}</td><td>${escapeHtml(p.cliente)}</td><td>${escapeHtml(p.codigo)}</td><td class="dist-num">${eM(p.original)}</td><td class="dist-num">${eM(p.cobrado)}</td></tr>`;
+  }).join('');
+  const head=isTransfer?'<tr><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Productos (estilo · litros)</th></tr>':'<tr><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Código</th><th style="text-align:right">Original</th><th style="text-align:right">Cobrado</th></tr>';
+  box.innerHTML=`<div class="est-drill-inner"><div class="est-drill-h">${peds.length} pedidos <button class="dist-portal-link" data-drillclose>cerrar ✕</button></div><div class="mun-wrap"><table class="mun-table"><thead>${head}</thead><tbody>${rows||'<tr><td colspan="6" style="color:#999;text-align:center;padding:.6rem">Sin pedidos en el rango</td></tr>'}</tbody></table></div></div>`;
+  box.querySelector('[data-drillclose]').onclick=()=>{ box.innerHTML=''; };
 }
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
