@@ -2482,12 +2482,17 @@ const CD_ORDERS_QUERY = `query($cursor:String,$q:String){
     pageInfo{ hasNextPage }
   }
 }`;
-async function cdLoadMonthOrders(month){
+// Rango por defecto de un mes (día 1 al último). Devuelve {from, to} en YYYY-MM-DD.
+function cdMonthRange(month){
   const [y, mo] = month.split('-').map(Number);
-  const start = `${y}-${String(mo).padStart(2, '0')}-01`;
+  const from = `${y}-${String(mo).padStart(2, '0')}-01`;
   const endD = new Date(Date.UTC(y, mo, 0)).getUTCDate();
-  const end = `${y}-${String(mo).padStart(2, '0')}-${String(endD).padStart(2, '0')}`;
-  const q = `created_at:>=${start} created_at:<=${end} status:any`;
+  const to = `${y}-${String(mo).padStart(2, '0')}-${String(endD).padStart(2, '0')}`;
+  return { from, to };
+}
+// Carga órdenes de Shopify entre dos fechas exactas (inclusive), YYYY-MM-DD.
+async function cdLoadOrdersRange(from, to){
+  const q = `created_at:>=${from} created_at:<=${to} status:any`;
   const orders = []; let cursor = null;
   for (let page = 0; page < 20; page++) {
     const resp = await cdShopifyGraph(CD_ORDERS_QUERY, { cursor, q });
@@ -2499,6 +2504,7 @@ async function cdLoadMonthOrders(month){
   }
   return orders;
 }
+async function cdLoadMonthOrders(month){ const { from, to } = cdMonthRange(month); return cdLoadOrdersRange(from, to); }
 // Histograma de tags de clientes (para ver si hay uno que distinga 500 Sabores/zonas).
 const CD_CUSTOMERS_QUERY = `query($cursor:String){
   customers(first:200, after:$cursor){
@@ -2558,9 +2564,10 @@ const cdR3 = (n) => Math.round((Number(n) || 0) * 1000) / 1000;
 // revaluadas, buckets con cobrado/original, y el DETALLE por pedido para el
 // drill-down). Precios de transferencia configurables (precios). Un pedido va a
 // UN bucket por su código exacto; transferencias primero.
-async function cdShopifyMonth(month, precios){
+async function cdShopifyMonth(month, precios, rango){
   const P = precios || CD_PRECIOS;
-  const orders = await cdLoadMonthOrders(month);
+  const r = (rango && rango.from && rango.to) ? rango : cdMonthRange(month);
+  const orders = await cdLoadOrdersRange(r.from, r.to);
   const estiloUnmapped = new Map();
   const litrosByEstiloGrupo = {};
   const addLitros = (g, e, t, lt) => { litrosByEstiloGrupo[g] = litrosByEstiloGrupo[g] || {}; const k = e + '|' + t; litrosByEstiloGrupo[g][k] = (litrosByEstiloGrupo[g][k] || 0) + lt; };
@@ -2690,10 +2697,11 @@ function estadoNormPeriodo(p){
 }
 function estadoLoad(){ try { if (!existsSync(ESTADO_FILE)) return { version: 1, periodos: {} }; const p = JSON.parse(readFileSync(ESTADO_FILE, 'utf-8')); return { version: 1, periodos: (p && p.periodos) || {} }; } catch (e) { console.warn('estado load:', e.message); return { version: 1, periodos: {} }; } }
 function estadoSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(ESTADO_FILE, JSON.stringify(d, null, 2)); }
-async function estadoResolve(month){
+async function estadoResolve(month, rango){
   const all = estadoLoad(); const per = estadoNormPeriodo(all.periodos[month]);
   const precios = per.preciosTransfer;
-  const sh = await cdShopifyMonth(month, precios).catch(e => ({ error: String(e.message || e) }));
+  const r = (rango && rango.from && rango.to) ? rango : cdMonthRange(month);
+  const sh = await cdShopifyMonth(month, precios, r).catch(e => ({ error: String(e.message || e) }));
   const shOk = !sh.error;
   const sum = (arr) => (arr || []).reduce((a, x) => a + (Number(x.monto) || 0), 0);
   const shCd = shOk ? sh.bucket.cd_kairos_mall.original : 0;
@@ -2726,16 +2734,23 @@ async function estadoResolve(month){
   const totalIngresos = cdNeto + cruzTotal + shWeb + per.activo + gardenValor + badassValor + walmartTotal;
   return {
     month, precios, periodo: per, ingresos, totalIngresos,
+    rango: r, mesCompleto: (r.from === cdMonthRange(month).from && r.to === cdMonthRange(month).to),
     shopifyOk: shOk, shopifyError: sh.error || null,
     alertas: { codigosNuevos: shOk ? sh.codigosNuevos : [], sinMapear: shOk ? sh.sinMapear : [], sinCodigo: shOk ? sh.sinCodigo : 0 },
     excelRef: CD_EXCEL_REF[month] || null,
   };
 }
+// Lee un rango de fechas de los query params (from/to en YYYY-MM-DD), o null.
+function estadoRangeFromReq(req){
+  const d = /^\d{4}-\d{2}-\d{2}$/;
+  const from = String(req.query.from || ''), to = String(req.query.to || '');
+  return (d.test(from) && d.test(to) && from <= to) ? { from, to } : null;
+}
 app.get('/admin/estado/periodos', requireAdmin, (req, res) => { res.json({ periodos: Object.keys(estadoLoad().periodos).sort().reverse() }); });
 app.get('/admin/estado', requireAdmin, async (req, res) => {
   const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
   if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
-  try { res.json(await estadoResolve(month)); } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 300) }); }
+  try { res.json(await estadoResolve(month, estadoRangeFromReq(req))); } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 300) }); }
 });
 app.put('/admin/estado/:month', requireAdmin, (req, res) => {
   const month = String(req.params.month); if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: 'Mes inválido.' });
@@ -2814,7 +2829,7 @@ app.get('/admin/estado/export.xlsx', requireAdmin, async (req, res) => {
   const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
   if (!month) return res.status(400).send('Falta el mes (YYYY-MM).');
   try {
-    const data = await estadoResolve(month);
+    const data = await estadoResolve(month, estadoRangeFromReq(req));
     const buf = xlsxPackage([{ name: estadoMonthLabel(month) + ' CD', rows: estadoSheetRows(data, month) }]);
     sendXlsx(res, buf, 'Estado_Resultado_' + month + '.xlsx');
   } catch (e) { res.status(500).send('Error: ' + String(e.message || e).slice(0, 200)); }
@@ -2826,7 +2841,7 @@ app.get('/admin/estado/preview', requireAdmin, async (req, res) => {
   const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
   if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
   try {
-    const data = await estadoResolve(month);
+    const data = await estadoResolve(month, estadoRangeFromReq(req));
     const rows = estadoSheetRows(data, month).map(r => (r || []).map(c => {
       if (!c) return { t: '' };
       let t;

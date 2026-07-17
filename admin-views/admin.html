@@ -1572,6 +1572,9 @@ body.drawer-open{overflow:hidden}
 .est-xl-title{font-weight:800}
 td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .est-xl-note{margin-top:.5rem;font-size:.74rem;color:#888}
+.est-daterange{display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;font-weight:700;color:var(--muted,#777)}
+.est-date{padding:.35rem .5rem;border:1px solid var(--line,#ddd);border-radius:8px;font-size:.8rem;background:var(--surface,#fff);color:var(--text,#111)}
+.est-date:focus{outline:none;border-color:var(--gold,#f5a623)}
 .ct-sec-hd{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
 .ro-note{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.35);color:#8a6d1f;border-radius:10px;padding:.5rem .8rem;margin-bottom:.9rem;font-size:.82rem;font-weight:600}
 .ren-cell{display:inline-flex;align-items:center;gap:.25rem;justify-content:flex-end}
@@ -2000,6 +2003,9 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
         </div>
         <div class="adm-actions">
           <select id="estadoMonth" class="costeo-svc"></select>
+          <label class="est-daterange">Desde <input type="date" id="estadoFrom" class="est-date"></label>
+          <label class="est-daterange">Hasta <input type="date" id="estadoTo" class="est-date"></label>
+          <button class="adm-btn adm-btn-ghost" id="estadoMesCompleto" type="button" title="Volver al mes completo">Mes completo</button>
           <button class="adm-btn adm-btn-ghost" id="estadoNuevo" type="button">+ Mes</button>
           <button class="adm-btn adm-btn-ghost" id="estadoEditar" type="button">📝 Editar</button>
           <button class="adm-btn adm-btn-gold" id="estadoExcel" type="button">📊 Ver Excel</button>
@@ -7675,6 +7681,15 @@ async function reventaAddSeccion(){
 
 // ── Estado de Resultado mensual (CD) — Parte 1: ingresos ──
 let estadoMonth=null, estadoData=null, estadoDraft=null, estadoSaveTmr=null, estadoShowExcel=false;
+// Rango de fechas por defecto de un mes: del 1 a HOY si es el mes actual, si no al último día.
+function estMonthRange(m){
+  const from=m+'-01'; const [y,mo]=m.split('-').map(Number); const t=new Date();
+  const cur=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0');
+  const to = (m===cur) ? (cur+'-'+String(t.getDate()).padStart(2,'0')) : (m+'-'+String(new Date(y,mo,0).getDate()).padStart(2,'0'));
+  return {from,to};
+}
+function estSetMonthDates(m){ const r=estMonthRange(m); const f=document.getElementById('estadoFrom'), t=document.getElementById('estadoTo'); if(f)f.value=r.from; if(t)t.value=r.to; }
+function estRangeQS(){ const f=document.getElementById('estadoFrom'), t=document.getElementById('estadoTo'); return (f&&t&&f.value&&t.value)?('&from='+f.value+'&to='+t.value):''; }
 const estMonthLabel=(m)=>{ const [y,mo]=m.split('-'); const N=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']; return N[+mo]+' '+y; };
 async function estadoBoot(){
   const sel=document.getElementById('estadoMonth');
@@ -7685,8 +7700,13 @@ async function estadoBoot(){
   sel.innerHTML=months.map(m=>`<option value="${m}">${estMonthLabel(m)}${periodos.includes(m)?'':' ·'}</option>`).join('');
   estadoMonth = estadoMonth || periodos[0] || months[0];
   sel.value=estadoMonth;
-  sel.onchange=()=>{ estadoMonth=sel.value; if(estadoShowExcel) estadoRenderExcel(); else estadoFetch(); };
-  document.getElementById('estadoReload').onclick=()=>{ if(estadoShowExcel) estadoRenderExcel(); else estadoFetch(); };
+  estSetMonthDates(estadoMonth);
+  const estRefresh=()=>{ if(estadoShowExcel) estadoRenderExcel(); else estadoFetch(); };
+  sel.onchange=()=>{ estadoMonth=sel.value; estSetMonthDates(estadoMonth); estRefresh(); };
+  document.getElementById('estadoFrom').onchange=estRefresh;
+  document.getElementById('estadoTo').onchange=estRefresh;
+  document.getElementById('estadoMesCompleto').onclick=()=>{ const [y,mo]=estadoMonth.split('-').map(Number); document.getElementById('estadoFrom').value=estadoMonth+'-01'; document.getElementById('estadoTo').value=estadoMonth+'-'+String(new Date(y,mo,0).getDate()).padStart(2,'0'); estRefresh(); };
+  document.getElementById('estadoReload').onclick=estRefresh;
   document.getElementById('estadoNuevo').onclick=estadoNuevoMes;
   document.getElementById('estadoExcel').onclick=()=>{ if(!estadoShowExcel){ estadoShowExcel=true; estadoRenderExcel(); estadoSyncViewBtns(); } };
   document.getElementById('estadoEditar').onclick=()=>{ if(estadoShowExcel){ estadoShowExcel=false; estadoFetch(); estadoSyncViewBtns(); } };
@@ -7704,7 +7724,7 @@ function estadoSyncViewBtns(){
 async function estadoRenderExcel(){
   estadoShowExcel=true; estadoSyncViewBtns();
   const body=document.getElementById('estadoBody'); body.innerHTML='<div class="adm-loading">Cargando planilla…</div>';
-  let data; try{ data=await (await fetch('/admin/estado/preview?month='+estadoMonth)).json(); if(data.error) throw new Error(data.error); }
+  let data; try{ data=await (await fetch('/admin/estado/preview?month='+estadoMonth+estRangeQS())).json(); if(data.error) throw new Error(data.error); }
   catch(e){ body.innerHTML='<div class="dist-empty">Error: '+escapeHtml(String(e.message||e))+'</div>'; return; }
   const L=(n)=>{let s='';n++;while(n>0){s=String.fromCharCode(65+(n-1)%26)+s;n=Math.floor((n-1)/26);}return s;};
   const maxCols=Math.max(1,...data.rows.map(r=>r.length));
@@ -7722,7 +7742,7 @@ async function estadoRenderExcel(){
     </div>
     <div class="est-xl-scroll"><table class="est-xl-table"><thead>${head}</thead><tbody>${grid}</tbody></table></div>
     <div class="est-xl-note">Se ve como en Excel. Los datos se cambian, agregan y quitan desde Zorbo (botón "📝 Editar" arriba) — la planilla siempre refleja el módulo.</div>`;
-  document.getElementById('estXlDl').onclick=()=>window.open('/admin/estado/export.xlsx?month='+estadoMonth,'_blank');
+  document.getElementById('estXlDl').onclick=()=>window.open('/admin/estado/export.xlsx?month='+estadoMonth+estRangeQS(),'_blank');
 }
 async function estadoNuevoMes(){
   const m=prompt('Nuevo mes (YYYY-MM):', estadoMonth); if(!m||!/^\d{4}-\d{2}$/.test(m)){ if(m) alert('Formato: YYYY-MM'); return; }
@@ -7732,7 +7752,7 @@ async function estadoNuevoMes(){
 async function estadoFetch(){
   const body=document.getElementById('estadoBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   try{
-    const r=await fetch('/admin/estado?month='+estadoMonth); estadoData=await r.json();
+    const r=await fetch('/admin/estado?month='+estadoMonth+estRangeQS()); estadoData=await r.json();
     if(estadoData.error) throw new Error(estadoData.error);
     estadoDraft=JSON.parse(JSON.stringify(estadoData.periodo));
     renderEstado();
@@ -7774,7 +7794,8 @@ function estRecalc(){
 }
 function renderEstado(){
   const a=estadoData, body=document.getElementById('estadoBody');
-  document.getElementById('estadoMeta').textContent = a.shopifyOk ? `Shopify OK · ${estMonthLabel(a.month)}` : `⚠️ ${a.shopifyError||'Shopify no disponible'} — solo líneas manuales`;
+  const rg = a.rango ? `${a.rango.from.slice(8)}/${a.rango.from.slice(5,7)}–${a.rango.to.slice(8)}/${a.rango.to.slice(5,7)}${a.mesCompleto?' (mes completo)':' (rango parcial)'}` : '';
+  document.getElementById('estadoMeta').textContent = (a.shopifyOk ? `Shopify OK · ${estMonthLabel(a.month)}` : `⚠️ ${a.shopifyError||'Shopify no disponible'} — solo líneas manuales`) + (rg?` · Shopify entre ${rg}`:'');
   const c=estCompute();
   const alertas=[];
   if((a.alertas.codigosNuevos||[]).length) alertas.push(`<b>Códigos nuevos sin clasificar:</b> ${a.alertas.codigosNuevos.map(escapeHtml).join(', ')} — avisame para mapearlos`);
