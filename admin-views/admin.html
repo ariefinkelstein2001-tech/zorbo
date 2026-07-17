@@ -2001,6 +2001,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
         <div class="adm-actions">
           <select id="estadoMonth" class="costeo-svc"></select>
           <button class="adm-btn adm-btn-ghost" id="estadoNuevo" type="button">+ Mes</button>
+          <button class="adm-btn adm-btn-ghost" id="estadoEditar" type="button">📝 Editar</button>
           <button class="adm-btn adm-btn-gold" id="estadoExcel" type="button">📊 Ver Excel</button>
           <button class="adm-btn adm-btn-ghost" id="estadoReload" type="button">Recargar</button>
         </div>
@@ -7687,13 +7688,21 @@ async function estadoBoot(){
   sel.onchange=()=>{ estadoMonth=sel.value; if(estadoShowExcel) estadoRenderExcel(); else estadoFetch(); };
   document.getElementById('estadoReload').onclick=()=>{ if(estadoShowExcel) estadoRenderExcel(); else estadoFetch(); };
   document.getElementById('estadoNuevo').onclick=estadoNuevoMes;
-  document.getElementById('estadoExcel').onclick=()=>{ estadoShowExcel=!estadoShowExcel; if(estadoShowExcel) estadoRenderExcel(); else estadoFetch(); };
+  document.getElementById('estadoExcel').onclick=()=>{ if(!estadoShowExcel){ estadoShowExcel=true; estadoRenderExcel(); estadoSyncViewBtns(); } };
+  document.getElementById('estadoEditar').onclick=()=>{ if(estadoShowExcel){ estadoShowExcel=false; estadoFetch(); estadoSyncViewBtns(); } };
+  estadoSyncViewBtns();
   estadoFetch();
+}
+function estadoSyncViewBtns(){
+  const ed=document.getElementById('estadoEditar'), xl=document.getElementById('estadoExcel');
+  if(ed) ed.classList.toggle('adm-btn-gold', !estadoShowExcel);
+  if(ed) ed.classList.toggle('adm-btn-ghost', estadoShowExcel);
+  if(xl) xl.classList.toggle('adm-btn-gold', estadoShowExcel);
+  if(xl) xl.classList.toggle('adm-btn-ghost', !estadoShowExcel);
 }
 // Muestra la planilla Excel INLINE dentro del Estado de Resultado (solo lectura).
 async function estadoRenderExcel(){
-  estadoShowExcel=true;
-  const btn=document.getElementById('estadoExcel'); if(btn) btn.textContent='📝 Volver a editar';
+  estadoShowExcel=true; estadoSyncViewBtns();
   const body=document.getElementById('estadoBody'); body.innerHTML='<div class="adm-loading">Cargando planilla…</div>';
   let data; try{ data=await (await fetch('/admin/estado/preview?month='+estadoMonth)).json(); if(data.error) throw new Error(data.error); }
   catch(e){ body.innerHTML='<div class="dist-empty">Error: '+escapeHtml(String(e.message||e))+'</div>'; return; }
@@ -7709,13 +7718,11 @@ async function estadoRenderExcel(){
       <div class="est-xl-title">📊 Vista planilla · ${estMonthLabel(estadoMonth)} <span class="est-tag man">solo lectura</span></div>
       <div class="est-xl-acts">
         <button class="adm-btn adm-btn-gold" id="estXlDl" type="button">⬇ Descargar .xlsx</button>
-        <button class="adm-btn adm-btn-ghost" id="estXlEdit" type="button">📝 Volver a editar</button>
       </div>
     </div>
     <div class="est-xl-scroll"><table class="est-xl-table"><thead>${head}</thead><tbody>${grid}</tbody></table></div>
-    <div class="est-xl-note">Se ve como en Excel. Los datos se cambian, agregan y quitan desde Zorbo (botón "Volver a editar") — la planilla siempre refleja el módulo.</div>`;
+    <div class="est-xl-note">Se ve como en Excel. Los datos se cambian, agregan y quitan desde Zorbo (botón "📝 Editar" arriba) — la planilla siempre refleja el módulo.</div>`;
   document.getElementById('estXlDl').onclick=()=>window.open('/admin/estado/export.xlsx?month='+estadoMonth,'_blank');
-  document.getElementById('estXlEdit').onclick=()=>{ estadoShowExcel=false; if(btn) btn.textContent='📊 Ver Excel'; estadoFetch(); };
 }
 async function estadoNuevoMes(){
   const m=prompt('Nuevo mes (YYYY-MM):', estadoMonth); if(!m||!/^\d{4}-\d{2}$/.test(m)){ if(m) alert('Formato: YYYY-MM'); return; }
