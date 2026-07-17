@@ -1591,6 +1591,26 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .est-group{font-family:var(--display,inherit);font-size:1.05rem;font-weight:800;color:var(--text,#111);margin:1.3rem 0 .5rem;padding-bottom:.3rem;border-bottom:2px solid var(--gold,#f5a623);display:flex;align-items:baseline;gap:.5rem}
 .est-group span{font-size:.75rem;font-weight:600;color:var(--muted,#999)}
 .est-group b{margin-left:auto;color:var(--gold-deep,#a05f00)}
+/* Costos y Gastos */
+.cg-form{background:var(--surface,#fff);border:1px solid var(--line,#e5e5e5);border-radius:14px;padding:1rem 1.1rem;margin-bottom:1rem}
+.cg-form-title{font-family:var(--display,inherit);font-weight:700;font-size:1rem;margin-bottom:.8rem;color:var(--text,#111)}
+.cg-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.7rem;align-items:end}
+.cg-field{display:flex;flex-direction:column;gap:.28rem}
+.cg-field>span{font-size:.72rem;font-weight:700;color:var(--muted,#666);letter-spacing:.02em}
+.cg-field select,.cg-field input{padding:.55rem .6rem;border:1px solid var(--line,#e5e5e5);border-radius:9px;background:var(--surface,#fff);color:var(--text,#111);font:inherit;font-size:.9rem}
+.cg-field select:focus,.cg-field input:focus{outline:none;border-color:var(--gold,#f5a623)}
+.cg-field-btn{justify-content:flex-end}
+.cg-field-btn .adm-btn{width:100%}
+.cg-err{display:none;margin-top:.6rem;color:var(--red,#d33);font-size:.82rem;font-weight:600}
+.cg-err.show{display:block}
+.cg-resumen{display:flex;gap:.7rem;flex-wrap:wrap;margin-bottom:1rem}
+.cg-card{flex:1;min-width:150px;border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.7rem .85rem;background:var(--surface,#fff)}
+.cg-card-total{border-color:var(--gold-bd,#f1c97b);background:var(--gold-dim,rgba(245,166,35,.08))}
+.cg-card-l{font-size:.74rem;color:var(--muted,#666);font-weight:600;line-height:1.2}
+.cg-card-v{font-family:var(--display,inherit);font-weight:700;font-size:1.08rem;color:var(--text,#111);margin-top:.2rem}
+.cg-card-n{font-size:.7rem;color:var(--dim,#999);margin-top:.1rem}
+.cg-tag{display:inline-block;font-size:.72rem;font-weight:700;color:var(--gold-deep,#a05f00);background:var(--gold-dim,rgba(245,166,35,.1));border:1px solid var(--gold-bd,#f1c97b);border-radius:20px;padding:.1rem .55rem}
+.cg-table td{vertical-align:middle}
 .est-hchans{display:flex;gap:.7rem;flex-wrap:wrap}
 .est-hchan{flex:1;min-width:200px;text-align:left;border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.7rem .9rem;background:var(--surface,#fff);cursor:pointer;transition:all .15s}
 .est-hchan:hover{border-color:var(--gold-bd-h,#e8b84e)}
@@ -2043,6 +2063,21 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <div id="estadoBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
+    <!-- Costos y Gastos: registro por proveedor + categoría + folio + valor -->
+    <div class="adm-panel" id="costosView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Costos y Gastos</div>
+          <div class="adm-panel-meta">registrá cada costo/gasto: proveedor · categoría · fecha · folio · valor</div>
+        </div>
+        <div class="adm-actions">
+          <select id="costosMes" class="costeo-svc"><option value="">Todos los meses</option></select>
+          <button class="adm-btn adm-btn-ghost" id="costosReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div id="costosBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
     <!-- Vista de tutoriales (videos técnicos) -->
     <div class="adm-panel" id="tutorialsView" style="display:none">
       <div class="adm-panel-head">
@@ -2434,6 +2469,7 @@ const BASE_SECCIONES = [
   { id:'distribuidora', kind:'distribuidora', label:'Distribuidora', cat:'operaciones', desc:'proveedores · costos · márgenes · órdenes de compra · comercialización' },
   { id:'costeo',    kind:'costeo',   label:'Costeo de carta', cat:'operaciones', desc:'insumos · recetas base · platos · precios de venta' },
   { id:'estado',    kind:'estado',   label:'Estado de Resultado', cat:'operaciones', desc:'CD Kairos · ingresos automáticos de Shopify + manuales · EBITDA mensual' },
+  { id:'costos',    kind:'costos',   label:'Costos y Gastos', cat:'operaciones', desc:'registro de costos y gastos por proveedor · categoría · folio · valor' },
 ];
 
 // Categorías grandes de la home. accent = color del halo de la tarjeta.
@@ -2639,6 +2675,9 @@ async function selectSeccion(id){
     await loadCosteo();
   } else if (sec.kind === 'estado') {
     showView('estado');
+  } else if (sec.kind === 'costos') {
+    showView('costos');
+    await loadCostos();
   } else if (sec.kind === 'products') {
     showView('products');
     await loadProductos();
@@ -2680,6 +2719,7 @@ function showView(kind){
   document.getElementById('distribuidoraView').style.display = kind === 'distribuidora' ? '' : 'none';
   document.getElementById('costeoView').style.display     = kind === 'costeo'     ? '' : 'none';
   document.getElementById('estadoView').style.display     = kind === 'estado'     ? '' : 'none';
+  document.getElementById('costosView').style.display     = kind === 'costos'     ? '' : 'none';
   if (kind === 'estado') estadoBoot();
   document.getElementById('feedbackView').style.display   = kind === 'feedback'   ? '' : 'none';
   document.getElementById('tutorialsView').style.display  = kind === 'tutorials'  ? '' : 'none';
@@ -8113,6 +8153,94 @@ function estDrill(which){
   box.innerHTML=`<div class="est-drill-inner"><div class="est-drill-h">${peds.length} pedidos <button class="dist-portal-link" data-drillclose>cerrar ✕</button></div><div class="mun-wrap"><table class="mun-table"><thead>${head}</thead><tbody>${rows||'<tr><td colspan="6" style="color:#999;text-align:center;padding:.6rem">Sin pedidos en el rango</td></tr>'}</tbody></table></div></div>`;
   box.querySelector('[data-drillclose]').onclick=()=>{ box.innerHTML=''; };
 }
+
+// ─── Costos y Gastos ────────────────────────────────────────────────────────
+let costosData=null, costosForm={proveedor:'',categoria:'',fecha:'',folio:'',valor:''};
+const COSTOS_CAT_LABEL={costo_directo:'Costo directo',costo_indirecto:'Costo indirecto',gastos_operativos:'Gastos operativos',gastos_admin_venta:'Gastos de administración y venta',activos_fijos:'Activos fijos'};
+async function loadCostos(){
+  const body=document.getElementById('costosBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  try{
+    const mes=document.getElementById('costosMes').value||'';
+    const r=await fetch('/admin/costos'+(mes?'?mes='+mes:'')); costosData=await r.json();
+    if(costosData.error) throw new Error(costosData.error);
+    // poblar el selector de meses (conserva selección)
+    const selMes=document.getElementById('costosMes'); const cur=selMes.value;
+    selMes.innerHTML='<option value="">Todos los meses</option>'+(costosData.meses||[]).map(m=>`<option value="${m}" ${m===cur?'selected':''}>${escapeHtml(estMonthLabel(m))}</option>`).join('');
+    renderCostos();
+  }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function renderCostos(){
+  const a=costosData, body=document.getElementById('costosBody'); const f=costosForm;
+  const provOpts=['<option value="">— Elegí un proveedor —</option>',...(a.proveedores||[]).map(p=>`<option value="${escapeAttr(p.nombre)}" ${p.nombre===f.proveedor?'selected':''}>${escapeHtml(p.nombre)}</option>`),'<option value="__nuevo__">+ Crear nuevo proveedor…</option>'].join('');
+  const catOpts=['<option value="">— Elegí una categoría —</option>',...(a.categorias||[]).map(c=>`<option value="${c.id}" ${c.id===f.categoria?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
+  const rs=a.resumen||{porCategoria:{},total:0};
+  const resumenCards=(a.categorias||[]).map(c=>{const b=rs.porCategoria[c.id]||{total:0,n:0};return `<div class="cg-card"><div class="cg-card-l">${escapeHtml(c.label)}</div><div class="cg-card-v">${eM(b.total)}</div><div class="cg-card-n">${b.n} doc${b.n===1?'':'s'}</div></div>`;}).join('');
+  const rows=(a.entradas||[]).map(e=>`
+    <tr>
+      <td>${escapeHtml(e.fecha)}</td>
+      <td>${escapeHtml(e.proveedor)}</td>
+      <td><span class="cg-tag">${escapeHtml(COSTOS_CAT_LABEL[e.categoria]||e.categoria)}</span></td>
+      <td>${escapeHtml(e.folio||'—')}</td>
+      <td class="dist-num">${eM(e.valor)}</td>
+      <td><button class="pv-del" data-cgdel="${e.id}" title="Eliminar">✕</button></td>
+    </tr>`).join('');
+  body.innerHTML=`
+    <div class="cg-form">
+      <div class="cg-form-title">Registrar costo / gasto</div>
+      <div class="cg-form-grid">
+        <label class="cg-field"><span>Proveedor</span><select id="cgProv">${provOpts}</select></label>
+        <label class="cg-field"><span>Categoría (Estado de Resultado)</span><select id="cgCat">${catOpts}</select></label>
+        <label class="cg-field"><span>Fecha del documento</span><input type="date" id="cgFecha" value="${escapeAttr(f.fecha)}"></label>
+        <label class="cg-field"><span>Folio / N° documento</span><input type="text" id="cgFolio" value="${escapeAttr(f.folio)}" placeholder="Ej: 46211"></label>
+        <label class="cg-field"><span>Valor ($)</span><input type="text" inputmode="numeric" id="cgValor" value="${escapeAttr(f.valor)}" placeholder="0"></label>
+        <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="cgAdd" type="button">+ Agregar</button></div>
+      </div>
+      <div class="cg-err" id="cgErr"></div>
+    </div>
+    <div class="cg-resumen">${resumenCards}<div class="cg-card cg-card-total"><div class="cg-card-l">Total</div><div class="cg-card-v">${eM(rs.total)}</div><div class="cg-card-n">${(a.entradas||[]).length} doc${(a.entradas||[]).length===1?'':'s'}</div></div></div>
+    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Categoría</th><th>Folio</th><th style="text-align:right">Valor</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:.8rem">Todavía no hay costos ni gastos registrados</td></tr>'}</tbody></table></div>`;
+  wireCostos();
+}
+function wireCostos(){
+  const prov=document.getElementById('cgProv'), cat=document.getElementById('cgCat'), fecha=document.getElementById('cgFecha'), folio=document.getElementById('cgFolio'), valor=document.getElementById('cgValor');
+  prov.onchange=async()=>{
+    if(prov.value==='__nuevo__'){
+      const nombre=(window.prompt('Nombre del nuevo proveedor:')||'').trim();
+      if(!nombre){ prov.value=costosForm.proveedor; return; }
+      try{ const r=await fetch('/admin/costos/proveedor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); costosForm.proveedor=d.proveedor.nombre; costosSyncForm(); await loadCostos(); }
+      catch(e){ costosShowErr(String(e.message||e)); prov.value=costosForm.proveedor; }
+    } else costosForm.proveedor=prov.value;
+  };
+  cat.onchange=()=>costosForm.categoria=cat.value;
+  fecha.onchange=()=>costosForm.fecha=fecha.value; fecha.oninput=()=>costosForm.fecha=fecha.value;
+  folio.oninput=()=>costosForm.folio=folio.value;
+  valor.oninput=()=>costosForm.valor=valor.value;
+  document.getElementById('cgAdd').onclick=costosAgregar;
+  document.querySelectorAll('[data-cgdel]').forEach(b=>b.onclick=()=>costosEliminar(b.dataset.cgdel));
+}
+function costosSyncForm(){ const p=document.getElementById('cgProv'); if(p) p.value=costosForm.proveedor; }
+function costosShowErr(msg){ const e=document.getElementById('cgErr'); if(e){ e.textContent='⚠ '+msg; e.classList.add('show'); } }
+async function costosAgregar(){
+  const e=document.getElementById('cgErr'); if(e){ e.textContent=''; e.classList.remove('show'); }
+  const payload={ proveedor:costosForm.proveedor, categoria:costosForm.categoria, fecha:costosForm.fecha, folio:costosForm.folio, valor:cNum(costosForm.valor) };
+  if(!payload.proveedor||payload.proveedor==='__nuevo__') return costosShowErr('Elegí un proveedor.');
+  if(!payload.categoria) return costosShowErr('Elegí una categoría.');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(payload.fecha)) return costosShowErr('Elegí la fecha del documento.');
+  if(!payload.valor) return costosShowErr('Ingresá el valor.');
+  try{
+    const r=await fetch('/admin/costos/entrada',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Error');
+    costosForm={proveedor:'',categoria:'',fecha:'',folio:'',valor:''};
+    await loadCostos();
+  }catch(err){ costosShowErr(String(err.message||err)); }
+}
+async function costosEliminar(id){
+  if(!confirm('Eliminar este registro?')) return;
+  try{ const r=await fetch('/admin/costos/entrada/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadCostos(); }
+  catch(e){ alert(String(e.message||e)); }
+}
+document.getElementById('costosReload').onclick=loadCostos;
+document.getElementById('costosMes').onchange=loadCostos;
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();

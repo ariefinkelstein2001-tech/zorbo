@@ -3150,6 +3150,104 @@ app.get('/admin/estado/preview', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
 });
 
+// ─── COSTOS Y GASTOS ────────────────────────────────────────────────────────
+// Registro de costos/gastos que llegan a la empresa: se elige un PROVEEDOR (de los
+// ya creados, o se crea uno nuevo), la CATEGORÍA del Estado de Resultado a la que
+// imputa, la fecha del documento, el folio y el valor. Persistencia en JSON.
+const COSTOS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'costos-gastos.json');
+const COSTOS_CATEGORIAS = [
+  { id: 'costo_directo', label: 'Costo directo' },
+  { id: 'costo_indirecto', label: 'Costo indirecto' },
+  { id: 'gastos_operativos', label: 'Gastos operativos' },
+  { id: 'gastos_admin_venta', label: 'Gastos de administración y venta' },
+  { id: 'activos_fijos', label: 'Activos fijos' },
+];
+// Proveedores iniciales (semilla). Se pueden agregar más desde el panel.
+const COSTOS_PROVEEDORES_SEED = [
+  'Embotelladora Andina', 'Navarro y Cía. SpA', 'Navarro y Cía. SpA (Insumo de Oasis)', 'Ariscorp SpA',
+  'Comercializadora Gecorp', 'Gecorp', 'MACC SpA', 'Destilería Zunda SpA', 'Bucarest SpA', 'ICYLAB SpA',
+  'Comercial e Inversiones Cervecera del Puerto', 'Plaza Vespucio SpA', 'Transportes 369 SpA', 'AGSB',
+  'Controlbar Solutions SpA', 'Caya Servicios', 'Devoluciones', 'Caja Chica',
+  'Centro de Servicios Compartidos Los Robles SpA', 'Banco de Crédito e Inversiones',
+  'Producciones Gráficas SpA', 'PRISA', 'Confección de Ropa Dimenta Ltda', 'Convertidora de Material SIM Ltda',
+];
+const costosNum = (v) => { const n = Number(String(v == null ? '' : v).replace(/[^\d.-]/g, '')); return Number.isFinite(n) ? Math.round(n) : 0; };
+const costosStr = (v, m = 200) => String(v == null ? '' : v).trim().slice(0, m);
+let COSTOS_ID_SEQ = 0;
+function costosNewId(prefix){ COSTOS_ID_SEQ = (COSTOS_ID_SEQ + 1) % 100000; return prefix + '_' + Date.now().toString(36) + '_' + COSTOS_ID_SEQ.toString(36); }
+function costosLoad(){
+  let data = { proveedores: [], entradas: [] };
+  try { if (existsSync(COSTOS_FILE)) { const p = JSON.parse(readFileSync(COSTOS_FILE, 'utf-8')); data.proveedores = Array.isArray(p.proveedores) ? p.proveedores : []; data.entradas = Array.isArray(p.entradas) ? p.entradas : []; } }
+  catch (e) { console.warn('costos load:', e.message); }
+  // Semilla de proveedores la primera vez (o si el archivo no tiene proveedores).
+  if (!data.proveedores.length) {
+    const seen = new Set();
+    data.proveedores = COSTOS_PROVEEDORES_SEED.filter(n => { const k = n.toLowerCase().replace(/\s+/g, ' ').trim(); if (seen.has(k)) return false; seen.add(k); return true; })
+      .map(nombre => ({ id: costosNewId('prov'), nombre }));
+  }
+  return data;
+}
+function costosSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTOS_FILE, JSON.stringify(d, null, 2)); }
+const costosMes = (fecha) => /^\d{4}-\d{2}/.test(String(fecha)) ? String(fecha).slice(0, 7) : '';
+// Resumen por categoría (montos + cantidad) para un set de entradas.
+function costosResumen(entradas){
+  const porCat = {}; COSTOS_CATEGORIAS.forEach(c => porCat[c.id] = { total: 0, n: 0 });
+  let total = 0;
+  for (const e of entradas) { const c = porCat[e.categoria] || (porCat[e.categoria] = { total: 0, n: 0 }); c.total += Number(e.valor) || 0; c.n++; total += Number(e.valor) || 0; }
+  return { porCategoria: porCat, total };
+}
+// GET: proveedores + categorías + entradas (opcional filtradas por mes) + resumen.
+app.get('/admin/costos', requireAdmin, (req, res) => {
+  const data = costosLoad();
+  const mes = /^\d{4}-\d{2}$/.test(String(req.query.mes)) ? String(req.query.mes) : null;
+  let entradas = data.entradas.slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  if (mes) entradas = entradas.filter(e => costosMes(e.fecha) === mes);
+  const meses = [...new Set(data.entradas.map(e => costosMes(e.fecha)).filter(Boolean))].sort().reverse();
+  res.json({
+    categorias: COSTOS_CATEGORIAS,
+    proveedores: data.proveedores.slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
+    entradas, meses, mes,
+    resumen: costosResumen(entradas),
+  });
+});
+// POST proveedor nuevo.
+app.post('/admin/costos/proveedor', requireAdmin, (req, res) => {
+  const nombre = costosStr(req.body && req.body.nombre, 120);
+  if (!nombre) return res.status(400).json({ error: 'Falta el nombre del proveedor.' });
+  const data = costosLoad();
+  const k = nombre.toLowerCase().replace(/\s+/g, ' ').trim();
+  const existe = data.proveedores.find(p => p.nombre.toLowerCase().replace(/\s+/g, ' ').trim() === k);
+  if (existe) return res.json({ ok: true, proveedor: existe, yaExistia: true });
+  const prov = { id: costosNewId('prov'), nombre };
+  data.proveedores.push(prov); costosSave(data);
+  res.json({ ok: true, proveedor: prov });
+});
+// POST entrada (costo/gasto).
+app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const proveedor = costosStr(b.proveedor, 120);
+  const categoria = costosStr(b.categoria, 40);
+  const fecha = costosStr(b.fecha, 20);
+  const folio = costosStr(b.folio, 60);
+  const valor = costosNum(b.valor);
+  if (!proveedor) return res.status(400).json({ error: 'Elegí un proveedor.' });
+  if (!COSTOS_CATEGORIAS.some(c => c.id === categoria)) return res.status(400).json({ error: 'Elegí una categoría válida.' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return res.status(400).json({ error: 'Elegí la fecha del documento.' });
+  if (!valor) return res.status(400).json({ error: 'Ingresá el valor.' });
+  const data = costosLoad();
+  // Si el proveedor no está creado, lo crea al vuelo (viene de "crear nuevo").
+  if (!data.proveedores.some(p => p.nombre === proveedor)) data.proveedores.push({ id: costosNewId('prov'), nombre: proveedor });
+  const entrada = { id: costosNewId('cg'), proveedor, categoria, fecha, folio, valor };
+  data.entradas.push(entrada); costosSave(data);
+  res.json({ ok: true, entrada });
+});
+app.delete('/admin/costos/entrada/:id', requireAdmin, (req, res) => {
+  const id = String(req.params.id); const data = costosLoad();
+  const n = data.entradas.length; data.entradas = data.entradas.filter(e => e.id !== id);
+  if (data.entradas.length === n) return res.status(404).json({ error: 'No se encontró la entrada.' });
+  costosSave(data); res.json({ ok: true });
+});
+
 // ─── Conversaciones (embudo) ────────────────────────────────────────────────
 // Listado y detalle de las sesiones de chat ya persistidas en CONV_LOG. El
 // listado va liviano (resumen + primer/último mensaje); el detalle trae la
