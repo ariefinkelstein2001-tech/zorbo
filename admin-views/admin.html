@@ -7714,6 +7714,7 @@ let estadoMonth=null, estadoData=null, estadoDraft=null, estadoSaveTmr=null, est
 let estHorecaChan=null, estHorecaFilter={marca:'',razon:'',sector:''};
 let estWebProv=null, estWebFilter={entrega:'',tienda:''};
 let estWalmartMarca='';
+let estHospChan=null, estHospGarden='';
 // Rango de fechas por defecto de un mes: del 1 a HOY si es el mes actual, si no al último día.
 function estMonthRange(m){
   const from=m+'-01'; const [y,mo]=m.split('-').map(Number); const t=new Date();
@@ -7833,7 +7834,7 @@ function estRecalc(){
 function renderEstado(){
   const a=estadoData, body=document.getElementById('estadoBody');
   estHorecaChan=null; estHorecaFilter={marca:'',razon:'',sector:''};
-  estWebProv=null; estWebFilter={entrega:'',tienda:''}; estWalmartMarca='';
+  estWebProv=null; estWebFilter={entrega:'',tienda:''}; estWalmartMarca=''; estHospChan=null; estHospGarden='';
   const rg = a.rango ? `${a.rango.from.slice(8)}/${a.rango.from.slice(5,7)}–${a.rango.to.slice(8)}/${a.rango.to.slice(5,7)}${a.mesCompleto?' (mes completo)':' (rango parcial)'}` : '';
   document.getElementById('estadoMeta').textContent = (a.shopifyOk ? `Shopify OK · ${estMonthLabel(a.month)}` : `⚠️ ${a.shopifyError||'Shopify no disponible'} — solo líneas manuales`) + (rg?` · Shopify entre ${rg}`:'');
   const c=estCompute();
@@ -7895,10 +7896,14 @@ function renderEstado(){
       <div id="estWalmartPanel"></div>
     </div>
 
-    <div class="est-group">④ Hospitality <span>· locales propios (Garden Vespucio · Garden Antofagasta · Badass)</span><b id="estHospitalityG">${eM(c.hospitality)}</b></div>
+    <div class="est-group">④ Hospitality <span>· locales propios · Kairos Garden · Badass</span><b id="estHospitalityG">${eM(c.hospitality)}</b></div>
     <div class="est-line est-auto-line">
-      ${transTabla(hi.garden,'Garden Vespucio <span class="est-tag ok">auto</span>',false,'garden')}
-      ${transTabla(hi.badass,'Badass <span class="est-tag ok">auto</span>',false,'badass')}
+      <div class="est-hchans">
+        <button class="est-hchan" data-hospchan="todos"><b>Todos</b><span>${eM(hi.total)} · ${((hi.garden.pedidos||[]).length+(hi.badass.pedidos||[]).length)} pedidos</span></button>
+        <button class="est-hchan" data-hospchan="garden"><b>Kairos Garden</b><span>${eM(hi.garden.valor)} · ${(hi.garden.pedidos||[]).length} pedidos</span></button>
+        <button class="est-hchan" data-hospchan="badass"><b>Badass</b><span>${eM(hi.badass.valor)} · ${(hi.badass.pedidos||[]).length} pedidos</span></button>
+      </div>
+      <div id="estHospPanel"></div>
     </div>`;
   estWire();
   if(a.excelRef) estRecalc();
@@ -7919,7 +7924,58 @@ function estWire(){
   body.querySelectorAll('[data-drill]').forEach(b=>b.onclick=()=>estDrill(b.dataset.drill));
   body.querySelectorAll('[data-hchan]').forEach(b=>b.onclick=()=>estHorecaOpen(b.dataset.hchan));
   body.querySelectorAll('[data-wprov]').forEach(b=>b.onclick=()=>estWebOpen(b.dataset.wprov));
+  body.querySelectorAll('[data-hospchan]').forEach(b=>b.onclick=()=>estHospOpen(b.dataset.hospchan));
   estWalmartDrawPanel();
+}
+// Hospitality por local (Todos / Kairos Garden [VSP·Antofagasta] / Badass) con
+// tablas de pedidos estilo HORECA.
+function estHospOpen(chan){
+  estHospChan = (estHospChan===chan) ? null : chan;
+  estHospGarden='';
+  document.querySelectorAll('[data-hospchan]').forEach(b=>b.classList.toggle('on', b.dataset.hospchan===estHospChan));
+  estHospDrawPanel();
+}
+// ¿Un pedido de Garden es de Antofagasta? (por el nombre del cliente / código)
+function estEsAntofa(p){ return /antofa/i.test((p.cliente||'')+' '+(p.codigo||'')); }
+// Valor revaluado de un pedido (litros × precio de transferencia) desde sus líneas.
+function estPedValor(p,precios){ return Math.round((p.lineas||[]).reduce((a,l)=>{const pr=precios[l.tipo]||precios.cerveza;return a+(l.litros||0)*pr+precios.despacho*(l.litros||0);},0)); }
+function estPedLitros(p){ return Math.round((p.lineas||[]).reduce((a,l)=>a+(l.litros||0),0)*1000)/1000; }
+function estHospDrawPanel(){
+  const panel=document.getElementById('estHospPanel'); if(!panel) return;
+  if(!estHospChan){ panel.innerHTML=''; return; }
+  const a=estadoData, hi=a.ingresos.hospitality, precios=a.precios||{cerveza:1830,gin:7447,ron:6617,despacho:1033};
+  const gPeds=(hi.garden.pedidos||[]).map(p=>({...p,local:'Kairos Garden'+(estEsAntofa(p)?' Antofagasta':' Vespucio')}));
+  const bPeds=(hi.badass.pedidos||[]).map(p=>({...p,local:'Badass'}));
+  let all, titulo;
+  if(estHospChan==='todos'){ all=[...gPeds,...bPeds]; titulo='Todos'; }
+  else if(estHospChan==='garden'){ all=gPeds; titulo='Kairos Garden'; }
+  else { all=bPeds; titulo='Badass'; }
+  // Sub-filtro VSP / Antofagasta (solo en Kairos Garden).
+  let filtered=all;
+  if(estHospChan==='garden' && estHospGarden==='vsp') filtered=all.filter(p=>!estEsAntofa(p));
+  else if(estHospChan==='garden' && estHospGarden==='antofagasta') filtered=all.filter(p=>estEsAntofa(p));
+  filtered=estByFechaDesc(filtered);
+  const litrosTot=Math.round(filtered.reduce((a,p)=>a+estPedLitros(p),0)*10)/10;
+  const valorTot=filtered.reduce((a,p)=>a+estPedValor(p,precios),0);
+  const subFiltro = estHospChan==='garden'
+    ? `<div class="est-h-filters"><label>Local <select data-hospf>${['','vsp','antofagasta'].map(v=>`<option value="${v}" ${v===estHospGarden?'selected':''}>${v===''?'Todas':(v==='vsp'?'Garden Vespucio':'Garden Antofagasta')}</option>`).join('')}</select></label>${estHospGarden?'<button class="dist-portal-link" data-hospclear>limpiar filtros</button>':''}</div>`
+    : '';
+  const showLocal = (estHospChan==='todos') || (estHospChan==='garden' && !estHospGarden);
+  const rows=filtered.slice(0,800).map((p,i)=>`
+    <tr data-hped="${i}"><td>${escapeHtml(p.pedido)}</td><td>${escapeHtml(p.fecha)}</td><td>${escapeHtml(p.cliente)}</td>${showLocal?`<td>${escapeHtml(p.local)}</td>`:''}<td class="dist-num">${estPedLitros(p)}</td><td class="dist-num">${eM(estPedValor(p,precios))}</td><td>${(p.lineas||[]).length?`<button class="dist-portal-link" data-hospdet="${i}">detalle</button>`:''}</td></tr>
+    <tr class="est-hdet-row"><td colspan="${showLocal?7:6}" id="estHospdet_${i}" style="padding:0"></td></tr>`).join('');
+  panel.innerHTML=`
+    <div class="est-h-summary">📊 <b>${escapeHtml(titulo)}</b> — ${filtered.length} pedidos · venta total <b>${eM(valorTot)}</b> · ${litrosTot} lt${(estHospChan==='garden'&&estHospGarden)?' <span style="color:#999">('+(estHospGarden==='vsp'?'Vespucio':'Antofagasta')+')</span>':''}</div>
+    ${subFiltro}
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Pedido</th><th>Fecha</th><th>Cliente</th>${showLocal?'<th>Local</th>':''}<th style="text-align:right">Litros</th><th style="text-align:right">Valor</th><th></th></tr></thead><tbody>${rows||`<tr><td colspan="${showLocal?7:6}" style="text-align:center;color:#999;padding:.6rem">Sin pedidos</td></tr>`}</tbody></table></div>`;
+  const sel=panel.querySelector('[data-hospf]'); if(sel) sel.onchange=()=>{ estHospGarden=sel.value; estHospDrawPanel(); };
+  const cl=panel.querySelector('[data-hospclear]'); if(cl) cl.onclick=()=>{ estHospGarden=''; estHospDrawPanel(); };
+  panel.querySelectorAll('[data-hospdet]').forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.hospdet; const row=document.getElementById('estHospdet_'+i);
+    if(row.innerHTML){ row.innerHTML=''; return; }
+    const p=filtered[i]; const det=(p.lineas||[]).map(l=>`${l.cantidad}× ${escapeHtml(l.producto)}${l.variante?' ('+escapeHtml(l.variante)+')':''} <span style="color:#999">— ${escapeHtml(l.estilo||'')} · ${l.litros}L</span>`).join('<br>');
+    row.innerHTML=`<div class="est-hdet-cell">${det||'sin líneas'}</div>`;
+  });
 }
 // Retail / Walmart por marca (mismo estilo que HORECA): resumen por marca + filtro + detalle.
 function estWalmartDrawPanel(){
