@@ -3251,44 +3251,82 @@ app.delete('/admin/costos/entrada/:id', requireAdmin, (req, res) => {
 // ─── ESTADO DE RESULTADO (P&L) = Ingresos por venta − Costos y Gastos ────────
 // Cruza los ingresos automáticos (hoja Ingreso por Venta) con los costos/gastos
 // registrados del mes, agrupados por categoría, y calcula margen bruto y EBITDA.
+async function pnlCompute(month, rango){
+  const est = await estadoResolve(month, rango);
+  const cd = costosLoad();
+  const entradas = cd.entradas.filter(e => costosMes(e.fecha) === month);
+  const rs = costosResumen(entradas);
+  const catTot = (id) => (rs.porCategoria[id] || { total: 0 }).total;
+  const ingresos = est.totalIngresos;
+  const costoDirecto = catTot('costo_directo'), costoIndirecto = catTot('costo_indirecto');
+  const gastosOper = catTot('gastos_operativos'), gastosAdmin = catTot('gastos_admin_venta'), activos = catTot('activos_fijos');
+  const margenBruto = ingresos - costoDirecto - costoIndirecto;
+  const ebitda = margenBruto - gastosOper - gastosAdmin;
+  const ratio = (v) => ingresos ? Math.round((v / ingresos) * 1000) / 10 : 0;
+  const i = est.ingresos;
+  return {
+    month, shopifyOk: est.shopifyOk,
+    ingresos: { total: ingresos, canales: {
+      horeca: i.cd_kairos.neto + i.ventas_cruzada.total,
+      online: i.ventas_web.cobrado,
+      retail: (i.retail != null ? i.retail : 0),
+      hospitality: i.hospitality.total,
+    } },
+    costos: { costoDirecto, costoIndirecto, gastosOper, gastosAdmin, activos },
+    docs: Object.fromEntries(Object.entries(rs.porCategoria).map(([k, v]) => [k, v.n])),
+    margenBruto, ebitda,
+    ratios: {
+      costoDirecto: ratio(costoDirecto), costoIndirecto: ratio(costoIndirecto),
+      gastosOper: ratio(gastosOper), gastosAdmin: ratio(gastosAdmin),
+      margenBruto: ratio(margenBruto), ebitda: ratio(ebitda), activos: ratio(activos),
+    },
+  };
+}
+// Filas del Estado de Resultado para el .xlsx (mismo formato de celdas que Ingreso por Venta).
+function pnlSheetRows(data, month){
+  const S = { title: 5, header: 1, sec: 2, money: 3, pct: 4, secMoney: 6, secPct: 7 };
+  const M = (v) => ({ v: Math.round(Number(v) || 0), t: 'n', s: S.money });
+  const SM = (v) => ({ v: Math.round(Number(v) || 0), t: 'n', s: S.secMoney });
+  const PCT = (v) => ({ v: (Number(v) || 0) / 100, t: 'n', s: S.pct });
+  const SPCT = (v) => ({ v: (Number(v) || 0) / 100, t: 'n', s: S.secPct });
+  const T = (v) => ({ v: v == null ? '' : String(v) });
+  const SEC = (v) => ({ v: v == null ? '' : String(v), s: S.sec });
+  const ing = data.ingresos, co = data.costos, rt = data.ratios;
+  const rows = []; const blank = () => rows.push([]);
+  rows.push([{ v: 'ESTADO DE RESULTADO · K-BROS · ' + estadoMonthLabel(month), s: S.title }]);
+  rows.push([T(data.shopifyOk ? 'Ingresos automáticos de Shopify menos costos y gastos del mes' : '⚠️ Shopify no disponible al exportar')]);
+  blank();
+  rows.push([SEC('INGRESOS POR VENTA'), SPCT(100), SM(ing.total)]);
+  rows.push([T('HORECA'), T(''), M(ing.canales.horeca)]);
+  rows.push([T('Venta Online'), T(''), M(ing.canales.online)]);
+  rows.push([T('Retail'), T(''), M(ing.canales.retail)]);
+  rows.push([T('Hospitality'), T(''), M(ing.canales.hospitality)]);
+  blank();
+  rows.push([T('Costo directo'), PCT(-rt.costoDirecto), M(-co.costoDirecto)]);
+  rows.push([T('Costo indirecto'), PCT(-rt.costoIndirecto), M(-co.costoIndirecto)]);
+  rows.push([SEC('MARGEN BRUTO'), SPCT(rt.margenBruto), SM(data.margenBruto)]);
+  blank();
+  rows.push([T('Gastos operativos'), PCT(-rt.gastosOper), M(-co.gastosOper)]);
+  rows.push([T('Gastos de administración y venta'), PCT(-rt.gastosAdmin), M(-co.gastosAdmin)]);
+  rows.push([SEC('EBITDA · RESULTADO OPERATIVO'), SPCT(rt.ebitda), SM(data.ebitda)]);
+  blank();
+  rows.push([T('Activos fijos'), T(''), M(co.activos)]);
+  return rows;
+}
 app.get('/admin/pnl', requireAdmin, async (req, res) => {
   const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
   if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
+  try { res.json(await pnlCompute(month, estadoRangeFromReq(req))); }
+  catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+});
+app.get('/admin/pnl/export.xlsx', requireAdmin, async (req, res) => {
+  const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
+  if (!month) return res.status(400).send('Falta el mes (YYYY-MM).');
   try {
-    const est = await estadoResolve(month, estadoRangeFromReq(req));
-    const cd = costosLoad();
-    const entradas = cd.entradas.filter(e => costosMes(e.fecha) === month);
-    const rs = costosResumen(entradas);
-    const catTot = (id) => (rs.porCategoria[id] || { total: 0 }).total;
-    const ingresos = est.totalIngresos;
-    const costoDirecto = catTot('costo_directo'), costoIndirecto = catTot('costo_indirecto');
-    const gastosOper = catTot('gastos_operativos'), gastosAdmin = catTot('gastos_admin_venta'), activos = catTot('activos_fijos');
-    const margenBruto = ingresos - costoDirecto - costoIndirecto;
-    const ebitda = margenBruto - gastosOper - gastosAdmin;
-    const ratio = (v) => ingresos ? Math.round((v / ingresos) * 1000) / 10 : 0;
-    const i = est.ingresos;
-    res.json({
-      month,
-      shopifyOk: est.shopifyOk,
-      ingresos: {
-        total: ingresos,
-        canales: {
-          horeca: i.cd_kairos.neto + i.ventas_cruzada.total,
-          online: i.ventas_web.cobrado,
-          retail: (i.retail != null ? i.retail : 0),
-          hospitality: i.hospitality.total,
-        },
-      },
-      costos: { costoDirecto, costoIndirecto, gastosOper, gastosAdmin, activos },
-      docs: Object.fromEntries(Object.entries(rs.porCategoria).map(([k, v]) => [k, v.n])),
-      margenBruto, ebitda,
-      ratios: {
-        costoDirecto: ratio(costoDirecto), costoIndirecto: ratio(costoIndirecto),
-        gastosOper: ratio(gastosOper), gastosAdmin: ratio(gastosAdmin),
-        margenBruto: ratio(margenBruto), ebitda: ratio(ebitda), activos: ratio(activos),
-      },
-    });
-  } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+    const data = await pnlCompute(month, estadoRangeFromReq(req));
+    const buf = xlsxPackage([{ name: 'Estado Resultado', rows: pnlSheetRows(data, month) }]);
+    sendXlsx(res, buf, 'Estado_Resultado_' + month + '.xlsx');
+  } catch (e) { res.status(500).send('Error: ' + String(e.message || e).slice(0, 200)); }
 });
 
 // ─── Conversaciones (embudo) ────────────────────────────────────────────────

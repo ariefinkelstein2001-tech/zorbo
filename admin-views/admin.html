@@ -2096,11 +2096,12 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
     <div class="adm-panel" id="pnlView" style="display:none">
       <div class="adm-panel-head">
         <div>
-          <div class="adm-panel-title">Estado de Resultado · CD Kairos</div>
+          <div class="adm-panel-title">Estado de Resultado · K-BROS</div>
           <div class="adm-panel-meta" id="pnlMeta">ingresos por venta − costos y gastos del mes</div>
         </div>
         <div class="adm-actions">
           <select id="pnlMes" class="costeo-svc"></select>
+          <button class="adm-btn adm-btn-gold" id="pnlExcel" type="button">⬇ Descargar Excel</button>
           <button class="adm-btn adm-btn-ghost" id="pnlReload" type="button">Recargar</button>
         </div>
       </div>
@@ -8308,14 +8309,14 @@ function renderPnl(){
   body.innerHTML=`
     <div class="est-top">
       <div class="est-total-box ${a.ebitda>=0?'':'pnl-box-red'}"><div class="est-total-l">Resultado del mes (EBITDA)</div><div class="est-total-v">${eM(a.ebitda)}</div><div class="est-delta">${rt.ebitda}% sobre ventas</div></div>
-      <div class="est-note">Se calcula con los <b>ingresos por venta</b> (automáticos de Shopify) menos los <b>costos y gastos</b> registrados en la hoja de Costos y Gastos, imputados por categoría. Los porcentajes son sobre la venta total.</div>
+      <div class="est-note">Se calcula con los <b>ingresos por venta</b> automáticos de Shopify menos los <b>costos y gastos</b> registrados en la hoja de Costos y Gastos, imputados por categoría. Los porcentajes son sobre la venta total.</div>
     </div>
     <div class="mun-wrap"><table class="mun-table pnl-table"><tbody>
       ${line('INGRESOS POR VENTA', ing.total, {pctv:100})}
-      ${line('HORECA (CD Kairos + Cruzada)', ing.canales.horeca, {sub:true})}
-      ${line('Venta Online (web)', ing.canales.online, {sub:true})}
-      ${line('Retail (Walmart)', ing.canales.retail, {sub:true})}
-      ${line('Hospitality (locales propios)', ing.canales.hospitality, {sub:true})}
+      ${line('HORECA', ing.canales.horeca, {sub:true})}
+      ${line('Venta Online', ing.canales.online, {sub:true})}
+      ${line('Retail', ing.canales.retail, {sub:true})}
+      ${line('Hospitality', ing.canales.hospitality, {sub:true})}
       ${line('Costo directo', co.costoDirecto, {neg:true, pctv:rt.costoDirecto, doc:dc.costo_directo||0})}
       ${line('Costo indirecto', co.costoIndirecto, {neg:true, pctv:rt.costoIndirecto, doc:dc.costo_indirecto||0})}
       ${res('MARGEN BRUTO', a.margenBruto, rt.margenBruto, a.margenBruto>=0?'pnl-pos':'pnl-red')}
@@ -8323,11 +8324,12 @@ function renderPnl(){
       ${line('Gastos de administración y venta', co.gastosAdmin, {neg:true, pctv:rt.gastosAdmin, doc:dc.gastos_admin_venta||0})}
       ${res('EBITDA · Resultado operativo', a.ebitda, rt.ebitda, ebitdaCls)}
     </tbody></table></div>
-    <div class="pnl-activos"><span>Activos fijos (inversión, no afecta el resultado operativo)</span><b>${eM(co.activos)}</b> <span class="pnl-doc">${dc.activos_fijos||0} doc${(dc.activos_fijos||0)===1?'':'s'}</span></div>
+    <div class="pnl-activos"><span>Activos fijos <span style="font-size:.78rem;color:var(--dim,#999)">inversión, no afecta el resultado operativo</span></span><b>${eM(co.activos)}</b> <span class="pnl-doc">${dc.activos_fijos||0} doc${(dc.activos_fijos||0)===1?'':'s'}</span></div>
     <div class="est-note" style="margin-top:.8rem">Para cargar o editar los costos, andá a <b>Costos y Gastos</b>. Acá se resumen automáticamente por categoría.</div>`;
 }
 document.getElementById('pnlReload').onclick=loadPnl;
 document.getElementById('pnlMes').onchange=loadPnl;
+document.getElementById('pnlExcel').onclick=()=>{ const m=document.getElementById('pnlMes').value; if(m) window.open('/admin/pnl/export.xlsx?month='+m,'_blank'); };
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();
