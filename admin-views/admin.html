@@ -1611,6 +1611,20 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .cg-card-n{font-size:.7rem;color:var(--dim,#999);margin-top:.1rem}
 .cg-tag{display:inline-block;font-size:.72rem;font-weight:700;color:var(--gold-deep,#a05f00);background:var(--gold-dim,rgba(245,166,35,.1));border:1px solid var(--gold-bd,#f1c97b);border-radius:20px;padding:.1rem .55rem}
 .cg-table td{vertical-align:middle}
+/* Estado de Resultado (P&L) */
+.pnl-table td{padding:.5rem .7rem}
+.pnl-table tr.pnl-sub td:first-child{padding-left:1.8rem;color:var(--muted,#666);font-size:.86rem}
+.pnl-table tr.pnl-sub b{font-weight:500;color:var(--muted,#666)}
+.pnl-neg{color:var(--red,#d33)}
+.pnl-pct{display:inline-block;min-width:48px;color:var(--dim,#999);font-size:.82rem;font-weight:600}
+.pnl-doc{font-size:.7rem;color:var(--dim,#999);font-weight:500}
+.pnl-table tr.pnl-res td{border-top:2px solid var(--line,#e5e5e5);font-weight:800;font-family:var(--display,inherit);font-size:1rem;padding-top:.6rem}
+.pnl-table tr.pnl-res.pnl-pos td:last-child{color:var(--gold-deep,#a05f00)}
+.pnl-table tr.pnl-res.pnl-red td:last-child{color:var(--red,#d33)}
+.pnl-box-red{background:linear-gradient(135deg,#e0654f,#d33 60%)!important}
+.pnl-activos{display:flex;align-items:center;gap:.6rem;margin-top:1rem;padding:.7rem .9rem;border:1px dashed var(--line,#ccc);border-radius:10px;font-size:.88rem;color:var(--muted,#666)}
+.pnl-activos b{color:var(--text,#111);font-family:var(--display,inherit)}
+.pnl-activos span:first-child{flex:1}
 .est-hchans{display:flex;gap:.7rem;flex-wrap:wrap}
 .est-hchan{flex:1;min-width:200px;text-align:left;border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.7rem .9rem;background:var(--surface,#fff);cursor:pointer;transition:all .15s}
 .est-hchan:hover{border-color:var(--gold-bd-h,#e8b84e)}
@@ -2046,8 +2060,8 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
     <div class="adm-panel" id="estadoView" style="display:none">
       <div class="adm-panel-head">
         <div>
-          <div class="adm-panel-title">Estado de Resultado · CD Kairos</div>
-          <div class="adm-panel-meta" id="estadoMeta">ingresos automáticos de Shopify + líneas manuales · el número automático no se edita</div>
+          <div class="adm-panel-title">Ingreso por Venta · CD Kairos</div>
+          <div class="adm-panel-meta" id="estadoMeta">ingresos por 4 canales · 100% automáticos de Shopify</div>
         </div>
         <div class="adm-actions">
           <select id="estadoMonth" class="costeo-svc"></select>
@@ -2076,6 +2090,21 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
         </div>
       </div>
       <div id="costosBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
+    <!-- Estado de Resultado (P&L): ingresos − costos y gastos -->
+    <div class="adm-panel" id="pnlView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Estado de Resultado · CD Kairos</div>
+          <div class="adm-panel-meta" id="pnlMeta">ingresos por venta − costos y gastos del mes</div>
+        </div>
+        <div class="adm-actions">
+          <select id="pnlMes" class="costeo-svc"></select>
+          <button class="adm-btn adm-btn-ghost" id="pnlReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div id="pnlBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
     <!-- Vista de tutoriales (videos técnicos) -->
@@ -2468,8 +2497,9 @@ const BASE_SECCIONES = [
   { id:'topclientes',kind:'topclientes',label:'Top clientes',  cat:'comercializacion', desc:'quién compra más cada producto · histórico Shopify' },
   { id:'distribuidora', kind:'distribuidora', label:'Distribuidora', cat:'operaciones', desc:'proveedores · costos · márgenes · órdenes de compra · comercialización' },
   { id:'costeo',    kind:'costeo',   label:'Costeo de carta', cat:'operaciones', desc:'insumos · recetas base · platos · precios de venta' },
-  { id:'estado',    kind:'estado',   label:'Estado de Resultado', cat:'operaciones', desc:'CD Kairos · ingresos automáticos de Shopify + manuales · EBITDA mensual' },
+  { id:'estado',    kind:'estado',   label:'Ingreso por Venta', cat:'operaciones', desc:'CD Kairos · ingresos por 4 canales · 100% automáticos de Shopify' },
   { id:'costos',    kind:'costos',   label:'Costos y Gastos', cat:'operaciones', desc:'registro de costos y gastos por proveedor · categoría · folio · valor' },
+  { id:'pnl',       kind:'pnl',      label:'Estado de Resultado', cat:'operaciones', desc:'ingresos − costos y gastos · margen bruto · EBITDA mensual' },
 ];
 
 // Categorías grandes de la home. accent = color del halo de la tarjeta.
@@ -2678,6 +2708,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'costos') {
     showView('costos');
     await loadCostos();
+  } else if (sec.kind === 'pnl') {
+    showView('pnl');
+    await loadPnl();
   } else if (sec.kind === 'products') {
     showView('products');
     await loadProductos();
@@ -2720,6 +2753,7 @@ function showView(kind){
   document.getElementById('costeoView').style.display     = kind === 'costeo'     ? '' : 'none';
   document.getElementById('estadoView').style.display     = kind === 'estado'     ? '' : 'none';
   document.getElementById('costosView').style.display     = kind === 'costos'     ? '' : 'none';
+  document.getElementById('pnlView').style.display        = kind === 'pnl'        ? '' : 'none';
   if (kind === 'estado') estadoBoot();
   document.getElementById('feedbackView').style.display   = kind === 'feedback'   ? '' : 'none';
   document.getElementById('tutorialsView').style.display  = kind === 'tutorials'  ? '' : 'none';
@@ -8241,6 +8275,59 @@ async function costosEliminar(id){
 }
 document.getElementById('costosReload').onclick=loadCostos;
 document.getElementById('costosMes').onchange=loadCostos;
+
+// ─── Estado de Resultado (P&L) ──────────────────────────────────────────────
+let pnlData=null;
+async function loadPnl(){
+  const body=document.getElementById('pnlBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  const sel=document.getElementById('pnlMes');
+  try{
+    if(!sel.options.length){
+      let periodos=[]; try{ periodos=((await (await fetch('/admin/estado/periodos')).json()).periodos)||[]; }catch{}
+      const set=new Set(periodos); const d=new Date();
+      for(let i=0;i<18;i++){ const dt=new Date(d.getFullYear(),d.getMonth()-i,1); set.add(dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')); }
+      const months=[...set].sort().reverse();
+      sel.innerHTML=months.map(m=>`<option value="${m}">${escapeHtml(estMonthLabel(m))}</option>`).join('');
+      sel.value=(typeof estadoMonth==='string'&&estadoMonth)||months[0];
+    }
+    const mes=sel.value;
+    const r=await fetch('/admin/pnl?month='+mes); pnlData=await r.json();
+    if(pnlData.error) throw new Error(pnlData.error);
+    renderPnl();
+  }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function renderPnl(){
+  const a=pnlData, body=document.getElementById('pnlBody');
+  document.getElementById('pnlMeta').textContent=(a.shopifyOk?'Shopify OK':'⚠️ Shopify no disponible')+' · '+estMonthLabel(a.month)+' · ingresos por venta − costos y gastos';
+  const ing=a.ingresos, co=a.costos, rt=a.ratios, dc=a.docs||{};
+  const pct=v=>`<span class="pnl-pct">${(v>=0?'':'')}${v}%</span>`;
+  const money=(v,neg)=>`<b class="${neg?'pnl-neg':''}">${neg&&v>0?'-':''}${eM(v)}</b>`;
+  const line=(label,val,{neg,pctv,doc,sub}={})=>`<tr class="${sub?'pnl-sub':''}"><td>${escapeHtml(label)}${doc!=null?` <span class="pnl-doc">${doc} doc${doc===1?'':'s'}</span>`:''}</td><td class="dist-num">${pctv!=null?pct(pctv):''}</td><td class="dist-num">${money(val,neg)}</td></tr>`;
+  const res=(label,val,pctv,cls)=>`<tr class="pnl-res ${cls||''}"><td>${escapeHtml(label)}</td><td class="dist-num">${pct(pctv)}</td><td class="dist-num">${eM(val)}</td></tr>`;
+  const ebitdaCls=a.ebitda>=0?'pnl-pos':'pnl-red';
+  body.innerHTML=`
+    <div class="est-top">
+      <div class="est-total-box ${a.ebitda>=0?'':'pnl-box-red'}"><div class="est-total-l">Resultado del mes (EBITDA)</div><div class="est-total-v">${eM(a.ebitda)}</div><div class="est-delta">${rt.ebitda}% sobre ventas</div></div>
+      <div class="est-note">Se calcula con los <b>ingresos por venta</b> (automáticos de Shopify) menos los <b>costos y gastos</b> registrados en la hoja de Costos y Gastos, imputados por categoría. Los porcentajes son sobre la venta total.</div>
+    </div>
+    <div class="mun-wrap"><table class="mun-table pnl-table"><tbody>
+      ${line('INGRESOS POR VENTA', ing.total, {pctv:100})}
+      ${line('HORECA (CD Kairos + Cruzada)', ing.canales.horeca, {sub:true})}
+      ${line('Venta Online (web)', ing.canales.online, {sub:true})}
+      ${line('Retail (Walmart)', ing.canales.retail, {sub:true})}
+      ${line('Hospitality (locales propios)', ing.canales.hospitality, {sub:true})}
+      ${line('Costo directo', co.costoDirecto, {neg:true, pctv:rt.costoDirecto, doc:dc.costo_directo||0})}
+      ${line('Costo indirecto', co.costoIndirecto, {neg:true, pctv:rt.costoIndirecto, doc:dc.costo_indirecto||0})}
+      ${res('MARGEN BRUTO', a.margenBruto, rt.margenBruto, a.margenBruto>=0?'pnl-pos':'pnl-red')}
+      ${line('Gastos operativos', co.gastosOper, {neg:true, pctv:rt.gastosOper, doc:dc.gastos_operativos||0})}
+      ${line('Gastos de administración y venta', co.gastosAdmin, {neg:true, pctv:rt.gastosAdmin, doc:dc.gastos_admin_venta||0})}
+      ${res('EBITDA · Resultado operativo', a.ebitda, rt.ebitda, ebitdaCls)}
+    </tbody></table></div>
+    <div class="pnl-activos"><span>Activos fijos (inversión, no afecta el resultado operativo)</span><b>${eM(co.activos)}</b> <span class="pnl-doc">${dc.activos_fijos||0} doc${(dc.activos_fijos||0)===1?'':'s'}</span></div>
+    <div class="est-note" style="margin-top:.8rem">Para cargar o editar los costos, andá a <b>Costos y Gastos</b>. Acá se resumen automáticamente por categoría.</div>`;
+}
+document.getElementById('pnlReload').onclick=loadPnl;
+document.getElementById('pnlMes').onchange=loadPnl;
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();

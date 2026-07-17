@@ -3248,6 +3248,49 @@ app.delete('/admin/costos/entrada/:id', requireAdmin, (req, res) => {
   costosSave(data); res.json({ ok: true });
 });
 
+// ─── ESTADO DE RESULTADO (P&L) = Ingresos por venta − Costos y Gastos ────────
+// Cruza los ingresos automáticos (hoja Ingreso por Venta) con los costos/gastos
+// registrados del mes, agrupados por categoría, y calcula margen bruto y EBITDA.
+app.get('/admin/pnl', requireAdmin, async (req, res) => {
+  const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
+  if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
+  try {
+    const est = await estadoResolve(month, estadoRangeFromReq(req));
+    const cd = costosLoad();
+    const entradas = cd.entradas.filter(e => costosMes(e.fecha) === month);
+    const rs = costosResumen(entradas);
+    const catTot = (id) => (rs.porCategoria[id] || { total: 0 }).total;
+    const ingresos = est.totalIngresos;
+    const costoDirecto = catTot('costo_directo'), costoIndirecto = catTot('costo_indirecto');
+    const gastosOper = catTot('gastos_operativos'), gastosAdmin = catTot('gastos_admin_venta'), activos = catTot('activos_fijos');
+    const margenBruto = ingresos - costoDirecto - costoIndirecto;
+    const ebitda = margenBruto - gastosOper - gastosAdmin;
+    const ratio = (v) => ingresos ? Math.round((v / ingresos) * 1000) / 10 : 0;
+    const i = est.ingresos;
+    res.json({
+      month,
+      shopifyOk: est.shopifyOk,
+      ingresos: {
+        total: ingresos,
+        canales: {
+          horeca: i.cd_kairos.neto + i.ventas_cruzada.total,
+          online: i.ventas_web.cobrado,
+          retail: (i.retail != null ? i.retail : 0),
+          hospitality: i.hospitality.total,
+        },
+      },
+      costos: { costoDirecto, costoIndirecto, gastosOper, gastosAdmin, activos },
+      docs: Object.fromEntries(Object.entries(rs.porCategoria).map(([k, v]) => [k, v.n])),
+      margenBruto, ebitda,
+      ratios: {
+        costoDirecto: ratio(costoDirecto), costoIndirecto: ratio(costoIndirecto),
+        gastosOper: ratio(gastosOper), gastosAdmin: ratio(gastosAdmin),
+        margenBruto: ratio(margenBruto), ebitda: ratio(ebitda), activos: ratio(activos),
+      },
+    });
+  } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+});
+
 // ─── Conversaciones (embudo) ────────────────────────────────────────────────
 // Listado y detalle de las sesiones de chat ya persistidas en CONV_LOG. El
 // listado va liviano (resumen + primer/último mensaje); el detalle trae la
