@@ -2867,12 +2867,27 @@ function estadoNormPeriodo(p){
     antofagasta: estadoLineList(p.antofagasta, [{ k: 'estilo', max: 60 }, { k: 'litros', num: true }]),
     activo: estadoNum(p.activo),
     walmart: { cajas: estadoNum(wm.cajas), valorCaja: estadoNum(wm.valorCaja || 48409) },
+    // Retail manual: pedidos hechos fuera de Shopify (previos a la automatización
+    // con PEDIDOSWALMART). Suman al Walmart automático en ③ Retail. Nunca pisan el
+    // número de Shopify: son líneas con nombre.
+    retailManual: estadoLineList(p.retailManual, [{ k: 'nombre', max: 120 }, { k: 'fecha', max: 20 }, { k: 'nota', max: 200 }, { k: 'monto', num: true }]),
   };
 }
 function estadoLoad(){ try { if (!existsSync(ESTADO_FILE)) return { version: 1, periodos: {} }; const p = JSON.parse(readFileSync(ESTADO_FILE, 'utf-8')); return { version: 1, periodos: (p && p.periodos) || {} }; } catch (e) { console.warn('estado load:', e.message); return { version: 1, periodos: {} }; } }
 function estadoSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(ESTADO_FILE, JSON.stringify(d, null, 2)); }
+// Pedidos de Retail hechos a mano ANTES de la automatización con PEDIDOSWALMART.
+// Se muestran pre-cargados la primera vez que se abre el mes (si nunca se guardó);
+// una vez que el mes se guarda, manda lo que quede persistido (respeta ediciones
+// y borrados). Así el pedido manual de julio queda en ③ Retail sin pisar el auto.
+const ESTADO_RETAIL_SEED = {
+  '2026-07': [
+    { nombre: 'Aquavitae · Pedido 00004262', fecha: '14/7/2026', nota: 'Galactic Mission · 51 Pack 24x Lata 473ml (578,95 L) · MAYORISTA · manual pre-Shopify', monto: 2468808 },
+  ],
+};
 async function estadoResolve(month, rango){
-  const all = estadoLoad(); const per = estadoNormPeriodo(all.periodos[month]);
+  const all = estadoLoad(); const rawPer = all.periodos[month]; const per = estadoNormPeriodo(rawPer);
+  // Seed de Retail manual solo si el mes nunca se guardó.
+  if (!rawPer && ESTADO_RETAIL_SEED[month]) per.retailManual = estadoLineList(ESTADO_RETAIL_SEED[month], [{ k: 'nombre', max: 120 }, { k: 'fecha', max: 20 }, { k: 'nota', max: 200 }, { k: 'monto', num: true }]);
   const precios = per.preciosTransfer;
   const r = (rango && rango.from && rango.to) ? rango : cdMonthRange(month);
   const sh = await cdShopifyMonth(month, precios, r).catch(e => ({ error: String(e.message || e) }));
@@ -2897,7 +2912,11 @@ async function estadoResolve(month, rango){
   const cdNeto = shCd;
   const cruzTotal = shCruz;
   const hospitalityTotal = gardenValor + badassValor;
-  const retail = shWalmart; // Walmart: Shopify por código PEDIDOSWALMART (③ Retail)
+  // ③ Retail = Walmart automático (Shopify · PEDIDOSWALMART) + líneas manuales
+  // (pedidos previos a la automatización). Las manuales nunca pisan el auto.
+  const retailManualLineas = (per.retailManual || []).filter(x => x.nombre || x.monto);
+  const retailManualTotal = retailManualLineas.reduce((a, x) => a + (Number(x.monto) || 0), 0);
+  const retail = shWalmart + retailManualTotal;
   // HORECA por canal de venta: Grupo Mil Sabores vs Otros. Cada pedido trae su
   // punto de venta (marca/razón/sector) para filtrar.
   const horecaPedidos = shOk ? [...sh.bucket.cd_kairos_mall.pedidos, ...sh.bucket.ventas_cruzada.pedidos] : [];
@@ -2926,7 +2945,8 @@ async function estadoResolve(month, rango){
     hospitality: { garden, badass, total: hospitalityTotal },
     ventas_web: { cobrado: shWeb, n: shOk ? sh.bucket.retail.n : 0, pedidos: webPedidos, porProveedor: webPorProv, proveedores: provKeys, detalleEntrega: !!(cdOrdersTier && cdOrdersTier.key !== 'base') },
     retail,
-    walmart: { total: retail, n: shOk ? sh.bucket.walmart.n : 0, pedidos: shOk ? sh.bucket.walmart.pedidos : [] },
+    walmart: { total: shWalmart, n: shOk ? sh.bucket.walmart.n : 0, pedidos: shOk ? sh.bucket.walmart.pedidos : [] },
+    retailManual: { total: retailManualTotal, lineas: retailManualLineas },
   };
   const totalIngresos = cdNeto + cruzTotal + hospitalityTotal + shWeb + retail;
   return {
@@ -3006,9 +3026,10 @@ function estadoSheetRows(data, month){
   });
   rows.push([T('Total web (' + i.ventas_web.n + ' pedidos)'), T(''), T(''), T(''), T(''), M(i.ventas_web.cobrado)]);
   blank();
-  // ③ Retail (Walmart) — Shopify por código PEDIDOSWALMART
+  // ③ Retail (Walmart) — Shopify por código PEDIDOSWALMART + líneas manuales
   rows.push([SEC('③ RETAIL (Walmart)'), SEC(''), SEC(''), SEC(''), SEC(''), SM(retail)]);
-  rows.push([T('Walmart (código PEDIDOSWALMART · ' + ((i.walmart && i.walmart.n) || 0) + ' pedidos)'), T(''), T(''), T(''), T(''), M(retail)]);
+  rows.push([T('Walmart auto (código PEDIDOSWALMART · ' + ((i.walmart && i.walmart.n) || 0) + ' pedidos)'), T(''), T(''), T(''), T(''), M((i.walmart && i.walmart.total) || 0)]);
+  ((i.retailManual && i.retailManual.lineas) || []).forEach(l => rows.push([T((l.nombre || 'Manual') + (l.fecha ? ' · ' + l.fecha : '')), T(''), T(''), T(''), T(''), M(l.monto)]));
   blank();
   // ④ Hospitality (locales propios)
   rows.push([SEC('④ HOSPITALITY (locales propios)'), SEC(''), SEC(''), SEC(''), SEC(''), SM(hospitality)]);

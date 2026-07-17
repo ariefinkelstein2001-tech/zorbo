@@ -7787,6 +7787,7 @@ async function estadoFetch(){
     const r=await fetch('/admin/estado?month='+estadoMonth+estRangeQS()); estadoData=await r.json();
     if(estadoData.error) throw new Error(estadoData.error);
     estadoDraft=JSON.parse(JSON.stringify(estadoData.periodo));
+    if(!Array.isArray(estadoDraft.retailManual)) estadoDraft.retailManual=[];
     renderEstado();
   }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
 }
@@ -7799,7 +7800,9 @@ function estCompute(){
   const shCd=a.ingresos.cd_kairos.shopify, shCruz=a.ingresos.ventas_cruzada.shopify, shWeb=a.ingresos.ventas_web.cobrado;
   const gardenValor=a.ingresos.hospitality.garden.valor, badassValor=a.ingresos.hospitality.badass.valor;
   const cdNeto=shCd, cruzTotal=shCruz;
-  const retail=a.ingresos.retail!=null?a.ingresos.retail:0; // Walmart: de Shopify cuando migre
+  // ③ Retail = Walmart automático (Shopify) + líneas manuales del draft (en vivo).
+  const walmartAuto=(a.ingresos.walmart&&a.ingresos.walmart.total)||0;
+  const retail=walmartAuto+S(d.retailManual);
   const hospitality=gardenValor+badassValor;
   const horeca=cdNeto+cruzTotal, online=shWeb;
   const total=horeca+online+retail+hospitality;
@@ -7814,13 +7817,15 @@ function estLineRows(list, cols, path){
   return `<table class="mun-table"><thead><tr>${cols.map(c=>`<th${c.num?' style="text-align:right"':''}>${c.label}</th>`).join('')}<th></th></tr></thead><tbody>${rows}<tr class="rv-add-row"><td colspan="${cols.length+1}"><button class="dist-portal-link" data-ladd="${path}">+ Agregar línea</button></td></tr></tbody></table>`;
 }
 function estGetList(path){ return path.split('.').reduce((o,k)=>o&&o[k],estadoDraft); }
+// Ordena pedidos de más reciente a más antiguo (fecha YYYY-MM-DD). Copia, no muta.
+function estByFechaDesc(arr){ return (arr||[]).slice().sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||''))); }
 function estRecalc(){
   const c=estCompute();
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   set('estTotal',eM(c.total));
   set('estCdNeto',eM(c.cdNeto));
   set('estCruzTotal',eM(c.cruzTotal));
-  set('estWalmart',eM(c.retail));
+  // estWalmart es la parte AUTO (Shopify) y no cambia con las líneas manuales: no se pisa acá.
   set('estHoreca',eM(c.horeca)); set('estHorecaPct',c.pctHoreca+'%'); set('estHorecaG',eM(c.horeca));
   set('estOnline',eM(c.online)); set('estOnlinePct',c.pctOnline+'%');
   set('estRetail',eM(c.retail)); set('estRetailPct',c.pctRetail+'%'); set('estRetailG',eM(c.retail));
@@ -7887,9 +7892,11 @@ function renderEstado(){
 
     <div class="est-group">③ Retail <span>· Walmart</span><b id="estRetailG">${eM(c.retail)}</b></div>
     <div class="est-line est-auto-line">
-      <div class="est-line-h"><span>Walmart <span class="est-tag ok">100% auto</span></span><b id="estWalmart">${eM(c.retail)}</b></div>
-      <div class="est-auto">Shopify · código <b>PEDIDOSWALMART</b> · ${(a.ingresos.walmart&&a.ingresos.walmart.n)||0} pedidos${((a.ingresos.walmart&&a.ingresos.walmart.n)||0)?` <button class="dist-portal-link" data-drill="walmart">ver detalle</button>`:' — cuando entren los pedidos con ese código aparecen acá'}</div>
+      <div class="est-line-h"><span>Walmart auto <span class="est-tag ok">Shopify · PEDIDOSWALMART</span></span><b id="estWalmart">${eM((a.ingresos.walmart&&a.ingresos.walmart.total)||0)}</b></div>
+      <div class="est-auto">${(a.ingresos.walmart&&a.ingresos.walmart.n)||0} pedidos${((a.ingresos.walmart&&a.ingresos.walmart.n)||0)?` <button class="dist-portal-link" data-drill="walmart">ver detalle</button>`:' — cuando entren los pedidos con ese código aparecen acá'}</div>
       <div class="est-drill-box" id="estDrill_walmart"></div>
+      <div class="est-sub" style="margin-top:.8rem">Pedidos manuales de Retail <span style="color:#999;font-weight:400">(previos a la automatización · suman al total)</span></div>
+      <div class="mun-wrap">${estLineRows(estadoDraft.retailManual,[{k:'nombre',label:'Cliente / pedido',w:'220px',ph:'Aquavitae · N° 00004262'},{k:'fecha',label:'Fecha',w:'90px',ph:'14/7/2026'},{k:'nota',label:'Nota',w:'160px'},{k:'monto',label:'Monto',num:true,w:'120px'}],'retailManual')}</div>
     </div>
 
     <div class="est-group">④ Hospitality <span>· locales propios (Garden Vespucio · Garden Antofagasta · Badass)</span><b id="estHospitalityG">${eM(c.hospitality)}</b></div>
@@ -7941,7 +7948,7 @@ function estWebDrawPanel(){
   const all = isAll ? (wv.pedidos||[]) : ((wv.porProveedor||{})[estWebProv]||{pedidos:[]}).pedidos||[];
   const montoOf = p => isAll ? p.cobrado : (p.montoProveedor!=null?p.montoProveedor:p.cobrado);
   const f=estWebFilter;
-  const filtered=all.filter(p=>(!f.entrega || (p.web&&p.web.canal===f.entrega)) && (!f.tienda || (p.web&&p.web.tienda===f.tienda)));
+  const filtered=estByFechaDesc(all.filter(p=>(!f.entrega || (p.web&&p.web.canal===f.entrega)) && (!f.tienda || (p.web&&p.web.tienda===f.tienda))));
   const totalPlata=filtered.reduce((a,p)=>a+montoOf(p),0);
   const tiendas=[...new Set(all.map(p=>p.web&&p.web.tienda).filter(Boolean))].sort();
   const canalOpt=['<option value="">Todos</option>',...EST_CANALES.filter(c=>all.some(p=>p.web&&p.web.canal===c.v)).map(c=>`<option value="${c.v}" ${c.v===f.entrega?'selected':''}>${c.l}</option>`)].join('');
@@ -7983,7 +7990,7 @@ function estHorecaDrawPanel(){
   if(!estHorecaChan){ panel.innerHTML=''; return; }
   const all=(estadoData.ingresos.horeca.pedidos||[]).filter(p=>p.grupo===estHorecaChan);
   const f=estHorecaFilter;
-  const filtered=all.filter(p=>(!f.marca||p.marca===f.marca)&&(!f.razon||p.razon===f.razon)&&(!f.sector||p.sector===f.sector));
+  const filtered=estByFechaDesc(all.filter(p=>(!f.marca||p.marca===f.marca)&&(!f.razon||p.razon===f.razon)&&(!f.sector||p.sector===f.sector)));
   const distinct=k=>[...new Set(all.map(p=>p[k]).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   const opt=(list,cur)=>['<option value="">Todas</option>',...list.map(v=>`<option ${v===cur?'selected':''}>${escapeHtml(v)}</option>`)].join('');
   const totalPlata=filtered.reduce((a,p)=>a+(p.monto||0),0), totalLt=Math.round(filtered.reduce((a,p)=>a+(p.litros||0),0)*10)/10;
@@ -8014,7 +8021,7 @@ function estDrill(which){
   const map={ cd:a.ingresos.cd_kairos.pedidos, cruz:a.ingresos.ventas_cruzada.pedidos, web:a.ingresos.ventas_web.pedidos, walmart:(a.ingresos.walmart&&a.ingresos.walmart.pedidos)||[], garden:a.ingresos.hospitality.garden.pedidos, badass:a.ingresos.hospitality.badass.pedidos };
   const box=document.getElementById('estDrill_'+which); if(!box) return;
   if(box.innerHTML){ box.innerHTML=''; return; } // toggle: segundo click cierra
-  const peds=map[which]||[]; const isTransfer=(which==='garden'||which==='badass');
+  const peds=estByFechaDesc(map[which]||[]); const isTransfer=(which==='garden'||which==='badass');
   const rows=peds.slice(0,500).map(p=>{
     if(isTransfer){ const lin=(p.lineas||[]).map(l=>`${l.cantidad}× ${escapeHtml(l.producto)} <span style="color:#999">(${escapeHtml(l.estilo)}, ${l.litros}L)</span>`).join(' · '); return `<tr><td>${escapeHtml(p.pedido)}</td><td>${escapeHtml(p.fecha)}</td><td>${escapeHtml(p.cliente)}</td><td style="font-size:.72rem">${lin}</td></tr>`; }
     return `<tr><td>${escapeHtml(p.pedido)}</td><td>${escapeHtml(p.fecha)}</td><td>${escapeHtml(p.cliente)}</td><td>${escapeHtml(p.codigo)}</td><td class="dist-num">${eM(p.original)}</td><td class="dist-num">${eM(p.cobrado)}</td></tr>`;
