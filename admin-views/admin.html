@@ -7781,23 +7781,17 @@ function estPersist(refetch){ clearTimeout(estadoSaveTmr); estadoSaveTmr=setTime
 function estCompute(){
   const a=estadoData, d=estadoDraft, pr=d.preciosTransfer;
   const S=arr=>(arr||[]).reduce((s,x)=>s+(Number(x.monto)||0),0);
+  // 100% automático de Shopify: sin líneas manuales.
   const shCd=a.ingresos.cd_kairos.shopify, shCruz=a.ingresos.ventas_cruzada.shopify, shWeb=a.ingresos.ventas_web.cobrado;
   const gardenValor=a.ingresos.hospitality.garden.valor, badassValor=a.ingresos.hospitality.badass.valor;
-  const cdFuera=S(d.cdKairos.fueraShopify), cdNC=S(d.cdKairos.notasCredito), cdOtros=S(d.cdKairos.otrosIngresos);
-  // CD Kairos = mayoristas externos (malls), sin locales propios.
-  const cdBase=shCd+cdFuera, cdNeto=cdBase-cdNC+cdOtros;
-  const cruzFuera=S(d.ventasCruzada.fueraShopify);
-  const antoValor=(d.antofagasta||[]).reduce((s,r)=>{const lt=Number(r.litros)||0;return s+Math.round(lt*pr.cerveza+pr.despacho*lt);},0);
-  const cruzTotal=shCruz+cruzFuera; // Antofagasta pasa a Hospitality
-  const walmart=(Number(d.walmart.cajas)||0)*(Number(d.walmart.valorCaja)||0);
-  const activo=Number(d.activo)||0;
-  // 4 canales: HORECA (CD Kairos + Cruzada), Online (web), Retail (Walmart), Hospitality (locales propios). Activo = otros.
-  const horeca=cdNeto+cruzTotal, online=shWeb, retail=walmart, hospitality=gardenValor+badassValor+antoValor;
-  const total=horeca+online+retail+hospitality+activo;
+  const cdNeto=shCd, cruzTotal=shCruz;
+  const retail=a.ingresos.retail!=null?a.ingresos.retail:0; // Walmart: de Shopify cuando migre
+  const hospitality=gardenValor+badassValor;
+  const horeca=cdNeto+cruzTotal, online=shWeb;
+  const total=horeca+online+retail+hospitality;
   const pctOf=v=>total?Math.round(v/total*1000)/10:0;
-  return {shCd,shCruz,shWeb,cdFuera,cdNC,cdOtros,cdBase,cdNeto,cruzFuera,antoValor,cruzTotal,gardenValor,badassValor,walmart,activo,horeca,online,retail,hospitality,total,
-    pctHoreca:pctOf(horeca),pctOnline:pctOf(online),pctRetail:pctOf(retail),pctHospitality:pctOf(hospitality),
-    ratioCd:cdBase?Math.round(shCd/cdBase*1000)/10:0, ratioCruz:(shCruz+cruzFuera)?Math.round(shCruz/(shCruz+cruzFuera)*1000)/10:0 };
+  return {shCd,shCruz,shWeb,cdNeto,cruzTotal,gardenValor,badassValor,retail,hospitality,horeca,online,total,
+    pctHoreca:pctOf(horeca),pctOnline:pctOf(online),pctRetail:pctOf(retail),pctHospitality:pctOf(hospitality)};
 }
 const eM=(n)=>'$'+(Math.round(Number(n)||0)).toLocaleString('es-CL');
 // Tabla editable genérica de líneas manuales. cols: [{k,label,w,num,ph}]. path: ruta en draft.
@@ -7810,9 +7804,9 @@ function estRecalc(){
   const c=estCompute();
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
   set('estTotal',eM(c.total));
-  set('estCdNeto',eM(c.cdNeto)); set('estCdRatio',c.ratioCd+'% Shopify');
-  set('estCruzTotal',eM(c.cruzTotal)); set('estCruzRatio',c.ratioCruz+'% Shopify');
-  set('estWalmart',eM(c.walmart));
+  set('estCdNeto',eM(c.cdNeto));
+  set('estCruzTotal',eM(c.cruzTotal));
+  set('estWalmart',eM(c.retail));
   set('estHoreca',eM(c.horeca)); set('estHorecaPct',c.pctHoreca+'%'); set('estHorecaG',eM(c.horeca));
   set('estOnline',eM(c.online)); set('estOnlinePct',c.pctOnline+'%');
   set('estRetail',eM(c.retail)); set('estRetailPct',c.pctRetail+'%'); set('estRetailG',eM(c.retail));
@@ -7842,7 +7836,7 @@ function renderEstado(){
   body.innerHTML=`
     <div class="est-top">
       <div class="est-total-box"><div class="est-total-l">Total Ingresos</div><div class="est-total-v" id="estTotal">${eM(c.total)}</div>${a.excelRef?`<div class="est-delta" id="estDeltaExcel"></div>`:''}</div>
-      <div class="est-note">Ingresos por <b>4 canales</b>: HORECA (CD Kairos + Cruzada) · Venta Online (web) · Retail (Walmart) · Hospitality (locales propios). El número <b>automático de Shopify no se edita</b>: si falta plata, se agrega una línea con nombre.</div>
+      <div class="est-note">Ingresos por <b>4 canales</b>, <b>100% automáticos de Shopify</b> (sin carga manual): HORECA (CD Kairos + Cruzada) · Venta Online (web) · Retail (Walmart) · Hospitality (locales propios).</div>
     </div>
     <div class="est-chans">
       ${chanCard('estHoreca','① HORECA','CD Kairos + Ventas Cruzada',c.horeca,c.pctHoreca)}
@@ -7857,22 +7851,15 @@ function renderEstado(){
     </div>
 
     <div class="est-group">① HORECA <span>· restaurantes y bares</span><b id="estHorecaG">${eM(c.horeca)}</b></div>
-    <div class="est-line est-hybrid">
-      <div class="est-line-h"><span>CD Kairos <span class="est-tag">híbrido</span></span><b id="estCdNeto">${eM(c.cdNeto)}</b></div>
-      <div class="est-ratio"><span id="estCdRatio">${c.ratioCd}% Shopify</span></div>
-      <div class="est-auto">Shopify malls (auto, no editable): <b>${eM(ci.shopify)}</b> · ${ci.pedidos.length} pedidos <button class="dist-portal-link" data-drill="cd">ver detalle</button></div>
+    <div class="est-line est-auto-line">
+      <div class="est-line-h"><span>CD Kairos <span class="est-tag ok">100% auto</span></span><b id="estCdNeto">${eM(c.cdNeto)}</b></div>
+      <div class="est-auto">Shopify malls · ${ci.pedidos.length} pedidos <button class="dist-portal-link" data-drill="cd">ver detalle</button></div>
       <div class="est-drill-box" id="estDrill_cd"></div>
-      <div class="est-sub">Ventas fuera de Shopify (manual):</div><div class="mun-wrap">${estLineRows(estadoDraft.cdKairos.fueraShopify,[{k:'desc',label:'Detalle'},{k:'factura',label:'N° factura',w:'110px'},{k:'fecha',label:'Fecha',w:'90px'},{k:'monto',label:'Monto',num:true,w:'110px'}],'cdKairos.fueraShopify')}</div>
-      <div class="est-sub">Otros ingresos CD Kairos (manual):</div><div class="mun-wrap">${estLineRows(estadoDraft.cdKairos.otrosIngresos,[{k:'desc',label:'Descripción'},{k:'monto',label:'Monto',num:true,w:'110px'}],'cdKairos.otrosIngresos')}</div>
-      <div class="est-sub">Notas de Crédito (se restan):</div><div class="mun-wrap">${estLineRows(estadoDraft.cdKairos.notasCredito,[{k:'proveedor',label:'Proveedor'},{k:'fecha',label:'Fecha',w:'90px'},{k:'factura',label:'Factura/NC',w:'110px'},{k:'monto',label:'Monto',num:true,w:'110px'}],'cdKairos.notasCredito')}</div>
     </div>
-
-    <div class="est-line est-hybrid">
-      <div class="est-line-h"><span>Ventas Cruzada (500 Sabores) <span class="est-tag">híbrido</span></span><b id="estCruzTotal">${eM(c.cruzTotal)}</b></div>
-      <div class="est-ratio"><span id="estCruzRatio">${c.ratioCruz}% Shopify</span></div>
-      <div class="est-auto">Shopify (auto): <b>${eM(vi.shopify)}</b> · ${vi.pedidos.length} pedidos <button class="dist-portal-link" data-drill="cruz">ver detalle</button></div>
+    <div class="est-line est-auto-line">
+      <div class="est-line-h"><span>Ventas Cruzada (500 Sabores) <span class="est-tag ok">100% auto</span></span><b id="estCruzTotal">${eM(c.cruzTotal)}</b></div>
+      <div class="est-auto">Shopify · ${vi.pedidos.length} pedidos <button class="dist-portal-link" data-drill="cruz">ver detalle</button></div>
       <div class="est-drill-box" id="estDrill_cruz"></div>
-      <div class="est-sub">Ventas fuera de Shopify (manual):</div><div class="mun-wrap">${estLineRows(estadoDraft.ventasCruzada.fueraShopify,[{k:'desc',label:'Detalle'},{k:'factura',label:'N° factura',w:'110px'},{k:'fecha',label:'Fecha',w:'90px'},{k:'monto',label:'Monto',num:true,w:'110px'}],'ventasCruzada.fueraShopify')}</div>
     </div>
 
     <div class="est-group">② Venta Online <span>· página web</span><b>${eM(c.online)}</b></div>
@@ -7883,23 +7870,15 @@ function renderEstado(){
     </div>
 
     <div class="est-group">③ Retail <span>· Walmart</span><b id="estRetailG">${eM(c.retail)}</b></div>
-    <div class="est-line">
-      <div class="est-line-h"><span>Walmart <span class="est-tag man">manual</span></span><b id="estWalmart">${eM(c.walmart)}</b></div>
-      <label class="est-single">Cajas (24 latas) <input class="est-inp dist-num" data-wm="cajas" type="text" inputmode="decimal" value="${estadoDraft.walmart.cajas||''}" style="width:90px"></label>
-      <label class="est-single">Valor caja <input class="est-inp dist-num" data-wm="valorCaja" type="text" inputmode="decimal" value="${estadoDraft.walmart.valorCaja||''}" style="width:110px"></label>
+    <div class="est-line est-auto-line">
+      <div class="est-line-h"><span>Walmart <span class="est-tag ok">auto (Shopify)</span></span><b id="estWalmart">${eM(c.retail)}</b></div>
+      <div class="est-auto">Se toma de Shopify (código de retail). Cuando pasen los pedidos por Shopify aparece acá.</div>
     </div>
 
     <div class="est-group">④ Hospitality <span>· locales propios (Garden Vespucio · Garden Antofagasta · Badass)</span><b id="estHospitalityG">${eM(c.hospitality)}</b></div>
-    <div class="est-line est-hybrid">
+    <div class="est-line est-auto-line">
       ${transTabla(hi.garden,'Garden Vespucio <span class="est-tag ok">auto</span>',false,'garden')}
-      ${transTabla(hi.antofagasta,'Garden Antofagasta <span class="est-tag man">manual</span>',true)}
       ${transTabla(hi.badass,'Badass <span class="est-tag ok">auto</span>',false,'badass')}
-    </div>
-
-    <div class="est-group">Otros ingresos</div>
-    <div class="est-line">
-      <div class="est-line-h"><span>Venta de Activo <span class="est-tag man">manual</span></span><b>${eM(c.activo)}</b></div>
-      <label class="est-single">Monto <input class="est-inp dist-num" data-single="activo" type="text" inputmode="decimal" value="${estadoDraft.activo||''}" style="width:140px"></label>
     </div>`;
   estWire();
   if(a.excelRef) estRecalc();
