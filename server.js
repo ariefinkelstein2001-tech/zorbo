@@ -2392,6 +2392,8 @@ const CD_CODE_MAP = {
   PEDIDOSOPEN: { bucket: 'cd_kairos' },
   PEDIDOSMARINA: { bucket: 'cd_kairos' },
   PEDIDOSBULNES: { bucket: 'cd_kairos' },
+  // Retail (Walmart) — ③ Retail
+  PEDIDOSWALMART: { bucket: 'walmart' },
 };
 // Resuelve el bucket de un pedido por sus códigos (match EXACTO en el diccionario).
 // Devuelve {bucket, loc?, pdv?, code} conocido, o {bucket:'codigo_nuevo', code} si
@@ -2720,6 +2722,7 @@ async function cdShopifyMonth(month, precios, rango){
     ventas_cruzada: { n: 0, cobrado: 0, original: 0, usa: 'original', pedidos: [] },
     cd_kairos_mall: { n: 0, cobrado: 0, original: 0, usa: 'original', pedidos: [] },
     retail: { n: 0, cobrado: 0, original: 0, usa: 'cobrado', pedidos: [] },
+    walmart: { n: 0, cobrado: 0, original: 0, usa: 'original', pedidos: [] },
     codigo_nuevo: { n: 0, cobrado: 0, original: 0, usa: '—', pedidos: [] },
   };
   let totalCobrado = 0, totalOriginal = 0, sinCodigo = 0;
@@ -2736,6 +2739,7 @@ async function cdShopifyMonth(month, precios, rango){
     else if (byCust && !(cm && cm.bucket && cm.bucket !== 'codigo_nuevo')) { transferLocal = byCust; bucketName = 'transferencias'; transfers[transferLocal].porCliente++; }
     else if (cm && cm.bucket === 'cruzada') bucketName = 'ventas_cruzada';
     else if (cm && cm.bucket === 'cd_kairos') bucketName = 'cd_kairos_mall';
+    else if (cm && cm.bucket === 'walmart') bucketName = 'walmart';
     else if (cm && cm.bucket === 'codigo_nuevo') { bucketName = 'codigo_nuevo'; codigosNuevos.add(cm.code); }
     else bucketName = 'retail';
     const orig = (o.lineItems && o.lineItems.nodes || []).reduce((a, li) => a + parseFloat((li.originalTotalSet && li.originalTotalSet.shopMoney && li.originalTotalSet.shopMoney.amount) || 0), 0);
@@ -2877,6 +2881,7 @@ async function estadoResolve(month, rango){
   const shCd = shOk ? sh.bucket.cd_kairos_mall.original : 0;
   const shCruz = shOk ? sh.bucket.ventas_cruzada.original : 0;
   const shWeb = shOk ? sh.bucket.retail.cobrado : 0;
+  const shWalmart = shOk ? sh.bucket.walmart.original : 0;
   const ratio = (shop, base) => (base ? Math.round((shop / base) * 1000) / 10 : (shop ? 100 : 0));
   // Antofagasta: tabla manual valorizada a precio de transferencia (cerveza).
   const antoTabla = per.antofagasta.map(r => ({ estilo: r.estilo, precioLt: precios.cerveza, despachoLt: precios.despacho, litros: r.litros, valor: Math.round(r.litros * precios.cerveza + precios.despacho * r.litros) }));
@@ -2892,7 +2897,7 @@ async function estadoResolve(month, rango){
   const cdNeto = shCd;
   const cruzTotal = shCruz;
   const hospitalityTotal = gardenValor + badassValor;
-  const retail = 0; // Walmart: de Shopify cuando migren los pedidos
+  const retail = shWalmart; // Walmart: Shopify por código PEDIDOSWALMART (③ Retail)
   // HORECA por canal de venta: Grupo Mil Sabores vs Otros. Cada pedido trae su
   // punto de venta (marca/razón/sector) para filtrar.
   const horecaPedidos = shOk ? [...sh.bucket.cd_kairos_mall.pedidos, ...sh.bucket.ventas_cruzada.pedidos] : [];
@@ -2921,7 +2926,7 @@ async function estadoResolve(month, rango){
     hospitality: { garden, badass, total: hospitalityTotal },
     ventas_web: { cobrado: shWeb, n: shOk ? sh.bucket.retail.n : 0, pedidos: webPedidos, porProveedor: webPorProv, proveedores: provKeys, detalleEntrega: !!(cdOrdersTier && cdOrdersTier.key !== 'base') },
     retail,
-    walmart: { total: retail },
+    walmart: { total: retail, n: shOk ? sh.bucket.walmart.n : 0, pedidos: shOk ? sh.bucket.walmart.pedidos : [] },
   };
   const totalIngresos = cdNeto + cruzTotal + hospitalityTotal + shWeb + retail;
   return {
@@ -3001,8 +3006,9 @@ function estadoSheetRows(data, month){
   });
   rows.push([T('Total web (' + i.ventas_web.n + ' pedidos)'), T(''), T(''), T(''), T(''), M(i.ventas_web.cobrado)]);
   blank();
-  // ③ Retail (Walmart) — de Shopify cuando migre
+  // ③ Retail (Walmart) — Shopify por código PEDIDOSWALMART
   rows.push([SEC('③ RETAIL (Walmart)'), SEC(''), SEC(''), SEC(''), SEC(''), SM(retail)]);
+  rows.push([T('Walmart (código PEDIDOSWALMART · ' + ((i.walmart && i.walmart.n) || 0) + ' pedidos)'), T(''), T(''), T(''), T(''), M(retail)]);
   blank();
   // ④ Hospitality (locales propios)
   rows.push([SEC('④ HOSPITALITY (locales propios)'), SEC(''), SEC(''), SEC(''), SEC(''), SM(hospitality)]);

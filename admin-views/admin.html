@@ -7887,8 +7887,9 @@ function renderEstado(){
 
     <div class="est-group">③ Retail <span>· Walmart</span><b id="estRetailG">${eM(c.retail)}</b></div>
     <div class="est-line est-auto-line">
-      <div class="est-line-h"><span>Walmart <span class="est-tag ok">auto (Shopify)</span></span><b id="estWalmart">${eM(c.retail)}</b></div>
-      <div class="est-auto">Se toma de Shopify (código de retail). Cuando pasen los pedidos por Shopify aparece acá.</div>
+      <div class="est-line-h"><span>Walmart <span class="est-tag ok">100% auto</span></span><b id="estWalmart">${eM(c.retail)}</b></div>
+      <div class="est-auto">Shopify · código <b>PEDIDOSWALMART</b> · ${(a.ingresos.walmart&&a.ingresos.walmart.n)||0} pedidos${((a.ingresos.walmart&&a.ingresos.walmart.n)||0)?` <button class="dist-portal-link" data-drill="walmart">ver detalle</button>`:' — cuando entren los pedidos con ese código aparecen acá'}</div>
+      <div class="est-drill-box" id="estDrill_walmart"></div>
     </div>
 
     <div class="est-group">④ Hospitality <span>· locales propios (Garden Vespucio · Garden Antofagasta · Badass)</span><b id="estHospitalityG">${eM(c.hospitality)}</b></div>
@@ -8010,7 +8011,7 @@ function estHorecaDrawPanel(){
 }
 function estDrill(which){
   const a=estadoData;
-  const map={ cd:a.ingresos.cd_kairos.pedidos, cruz:a.ingresos.ventas_cruzada.pedidos, web:a.ingresos.ventas_web.pedidos, garden:a.ingresos.hospitality.garden.pedidos, badass:a.ingresos.hospitality.badass.pedidos };
+  const map={ cd:a.ingresos.cd_kairos.pedidos, cruz:a.ingresos.ventas_cruzada.pedidos, web:a.ingresos.ventas_web.pedidos, walmart:(a.ingresos.walmart&&a.ingresos.walmart.pedidos)||[], garden:a.ingresos.hospitality.garden.pedidos, badass:a.ingresos.hospitality.badass.pedidos };
   const box=document.getElementById('estDrill_'+which); if(!box) return;
   if(box.innerHTML){ box.innerHTML=''; return; } // toggle: segundo click cierra
   const peds=map[which]||[]; const isTransfer=(which==='garden'||which==='badass');
