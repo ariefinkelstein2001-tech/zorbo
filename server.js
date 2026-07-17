@@ -2417,17 +2417,25 @@ function cdPdvIndex(){
   for (const p of cdLoadPdv()) {
     const ln = cdNorm(p.local).replace(/\s+/g, '');
     if (ln.length >= 5 && !byLocal.has(ln)) byLocal.set(ln, p);
+    // Alias de cliente: nombres con los que el cliente aparece en Shopify pero que
+    // no son el nombre del local (ej. "Helar Valdiviezo" → Osaka).
+    for (const a of (p.alias || [])) { const an = cdNorm(a).replace(/\s+/g, ''); if (an.length >= 5 && !byLocal.has(an)) byLocal.set(an, p); }
     const zn = cdNorm(p.zona);
     if (zn) { if (!byZona.has(zn)) byZona.set(zn, []); byZona.get(zn).push(p); }
   }
   CD_PDV_INDEX = { byLocal, byZona };
   return CD_PDV_INDEX;
 }
-// Grupo/razón representativos de una zona (el más frecuente).
+// Grupo/razón representativos de una zona. Grupo: si la zona tiene locales del
+// Grupo Mil Sabores (food halls), un pedido por código de esa zona es del food
+// hall → mil_sabores. Los bares retail "otros" de la misma zona ordenan con su
+// propio nombre (se resuelven por local exacto, no por zona). Razón: la más
+// frecuente ENTRE los mil_sabores si los hay, si no la más frecuente.
 function cdZonaRepr(pdvs){
-  const cnt = (arr, k) => { const m = {}; arr.forEach(x => { const v = x[k] || ''; m[v] = (m[v] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1])[0]; };
-  const grupo = (pdvs.filter(p => p.grupo === 'mil_sabores').length >= pdvs.length / 2) ? 'mil_sabores' : 'otros';
-  const razon = (cnt(pdvs, 'razon') || [''])[0];
+  const cnt = (arr, k) => { const m = {}; arr.forEach(x => { const v = x[k] || ''; if (v) m[v] = (m[v] || 0) + 1; }); return (Object.entries(m).sort((a, b) => b[1] - a[1])[0] || [''])[0]; };
+  const mil = pdvs.filter(p => p.grupo === 'mil_sabores');
+  const grupo = mil.length ? 'mil_sabores' : 'otros';
+  const razon = cnt(mil.length ? mil : pdvs, 'razon');
   return { grupo, razon };
 }
 // Resuelve un pedido HORECA a su punto de venta: {grupo, sector, razon, marca}.
@@ -2467,6 +2475,13 @@ function cdCourierName(s){
   if (/^other$|^otro$|generic/.test(n)) return 'Flapp'; // "Other" = Flapp
   return String(s || '').trim();
 }
+// ¿Pedido mayorista sin código? Se detecta por el método de envío "Mayorista"
+// (ej. "Mayorista – A acordar con el cliente"). Estos NO son venta online: van a
+// HORECA (mall). Sin shippingLine (nivel base) no se puede detectar → queda en web.
+function cdEsMayorista(o){
+  const s = ((o.shippingLine && o.shippingLine.title) || '') + ' ' + ((o.shippingLine && o.shippingLine.code) || '');
+  return /mayorista/i.test(s);
+}
 // Normaliza a la tienda física de Kairos: Antofagasta / Garden / Badass, o ''.
 function cdKairosTienda(s){
   const n = cdNorm(s);
@@ -2491,27 +2506,33 @@ function cdWebDetalle(o){
     if (!fulfLoc && f && f.location && f.location.name) fulfLoc = f.location.name;
   }
   const retailLoc = (o.retailLocation && o.retailLocation.name) || '';
-  // SUCURSAL de la que sale / donde ocurre el pedido. Es la location del fulfillment
-  // (assignedLocation → location del fulfillment → retailLocation). SIRVE PARA TODOS
-  // los canales: es el "de dónde sale" del despacho y el "de qué local" del retiro/tienda.
+  // SUCURSAL: de dónde sale / dónde ocurre el pedido = location del fulfillment
+  // (assignedLocation → location del fulfillment → retailLocation). Es SEPARADA del
+  // MÉTODO de envío: en un despacho Flapp que sale de Kairos Badass, la sucursal es
+  // Badass pero el método es Flapp (despacho, no retiro).
   const asignada = (fo && fo.assignedLocation && fo.assignedLocation.name) || fulfLoc || retailLoc || '';
-  const tienda = cdKairosTienda(asignada);                                   // Badass/Garden/Antofagasta
-  const sucursal = tienda ? ('Kairos ' + tienda) : asignada;                 // nombre lindo de la sucursal
+  // El MÉTODO de entrega elegido (shippingLine). Si el método nombra un local Kairos
+  // (Garden/Badass/Antofagasta) es un RETIRO en esa tienda.
+  const metodoTxt = shipTitle || shipCode || '';
+  const metodoTienda = cdKairosTienda(metodoTxt);
+  const sucursalTienda = metodoTienda || cdKairosTienda(asignada);           // Badass/Garden/Antofagasta
+  const sucursal = sucursalTienda ? ('Kairos ' + sucursalTienda) : (asignada || '');
   const appName = (o.app && o.app.name) || '';
   const source = o.sourceName || '';
-  // 1) Presencial: Kioskify / POS (por el ORIGEN del pedido, no por la sucursal).
+  // 1) Presencial: Kioskify / POS (por el ORIGEN del pedido).
   if (/kioskify|point of sale|\bpos\b/i.test(appName + ' ' + source)) {
-    return { entrega: 'Tienda', canal: 'tienda', tienda, sucursal, local: sucursal || 'Kioskify', courier: '', origen: sucursal, metodo: appName || 'Kioskify' };
+    return { entrega: 'Tienda', canal: 'tienda', tienda: sucursalTienda, sucursal, local: sucursal || 'Kioskify', courier: '', origen: sucursal, metodo: appName || 'Kioskify' };
   }
-  // 2) Retiro: SOLO por el método (PICK_UP o "retiro/recoger" en el título). La
-  // sucursal es Kairos igual que en el despacho, así que NO define el canal.
-  const esRetiro = /PICK_UP|PICKUP|PICK.?UP/i.test(methodType) || /retiro|pickup|pick.?up|recog|recoge/i.test(shipTitle + ' ' + shipCode);
+  // 2) Retiro: el MÉTODO es un local Kairos, o es PICK_UP, o dice retiro/recoger.
+  const esRetiro = !!metodoTienda || /PICK_UP|PICKUP/i.test(methodType) || /retiro|pickup|recog|recoge/i.test(shipTitle + ' ' + shipCode);
   if (esRetiro) {
-    return { entrega: 'Retiro', canal: 'retiro', tienda, sucursal, local: sucursal, courier: '', origen: sucursal, metodo: shipTitle };
+    const tienda = metodoTienda || sucursalTienda;
+    const suc = tienda ? ('Kairos ' + tienda) : sucursal;
+    return { entrega: 'Retiro', canal: 'retiro', tienda, sucursal: suc, local: suc, courier: '', origen: suc, metodo: shipTitle };
   }
-  // 3) Despacho: courier PKT1 / Flapp ("Otro"/"Other" = Flapp). Sale desde la sucursal.
+  // 3) Despacho: SOLO Flapp ("Otro"/"Other") o PKT1. Sale desde la sucursal.
   const courier = cdCourierName(trackCompany || shipTitle || shipCode);
-  return { entrega: 'Despacho', canal: 'despacho', tienda, sucursal, local: '', courier, origen: sucursal, metodo: shipTitle };
+  return { entrega: 'Despacho', canal: 'despacho', tienda: sucursalTienda, sucursal, local: '', courier, origen: sucursal, metodo: shipTitle };
 }
 // Diccionario keyword→{estilo,tipo}. El primero que matchee en el título gana.
 // Lo que no matchee queda "sin mapear" (no se adivina).
@@ -2756,6 +2777,7 @@ async function cdShopifyMonth(month, precios, rango){
     else if (cm && cm.bucket === 'cd_kairos') bucketName = 'cd_kairos_mall';
     else if (cm && cm.bucket === 'walmart') bucketName = 'walmart';
     else if (cm && cm.bucket === 'codigo_nuevo') { bucketName = 'codigo_nuevo'; codigosNuevos.add(cm.code); }
+    else if (cdEsMayorista(o)) bucketName = 'cd_kairos_mall'; // mayorista sin código → HORECA, no web
     else bucketName = 'retail';
     const orig = (o.lineItems && o.lineItems.nodes || []).reduce((a, li) => a + parseFloat((li.originalTotalSet && li.originalTotalSet.shopMoney && li.originalTotalSet.shopMoney.amount) || 0), 0);
     const total = parseFloat((o.totalPriceSet && o.totalPriceSet.shopMoney && o.totalPriceSet.shopMoney.amount) || 0);
@@ -2774,9 +2796,10 @@ async function cdShopifyMonth(month, precios, rango){
       // El "plata" del pedido HORECA es el ORIGINAL (pre-descuento).
       rec.monto = rec.original;
     }
-    // VENTA WEB (retail): dividir por proveedor (vendor de Shopify) + detalle de entrega.
-    if (bucketName === 'retail') {
-      rec.web = cdWebDetalle(o);
+    // VENTA WEB (retail) y RETAIL WALMART: dividir por proveedor/marca (vendor de
+    // Shopify) + detalle de lo pedido. La web además trae detalle de entrega.
+    if (bucketName === 'retail' || bucketName === 'walmart') {
+      if (bucketName === 'retail') rec.web = cdWebDetalle(o);
       const porProv = {}; const det = [];
       for (const li of (o.lineItems && o.lineItems.nodes) || []) {
         const prov = cdWebProveedor(li.product && li.product.vendor);
@@ -2892,7 +2915,7 @@ function estadoSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE
 // solos por el código, así que esto es solo para los históricos puntuales.
 const CD_WALMART_SEED = {
   '2026-07': [
-    { pedido: '00004262', fecha: '2026-07-14', cliente: 'Aquavitae', codigo: 'PEDIDOSWALMART', original: 2468808, cobrado: 2468808, detalle: [{ producto: 'Galactic Mission', variante: 'Pack de 24x Lata (473 ml)', cantidad: 51, proveedor: 'Kairos Brewing', monto: 2468808 }] },
+    { pedido: '00004262', fecha: '2026-07-14', cliente: 'Aquavitae', codigo: 'PEDIDOSWALMART', original: 2468808, cobrado: 2468808, proveedor: 'Kairos Brewing', porProveedor: [{ proveedor: 'Kairos Brewing', monto: 2468808 }], detalle: [{ producto: 'Galactic Mission', variante: 'Pack de 24x Lata (473 ml)', cantidad: 51, proveedor: 'Kairos Brewing', monto: 2468808 }] },
   ],
 };
 async function estadoResolve(month, rango){
@@ -2926,6 +2949,20 @@ async function estadoResolve(month, rango){
   const walmartSeed = CD_WALMART_SEED[month] || [];
   const walmartPedidos = [...(shOk ? sh.bucket.walmart.pedidos : []), ...walmartSeed];
   const retail = shWalmart + walmartSeed.reduce((a, p) => a + (Number(p.original) || 0), 0);
+  // Walmart por marca (vendor de Shopify): resumen + filtro, igual que Venta Online.
+  const wmProvKeys = [...CD_WEB_PROVEEDORES, 'Otros'];
+  const walmartPorProv = {}; for (const k of wmProvKeys) walmartPorProv[k] = { total: 0, n: 0, pedidos: [] };
+  for (const ped of walmartPedidos) {
+    const monto = Number(ped.original) || 0;
+    const provs = (ped.porProveedor && ped.porProveedor.length) ? ped.porProveedor : [{ proveedor: ped.proveedor || 'Otros', monto }];
+    const base = provs.reduce((a, x) => a + (x.monto || 0), 0) || 1;
+    for (const pp of provs) {
+      const key = walmartPorProv[pp.proveedor] ? pp.proveedor : 'Otros';
+      const alloc = Math.round(monto * ((pp.monto || 0) / base));
+      walmartPorProv[key].total += alloc; walmartPorProv[key].n++;
+      walmartPorProv[key].pedidos.push({ ...ped, montoProveedor: alloc });
+    }
+  }
   // HORECA por canal de venta: Grupo Mil Sabores vs Otros. Cada pedido trae su
   // punto de venta (marca/razón/sector) para filtrar.
   const horecaPedidos = shOk ? [...sh.bucket.cd_kairos_mall.pedidos, ...sh.bucket.ventas_cruzada.pedidos] : [];
@@ -2954,7 +2991,7 @@ async function estadoResolve(month, rango){
     hospitality: { garden, badass, total: hospitalityTotal },
     ventas_web: { cobrado: shWeb, n: shOk ? sh.bucket.retail.n : 0, pedidos: webPedidos, porProveedor: webPorProv, proveedores: provKeys, detalleEntrega: !!(cdOrdersTier && cdOrdersTier.key !== 'base'), origenDespacho: !!(cdOrdersTier && (cdOrdersTier.key === 'full' || cdOrdersTier.key === 'loc')) },
     retail,
-    walmart: { total: retail, n: walmartPedidos.length, pedidos: walmartPedidos },
+    walmart: { total: retail, n: walmartPedidos.length, pedidos: walmartPedidos, porProveedor: walmartPorProv, proveedores: wmProvKeys },
   };
   const totalIngresos = cdNeto + cruzTotal + hospitalityTotal + shWeb + retail;
   return {

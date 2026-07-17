@@ -7713,6 +7713,7 @@ async function reventaAddSeccion(){
 let estadoMonth=null, estadoData=null, estadoDraft=null, estadoSaveTmr=null, estadoShowExcel=false;
 let estHorecaChan=null, estHorecaFilter={marca:'',razon:'',sector:''};
 let estWebProv=null, estWebFilter={entrega:'',tienda:''};
+let estWalmartMarca='';
 // Rango de fechas por defecto de un mes: del 1 a HOY si es el mes actual, si no al último día.
 function estMonthRange(m){
   const from=m+'-01'; const [y,mo]=m.split('-').map(Number); const t=new Date();
@@ -7832,7 +7833,7 @@ function estRecalc(){
 function renderEstado(){
   const a=estadoData, body=document.getElementById('estadoBody');
   estHorecaChan=null; estHorecaFilter={marca:'',razon:'',sector:''};
-  estWebProv=null; estWebFilter={entrega:'',tienda:''};
+  estWebProv=null; estWebFilter={entrega:'',tienda:''}; estWalmartMarca='';
   const rg = a.rango ? `${a.rango.from.slice(8)}/${a.rango.from.slice(5,7)}–${a.rango.to.slice(8)}/${a.rango.to.slice(5,7)}${a.mesCompleto?' (mes completo)':' (rango parcial)'}` : '';
   document.getElementById('estadoMeta').textContent = (a.shopifyOk ? `Shopify OK · ${estMonthLabel(a.month)}` : `⚠️ ${a.shopifyError||'Shopify no disponible'} — solo líneas manuales`) + (rg?` · Shopify entre ${rg}`:'');
   const c=estCompute();
@@ -7887,11 +7888,11 @@ function renderEstado(){
       ${a.ingresos.ventas_web.detalleEntrega===false?`<div class="est-auto" style="margin-top:.5rem">ℹ️ El detalle de entrega (retiro/despacho, courier, origen, tienda) no está disponible: falta el permiso de Shopify de <b>fulfillment orders</b>. Re-autorizá la app para verlo.</div>`:(a.ingresos.ventas_web.origenDespacho===false?`<div class="est-auto" style="margin-top:.5rem">ℹ️ El <b>origen del despacho</b> (de dónde sale) necesita el permiso de Shopify de <b>fulfillment orders</b>. La tienda del Kioskify y el courier sí se muestran.</div>`:'')}
     </div>
 
-    <div class="est-group">③ Retail <span>· Walmart</span><b id="estRetailG">${eM(c.retail)}</b></div>
+    <div class="est-group">③ Retail <span>· Walmart · por marca</span><b id="estRetailG">${eM(c.retail)}</b></div>
     <div class="est-line est-auto-line">
       <div class="est-line-h"><span>Walmart <span class="est-tag ok">Shopify · PEDIDOSWALMART</span></span><b id="estWalmart">${eM(c.retail)}</b></div>
-      <div class="est-auto">${(a.ingresos.walmart&&a.ingresos.walmart.n)||0} pedidos${((a.ingresos.walmart&&a.ingresos.walmart.n)||0)?` <button class="dist-portal-link" data-drill="walmart">ver detalle</button>`:' — cuando entren los pedidos con ese código aparecen acá'}</div>
-      <div class="est-drill-box" id="estDrill_walmart"></div>
+      <div class="est-auto">${(a.ingresos.walmart&&a.ingresos.walmart.n)||0} pedidos${((a.ingresos.walmart&&a.ingresos.walmart.n)||0)?'':' — cuando entren los pedidos con ese código aparecen acá'}</div>
+      <div id="estWalmartPanel"></div>
     </div>
 
     <div class="est-group">④ Hospitality <span>· locales propios (Garden Vespucio · Garden Antofagasta · Badass)</span><b id="estHospitalityG">${eM(c.hospitality)}</b></div>
@@ -7918,6 +7919,36 @@ function estWire(){
   body.querySelectorAll('[data-drill]').forEach(b=>b.onclick=()=>estDrill(b.dataset.drill));
   body.querySelectorAll('[data-hchan]').forEach(b=>b.onclick=()=>estHorecaOpen(b.dataset.hchan));
   body.querySelectorAll('[data-wprov]').forEach(b=>b.onclick=()=>estWebOpen(b.dataset.wprov));
+  estWalmartDrawPanel();
+}
+// Retail / Walmart por marca (mismo estilo que HORECA): resumen por marca + filtro + detalle.
+function estWalmartDrawPanel(){
+  const panel=document.getElementById('estWalmartPanel'); if(!panel) return;
+  const wm=(estadoData.ingresos&&estadoData.ingresos.walmart)||{}; const all=wm.pedidos||[];
+  if(!all.length){ panel.innerHTML=''; return; }
+  const provs=wm.proveedores||[]; const pp=wm.porProveedor||{};
+  const conVenta=provs.filter(k=>pp[k]&&pp[k].n);
+  const f=estWalmartMarca;
+  const filtered=estByFechaDesc(f?((pp[f]&&pp[f].pedidos)||[]):all);
+  const montoOf=p=> f ? (p.montoProveedor!=null?p.montoProveedor:p.original) : p.original;
+  const totalPlata=filtered.reduce((a,p)=>a+(montoOf(p)||0),0);
+  const resumen=conVenta.map(k=>`${escapeHtml(k)} <b>${eM(pp[k].total)}</b> <span style="color:#999">(${pp[k].n})</span>`).join(' · ')||'—';
+  const opt=['<option value="">Todas</option>',...conVenta.map(k=>`<option ${k===f?'selected':''}>${escapeHtml(k)}</option>`)].join('');
+  const rows=filtered.slice(0,800).map((p,i)=>`
+    <tr data-wmped="${i}"><td>${escapeHtml(p.pedido)}</td><td>${escapeHtml(p.fecha)}</td><td>${escapeHtml(p.cliente)}</td><td>${escapeHtml(p.proveedor||'—')}</td><td class="dist-num">${eM(montoOf(p))}</td><td>${(p.detalle||[]).length?`<button class="dist-portal-link" data-wmdet="${i}">detalle</button>`:''}</td></tr>
+    <tr class="est-hdet-row"><td colspan="6" id="estWmdet_${i}" style="padding:0"></td></tr>`).join('');
+  panel.innerHTML=`
+    <div class="est-h-summary">📊 <b>Walmart</b> — ${filtered.length} pedidos · venta total <b>${eM(totalPlata)}</b>${f?' <span style="color:#999">(marca: '+escapeHtml(f)+')</span>':''}<div style="margin-top:.4rem;font-weight:400;font-size:.82rem">Por marca: ${resumen}</div></div>
+    <div class="est-h-filters"><label>Marca <select data-wmf>${opt}</select></label><button class="dist-portal-link" data-wmclear>limpiar filtros</button></div>
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Pedido</th><th>Fecha</th><th>Cliente</th><th>Marca</th><th style="text-align:right">Monto</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:.6rem">Sin pedidos</td></tr>'}</tbody></table></div>`;
+  const sel=panel.querySelector('[data-wmf]'); if(sel) sel.onchange=()=>{ estWalmartMarca=sel.value; estWalmartDrawPanel(); };
+  const cl=panel.querySelector('[data-wmclear]'); if(cl) cl.onclick=()=>{ estWalmartMarca=''; estWalmartDrawPanel(); };
+  panel.querySelectorAll('[data-wmdet]').forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.wmdet; const row=document.getElementById('estWmdet_'+i);
+    if(row.innerHTML){ row.innerHTML=''; return; }
+    const p=filtered[i]; const det=(p.detalle||[]).map(d=>`${d.cantidad}× ${escapeHtml(d.producto)}${d.variante?' ('+escapeHtml(d.variante)+')':''} <span style="color:#999">— ${escapeHtml(d.proveedor||d.vendor||'')} · ${eM(d.monto)}</span>`).join('<br>');
+    row.innerHTML=`<div class="est-hdet-cell">${det||'sin líneas'}</div>`;
+  });
 }
 // Venta web por proveedor (Todos / Kairos Brewing / Firulais / Banny / ZORBO / Otros).
 function estWebOpen(prov){

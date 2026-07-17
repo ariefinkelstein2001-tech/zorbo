@@ -310,14 +310,15 @@
   },
   {
    "zona": "Nueva Costanera",
-   "local": "OSaka",
+   "local": "Osaka",
    "rut": "76.681.808-0",
    "razon": "Kansai Chile SPA",
    "direccion": "Av. Nueva Costanera 3736",
    "tipo": "Mil sabores",
    "contacto": "Helar",
    "grupo": "mil_sabores",
-   "origen": "cd_kairos"
+   "origen": "cd_kairos",
+   "alias": ["Helar Valdiviezo"]
   },
   {
    "zona": "Nueva Costanera",
