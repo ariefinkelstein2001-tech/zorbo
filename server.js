@@ -2392,6 +2392,7 @@ const CD_CODE_MAP = {
   PEDIDOSOPEN: { bucket: 'cd_kairos' },
   PEDIDOSMARINA: { bucket: 'cd_kairos' },
   PEDIDOSBULNES: { bucket: 'cd_kairos' },
+  PEDIDOSNUEVACOSTANERA: { bucket: 'cd_kairos' },
   // Retail (Walmart) — ③ Retail
   PEDIDOSWALMART: { bucket: 'walmart' },
 };
@@ -2407,7 +2408,7 @@ function cdBucketForCodes(codes){
 // Zona (sector) que aporta cada código (para resolver el PdV del pedido HORECA).
 const CD_CODE_ZONA = {
   PEDIDOSTOBALABA: 'Plaza Tobalaba', PEDIDOSVSP: 'Plaza Vespucio', PEDIDOSOESTE: 'Plaza oeste', PEDIDOSNORTE: 'Plaza norte', 'PEDIDOSEGAÑA': 'Plaza Egaña', PEDIDOSEGANA: 'Plaza Egaña', PEDIDOSDOMINICOS: 'Dominicos',
-  PEDIDOSCOSTANERA: 'Costanera Center', PEDIDOSSKYCOSTANERA: 'Costanera Center', PEDIDOSALTO: 'Alto las condes', PEDIDOSPANORAMICO: 'Panoramico', PEDIDOSFLORIDACENTER: 'Florida center', PEDIDOSHOTELW: 'Hotel W', PEDIDOSLADEHESA: 'Portal La Dehesa', PEDIDOSPA: 'Parque Arauco', PEDIDOSOPEN: 'Open Kennedy', PEDIDOSMARINA: 'Viña (Mall)', PEDIDOSBULNES: 'Bulnes/Vivo imperio',
+  PEDIDOSCOSTANERA: 'Costanera Center', PEDIDOSSKYCOSTANERA: 'Costanera Center', PEDIDOSALTO: 'Alto las condes', PEDIDOSPANORAMICO: 'Panoramico', PEDIDOSFLORIDACENTER: 'Florida center', PEDIDOSHOTELW: 'Hotel W', PEDIDOSLADEHESA: 'Portal La Dehesa', PEDIDOSPA: 'Parque Arauco', PEDIDOSOPEN: 'Open Kennedy', PEDIDOSMARINA: 'Viña (Mall)', PEDIDOSBULNES: 'Bulnes/Vivo imperio', PEDIDOSNUEVACOSTANERA: 'Nueva Costanera',
 };
 // Índice del maestro de puntos de venta (memoizado): por local (marca) y por zona.
 let CD_PDV_INDEX = null;
