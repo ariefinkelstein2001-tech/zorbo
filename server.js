@@ -3479,15 +3479,10 @@ const PROD_COLORES_DESTILADO = [
   { id: 'blanco', label: 'Blanco', hex: '#F2EFE4' },
   { id: 'cafe', label: 'Café (barrica)', hex: '#6B4226' },
 ];
-function prodColorValido(hex, tipoSede){
+function prodColorValido(hex, tipo){
   const h = String(hex || '').toUpperCase();
-  if (tipoSede === 'destileria') return PROD_COLORES_DESTILADO.some(c => c.hex.toUpperCase() === h);
+  if (tipo === 'destileria') return PROD_COLORES_DESTILADO.some(c => c.hex.toUpperCase() === h);
   return PROD_COLORES_CERVEZA.some(c => c.toUpperCase() === h);
-}
-function prodTipoSedeDeTanque(d, tanqueId){
-  const t = (d.tanques || []).find(x => x.id === tanqueId);
-  const sede = (PROD_SEDES.find(s => s.id === (t && t.sede || 'vespucio')) || PROD_SEDES[0]);
-  return sede.tipo;
 }
 const PROD_CONFIG_DEF = {
   horasPorSemana: 40, nTrabajadores: 4, velNominalBarrilLh: 1000, velNominalLataLh: 83, cicloCoccionEstandarH: 4.2, leadTimeMinDias: 27, incluirLimpiezaEnDisponibilidad: true,
@@ -3588,6 +3583,8 @@ function prodRendEnvasado(lote, cfg){
 function prodEnsureRecetaShape(r){
   if (!r.id) r.id = prodNewId('rec');
   r.origen = r.origen || (r.erpId ? 'erp' : 'local');
+  r.tipo = r.tipo === 'destileria' ? 'destileria' : 'cerveceria';
+  if (r.color == null) r.color = '';
   if (!r.tiemposEstandar || typeof r.tiemposEstandar !== 'object') r.tiemposEstandar = {};
   if (!r.litrosEsperadosPorFormato || typeof r.litrosEsperadosPorFormato !== 'object') r.litrosEsperadosPorFormato = {};
   return r;
@@ -3612,6 +3609,7 @@ function prodNormalizeRecetas(d){
 }
 function prodDecorate(d){
   const cfg = d.config; const byId = Object.fromEntries(d.lotes.map(l => [l.id, l]));
+  const recetaById = Object.fromEntries((d.recetas || []).map(r => [r.id, r]));
   const sedeById = Object.fromEntries(PROD_SEDES.map(s => [s.id, s]));
   const DAY = 86400000;
   const tanques = d.tanques.map(t => {
@@ -3626,10 +3624,14 @@ function prodDecorate(d){
       const proy = lote.fechaCoccion ? new Date(new Date(lote.fechaCoccion).getTime() + lead * DAY) : null;
       const diasRestantes = proy ? Math.ceil((proy.getTime() - Date.now()) / DAY) : null;
       const sobreEstadia = (proy && !lote.fechaEnvasado && Date.now() > proy.getTime()) ? Math.floor((Date.now() - proy.getTime()) / DAY) : 0;
+      // El color ya no se elige por lote/tanque: viene siempre de la receta
+      // vinculada (recetaId) — cerveza o destilado. Sin receta, cae al mapa
+      // de color por estilo (compat) y si no hay nada queda sin color.
+      const receta = lote.recetaId ? recetaById[lote.recetaId] : null;
       li = {
-        id: lote.id, codigo: lote.codigo, producto: lote.producto, estilo: lote.estilo, estado: lote.estado,
+        id: lote.id, codigo: lote.codigo, producto: lote.producto, estilo: lote.estilo, estado: lote.estado, recetaId: lote.recetaId || '',
         diasOcup: prodDiasOcup(lote), volumenEsperadoL: lote.volumenEsperadoL, litrosActuales, litrosRestantes: litrosActuales, nivelPct: cap ? Math.round(litrosActuales / cap * 100) : 0,
-        color: lote.color || (cfg.coloresPorEstilo || {})[String(lote.estilo || '').toLowerCase().trim()] || '',
+        color: (receta && receta.color) || (cfg.coloresPorEstilo || {})[String(lote.estilo || '').toLowerCase().trim()] || '',
         fechaCoccion: lote.fechaCoccion, fechaProyEnvasado: proy ? proy.toISOString() : null, diasRestantes, sobreEstadia, leadObjetivo: lead,
       };
     }
@@ -4000,11 +4002,6 @@ app.put('/admin/produccion/lote/:id', requireAdmin, (req, res) => {
   ['codigo', 'producto', 'estilo', 'familia', 'notas'].forEach(k => { if (b[k] != null) merged[k] = prodStr(b[k], 80); });
   if (b.recetaId != null) merged.recetaId = prodStr(b.recetaId, 40);
   if (b.tanqueId != null) merged.tanqueId = prodStr(b.tanqueId, 10);
-  if (b.color != null) {
-    const hex = prodStr(b.color, 20);
-    if (!prodColorValido(hex, prodTipoSedeDeTanque(d, merged.tanqueId))) return res.status(400).json({ error: 'Ese color no está en la paleta permitida.' });
-    merged.color = hex;
-  }
   if (b.nBatches != null) merged.nBatches = Math.max(1, Math.min(3, prodNum(b.nBatches)));
   if (b.volumenEsperadoL != null) merged.volumenEsperadoL = prodNum(b.volumenEsperadoL);
   if (b.volumenRealL != null) merged.volumenRealL = prodNum(b.volumenRealL);
@@ -4118,6 +4115,8 @@ function prodRecetaClean(b, base){
   const r = base || {};
   if (b.nombre != null) r.nombre = prodStr(b.nombre, 120);
   if (b.estilo != null) r.estilo = prodStr(b.estilo, 80);
+  if (b.tipo != null) r.tipo = b.tipo === 'destileria' ? 'destileria' : 'cerveceria';
+  if (b.color != null) { const hex = prodStr(b.color, 20); if (!hex) r.color = ''; else if (prodColorValido(hex, r.tipo || 'cerveceria')) r.color = hex; }
   if (b.litros != null) r.litros = prodNum(b.litros);
   if (b.og != null) r.og = prodNum(b.og);
   if (b.abv != null) r.abv = prodNum(b.abv);
