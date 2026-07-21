@@ -9292,7 +9292,11 @@ function prodRenderConfig(){
     <label class="cg-field"><span>Clave del ERP ${c.erpClaveSet?'<span style="color:#2e9c5a">✓ guardada</span>':''}</span><input id="cfErpKey" type="password" placeholder="${c.erpClaveSet?'•••••••• (vacío = no cambiar)':'tu clave'}"></label>
     <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="cfErpSave" type="button">Guardar credenciales</button></div>
     <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-ghost" id="cfErpSync" type="button">🔄 Sincronizar ahora</button></div>
-  </div><div class="prod-erp-status" id="cfErpStatus">${syncTxt}</div>
+    <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-ghost" id="cfErpDiag" type="button">🔎 Diagnosticar API</button></div>
+  </div>
+  <div class="est-note" style="margin-top:.4rem">API key ${c.erpApiKeySet?'<span style="color:#2e9c5a">✓ configurada</span>':'<span style="color:#d9534f">✗ falta (env GESTION_CERVECERA_API_KEY)</span>'} · Usuario ${c.erpUsuarioSet?'<span style="color:#2e9c5a">✓</span>':'<span style="color:#d9534f">✗</span>'}. El diagnóstico prueba la API con tu key+usuario contra las URLs/auth más probables y reporta qué responde (corre en el servidor, no en el navegador).</div>
+  <div class="prod-erp-status" id="cfErpStatus">${syncTxt}</div>
+  <div id="cfErpDiagBox"></div>
   <div class="est-note" style="margin-top:.4rem">Zorbo se autentica con tu usuario/clave del ERP, baja <b>/Receta</b> y <b>/Lote</b> y lee las tablas. La clave se guarda en el servidor (nunca en el navegador). La sync trae recetas y lotes (fechas, litros, tanque, etapa) y <b>nunca pisa</b> lo que cargaste a mano (tiempos, envasados, paradas). Si el ERP expone API, se conecta cuando cargues los endpoints.</div></div>`;
   const params=`<div class="cg-form"><div class="cg-form-title">Parámetros de producción</div><div class="cg-form-grid">
     <label class="cg-field"><span>Horas por semana</span><input id="cfHoras" inputmode="numeric" value="${escapeAttr(c.horasPorSemana)}"></label>
@@ -9368,6 +9372,17 @@ function prodWire(){
     const st=g('cfErpStatus'); if(st) st.textContent='Sincronizando…';
     try{ const r=await fetch('/admin/produccion/erp/sync',{method:'POST'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); if(st) st.textContent='Última sync: '+prodDT(d.ultimaSync)+' · '+(d.estado||''); setTimeout(loadProduccion,600); }
     catch(e){ if(st) st.textContent='⚠ '+String(e.message||e); }
+  };
+  if(g('cfErpDiag')) g('cfErpDiag').onclick=async()=>{
+    const box=g('cfErpDiagBox'); box.innerHTML='<div class="prod-erp-status">🔎 Probando la API… (puede tardar ~20s)</div>';
+    try{
+      const r=await fetch('/admin/produccion/erp/diag',{method:'POST'}); const d=await r.json(); if(!r.ok||d.ok===false) throw new Error(d.error||'Error');
+      const win=(d.ganadores||[]);
+      const rowClass=x=>(x.status>=200&&x.status<300&&x.esJson&&!x.esLogin)?'style="background:#e3f6ea"':(x.status>=200&&x.status<300?'style="background:#fff8ea"':'');
+      const rows=(d.resultados||[]).map(x=>`<tr ${rowClass(x)}><td>${escapeHtml(x.label)}</td><td class="dist-num">${x.status||(x.error||'—')}</td><td>${x.esJson?'JSON':(x.esLogin?'login':escapeHtml(x.contentType||''))}</td><td style="font-size:.7rem;color:#666">${escapeHtml(x.snippet||x.error||'')}</td></tr>`).join('');
+      box.innerHTML=`<div class="est-note" style="margin-top:.6rem">${win.length?('<b style="color:#2e9c5a">✓ '+win.length+' combinación(es) con JSON</b> — probablemente la API real. Pasame estos resultados y escribo el adaptador.'):'<b style="color:#c17a10">Ninguna combinación devolvió JSON.</b> Puede que la API use otra URL/auth. Copiame la tabla y/o conseguí la doc de la API con Gestión Cervecera.'}</div>
+        <div class="mun-wrap" style="margin-top:.5rem"><table class="mun-table"><thead><tr><th>Auth · URL</th><th>Status</th><th>Tipo</th><th>Respuesta</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
   };
   // config: mapas por estilo (E)
   if(g('cfLtAdd')) g('cfLtAdd').onclick=()=>{ g('cfLtMap').insertAdjacentHTML('beforeend','<div class="prod-cfg-map" data-lt-row><input list="cfEstilos" data-ltk placeholder="estilo"><input data-ltv inputmode="numeric" placeholder="días"><button class="rec-ico" data-lt-del title="Quitar">✕</button></div>'); prodWireMapDel(); };

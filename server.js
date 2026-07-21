@@ -3571,7 +3571,7 @@ function prodDecorate(d){
   return { config: prodConfigSafe(cfg), tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, recetas: d.recetas || [], meta: { etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT, formatos: PROD_FORMATOS } };
 }
 // Config para el front: la clave del ERP nunca se envía, solo si está configurada.
-function prodConfigSafe(cfg){ const c = { ...cfg }; c.erpUsuarioSet = !!(cfg.erpUsuario || process.env.GC_USUARIO); c.erpClaveSet = !!(cfg.erpClave || process.env.GC_CLAVE); c.erpUsuario = cfg.erpUsuario || ''; delete c.erpClave; return c; }
+function prodConfigSafe(cfg){ const c = { ...cfg }; c.erpUsuarioSet = !!(cfg.erpUsuario || process.env.GC_USUARIO); c.erpClaveSet = !!(cfg.erpClave || process.env.GC_CLAVE); c.erpApiKeySet = !!(cfg.erpApiKey || process.env.GESTION_CERVECERA_API_KEY); c.erpUsuario = cfg.erpUsuario || ''; delete c.erpClave; delete c.erpApiKey; return c; }
 app.get('/admin/produccion', requireAdmin, (req, res) => { const d = prodLoad(); if (prodNormalizeRecetas(d)) prodSave(d); res.json(prodDecorate(d)); });
 app.put('/admin/produccion/config', requireAdmin, (req, res) => {
   const b = req.body || {}; const d = prodLoad(); const c = { ...d.config };
@@ -3594,6 +3594,8 @@ app.put('/admin/produccion/config', requireAdmin, (req, res) => {
   // La clave solo se actualiza si viene un valor no vacío; si mandan '' se deja como está.
   if (typeof b.erpClave === 'string' && b.erpClave.trim()) c.erpClave = b.erpClave.trim().slice(0, 200);
   if (b.erpClave === null) c.erpClave = ''; // null explícito = borrar
+  if (typeof b.erpApiKey === 'string' && b.erpApiKey.trim()) c.erpApiKey = b.erpApiKey.trim().slice(0, 300);
+  if (b.erpApiKey === null) c.erpApiKey = '';
   d.config = c; prodSave(d); res.json({ ok: true, config: prodConfigSafe(c) });
 });
 // Marcar limpieza de un tanque desde su tarjeta: registra un CIP y lo deja "vacío".
@@ -3610,7 +3612,52 @@ app.post('/admin/produccion/tanque/:id/limpiar', requireAdmin, (req, res) => {
 // y /Lote, y parsea las tablas HTML. La sync NUNCA pisa datos manuales (merge por
 // número/erpId). Se prueba en Railway; desde el sandbox el firewall bloquea el ERP.
 const ERP_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
-function erpCreds(cfg){ return { usuario: cfg.erpUsuario || process.env.GC_USUARIO || '', clave: cfg.erpClave || process.env.GC_CLAVE || '', base: String(cfg.erpBaseUrl || 'https://www.gestioncervecera.com').replace(/\/$/, '') }; }
+function erpCreds(cfg){ return { usuario: cfg.erpUsuario || process.env.GC_USUARIO || '', clave: cfg.erpClave || process.env.GC_CLAVE || '', apiKey: cfg.erpApiKey || process.env.GESTION_CERVECERA_API_KEY || '', base: String(cfg.erpBaseUrl || 'https://www.gestioncervecera.com').replace(/\/$/, '') }; }
+// Diagnóstico de la API del ERP: prueba combinaciones de URL base / auth / endpoint
+// con la API key + usuario y reporta qué responde. Corre en Railway (que sí alcanza
+// el ERP). Read-only (GET). Sirve para descubrir el contrato real de la API.
+async function erpApiProbe(cfg){
+  const { usuario, apiKey, base } = erpCreds(cfg);
+  if (!apiKey) return { ok: false, error: 'No hay API key (GESTION_CERVECERA_API_KEY).', resultados: [] };
+  const host = base.replace(/^https?:\/\/(www\.)?/, '');
+  const bases = [...new Set([base, base + '/api', 'https://api.' + host, 'https://app.' + host + '/api'])];
+  const paths = ['/recetas', '/lotes'];
+  const auths = [
+    { label: 'Bearer', headers: { Authorization: 'Bearer ' + apiKey } },
+    { label: 'X-API-Key', headers: { 'X-API-Key': apiKey } },
+    { label: 'apikey-header', headers: { apikey: apiKey } },
+    { label: 'query', query: true },
+  ];
+  const jobs = [];
+  for (const b of bases) for (const p of paths) for (const a of auths) jobs.push({ b, p, a });
+  const run = async ({ b, p, a }) => {
+    let url = b + p; const headers = { 'User-Agent': ERP_UA, Accept: 'application/json', ...(a.headers || {}) };
+    if (a.query) { const qs = new URLSearchParams({ apiKey, api_key: apiKey, token: apiKey, usuario: usuario || '', user: usuario || '' }); url += (url.includes('?') ? '&' : '?') + qs.toString(); }
+    const label = a.label + ' ' + b + p;
+    try {
+      const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 7000);
+      const r = await fetch(url, { method: 'GET', headers, redirect: 'manual', signal: ctrl.signal });
+      clearTimeout(to);
+      const ct = r.headers.get('content-type') || '';
+      let body = ''; try { body = (await r.text()).slice(0, 400); } catch {}
+      const esJson = /json/i.test(ct) || /^[\s]*[[{]/.test(body);
+      const esLogin = /type=["']?password|iniciar sesión|login/i.test(body);
+      return { label, url: url.replace(apiKey, '‹key›'), status: r.status, contentType: ct.slice(0, 60), esJson, esLogin, snippet: body.replace(apiKey, '‹key›').replace(/\s+/g, ' ').slice(0, 220) };
+    } catch (e) { return { label, url: url.replace(apiKey, '‹key›'), status: 0, error: String(e.name === 'AbortError' ? 'timeout' : e.message).slice(0, 80) }; }
+  };
+  // Concurrencia acotada (6 a la vez).
+  const results = []; const queue = jobs.slice();
+  await Promise.all(Array.from({ length: 6 }, async () => { let j; while ((j = queue.shift())) results.push(await run(j)); }));
+  // Ordenar: 2xx+JSON primero, después 2xx, después el resto.
+  const score = (x) => (x.status >= 200 && x.status < 300 && x.esJson ? 0 : x.status >= 200 && x.status < 300 ? 1 : x.status >= 300 && x.status < 400 ? 2 : x.status >= 400 && x.status < 500 ? 3 : 4);
+  results.sort((a, b) => score(a) - score(b));
+  const ganadores = results.filter(x => x.status >= 200 && x.status < 300 && x.esJson && !x.esLogin);
+  return { ok: true, apiKeySet: true, usuarioSet: !!usuario, base, ganadores, resultados: results };
+}
+app.post('/admin/produccion/erp/diag', requireAdmin, async (req, res) => {
+  try { const cfg = prodLoad().config; res.json(await erpApiProbe(cfg)); }
+  catch (e) { res.status(500).json({ ok: false, error: String(e.message || e) }); }
+});
 // Cookie jar mínimo (Node fetch no maneja cookies solo).
 function erpSetCookies(jar, res){ const sc = (res.headers.getSetCookie && res.headers.getSetCookie()) || []; for (const line of sc) { const m = /^([^=]+)=([^;]*)/.exec(line); if (m) jar[m[1].trim()] = m[2]; } }
 function erpCookieHeader(jar){ return Object.entries(jar).map(([k, v]) => k + '=' + v).join('; '); }
