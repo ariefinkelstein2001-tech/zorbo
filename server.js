@@ -3456,7 +3456,7 @@ const PROD_CONFIG_DEF = {
   // Fase 2 (prompt #2): fecha proyectada de envasado + velocidades por formato + integración ERP.
   leadTimeObjetivoDias: 27, leadTimeObjetivoPorEstilo: {}, coloresPorEstilo: {},
   velNominalBarril20: 1000, velNominalBarril30: 1000, velNominalLata: 83,
-  erpBaseUrl: 'https://www.gestioncervecera.com', erpUsuario: '', erpClave: '', erpLastSync: null, erpLastStatus: '',
+  erpBaseUrl: 'https://www.gestioncervecera.com', erpUsuario: '', erpClave: '', erpLastSync: null, erpLastStatus: '', erpAutoSyncMin: 15,
 };
 // Lead time objetivo de un estilo (o el global). Base para la fecha proyectada de envasado.
 function prodLeadObjetivo(cfg, estilo){
@@ -3596,6 +3596,7 @@ app.put('/admin/produccion/config', requireAdmin, (req, res) => {
   if (b.erpClave === null) c.erpClave = ''; // null explícito = borrar
   if (typeof b.erpApiKey === 'string' && b.erpApiKey.trim()) c.erpApiKey = b.erpApiKey.trim().slice(0, 300);
   if (b.erpApiKey === null) c.erpApiKey = '';
+  if (b.erpAutoSyncMin !== undefined) c.erpAutoSyncMin = Math.max(0, Math.min(1440, prodNum(b.erpAutoSyncMin)));
   d.config = c; prodSave(d); res.json({ ok: true, config: prodConfigSafe(c) });
 });
 // Marcar limpieza de un tanque desde su tarjeta: registra un CIP y lo deja "vacío".
@@ -3887,7 +3888,12 @@ app.get('/admin/produccion/erp/estado', requireAdmin, (req, res) => {
   const cfg = prodLoad().config; const cr = erpCreds(cfg);
   res.json({ configurado: !!(cr.usuario && cr.clave), baseUrl: cr.base, usuario: cr.usuario, ultimaSync: cfg.erpLastSync || null, ultimoEstado: cfg.erpLastStatus || '' });
 });
-app.post('/admin/produccion/erp/sync', requireAdmin, async (req, res) => {
+let erpSyncRunning = false;
+// Ejecuta una sincronización completa (login + /Receta/GetAll + /Lote/GetAll + merge
+// que nunca pisa datos manuales). Reutilizada por el botón y por el auto-sync.
+async function erpRunSync(origen){
+  if (erpSyncRunning) return { ok: false, estado: 'Ya hay una sincronización en curso.', ultimaSync: null };
+  erpSyncRunning = true;
   const d = prodLoad(); const cfg = d.config; const cr = erpCreds(cfg);
   let msg = '';
   try {
@@ -3905,7 +3911,6 @@ app.post('/admin/produccion/erp/sync', requireAdmin, async (req, res) => {
     let nuevos = 0, act = 0;
     for (const rl of lotes) {
       if (!rl.numero && !rl.erpId) continue;
-      // Aseguramos que el tanque del ERP exista en el tablero.
       if (rl.tanque && !d.tanques.find(t => t.id === rl.tanque)) d.tanques.push({ id: rl.tanque, capacidadL: rl.capacidad || 1000, estado: 'vacio', loteActualId: null, sucio: false });
       const ex = d.lotes.find(x => x.erpId === rl.erpId || x.codigo === rl.numero);
       const estadoZ = erpEstadoZorbo(rl.etapa, rl.estado);
@@ -3917,23 +3922,37 @@ app.post('/admin/produccion/erp/sync', requireAdmin, async (req, res) => {
           etapas: PROD_ETAPAS.map(nombre => ({ nombre, inicio: null, fin: null, editadoManual: false })), envasados: [] });
         nuevos++;
       } else {
-        // Solo refrescamos campos de origen ERP. NUNCA pisamos tiempos/envasados manuales.
         ex.erpId = rl.erpId; ex.idReceta = rl.idReceta; ex.etapaErp = rl.etapa; ex.estadoErp = rl.estado;
         if (rl.descripcion) { ex.producto = ex.producto || rl.descripcion; ex.estilo = ex.estilo || rl.descripcion; }
         if (rl.fechaCoccion) ex.fechaCoccion = rl.fechaCoccion;
         if (rl.tanque) ex.tanqueId = rl.tanque;
         if (rl.litrosDisponibles) ex.volumenEsperadoL = ex.volumenEsperadoL || rl.litrosDisponibles;
-        // El estado se sincroniza salvo que el maestro ya lo haya avanzado más manualmente.
         const orden = { coccion: 0, fermentacion: 1, maduracion: 2, listo: 3, envasado: 4 };
         if ((orden[estadoZ] || 0) > (orden[ex.estado] || 0)) { ex.estado = estadoZ; if (estadoZ !== 'coccion' && !ex.fechaFermInicio) ex.fechaFermInicio = rl.fechaCoccion; }
         act++;
       }
     }
     prodSyncTanques(d);
-    msg = 'OK · ' + recetas.length + ' recetas · lotes: ' + nuevos + ' nuevos, ' + act + ' actualizados';
+    msg = 'OK · ' + recetas.length + ' recetas · lotes: ' + nuevos + ' nuevos, ' + act + ' actualizados' + (origen === 'auto' ? ' (auto)' : '');
   } catch (e) { msg = 'Error: ' + String(e.message || e).slice(0, 180); }
   cfg.erpLastSync = new Date().toISOString(); cfg.erpLastStatus = msg; prodSave(d);
-  res.json({ ok: !/^Error|^Falta/.test(msg), ultimaSync: cfg.erpLastSync, estado: msg });
+  erpSyncRunning = false;
+  return { ok: !/^Error|^Falta/.test(msg), ultimaSync: cfg.erpLastSync, estado: msg };
+}
+// Auto-sync en segundo plano: cada minuto revisa si toca sincronizar según
+// erpAutoSyncMin (0 = desactivado). Corre en Railway (alcanza el ERP).
+setInterval(async () => {
+  try {
+    const cfg = prodLoad().config; const cr = erpCreds(cfg);
+    const cada = prodNum(cfg.erpAutoSyncMin);
+    if (!cada || cada <= 0 || !cr.usuario || !cr.clave || erpSyncRunning) return;
+    const last = cfg.erpLastSync ? new Date(cfg.erpLastSync).getTime() : 0;
+    if (Date.now() - last >= cada * 60000) await erpRunSync('auto');
+  } catch (e) { /* no romper el loop */ }
+}, 60000).unref?.();
+app.post('/admin/produccion/erp/sync', requireAdmin, async (req, res) => {
+  const r = await erpRunSync('manual');
+  res.json(r);
 });
 // Crear lote (cocción). Ocupa el tanque destino recién al cerrar la cocción.
 app.post('/admin/produccion/lote', requireAdmin, (req, res) => {
