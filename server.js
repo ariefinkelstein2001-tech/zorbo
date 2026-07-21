@@ -3708,8 +3708,8 @@ async function erpLoginDiag(cfg){
         try {
           const r = await erpGet(base + p, login.jar, base); const h = await r.text();
           rep.rutasAuth.push({ ruta: p, status: r.status, filas: (h.match(/<tr\b/gi) || []).length, tieneEditLote: /Lote\/Edit\?id=/i.test(h), tieneExportar: /class=["']exportar["']/i.test(h), len: h.length });
-          // Muestra de la estructura de la tabla (thead + primeras 2 filas con datos).
-          if (r.status === 200 && /<tr\b/i.test(h) && (p === '/Lote' || p === '/Receta')) rep.muestras[p] = erpTablaMuestra(h);
+          // Muestra de la estructura de la tabla + los scripts que la cargan (ajax).
+          if (r.status === 200 && /<tr\b/i.test(h) && (p === '/Lote' || p === '/Receta')) { rep.muestras[p] = erpTablaMuestra(h); (rep.scripts = rep.scripts || {})[p] = erpScriptDump(h); }
         } catch (e) { rep.rutasAuth.push({ ruta: p, status: 0, error: String(e.message).slice(0, 60) }); }
       }));
       rep.rutasAuth.sort((a, b) => a.ruta.localeCompare(b.ruta));
@@ -3748,6 +3748,13 @@ function erpTablaMuestra(html){
   const thead = (/<thead[\s\S]*?<\/thead>/i.exec(tabla) || [, ''])[0] || '';
   const dataRows = [...tabla.matchAll(/<tr\b[\s\S]*?<\/tr>/gi)].map(m => m[0]).filter(r => /<td\b/i.test(r)).slice(0, 2);
   return (thead + '\n' + dataRows.join('\n')).replace(/\s{2,}/g, ' ').trim().slice(0, 4000);
+}
+// Vuelca los <script> inline relevantes (DataTables / ajax / url) de una página,
+// para descubrir la URL AJAX que carga las filas de la tabla.
+function erpScriptDump(html){
+  const scripts = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
+  const rel = scripts.filter(s => /DataTable|ajax|\.load\(|Listar|Listado|Datos|GetData|Grid|\/Lote|\/Receta|url\s*:/i.test(s));
+  return rel.join('\n/* --- */\n').replace(/[ \t]{2,}/g, ' ').replace(/\n{2,}/g, '\n').trim().slice(0, 4500);
 }
 // Login real del ERP (Gestión Cervecera es ASP.NET + jQuery): jsLogin() hace
 // POST /Home/Login con { usuario, password: md5(clave) } y espera JSON {message:'ok'}.
