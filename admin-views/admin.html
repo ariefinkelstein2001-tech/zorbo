@@ -9378,18 +9378,17 @@ function prodWire(){
     const box=g('cfErpDiagBox'); box.innerHTML='<div class="prod-erp-status">🔐 Entrando al ERP y leyendo el formulario de login…</div>';
     try{
       const r=await fetch('/admin/produccion/erp/diaglogin',{method:'POST'}); const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||'Error');
-      const p0=(d.pasos&&d.pasos[0])||{};
-      const forms=(d.forms||[]).map((f,i)=>`<div class="est-note" style="margin-top:.4rem"><b>Form ${i+1}</b> · method ${escapeHtml(f.method)} · action <code>${escapeHtml(f.action||'(vacío)')}</code> · ${f.tienePassword?'<span style="color:#2e9c5a">tiene password ✓</span>':'<span style="color:#c17a10">sin password</span>'}<br>
-        <b>inputs:</b> ${(f.inputs||[]).map(x=>`<code>${escapeHtml(x.name||x.id)}</code>:${escapeHtml(x.type)}`).join(', ')||'—'}<br>
-        <b>botones:</b> ${(f.botones||[]).map(x=>escapeHtml((x.texto||x.type))).join(', ')||'—'}</div>`).join('');
-      const gl=(d.linksGoogle||[]).length?`<div class="est-note" style="margin-top:.4rem;color:#c0392b"><b>⚠ Enlaces de login externo/Google detectados:</b> ${d.linksGoogle.map(x=>escapeHtml(x.texto||x.href)).join(' · ')}</div>`:'';
-      const lr=d.loginResultado||{};
+      const L=d.login||{};
+      const forms=(d.forms||[]).map((f,i)=>`<div class="est-note" style="margin-top:.4rem"><b>Form ${i+1}</b> · ${escapeHtml(f.method)} → <code>${escapeHtml(f.action||'(vacío)')}</code> · ${f.tienePassword?'<span style="color:#2e9c5a">password ✓</span>':'sin password'}<br><b>inputs:</b> ${(f.inputs||[]).map(x=>`<code>${escapeHtml(x.name)}</code>:${escapeHtml(x.type)}`).join(', ')||'—'}</div>`).join('');
+      const rutas=(d.rutas||[]).map(x=>{ const ok=x.status>=200&&x.status<300; const bg=ok&&x.tipo==='JSON'?'background:#e3f6ea':(ok?'background:#fff8ea':''); return `<tr style="${bg}"><td><code>${escapeHtml(x.ruta)}</code></td><td class="dist-num">${x.status||(x.error||'—')}</td><td>${escapeHtml(x.tipo||'')}</td><td style="font-size:.7rem;color:#666">${escapeHtml(x.snippet||'')}</td></tr>`; }).join('');
+      const spaMsg=L.esSPA?'<b style="color:#c17a10">Es una SPA (JavaScript)</b> — el login y los datos van por una API JSON. Hay que capturar esas llamadas (ver instrucciones abajo).':(L.tieneForm?'Tiene un &lt;form&gt; nativo — puedo ajustar el scraper a esos campos.':'Sin form ni SPA clara.');
       box.innerHTML=`<div class="est-note" style="margin-top:.6rem">
-        <b>Base:</b> ${escapeHtml(d.base||'')} · <b>Página:</b> ${escapeHtml(p0.titulo||'')} (status ${p0.status||'—'})<br>
-        <b>¿Tiene campo password?</b> ${p0.tienePassword?'<span style="color:#2e9c5a">sí</span>':'<span style="color:#c0392b">NO</span>'} · <b>¿Google?</b> ${p0.tieneGoogle?'<span style="color:#c0392b">sí</span>':'no'} · <b>¿Captcha?</b> ${p0.tieneCaptcha?'<span style="color:#c0392b">sí</span>':'no'}<br>
-        <b>Login del scraper:</b> ${lr.ok?'<span style="color:#2e9c5a">✓ OK</span>':('<span style="color:#c0392b">✗ '+escapeHtml(lr.error||'')+(lr.stage?(' ['+escapeHtml(lr.stage)+']'):'')+'</span>')}</div>
-        ${gl}${forms||'<div class="est-note" style="margin-top:.4rem">No se encontraron &lt;form&gt; en la página.</div>'}
-        <div class="est-note" style="margin-top:.4rem;color:#666">Pasame esta info (campos, action, si hay Google/captcha) y ajusto el scraper.</div>`;
+        <b>/login</b> · status ${L.status||'—'} · ${escapeHtml(L.titulo||'')} · ${L.len||0} bytes<br>
+        ¿form? ${L.tieneForm?'sí':'<span style="color:#c17a10">no</span>'} · ¿password en HTML? ${L.tienePassword?'sí':'no'} · cookies: ${(L.setCookie||[]).map(escapeHtml).join(', ')||'—'}<br>
+        ${spaMsg}${(L.scripts||[]).length?('<br><b>scripts:</b> '+L.scripts.map(escapeHtml).join(', ')):''}</div>
+        ${forms}
+        <div class="est-note" style="margin-top:.5rem"><b>Rutas probadas (GET):</b><div class="mun-wrap" style="margin-top:.3rem"><table class="mun-table"><thead><tr><th>Ruta</th><th>Status</th><th>Tipo</th><th>Respuesta</th></tr></thead><tbody>${rutas}</tbody></table></div></div>
+        <div class="est-note" style="margin-top:.4rem;color:#666">Pasame esta tabla. Las filas verdes (JSON) son la API. Si todo es HTML/SPA, hacé la captura de red del navegador (te paso los pasos).</div>`;
     }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
   };
   if(g('cfErpDiag')) g('cfErpDiag').onclick=async()=>{

@@ -3663,29 +3663,39 @@ app.post('/admin/produccion/erp/diag', requireAdmin, async (req, res) => {
 // Corre en Railway (que alcanza el ERP). Sirve para arreglar el scraper con precisión.
 async function erpLoginDiag(cfg){
   const { usuario, clave, base } = erpCreds(cfg);
-  const rep = { base, usuarioSet: !!usuario, claveSet: !!clave, pasos: [], forms: [] };
-  if (!usuario || !clave) { rep.error = 'Falta usuario o clave del ERP (Config).'; return rep; }
+  const rep = { base, usuarioSet: !!usuario, claveSet: !!clave, forms: [], rutas: [] };
   const jar = {};
-  let html = '', urlFinal = base + '/Lote';
+  // 1. Página de login (/login) — estructura + ¿es SPA (JS)?
+  let html = '';
   try {
-    const r = await erpGet(base + '/Lote', jar, base);
-    html = await r.text(); urlFinal = r.url || urlFinal;
-    rep.pasos.push({ paso: 'GET /Lote', status: r.status, urlFinal, tienePassword: /type=["']?password/i.test(html), tieneGoogle: /accounts\.google|oauth|g_id_|data-client_?id|Iniciar sesión con Google|signin-google/i.test(html), tieneCaptcha: /recaptcha|hcaptcha|captcha/i.test(html), titulo: (/<title[^>]*>([^<]*)<\/title>/i.exec(html) || [, ''])[1].trim().slice(0, 80), len: html.length });
-  } catch (e) { rep.pasos.push({ paso: 'GET /Lote', error: String(e.message).slice(0, 120) }); return rep; }
-  // Estructura de cada <form> del login.
-  const forms = [...html.matchAll(/<form\b[^>]*>[\s\S]*?<\/form>/gi)].map(m => m[0]);
-  rep.forms = forms.map(f => ({
-    action: (/\baction=["']([^"']*)["']/i.exec(f) || [, ''])[1],
-    method: ((/\bmethod=["']([^"']*)["']/i.exec(f) || [, 'get'])[1]).toUpperCase(),
+    const r = await erpGet(base + '/login', jar, base);
+    html = await r.text();
+    const scripts = [...html.matchAll(/<script\b[^>]*src=["']([^"']+)["']/gi)].map(m => m[1]).slice(0, 8);
+    const esSPA = (/<div\s+id=["'](app|root|__nuxt|__next)["']/i.test(html) || (!/<form/i.test(html) && scripts.length > 0));
+    rep.login = {
+      status: r.status, urlFinal: r.url || (base + '/login'),
+      titulo: (/<title[^>]*>([^<]*)<\/title>/i.exec(html) || [, ''])[1].trim().slice(0, 80),
+      tieneForm: /<form/i.test(html), tienePassword: /type=["']?password/i.test(html),
+      esSPA, scripts, setCookie: (r.headers.getSetCookie && r.headers.getSetCookie().map(c => c.split(';')[0].split('=')[0])) || [],
+      len: html.length,
+    };
+  } catch (e) { rep.login = { error: String(e.message).slice(0, 140) }; }
+  // Forms encontrados en el HTML (si los hay).
+  rep.forms = [...html.matchAll(/<form\b[^>]*>[\s\S]*?<\/form>/gi)].map(f0 => { const f = f0[0]; return {
+    action: (/\baction=["']([^"']*)["']/i.exec(f) || [, ''])[1], method: ((/\bmethod=["']([^"']*)["']/i.exec(f) || [, 'get'])[1]).toUpperCase(),
     tienePassword: /type=["']?password/i.test(f),
-    inputs: [...f.matchAll(/<input\b[^>]*>/gi)].map(im => ({ name: (/\bname=["']([^"']+)["']/i.exec(im[0]) || [, ''])[1], type: ((/\btype=["']([^"']+)["']/i.exec(im[0]) || [, 'text'])[1]).toLowerCase(), id: (/\bid=["']([^"']+)["']/i.exec(im[0]) || [, ''])[1] })).filter(x => x.name || x.id),
-    botones: [...f.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/gi)].map(bm => ({ name: (/\bname=["']([^"']+)["']/i.exec(bm[0]) || [, ''])[1], type: ((/\btype=["']([^"']+)["']/i.exec(bm[0]) || [, 'submit'])[1]).toLowerCase(), texto: bm[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 40) })),
+    inputs: [...f.matchAll(/<input\b[^>]*>/gi)].map(im => ({ name: (/\bname=["']([^"']+)["']/i.exec(im[0]) || [, ''])[1], type: ((/\btype=["']([^"']+)["']/i.exec(im[0]) || [, 'text'])[1]).toLowerCase() })).filter(x => x.name),
+  }; });
+  // 2. Rutas candidatas (solo GET, read-only — no intentamos login para no bloquear la cuenta).
+  const rutas = ['/login', '/Lote', '/Receta', '/api/lotes', '/api/recetas', '/api/lote', '/api/receta', '/api/login', '/api/auth/login'];
+  await Promise.all(rutas.map(async (p) => {
+    try {
+      const j2 = {}; const r = await erpFetch(base + p, { method: 'GET', headers: { Accept: 'application/json' } }, j2);
+      const ct = r.headers.get('content-type') || ''; let body = ''; try { body = (await r.text()).slice(0, 200); } catch {}
+      rep.rutas.push({ ruta: p, status: r.status, tipo: /json/i.test(ct) ? 'JSON' : (/html/i.test(ct) ? 'HTML' : ct.slice(0, 30)), snippet: body.replace(/\s+/g, ' ').slice(0, 120) });
+    } catch (e) { rep.rutas.push({ ruta: p, status: 0, error: String(e.message).slice(0, 60) }); }
   }));
-  // Enlaces tipo "login con Google" (para saber si el login es solo OAuth).
-  rep.linksGoogle = [...html.matchAll(/<a\b[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)].map(a => ({ href: a[1], texto: a[2].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() })).filter(a => /google|oauth|external|signin/i.test(a.href + a.texto)).slice(0, 6);
-  // Intento real de login con el scraper actual, para ver dónde corta.
-  try { const login = await erpLogin(cfg); rep.loginResultado = { ok: login.ok, error: login.error || null, stage: login.stage || null, debug: login.debug || null }; }
-  catch (e) { rep.loginResultado = { ok: false, error: String(e.message).slice(0, 140) }; }
+  rep.rutas.sort((a, b) => a.ruta.localeCompare(b.ruta));
   return rep;
 }
 app.post('/admin/produccion/erp/diaglogin', requireAdmin, async (req, res) => {
