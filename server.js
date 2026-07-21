@@ -3456,7 +3456,7 @@ const PROD_CONFIG_DEF = {
   // Fase 2 (prompt #2): fecha proyectada de envasado + velocidades por formato + integración ERP.
   leadTimeObjetivoDias: 27, leadTimeObjetivoPorEstilo: {}, coloresPorEstilo: {},
   velNominalBarril20: 1000, velNominalBarril30: 1000, velNominalLata: 83,
-  erpBaseUrl: '', erpApiKey: '', erpLastSync: null, erpLastStatus: '',
+  erpBaseUrl: 'https://www.gestioncervecera.com', erpUsuario: '', erpClave: '', erpLastSync: null, erpLastStatus: '',
 };
 // Lead time objetivo de un estilo (o el global). Base para la fecha proyectada de envasado.
 function prodLeadObjetivo(cfg, estilo){
@@ -3473,8 +3473,8 @@ const prodStr = (v, m = 200) => String(v == null ? '' : v).trim().slice(0, m);
 const prodNum = (v) => { const n = Number(String(v == null ? '' : v).replace(/[^\d.-]/g, '')); return Number.isFinite(n) ? n : 0; };
 const prodTs = (v) => { const s = prodStr(v, 40); return s || null; }; // ISO timestamp del cliente
 function prodLoad(){
-  let d = { config: { ...PROD_CONFIG_DEF }, tanques: prodSeedTanques(), lotes: [], limpiezas: [], paradas: [] };
-  try { if (existsSync(PROD_FILE)) { const p = JSON.parse(readFileSync(PROD_FILE, 'utf-8')); d.config = { ...PROD_CONFIG_DEF, ...(p.config || {}) }; if (Array.isArray(p.tanques) && p.tanques.length) d.tanques = p.tanques; if (Array.isArray(p.lotes)) d.lotes = p.lotes; if (Array.isArray(p.limpiezas)) d.limpiezas = p.limpiezas; if (Array.isArray(p.paradas)) d.paradas = p.paradas; } }
+  let d = { config: { ...PROD_CONFIG_DEF }, tanques: prodSeedTanques(), lotes: [], limpiezas: [], paradas: [], recetas: [] };
+  try { if (existsSync(PROD_FILE)) { const p = JSON.parse(readFileSync(PROD_FILE, 'utf-8')); d.config = { ...PROD_CONFIG_DEF, ...(p.config || {}) }; if (Array.isArray(p.tanques) && p.tanques.length) d.tanques = p.tanques; if (Array.isArray(p.lotes)) d.lotes = p.lotes; if (Array.isArray(p.limpiezas)) d.limpiezas = p.limpiezas; if (Array.isArray(p.paradas)) d.paradas = p.paradas; if (Array.isArray(p.recetas)) d.recetas = p.recetas; } }
   catch (e) { console.warn('produccion load:', e.message); }
   return d;
 }
@@ -3514,10 +3514,10 @@ function prodDecorate(d){
     return { ...t, estado: t.loteActualId ? 'ocupado' : (t.sucio ? 'sucio' : 'vacio'), lote: li };
   });
   const lotes = d.lotes.map(l => ({ ...l, diasOcup: prodDiasOcup(l), litrosEnvasados: prodLitrosEnvasados(l), leadTimeDias: (l.fechaEnvasado && l.fechaCoccion) ? Math.max(0, Math.round((new Date(l.fechaEnvasado) - new Date(l.fechaCoccion)) / DAY)) : null }));
-  return { config: prodConfigSafe(cfg), tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, meta: { etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT } };
+  return { config: prodConfigSafe(cfg), tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, recetas: d.recetas || [], meta: { etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT } };
 }
-// Config para el front: la API key nunca se envía, solo si está configurada.
-function prodConfigSafe(cfg){ const c = { ...cfg }; c.erpApiKeySet = !!(cfg.erpApiKey || process.env.GESTION_CERVECERA_API_KEY); delete c.erpApiKey; return c; }
+// Config para el front: la clave del ERP nunca se envía, solo si está configurada.
+function prodConfigSafe(cfg){ const c = { ...cfg }; c.erpUsuarioSet = !!(cfg.erpUsuario || process.env.GC_USUARIO); c.erpClaveSet = !!(cfg.erpClave || process.env.GC_CLAVE); c.erpUsuario = cfg.erpUsuario || ''; delete c.erpClave; return c; }
 app.get('/admin/produccion', requireAdmin, (req, res) => { res.json(prodDecorate(prodLoad())); });
 app.put('/admin/produccion/config', requireAdmin, (req, res) => {
   const b = req.body || {}; const d = prodLoad(); const c = { ...d.config };
@@ -3535,9 +3535,10 @@ app.put('/admin/produccion/config', requireAdmin, (req, res) => {
   if (b.leadTimeObjetivoPorEstilo && typeof b.leadTimeObjetivoPorEstilo === 'object') c.leadTimeObjetivoPorEstilo = b.leadTimeObjetivoPorEstilo;
   if (b.coloresPorEstilo && typeof b.coloresPorEstilo === 'object') c.coloresPorEstilo = b.coloresPorEstilo;
   if (b.erpBaseUrl != null) c.erpBaseUrl = prodStr(b.erpBaseUrl, 300);
-  // La API key solo se actualiza si viene un valor no vacío; si mandan '' se deja como está.
-  if (typeof b.erpApiKey === 'string' && b.erpApiKey.trim()) c.erpApiKey = b.erpApiKey.trim().slice(0, 300);
-  if (b.erpApiKey === null) c.erpApiKey = ''; // null explícito = borrar
+  if (b.erpUsuario != null) c.erpUsuario = prodStr(b.erpUsuario, 120);
+  // La clave solo se actualiza si viene un valor no vacío; si mandan '' se deja como está.
+  if (typeof b.erpClave === 'string' && b.erpClave.trim()) c.erpClave = b.erpClave.trim().slice(0, 200);
+  if (b.erpClave === null) c.erpClave = ''; // null explícito = borrar
   d.config = c; prodSave(d); res.json({ ok: true, config: prodConfigSafe(c) });
 });
 // Marcar limpieza de un tanque desde su tarjeta: registra un CIP y lo deja "vacío".
@@ -3548,45 +3549,171 @@ app.post('/admin/produccion/tanque/:id/limpiar', requireAdmin, (req, res) => {
   d.limpiezas.push({ id: prodNewId('cip'), tipo: 'CIP_fermentador', centroTrabajo: 'fermentacion', ref: t.id, inicio: now, fin: now, editadoManual: false });
   t.sucio = false; prodSyncTanques(d); prodSave(d); res.json({ ok: true });
 });
-// ── Integración ERP "Gestión Cervecera" (capa de servicio + sync) ──
-// Adaptador: dejá listos los endpoints reales de la doc del ERP. Por ahora hace un
-// ping a erpBaseUrl y devuelve el estado; el merge por loteId respeta lo manual.
-function prodErpKey(cfg){ return cfg.erpApiKey || process.env.GESTION_CERVECERA_API_KEY || ''; }
-async function prodErpCall(cfg, path){
-  const base = String(cfg.erpBaseUrl || '').replace(/\/$/, ''); const key = prodErpKey(cfg);
-  if (!base || !key) return { configured: false, ok: false, error: 'ERP no configurado (falta URL o API key).' };
-  try {
-    const r = await fetch(base + path, { headers: { 'Authorization': 'Bearer ' + key, 'Accept': 'application/json' } });
-    if (!r.ok) return { configured: true, ok: false, error: 'ERP respondió ' + r.status };
-    return { configured: true, ok: true, data: await r.json().catch(() => null) };
-  } catch (e) { return { configured: true, ok: false, error: String(e.message || e).slice(0, 160) }; }
+// ── Integración ERP "Gestión Cervecera" (login + scraping de páginas) ──
+// El ERP NO tiene API: son páginas web tras login. Zorbo se loguea con usuario/clave
+// del ERP (guardados en el servidor, la clave nunca se envía al front), baja /Receta
+// y /Lote, y parsea las tablas HTML. La sync NUNCA pisa datos manuales (merge por
+// número/erpId). Se prueba en Railway; desde el sandbox el firewall bloquea el ERP.
+const ERP_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+function erpCreds(cfg){ return { usuario: cfg.erpUsuario || process.env.GC_USUARIO || '', clave: cfg.erpClave || process.env.GC_CLAVE || '', base: String(cfg.erpBaseUrl || 'https://www.gestioncervecera.com').replace(/\/$/, '') }; }
+// Cookie jar mínimo (Node fetch no maneja cookies solo).
+function erpSetCookies(jar, res){ const sc = (res.headers.getSetCookie && res.headers.getSetCookie()) || []; for (const line of sc) { const m = /^([^=]+)=([^;]*)/.exec(line); if (m) jar[m[1].trim()] = m[2]; } }
+function erpCookieHeader(jar){ return Object.entries(jar).map(([k, v]) => k + '=' + v).join('; '); }
+async function erpFetch(url, opts, jar){
+  const headers = { 'User-Agent': ERP_UA, 'Accept': 'text/html,application/xhtml+xml', ...(opts.headers || {}) };
+  const ck = erpCookieHeader(jar); if (ck) headers['Cookie'] = ck;
+  const r = await fetch(url, { ...opts, headers, redirect: 'manual' });
+  erpSetCookies(jar, r);
+  return r;
+}
+// Sigue redirects manualmente conservando cookies (máx 5 saltos).
+async function erpGet(url, jar, base){
+  for (let i = 0; i < 6; i++) {
+    const r = await erpFetch(url, { method: 'GET' }, jar);
+    if (r.status >= 300 && r.status < 400) { const loc = r.headers.get('location'); if (!loc) return r; url = loc.startsWith('http') ? loc : base + (loc.startsWith('/') ? loc : '/' + loc); continue; }
+    return r;
+  }
+  throw new Error('demasiados redirects');
+}
+// Login: baja la página de login, descubre el formulario con campo password, llena
+// usuario/clave + los hidden (anti-forgery token) y hace POST.
+async function erpLogin(cfg){
+  const { usuario, clave, base } = erpCreds(cfg);
+  if (!usuario || !clave) return { ok: false, jar: null, error: 'Faltan usuario o clave del ERP.', stage: 'config' };
+  const jar = {};
+  let r = await erpGet(base + '/Lote', jar, base);         // fuerza el redirect al login si no hay sesión
+  let html = await r.text();
+  let loginUrl = r.url || base + '/Lote';
+  // Buscá el <form> que contenga un input password.
+  const forms = [...html.matchAll(/<form\b[^>]*>[\s\S]*?<\/form>/gi)].map(m => m[0]);
+  let form = forms.find(f => /type=["']?password/i.test(f));
+  if (!form) return { ok: false, jar, error: 'No encontré el formulario de login (¿login con Google/2FA?).', stage: 'login-form', debug: (r.status + ' ' + loginUrl) };
+  const actionM = /<form\b[^>]*\baction=["']([^"']+)["']/i.exec(form);
+  let action = actionM ? actionM[1] : loginUrl;
+  if (!/^https?:/i.test(action)) action = base + (action.startsWith('/') ? action : '/' + action);
+  // Recolectá todos los inputs del form.
+  const inputs = {};
+  let user_field = '', pass_field = '';
+  for (const im of form.matchAll(/<input\b[^>]*>/gi)) {
+    const tag = im[0];
+    const name = (/\bname=["']([^"']+)["']/i.exec(tag) || [])[1]; if (!name) continue;
+    const type = ((/\btype=["']([^"']+)["']/i.exec(tag) || [])[1] || 'text').toLowerCase();
+    const value = (/\bvalue=["']([^"']*)["']/i.exec(tag) || [])[1] || '';
+    if (type === 'password') { pass_field = name; inputs[name] = clave; }
+    else if (type === 'submit' || type === 'button') continue;
+    else if (!user_field && (type === 'email' || type === 'text' || /user|usuario|email|correo|login/i.test(name))) { user_field = name; inputs[name] = usuario; }
+    else inputs[name] = value; // hidden (token anti-forgery), etc.
+  }
+  if (!pass_field || !user_field) return { ok: false, jar, error: 'No pude identificar los campos de usuario/clave.', stage: 'login-fields' };
+  const body = new URLSearchParams(inputs).toString();
+  const pr = await erpFetch(action, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Referer': loginUrl, 'Origin': base }, body }, jar);
+  // Seguimos el redirect post-login (302 = éxito típico en ASP.NET).
+  if (pr.status >= 300 && pr.status < 400) { const loc = pr.headers.get('location') || ''; await erpGet(loc.startsWith('http') ? loc : base + loc, jar, base); }
+  // Verificá que ya hay sesión: pedí /Lote y que NO vuelva a mostrar el form de login.
+  const chk = await erpGet(base + '/Lote', jar, base);
+  const chkHtml = await chk.text();
+  if (/type=["']?password/i.test(chkHtml)) return { ok: false, jar, error: 'Usuario o clave incorrectos (sigue pidiendo login).', stage: 'login-check' };
+  return { ok: true, jar, error: null, loteHtml: chkHtml };
+}
+const erpTxt = (s) => String(s || '').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&aacute;/g, 'á').replace(/&eacute;/g, 'é').replace(/&iacute;/g, 'í').replace(/&oacute;/g, 'ó').replace(/&uacute;/g, 'ú').replace(/&ntilde;/g, 'ñ').replace(/\s+/g, ' ').trim();
+// El ERP usa "." como separador DECIMAL (ej. ABV 4.5, litros 795.664) y "," como
+// miles → sacamos las comas y parseamos con el punto decimal.
+const erpNumCl = (s) => { const t = erpTxt(s).replace(/,/g, '').replace(/[^\d.-]/g, ''); const n = parseFloat(t); return Number.isFinite(n) ? n : 0; };
+// Parsea la fecha "22/5/2026 16:18" → ISO.
+function erpFecha(s){ const m = /(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/.exec(erpTxt(s)); if (!m) return null; const [, d, mo, y, h, mi] = m; return new Date(Date.UTC(+y, +mo - 1, +d, +(h || 0), +(mi || 0))).toISOString(); }
+// Parsea la tabla de Recetas (checkbox+data-id, Nombre, Estilo, Litros, OG, ABV).
+function erpParseRecetas(html){
+  const out = [];
+  for (const rm of html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const row = rm[1]; if (/dataTables_empty/.test(row)) continue;
+    const id = (/class=["']exportar["'][^>]*data-id=["'](\d+)["']|data-id=["'](\d+)["'][^>]*class=["']exportar/i.exec(row) || [])[1];
+    const tds = [...row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(m => m[1]);
+    if (!id || tds.length < 6) continue;
+    out.push({ erpId: id, nombre: erpTxt(tds[1]), estilo: erpTxt(tds[2]), litros: erpNumCl(tds[3]), og: erpNumCl(tds[4]), abv: erpNumCl(tds[5]) });
+  }
+  return out;
+}
+// Parsea la tabla de Lotes (Fecha cocción, Número, Descripción, Litros disp, Barril,
+// Envases, Estado, Etapa <select>, Tanque <select>, + idreceta/cantcocciones).
+function erpParseLotes(html){
+  const out = [];
+  for (const rm of html.matchAll(/<tr\b[^>]*role=["']row["'][^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const row = rm[1]; if (/dataTables_empty|sorting_asc|<th/i.test(row)) continue;
+    const edit = /Lote\/Edit\?id=(\d+)/i.exec(row); if (!edit) continue;
+    const erpId = edit[1];
+    const tds = [...row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(m => m[1]);
+    const numero = erpTxt((tds[1] || '').replace(/<[^>]+>/g, m => '')) || erpTxt(tds[1]);
+    const descripcion = erpTxt(tds[2] || '');
+    const litrosDisp = (/data-litrosdisponibles=["']([\d.,]+)["']/i.exec(row) || [])[1];
+    const estado = erpTxt((/class=["']estado[^"']*["'][^>]*>([^<]*)</i.exec(row) || [])[1] || tds[5] || '');
+    const etapa = erpTxt((/<option[^>]*selected[^>]*>([^<]*)<\/option>/i.exec((/class=["']etapa["'][\s\S]*?<\/select>/i.exec(row) || [''])[0]) || [])[1] || '');
+    const tanqSel = (/class=["']tanque["'][\s\S]*?<\/select>/i.exec(row) || [''])[0];
+    const tanque = erpTxt((/<option[^>]*selected[^>]*data-capacidad=["'](\d+)["']>([^<]*)<\/option>/i.exec(tanqSel) || [, , ''])[2] || (/<option[^>]*selected[^>]*>([^<]*)<\/option>/i.exec(tanqSel) || [, ''])[1] || '');
+    const capacidad = prodNum((/<option[^>]*selected[^>]*data-capacidad=["'](\d+)["']/i.exec(tanqSel) || [])[1]);
+    const idReceta = (/data-idreceta=["'](\d+)["']/i.exec(row) || [])[1] || '';
+    const cantCocciones = prodNum((/data-cantcocciones=["'](\d+)["']/i.exec(row) || [])[1]) || 1;
+    out.push({ erpId, numero, descripcion, fechaCoccion: erpFecha(tds[0]), litrosDisponibles: erpNumCl(litrosDisp || tds[3]), estado, etapa, tanque, capacidad, idReceta, cantCocciones });
+  }
+  return out;
+}
+// Mapea etapa/estado del ERP → estado interno de Zorbo.
+function erpEstadoZorbo(etapa, estado){
+  const e = (etapa || '').toLowerCase(), s = (estado || '').toLowerCase();
+  if (/finaliz|envas/.test(e) || /finaliz|envas/.test(s)) return 'envasado';
+  if (/filtr|madur/.test(e)) return 'maduracion';
+  if (/ferment/.test(e)) return 'fermentacion';
+  return 'coccion';
 }
 app.get('/admin/produccion/erp/estado', requireAdmin, (req, res) => {
-  const cfg = prodLoad().config;
-  res.json({ configurado: !!(cfg.erpBaseUrl && prodErpKey(cfg)), baseUrl: cfg.erpBaseUrl || '', ultimaSync: cfg.erpLastSync || null, ultimoEstado: cfg.erpLastStatus || '' });
+  const cfg = prodLoad().config; const cr = erpCreds(cfg);
+  res.json({ configurado: !!(cr.usuario && cr.clave), baseUrl: cr.base, usuario: cr.usuario, ultimaSync: cfg.erpLastSync || null, ultimoEstado: cfg.erpLastStatus || '' });
 });
 app.post('/admin/produccion/erp/sync', requireAdmin, async (req, res) => {
-  const d = prodLoad(); const cfg = d.config;
-  // Endpoints reales a completar según la doc del ERP (recetas/tanques/lotes/stock/ventas).
-  const recetas = await prodErpCall(cfg, '/api/recetas');
-  const lotes = await prodErpCall(cfg, '/api/lotes');
-  let msg;
-  if (!recetas.configured) msg = 'ERP no configurado';
-  else if (!recetas.ok && !lotes.ok) msg = 'Sin conexión: ' + (recetas.error || lotes.error || 'error');
-  else {
-    // Merge por loteId respetando lo manual (origen). Adaptador a completar con el shape real.
-    const remotos = Array.isArray(lotes.data) ? lotes.data : (lotes.data && lotes.data.lotes) || [];
+  const d = prodLoad(); const cfg = d.config; const cr = erpCreds(cfg);
+  let msg = '';
+  try {
+    if (!cr.usuario || !cr.clave) throw new Error('Falta usuario o clave del ERP (Config).');
+    const login = await erpLogin(cfg);
+    if (!login.ok) throw new Error(login.error + (login.stage ? ' [' + login.stage + ']' : ''));
+    // Recetas.
+    const recHtml = await (await erpGet(cr.base + '/Receta', login.jar, cr.base)).text();
+    const recetas = erpParseRecetas(recHtml);
+    if (recetas.length) d.recetas = recetas.map(r => ({ ...r, origen: 'erp' }));
+    // Lotes (ya tenemos el HTML de /Lote del chequeo de login).
+    const loteHtml = login.loteHtml || await (await erpGet(cr.base + '/Lote', login.jar, cr.base)).text();
+    const lotes = erpParseLotes(loteHtml);
     let nuevos = 0, act = 0;
-    for (const rl of remotos) {
-      const lid = String(rl.id || rl.codigo || '').trim(); if (!lid) continue;
-      const ex = d.lotes.find(x => x.codigo === lid || x.erpId === lid);
-      if (!ex) { d.lotes.push({ id: prodNewId('lote'), erpId: lid, origen: 'erp', codigo: String(rl.codigo || lid), producto: String(rl.producto || ''), estilo: String(rl.estilo || ''), tanqueId: '', nBatches: 1, volumenEsperadoL: prodNum(rl.litros), volumenRealL: 0, fechaCoccion: rl.fechaCoccion || null, fechaFermInicio: null, fechaMadInicio: null, fechaEnvasado: rl.fechaEnvasado || null, estado: 'coccion', etapas: PROD_ETAPAS.map(nombre => ({ nombre, inicio: null, fin: null, editadoManual: false })), envasados: [] }); nuevos++; }
-      else { if (rl.fechaCoccion && !ex.fechaCoccion) { ex.fechaCoccion = rl.fechaCoccion; } if (rl.litros && !ex.volumenEsperadoL) { ex.volumenEsperadoL = prodNum(rl.litros); } act++; }
+    for (const rl of lotes) {
+      if (!rl.numero && !rl.erpId) continue;
+      // Aseguramos que el tanque del ERP exista en el tablero.
+      if (rl.tanque && !d.tanques.find(t => t.id === rl.tanque)) d.tanques.push({ id: rl.tanque, capacidadL: rl.capacidad || 1000, estado: 'vacio', loteActualId: null, sucio: false });
+      const ex = d.lotes.find(x => x.erpId === rl.erpId || x.codigo === rl.numero);
+      const estadoZ = erpEstadoZorbo(rl.etapa, rl.estado);
+      if (!ex) {
+        d.lotes.push({ id: prodNewId('lote'), erpId: rl.erpId, origen: 'erp', codigo: rl.numero, producto: rl.descripcion, estilo: rl.descripcion, familia: '', color: '',
+          tanqueId: rl.tanque || '', nBatches: rl.cantCocciones || 1, volumenEsperadoL: rl.litrosDisponibles, volumenRealL: 0, idReceta: rl.idReceta,
+          fechaCoccion: rl.fechaCoccion, fechaFermInicio: (estadoZ !== 'coccion' ? rl.fechaCoccion : null), fechaMadInicio: null, fechaEnvasado: null,
+          estado: estadoZ, etapaErp: rl.etapa, estadoErp: rl.estado,
+          etapas: PROD_ETAPAS.map(nombre => ({ nombre, inicio: null, fin: null, editadoManual: false })), envasados: [] });
+        nuevos++;
+      } else {
+        // Solo refrescamos campos de origen ERP. NUNCA pisamos tiempos/envasados manuales.
+        ex.erpId = rl.erpId; ex.idReceta = rl.idReceta; ex.etapaErp = rl.etapa; ex.estadoErp = rl.estado;
+        if (rl.descripcion) { ex.producto = ex.producto || rl.descripcion; ex.estilo = ex.estilo || rl.descripcion; }
+        if (rl.fechaCoccion) ex.fechaCoccion = rl.fechaCoccion;
+        if (rl.tanque) ex.tanqueId = rl.tanque;
+        if (rl.litrosDisponibles) ex.volumenEsperadoL = ex.volumenEsperadoL || rl.litrosDisponibles;
+        // El estado se sincroniza salvo que el maestro ya lo haya avanzado más manualmente.
+        const orden = { coccion: 0, fermentacion: 1, maduracion: 2, listo: 3, envasado: 4 };
+        if ((orden[estadoZ] || 0) > (orden[ex.estado] || 0)) { ex.estado = estadoZ; if (estadoZ !== 'coccion' && !ex.fechaFermInicio) ex.fechaFermInicio = rl.fechaCoccion; }
+        act++;
+      }
     }
-    prodSyncTanques(d); msg = 'OK · ' + nuevos + ' nuevos, ' + act + ' actualizados';
-  }
+    prodSyncTanques(d);
+    msg = 'OK · ' + recetas.length + ' recetas · lotes: ' + nuevos + ' nuevos, ' + act + ' actualizados';
+  } catch (e) { msg = 'Error: ' + String(e.message || e).slice(0, 180); }
   cfg.erpLastSync = new Date().toISOString(); cfg.erpLastStatus = msg; prodSave(d);
-  res.json({ ok: true, ultimaSync: cfg.erpLastSync, estado: msg });
+  res.json({ ok: !/^Error|^Falta/.test(msg), ultimaSync: cfg.erpLastSync, estado: msg });
 });
 // Crear lote (cocción). Ocupa el tanque destino recién al cerrar la cocción.
 app.post('/admin/produccion/lote', requireAdmin, (req, res) => {
