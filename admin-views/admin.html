@@ -1754,6 +1754,58 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .oee-comp{border:1px dashed var(--gold-bd,#d8c3ad);background:var(--gold-dim,#fffaf0)}
 .oee-empty{color:var(--dim,#999);font-size:.8rem;padding:.5rem 0}
 .oee-chip{display:inline-block;font-size:.66rem;font-weight:800;background:#f0e4d3;color:#8a6d1f;border-radius:5px;padding:.1rem .4rem;text-transform:uppercase;letter-spacing:.04em}
+/* Control de Calidad (Fase 3) */
+.cal-nav{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem}
+.cal-nav button{border:1px solid var(--line,#e5e5e5);background:var(--surface,#fff);border-radius:10px;padding:.5rem .85rem;font:inherit;font-size:.85rem;font-weight:700;cursor:pointer;color:var(--muted,#666)}
+.cal-nav button.on{background:#7a1f2b;border-color:#7a1f2b;color:#fff}
+.cal-form{border:1px solid var(--line,#e5e5e5);border-radius:14px;padding:1rem 1.1rem;background:var(--surface2,#fafafa);margin-bottom:1.2rem}
+.cal-form-t{font-family:var(--display,inherit);font-weight:800;font-size:1rem;margin-bottom:.2rem}
+.cal-form-s{font-size:.74rem;color:var(--muted,#666);margin-bottom:.8rem}
+.cal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.7rem}
+.cal-fld{display:flex;flex-direction:column;gap:.25rem;font-size:.68rem;font-weight:700;color:var(--muted,#777);text-transform:uppercase;letter-spacing:.03em}
+.cal-fld input,.cal-fld select,.cal-fld textarea{padding:.5rem .6rem;border:1px solid var(--line,#e5e5e5);border-radius:8px;font:inherit;font-size:.88rem;background:var(--surface,#fff);color:var(--text,#111);text-transform:none;letter-spacing:0;font-weight:400}
+.cal-fld textarea{resize:vertical;min-height:70px}
+.cal-count{font-size:.66rem;color:var(--dim,#999);font-weight:600;text-align:right}
+.cal-count.over{color:#d9534f}
+.cal-full{grid-column:1/-1}
+.cal-btn-row{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.8rem}
+.cal-err{font-size:.8rem;font-weight:600;color:#d9534f}
+.cal-err.ok{color:#2e9c5a}
+.cal-files{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.4rem}
+.cal-file{display:inline-flex;align-items:center;gap:.35rem;background:var(--surface,#fff);border:1px solid var(--line,#e5e5e5);border-radius:8px;padding:.25rem .5rem;font-size:.76rem}
+.cal-file a{color:#7a1f2b;text-decoration:none;font-weight:600}
+.cal-file button{border:none;background:none;color:#c66;cursor:pointer;font-size:.85rem;padding:0}
+.cal-ia{border:1px dashed #d8a3ac;background:#fdf5f6;border-radius:10px;padding:.7rem .8rem;margin-top:.7rem}
+.cal-ia-t{font-weight:800;font-size:.8rem;color:#7a1f2b;margin-bottom:.5rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.cal-ia-cat{display:grid;grid-template-columns:110px 1fr;gap:.5rem;align-items:start;margin-bottom:.4rem}
+.cal-ia-cat label{font-size:.66rem;font-weight:800;text-transform:uppercase;color:#8a5560;padding-top:.35rem}
+.cal-ia-cat textarea{width:100%;padding:.4rem .5rem;border:1px solid #e6cdd2;border-radius:7px;font:inherit;font-size:.82rem;min-height:44px;resize:vertical}
+.cal-medal-up{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.5rem}
+.cal-medal-up .m{display:flex;flex-direction:column;align-items:center;gap:.3rem;font-size:.68rem;font-weight:700}
+.cal-medal-up img{width:38px;height:38px;object-fit:contain}
+.cal-hist-h{font-family:var(--display,inherit);font-weight:800;font-size:.95rem;margin:1.1rem 0 .5rem;display:flex;align-items:center;gap:.5rem}
+.cal-medal-ico{width:20px;height:20px;object-fit:contain;vertical-align:middle}
+.cal-badge-med{font-weight:800}
+.cal-badge-med.oro{color:#c79413}.cal-badge-med.plata{color:#8a8a8a}.cal-badge-med.bronce{color:#a4632a}.cal-badge-med.sin_medalla{color:#bbb;font-weight:600}
+.cal-resumen-cell{font-size:.76rem;color:var(--muted,#555);line-height:1.5}
+.cal-resumen-cell b{color:#7a1f2b}
+/* Galería de cervezas */
+.cal-gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem}
+.cal-can{border:1px solid var(--line,#e5e5e5);border-radius:14px;background:var(--surface,#fff);overflow:hidden;cursor:pointer;transition:box-shadow .15s,border-color .15s}
+.cal-can:hover{border-color:#7a1f2b;box-shadow:0 4px 14px rgba(122,31,43,.12)}
+.cal-can-img{position:relative;height:150px;display:flex;align-items:flex-end;justify-content:center;background:linear-gradient(180deg,#f7f4f1,#efe9e4);padding-top:.5rem}
+.cal-can-img img{max-height:140px;max-width:80%;object-fit:contain}
+.cal-can-ph{font-size:3rem;opacity:.5}
+.cal-can-medals{position:absolute;top:.4rem;left:0;right:0;display:flex;justify-content:center;gap:.15rem}
+.cal-can-medals img,.cal-can-medals span{width:26px;height:26px;font-size:1.3rem;line-height:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.3))}
+.cal-can-body{padding:.6rem .7rem}
+.cal-can-nm{font-family:var(--display,inherit);font-weight:800;font-size:.9rem;line-height:1.1}
+.cal-can-est{font-size:.72rem;color:var(--muted,#666)}
+.cal-sem{display:inline-block;font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;border-radius:20px;padding:.12rem .5rem;margin-top:.35rem}
+.cal-sem.solida{background:#e3f6ea;color:#1f7a44}.cal-sem.a_observar{background:#fff3d6;color:#a05f00}.cal-sem.debe_mejorar{background:#fbe4e4;color:#c0392b}
+.cal-detail{border:1px solid #d8c3ad;border-radius:12px;background:var(--surface2,#fffdf7);padding:1rem 1.1rem;margin-bottom:1rem}
+.cal-detail h4{margin:0 0 .3rem;font-family:var(--display,inherit)}
+.cal-detail-line{font-size:.84rem;color:var(--muted,#555);margin:.3rem 0;line-height:1.5}
 /* Estado de Resultado (P&L) */
 .pnl-table td{padding:.5rem .7rem}
 .pnl-table tr.pnl-sub td:first-child{padding-left:1.8rem;color:var(--muted,#666);font-size:.86rem}
@@ -8626,6 +8678,7 @@ document.getElementById('pnlExcel').onclick=()=>{ const m=document.getElementByI
 let prodData=null, prodTab='tanques', prodTimers=null, prodOpenLote=null;
 let prodRecQuery='', prodRecPage=0, prodRecEditing=null, prodRecView=null; const PROD_REC_PER=8;
 let prodOee={centro:'envasado',periodo:'mes',desde:'',hasta:'',incluirLimp:null,data:null,loading:false};
+let prodCal={tab:'inicio',data:null,sel:null,compNuevo:false,pdfs:[],medalUp:{},memImg:null,resumen:null};
 const prodNow=()=>new Date().toISOString();
 function prodStopTimers(){ if(prodTimers){ clearInterval(prodTimers); prodTimers=null; } }
 function prodDur(ms){ if(ms<0)ms=0; const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60; if(h>0)return h+'h '+String(m).padStart(2,'0')+'m'; if(m>0)return m+'m '+String(ss).padStart(2,'0')+'s'; return ss+'s'; }
@@ -8637,12 +8690,13 @@ async function loadProduccion(){
 }
 function renderProduccion(){
   const body=document.getElementById('prodBody');
-  const tabs=[['tanques','🛢 Tanques'],['coccion','🔥 Cocción'],['recetas','📖 Recetas'],['envasado','📦 Envasado'],['oee','📊 OEE'],['limpiezas','🧽 Limpiezas'],['paradas','⛔ Paradas'],['config','⚙ Config']];
+  const tabs=[['tanques','🛢 Tanques'],['coccion','🔥 Cocción'],['recetas','📖 Recetas'],['envasado','📦 Envasado'],['oee','📊 OEE'],['calidad','🏅 Calidad'],['limpiezas','🧽 Limpiezas'],['paradas','⛔ Paradas'],['config','⚙ Config']];
   const tabBar=`<div class="prod-tabs">${tabs.map(([k,l])=>`<button class="prod-tab ${k===prodTab?'on':''}" data-ptab="${k}">${l}</button>`).join('')}</div>`;
-  const R={tanques:prodRenderTanques,coccion:prodRenderCoccion,recetas:prodRenderRecetas,envasado:prodRenderEnvasado,oee:prodRenderOee,limpiezas:prodRenderLimpiezas,paradas:prodRenderParadas,config:prodRenderConfig};
+  const R={tanques:prodRenderTanques,coccion:prodRenderCoccion,recetas:prodRenderRecetas,envasado:prodRenderEnvasado,oee:prodRenderOee,calidad:prodRenderCalidad,limpiezas:prodRenderLimpiezas,paradas:prodRenderParadas,config:prodRenderConfig};
   body.innerHTML=tabBar+'<div class="prod-content">'+(R[prodTab]||(()=>''))()+'</div>';
   prodWire();
   if(prodTab==='oee') prodLoadOee();
+  if(prodTab==='calidad') prodLoadCalidad();
   prodStopTimers();
   if(prodTab==='coccion'||prodTab==='envasado'||prodTab==='tanques') prodTimers=setInterval(prodTick,1000);
   prodTick();
@@ -8985,6 +9039,219 @@ function prodOeeComplementarias(j){
     <div class="oee-crudos" style="margin-bottom:.5rem"><b>Utilización de fermentadores:</b> ${u.pct}% · ${u.ocupadosTD}/${u.disponiblesTD} tanque-días (${u.nTanques} tanques)</div>
     <div class="oee-crudos"><b>Carga vs capacidad:</b> ${c.pct!=null?c.pct+'%':'—'} · demanda ${c.demandaH} h / capacidad ${c.capacidadH} h (${c.nTrabajadores} trab.)<br>
     <span class="oee-lead-val">cocción ${c.coccionH} h · limpieza ${c.limpiezaH} h · envasado ${c.envasadoH} h</span></div></div>`;
+}
+// ── Control de Calidad (Fase 3) ──
+const CAL_CAT_LBL={apariencia:'Apariencia',sabor:'Sabor',sensacion_boca:'Sensación en boca',aroma:'Aroma'};
+const CAL_RES_LBL={oro:'Oro',plata:'Plata',bronce:'Bronce',sin_medalla:'Sin medalla'};
+const CAL_MED_EMOJI={oro:'🥇',plata:'🥈',bronce:'🥉'};
+function prodRenderCalidad(){
+  const nav=[['inicio','🏠 Inicio'],['competencias','🏆 Competencias'],['retro','💬 Retroalimentación'],['memorias','🧠 Memorias']];
+  return `<div class="cal-nav">${nav.map(([k,l])=>`<button class="${k===prodCal.tab?'on':''}" data-cal-tab="${k}">${l}</button>`).join('')}</div><div id="calBody"><div class="adm-loading">Cargando…</div></div>`;
+}
+async function prodLoadCalidad(){
+  const body=document.getElementById('calBody'); if(!body) return;
+  if(!prodCal.data){ body.innerHTML='<div class="adm-loading">Cargando…</div>'; }
+  try{ const r=await fetch('/admin/produccion/calidad'); const j=await r.json(); if(!r.ok) throw new Error(j.error||'Error'); prodCal.data=j; prodCalRender(); }
+  catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function prodCalRender(){
+  const body=document.getElementById('calBody'); if(!body||!prodCal.data) return;
+  const R={inicio:prodCalInicio,competencias:prodCalCompetencias,retro:prodCalRetro,memorias:prodCalMemorias};
+  body.innerHTML=(R[prodCal.tab]||prodCalInicio)();
+  prodCalWire();
+}
+function prodCalCervOpts(sel){
+  const cs=prodCal.data.cervezas||[];
+  return '<option value="">— elegí una cerveza —</option>'+cs.map(c=>`<option value="${escapeAttr(c.cervezaId)}" data-nombre="${escapeAttr(c.nombre)}" data-estilo="${escapeAttr(c.estilo||'')}" ${sel===c.cervezaId?'selected':''}>${escapeHtml(c.nombre)}${c.estilo?(' · '+escapeHtml(c.estilo)):''}</option>`).join('');
+}
+function prodCalCompByName(){ const m={}; (prodCal.data.competencias||[]).forEach(c=>m[c.nombre]=c); return m; }
+function prodCalMedalIco(resultado,compNombre,cls){
+  if(!resultado||resultado==='sin_medalla') return '';
+  const c=prodCalCompByName()[compNombre];
+  const png=c&&({oro:c.medallaOroPng,plata:c.medallaPlataPng,bronce:c.medallaBroncePng}[resultado]);
+  if(png) return `<img class="${cls||'cal-medal-ico'}" src="${escapeAttr(png)}" alt="${resultado}" title="${resultado}">`;
+  return `<span class="${cls||'cal-medal-ico'}" title="${resultado}">${CAL_MED_EMOJI[resultado]||''}</span>`;
+}
+function prodCalFecha(iso){ if(!iso)return '—'; const d=new Date(iso); return isNaN(d)?'—':d.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+// ── Inicio: galería de latas + medallas + semáforo + detalle consolidado ──
+function prodCalInicio(){
+  const cs=prodCal.data.cervezas||[]; const res=prodCal.data.resumenes||{};
+  if(!cs.length) return `<div class="cal-form"><div class="cal-form-t">Sin cervezas en el catálogo todavía</div><div class="cal-form-s">El catálogo se arma desde tus recetas y Shopify. También podés registrar una competencia/memoria y la cerveza aparecerá acá. Para cargar una imagen de lata y su estilo, andá a Competencias → "cerveza" o registrá desde los formularios.</div></div>`;
+  const cards=cs.map(c=>{
+    const r=res[c.cervezaId]||{}; const medals=(r.medallas||[]).slice(0,4);
+    const medalRow=medals.length?`<div class="cal-can-medals">${medals.map(m=>prodCalMedalIco(m.resultado,m.competencia,'')).join('')}</div>`:'';
+    const img=c.imagen?`<img src="${escapeAttr(c.imagen)}" alt="${escapeAttr(c.nombre)}">`:`<div class="cal-can-ph">🥫</div>`;
+    const sem=r.estado?`<div><span class="cal-sem ${r.estado}">${{solida:'Sólida',a_observar:'A observar',debe_mejorar:'Debe mejorar'}[r.estado]}</span></div>`:'';
+    return `<div class="cal-can" data-cal-cerv="${escapeAttr(c.cervezaId)}">
+      <div class="cal-can-img">${medalRow}${img}</div>
+      <div class="cal-can-body"><div class="cal-can-nm">${escapeHtml(c.nombre)}</div><div class="cal-can-est">${escapeHtml(c.estilo||'—')}</div>${sem}</div></div>`;
+  }).join('');
+  const detail=prodCal.sel?prodCalDetalle(prodCal.sel):'';
+  return `<div class="cal-form-s" style="margin-bottom:.7rem">Tocá una lata para ver su resumen consolidado de calidad. Semáforo: <b style="color:#1f7a44">Sólida</b> (con medallas, sin defectos recientes) · <b style="color:#a05f00">A observar</b> · <b style="color:#c0392b">Debe mejorar</b> (defectos recurrentes o feedback negativo).</div>
+    ${detail}<div class="cal-gal">${cards}</div>
+    <div class="cal-btn-row" style="margin-top:1.2rem"><span class="cal-fld" style="flex-direction:row;align-items:center;gap:.5rem">Accesos:</span>
+      <button class="adm-btn adm-btn-ghost" data-cal-goto="competencias">🏆 Competencias</button>
+      <button class="adm-btn adm-btn-ghost" data-cal-goto="retro">💬 Retroalimentación</button>
+      <button class="adm-btn adm-btn-ghost" data-cal-goto="memorias">🧠 Memorias</button></div>`;
+}
+function prodCalDetalle(cid){
+  const c=(prodCal.data.cervezas||[]).find(x=>x.cervezaId===cid); if(!c) return '';
+  const r=(prodCal.data.resumenes||{})[cid]||{};
+  const regs=(prodCal.data.registros||[]).filter(x=>x.cervezaId===cid);
+  const mems=(prodCal.data.memorias||[]).filter(x=>x.cervezaId===cid);
+  const retros=(prodCal.data.retros||[]).filter(x=>x.cervezaId===cid);
+  const medLine=(r.medallas&&r.medallas.length)?r.medallas.map(m=>`${prodCalMedalIco(m.resultado,m.competencia,'cal-medal-ico')} ${CAL_RES_LBL[m.resultado]} · ${escapeHtml(m.competencia||'')}`).join(' &nbsp; '):'Sin medallas todavía';
+  const fbLine=retros.length?`${retros.length} retroalimentación(es) · última: "${escapeHtml((retros[retros.length-1].texto||'').slice(0,80))}"`:'Sin retroalimentación';
+  const defLine=mems.length?`${mems.length} memoria(s)${r.recurrente?' · <b style="color:#c0392b">defecto recurrente</b>':''} · categorías: ${Object.keys(r.catConteo||{}).map(k=>CAL_CAT_LBL[k]||k).join(', ')}`:'Sin defectos registrados';
+  const ia=r.resumenIA&&r.resumenIA.texto;
+  return `<div class="cal-detail">
+    <h4>${escapeHtml(c.nombre)} <span class="cal-sem ${r.estado}">${{solida:'Sólida',a_observar:'A observar',debe_mejorar:'Debe mejorar'}[r.estado]||''}</span></h4>
+    <div class="cal-can-est" style="margin-bottom:.5rem">${escapeHtml(c.estilo||'')}</div>
+    <div class="cal-detail-line">🏆 <b>Medallas:</b> ${medLine}</div>
+    <div class="cal-detail-line">💬 <b>Retroalimentación:</b> ${fbLine}</div>
+    <div class="cal-detail-line">🧠 <b>Memorias:</b> ${defLine}</div>
+    ${ia?`<div class="cal-ia" style="margin-top:.7rem"><div class="cal-ia-t">✨ Resumen IA</div><div class="cal-detail-line" style="margin:0">${escapeHtml(ia)}</div></div>`:''}
+    <div class="cal-btn-row"><button class="adm-btn adm-btn-gold" data-cal-resumir="${escapeAttr(cid)}">✨ ${ia?'Regenerar':'Generar'} resumen IA</button><button class="adm-btn adm-btn-ghost" data-cal-cerrar-det="1">Cerrar</button><span class="cal-err" id="calDetErr"></span></div></div>`;
+}
+// ── Competencias ──
+function prodCalCompetencias(){
+  const comps=prodCal.data.competencias||[];
+  const compOpts=comps.map(c=>`<option value="${escapeAttr(c.id)}" data-tipo="${c.tipo}">${escapeHtml(c.nombre)} (${c.tipo==='internacional'?'Int':'Nac'})</option>`).join('');
+  const nuevo=prodCal.compNuevo?`<div class="cal-ia" style="border-style:solid"><div class="cal-ia-t">➕ Nueva competencia (se guarda para reusar)</div>
+    <div class="cal-grid"><label class="cal-fld">Nombre<input id="ncNombre" placeholder="Ej: Copa Cervezas de América"></label>
+    <label class="cal-fld">Tipo<select id="ncTipo"><option value="nacional">Nacional</option><option value="internacional">Internacional</option></select></label></div>
+    <div class="cal-medal-up">${['oro','plata','bronce'].map(m=>`<div class="m"><div>${CAL_MED_EMOJI[m]} ${m}</div><img id="ncImg_${m}" style="display:none"><label class="adm-btn adm-btn-ghost" style="cursor:pointer;font-size:.72rem;padding:.3rem .5rem">PNG<input type="file" accept="image/png,image/*" data-cal-medal="${m}" style="display:none"></label></div>`).join('')}</div>
+    <div class="cal-btn-row"><button class="adm-btn adm-btn-gold" id="ncSave">Guardar competencia</button><button class="adm-btn adm-btn-ghost" id="ncCancel">Cancelar</button><span class="cal-err" id="ncErr"></span></div></div>`:'';
+  const pdfs=prodCal.pdfs.map((f,i)=>`<span class="cal-file">📄 <a href="${escapeAttr(f.url)}" target="_blank">${escapeHtml(f.name)}</a> <button data-cal-pdf-del="${i}">✕</button></span>`).join('');
+  const form=`<div class="cal-form"><div class="cal-form-t">Registrar participación en competencia</div><div class="cal-form-s">Elegí la cerveza (autocompleta el estilo), la competencia, el resultado y el feedback. La IA resume los PDFs en 5 categorías.</div>
+    <div class="cal-grid">
+      <label class="cal-fld">Cerveza evaluada<select id="rcCerveza" class="cal-cerv" data-estilo-for="rcEstilo">${prodCalCervOpts()}</select></label>
+      <label class="cal-fld">Estilo (auto)<input id="rcEstilo" placeholder="—"></label>
+      <label class="cal-fld">Tipo de competencia<select id="rcTipoFiltro"><option value="todas">Todas</option><option value="nacional">Nacional</option><option value="internacional">Internacional</option></select></label>
+      <label class="cal-fld">Competencia<select id="rcComp">${compOpts}</select></label>
+      <label class="cal-fld">Resultado<select id="rcResultado"><option value="oro">🥇 Oro</option><option value="plata">🥈 Plata</option><option value="bronce">🥉 Bronce</option><option value="sin_medalla" selected>Sin medalla</option></select></label>
+      <label class="cal-fld">Fecha<input type="date" id="rcFecha"></label>
+    </div>
+    <div class="cal-btn-row"><button class="adm-btn adm-btn-ghost" id="rcAddComp">➕ Agregar otra competencia</button></div>
+    ${nuevo}
+    <div class="cal-fld cal-full" style="margin-top:.7rem">Feedback de la competencia (hasta 5 PDF)
+      <div class="cal-files">${pdfs}${prodCal.pdfs.length<5?`<label class="cal-file" style="cursor:pointer;border-style:dashed">➕ PDF<input type="file" accept="application/pdf" id="rcPdf" style="display:none"></label>`:''}</div></div>
+    <div class="cal-ia">
+      <div class="cal-ia-t">✨ Resumen del feedback (IA) <button class="adm-btn adm-btn-ghost" id="rcResumir" style="font-size:.72rem;padding:.25rem .5rem">Generar desde PDFs</button> <span class="cal-err" id="rcIaErr" style="font-weight:600"></span></div>
+      ${['apariencia','aroma','sabor','sensacionBoca','conclusion'].map(k=>`<div class="cal-ia-cat"><label>${k==='sensacionBoca'?'Sensación en boca':k}</label><textarea data-ia="${k}" placeholder="editable…"></textarea></div>`).join('')}
+    </div>
+    <div class="cal-btn-row"><button class="adm-btn adm-btn-gold" id="rcSave">Guardar registro</button><span class="cal-err" id="rcErr"></span></div>
+  </div>`;
+  // Historial
+  const regs=(prodCal.data.registros||[]).slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  const rows=regs.map(r=>`<tr>
+    <td><b>${escapeHtml(r.cervezaNombre)}</b><br><span class="cal-can-est">${escapeHtml(r.estilo||'')}</span></td>
+    <td>${escapeHtml(r.competenciaNombre||'')}<br><span class="cal-can-est">${r.tipo==='internacional'?'Internacional':'Nacional'}</span></td>
+    <td>${prodCalFecha(r.fecha)}</td>
+    <td>${prodCalMedalIco(r.resultado,r.competenciaNombre)} <span class="cal-badge-med ${r.resultado}">${CAL_RES_LBL[r.resultado]}</span></td>
+    <td class="cal-resumen-cell">${prodCalResumenPreview(r.resumenIA)}</td>
+    <td><button class="pv-del" data-cal-reg-del="${r.id}">✕</button></td></tr>`).join('');
+  const hist=`<div class="cal-hist-h">🏆 Historial de competencias</div><div class="mun-wrap"><table class="mun-table"><thead><tr><th>Cerveza</th><th>Competencia</th><th>Fecha</th><th>Resultado</th><th>Resumen IA</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:.8rem">Sin registros todavía</td></tr>'}</tbody></table></div>`;
+  return form+hist;
+}
+function prodCalResumenPreview(r){
+  if(!r) return '<span style="color:#bbb">—</span>';
+  const parts=[]; if(r.conclusion)parts.push('<b>Conclusión:</b> '+escapeHtml(r.conclusion.slice(0,90))); else { for(const k of ['apariencia','aroma','sabor']) if(r[k]){parts.push(escapeHtml(r[k].slice(0,60)));break;} }
+  return parts.join(' ')||'<span style="color:#bbb">—</span>';
+}
+// ── Retroalimentación ──
+function prodCalRetro(){
+  const form=`<div class="cal-form"><div class="cal-form-t">Dejar retroalimentación</div><div class="cal-form-s">Feedback interno o externo sobre una cerveza. La fecha se registra automáticamente.</div>
+    <div class="cal-grid">
+      <label class="cal-fld">Nombre de quien deja la retro<input id="fbAutor" placeholder="Ej: Vicente"></label>
+      <label class="cal-fld">Cerveza<select id="fbCerveza" class="cal-cerv" data-estilo-for="fbEstilo">${prodCalCervOpts()}</select></label>
+      <label class="cal-fld">Estilo (auto)<input id="fbEstilo" placeholder="—"></label>
+    </div>
+    <label class="cal-fld cal-full" style="margin-top:.6rem">Retroalimentación (máx. 500)
+      <textarea id="fbTexto" maxlength="500" data-count="fbCount" placeholder="Escribí la retroalimentación…"></textarea>
+      <span class="cal-count" id="fbCount">0 / 500</span></label>
+    <div class="cal-btn-row"><button class="adm-btn adm-btn-gold" id="fbSave">Guardar</button><span class="cal-err" id="fbErr"></span></div></div>`;
+  const list=(prodCal.data.retros||[]).slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  const rows=list.map(r=>`<tr><td><b>${escapeHtml(r.cervezaNombre)}</b><br><span class="cal-can-est">${escapeHtml(r.estilo||'')}</span></td><td>${escapeHtml(r.autor)}</td><td>${prodCalFecha(r.fecha)}</td><td class="cal-resumen-cell">${escapeHtml(r.texto)}</td><td><button class="pv-del" data-cal-retro-del="${r.id}">✕</button></td></tr>`).join('');
+  return form+`<div class="cal-hist-h">💬 Historial de retroalimentación</div><div class="mun-wrap"><table class="mun-table"><thead><tr><th>Cerveza</th><th>Autor</th><th>Fecha</th><th>Texto</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="5" style="text-align:center;color:#999;padding:.8rem">Sin retroalimentaciones</td></tr>'}</tbody></table></div>`;
+}
+// ── Memorias ──
+function prodCalMemorias(){
+  const img=prodCal.memImg?`<span class="cal-file">🖼 <a href="${escapeAttr(prodCal.memImg.url)}" target="_blank">${escapeHtml(prodCal.memImg.name)}</a> <button data-cal-memimg-del="1">✕</button></span>`:'';
+  const form=`<div class="cal-form"><div class="cal-form-t">Registrar memoria (defecto / problema)</div><div class="cal-form-s">Dato de calidad: se enlaza al resumen de la cerveza y alimenta el análisis (relacionado con el OEE de Calidad).</div>
+    <div class="cal-grid">
+      <label class="cal-fld">Cerveza<select id="memCerveza" class="cal-cerv" data-estilo-for="memEstilo">${prodCalCervOpts()}</select></label>
+      <label class="cal-fld">Estilo (auto)<input id="memEstilo" placeholder="—"></label>
+      <label class="cal-fld">Ubicación del problema<input id="memUbicacion" placeholder="tanque, envasado, bodega, cliente…"></label>
+      <label class="cal-fld">Canal de venta<input id="memCanal" placeholder="Shop/barril, lata retail…"></label>
+      <label class="cal-fld">Categoría<select id="memCat">${Object.entries(CAL_CAT_LBL).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
+    </div>
+    <label class="cal-fld cal-full" style="margin-top:.6rem">Memoria (máx. 500)
+      <textarea id="memTexto" maxlength="500" data-count="memCount" placeholder="Describí el defecto/problema…"></textarea>
+      <span class="cal-count" id="memCount">0 / 500</span></label>
+    <div class="cal-fld cal-full">Imagen (foto del defecto)<div class="cal-files">${img}${!prodCal.memImg?`<label class="cal-file" style="cursor:pointer;border-style:dashed">➕ Imagen<input type="file" accept="image/*" id="memImgInp" style="display:none"></label>`:''}</div></div>
+    <div class="cal-btn-row"><button class="adm-btn adm-btn-gold" id="memSave">Guardar memoria</button><span class="cal-err" id="memErr"></span></div></div>`;
+  const list=(prodCal.data.memorias||[]).slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
+  const rows=list.map(m=>`<tr><td><b>${escapeHtml(m.cervezaNombre)}</b><br><span class="cal-can-est">${escapeHtml(m.estilo||'')}</span></td><td><span class="cal-badge-med" style="color:#7a1f2b">${CAL_CAT_LBL[m.categoria]||m.categoria}</span></td><td>${escapeHtml(m.ubicacion||'—')}</td><td>${escapeHtml(m.canalVenta||'—')}</td><td>${prodCalFecha(m.fecha)}</td><td class="cal-resumen-cell">${escapeHtml(m.texto)}</td><td>${m.imagen?`<a href="${escapeAttr(m.imagen.url)}" target="_blank">🖼</a>`:''}</td><td><button class="pv-del" data-cal-mem-del="${m.id}">✕</button></td></tr>`).join('');
+  return form+`<div class="cal-hist-h">🧠 Historial de memorias</div><div class="mun-wrap"><table class="mun-table"><thead><tr><th>Cerveza</th><th>Categoría</th><th>Ubicación</th><th>Canal</th><th>Fecha</th><th>Texto</th><th>Img</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="8" style="text-align:center;color:#999;padding:.8rem">Sin memorias</td></tr>'}</tbody></table></div>`;
+}
+// ── Upload + wiring ──
+function prodCalReadFile(file){ return new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(String(r.result).split(',')[1]); r.onerror=reject; r.readAsDataURL(file); }); }
+async function prodCalUpload(file){
+  const dataBase64=await prodCalReadFile(file);
+  const r=await fetch('/admin/produccion/calidad/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,contentType:file.type,dataBase64})});
+  const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error subiendo'); return d;
+}
+async function prodCalReq(path,method,body){
+  try{ const r=await fetch('/admin/produccion/calidad/'+path,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await prodLoadCalidad(); return d; }
+  catch(e){ alert(String(e.message||e)); return null; }
+}
+function prodCalWire(){
+  const g=id=>document.getElementById(id);
+  document.querySelectorAll('[data-cal-tab]').forEach(b=>b.onclick=()=>{ prodCal.tab=b.dataset.calTab; prodCal.sel=null; prodCalRender(); });
+  document.querySelectorAll('[data-cal-goto]').forEach(b=>b.onclick=()=>{ prodCal.tab=b.dataset.calGoto; prodCalRender(); });
+  // estilo autofill
+  document.querySelectorAll('.cal-cerv').forEach(sel=>sel.onchange=()=>{ const o=sel.selectedOptions[0]; const t=g(sel.dataset.estiloFor); if(t) t.value=(o&&o.dataset.estilo)||''; });
+  // contadores
+  document.querySelectorAll('textarea[data-count]').forEach(t=>{ const c=g(t.dataset.count); const upd=()=>{ if(c){ c.textContent=t.value.length+' / '+(t.maxLength||500); c.classList.toggle('over',t.value.length>=(t.maxLength||500)); } }; t.oninput=upd; upd(); });
+  // galería
+  document.querySelectorAll('[data-cal-cerv]').forEach(c=>c.onclick=(ev)=>{ if(ev.target.closest('button,a'))return; prodCal.sel=(prodCal.sel===c.dataset.calCerv)?null:c.dataset.calCerv; prodCalRender(); });
+  document.querySelectorAll('[data-cal-cerrar-det]').forEach(b=>b.onclick=()=>{ prodCal.sel=null; prodCalRender(); });
+  document.querySelectorAll('[data-cal-resumir]').forEach(b=>b.onclick=async()=>{ const e=g('calDetErr'); if(e){e.className='cal-err';e.textContent='Generando…';} const d=await prodCalReq('resumen/'+encodeURIComponent(b.dataset.calResumir),'POST'); if(!d&&e){e.textContent='';} });
+  // competencias: nueva competencia
+  if(g('rcAddComp')) g('rcAddComp').onclick=()=>{ prodCal.compNuevo=!prodCal.compNuevo; prodCalRender(); };
+  if(g('ncCancel')) g('ncCancel').onclick=()=>{ prodCal.compNuevo=false; prodCal.medalUp={}; prodCalRender(); };
+  document.querySelectorAll('[data-cal-medal]').forEach(inp=>inp.onchange=async()=>{ const f=inp.files[0]; if(!f)return; try{ const up=await prodCalUpload(f); prodCal.medalUp[inp.dataset.calMedal]=up.url; const im=g('ncImg_'+inp.dataset.calMedal); if(im){im.src=up.url;im.style.display='';} }catch(e){ alert(String(e.message||e)); } });
+  if(g('ncSave')) g('ncSave').onclick=async()=>{ const err=g('ncErr'); const nombre=g('ncNombre').value.trim(); if(!nombre){err.textContent='⚠ Nombre';return;} const d=await prodCalReq('competencia','POST',{nombre,tipo:g('ncTipo').value,medallaOroPng:prodCal.medalUp.oro||'',medallaPlataPng:prodCal.medalUp.plata||'',medallaBroncePng:prodCal.medalUp.bronce||''}); if(d){ prodCal.compNuevo=false; prodCal.medalUp={}; prodCalRender(); } };
+  // competencia tipo filtro
+  if(g('rcTipoFiltro')) g('rcTipoFiltro').onchange=()=>{ const f=g('rcTipoFiltro').value; g('rcComp').querySelectorAll('option').forEach(o=>{ o.hidden=(f!=='todas'&&o.dataset.tipo!==f); }); const cur=g('rcComp').selectedOptions[0]; if(cur&&cur.hidden){ const first=[...g('rcComp').options].find(o=>!o.hidden); if(first) g('rcComp').value=first.value; } };
+  // PDFs
+  if(g('rcPdf')) g('rcPdf').onchange=async()=>{ const f=g('rcPdf').files[0]; if(!f)return; if(prodCal.pdfs.length>=5)return; try{ const up=await prodCalUpload(f); prodCal.pdfs.push({url:up.url,name:up.name}); prodCalRender(); }catch(e){ alert(String(e.message||e)); } };
+  document.querySelectorAll('[data-cal-pdf-del]').forEach(b=>b.onclick=()=>{ prodCal.pdfs.splice(+b.dataset.calPdfDel,1); prodCalRender(); });
+  if(g('rcResumir')) g('rcResumir').onclick=async()=>{ const e=g('rcIaErr'); e.textContent='Generando…'; try{ const r=await fetch('/admin/produccion/calidad/resumir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pdfs:prodCal.pdfs})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); const ia=d.resumenIA||{}; ['apariencia','aroma','sabor','sensacionBoca','conclusion'].forEach(k=>{ const ta=document.querySelector(`[data-ia="${k}"]`); if(ta) ta.value=ia[k]||''; }); e.textContent='✓ listo (editable)'; e.style.color='#2e9c5a'; }catch(err){ e.textContent='⚠ '+String(err.message||err); e.style.color='#d9534f'; } };
+  if(g('rcSave')) g('rcSave').onclick=prodCalGuardarRegistro;
+  // retro
+  if(g('fbSave')) g('fbSave').onclick=async()=>{ const err=g('fbErr'); const sel=g('fbCerveza').selectedOptions[0]; const d=await prodCalReq('retro','POST',{cervezaId:g('fbCerveza').value,cervezaNombre:sel?sel.dataset.nombre:'',estilo:g('fbEstilo').value,autor:g('fbAutor').value,texto:g('fbTexto').value}); if(!d&&err){} };
+  document.querySelectorAll('[data-cal-retro-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar?')) prodCalReq('retro/'+b.dataset.calRetroDel,'DELETE'); });
+  // memorias
+  if(g('memImgInp')) g('memImgInp').onchange=async()=>{ const f=g('memImgInp').files[0]; if(!f)return; try{ const up=await prodCalUpload(f); prodCal.memImg={url:up.url,name:up.name}; prodCalRender(); }catch(e){ alert(String(e.message||e)); } };
+  document.querySelectorAll('[data-cal-memimg-del]').forEach(b=>b.onclick=()=>{ prodCal.memImg=null; prodCalRender(); });
+  if(g('memSave')) g('memSave').onclick=async()=>{ const sel=g('memCerveza').selectedOptions[0]; const d=await prodCalReq('memoria','POST',{cervezaId:g('memCerveza').value,cervezaNombre:sel?sel.dataset.nombre:'',estilo:g('memEstilo').value,ubicacion:g('memUbicacion').value,canalVenta:g('memCanal').value,categoria:g('memCat').value,texto:g('memTexto').value,imagen:prodCal.memImg}); if(d) prodCal.memImg=null; };
+  document.querySelectorAll('[data-cal-mem-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar?')) prodCalReq('memoria/'+b.dataset.calMemDel,'DELETE'); });
+  document.querySelectorAll('[data-cal-reg-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar registro?')) prodCalReq('registro/'+b.dataset.calRegDel,'DELETE'); });
+}
+async function prodCalGuardarRegistro(){
+  const g=id=>document.getElementById(id); const err=g('rcErr'); err.textContent='';
+  const cervSel=g('rcCerveza'); const o=cervSel.selectedOptions[0];
+  if(!cervSel.value){ err.textContent='⚠ Elegí la cerveza.'; return; }
+  const compSel=g('rcComp'); const co=compSel.selectedOptions[0];
+  const resumenIA={}; document.querySelectorAll('[data-ia]').forEach(ta=>resumenIA[ta.dataset.ia]=ta.value);
+  const payload={ cervezaId:cervSel.value, cervezaNombre:o?o.dataset.nombre:'', estilo:g('rcEstilo').value,
+    competenciaId:compSel.value, competenciaNombre:co?co.textContent:'', tipo:co?co.dataset.tipo:'nacional',
+    resultado:g('rcResultado').value, fecha:g('rcFecha').value?new Date(g('rcFecha').value+'T12:00:00Z').toISOString():'',
+    pdfs:prodCal.pdfs.slice(), resumenIA, resumenEditable:true };
+  const d=await prodCalReq('registro','POST',payload);
+  if(d){ prodCal.pdfs=[]; prodCalRender(); }
 }
 // ── Limpiezas ──
 function prodRenderLimpiezas(){

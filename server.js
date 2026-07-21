@@ -4174,6 +4174,228 @@ app.get('/admin/produccion/oee', requireAdmin, (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e.message || e) }); }
 });
 
+// ═══ CONTROL DE CALIDAD (Fase 3) ═════════════════════════════════════════════
+// Historial de calidad por cerveza (nombre de fantasía): competencias + medallas,
+// retroalimentación y memorias (defectos). Todo enlazado por cervezaId (slug del
+// nombre). Se conecta con el componente Calidad del OEE (las memorias son datos de
+// calidad). Reutiliza el catálogo existente (Shopify + recetas) para los selectores.
+const CALIDAD_FILE = join(PROMPTS_EFFECTIVE_DIR, 'calidad.json');
+const CALIDAD_CATS = ['apariencia', 'sabor', 'sensacion_boca', 'aroma'];
+const CALIDAD_RESULTADOS = ['oro', 'plata', 'bronce', 'sin_medalla'];
+const prodSlug = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
+const calUplOk = (u) => (/^\/uploads\/[\w.-]+$/.test(String(u || '')) ? String(u) : '');
+function calidadDefaults(){
+  // Competencias preconfiguradas (catálogo reusable). Las medallas PNG se cargan luego.
+  return {
+    competencias: [
+      { id: 'comp_capital', nombre: 'Capital Cervecera', tipo: 'nacional', medallaOroPng: '', medallaPlataPng: '', medallaBroncePng: '' },
+      { id: 'comp_conquistadores', nombre: 'Desafío Conquistadores', tipo: 'nacional', medallaOroPng: '', medallaPlataPng: '', medallaBroncePng: '' },
+      { id: 'comp_wba', nombre: 'World Beer Awards', tipo: 'internacional', medallaOroPng: '', medallaPlataPng: '', medallaBroncePng: '' },
+    ],
+    registros: [], retros: [], memorias: [], cervezas: {}, resumenes: {},
+  };
+}
+function calidadLoad(){
+  let d = calidadDefaults();
+  try {
+    if (existsSync(CALIDAD_FILE)) {
+      const p = JSON.parse(readFileSync(CALIDAD_FILE, 'utf-8'));
+      if (Array.isArray(p.competencias)) d.competencias = p.competencias;
+      for (const k of ['registros', 'retros', 'memorias']) if (Array.isArray(p[k])) d[k] = p[k];
+      if (p.cervezas && typeof p.cervezas === 'object') d.cervezas = p.cervezas;
+      if (p.resumenes && typeof p.resumenes === 'object') d.resumenes = p.resumenes;
+    }
+  } catch (e) { console.warn('calidad load:', e.message); }
+  return d;
+}
+function calidadSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(CALIDAD_FILE, JSON.stringify(d, null, 2)); }
+function calidadCleanResumen(x){ x = x || {}; const s = (v) => prodStr(v, 800); return { apariencia: s(x.apariencia), aroma: s(x.aroma), sabor: s(x.sabor), sensacionBoca: s(x.sensacionBoca), conclusion: s(x.conclusion) }; }
+// Catálogo de cervezas: reúne recetas (nombre+estilo) + Shopify (nombre+imagen de
+// lata, best-effort) + cervezas referenciadas + overrides/manuales. Clave = slug.
+async function prodCatalogoCervezas(cd){
+  const map = new Map();
+  const add = (nombre, estilo, imagen) => {
+    const id = prodSlug(nombre); if (!id) return;
+    const ex = map.get(id) || { cervezaId: id, nombre: nombre, estilo: '', imagen: '', origen: '' };
+    if (!ex.nombre) ex.nombre = nombre;
+    if (estilo && !ex.estilo) ex.estilo = estilo;
+    if (imagen && !ex.imagen) ex.imagen = imagen;
+    map.set(id, ex);
+  };
+  const pd = prodLoad();
+  for (const r of (pd.recetas || [])) add(r.nombre, r.estilo, ''); // recetas (reutilizado)
+  try { // Shopify (best-effort): cervezas Kairos con su imagen de lata
+    const prods = await loadProductsCache();
+    for (const p of (prods || [])) { if (!/kairos/i.test(p.vendor || '')) continue; add(p.title, p.type || '', p.image || ''); }
+  } catch (e) { /* Shopify no disponible (sandbox/sin token): se sigue con recetas + overrides */ }
+  for (const arr of [cd.registros, cd.retros, cd.memorias]) for (const x of (arr || [])) add((cd.cervezas[x.cervezaId] && cd.cervezas[x.cervezaId].nombre) || x.cervezaNombre || x.cervezaId, x.estilo, '');
+  for (const [id, ov] of Object.entries(cd.cervezas || {})) { const ex = map.get(id) || { cervezaId: id, nombre: ov.nombre || id, estilo: '', imagen: '', origen: 'manual' }; if (ov.nombre) ex.nombre = ov.nombre; if (ov.estilo) ex.estilo = ov.estilo; if (ov.imagen) ex.imagen = ov.imagen; map.set(id, ex); }
+  return [...map.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
+}
+// Resumen consolidado + semáforo por cerveza. Regla del estado:
+//  · sólida       → tiene medallas y sin defectos recientes (≤180 d)
+//  · debe_mejorar → defectos recurrentes (≥2 en una categoría) o ≥2 defectos recientes
+//  · a_observar   → intermedio
+function calidadResumenCerveza(cd, cervezaId){
+  const regs = cd.registros.filter(r => r.cervezaId === cervezaId);
+  const retros = cd.retros.filter(r => r.cervezaId === cervezaId);
+  const mems = cd.memorias.filter(m => m.cervezaId === cervezaId);
+  const medallas = regs.filter(r => r.resultado && r.resultado !== 'sin_medalla').map(r => ({ resultado: r.resultado, competencia: r.competenciaNombre, fecha: r.fecha }));
+  const now = Date.now(), RECIENTE = 180 * DAY_MS;
+  const memsRec = mems.filter(m => { const t = new Date(m.fecha).getTime(); return Number.isFinite(t) && (now - t) < RECIENTE; });
+  const catCount = {}; mems.forEach(m => { catCount[m.categoria] = (catCount[m.categoria] || 0) + 1; });
+  const recurrente = Object.values(catCount).some(n => n >= 2);
+  let estado;
+  if (recurrente || memsRec.length >= 2) estado = 'debe_mejorar';
+  else if (medallas.length && !memsRec.length) estado = 'solida';
+  else estado = 'a_observar';
+  return { cervezaId, medallas, nMedallas: medallas.length, nRetros: retros.length, nMemorias: mems.length, memsRecientes: memsRec.length, recurrente, catConteo: catCount, estado, resumenIA: cd.resumenes[cervezaId] || null };
+}
+// GET del módulo completo (galería + catálogo + historiales).
+app.get('/admin/produccion/calidad', requireAdmin, async (req, res) => {
+  try {
+    const cd = calidadLoad();
+    const cervezas = await prodCatalogoCervezas(cd);
+    const resumenes = {}; for (const c of cervezas) resumenes[c.cervezaId] = calidadResumenCerveza(cd, c.cervezaId);
+    res.json({ cervezas, competencias: cd.competencias, registros: cd.registros, retros: cd.retros, memorias: cd.memorias, resumenes, meta: { categorias: CALIDAD_CATS, resultados: CALIDAD_RESULTADOS } });
+  } catch (e) { res.status(500).json({ error: String(e.message || e) }); }
+});
+// Subida de archivos de calidad (PDF de feedback, PNG de medallas, imagen de memoria).
+app.post('/admin/produccion/calidad/upload', requireAdmin, (req, res) => {
+  const { filename = '', contentType = '', dataBase64 = '' } = req.body || {};
+  if (typeof dataBase64 !== 'string' || !dataBase64) return res.status(400).json({ error: 'Falta el archivo.' });
+  const ext = UPLOAD_TYPES[String(contentType).toLowerCase()];
+  if (!ext) return res.status(415).json({ error: 'Tipo no permitido (PDF, PNG, JPG, WEBP, GIF).' });
+  let buf; try { buf = Buffer.from(dataBase64, 'base64'); } catch { return res.status(400).json({ error: 'Archivo inválido.' }); }
+  if (!buf.length) return res.status(400).json({ error: 'Archivo vacío.' });
+  if (buf.length > MAX_UPLOAD_BYTES) return res.status(413).json({ error: 'Máximo 8 MB por archivo.' });
+  try { const safeName = randomUUID() + '.' + ext; writeFileSync(join(UPLOADS_DIR, safeName), buf); res.json({ ok: true, url: '/uploads/' + safeName, name: String(filename || ('archivo.' + ext)).slice(0, 200), ext }); }
+  catch (e) { res.status(500).json({ error: 'Error guardando archivo: ' + e.message }); }
+});
+// Catálogo de competencias (reusable). Crear / editar (medallas PNG) / borrar.
+app.post('/admin/produccion/calidad/competencia', requireAdmin, (req, res) => {
+  const b = req.body || {}; const cd = calidadLoad();
+  const nombre = prodStr(b.nombre, 120); if (!nombre) return res.status(400).json({ error: 'Ingresá el nombre de la competencia.' });
+  const c = { id: prodNewId('comp'), nombre, tipo: b.tipo === 'internacional' ? 'internacional' : 'nacional', medallaOroPng: calUplOk(b.medallaOroPng), medallaPlataPng: calUplOk(b.medallaPlataPng), medallaBroncePng: calUplOk(b.medallaBroncePng) };
+  cd.competencias.push(c); calidadSave(cd); res.json({ ok: true, competencia: c });
+});
+app.put('/admin/produccion/calidad/competencia/:id', requireAdmin, (req, res) => {
+  const cd = calidadLoad(); const c = cd.competencias.find(x => x.id === req.params.id); if (!c) return res.status(404).json({ error: 'Competencia no encontrada.' });
+  const b = req.body || {}; if (b.nombre != null) c.nombre = prodStr(b.nombre, 120); if (b.tipo != null) c.tipo = b.tipo === 'internacional' ? 'internacional' : 'nacional';
+  for (const k of ['medallaOroPng', 'medallaPlataPng', 'medallaBroncePng']) if (b[k] != null) c[k] = calUplOk(b[k]);
+  calidadSave(cd); res.json({ ok: true, competencia: c });
+});
+app.delete('/admin/produccion/calidad/competencia/:id', requireAdmin, (req, res) => {
+  const cd = calidadLoad(); const n = cd.competencias.length; cd.competencias = cd.competencias.filter(x => x.id !== req.params.id);
+  if (cd.competencias.length === n) return res.status(404).json({ error: 'No encontrada.' }); calidadSave(cd); res.json({ ok: true });
+});
+// IA — resumen estructurado del feedback (PDFs) con las 5 categorías fijas.
+app.post('/admin/produccion/calidad/resumir', requireAdmin, async (req, res) => {
+  const b = req.body || {}; const pdfs = (Array.isArray(b.pdfs) ? b.pdfs : []).filter(f => calUplOk(f && f.url)).slice(0, 5);
+  if (!pdfs.length) return res.status(400).json({ error: 'No hay PDFs para resumir. Podés escribir el resumen a mano.' });
+  try {
+    const docs = [];
+    for (const f of pdfs) { const p = join(UPLOADS_DIR, f.url.replace('/uploads/', '')); if (existsSync(p)) docs.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: readFileSync(p).toString('base64') } }); }
+    if (!docs.length) return res.status(400).json({ error: 'No pude leer los PDFs.' });
+    const sys = 'Sos un juez cervecero experto (BJCP). Te paso el feedback de una competencia. Resumilo en JSON con EXACTAMENTE estas claves y en español, cada una 1-2 frases concretas:\n' +
+      '- "apariencia": color, claridad/turbidez, espuma.\n- "aroma": malta, lúpulo, fermentación (levadura) y/o defectos.\n- "sabor": equilibrio, amargor, perfil de fermentación.\n- "sensacionBoca": cuerpo, carbonatación, astringencia / sensación alcohólica.\n- "conclusion": en 1-2 frases, si la cerveza debe mejorar y en qué específicamente.\n' +
+      'Respondé SOLO el JSON, sin texto adicional ni markdown.';
+    const msg = await client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 1200, system: sys, messages: [{ role: 'user', content: [...docs, { type: 'text', text: 'Resumí el feedback de estos PDFs en el JSON pedido.' }] }] });
+    let txt = (msg.content || []).map(c => c.text || '').join('').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+    let parsed = {}; try { parsed = JSON.parse(txt); } catch { const m = /\{[\s\S]*\}/.exec(txt); if (m) { try { parsed = JSON.parse(m[0]); } catch {} } }
+    res.json({ ok: true, resumenIA: calidadCleanResumen(parsed) });
+  } catch (e) { res.status(502).json({ error: 'IA no disponible: ' + String(e.message || e).slice(0, 160) }); }
+});
+// Resumen consolidado de la galería con IA (2-3 líneas). Cachea en cd.resumenes.
+app.post('/admin/produccion/calidad/resumen/:cervezaId', requireAdmin, async (req, res) => {
+  const cd = calidadLoad(); const cid = req.params.cervezaId;
+  const r = calidadResumenCerveza(cd, cid);
+  const cerv = cd.cervezas[cid] || {}; const nombre = cerv.nombre || cid;
+  const regs = cd.registros.filter(x => x.cervezaId === cid);
+  const mems = cd.memorias.filter(x => x.cervezaId === cid);
+  const retros = cd.retros.filter(x => x.cervezaId === cid);
+  try {
+    const ctx = { cerveza: nombre, medallas: r.medallas, defectosPorCategoria: r.catConteo, memorias: mems.map(m => ({ categoria: m.categoria, texto: m.texto, fecha: m.fecha })), retros: retros.map(x => ({ texto: x.texto, fecha: x.fecha })), competencias: regs.map(x => ({ competencia: x.competenciaNombre, resultado: x.resultado, resumen: x.resumenIA })) };
+    const sys = 'Sos el maestro cervecero. En 2-3 líneas MÁXIMO y en español, consolidá el estado de calidad de esta cerveza juntando: medallas obtenidas (cuáles y de qué competencia), 1 línea de tendencia de la retroalimentación, y 1 línea de defectos/memorias recurrentes si los hay. Tono directo, sin relleno.';
+    const msg = await client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 400, system: sys, messages: [{ role: 'user', content: 'Datos de la cerveza (JSON):\n' + JSON.stringify(ctx).slice(0, 6000) }] });
+    const texto = (msg.content || []).map(c => c.text || '').join('').trim();
+    cd.resumenes[cid] = { texto, generadoEn: new Date().toISOString() }; calidadSave(cd);
+    res.json({ ok: true, resumen: cd.resumenes[cid] });
+  } catch (e) { res.status(502).json({ error: 'IA no disponible: ' + String(e.message || e).slice(0, 160) }); }
+});
+// Registro de competencia (participación de una cerveza).
+app.post('/admin/produccion/calidad/registro', requireAdmin, (req, res) => {
+  const b = req.body || {}; const cd = calidadLoad();
+  const cervezaNombre = prodStr(b.cervezaNombre, 120); const cervezaId = prodStr(b.cervezaId, 80) || prodSlug(cervezaNombre);
+  if (!cervezaId) return res.status(400).json({ error: 'Elegí la cerveza evaluada.' });
+  const comp = cd.competencias.find(c => c.id === prodStr(b.competenciaId, 80));
+  const reg = {
+    id: prodNewId('rc'), cervezaId, cervezaNombre: cervezaNombre || cervezaId, estilo: prodStr(b.estilo, 80),
+    competenciaId: comp ? comp.id : '', competenciaNombre: comp ? comp.nombre : prodStr(b.competenciaNombre, 120),
+    tipo: b.tipo === 'internacional' ? 'internacional' : (b.tipo === 'nacional' ? 'nacional' : (comp ? comp.tipo : 'nacional')),
+    fecha: prodTs(b.fecha) || new Date().toISOString(),
+    resultado: CALIDAD_RESULTADOS.includes(b.resultado) ? b.resultado : 'sin_medalla',
+    pdfs: (Array.isArray(b.pdfs) ? b.pdfs : []).slice(0, 5).map(f => ({ url: calUplOk(f && f.url), name: prodStr(f && f.name, 200) })).filter(f => f.url),
+    resumenIA: calidadCleanResumen(b.resumenIA), resumenEditable: !!b.resumenEditable,
+  };
+  cd.registros.push(reg); calidadSave(cd); res.json({ ok: true, registro: reg });
+});
+app.put('/admin/produccion/calidad/registro/:id', requireAdmin, (req, res) => {
+  const cd = calidadLoad(); const r = cd.registros.find(x => x.id === req.params.id); if (!r) return res.status(404).json({ error: 'Registro no encontrado.' });
+  const b = req.body || {}; if (b.resultado != null && CALIDAD_RESULTADOS.includes(b.resultado)) r.resultado = b.resultado;
+  if (b.fecha !== undefined) r.fecha = prodTs(b.fecha) || r.fecha;
+  if (b.resumenIA != null) { r.resumenIA = calidadCleanResumen(b.resumenIA); r.resumenEditable = true; }
+  calidadSave(cd); res.json({ ok: true, registro: r });
+});
+app.delete('/admin/produccion/calidad/registro/:id', requireAdmin, (req, res) => {
+  const cd = calidadLoad(); const n = cd.registros.length; cd.registros = cd.registros.filter(x => x.id !== req.params.id);
+  if (cd.registros.length === n) return res.status(404).json({ error: 'No encontrado.' }); calidadSave(cd); res.json({ ok: true });
+});
+// Retroalimentación (texto ≤500).
+app.post('/admin/produccion/calidad/retro', requireAdmin, (req, res) => {
+  const b = req.body || {}; const cd = calidadLoad();
+  const cervezaNombre = prodStr(b.cervezaNombre, 120); const cervezaId = prodStr(b.cervezaId, 80) || prodSlug(cervezaNombre);
+  const autor = prodStr(b.autor, 120), texto = prodStr(b.texto, 500);
+  if (!cervezaId) return res.status(400).json({ error: 'Elegí la cerveza.' });
+  if (!autor) return res.status(400).json({ error: 'Ingresá quién deja la retroalimentación.' });
+  if (!texto) return res.status(400).json({ error: 'Escribí la retroalimentación.' });
+  const r = { id: prodNewId('fb'), cervezaId, cervezaNombre: cervezaNombre || cervezaId, estilo: prodStr(b.estilo, 80), autor, texto, fecha: new Date().toISOString() };
+  cd.retros.push(r); calidadSave(cd); res.json({ ok: true, retro: r });
+});
+app.delete('/admin/produccion/calidad/retro/:id', requireAdmin, (req, res) => {
+  const cd = calidadLoad(); const n = cd.retros.length; cd.retros = cd.retros.filter(x => x.id !== req.params.id);
+  if (cd.retros.length === n) return res.status(404).json({ error: 'No encontrada.' }); calidadSave(cd); res.json({ ok: true });
+});
+// Memoria (defecto/problema — dato de calidad).
+app.post('/admin/produccion/calidad/memoria', requireAdmin, (req, res) => {
+  const b = req.body || {}; const cd = calidadLoad();
+  const cervezaNombre = prodStr(b.cervezaNombre, 120); const cervezaId = prodStr(b.cervezaId, 80) || prodSlug(cervezaNombre);
+  const texto = prodStr(b.texto, 500);
+  if (!cervezaId) return res.status(400).json({ error: 'Elegí la cerveza.' });
+  if (!texto) return res.status(400).json({ error: 'Describí el problema.' });
+  const m = {
+    id: prodNewId('mem'), cervezaId, cervezaNombre: cervezaNombre || cervezaId, estilo: prodStr(b.estilo, 80),
+    ubicacion: prodStr(b.ubicacion, 120), canalVenta: prodStr(b.canalVenta, 120),
+    categoria: CALIDAD_CATS.includes(b.categoria) ? b.categoria : 'sabor', texto,
+    imagen: (b.imagen && calUplOk(b.imagen.url)) ? { url: calUplOk(b.imagen.url), name: prodStr(b.imagen.name, 200) } : null,
+    fecha: new Date().toISOString(),
+  };
+  cd.memorias.push(m); calidadSave(cd); res.json({ ok: true, memoria: m });
+});
+app.delete('/admin/produccion/calidad/memoria/:id', requireAdmin, (req, res) => {
+  const cd = calidadLoad(); const n = cd.memorias.length; cd.memorias = cd.memorias.filter(x => x.id !== req.params.id);
+  if (cd.memorias.length === n) return res.status(404).json({ error: 'No encontrada.' }); calidadSave(cd); res.json({ ok: true });
+});
+// Cerveza: override/alta manual (estilo + imagen de lata) para el catálogo.
+app.post('/admin/produccion/calidad/cerveza', requireAdmin, (req, res) => {
+  const b = req.body || {}; const cd = calidadLoad();
+  const nombre = prodStr(b.nombre, 120); const cervezaId = prodStr(b.cervezaId, 80) || prodSlug(nombre);
+  if (!cervezaId) return res.status(400).json({ error: 'Ingresá el nombre de la cerveza.' });
+  const ov = cd.cervezas[cervezaId] || {};
+  if (nombre) ov.nombre = nombre; if (b.estilo != null) ov.estilo = prodStr(b.estilo, 80); if (b.imagen != null) ov.imagen = calUplOk(b.imagen && b.imagen.url ? b.imagen.url : b.imagen);
+  cd.cervezas[cervezaId] = ov; calidadSave(cd); res.json({ ok: true, cervezaId, cerveza: ov });
+});
+
 // ─── Conversaciones (embudo) ────────────────────────────────────────────────
 // Listado y detalle de las sesiones de chat ya persistidas en CONV_LOG. El
 // listado va liviano (resumen + primer/último mensaje); el detalle trae la
