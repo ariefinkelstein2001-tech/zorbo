@@ -3844,6 +3844,45 @@ function erpEstadoZorbo(etapa, estado){
   if (/ferment/.test(e)) return 'fermentacion';
   return 'coccion';
 }
+// ── API de datos del ERP (JSON) ── Gestión Cervecera sirve las grillas por
+// POST /{Controlador}/GetAll (body vacío, cookie de sesión) → { data:[...] }.
+async function erpApiGetAll(base, path, jar, referer){
+  const r = await erpFetch(base + path, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Referer': base + (referer || '/Lote'), 'Origin': base }, body: '' }, jar);
+  const t = await r.text(); let j = {}; try { j = JSON.parse(t); } catch { }
+  const data = Array.isArray(j.data) ? j.data : (Array.isArray(j) ? j : []);
+  return { status: r.status, data };
+}
+// La opción <option ... selected ...>Texto</option> de un <select> (etapa/tanque).
+function erpOptSel(html){
+  for (const m of String(html || '').matchAll(/<option\b([^>]*)>([^<]*)<\/option>/gi)) {
+    if (/\bselected\b/i.test(m[1])) return { text: erpTxt(m[2]), capacidad: prodNum((/data-capacidad=["'](\d+)["']/i.exec(m[1]) || [])[1]) };
+  }
+  return { text: '', capacidad: 0 };
+}
+// Recetas desde /Receta/GetAll (JSON): {id, Nombre, estilo, litros, OG, FG, ABV, IBU, SRM}.
+function erpRecetasFromJson(arr){
+  return (arr || []).map(r => ({
+    erpId: String(r.id != null ? r.id : (r.idProducto != null ? r.idProducto : '')),
+    nombre: erpTxt(r.Nombre || r.nombre || ''), estilo: erpTxt(r.estilo || ''),
+    litros: erpNumCl(r.litros), og: erpNumCl(r.OG != null ? r.OG : r.og), abv: erpNumCl(r.ABV != null ? r.ABV : r.abv),
+    fg: erpNumCl(r.FG), ibu: erpNumCl(r.IBU), srm: erpNumCl(r.SRM),
+  })).filter(r => r.erpId || r.nombre);
+}
+// Lotes desde /Lote/GetAll (JSON): campos con HTML embebido (numero/descripcion en
+// <a>, estado en <span>, etapa/tanque en <select>) → se limpian a texto.
+function erpLotesFromJson(arr){
+  return (arr || []).map(l => {
+    const et = erpOptSel(l.etapa); const tq = erpOptSel(l.tanque);
+    return {
+      erpId: String(l.id != null ? l.id : ''),
+      numero: erpTxt(l.numero), descripcion: erpTxt(l.descripcion),
+      fechaCoccion: erpFecha(l.fecha),
+      litrosDisponibles: erpNumCl(l.litros != null ? l.litros : l.litrosAsignados),
+      estado: erpTxt(l.estado), etapa: et.text, tanque: tq.text, capacidad: tq.capacidad,
+      idReceta: String(l.idReceta != null ? l.idReceta : (l.idCerve != null ? l.idCerve : '')), cantCocciones: prodNum(l.cantCocciones) || 1,
+    };
+  }).filter(l => l.erpId);
+}
 app.get('/admin/produccion/erp/estado', requireAdmin, (req, res) => {
   const cfg = prodLoad().config; const cr = erpCreds(cfg);
   res.json({ configurado: !!(cr.usuario && cr.clave), baseUrl: cr.base, usuario: cr.usuario, ultimaSync: cfg.erpLastSync || null, ultimoEstado: cfg.erpLastStatus || '' });
@@ -3855,13 +3894,14 @@ app.post('/admin/produccion/erp/sync', requireAdmin, async (req, res) => {
     if (!cr.usuario || !cr.clave) throw new Error('Falta usuario o clave del ERP (Config).');
     const login = await erpLogin(cfg);
     if (!login.ok) throw new Error(login.error + (login.stage ? ' [' + login.stage + ']' : ''));
-    // Recetas.
-    const recHtml = await (await erpGet(cr.base + '/Receta', login.jar, cr.base)).text();
-    const recetas = erpParseRecetas(recHtml);
+    // Recetas (API JSON: POST /Receta/GetAll).
+    const recRes = await erpApiGetAll(cr.base, '/Receta/GetAll', login.jar, '/Receta');
+    const recetas = erpRecetasFromJson(recRes.data);
     if (recetas.length) d.recetas = prodMergeRecetas(d.recetas || [], recetas);
-    // Lotes (ya tenemos el HTML de /Lote del chequeo de login).
-    const loteHtml = login.loteHtml || await (await erpGet(cr.base + '/Lote', login.jar, cr.base)).text();
-    const lotes = erpParseLotes(loteHtml);
+    // Lotes (API JSON: POST /Lote/GetAll).
+    const loteRes = await erpApiGetAll(cr.base, '/Lote/GetAll', login.jar, '/Lote');
+    const lotes = erpLotesFromJson(loteRes.data);
+    if (!recetas.length && !lotes.length) throw new Error('Login OK pero la API no devolvió datos (Receta:' + recRes.status + ' /Lote:' + loteRes.status + ').');
     let nuevos = 0, act = 0;
     for (const rl of lotes) {
       if (!rl.numero && !rl.erpId) continue;
