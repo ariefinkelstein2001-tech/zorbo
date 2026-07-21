@@ -3461,6 +3461,34 @@ const PROD_SEDES = [
   { id: 'franklin', nombre: 'CD Franklin', modo: 'Maquila', tipo: 'destileria' },
 ];
 const PROD_INV_CATS = ['lata', 'tapa', 'etiqueta'];
+// Paleta oficial de color de cerveza (30 tonos, de pálido a casi negro — escala
+// tipo SRM). El color de un lote/tanque de cervecería SIEMPRE debe ser uno de
+// estos. Aproximación visual del cartel de referencia — ajustable acá si algún
+// tono no calza.
+const PROD_COLORES_CERVEZA = [
+  '#FFE699', '#FFDD85', '#FFD275', '#FDC766', '#FCBB57',
+  '#FAAE49', '#F5A03D', '#F09232', '#EB8628', '#E37A1E',
+  '#DB6F17', '#D26411', '#C95A0C', '#C05008', '#B64606',
+  '#AC3D04', '#A23503', '#982D02', '#8D2602', '#831F01',
+  '#791901', '#6F1400', '#651000', '#5C0C00', '#530900',
+  '#4A0700', '#420600', '#3A0500', '#330400', '#2C0300',
+];
+// Un tanque de destilería no fermenta cerveza — solo puede estar "en blanco"
+// (destilado/RTD sin madurar) o "en café" (madurando/madurado en barrica).
+const PROD_COLORES_DESTILADO = [
+  { id: 'blanco', label: 'Blanco', hex: '#F2EFE4' },
+  { id: 'cafe', label: 'Café (barrica)', hex: '#6B4226' },
+];
+function prodColorValido(hex, tipoSede){
+  const h = String(hex || '').toUpperCase();
+  if (tipoSede === 'destileria') return PROD_COLORES_DESTILADO.some(c => c.hex.toUpperCase() === h);
+  return PROD_COLORES_CERVEZA.some(c => c.toUpperCase() === h);
+}
+function prodTipoSedeDeTanque(d, tanqueId){
+  const t = (d.tanques || []).find(x => x.id === tanqueId);
+  const sede = (PROD_SEDES.find(s => s.id === (t && t.sede || 'vespucio')) || PROD_SEDES[0]);
+  return sede.tipo;
+}
 const PROD_CONFIG_DEF = {
   horasPorSemana: 40, nTrabajadores: 4, velNominalBarrilLh: 1000, velNominalLataLh: 83, cicloCoccionEstandarH: 4.2, leadTimeMinDias: 27, incluirLimpiezaEnDisponibilidad: true,
   // Fase 2 (prompt #2): fecha proyectada de envasado + velocidades por formato + integración ERP.
@@ -3628,7 +3656,7 @@ function prodDecorate(d){
     return { ...t, sede: sede.id, tipo: sede.tipo, estado: t.loteActualId ? 'ocupado' : (t.sucio ? 'sucio' : 'vacio'), lote: li };
   });
   const lotes = d.lotes.map(l => { const base = prodVolumenBase(l); const env = prodLitrosEnvasados(l); return { ...l, diasOcup: prodDiasOcup(l), volumenBaseL: base, litrosEnvasados: env, litrosRestantes: Math.max(0, base - env), rendEnvasado: prodRendEnvasado(l, cfg), leadTimeDias: (l.fechaEnvasado && l.fechaCoccion) ? Math.max(0, Math.round((new Date(l.fechaEnvasado) - new Date(l.fechaCoccion)) / DAY)) : null }; });
-  return { config: prodConfigSafe(cfg), tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, recetas: d.recetas || [], inventario: prodDecorarInventario(d.inventario), meta: { etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT, formatos: PROD_FORMATOS, sedes: PROD_SEDES, invCategorias: PROD_INV_CATS } };
+  return { config: prodConfigSafe(cfg), tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, recetas: d.recetas || [], inventario: prodDecorarInventario(d.inventario), meta: { etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT, formatos: PROD_FORMATOS, sedes: PROD_SEDES, invCategorias: PROD_INV_CATS, coloresCerveza: PROD_COLORES_CERVEZA, coloresDestilado: PROD_COLORES_DESTILADO } };
 }
 // Suma valorTotal (cantidad × costo unitario) por ítem y totales por categoría.
 function prodDecorarInventario(inv){
@@ -3664,7 +3692,10 @@ app.put('/admin/produccion/config', requireAdmin, (req, res) => {
   c.leadTimeObjetivoDias = numOr(b.leadTimeObjetivoDias, PROD_CONFIG_DEF.leadTimeObjetivoDias);
   if (b.incluirLimpiezaEnDisponibilidad !== undefined) c.incluirLimpiezaEnDisponibilidad = b.incluirLimpiezaEnDisponibilidad !== false;
   if (b.leadTimeObjetivoPorEstilo && typeof b.leadTimeObjetivoPorEstilo === 'object') c.leadTimeObjetivoPorEstilo = b.leadTimeObjetivoPorEstilo;
-  if (b.coloresPorEstilo && typeof b.coloresPorEstilo === 'object') c.coloresPorEstilo = b.coloresPorEstilo;
+  if (b.coloresPorEstilo && typeof b.coloresPorEstilo === 'object') {
+    // Solo se guardan los valores que están en la paleta oficial de cerveza.
+    c.coloresPorEstilo = Object.fromEntries(Object.entries(b.coloresPorEstilo).filter(([, hex]) => prodColorValido(hex, 'cerveceria')));
+  }
   if (b.erpBaseUrl != null) c.erpBaseUrl = prodStr(b.erpBaseUrl, 300);
   if (b.erpUsuario != null) c.erpUsuario = prodStr(b.erpUsuario, 120);
   // La clave solo se actualiza si viene un valor no vacío; si mandan '' se deja como está.
@@ -4061,8 +4092,12 @@ app.put('/admin/produccion/lote/:id', requireAdmin, (req, res) => {
   const merged = { ...cur };
   ['codigo', 'producto', 'estilo', 'familia', 'notas'].forEach(k => { if (b[k] != null) merged[k] = prodStr(b[k], 80); });
   if (b.recetaId != null) merged.recetaId = prodStr(b.recetaId, 40);
-  if (b.color != null) merged.color = prodStr(b.color, 20);
   if (b.tanqueId != null) merged.tanqueId = prodStr(b.tanqueId, 10);
+  if (b.color != null) {
+    const hex = prodStr(b.color, 20);
+    if (!prodColorValido(hex, prodTipoSedeDeTanque(d, merged.tanqueId))) return res.status(400).json({ error: 'Ese color no está en la paleta permitida.' });
+    merged.color = hex;
+  }
   if (b.nBatches != null) merged.nBatches = Math.max(1, Math.min(3, prodNum(b.nBatches)));
   if (b.volumenEsperadoL != null) merged.volumenEsperadoL = prodNum(b.volumenEsperadoL);
   if (b.volumenRealL != null) merged.volumenRealL = prodNum(b.volumenRealL);
@@ -4503,48 +4538,46 @@ function calidadLoad(){
 }
 function calidadSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(CALIDAD_FILE, JSON.stringify(d, null, 2)); }
 function calidadCleanResumen(x){ x = x || {}; const s = (v) => prodStr(v, 800); return { apariencia: s(x.apariencia), aroma: s(x.aroma), sabor: s(x.sabor), sensacionBoca: s(x.sensacionBoca), conclusion: s(x.conclusion) }; }
-// Únicos SKUs de Shopify que Producción realmente elabora (no camisetas, vasos,
-// packs mixtos u otro merch con vendor "Kairos"). Módulo de Calidad = solo esto.
-const PROD_CALIDAD_SKUS = [
-  { id: 'nada-personal', kw: ['nada personal'] },
-  { id: 'galactic-mission', kw: ['galactic'] },
-  { id: 'alerta-roja', kw: ['alerta roja'] },
-  { id: 'secret-lab', kw: ['secret lab'] },
-  { id: 'imperio-perdido', kw: ['imperio perdido'] },
-  { id: 'obertura', kw: ['obertura'] },
-  { id: 'kenny-bell', kw: ['kenny bell'] },
-  { id: 'hoyo-en-uno', kw: ['hoyo en uno'] },
-  { id: 'samba', kw: ['samba'] },
-  { id: 'ritual-de-la-banana', kw: ['ritual de la banana'] },
-  { id: 'goodbye-my-lover', kw: ['goodbye my lover', 'goodbye'] },
-  { id: 'goat-father', kw: ['goat father'] },
-  { id: 'gin-contemporaneo', kw: ['contemporáneo', 'contemporaneo'] },
-  { id: 'gin-london-dry', kw: ['london dry'] },
-  { id: 'ron-carta-blanca', kw: ['carta blanca'] },
+// Catálogo fijo de Calidad: los únicos productos que Producción elabora hoy.
+// Es la fuente de verdad (ya no se arma matcheando texto contra Shopify, que
+// daba falsos positivos/negativos) — nombre/estilo/imagen se editan desde
+// Competencias → "Agregar cerveza", que también sirve para sumar productos
+// nuevos el día que se necesite.
+const PROD_CALIDAD_SEED = [
+  { nombre: 'Nada Personal', estilo: 'Pils' },
+  { nombre: 'Galactic Mission', estilo: 'Golden' },
+  { nombre: 'Alerta Roja', estilo: 'Red' },
+  { nombre: 'Secret Lab', estilo: 'APA' },
+  { nombre: 'Imperio Perdido', estilo: 'Session NEIPA' },
+  { nombre: 'Obertura', estilo: 'Stout' },
+  { nombre: 'Kenny Bell', estilo: 'Amber' },
+  { nombre: 'Hoyo en Uno', estilo: 'Hoppy Lager' },
+  { nombre: 'Samba', estilo: 'IPA' },
+  { nombre: 'Ritual de la Banana', estilo: 'Weizen' },
+  { nombre: 'Goodbye My Lover', estilo: 'Colección de Artista' },
+  { nombre: 'Goat Father', estilo: 'Colección de Artista' },
+  { nombre: 'Gin Banny Contemporáneo', estilo: 'Gin' },
+  { nombre: 'Gin Banny London Dry', estilo: 'Gin' },
+  { nombre: 'Rey de Copas Carta Blanca', estilo: 'Ron' },
 ];
-function prodEsSkuControlado(title){
-  const t = String(title || '').toLowerCase();
-  return PROD_CALIDAD_SKUS.some(s => s.kw.some(k => t.includes(k)));
-}
-// Catálogo de cervezas: reúne recetas (nombre+estilo) + Shopify (nombre+imagen de
-// lata, best-effort) + cervezas referenciadas + overrides/manuales. Clave = slug.
+// Catálogo de cervezas: parte del listado fijo (PROD_CALIDAD_SEED) + overrides
+// manuales (nombre/estilo/imagen — incluye altas nuevas vía "Agregar cerveza")
+// + enriquecido best-effort con recetas/historial (sin sumar productos nuevos
+// desde ahí). Clave = slug del nombre.
 async function prodCatalogoCervezas(cd){
   const map = new Map();
-  const add = (nombre, estilo, imagen) => {
+  const add = (nombre, estilo, imagen, crearSiNoExiste) => {
     const id = prodSlug(nombre); if (!id) return;
-    const ex = map.get(id) || { cervezaId: id, nombre: nombre, estilo: '', imagen: '', origen: '' };
+    const ex = map.get(id);
+    if (!ex) { if (!crearSiNoExiste) return; map.set(id, { cervezaId: id, nombre, estilo: estilo || '', imagen: imagen || '', origen: 'manual' }); return; }
     if (!ex.nombre) ex.nombre = nombre;
     if (estilo && !ex.estilo) ex.estilo = estilo;
     if (imagen && !ex.imagen) ex.imagen = imagen;
-    map.set(id, ex);
   };
+  for (const s of PROD_CALIDAD_SEED) add(s.nombre, s.estilo, '', true);
   const pd = prodLoad();
-  for (const r of (pd.recetas || [])) add(r.nombre, r.estilo, ''); // recetas (reutilizado)
-  try { // Shopify (best-effort): cervezas Kairos con su imagen de lata
-    const prods = await loadProductsCache();
-    for (const p of (prods || [])) { if (!/kairos/i.test(p.vendor || '')) continue; if (!prodEsSkuControlado(p.title)) continue; add(p.title, p.type || '', p.image || ''); }
-  } catch (e) { /* Shopify no disponible (sandbox/sin token): se sigue con recetas + overrides */ }
-  for (const arr of [cd.registros, cd.retros, cd.memorias]) for (const x of (arr || [])) add((cd.cervezas[x.cervezaId] && cd.cervezas[x.cervezaId].nombre) || x.cervezaNombre || x.cervezaId, x.estilo, '');
+  for (const r of (pd.recetas || [])) add(r.nombre, r.estilo, '', false); // solo enriquece, no suma productos
+  for (const arr of [cd.registros, cd.retros, cd.memorias]) for (const x of (arr || [])) add((cd.cervezas[x.cervezaId] && cd.cervezas[x.cervezaId].nombre) || x.cervezaNombre || x.cervezaId, x.estilo, '', false);
   for (const [id, ov] of Object.entries(cd.cervezas || {})) { const ex = map.get(id) || { cervezaId: id, nombre: ov.nombre || id, estilo: '', imagen: '', origen: 'manual' }; if (ov.nombre) ex.nombre = ov.nombre; if (ov.estilo) ex.estilo = ov.estilo; if (ov.imagen) ex.imagen = ov.imagen; map.set(id, ex); }
   return [...map.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
 }

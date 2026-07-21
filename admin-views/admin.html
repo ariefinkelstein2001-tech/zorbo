@@ -1654,8 +1654,10 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .prod-tk-rest{color:#c17a10;font-weight:700}
 .prod-tk-alert{color:#d9534f;font-weight:800}
 .prod-tk-fechas{font-size:.68rem;color:var(--dim,#999)}
-.prod-color{display:inline-flex;align-items:center;gap:.3rem;margin-top:.25rem;font-size:.68rem;color:var(--dim,#999);cursor:pointer}
-.prod-color input[type=color]{width:22px;height:22px;border:1px solid var(--line,#ccc);border-radius:5px;padding:0;background:none;cursor:pointer}
+.prod-color{margin-top:.3rem;font-size:.68rem;color:var(--dim,#999)}
+.prod-color-row{display:flex;flex-wrap:wrap;gap:.22rem;margin-top:.2rem;max-width:210px}
+.prod-color-sw{width:15px;height:15px;border-radius:50%;border:1.5px solid rgba(0,0,0,.15);padding:0;cursor:pointer}
+.prod-color-sw.on{border-color:#111;box-shadow:0 0 0 2px #fff,0 0 0 3px #111}
 .prod-tk-cip{margin-top:.4rem;font-size:.74rem;padding:.35rem .5rem}
 .prod-erp-status{font-size:.8rem;color:var(--muted,#555);font-weight:600;margin-top:.3rem}
 .prod-detail{margin-top:1rem}
@@ -1706,8 +1708,8 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .rec-grid label,.prod-cfg-map label{display:flex;flex-direction:column;gap:.2rem;font-size:.68rem;font-weight:700;color:var(--muted,#777)}
 .rec-grid input,.prod-cfg-map input{padding:.45rem .55rem;border:1px solid var(--line,#e5e5e5);border-radius:8px;font:inherit;font-size:.86rem}
 .rec-sub{font-family:var(--display,inherit);font-weight:700;font-size:.82rem;margin:.9rem 0 .4rem;color:var(--text,#222)}
-.prod-cfg-map{display:grid;grid-template-columns:1fr 90px 34px;gap:.4rem;align-items:end;margin-bottom:.4rem}
-.prod-cfg-map .prod-cfg-color{width:100%;height:36px;padding:0;border:1px solid var(--line,#ccc);border-radius:8px;background:none;cursor:pointer}
+.prod-cfg-map{display:grid;grid-template-columns:1fr 118px 34px;gap:.4rem;align-items:end;margin-bottom:.4rem}
+.prod-cfg-map .prod-cfg-color{width:100%;height:36px;padding:.3rem;border:1px solid var(--line,#ccc);border-radius:8px;font:inherit;font-size:.76rem;cursor:pointer}
 /* Dashboard OEE (Fase 2) */
 .oee-controls{display:flex;flex-wrap:wrap;gap:.7rem;align-items:flex-end;margin-bottom:1rem;padding-bottom:.8rem;border-bottom:1px solid var(--line,#e5e5e5)}
 .oee-fld{display:flex;flex-direction:column;gap:.25rem;font-size:.66rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#777)}
@@ -8687,7 +8689,7 @@ document.getElementById('pnlExcel').onclick=()=>{ const m=document.getElementByI
 let prodData=null, prodTab='tanques', prodTimers=null, prodOpenLote=null;
 let prodRecQuery='', prodRecPage=0, prodRecEditing=null, prodRecView=null; const PROD_REC_PER=8;
 let prodOee={centro:'envasado',periodo:'mes',desde:'',hasta:'',incluirLimp:null,data:null,loading:false};
-let prodCal={tab:'inicio',data:null,sel:null,compNuevo:false,pdfs:[],medalUp:{},memImg:null,resumen:null};
+let prodCal={tab:'inicio',data:null,sel:null,compNuevo:false,pdfs:[],medalUp:{},memImg:null,resumen:null,cervNueva:false,cervImg:null};
 const prodNow=()=>new Date().toISOString();
 function prodStopTimers(){ if(prodTimers){ clearInterval(prodTimers); prodTimers=null; } }
 function prodDur(ms){ if(ms<0)ms=0; const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60; if(h>0)return h+'h '+String(m).padStart(2,'0')+'m'; if(m>0)return m+'m '+String(ss).padStart(2,'0')+'s'; return ss+'s'; }
@@ -8732,6 +8734,15 @@ function prodTankSvg(t){
     : `<line x1="20" y1="17" x2="40" y2="17" stroke="${stroke}" stroke-width="1.3" opacity="0.5"/><circle cx="39" cy="30" r="2.4" fill="none" stroke="${stroke}" stroke-width="1.1" opacity="0.6"/>`;
   return `<svg viewBox="0 0 60 88" class="prod-svg">${inner}<path d="${path}" fill="none" stroke="${stroke}" stroke-width="2.2"/>${extra}</svg>`;
 }
+// Paleta de color restringida: cervecería = 30 tonos oficiales, destilería =
+// blanco/café (barrica). No es un <input type=color> libre.
+function prodColorSwatches(l,t){
+  const destileria=t.tipo==='destileria';
+  const opts=destileria?(prodData.meta.coloresDestilado||[]):(prodData.meta.coloresCerveza||[]).map(hex=>({id:hex,label:hex,hex}));
+  const cur=(l.color||'').toUpperCase();
+  const sw=opts.map(o=>`<button type="button" class="prod-color-sw${cur===o.hex.toUpperCase()?' on':''}" style="background:${o.hex}" data-color-lote="${l.id}" data-color-hex="${o.hex}" title="${escapeAttr(o.label)}"></button>`).join('');
+  return `<div class="prod-color"><span>color</span><div class="prod-color-row">${sw}</div></div>`;
+}
 function prodTankCard(t){
   const l=t.lote;
   const al=(l&&l.sobreEstadia>0)?'rojo':((l&&l.diasRestantes!=null&&l.diasRestantes<=3)?'ambar':'');
@@ -8743,7 +8754,7 @@ function prodTankCard(t){
        <div class="prod-tk-lit">${l.litrosActuales.toLocaleString('es-CL')} L · ${l.nivelPct}%</div>
        <div class="prod-tk-est">${etapaLbl} ${restante}</div>
        <div class="prod-tk-fechas">Cocción ${prodFecha(l.fechaCoccion)} → env. ${prodFecha(l.fechaProyEnvasado)}</div>
-       <label class="prod-color"><input type="color" data-color-lote="${l.id}" value="${escapeAttr(l.color||'#b87333')}"><span>color</span></label>`
+       ${prodColorSwatches(l,t)}`
     : `<div class="prod-tk-est ${t.estado}">${t.estado==='sucio'?'Sucio · requiere CIP':'Vacío · listo'}</div>${t.estado==='sucio'?`<button class="adm-btn adm-btn-ghost prod-tk-cip" data-limpiar-tank="${escapeAttr(t.id)}">🧽 Marcar limpieza</button>`:''}`;
   return `<div class="prod-tk-card ${t.estado} ${al}" data-tank="${escapeAttr(t.id)}">
     <div class="prod-tk-svg">${prodTankSvg(t)}</div>
@@ -9152,7 +9163,16 @@ function prodCalCompetencias(){
     <div class="cal-medal-up">${['oro','plata','bronce'].map(m=>`<div class="m"><div>${CAL_MED_EMOJI[m]} ${m}</div><img id="ncImg_${m}" style="display:none"><label class="adm-btn adm-btn-ghost" style="cursor:pointer;font-size:.72rem;padding:.3rem .5rem">PNG<input type="file" accept="image/png,image/*" data-cal-medal="${m}" style="display:none"></label></div>`).join('')}</div>
     <div class="cal-btn-row"><button class="adm-btn adm-btn-gold" id="ncSave">Guardar competencia</button><button class="adm-btn adm-btn-ghost" id="ncCancel">Cancelar</button><span class="cal-err" id="ncErr"></span></div></div>`:'';
   const pdfs=prodCal.pdfs.map((f,i)=>`<span class="cal-file">📄 <a href="${escapeAttr(f.url)}" target="_blank">${escapeHtml(f.name)}</a> <button data-cal-pdf-del="${i}">✕</button></span>`).join('');
-  const form=`<div class="cal-form"><div class="cal-form-t">Registrar participación en competencia</div><div class="cal-form-s">Elegí la cerveza (autocompleta el estilo), la competencia, el resultado y el feedback. La IA resume los PDFs en 5 categorías.</div>
+  const cervNueva=prodCal.cervNueva?`<div class="cal-ia" style="border-style:solid">
+    <div class="cal-ia-t">➕ Agregar / editar cerveza</div>
+    <div class="cal-form-s" style="margin:-.2rem 0 .5rem">Si el nombre coincide con una cerveza que ya existe, la actualiza (sirve para cargarle la imagen). Si es nueva, se suma a la rotación de Inicio.</div>
+    <div class="cal-grid">
+      <label class="cal-fld">Nombre de fantasía<input id="cvNombre" placeholder="Ej: Nada Personal"></label>
+      <label class="cal-fld">Estilo<input id="cvEstilo" placeholder="Ej: Pils"></label>
+    </div>
+    <div class="cal-medal-up"><div class="m"><div>🥫 Imagen de la lata</div><img id="cvImg" style="display:none"><label class="adm-btn adm-btn-ghost" style="cursor:pointer;font-size:.72rem;padding:.3rem .5rem">Subir<input type="file" accept="image/png,image/*" id="cvImgInp" style="display:none"></label></div></div>
+    <div class="cal-btn-row"><button class="adm-btn adm-btn-gold" id="cvSave">Guardar cerveza</button><button class="adm-btn adm-btn-ghost" id="cvCancel">Cancelar</button><span class="cal-err" id="cvErr"></span></div></div>`:'';
+  const form=`<div class="cal-form"><div class="cal-form-t">Registrar participación en competencia <button class="adm-btn adm-btn-ghost" id="cvAdd" style="margin-left:.6rem;font-size:.72rem;padding:.25rem .55rem;vertical-align:middle">➕ Agregar cerveza</button></div><div class="cal-form-s">Elegí la cerveza (autocompleta el estilo), la competencia, el resultado y el feedback. La IA resume los PDFs en 5 categorías.</div>
     <div class="cal-grid">
       <label class="cal-fld">Cerveza evaluada<select id="rcCerveza" class="cal-cerv" data-estilo-for="rcEstilo">${prodCalCervOpts()}</select></label>
       <label class="cal-fld">Estilo (auto)<input id="rcEstilo" placeholder="—"></label>
@@ -9162,6 +9182,7 @@ function prodCalCompetencias(){
       <label class="cal-fld">Fecha<input type="date" id="rcFecha"></label>
     </div>
     <div class="cal-btn-row"><button class="adm-btn adm-btn-ghost" id="rcAddComp">➕ Agregar otra competencia</button></div>
+    ${cervNueva}
     ${nuevo}
     <div class="cal-fld cal-full" style="margin-top:.7rem">Feedback de la competencia (hasta 5 PDF)
       <div class="cal-files">${pdfs}${prodCal.pdfs.length<5?`<label class="cal-file" style="cursor:pointer;border-style:dashed">➕ PDF<input type="file" accept="application/pdf" id="rcPdf" style="display:none"></label>`:''}</div></div>
@@ -9247,6 +9268,16 @@ function prodCalWire(){
   document.querySelectorAll('[data-cal-cerv]').forEach(c=>c.onclick=(ev)=>{ if(ev.target.closest('button,a'))return; prodCal.sel=(prodCal.sel===c.dataset.calCerv)?null:c.dataset.calCerv; prodCalRender(); });
   document.querySelectorAll('[data-cal-cerrar-det]').forEach(b=>b.onclick=()=>{ prodCal.sel=null; prodCalRender(); });
   document.querySelectorAll('[data-cal-resumir]').forEach(b=>b.onclick=async()=>{ const e=g('calDetErr'); if(e){e.className='cal-err';e.textContent='Generando…';} const d=await prodCalReq('resumen/'+encodeURIComponent(b.dataset.calResumir),'POST'); if(!d&&e){e.textContent='';} });
+  // agregar / editar cerveza
+  if(g('cvAdd')) g('cvAdd').onclick=()=>{ prodCal.cervNueva=!prodCal.cervNueva; prodCalRender(); };
+  if(g('cvCancel')) g('cvCancel').onclick=()=>{ prodCal.cervNueva=false; prodCal.cervImg=null; prodCalRender(); };
+  if(g('cvImgInp')) g('cvImgInp').onchange=async()=>{ const f=g('cvImgInp').files[0]; if(!f)return; try{ const up=await prodCalUpload(f); prodCal.cervImg=up.url; const im=g('cvImg'); if(im){im.src=up.url;im.style.display='';} }catch(e){ alert(String(e.message||e)); } };
+  if(g('cvSave')) g('cvSave').onclick=async()=>{
+    const err=g('cvErr'); const nombre=g('cvNombre').value.trim(); if(!nombre){ err.textContent='⚠ Ingresá el nombre.'; return; }
+    const body={nombre,estilo:g('cvEstilo').value}; if(prodCal.cervImg) body.imagen=prodCal.cervImg;
+    const d=await prodCalReq('cerveza','POST',body);
+    if(d){ prodCal.cervNueva=false; prodCal.cervImg=null; prodCalRender(); }
+  };
   // competencias: nueva competencia
   if(g('rcAddComp')) g('rcAddComp').onclick=()=>{ prodCal.compNuevo=!prodCal.compNuevo; prodCalRender(); };
   if(g('ncCancel')) g('ncCancel').onclick=()=>{ prodCal.compNuevo=false; prodCal.medalUp={}; prodCalRender(); };
@@ -9342,6 +9373,12 @@ function prodRenderParadas(){
   return form+`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Centro</th><th>Equipo</th><th>Causa</th><th>Categoría</th><th>Inicio</th><th>Fin</th><th style="text-align:right">Duración</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="8" style="text-align:center;color:#999;padding:.7rem">Sin paradas registradas — el OEE mostrará la disponibilidad como un techo</td></tr>'}</tbody></table></div>`;
 }
 // ── Config ──
+// <option> con fondo de color: paleta oficial de 30 tonos de cerveza (para el
+// mapa estilo→color; ya no se permite un color libre).
+function prodColorSelectOpts(sel){
+  const paleta=(prodData.meta&&prodData.meta.coloresCerveza)||[];
+  return paleta.map(hex=>`<option value="${escapeAttr(hex)}" style="background:${hex}" ${(sel||'').toUpperCase()===hex.toUpperCase()?'selected':''}>${hex}</option>`).join('');
+}
 function prodRenderConfig(){
   const c=prodData.config||{};
   const syncTxt = c.erpLastSync ? ('Última sync: '+prodDT(c.erpLastSync)+(c.erpLastStatus?' · '+escapeHtml(c.erpLastStatus):'')) : 'Sin sincronizar todavía';
@@ -9377,7 +9414,7 @@ function prodRenderConfig(){
   const dl=`<datalist id="cfEstilos">${estilos.map(e=>`<option value="${escapeAttr(e)}">`).join('')}</datalist>`;
   const lt=c.leadTimeObjetivoPorEstilo||{}; const col=c.coloresPorEstilo||{};
   const ltRows=Object.entries(lt).map(([k,v])=>`<div class="prod-cfg-map" data-lt-row><input list="cfEstilos" data-ltk value="${escapeAttr(k)}"><input data-ltv inputmode="numeric" value="${v}" placeholder="días"><button class="rec-ico" data-lt-del title="Quitar">✕</button></div>`).join('');
-  const colRows=Object.entries(col).map(([k,v])=>`<div class="prod-cfg-map" data-col-row><input list="cfEstilos" data-colk value="${escapeAttr(k)}"><input type="color" class="prod-cfg-color" data-colv value="${escapeAttr(v||'#b87333')}"><button class="rec-ico" data-col-del title="Quitar">✕</button></div>`).join('');
+  const colRows=Object.entries(col).map(([k,v])=>`<div class="prod-cfg-map" data-col-row><input list="cfEstilos" data-colk value="${escapeAttr(k)}"><select class="prod-cfg-color" data-colv>${prodColorSelectOpts(v)}</select><button class="rec-ico" data-col-del title="Quitar">✕</button></div>`).join('');
   const maps=`<div class="cg-form"><div class="cg-form-title">Lead time objetivo por estilo</div>
     <div class="prod-lote-meta" style="margin-bottom:.6rem">Días de acondicionamiento por estilo (default global ${c.leadTimeObjetivoDias||27} d). Define la fecha proyectada de envasado y la sobre-estadía.</div>
     <div id="cfLtMap">${ltRows}</div>
@@ -9395,7 +9432,7 @@ function prodWire(){
   const g=id=>document.getElementById(id);
   document.querySelectorAll('[data-ptab]').forEach(b=>b.onclick=()=>{ prodTab=b.dataset.ptab; if(prodTab!=='tanques')prodOpenLote=null; renderProduccion(); });
   document.querySelectorAll('.prod-tk-card[data-tank]').forEach(c=>c.onclick=(ev)=>{ if(ev.target.closest('input,button,label,a')) return; const t=(prodData.tanques||[]).find(x=>x.id===c.dataset.tank); if(t&&t.lote){ prodOpenLote=(prodOpenLote===t.lote.id)?null:t.lote.id; renderProduccion(); } });
-  document.querySelectorAll('[data-color-lote]').forEach(inp=>inp.onchange=()=>prodPatchLote(inp.dataset.colorLote,{color:inp.value}));
+  document.querySelectorAll('[data-color-lote]').forEach(b=>b.onclick=()=>prodPatchLote(b.dataset.colorLote,{color:b.dataset.colorHex}));
   document.querySelectorAll('[data-limpiar-tank]').forEach(b=>b.onclick=async()=>{ await prodPost('tanque/'+encodeURIComponent(b.dataset.limpiarTank)+'/limpiar',{}); });
   // etapas
   document.querySelectorAll('[data-eta-ini]').forEach(b=>b.onclick=()=>prodEtapa(b.dataset.etaIni,'inicio'));
@@ -9483,7 +9520,7 @@ function prodWire(){
   };
   // config: mapas por estilo (E)
   if(g('cfLtAdd')) g('cfLtAdd').onclick=()=>{ g('cfLtMap').insertAdjacentHTML('beforeend','<div class="prod-cfg-map" data-lt-row><input list="cfEstilos" data-ltk placeholder="estilo"><input data-ltv inputmode="numeric" placeholder="días"><button class="rec-ico" data-lt-del title="Quitar">✕</button></div>'); prodWireMapDel(); };
-  if(g('cfColAdd')) g('cfColAdd').onclick=()=>{ g('cfColMap').insertAdjacentHTML('beforeend','<div class="prod-cfg-map" data-col-row><input list="cfEstilos" data-colk placeholder="estilo"><input type="color" class="prod-cfg-color" data-colv value="#b87333"><button class="rec-ico" data-col-del title="Quitar">✕</button></div>'); prodWireMapDel(); };
+  if(g('cfColAdd')) g('cfColAdd').onclick=()=>{ g('cfColMap').insertAdjacentHTML('beforeend','<div class="prod-cfg-map" data-col-row><input list="cfEstilos" data-colk placeholder="estilo"><select class="prod-cfg-color" data-colv>'+prodColorSelectOpts()+'</select><button class="rec-ico" data-col-del title="Quitar">✕</button></div>'); prodWireMapDel(); };
   prodWireMapDel();
   if(g('cfMapsSave')) g('cfMapsSave').onclick=prodGuardarMapas;
 }
