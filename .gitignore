@@ -1,3 +1,6 @@
 node_modules/
 .env
 logs/*.json
+
+# Runtime data del módulo de Producción (se persiste en el volumen en Railway)
+prompts/produccion.json

@@ -3489,7 +3489,61 @@ function prodDiasOcup(lote){
   return Math.max(0, Math.round((fin - ini) / 86400000));
 }
 // Litros ya envasados de un lote (suma de líneas de envasado, buenos + rechazados).
+// Es lo que salió del tanque: buenos + rechazados dejan el fermentador.
 function prodLitrosEnvasados(lote){ return (lote.envasados || []).reduce((a, e) => a + (prodNum(e.litrosBuenos) + prodNum(e.litrosRechazados)), 0); }
+// Formatos de envasado (C · split): barril 20 L, barril 30 L y lata. Cada uno con
+// su velocidad nominal (config). Los barriles llenan rápido; la lata es manual (lento).
+const PROD_FORMATOS = ['barril20', 'barril30', 'lata'];
+const prodFormatoOk = (f) => PROD_FORMATOS.includes(f) ? f : 'barril20';
+function prodVelNominal(cfg, formato){
+  if (formato === 'lata') return prodNum(cfg.velNominalLata) || prodNum(cfg.velNominalLataLh) || 83;
+  if (formato === 'barril30') return prodNum(cfg.velNominalBarril30) || prodNum(cfg.velNominalBarrilLh) || 1000;
+  return prodNum(cfg.velNominalBarril20) || prodNum(cfg.velNominalBarrilLh) || 1000; // barril20 (default)
+}
+// Volumen base del lote: el real medido si está, sino el esperado (receta / ERP).
+function prodVolumenBase(lote){ return prodNum(lote.volumenRealL) || prodNum(lote.volumenEsperadoL) || 0; }
+// Rendimiento de envasado de un lote, ponderado por litros de cada formato (0..1) o
+// null si no hay datos. Por línea: velReal = litrosBuenos/duraciónH; rend = min(1, velReal/velNominal).
+function prodRendEnvasado(lote, cfg){
+  let num = 0, den = 0;
+  for (const ev of (lote.envasados || [])) {
+    const durH = (ev.inicio && ev.fin) ? (new Date(ev.fin) - new Date(ev.inicio)) / 3600000 : 0;
+    const buenos = prodNum(ev.litrosBuenos);
+    if (durH <= 0 || buenos <= 0) continue;
+    const fmt = ev.formato || (ev.canal === 'lata' ? 'lata' : 'barril20'); // compat líneas viejas
+    const velNom = prodVelNominal(cfg, fmt);
+    if (velNom <= 0) continue;
+    const rend = Math.min(1, (buenos / durH) / velNom);
+    num += rend * buenos; den += buenos;
+  }
+  return den > 0 ? num / den : null;
+}
+// ── Recetas: forma normalizada (id + complemento local) y merge con el ERP ──
+function prodEnsureRecetaShape(r){
+  if (!r.id) r.id = prodNewId('rec');
+  r.origen = r.origen || (r.erpId ? 'erp' : 'local');
+  if (!r.tiemposEstandar || typeof r.tiemposEstandar !== 'object') r.tiemposEstandar = {};
+  if (!r.litrosEsperadosPorFormato || typeof r.litrosEsperadosPorFormato !== 'object') r.litrosEsperadosPorFormato = {};
+  return r;
+}
+// Merge de las recetas del ERP con las que ya hay: refresca datos de origen ERP,
+// preserva el complemento local (tiempos/litros por formato) y las recetas manuales.
+function prodMergeRecetas(prev, scraped){
+  const out = [];
+  for (const s of scraped) {
+    const ex = prev.find(x => x.erpId && String(x.erpId) === String(s.erpId));
+    if (ex) out.push({ ...ex, nombre: s.nombre, estilo: s.estilo, litros: s.litros, og: s.og, abv: s.abv, origen: 'erp' });
+    else out.push(prodEnsureRecetaShape({ origen: 'erp', ...s }));
+  }
+  for (const p of prev) if (!p.erpId) out.push(prodEnsureRecetaShape(p)); // recetas cargadas a mano
+  return out;
+}
+// Asegura id/forma de todas las recetas. Devuelve true si mutó algo (para persistir).
+function prodNormalizeRecetas(d){
+  let changed = false;
+  for (const r of (d.recetas || [])) { const hadId = !!r.id; prodEnsureRecetaShape(r); if (!hadId) changed = true; }
+  return changed;
+}
 function prodDecorate(d){
   const cfg = d.config; const byId = Object.fromEntries(d.lotes.map(l => [l.id, l]));
   const DAY = 86400000;
@@ -3506,19 +3560,19 @@ function prodDecorate(d){
       const sobreEstadia = (proy && !lote.fechaEnvasado && Date.now() > proy.getTime()) ? Math.floor((Date.now() - proy.getTime()) / DAY) : 0;
       li = {
         id: lote.id, codigo: lote.codigo, producto: lote.producto, estilo: lote.estilo, estado: lote.estado,
-        diasOcup: prodDiasOcup(lote), volumenEsperadoL: lote.volumenEsperadoL, litrosActuales, nivelPct: cap ? Math.round(litrosActuales / cap * 100) : 0,
+        diasOcup: prodDiasOcup(lote), volumenEsperadoL: lote.volumenEsperadoL, litrosActuales, litrosRestantes: litrosActuales, nivelPct: cap ? Math.round(litrosActuales / cap * 100) : 0,
         color: lote.color || (cfg.coloresPorEstilo || {})[String(lote.estilo || '').toLowerCase().trim()] || '',
         fechaCoccion: lote.fechaCoccion, fechaProyEnvasado: proy ? proy.toISOString() : null, diasRestantes, sobreEstadia, leadObjetivo: lead,
       };
     }
     return { ...t, estado: t.loteActualId ? 'ocupado' : (t.sucio ? 'sucio' : 'vacio'), lote: li };
   });
-  const lotes = d.lotes.map(l => ({ ...l, diasOcup: prodDiasOcup(l), litrosEnvasados: prodLitrosEnvasados(l), leadTimeDias: (l.fechaEnvasado && l.fechaCoccion) ? Math.max(0, Math.round((new Date(l.fechaEnvasado) - new Date(l.fechaCoccion)) / DAY)) : null }));
-  return { config: prodConfigSafe(cfg), tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, recetas: d.recetas || [], meta: { etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT } };
+  const lotes = d.lotes.map(l => { const base = prodVolumenBase(l); const env = prodLitrosEnvasados(l); return { ...l, diasOcup: prodDiasOcup(l), volumenBaseL: base, litrosEnvasados: env, litrosRestantes: Math.max(0, base - env), rendEnvasado: prodRendEnvasado(l, cfg), leadTimeDias: (l.fechaEnvasado && l.fechaCoccion) ? Math.max(0, Math.round((new Date(l.fechaEnvasado) - new Date(l.fechaCoccion)) / DAY)) : null }; });
+  return { config: prodConfigSafe(cfg), tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, recetas: d.recetas || [], meta: { etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT, formatos: PROD_FORMATOS } };
 }
 // Config para el front: la clave del ERP nunca se envía, solo si está configurada.
 function prodConfigSafe(cfg){ const c = { ...cfg }; c.erpUsuarioSet = !!(cfg.erpUsuario || process.env.GC_USUARIO); c.erpClaveSet = !!(cfg.erpClave || process.env.GC_CLAVE); c.erpUsuario = cfg.erpUsuario || ''; delete c.erpClave; return c; }
-app.get('/admin/produccion', requireAdmin, (req, res) => { res.json(prodDecorate(prodLoad())); });
+app.get('/admin/produccion', requireAdmin, (req, res) => { const d = prodLoad(); if (prodNormalizeRecetas(d)) prodSave(d); res.json(prodDecorate(d)); });
 app.put('/admin/produccion/config', requireAdmin, (req, res) => {
   const b = req.body || {}; const d = prodLoad(); const c = { ...d.config };
   const numOr = (v, def) => prodNum(v) || def;
@@ -3678,7 +3732,7 @@ app.post('/admin/produccion/erp/sync', requireAdmin, async (req, res) => {
     // Recetas.
     const recHtml = await (await erpGet(cr.base + '/Receta', login.jar, cr.base)).text();
     const recetas = erpParseRecetas(recHtml);
-    if (recetas.length) d.recetas = recetas.map(r => ({ ...r, origen: 'erp' }));
+    if (recetas.length) d.recetas = prodMergeRecetas(d.recetas || [], recetas);
     // Lotes (ya tenemos el HTML de /Lote del chequeo de login).
     const loteHtml = login.loteHtml || await (await erpGet(cr.base + '/Lote', login.jar, cr.base)).text();
     const lotes = erpParseLotes(loteHtml);
@@ -3723,10 +3777,14 @@ app.post('/admin/produccion/lote', requireAdmin, (req, res) => {
   const tanqueId = prodStr(b.tanqueId, 10);
   const tanque = d.tanques.find(t => t.id === tanqueId);
   if (tanqueId && !tanque) return res.status(400).json({ error: 'Tanque inválido.' });
+  // D · enlace con receta: si se elige una, pre-rellena estilo/producto/volumen esperado.
+  const recetaId = prodStr(b.recetaId, 40);
+  const receta = recetaId ? (d.recetas || []).find(r => r.id === recetaId) : null;
   const lote = {
-    id: prodNewId('lote'), codigo, producto: prodStr(b.producto, 80), estilo: prodStr(b.estilo, 60), familia: prodStr(b.familia, 40),
+    id: prodNewId('lote'), codigo, recetaId: receta ? receta.id : '',
+    producto: prodStr(b.producto, 80) || (receta ? receta.nombre : ''), estilo: prodStr(b.estilo, 60) || (receta ? receta.estilo : ''), familia: prodStr(b.familia, 40),
     tanqueId: tanqueId || '', nBatches: Math.max(1, Math.min(3, prodNum(b.nBatches) || 1)),
-    volumenEsperadoL: prodNum(b.volumenEsperadoL), volumenRealL: 0,
+    volumenEsperadoL: prodNum(b.volumenEsperadoL) || (receta ? prodNum(receta.litros) : 0), volumenRealL: 0,
     fechaCoccion: prodTs(b.fechaCoccion) || new Date().toISOString(), fechaFermInicio: null, fechaMadInicio: null, fechaEnvasado: null,
     estado: 'coccion', viabilidadLevaduraPct: null,
     etapas: PROD_ETAPAS.map(nombre => ({ nombre, inicio: null, fin: null, editadoManual: false })),
@@ -3741,6 +3799,7 @@ app.put('/admin/produccion/lote/:id', requireAdmin, (req, res) => {
   const cur = d.lotes[idx]; const b = req.body || {};
   const merged = { ...cur };
   ['codigo', 'producto', 'estilo', 'familia', 'notas'].forEach(k => { if (b[k] != null) merged[k] = prodStr(b[k], 80); });
+  if (b.recetaId != null) merged.recetaId = prodStr(b.recetaId, 40);
   if (b.color != null) merged.color = prodStr(b.color, 20);
   if (b.tanqueId != null) merged.tanqueId = prodStr(b.tanqueId, 10);
   if (b.nBatches != null) merged.nBatches = Math.max(1, Math.min(3, prodNum(b.nBatches)));
@@ -3750,14 +3809,26 @@ app.put('/admin/produccion/lote/:id', requireAdmin, (req, res) => {
   if (b.estado != null) merged.estado = prodStr(b.estado, 20);
   if (b.viabilidadLevaduraPct != null) merged.viabilidadLevaduraPct = prodNum(b.viabilidadLevaduraPct);
   if (Array.isArray(b.etapas)) merged.etapas = b.etapas.map((e, i) => ({ nombre: prodStr(e.nombre, 40) || (PROD_ETAPAS[i] || 'Etapa'), inicio: prodTs(e.inicio), fin: prodTs(e.fin), editadoManual: !!e.editadoManual }));
-  if (Array.isArray(b.envasados)) merged.envasados = b.envasados.map(ev => ({
-    id: ev.id || prodNewId('env'), canal: (ev.canal === 'lata' ? 'lata' : 'barril'), inicio: prodTs(ev.inicio), fin: prodTs(ev.fin),
-    litrosEsperados: prodNum(ev.litrosEsperados), litrosBuenos: prodNum(ev.litrosBuenos), litrosRechazados: prodNum(ev.litrosRechazados),
-    barriles20L: prodNum(ev.barriles20L), barriles30L: prodNum(ev.barriles30L), latasBuenas: prodNum(ev.latasBuenas), latasNivelBajo: prodNum(ev.latasNivelBajo), mermaTapas: prodNum(ev.mermaTapas), editadoManual: !!ev.editadoManual,
-  }));
+  if (Array.isArray(b.envasados)) merged.envasados = b.envasados.map(ev => {
+    // Compat: líneas viejas traían `canal` barril|lata → mapear a formato.
+    const formato = PROD_FORMATOS.includes(ev.formato) ? ev.formato : (ev.canal === 'lata' ? 'lata' : 'barril20');
+    return {
+      id: ev.id || prodNewId('env'), formato, inicio: prodTs(ev.inicio), fin: prodTs(ev.fin),
+      litrosBuenos: prodNum(ev.litrosBuenos), litrosRechazados: prodNum(ev.litrosRechazados), unidades: prodNum(ev.unidades),
+      latasNivelBajo: prodNum(ev.latasNivelBajo), mermaTapas: prodNum(ev.mermaTapas), editadoManual: !!ev.editadoManual,
+    };
+  });
+  // C · Validación: la suma envasada (buenos + rechazados de todas las líneas) no
+  // puede superar el volumen del lote. El resto queda en el tanque (envasado parcial).
+  {
+    const base = prodVolumenBase(merged);
+    const sum = (merged.envasados || []).reduce((a, ev) => a + prodNum(ev.litrosBuenos) + prodNum(ev.litrosRechazados), 0);
+    if (base > 0 && sum > base + 0.5) return res.status(400).json({ error: `Los litros envasados (${Math.round(sum)} L) superan el volumen del lote (${Math.round(base)} L). Ajustá las líneas.` });
+  }
   d.lotes[idx] = merged;
-  // Al envasar (transición a 'envasado'), el tanque queda sucio hasta su CIP.
-  if (merged.estado === 'envasado' && cur.estado !== 'envasado' && merged.tanqueId) { const t = d.tanques.find(x => x.id === merged.tanqueId); if (t) t.sucio = true; }
+  // El tanque queda "Sucio" recién al CERRAR el envasado (vaciado → fechaEnvasado).
+  // Mientras se envasa de a poco sigue "Ocupado" (queda cerveza adentro).
+  if (merged.fechaEnvasado && !cur.fechaEnvasado && merged.tanqueId) { const t = d.tanques.find(x => x.id === merged.tanqueId); if (t) t.sucio = true; }
   prodSyncTanques(d);
   prodSave(d); res.json({ ok: true, lote: merged });
 });
@@ -3773,9 +3844,13 @@ function prodSyncTanques(d){
   for (const l of d.lotes) {
     if (!l.tanqueId) continue;
     const t = d.tanques.find(x => x.id === l.tanqueId); if (!t) continue;
-    if (['fermentacion', 'maduracion', 'listo'].includes(l.estado) && !t.loteActualId) t.loteActualId = l.id;
+    // Un lote ocupa el tanque en ferm/mad/listo, y también mientras se envasa de a
+    // poco (estado 'envasado' sin cierre): queda cerveza adentro hasta vaciarse.
+    const drenado = l.fechaEnvasado != null; // envasado cerrado = tanque vaciado
+    const ocupa = ['fermentacion', 'maduracion', 'listo'].includes(l.estado) || (l.estado === 'envasado' && !drenado);
+    if (ocupa && !t.loteActualId) t.loteActualId = l.id;
   }
-  // El flag t.sucio es persistente: se prende al envasar (transición) y se apaga con el CIP.
+  // El flag t.sucio es persistente: se prende al cerrar el envasado y se apaga con el CIP.
   d.tanques.forEach(t => { t.estado = t.loteActualId ? 'ocupado' : (t.sucio ? 'sucio' : 'vacio'); });
 }
 // Limpiezas (paradas planificadas).
@@ -3802,6 +3877,56 @@ app.put('/admin/produccion/parada/:id', requireAdmin, (req, res) => {
   prodSave(d); res.json({ ok: true, parada: it });
 });
 app.delete('/admin/produccion/parada/:id', requireAdmin, (req, res) => { const d = prodLoad(); const n = d.paradas.length; d.paradas = d.paradas.filter(x => x.id !== req.params.id); if (d.paradas.length === n) return res.status(404).json({ error: 'No encontrada.' }); prodSave(d); res.json({ ok: true }); });
+// ── Recetas teóricas (D) ── ERP (scraping/sync) + complemento local. La receta
+// define litros esperados por formato y tiempos estándar por etapa → base de la
+// Calidad (merma = 1 − real/esperado) y del Rendimiento teórico. Enlace por recetaId.
+function prodRecetaClean(b, base){
+  const r = base || {};
+  if (b.nombre != null) r.nombre = prodStr(b.nombre, 120);
+  if (b.estilo != null) r.estilo = prodStr(b.estilo, 80);
+  if (b.litros != null) r.litros = prodNum(b.litros);
+  if (b.og != null) r.og = prodNum(b.og);
+  if (b.abv != null) r.abv = prodNum(b.abv);
+  if (b.notas != null) r.notas = prodStr(b.notas, 400);
+  if (b.tiemposEstandar && typeof b.tiemposEstandar === 'object') { const t = {}; for (const [k, v] of Object.entries(b.tiemposEstandar)) t[prodStr(k, 40)] = prodNum(v); r.tiemposEstandar = t; }
+  if (b.litrosEsperadosPorFormato && typeof b.litrosEsperadosPorFormato === 'object') { const f = { ...(r.litrosEsperadosPorFormato || {}) }; for (const fm of PROD_FORMATOS) if (b.litrosEsperadosPorFormato[fm] != null) f[fm] = prodNum(b.litrosEsperadosPorFormato[fm]); r.litrosEsperadosPorFormato = f; }
+  return r;
+}
+app.post('/admin/produccion/receta', requireAdmin, (req, res) => {
+  const b = req.body || {}; const d = prodLoad();
+  const nombre = prodStr(b.nombre, 120); if (!nombre) return res.status(400).json({ error: 'Ingresá el nombre de la receta.' });
+  const r = prodEnsureRecetaShape(prodRecetaClean(b, { origen: 'local' })); r.nombre = nombre;
+  d.recetas = d.recetas || []; d.recetas.push(r); prodSave(d); res.json({ ok: true, receta: r });
+});
+app.put('/admin/produccion/receta/:id', requireAdmin, (req, res) => {
+  const d = prodLoad(); const r = (d.recetas || []).find(x => x.id === req.params.id || (x.erpId && String(x.erpId) === req.params.id));
+  if (!r) return res.status(404).json({ error: 'Receta no encontrada.' });
+  prodEnsureRecetaShape(r); prodRecetaClean(req.body || {}, r); prodSave(d); res.json({ ok: true, receta: r });
+});
+app.post('/admin/produccion/receta/:id/duplicar', requireAdmin, (req, res) => {
+  const d = prodLoad(); const src = (d.recetas || []).find(x => x.id === req.params.id);
+  if (!src) return res.status(404).json({ error: 'Receta no encontrada.' });
+  const copy = prodEnsureRecetaShape({ ...JSON.parse(JSON.stringify(src)), id: null, erpId: null, origen: 'local', nombre: (src.nombre || 'Receta') + ' (copia)' });
+  d.recetas.push(copy); prodSave(d); res.json({ ok: true, receta: copy });
+});
+app.delete('/admin/produccion/receta/:id', requireAdmin, (req, res) => {
+  const d = prodLoad(); const n = (d.recetas || []).length; d.recetas = (d.recetas || []).filter(x => x.id !== req.params.id);
+  if ((d.recetas || []).length === n) return res.status(404).json({ error: 'Receta no encontrada.' });
+  prodSave(d); res.json({ ok: true });
+});
+// Export a Excel de las recetas (nombre, estilo, litros, OG, ABV + litros esperados por formato).
+app.get('/admin/produccion/recetas/export.xlsx', requireAdmin, (req, res) => {
+  try {
+    const d = prodLoad(); prodNormalizeRecetas(d);
+    const H = 1; // header en negrita (estilo del styleSheet reusado)
+    const rows = [[{ v: 'Nombre', s: H }, { v: 'Estilo', s: H }, { v: 'Litros', s: H }, { v: 'OG', s: H }, { v: 'ABV %', s: H }, { v: 'Barril 20 L', s: H }, { v: 'Barril 30 L', s: H }, { v: 'Lata', s: H }, { v: 'Origen', s: H }]];
+    for (const r of (d.recetas || [])) {
+      const f = r.litrosEsperadosPorFormato || {};
+      rows.push([{ v: r.nombre || '' }, { v: r.estilo || '' }, { v: prodNum(r.litros), t: 'n' }, { v: prodNum(r.og), t: 'n' }, { v: prodNum(r.abv), t: 'n' }, { v: prodNum(f.barril20), t: 'n' }, { v: prodNum(f.barril30), t: 'n' }, { v: prodNum(f.lata), t: 'n' }, { v: r.origen || 'local' }]);
+    }
+    sendXlsx(res, xlsxPackage([{ name: 'Recetas', rows }]), 'Recetas_Kairos.xlsx');
+  } catch (e) { res.status(500).json({ error: String(e.message || e) }); }
+});
 
 // ─── Conversaciones (embudo) ────────────────────────────────────────────────
 // Listado y detalle de las sesiones de chat ya persistidas en CONV_LOG. El

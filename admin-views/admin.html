@@ -1680,6 +1680,34 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .prod-env-form{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.7rem}
 .prod-env-inp{padding:.45rem .55rem;border:1px solid var(--line,#e5e5e5);border-radius:8px;font:inherit;font-size:.85rem}
 .prod-content .adm-btn{white-space:nowrap}
+/* Envasado con split de formato (C) */
+.prod-fill{height:12px;border-radius:7px;background:var(--surface2,#f0f0f0);overflow:hidden;margin:.5rem 0 .2rem;border:1px solid var(--line,#e5e5e5)}
+.prod-fill i{display:block;height:100%;background:linear-gradient(90deg,#c98a4a,#b87333)}
+.prod-fill-lbl{font-size:.74rem;color:var(--muted,#666);font-weight:600;display:flex;justify-content:space-between;gap:.5rem}
+.prod-fill-lbl b{color:var(--gold-deep,#a05f00);font-family:ui-monospace,monospace}
+.prod-env-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.4rem .5rem;align-items:end;margin-top:.6rem}
+.prod-env-grid label{display:flex;flex-direction:column;gap:.2rem;font-size:.66rem;font-weight:700;color:var(--muted,#777);text-transform:uppercase;letter-spacing:.03em}
+.prod-env-grid input,.prod-env-grid select{padding:.4rem .5rem;border:1px solid var(--line,#e5e5e5);border-radius:8px;font:inherit;font-size:.84rem;background:var(--surface,#fff);color:var(--text,#111)}
+.prod-env-actions{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.7rem}
+.prod-env-hint{font-size:.72rem;color:var(--dim,#999)}
+.prod-env-warn{color:#d9534f;font-weight:700}
+/* Recetas (D) */
+.rec-toolbar{display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin-bottom:.8rem}
+.rec-search{flex:1;min-width:200px;padding:.5rem .7rem;border:1px solid var(--line,#e5e5e5);border-radius:9px;font:inherit;font-size:.88rem}
+.rec-actions{display:flex;gap:.25rem}
+.rec-ico{border:1px solid var(--line,#e5e5e5);background:var(--surface,#fff);border-radius:7px;padding:.28rem .45rem;cursor:pointer;font-size:.82rem;line-height:1}
+.rec-ico:hover{border-color:#b87333}
+.rec-pager{display:flex;gap:.5rem;align-items:center;justify-content:center;margin-top:.8rem;font-size:.82rem;color:var(--muted,#666)}
+.rec-origin{font-size:.6rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:5px;padding:.05rem .3rem}
+.rec-origin.erp{background:#e7eefc;color:#33549c}.rec-origin.local{background:var(--gold-dim,#fff3d6);color:var(--gold-deep,#a05f00)}
+.rec-editor{border:1px solid #d8c3ad;border-radius:12px;background:var(--surface2,#fffdf7);padding:1rem 1.1rem;margin-bottom:1rem}
+.rec-editor h4{margin:0 0 .7rem;font-family:var(--display,inherit);font-size:1rem}
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.6rem}
+.rec-grid label,.prod-cfg-map label{display:flex;flex-direction:column;gap:.2rem;font-size:.68rem;font-weight:700;color:var(--muted,#777)}
+.rec-grid input,.prod-cfg-map input{padding:.45rem .55rem;border:1px solid var(--line,#e5e5e5);border-radius:8px;font:inherit;font-size:.86rem}
+.rec-sub{font-family:var(--display,inherit);font-weight:700;font-size:.82rem;margin:.9rem 0 .4rem;color:var(--text,#222)}
+.prod-cfg-map{display:grid;grid-template-columns:1fr 90px 34px;gap:.4rem;align-items:end;margin-bottom:.4rem}
+.prod-cfg-map .prod-cfg-color{width:100%;height:36px;padding:0;border:1px solid var(--line,#ccc);border-radius:8px;background:none;cursor:pointer}
 /* Estado de Resultado (P&L) */
 .pnl-table td{padding:.5rem .7rem}
 .pnl-table tr.pnl-sub td:first-child{padding-left:1.8rem;color:var(--muted,#666);font-size:.86rem}
@@ -8550,6 +8578,7 @@ document.getElementById('pnlExcel').onclick=()=>{ const m=document.getElementByI
 
 // ─── Producción & OEE (Fase 1) ──────────────────────────────────────────────
 let prodData=null, prodTab='tanques', prodTimers=null, prodOpenLote=null;
+let prodRecQuery='', prodRecPage=0, prodRecEditing=null, prodRecView=null; const PROD_REC_PER=8;
 const prodNow=()=>new Date().toISOString();
 function prodStopTimers(){ if(prodTimers){ clearInterval(prodTimers); prodTimers=null; } }
 function prodDur(ms){ if(ms<0)ms=0; const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60; if(h>0)return h+'h '+String(m).padStart(2,'0')+'m'; if(m>0)return m+'m '+String(ss).padStart(2,'0')+'s'; return ss+'s'; }
@@ -8561,9 +8590,9 @@ async function loadProduccion(){
 }
 function renderProduccion(){
   const body=document.getElementById('prodBody');
-  const tabs=[['tanques','🛢 Tanques'],['coccion','🔥 Cocción'],['envasado','📦 Envasado'],['limpiezas','🧽 Limpiezas'],['paradas','⛔ Paradas'],['config','⚙ Config']];
+  const tabs=[['tanques','🛢 Tanques'],['coccion','🔥 Cocción'],['recetas','📖 Recetas'],['envasado','📦 Envasado'],['limpiezas','🧽 Limpiezas'],['paradas','⛔ Paradas'],['config','⚙ Config']];
   const tabBar=`<div class="prod-tabs">${tabs.map(([k,l])=>`<button class="prod-tab ${k===prodTab?'on':''}" data-ptab="${k}">${l}</button>`).join('')}</div>`;
-  const R={tanques:prodRenderTanques,coccion:prodRenderCoccion,envasado:prodRenderEnvasado,limpiezas:prodRenderLimpiezas,paradas:prodRenderParadas,config:prodRenderConfig};
+  const R={tanques:prodRenderTanques,coccion:prodRenderCoccion,recetas:prodRenderRecetas,envasado:prodRenderEnvasado,limpiezas:prodRenderLimpiezas,paradas:prodRenderParadas,config:prodRenderConfig};
   body.innerHTML=tabBar+'<div class="prod-content">'+(R[prodTab]||(()=>''))()+'</div>';
   prodWire();
   prodStopTimers();
@@ -8612,9 +8641,11 @@ function prodRenderTanques(){
 function prodRenderCoccion(){
   const lotesCoc=(prodData.lotes||[]).filter(l=>l.estado==='coccion');
   const tanqueOpts=['<option value="">— sin asignar —</option>',...(prodData.tanques||[]).map(t=>`<option value="${escapeAttr(t.id)}"${t.estado==='ocupado'?' disabled':''}>${escapeHtml(t.id)} (${t.capacidadL} L)${t.estado==='ocupado'?' · ocupado':''}</option>`)].join('');
+  const recetaOpts=['<option value="">— sin receta —</option>',...(prodData.recetas||[]).map(r=>`<option value="${escapeAttr(r.id)}" data-estilo="${escapeAttr(r.estilo||'')}" data-litros="${r.litros||''}" data-nombre="${escapeAttr(r.nombre||'')}">${escapeHtml(r.nombre||'(sin nombre)')}${r.estilo?(' · '+escapeHtml(r.estilo)):''}${r.litros?(' · '+r.litros+' L'):''}</option>`)].join('');
   const form=`<div class="cg-form"><div class="cg-form-title">Nuevo lote (cocción)</div>
     <div class="cg-form-grid">
       <label class="cg-field"><span>Código</span><input id="plCodigo" placeholder="Ej: L190"></label>
+      <label class="cg-field"><span>Receta</span><select id="plReceta">${recetaOpts}</select></label>
       <label class="cg-field"><span>Producto</span><input id="plProducto" placeholder="Ej: Golden"></label>
       <label class="cg-field"><span>Estilo</span><input id="plEstilo" placeholder="Ej: Golden Ale"></label>
       <label class="cg-field"><span>Familia (color/tipo)</span><input id="plFamilia" placeholder="rubia / oscura…"></label>
@@ -8652,7 +8683,8 @@ function prodLoteCard(l){
       ${l.estado!=='listo'?`<button class="adm-btn adm-btn-ghost" data-listo="${l.id}">Marcar listo</button>`:''}
       <button class="adm-btn adm-btn-gold" data-ir-envasado="${l.id}">📦 Envasar</button></div>`;
   }
-  const meta=[l.producto,l.estilo,l.tanqueId?('Tanque '+l.tanqueId):'',l.nBatches>1?(l.nBatches+' cocciones'):'', (l.volumenEsperadoL?l.volumenEsperadoL+' L':'')].filter(Boolean).map(escapeHtml).join(' · ');
+  const recNom=l.recetaId?(((prodData.recetas||[]).find(r=>r.id===l.recetaId)||{}).nombre||''):'';
+  const meta=[l.producto,l.estilo,recNom?('📖 '+recNom):'',l.tanqueId?('Tanque '+l.tanqueId):'',l.nBatches>1?(l.nBatches+' cocciones'):'', (l.volumenEsperadoL?l.volumenEsperadoL+' L':'')].filter(Boolean).map(escapeHtml).join(' · ');
   const dias=l.fechaFermInicio?` · ${l.diasOcup} d en tanque`:'';
   const lead=l.leadTimeDias!=null?` · lead ${l.leadTimeDias} d`:'';
   return `<div class="prod-lote">
@@ -8661,31 +8693,127 @@ function prodLoteCard(l){
     ${(l.estado==='coccion'||prodTab==='tanques')?`<div class="prod-etapas">${etapas}</div>`:''}
     ${acciones}</div>`;
 }
-// ── Envasado ──
+// ── Envasado con split de formato (C) ──
+const PROD_FMT_LBL={barril20:'🛢 Barril 20 L',barril30:'🛢 Barril 30 L',lata:'🥫 Lata'};
+function prodVelNominalFmt(fmt){
+  const c=prodData.config||{};
+  if(fmt==='lata') return cNum(c.velNominalLata)||cNum(c.velNominalLataLh)||83;
+  if(fmt==='barril30') return cNum(c.velNominalBarril30)||cNum(c.velNominalBarrilLh)||1000;
+  return cNum(c.velNominalBarril20)||cNum(c.velNominalBarrilLh)||1000;
+}
 function prodRenderEnvasado(){
   const lotes=(prodData.lotes||[]).filter(l=>['fermentacion','maduracion','listo','envasado'].includes(l.estado));
   if(!lotes.length) return '<div class="dist-empty">No hay lotes para envasar. Cerrá una cocción primero.</div>';
   return lotes.map(l=>{
+    const base=l.volumenBaseL||l.volumenEsperadoL||0;
+    const envd=l.litrosEnvasados||0;
+    const rest=Math.max(0,base-envd);
+    const pct=base?Math.min(100,Math.round(envd/base*100)):0;
+    // Rendimiento ponderado del lote (mismo cálculo que el server).
+    const rendP=(l.rendEnvasado!=null)?Math.round(l.rendEnvasado*100):null;
     const envs=(l.envasados||[]).map(ev=>{
+      const fmt=ev.formato||(ev.canal==='lata'?'lata':'barril20');
       const durH=(ev.inicio&&ev.fin)?(new Date(ev.fin)-new Date(ev.inicio))/3600000:null;
-      const vel=durH?Math.round(ev.litrosBuenos/durH):null;
-      const nom=ev.canal==='lata'?(prodData.config.velNominalLataLh):(prodData.config.velNominalBarrilLh);
+      const vel=durH?Math.round((ev.litrosBuenos||0)/durH):null;
+      const nom=prodVelNominalFmt(fmt);
       const rend=(vel&&nom)?Math.min(100,Math.round(vel/nom*100)):null;
-      const merma=(ev.litrosEsperados)?Math.round((1-(ev.litrosBuenos/ev.litrosEsperados))*1000)/10:null;
-      return `<tr><td>${ev.canal==='lata'?'🥫 Lata':'🛢 Barril'}</td><td>${prodDT(ev.inicio)}→${ev.fin?prodDT(ev.fin):'…'}</td><td class="dist-num">${ev.litrosBuenos} L</td><td class="dist-num">${vel!=null?vel+' L/h':'—'}</td><td class="dist-num">${rend!=null?rend+'%':'—'}</td><td class="dist-num">${merma!=null?merma+'%':'pend.'}</td><td><button class="pv-del" data-env-del="${l.id}|${ev.id}">✕</button></td></tr>`;
+      const tot=(ev.litrosBuenos||0)+(ev.litrosRechazados||0);
+      const cal=tot?Math.round((ev.litrosBuenos||0)/tot*100):null;
+      return `<tr><td>${PROD_FMT_LBL[fmt]||fmt}</td><td class="dist-num">${ev.unidades||0}</td><td>${prodDT(ev.inicio)}→${ev.fin?prodDT(ev.fin):'…'}</td><td class="dist-num">${ev.litrosBuenos||0}</td><td class="dist-num">${ev.litrosRechazados||0}</td><td class="dist-num">${vel!=null?vel+' L/h':'—'}</td><td class="dist-num">${rend!=null?rend+'%':'—'}</td><td class="dist-num">${cal!=null?cal+'%':'—'}</td><td><button class="pv-del" data-env-del="${l.id}|${ev.id}">✕</button></td></tr>`;
     }).join('');
+    const cerrado=!!l.fechaEnvasado;
+    const fmtOpts=Object.entries(PROD_FMT_LBL).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
     return `<div class="prod-lote">
-      <div class="prod-lote-h"><div><b>${escapeHtml(l.codigo)}</b> <span class="prod-badge">${escapeHtml(l.producto||l.estilo||'')}</span><div class="prod-lote-meta">${l.tanqueId?('Tanque '+escapeHtml(l.tanqueId)):''} · ${l.volumenEsperadoL||0} L esperados${l.estado==='envasado'?' · ✅ envasado':''}</div></div></div>
-      ${envs?`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Canal</th><th>Inicio→Fin</th><th style="text-align:right">Buenos</th><th style="text-align:right">Vel.</th><th style="text-align:right">Rend.</th><th style="text-align:right">Merma</th><th></th></tr></thead><tbody>${envs}</tbody></table></div>`:''}
-      <div class="prod-env-form">
-        <select class="prod-env-inp" data-ef="canal"><option value="barril">🛢 Barril</option><option value="lata">🥫 Lata</option></select>
-        <input class="prod-env-inp" data-ef="litrosEsperados" inputmode="numeric" placeholder="L esperados" style="width:110px">
-        <input class="prod-env-inp" data-ef="litrosBuenos" inputmode="numeric" placeholder="L buenos" style="width:100px">
-        <input class="prod-env-inp" data-ef="litrosRechazados" inputmode="numeric" placeholder="L rechazo" style="width:100px">
-        <button class="adm-btn adm-btn-ghost prod-env-add" data-env-add="${l.id}">+ Registrar envasado</button>
-        ${l.estado!=='envasado'?`<button class="adm-btn adm-btn-gold" data-cerrar-env="${l.id}">Cerrar envasado (libera tanque)</button>`:''}
-      </div></div>`;
+      <div class="prod-lote-h"><div><b>${escapeHtml(l.codigo)}</b> <span class="prod-badge">${escapeHtml(l.producto||l.estilo||'')}</span><div class="prod-lote-meta">${l.tanqueId?('Tanque '+escapeHtml(l.tanqueId)):''} · ${base} L en el lote${cerrado?' · ✅ envasado cerrado':(l.estado==='envasado'?' · envasando…':'')}${rendP!=null?(' · Rend. ponderado '+rendP+'%'):''}</div></div></div>
+      <div class="prod-fill-lbl"><span>Envasado <b>${envd.toLocaleString('es-CL')} L</b> de ${base.toLocaleString('es-CL')} L</span><span>Quedan en el tanque <b>${rest.toLocaleString('es-CL')} L</b></span></div>
+      <div class="prod-fill"><i style="width:${pct}%"></i></div>
+      ${envs?`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Formato</th><th style="text-align:right">Unid.</th><th>Inicio→Fin</th><th style="text-align:right">L buenos</th><th style="text-align:right">L rech.</th><th style="text-align:right">Vel.</th><th style="text-align:right">Rend.</th><th style="text-align:right">Calidad</th><th></th></tr></thead><tbody>${envs}</tbody></table></div>`:''}
+      ${cerrado?'':`<div class="prod-env-grid" data-env-box="${l.id}">
+        <label>Formato<select data-ef="formato">${fmtOpts}</select></label>
+        <label>L buenos<input data-ef="litrosBuenos" inputmode="numeric" placeholder="0"></label>
+        <label>L rechazados<input data-ef="litrosRechazados" inputmode="numeric" placeholder="0"></label>
+        <label>Unidades<input data-ef="unidades" inputmode="numeric" placeholder="0"></label>
+        <label>Latas nivel bajo<input data-ef="latasNivelBajo" inputmode="numeric" placeholder="0"></label>
+        <label>Merma tapas<input data-ef="mermaTapas" inputmode="numeric" placeholder="0"></label>
+        <label>Inicio<input data-ef="inicio" type="datetime-local"></label>
+        <label>Fin<input data-ef="fin" type="datetime-local"></label>
+      </div>
+      <div class="prod-env-actions">
+        <button class="adm-btn adm-btn-ghost prod-env-add" data-env-add="${l.id}">+ Registrar línea</button>
+        <span class="prod-env-hint">Quedan ${rest.toLocaleString('es-CL')} L por envasar${rest<=0?' · lote vacío':''}</span>
+        ${(l.envasados&&l.envasados.length)?`<button class="adm-btn adm-btn-gold" data-cerrar-env="${l.id}">Cerrar envasado (vaciar tanque → Sucio)</button>`:''}
+      </div>`}
+    </div>`;
   }).join('');
+}
+// ── Recetas teóricas (D) ──
+function prodRecetaById(id){ return (prodData.recetas||[]).find(r=>r.id===id); }
+function prodRenderRecetas(){
+  const all=(prodData.recetas||[]).slice();
+  const q=prodRecQuery.trim().toLowerCase();
+  const filt=q?all.filter(r=>((r.nombre||'')+' '+(r.estilo||'')).toLowerCase().includes(q)):all;
+  const pages=Math.max(1,Math.ceil(filt.length/PROD_REC_PER));
+  if(prodRecPage>=pages) prodRecPage=pages-1; if(prodRecPage<0) prodRecPage=0;
+  const slice=filt.slice(prodRecPage*PROD_REC_PER,(prodRecPage+1)*PROD_REC_PER);
+  const toolbar=`<div class="rec-toolbar">
+    <input class="rec-search" id="recSearch" placeholder="Buscar por nombre o estilo…" value="${escapeAttr(prodRecQuery)}">
+    <button class="adm-btn adm-btn-gold" id="recNew" type="button">+ Nueva receta</button>
+    <a class="adm-btn adm-btn-ghost" href="/admin/produccion/recetas/export.xlsx">⬇ Exportar Excel</a>
+  </div>`;
+  const editor=(prodRecEditing!==null)?prodRecetaEditor():'';
+  const viewer=(prodRecView)?prodRecetaViewer(prodRecetaById(prodRecView)):'';
+  const rows=slice.map(r=>{
+    const org=(r.origen==='erp')?'<span class="rec-origin erp">ERP</span>':'<span class="rec-origin local">Local</span>';
+    return `<tr><td><b>${escapeHtml(r.nombre||'(sin nombre)')}</b> ${org}</td><td>${escapeHtml(r.estilo||'—')}</td><td class="dist-num">${r.litros||0}</td><td class="dist-num">${r.og||'—'}</td><td class="dist-num">${r.abv||'—'}</td>
+      <td><div class="rec-actions">
+        <button class="rec-ico" data-rec-view="${r.id}" title="Ver">👁</button>
+        <button class="rec-ico" data-rec-edit="${r.id}" title="Editar">✎</button>
+        <button class="rec-ico" data-rec-dup="${r.id}" title="Duplicar">⧉</button>
+        <button class="rec-ico" data-rec-print="${r.id}" title="Imprimir">🖨</button>
+        <button class="rec-ico" data-rec-del="${r.id}" title="Eliminar">🗑</button>
+      </div></td></tr>`;
+  }).join('');
+  const table=`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Nombre</th><th>Estilo</th><th style="text-align:right">Litros</th><th style="text-align:right">OG</th><th style="text-align:right">ABV %</th><th></th></tr></thead><tbody>${rows||`<tr><td colspan="6" style="text-align:center;color:#999;padding:.8rem">${q?'Sin resultados para «'+escapeHtml(prodRecQuery)+'»':'No hay recetas. Creá una o sincronizá el ERP.'}</td></tr>`}</tbody></table></div>`;
+  const pager=filt.length>PROD_REC_PER?`<div class="rec-pager"><button class="rec-ico" id="recPrev" ${prodRecPage<=0?'disabled':''}>‹</button><span>Página ${prodRecPage+1} de ${pages} · ${filt.length} recetas</span><button class="rec-ico" id="recNext" ${prodRecPage>=pages-1?'disabled':''}>›</button></div>`:`<div class="rec-pager"><span>${filt.length} receta${filt.length===1?'':'s'}</span></div>`;
+  return toolbar+editor+viewer+table+pager;
+}
+function prodRecetaViewer(r){
+  if(!r) return '';
+  const t=r.tiemposEstandar||{}; const f=r.litrosEsperadosPorFormato||{};
+  const tRows=Object.keys(t).length?Object.entries(t).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td class="dist-num">${v} h</td></tr>`).join(''):'<tr><td colspan="2" style="color:#999">Sin tiempos estándar cargados</td></tr>';
+  return `<div class="rec-editor" id="recViewBox"><h4>${escapeHtml(r.nombre||'')} ${r.estilo?('· '+escapeHtml(r.estilo)):''}</h4>
+    <div class="prod-lote-meta">Litros ${r.litros||0} · OG ${r.og||'—'} · ABV ${r.abv||'—'}% · ${r.origen==='erp'?'origen ERP':'local'}</div>
+    <div class="rec-sub">Litros esperados por formato</div>
+    <div class="prod-lote-meta">Barril 20 L: <b>${f.barril20||0}</b> · Barril 30 L: <b>${f.barril30||0}</b> · Lata: <b>${f.lata||0}</b></div>
+    <div class="rec-sub">Tiempos estándar por etapa</div>
+    <div class="mun-wrap"><table class="mun-table"><tbody>${tRows}</tbody></table></div>
+    ${r.notas?`<div class="rec-sub">Notas</div><div class="prod-lote-meta">${escapeHtml(r.notas)}</div>`:''}
+    <div class="prod-env-actions"><button class="adm-btn adm-btn-ghost" id="recViewClose">Cerrar</button></div></div>`;
+}
+function prodRecetaEditor(){
+  const r=prodRecEditing.id?prodRecetaById(prodRecEditing.id):null;
+  const src=r||prodRecEditing; const f=(src.litrosEsperadosPorFormato)||{}; const t=(src.tiemposEstandar)||{};
+  const etapas=(prodData.meta.etapas||[]).concat(['Fermentación','Maduración','Envasado']);
+  const etapaInputs=etapas.map(e=>`<label>${escapeHtml(e)}<input data-rt="${escapeAttr(e)}" inputmode="decimal" value="${t[e]!=null?t[e]:''}" placeholder="h"></label>`).join('');
+  return `<div class="rec-editor" id="recEditBox"><h4>${r?('Editar receta · '+escapeHtml(r.nombre||'')):'Nueva receta'}</h4>
+    <div class="rec-grid">
+      <label>Nombre<input id="rfNombre" value="${escapeAttr(src.nombre||'')}"></label>
+      <label>Estilo<input id="rfEstilo" value="${escapeAttr(src.estilo||'')}"></label>
+      <label>Litros<input id="rfLitros" inputmode="decimal" value="${src.litros||''}"></label>
+      <label>OG<input id="rfOg" inputmode="decimal" value="${src.og||''}"></label>
+      <label>ABV %<input id="rfAbv" inputmode="decimal" value="${src.abv||''}"></label>
+    </div>
+    <div class="rec-sub">Litros esperados por formato (base de merma y rendimiento teórico)</div>
+    <div class="rec-grid">
+      <label>Barril 20 L<input id="rfF20" inputmode="numeric" value="${f.barril20||''}"></label>
+      <label>Barril 30 L<input id="rfF30" inputmode="numeric" value="${f.barril30||''}"></label>
+      <label>Lata<input id="rfFLata" inputmode="numeric" value="${f.lata||''}"></label>
+    </div>
+    <div class="rec-sub">Tiempos estándar por etapa (horas)</div>
+    <div class="rec-grid">${etapaInputs}</div>
+    <div class="rec-sub">Notas</div>
+    <div class="rec-grid" style="grid-template-columns:1fr"><label><input id="rfNotas" value="${escapeAttr(src.notas||'')}" placeholder="Notas de la receta…"></label></div>
+    <div class="prod-env-actions"><button class="adm-btn adm-btn-gold" id="recSave">Guardar</button><button class="adm-btn adm-btn-ghost" id="recCancel">Cancelar</button><span class="cg-err" id="recErr"></span></div></div>`;
 }
 // ── Limpiezas ──
 function prodRenderLimpiezas(){
@@ -8727,7 +8855,7 @@ function prodRenderConfig(){
     <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="cfErpSave" type="button">Guardar credenciales</button></div>
     <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-ghost" id="cfErpSync" type="button">🔄 Sincronizar ahora</button></div>
   </div><div class="prod-erp-status" id="cfErpStatus">${syncTxt}</div>
-  <div class="est-note" style="margin-top:.4rem">Como el ERP no tiene API, Zorbo se loguea con tu usuario/clave, baja <b>/Receta</b> y <b>/Lote</b> y lee las tablas. La clave se guarda en el servidor (nunca en el navegador). La sync trae recetas y lotes (fechas, litros, tanque, etapa) y <b>nunca pisa</b> lo que cargaste a mano (tiempos, envasados, paradas).</div></div>`;
+  <div class="est-note" style="margin-top:.4rem">Zorbo se autentica con tu usuario/clave del ERP, baja <b>/Receta</b> y <b>/Lote</b> y lee las tablas. La clave se guarda en el servidor (nunca en el navegador). La sync trae recetas y lotes (fechas, litros, tanque, etapa) y <b>nunca pisa</b> lo que cargaste a mano (tiempos, envasados, paradas). Si el ERP expone API, se conecta cuando cargues los endpoints.</div></div>`;
   const params=`<div class="cg-form"><div class="cg-form-title">Parámetros de producción</div><div class="cg-form-grid">
     <label class="cg-field"><span>Horas por semana</span><input id="cfHoras" inputmode="numeric" value="${escapeAttr(c.horasPorSemana)}"></label>
     <label class="cg-field"><span>Vel. barril (L/h)</span><input id="cfBarril" inputmode="numeric" value="${escapeAttr(c.velNominalBarrilLh)}"></label>
@@ -8740,7 +8868,23 @@ function prodRenderConfig(){
     <label class="cg-field" style="flex-direction:row;align-items:center;gap:.5rem"><input type="checkbox" id="cfLimp" ${c.incluirLimpiezaEnDisponibilidad!==false?'checked':''} style="width:16px;height:16px"><span>Incluir limpieza en disponibilidad (TPM)</span></label>
     <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="cfSave" type="button">Guardar</button></div>
   </div><div class="cg-err" id="cfErr"></div></div>`;
-  return erp+params;
+  // Estilos conocidos (de recetas + lotes) para autocompletar los mapas.
+  const estilos=[...new Set([...(prodData.recetas||[]).map(r=>r.estilo),...(prodData.lotes||[]).map(l=>l.estilo)].map(s=>(s||'').trim()).filter(Boolean))].sort();
+  const dl=`<datalist id="cfEstilos">${estilos.map(e=>`<option value="${escapeAttr(e)}">`).join('')}</datalist>`;
+  const lt=c.leadTimeObjetivoPorEstilo||{}; const col=c.coloresPorEstilo||{};
+  const ltRows=Object.entries(lt).map(([k,v])=>`<div class="prod-cfg-map" data-lt-row><input list="cfEstilos" data-ltk value="${escapeAttr(k)}"><input data-ltv inputmode="numeric" value="${v}" placeholder="días"><button class="rec-ico" data-lt-del title="Quitar">✕</button></div>`).join('');
+  const colRows=Object.entries(col).map(([k,v])=>`<div class="prod-cfg-map" data-col-row><input list="cfEstilos" data-colk value="${escapeAttr(k)}"><input type="color" class="prod-cfg-color" data-colv value="${escapeAttr(v||'#b87333')}"><button class="rec-ico" data-col-del title="Quitar">✕</button></div>`).join('');
+  const maps=`<div class="cg-form"><div class="cg-form-title">Lead time objetivo por estilo</div>
+    <div class="prod-lote-meta" style="margin-bottom:.6rem">Días de acondicionamiento por estilo (default global ${c.leadTimeObjetivoDias||27} d). Define la fecha proyectada de envasado y la sobre-estadía.</div>
+    <div id="cfLtMap">${ltRows}</div>
+    <button class="adm-btn adm-btn-ghost" id="cfLtAdd" type="button">+ Agregar estilo</button>
+    <div class="cg-form-title" style="margin-top:1rem">Colores por estilo</div>
+    <div class="prod-lote-meta" style="margin-bottom:.6rem">Color por defecto del tanque para lotes de ese estilo (se puede sobreescribir por lote).</div>
+    <div id="cfColMap">${colRows}</div>
+    <button class="adm-btn adm-btn-ghost" id="cfColAdd" type="button">+ Agregar estilo</button>
+    <div class="cg-field cg-field-btn" style="margin-top:.8rem"><button class="adm-btn adm-btn-gold" id="cfMapsSave" type="button">Guardar mapas</button></div>
+    <div class="cg-err" id="cfMapsErr"></div></div>`;
+  return erp+params+maps+dl;
 }
 // ── Wiring ──
 function prodWire(){
@@ -8757,12 +8901,15 @@ function prodWire(){
   document.querySelectorAll('[data-listo]').forEach(b=>b.onclick=()=>prodPatchLote(b.dataset.listo,{estado:'listo'}));
   document.querySelectorAll('[data-ir-envasado]').forEach(b=>b.onclick=()=>{ prodTab='envasado'; prodOpenLote=null; renderProduccion(); });
   document.querySelectorAll('[data-lote-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar el lote?')) prodDelete('lote',b.dataset.loteDel); });
-  // nuevo lote
+  // nuevo lote (+ autofill desde la receta elegida)
   if(g('plAdd')) g('plAdd').onclick=prodCrearLote;
-  // envasado
-  document.querySelectorAll('[data-env-add]').forEach(b=>b.onclick=()=>prodEnvasar(b.dataset.envAdd,b));
+  if(g('plReceta')) g('plReceta').onchange=()=>{ const o=g('plReceta').selectedOptions[0]; if(!o||!o.value) return; if(!g('plEstilo').value&&o.dataset.estilo) g('plEstilo').value=o.dataset.estilo; if(!g('plProducto').value&&o.dataset.nombre) g('plProducto').value=o.dataset.nombre; if(!g('plVol').value&&o.dataset.litros) g('plVol').value=o.dataset.litros; };
+  // envasado (split de formato)
+  document.querySelectorAll('[data-env-add]').forEach(b=>b.onclick=()=>prodEnvasar(b.dataset.envAdd));
   document.querySelectorAll('[data-env-del]').forEach(b=>b.onclick=()=>prodEnvDel(b.dataset.envDel));
-  document.querySelectorAll('[data-cerrar-env]').forEach(b=>b.onclick=()=>prodPatchLote(b.dataset.cerrarEnv,{estado:'envasado',fechaEnvasado:prodNow()}));
+  document.querySelectorAll('[data-cerrar-env]').forEach(b=>b.onclick=()=>{ if(confirm('Cerrar el envasado y vaciar el tanque? Queda Sucio hasta su CIP.')) prodPatchLote(b.dataset.cerrarEnv,{estado:'envasado',fechaEnvasado:prodNow()}); });
+  // recetas (D)
+  prodWireRecetas(g);
   // limpiezas
   if(g('lmAdd')) g('lmAdd').onclick=async()=>{ await prodPost('limpieza',{tipo:g('lmTipo').value,centroTrabajo:g('lmCentro').value,ref:g('lmRef').value,inicio:prodLocal(g('lmIni').value),fin:prodLocal(g('lmFin').value)}); };
   document.querySelectorAll('[data-limp-del]').forEach(b=>b.onclick=()=>prodDelete('limpieza',b.dataset.limpDel));
@@ -8781,6 +8928,62 @@ function prodWire(){
     try{ const r=await fetch('/admin/produccion/erp/sync',{method:'POST'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); if(st) st.textContent='Última sync: '+prodDT(d.ultimaSync)+' · '+(d.estado||''); setTimeout(loadProduccion,600); }
     catch(e){ if(st) st.textContent='⚠ '+String(e.message||e); }
   };
+  // config: mapas por estilo (E)
+  if(g('cfLtAdd')) g('cfLtAdd').onclick=()=>{ g('cfLtMap').insertAdjacentHTML('beforeend','<div class="prod-cfg-map" data-lt-row><input list="cfEstilos" data-ltk placeholder="estilo"><input data-ltv inputmode="numeric" placeholder="días"><button class="rec-ico" data-lt-del title="Quitar">✕</button></div>'); prodWireMapDel(); };
+  if(g('cfColAdd')) g('cfColAdd').onclick=()=>{ g('cfColMap').insertAdjacentHTML('beforeend','<div class="prod-cfg-map" data-col-row><input list="cfEstilos" data-colk placeholder="estilo"><input type="color" class="prod-cfg-color" data-colv value="#b87333"><button class="rec-ico" data-col-del title="Quitar">✕</button></div>'); prodWireMapDel(); };
+  prodWireMapDel();
+  if(g('cfMapsSave')) g('cfMapsSave').onclick=prodGuardarMapas;
+}
+function prodWireMapDel(){ document.querySelectorAll('[data-lt-del],[data-col-del]').forEach(b=>b.onclick=()=>{ const row=b.closest('.prod-cfg-map'); if(row) row.remove(); }); }
+async function prodGuardarMapas(){
+  const err=document.getElementById('cfMapsErr'); err.textContent='';
+  const lt={}; document.querySelectorAll('#cfLtMap [data-lt-row]').forEach(row=>{ const k=(row.querySelector('[data-ltk]').value||'').trim().toLowerCase(); const v=cNum(row.querySelector('[data-ltv]').value); if(k&&v) lt[k]=v; });
+  const col={}; document.querySelectorAll('#cfColMap [data-col-row]').forEach(row=>{ const k=(row.querySelector('[data-colk]').value||'').trim().toLowerCase(); const v=row.querySelector('[data-colv]').value; if(k&&v) col[k]=v; });
+  try{ const r=await fetch('/admin/produccion/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({leadTimeObjetivoPorEstilo:lt,coloresPorEstilo:col})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); err.style.color='#2e9c5a'; err.textContent='✓ guardado'; setTimeout(loadProduccion,500); }
+  catch(e){ err.style.color=''; err.textContent='⚠ '+String(e.message||e); }
+}
+// ── Recetas: wiring + CRUD + imprimir (D) ──
+function prodWireRecetas(g){
+  if(g('recSearch')){ const s=g('recSearch'); s.oninput=()=>{ prodRecQuery=s.value; prodRecPage=0; const pos=s.selectionStart; renderProduccion(); const s2=document.getElementById('recSearch'); if(s2){ s2.focus(); try{s2.setSelectionRange(pos,pos);}catch(e){} } }; }
+  if(g('recNew')) g('recNew').onclick=()=>{ prodRecEditing={}; prodRecView=null; renderProduccion(); };
+  if(g('recPrev')) g('recPrev').onclick=()=>{ prodRecPage=Math.max(0,prodRecPage-1); renderProduccion(); };
+  if(g('recNext')) g('recNext').onclick=()=>{ prodRecPage=prodRecPage+1; renderProduccion(); };
+  document.querySelectorAll('[data-rec-view]').forEach(b=>b.onclick=()=>{ prodRecView=(prodRecView===b.dataset.recView)?null:b.dataset.recView; prodRecEditing=null; renderProduccion(); });
+  document.querySelectorAll('[data-rec-edit]').forEach(b=>b.onclick=()=>{ prodRecEditing={id:b.dataset.recEdit}; prodRecView=null; renderProduccion(); });
+  document.querySelectorAll('[data-rec-dup]').forEach(b=>b.onclick=()=>prodRecReq('receta/'+b.dataset.recDup+'/duplicar','POST'));
+  document.querySelectorAll('[data-rec-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar la receta?')) prodRecReq('receta/'+b.dataset.recDel,'DELETE'); });
+  document.querySelectorAll('[data-rec-print]').forEach(b=>b.onclick=()=>prodRecetaPrint(b.dataset.recPrint));
+  if(g('recSave')) g('recSave').onclick=prodRecetaGuardar;
+  if(g('recCancel')) g('recCancel').onclick=()=>{ prodRecEditing=null; renderProduccion(); };
+  if(g('recViewClose')) g('recViewClose').onclick=()=>{ prodRecView=null; renderProduccion(); };
+}
+async function prodRecReq(path,method,body){
+  try{ const r=await fetch('/admin/produccion/'+path,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); return d; }
+  catch(e){ alert(String(e.message||e)); return null; }
+}
+async function prodRecetaGuardar(){
+  const g=id=>document.getElementById(id); const err=g('recErr'); if(err) err.textContent='';
+  const nombre=g('rfNombre').value.trim(); if(!nombre){ if(err) err.textContent='⚠ Nombre requerido'; return; }
+  const dec=v=>parseFloat(String(v||'').replace(',','.'))||0;
+  const tiempos={}; document.querySelectorAll('#recEditBox [data-rt]').forEach(el=>{ const v=dec(el.value); if(v>0) tiempos[el.dataset.rt]=v; });
+  const payload={ nombre, estilo:g('rfEstilo').value, litros:cNum(g('rfLitros').value), og:dec(g('rfOg').value), abv:dec(g('rfAbv').value), notas:g('rfNotas').value,
+    litrosEsperadosPorFormato:{barril20:cNum(g('rfF20').value),barril30:cNum(g('rfF30').value),lata:cNum(g('rfFLata').value)}, tiemposEstandar:tiempos };
+  const editId=prodRecEditing&&prodRecEditing.id;
+  const res=await prodRecReq(editId?('receta/'+editId):'receta', editId?'PUT':'POST', payload);
+  if(res){ prodRecEditing=null; renderProduccion(); }
+}
+function prodRecetaPrint(id){
+  const r=prodRecetaById(id); if(!r) return;
+  const f=r.litrosEsperadosPorFormato||{}, t=r.tiemposEstandar||{};
+  const tRows=Object.entries(t).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td>${v} h</td></tr>`).join('')||'<tr><td colspan="2">—</td></tr>';
+  const w=window.open('','_blank'); if(!w){ alert('Permití las ventanas emergentes para imprimir.'); return; }
+  w.document.write(`<html><head><title>Receta ${escapeHtml(r.nombre||'')}</title><style>body{font-family:system-ui,Arial;padding:2rem;color:#111}h1{margin:0}h2{margin:1.2rem 0 .4rem;font-size:1rem}table{border-collapse:collapse;width:100%;margin:.3rem 0}td,th{border:1px solid #ccc;padding:.35rem .6rem;text-align:left;font-size:.9rem}</style></head><body>
+    <h1>${escapeHtml(r.nombre||'')}</h1><div>${escapeHtml(r.estilo||'')} · ${r.litros||0} L · OG ${r.og||'—'} · ABV ${r.abv||'—'}%</div>
+    <h2>Litros esperados por formato</h2><table><tr><th>Barril 20 L</th><th>Barril 30 L</th><th>Lata</th></tr><tr><td>${f.barril20||0}</td><td>${f.barril30||0}</td><td>${f.lata||0}</td></tr></table>
+    <h2>Tiempos estándar por etapa</h2><table><tr><th>Etapa</th><th>Horas</th></tr>${tRows}</table>
+    ${r.notas?('<h2>Notas</h2><div>'+escapeHtml(r.notas)+'</div>'):''}
+    </body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>{ try{w.print();}catch(e){} },300);
 }
 function prodLocal(v){ return v? new Date(v).toISOString() : null; }
 async function prodPatchLote(id,patch){
@@ -8796,17 +8999,23 @@ function prodEtapa(key,campo){
 async function prodCrearLote(){
   const g=id=>document.getElementById(id); const err=g('plErr'); err.textContent=''; err.classList.remove('show');
   const codigo=g('plCodigo').value.trim(); if(!codigo){ err.textContent='⚠ Ingresá el código.'; err.classList.add('show'); return; }
-  const payload={codigo,producto:g('plProducto').value,estilo:g('plEstilo').value,familia:g('plFamilia').value,tanqueId:g('plTanque').value,nBatches:cNum(g('plNBatches').value)||1,volumenEsperadoL:cNum(g('plVol').value)};
+  const payload={codigo,recetaId:g('plReceta')?g('plReceta').value:'',producto:g('plProducto').value,estilo:g('plEstilo').value,familia:g('plFamilia').value,tanqueId:g('plTanque').value,nBatches:cNum(g('plNBatches').value)||1,volumenEsperadoL:cNum(g('plVol').value)};
   try{ const r=await fetch('/admin/produccion/lote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
   catch(e){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); }
 }
-async function prodEnvasar(loteId,btn){
-  const box=btn.closest('.prod-env-form'); const l=prodLoteById(loteId); if(!l) return;
+async function prodEnvasar(loteId){
+  const box=document.querySelector('[data-env-box="'+loteId+'"]'); const l=prodLoteById(loteId); if(!box||!l) return;
   const val={}; box.querySelectorAll('[data-ef]').forEach(el=>val[el.dataset.ef]=el.value);
-  const ev={canal:val.canal,inicio:prodNow(),fin:prodNow(),litrosEsperados:cNum(val.litrosEsperados),litrosBuenos:cNum(val.litrosBuenos),litrosRechazados:cNum(val.litrosRechazados)};
-  if(!ev.litrosBuenos){ alert('Ingresá los litros buenos.'); return; }
+  const buenos=cNum(val.litrosBuenos), rech=cNum(val.litrosRechazados);
+  if(!buenos&&!rech){ alert('Ingresá litros buenos o rechazados.'); return; }
+  // Validación en el front (el server también valida): no superar lo que queda.
+  const base=l.volumenBaseL||l.volumenEsperadoL||0, yaEnv=l.litrosEnvasados||0;
+  if(base>0 && (yaEnv+buenos+rech)>base+0.5){ alert('Esa línea supera los litros del lote. Quedan '+(base-yaEnv).toLocaleString('es-CL')+' L.'); return; }
+  const ev={formato:val.formato,inicio:val.inicio?prodLocal(val.inicio):prodNow(),fin:val.fin?prodLocal(val.fin):prodNow(),litrosBuenos:buenos,litrosRechazados:rech,unidades:cNum(val.unidades),latasNivelBajo:cNum(val.latasNivelBajo),mermaTapas:cNum(val.mermaTapas)};
   const envasados=[...(l.envasados||[]),ev];
-  await prodPatchLote(loteId,{envasados});
+  const patch={envasados};
+  if(l.estado!=='envasado') patch.estado='envasado'; // empieza el envasado; el tanque sigue ocupado hasta vaciarse
+  await prodPatchLote(loteId,patch);
 }
 async function prodEnvDel(key){
   const [loteId,evId]=key.split('|'); const l=prodLoteById(loteId); if(!l) return;
