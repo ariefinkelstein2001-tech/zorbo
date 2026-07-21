@@ -1708,6 +1708,52 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .rec-sub{font-family:var(--display,inherit);font-weight:700;font-size:.82rem;margin:.9rem 0 .4rem;color:var(--text,#222)}
 .prod-cfg-map{display:grid;grid-template-columns:1fr 90px 34px;gap:.4rem;align-items:end;margin-bottom:.4rem}
 .prod-cfg-map .prod-cfg-color{width:100%;height:36px;padding:0;border:1px solid var(--line,#ccc);border-radius:8px;background:none;cursor:pointer}
+/* Dashboard OEE (Fase 2) */
+.oee-controls{display:flex;flex-wrap:wrap;gap:.7rem;align-items:flex-end;margin-bottom:1rem;padding-bottom:.8rem;border-bottom:1px solid var(--line,#e5e5e5)}
+.oee-fld{display:flex;flex-direction:column;gap:.25rem;font-size:.66rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#777)}
+.oee-seg{display:inline-flex;border:1px solid var(--line,#e5e5e5);border-radius:9px;overflow:hidden}
+.oee-seg button{border:none;background:var(--surface,#fff);padding:.42rem .7rem;font:inherit;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--muted,#666)}
+.oee-seg button.on{background:#b87333;color:#fff}
+.oee-fld input[type=date]{padding:.4rem .5rem;border:1px solid var(--line,#e5e5e5);border-radius:8px;font:inherit;font-size:.82rem}
+.oee-chk{display:inline-flex;align-items:center;gap:.4rem;font-size:.78rem;font-weight:600;color:var(--text,#222);text-transform:none;letter-spacing:0}
+.oee-chk input{width:15px;height:15px;accent-color:#b87333}
+.oee-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:.8rem;margin-bottom:1.1rem}
+.oee-card{border:1.5px solid var(--line,#e5e5e5);border-radius:14px;padding:.9rem 1rem;background:var(--surface,#fff);position:relative;overflow:hidden}
+.oee-card.main{border-width:2px}
+.oee-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px}
+.oee-card.rojo::before{background:#d9534f}.oee-card.ambar::before{background:#e8a13a}.oee-card.verde::before{background:#2e9c5a}.oee-card.azul::before{background:#3a78c2}.oee-card.na::before{background:#c9c9c9}
+.oee-card-l{font-size:.7rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted,#666)}
+.oee-card-v{font-family:var(--display,inherit);font-size:2.1rem;font-weight:800;line-height:1;margin:.3rem 0}
+.oee-card.rojo .oee-card-v{color:#d9534f}.oee-card.ambar .oee-card-v{color:#c17a10}.oee-card.verde .oee-card-v{color:#2e9c5a}.oee-card.azul .oee-card-v{color:#3a78c2}.oee-card.na .oee-card-v{color:#aaa}
+.oee-formula{font-size:.7rem;color:var(--dim,#999);font-family:ui-monospace,monospace;margin-bottom:.35rem}
+.oee-crudos{font-size:.74rem;color:var(--muted,#555);line-height:1.5}
+.oee-crudos b{color:var(--text,#111);font-family:ui-monospace,monospace}
+.oee-warn{background:rgba(232,161,58,.12);border:1px solid rgba(232,161,58,.4);color:#8a6d1f;border-radius:9px;padding:.5rem .8rem;font-size:.8rem;font-weight:600;margin-bottom:1rem}
+.oee-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+@media(max-width:820px){.oee-grid{grid-template-columns:1fr}}
+.oee-panel{border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.9rem 1rem;background:var(--surface,#fff);margin-bottom:1rem}
+.oee-panel-t{font-family:var(--display,inherit);font-weight:700;font-size:.92rem;margin-bottom:.15rem;color:var(--text,#111)}
+.oee-panel-s{font-size:.72rem;color:var(--dim,#999);margin-bottom:.7rem}
+.oee-bar{display:grid;grid-template-columns:130px 1fr 62px;gap:.5rem;align-items:center;margin-bottom:.35rem;font-size:.78rem}
+.oee-bar-lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted,#555)}
+.oee-bar-track{background:var(--surface2,#f0f0f0);border-radius:6px;height:16px;overflow:hidden}
+.oee-bar-fill{height:100%;background:linear-gradient(90deg,#c98a4a,#b87333);border-radius:6px}
+.oee-bar-fill.alt{background:linear-gradient(90deg,#e0654f,#d9534f)}
+.oee-bar-val{text-align:right;font-family:ui-monospace,monospace;font-weight:700;color:var(--gold-deep,#a05f00)}
+.oee-lead-row{display:grid;grid-template-columns:120px 1fr 90px;gap:.5rem;align-items:center;margin-bottom:.45rem;font-size:.78rem}
+.oee-lead-track{position:relative;height:18px;background:var(--surface2,#f0f0f0);border-radius:6px}
+.oee-lead-span{position:absolute;height:100%;background:rgba(184,115,51,.28);border-radius:6px}
+.oee-lead-min,.oee-lead-max{position:absolute;top:-2px;width:3px;height:22px;border-radius:2px}
+.oee-lead-min{background:#2e9c5a}.oee-lead-max{background:#d9534f}
+.oee-lead-val{font-size:.72rem;color:var(--muted,#666);font-family:ui-monospace,monospace}
+.oee-bl{display:flex;gap:.8rem}
+.oee-bl-c{flex:1;border:1px solid var(--line,#e5e5e5);border-radius:10px;padding:.7rem .8rem;text-align:center}
+.oee-bl-c .v{font-family:var(--display,inherit);font-size:1.4rem;font-weight:800}
+.oee-bl-c .l{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted,#777)}
+.oee-bl-c .sub{font-size:.72rem;color:var(--muted,#666);margin-top:.2rem}
+.oee-comp{border:1px dashed var(--gold-bd,#d8c3ad);background:var(--gold-dim,#fffaf0)}
+.oee-empty{color:var(--dim,#999);font-size:.8rem;padding:.5rem 0}
+.oee-chip{display:inline-block;font-size:.66rem;font-weight:800;background:#f0e4d3;color:#8a6d1f;border-radius:5px;padding:.1rem .4rem;text-transform:uppercase;letter-spacing:.04em}
 /* Estado de Resultado (P&L) */
 .pnl-table td{padding:.5rem .7rem}
 .pnl-table tr.pnl-sub td:first-child{padding-left:1.8rem;color:var(--muted,#666);font-size:.86rem}
@@ -8579,6 +8625,7 @@ document.getElementById('pnlExcel').onclick=()=>{ const m=document.getElementByI
 // ─── Producción & OEE (Fase 1) ──────────────────────────────────────────────
 let prodData=null, prodTab='tanques', prodTimers=null, prodOpenLote=null;
 let prodRecQuery='', prodRecPage=0, prodRecEditing=null, prodRecView=null; const PROD_REC_PER=8;
+let prodOee={centro:'envasado',periodo:'mes',desde:'',hasta:'',incluirLimp:null,data:null,loading:false};
 const prodNow=()=>new Date().toISOString();
 function prodStopTimers(){ if(prodTimers){ clearInterval(prodTimers); prodTimers=null; } }
 function prodDur(ms){ if(ms<0)ms=0; const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60; if(h>0)return h+'h '+String(m).padStart(2,'0')+'m'; if(m>0)return m+'m '+String(ss).padStart(2,'0')+'s'; return ss+'s'; }
@@ -8590,11 +8637,12 @@ async function loadProduccion(){
 }
 function renderProduccion(){
   const body=document.getElementById('prodBody');
-  const tabs=[['tanques','🛢 Tanques'],['coccion','🔥 Cocción'],['recetas','📖 Recetas'],['envasado','📦 Envasado'],['limpiezas','🧽 Limpiezas'],['paradas','⛔ Paradas'],['config','⚙ Config']];
+  const tabs=[['tanques','🛢 Tanques'],['coccion','🔥 Cocción'],['recetas','📖 Recetas'],['envasado','📦 Envasado'],['oee','📊 OEE'],['limpiezas','🧽 Limpiezas'],['paradas','⛔ Paradas'],['config','⚙ Config']];
   const tabBar=`<div class="prod-tabs">${tabs.map(([k,l])=>`<button class="prod-tab ${k===prodTab?'on':''}" data-ptab="${k}">${l}</button>`).join('')}</div>`;
-  const R={tanques:prodRenderTanques,coccion:prodRenderCoccion,recetas:prodRenderRecetas,envasado:prodRenderEnvasado,limpiezas:prodRenderLimpiezas,paradas:prodRenderParadas,config:prodRenderConfig};
+  const R={tanques:prodRenderTanques,coccion:prodRenderCoccion,recetas:prodRenderRecetas,envasado:prodRenderEnvasado,oee:prodRenderOee,limpiezas:prodRenderLimpiezas,paradas:prodRenderParadas,config:prodRenderConfig};
   body.innerHTML=tabBar+'<div class="prod-content">'+(R[prodTab]||(()=>''))()+'</div>';
   prodWire();
+  if(prodTab==='oee') prodLoadOee();
   prodStopTimers();
   if(prodTab==='coccion'||prodTab==='envasado'||prodTab==='tanques') prodTimers=setInterval(prodTick,1000);
   prodTick();
@@ -8815,6 +8863,129 @@ function prodRecetaEditor(){
     <div class="rec-grid" style="grid-template-columns:1fr"><label><input id="rfNotas" value="${escapeAttr(src.notas||'')}" placeholder="Notas de la receta…"></label></div>
     <div class="prod-env-actions"><button class="adm-btn adm-btn-gold" id="recSave">Guardar</button><button class="adm-btn adm-btn-ghost" id="recCancel">Cancelar</button><span class="cg-err" id="recErr"></span></div></div>`;
 }
+// ── Dashboard OEE (Fase 2) ──
+function prodOeePeriodWindow(p){
+  const now=new Date(); const iso=d=>d.toISOString();
+  if(p==='dia'){ const s=new Date(now); s.setUTCHours(0,0,0,0); return {desde:iso(s),hasta:iso(now),bucket:'dia',n:14}; }
+  if(p==='semana'){ const s=new Date(now.getTime()-7*86400000); return {desde:iso(s),hasta:iso(now),bucket:'semana',n:8}; }
+  if(p==='mes'){ const s=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),1)); return {desde:iso(s),hasta:iso(now),bucket:'mes',n:6}; }
+  return {desde:prodOee.desde,hasta:prodOee.hasta,bucket:'semana',n:8}; // rango
+}
+async function prodLoadOee(){
+  const body=document.getElementById('oeeBody'); if(!body) return;
+  const w=prodOeePeriodWindow(prodOee.periodo);
+  if(prodOee.periodo==='rango'){ if(!prodOee.desde||!prodOee.hasta){ body.innerHTML='<div class="oee-empty">Elegí un rango de fechas.</div>'; return; } w.desde=prodOee.desde; w.hasta=prodOee.hasta; }
+  body.innerHTML='<div class="adm-loading">Calculando OEE…</div>';
+  const qs=new URLSearchParams({centro:prodOee.centro,desde:w.desde,hasta:w.hasta,bucket:w.bucket,n:w.n});
+  if(prodOee.incluirLimp!==null) qs.set('incluirLimpieza',prodOee.incluirLimp?'1':'0');
+  try{ const r=await fetch('/admin/produccion/oee?'+qs.toString()); const j=await r.json(); if(!r.ok) throw new Error(j.error||'Error'); prodOee.data=j; body.innerHTML=prodOeeDashboard(j); }
+  catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+const oeePct=v=>v==null?'—':(v*100).toFixed(1)+'%';
+function prodRenderOee(){
+  const seg=(name,opts,cur)=>`<div class="oee-seg" data-oee-seg="${name}">${opts.map(([k,l])=>`<button class="${k===cur?'on':''}" data-v="${k}">${l}</button>`).join('')}</div>`;
+  const rango=prodOee.periodo==='rango'?`<label class="oee-fld">Desde<input type="date" id="oeeDesde" value="${prodOee.desde?prodOee.desde.slice(0,10):''}"></label><label class="oee-fld">Hasta<input type="date" id="oeeHasta" value="${prodOee.hasta?prodOee.hasta.slice(0,10):''}"></label>`:'';
+  const chk=prodOee.incluirLimp;
+  const limpState=chk===null?(prodData.config&&prodData.config.incluirLimpiezaEnDisponibilidad!==false):chk;
+  const controls=`<div class="oee-controls">
+    <label class="oee-fld">Centro ${seg('centro',[['envasado','Envasado'],['brewhouse','Brewhouse'],['planta','Planta']],prodOee.centro)}</label>
+    <label class="oee-fld">Periodo ${seg('periodo',[['dia','Día'],['semana','Semana'],['mes','Mes'],['rango','Rango']],prodOee.periodo)}</label>
+    ${rango}
+    <label class="oee-fld oee-chk"><input type="checkbox" id="oeeLimp" ${limpState?'checked':''}> Incluir limpieza (TPM)</label>
+  </div><div id="oeeBody"><div class="adm-loading">Calculando OEE…</div></div>`;
+  return controls;
+}
+function prodOeeCard(label,val,banda,formula,crudos,main){
+  return `<div class="oee-card ${banda||'na'} ${main?'main':''}">
+    <div class="oee-card-l">${label}</div>
+    <div class="oee-card-v">${oeePct(val)}</div>
+    <div class="oee-formula">${formula||''}</div>
+    <div class="oee-crudos">${crudos||''}</div></div>`;
+}
+function prodOeeDashboard(j){
+  const D=j.disponibilidad,R=j.rendimiento,C=j.calidad;
+  const bD=D.valor==null?'na':(D.valor<.6?'ambar':D.valor<.85?'verde':'azul');
+  const bR=R.valor==null?'na':(R.valor<.6?'ambar':R.valor<.85?'verde':'azul');
+  const bC=C.valor==null?'na':(C.valor<.6?'ambar':C.valor<.85?'verde':'azul');
+  const cards=`<div class="oee-cards">
+    ${prodOeeCard('OEE = D × R × C',j.oee,j.banda,'Disponibilidad × Rendimiento × Calidad',
+      j.oee!=null?`D <b>${oeePct(D.valor)}</b> × R <b>${oeePct(R.valor)}</b> × C <b>${oeePct(C.valor)}</b>`:'<i>Falta al menos un factor — no se calcula OEE.</i>',true)}
+    ${prodOeeCard('Disponibilidad',D.valor,bD,'(Planificado − Paradas) / Planificado',
+      `Planificado <b>${D.tiempoPlanificadoH} h</b> · Paradas <b>${D.paradasH} h</b><br>Limpieza <b>${D.limpiezasH} h</b> · No planif. <b>${D.paradasNoPlanH} h</b> (${D.nParadas})`)}
+    ${prodOeeCard('Rendimiento',R.valor,bR, j.centro==='brewhouse'?'ciclo estándar / ciclo real':'Σ(rend×litros) / Σ litros',
+      j.centro==='brewhouse'?`Ciclo estándar <b>${R.cicloEstandarH} h</b> · real <b>${R.cicloRealPromH!=null?R.cicloRealPromH+' h':'—'}</b> · ${R.nCiclos} cocc.`:`Litros buenos <b>${R.litrosBuenos}</b> · ${R.nLineas} líneas · vel prom <b>${R.velRealProm!=null?R.velRealProm+' L/h':'—'}</b>`)}
+    ${prodOeeCard('Calidad',C.valor,bC, j.centro==='brewhouse'?'—':'buenos / (buenos + rechazados)',
+      j.centro==='brewhouse'?'<i>La calidad se mide en envasado.</i>':`Buenos <b>${C.litrosBuenos} L</b> · Rech. <b>${C.litrosRechazados} L</b><br>Latas nivel bajo <b>${C.latasNivelBajo}</b> · Merma tapas <b>${C.mermaTapas}</b>`)}
+  </div>`;
+  const aviso=D.esTecho?`<div class="oee-warn">⚠ Disponibilidad es un <b>techo</b>: no hay paradas no planificadas registradas en este centro/periodo. Cargá fallas/esperas para el número real.</div>`:'';
+  return controls_meta(j)+cards+aviso+prodOeeTrend(j)+`<div class="oee-grid">${prodOeeParetoParadas(j)}${prodOeeParetoCoccion(j)}${prodOeeLead(j)}${prodOeeBarrilLata(j)}</div>`+prodOeeMerma(j)+`<div class="oee-grid">${prodOeeOcupacion(j)}${prodOeeComplementarias(j)}</div>`;
+}
+function controls_meta(j){
+  const fmt=s=>{const d=new Date(s);return isNaN(d)?'—':d.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit',year:'2-digit'});};
+  return `<div class="oee-panel-s" style="margin:-.3rem 0 .8rem">Centro <span class="oee-chip">${escapeHtml(j.centro)}</span> · ${fmt(j.desde)} → ${fmt(j.hasta)} · limpieza ${j.incluirLimpieza?'incluida':'excluida'}</div>`;
+}
+// Tendencia del OEE (línea SVG).
+function prodOeeTrend(j){
+  const pts=(j.tendencia||[]).filter(p=>p.oee!=null);
+  if(pts.length<2) return `<div class="oee-panel"><div class="oee-panel-t">Tendencia del OEE</div><div class="oee-empty">Pocos datos para la tendencia (se necesitan ≥2 periodos con OEE).</div></div>`;
+  const W=640,Hh=140,pad=28; const all=j.tendencia;
+  const xs=(i)=>pad+i*(W-2*pad)/Math.max(1,all.length-1);
+  const ys=(v)=>Hh-pad-(v)*(Hh-2*pad);
+  let path='',dots='';
+  all.forEach((p,i)=>{ if(p.oee==null)return; const x=xs(i).toFixed(1),y=ys(p.oee).toFixed(1); path+=(path?'L':'M')+x+' '+y+' '; dots+=`<circle cx="${x}" cy="${y}" r="3" fill="#b87333"/><text x="${x}" y="${(+y-7)}" font-size="9" text-anchor="middle" fill="#a05f00">${(p.oee*100).toFixed(0)}</text>`; });
+  const labels=all.map((p,i)=>`<text x="${xs(i).toFixed(1)}" y="${Hh-6}" font-size="9" text-anchor="middle" fill="#999">${escapeHtml(p.label)}</text>`).join('');
+  const grid=[0,.25,.5,.75,1].map(v=>`<line x1="${pad}" y1="${ys(v)}" x2="${W-pad}" y2="${ys(v)}" stroke="#eee"/><text x="${pad-4}" y="${(ys(v)+3)}" font-size="8" text-anchor="end" fill="#bbb">${v*100}</text>`).join('');
+  return `<div class="oee-panel"><div class="oee-panel-t">Tendencia del OEE</div><div class="oee-panel-s">% de OEE por ${j.bucket}</div>
+    <div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${Hh}" style="width:100%;min-width:420px;height:auto">${grid}<path d="${path}" fill="none" stroke="#b87333" stroke-width="2"/>${dots}${labels}</svg></div></div>`;
+}
+function prodOeeBars(items,labelKey,valKey,unit,alt){
+  if(!items.length) return '<div class="oee-empty">Sin datos en el periodo.</div>';
+  const max=Math.max(...items.map(x=>x[valKey]))||1;
+  return items.map(x=>`<div class="oee-bar"><span class="oee-bar-lbl" title="${escapeAttr(String(x[labelKey]))}">${escapeHtml(String(x[labelKey]))}</span><div class="oee-bar-track"><div class="oee-bar-fill ${alt?'alt':''}" style="width:${Math.round(x[valKey]/max*100)}%"></div></div><span class="oee-bar-val">${x[valKey]}${unit||''}</span></div>`).join('');
+}
+function prodOeeParetoParadas(j){
+  return `<div class="oee-panel"><div class="oee-panel-t">Pareto de paradas</div><div class="oee-panel-s">Causas que más tiempo consumen (h)</div>${prodOeeBars(j.paretoParadas||[],'causa','horas',' h',true)}</div>`;
+}
+function prodOeeParetoCoccion(j){
+  return `<div class="oee-panel"><div class="oee-panel-t">Pareto de tiempos de cocción</div><div class="oee-panel-s">Dónde se va el ciclo (~${(prodData.config&&prodData.config.cicloCoccionEstandarH)||4.2} h)</div>${prodOeeBars(j.paretoCoccion||[],'etapa','horas',' h')}</div>`;
+}
+function prodOeeLead(j){
+  const L=j.leadPorEstilo||[];
+  if(!L.length) return `<div class="oee-panel"><div class="oee-panel-t">Lead time por estilo</div><div class="oee-empty">Sin lotes envasados en el periodo.</div></div>`;
+  const gmax=Math.max(...L.map(x=>x.max),1);
+  const rows=L.map(x=>{
+    const wmin=x.min/gmax*100, wspan=(x.max-x.min)/gmax*100;
+    return `<div class="oee-lead-row"><span class="oee-bar-lbl" title="${escapeAttr(x.estilo)}">${escapeHtml(x.estilo)} <span class="oee-lead-val">(${x.n})</span></span>
+      <div class="oee-lead-track"><div class="oee-lead-span" style="left:${wmin}%;width:${wspan}%"></div><div class="oee-lead-min" style="left:${wmin}%"></div><div class="oee-lead-max" style="left:${(x.max/gmax*100)}%"></div></div>
+      <span class="oee-lead-val">${x.min}–${x.max} d · μ${x.prom}</span></div>`;
+  }).join('');
+  return `<div class="oee-panel"><div class="oee-panel-t">Lead time por estilo</div><div class="oee-panel-s"><span style="color:#2e9c5a">▎</span> mínimo (piso biológico) · <span style="color:#d9534f">▎</span> máximo · el resto es permanencia extra en tanque</div>${rows}</div>`;
+}
+function prodOeeBarrilLata(j){
+  const b=j.barrilVsLata.barril,l=j.barrilVsLata.lata;
+  const cell=(lbl,o)=>`<div class="oee-bl-c"><div class="l">${lbl}</div><div class="v">${o.litros.toLocaleString('es-CL')} L</div><div class="sub">${o.horas} h · ${o.velLh!=null?o.velLh+' L/h':'—'}<br><b>${o.pctTiempo}%</b> del tiempo</div></div>`;
+  return `<div class="oee-panel"><div class="oee-panel-t">Barril vs lata</div><div class="oee-panel-s">La lata es mucho más lenta y se lleva la mayor parte del tiempo de envasado</div><div class="oee-bl">${cell('🛢 Barril',b)}${cell('🥫 Lata',l)}</div></div>`;
+}
+function prodOeeMerma(j){
+  const M=j.mermaPorLote||[];
+  const body=M.length?prodOeeBars(M.map(x=>({lbl:x.codigo+' · '+x.estilo,v:x.mermaPct})),'lbl','v','%',true):'<div class="oee-empty">Sin lotes envasados en el periodo.</div>';
+  return `<div class="oee-panel"><div class="oee-panel-t">Merma por lote <span class="oee-chip">solo envasados</span></div><div class="oee-panel-s">1 − litros buenos / litros esperados (orden cronológico = tendencia)</div>${body}</div>`;
+}
+function prodOeeOcupacion(j){
+  const o=j.ocupacion;
+  const sobre=(o.sobreEstadia||[]).map(s=>`<div class="oee-bar"><span class="oee-bar-lbl">${escapeHtml(s.codigo)} · ${escapeHtml(s.tanqueId)} <span class="oee-lead-val">${escapeHtml(s.estilo)}</span></span><div class="oee-bar-track"><div class="oee-bar-fill alt" style="width:${Math.min(100,s.diasSobre/Math.max(1,s.leadObjetivo)*100)}%"></div></div><span class="oee-bar-val">+${s.diasSobre} d</span></div>`).join('');
+  return `<div class="oee-panel"><div class="oee-panel-t">Ocupación de tanques</div><div class="oee-panel-s">Utilización = tanque-días ocupados / disponibles</div>
+    <div style="display:flex;gap:1rem;align-items:baseline;margin-bottom:.6rem"><div class="oee-card-v" style="font-size:1.8rem;color:#b87333">${o.utilizacionPct}%</div><div class="oee-crudos">${o.ocupadosTD} / ${o.disponiblesTD} tanque-días · ${o.nTanques} tanques</div></div>
+    <div class="oee-panel-t" style="font-size:.82rem">Sobre-estadía ${o.sobreEstadia.length?('('+o.sobreEstadia.length+')'):''}</div>
+    ${o.sobreEstadia.length?sobre:'<div class="oee-empty">Ningún lote pasó su fecha proyectada de envasado. 👍</div>'}</div>`;
+}
+function prodOeeComplementarias(j){
+  const u=j.complementarias.utilizacionFermentadores, c=j.complementarias.cargaVsCapacidad;
+  return `<div class="oee-panel oee-comp"><div class="oee-panel-t">Métricas complementarias <span class="oee-chip">no es OEE</span></div><div class="oee-panel-s">Indicadores de capacidad, aparte del OEE</div>
+    <div class="oee-crudos" style="margin-bottom:.5rem"><b>Utilización de fermentadores:</b> ${u.pct}% · ${u.ocupadosTD}/${u.disponiblesTD} tanque-días (${u.nTanques} tanques)</div>
+    <div class="oee-crudos"><b>Carga vs capacidad:</b> ${c.pct!=null?c.pct+'%':'—'} · demanda ${c.demandaH} h / capacidad ${c.capacidadH} h (${c.nTrabajadores} trab.)<br>
+    <span class="oee-lead-val">cocción ${c.coccionH} h · limpieza ${c.limpiezaH} h · envasado ${c.envasadoH} h</span></div></div>`;
+}
 // ── Limpiezas ──
 function prodRenderLimpiezas(){
   const tipos=(prodData.meta.limpiezaTipos||[]), centros=(prodData.meta.centros||[]);
@@ -8858,6 +9029,7 @@ function prodRenderConfig(){
   <div class="est-note" style="margin-top:.4rem">Zorbo se autentica con tu usuario/clave del ERP, baja <b>/Receta</b> y <b>/Lote</b> y lee las tablas. La clave se guarda en el servidor (nunca en el navegador). La sync trae recetas y lotes (fechas, litros, tanque, etapa) y <b>nunca pisa</b> lo que cargaste a mano (tiempos, envasados, paradas). Si el ERP expone API, se conecta cuando cargues los endpoints.</div></div>`;
   const params=`<div class="cg-form"><div class="cg-form-title">Parámetros de producción</div><div class="cg-form-grid">
     <label class="cg-field"><span>Horas por semana</span><input id="cfHoras" inputmode="numeric" value="${escapeAttr(c.horasPorSemana)}"></label>
+    <label class="cg-field"><span>N° trabajadores</span><input id="cfTrab" inputmode="numeric" value="${escapeAttr(c.nTrabajadores||4)}"></label>
     <label class="cg-field"><span>Vel. barril (L/h)</span><input id="cfBarril" inputmode="numeric" value="${escapeAttr(c.velNominalBarrilLh)}"></label>
     <label class="cg-field"><span>Vel. barril 20 L (L/h)</span><input id="cfB20" inputmode="numeric" value="${escapeAttr(c.velNominalBarril20||c.velNominalBarrilLh)}"></label>
     <label class="cg-field"><span>Vel. barril 30 L (L/h)</span><input id="cfB30" inputmode="numeric" value="${escapeAttr(c.velNominalBarril30||c.velNominalBarrilLh)}"></label>
@@ -8910,6 +9082,8 @@ function prodWire(){
   document.querySelectorAll('[data-cerrar-env]').forEach(b=>b.onclick=()=>{ if(confirm('Cerrar el envasado y vaciar el tanque? Queda Sucio hasta su CIP.')) prodPatchLote(b.dataset.cerrarEnv,{estado:'envasado',fechaEnvasado:prodNow()}); });
   // recetas (D)
   prodWireRecetas(g);
+  // OEE dashboard (Fase 2)
+  prodWireOee();
   // limpiezas
   if(g('lmAdd')) g('lmAdd').onclick=async()=>{ await prodPost('limpieza',{tipo:g('lmTipo').value,centroTrabajo:g('lmCentro').value,ref:g('lmRef').value,inicio:prodLocal(g('lmIni').value),fin:prodLocal(g('lmFin').value)}); };
   document.querySelectorAll('[data-limp-del]').forEach(b=>b.onclick=()=>prodDelete('limpieza',b.dataset.limpDel));
@@ -8935,6 +9109,20 @@ function prodWire(){
   if(g('cfMapsSave')) g('cfMapsSave').onclick=prodGuardarMapas;
 }
 function prodWireMapDel(){ document.querySelectorAll('[data-lt-del],[data-col-del]').forEach(b=>b.onclick=()=>{ const row=b.closest('.prod-cfg-map'); if(row) row.remove(); }); }
+function prodWireOee(){
+  document.querySelectorAll('[data-oee-seg]').forEach(seg=>{
+    const key=seg.dataset.oeeSeg;
+    seg.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+      if(key==='centro') prodOee.centro=b.dataset.v; else if(key==='periodo') prodOee.periodo=b.dataset.v;
+      renderProduccion();
+    });
+  });
+  const de=document.getElementById('oeeDesde'), ha=document.getElementById('oeeHasta');
+  if(de) de.onchange=()=>{ prodOee.desde=de.value?new Date(de.value+'T00:00:00Z').toISOString():''; prodLoadOee(); };
+  if(ha) ha.onchange=()=>{ prodOee.hasta=ha.value?new Date(ha.value+'T23:59:59Z').toISOString():''; prodLoadOee(); };
+  const lp=document.getElementById('oeeLimp');
+  if(lp) lp.onchange=()=>{ prodOee.incluirLimp=lp.checked; prodLoadOee(); };
+}
 async function prodGuardarMapas(){
   const err=document.getElementById('cfMapsErr'); err.textContent='';
   const lt={}; document.querySelectorAll('#cfLtMap [data-lt-row]').forEach(row=>{ const k=(row.querySelector('[data-ltk]').value||'').trim().toLowerCase(); const v=cNum(row.querySelector('[data-ltv]').value); if(k&&v) lt[k]=v; });
@@ -9032,7 +9220,7 @@ async function prodDelete(kind,id){
 }
 async function prodGuardarConfig(){
   const g=id=>document.getElementById(id);
-  const body={horasPorSemana:cNum(g('cfHoras').value),velNominalBarrilLh:cNum(g('cfBarril').value),velNominalBarril20:cNum(g('cfB20').value),velNominalBarril30:cNum(g('cfB30').value),velNominalLata:cNum(g('cfLata').value),velNominalLataLh:cNum(g('cfLata').value),cicloCoccionEstandarH:parseFloat(g('cfCiclo').value)||4.2,leadTimeObjetivoDias:cNum(g('cfLeadObj').value),leadTimeMinDias:cNum(g('cfLead').value),incluirLimpiezaEnDisponibilidad:g('cfLimp').checked};
+  const body={horasPorSemana:cNum(g('cfHoras').value),nTrabajadores:cNum(g('cfTrab').value),velNominalBarrilLh:cNum(g('cfBarril').value),velNominalBarril20:cNum(g('cfB20').value),velNominalBarril30:cNum(g('cfB30').value),velNominalLata:cNum(g('cfLata').value),velNominalLataLh:cNum(g('cfLata').value),cicloCoccionEstandarH:parseFloat(g('cfCiclo').value)||4.2,leadTimeObjetivoDias:cNum(g('cfLeadObj').value),leadTimeMinDias:cNum(g('cfLead').value),incluirLimpiezaEnDisponibilidad:g('cfLimp').checked};
   try{ const r=await fetch('/admin/produccion/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); const e=g('cfErr'); e.textContent='✓ guardado'; e.classList.add('show'); e.style.color='#2e9c5a'; }
   catch(e){ const el=g('cfErr'); el.textContent='⚠ '+String(e.message||e); el.classList.add('show'); }
 }

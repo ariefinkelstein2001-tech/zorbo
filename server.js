@@ -3452,7 +3452,7 @@ const PROD_LIMPIEZA_TIPOS = ['CIP_fermentador', 'brewhouse', 'general', 'tanques
 const PROD_CENTROS = ['brewhouse', 'fermentacion', 'envasado'];
 const PROD_PARADA_CAT = ['falla', 'espera', 'insumo', 'energia', 'otro'];
 const PROD_CONFIG_DEF = {
-  horasPorSemana: 40, velNominalBarrilLh: 1000, velNominalLataLh: 83, cicloCoccionEstandarH: 4.2, leadTimeMinDias: 27, incluirLimpiezaEnDisponibilidad: true,
+  horasPorSemana: 40, nTrabajadores: 4, velNominalBarrilLh: 1000, velNominalLataLh: 83, cicloCoccionEstandarH: 4.2, leadTimeMinDias: 27, incluirLimpiezaEnDisponibilidad: true,
   // Fase 2 (prompt #2): fecha proyectada de envasado + velocidades por formato + integración ERP.
   leadTimeObjetivoDias: 27, leadTimeObjetivoPorEstilo: {}, coloresPorEstilo: {},
   velNominalBarril20: 1000, velNominalBarril30: 1000, velNominalLata: 83,
@@ -3577,6 +3577,7 @@ app.put('/admin/produccion/config', requireAdmin, (req, res) => {
   const b = req.body || {}; const d = prodLoad(); const c = { ...d.config };
   const numOr = (v, def) => prodNum(v) || def;
   c.horasPorSemana = numOr(b.horasPorSemana, PROD_CONFIG_DEF.horasPorSemana);
+  c.nTrabajadores = numOr(b.nTrabajadores, c.nTrabajadores || PROD_CONFIG_DEF.nTrabajadores);
   c.velNominalBarrilLh = numOr(b.velNominalBarrilLh, PROD_CONFIG_DEF.velNominalBarrilLh);
   c.velNominalLataLh = numOr(b.velNominalLataLh, PROD_CONFIG_DEF.velNominalLataLh);
   c.velNominalBarril20 = numOr(b.velNominalBarril20, c.velNominalBarril20 || PROD_CONFIG_DEF.velNominalBarril20);
@@ -3925,6 +3926,251 @@ app.get('/admin/produccion/recetas/export.xlsx', requireAdmin, (req, res) => {
       rows.push([{ v: r.nombre || '' }, { v: r.estilo || '' }, { v: prodNum(r.litros), t: 'n' }, { v: prodNum(r.og), t: 'n' }, { v: prodNum(r.abv), t: 'n' }, { v: prodNum(f.barril20), t: 'n' }, { v: prodNum(f.barril30), t: 'n' }, { v: prodNum(f.lata), t: 'n' }, { v: r.origen || 'local' }]);
     }
     sendXlsx(res, xlsxPackage([{ name: 'Recetas', rows }]), 'Recetas_Kairos.xlsx');
+  } catch (e) { res.status(500).json({ error: String(e.message || e) }); }
+});
+
+// ═══ MOTOR DE OEE (Fase 2) ═══════════════════════════════════════════════════
+// OEE = Disponibilidad × Rendimiento × Calidad, por centro (envasado/brewhouse/
+// planta) y periodo. Cada factor en [0,1]. Se muestran SIEMPRE los números crudos
+// (trazabilidad). El OEE solo existe si los tres factores existen. No se mezclan
+// centros. Rendimiento clamp a 100%. Calidad excluye lotes no envasados.
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+const H_MS = 3600000, DAY_MS = 86400000;
+// Horas de solape entre [ini,fin] de un registro y la ventana [desde,hasta].
+// fin abierto (null) cuenta hasta ahora (o hasta el fin de la ventana).
+function prodOverlapH(iniISO, finISO, desde, hasta){
+  const ini = iniISO ? new Date(iniISO).getTime() : NaN;
+  if (!Number.isFinite(ini)) return 0;
+  let fin = finISO ? new Date(finISO).getTime() : Date.now();
+  if (!Number.isFinite(fin)) fin = Date.now();
+  const a = Math.max(ini, desde.getTime()), b = Math.min(fin, hasta.getTime());
+  return b > a ? (b - a) / H_MS : 0;
+}
+// ¿El instante `ts` cae dentro de la ventana?
+function prodInWin(tsISO, desde, hasta){
+  if (!tsISO) return false;
+  const t = new Date(tsISO).getTime();
+  return Number.isFinite(t) && t >= desde.getTime() && t <= hasta.getTime();
+}
+// Banda de color del OEE (rojo <40, ámbar 40–60, verde 60–85, azul >85).
+function prodBandaOee(v){ if (v == null) return 'na'; const p = v * 100; return p < 40 ? 'rojo' : p < 60 ? 'ambar' : p < 85 ? 'verde' : 'azul'; }
+const prodCentroStop = (centro, x) => centro === 'planta' ? true : (x.centroTrabajo === centro);
+// Disponibilidad = (TiempoPlanificado − Paradas) / TiempoPlanificado. Paradas =
+// limpiezas (si el toggle) + paradas no planificadas del centro y periodo.
+function prodDisponibilidad(d, cfg, centro, desde, hasta, incluirLimpieza){
+  const semanas = Math.max(0, (hasta.getTime() - desde.getTime()) / (7 * DAY_MS));
+  const tpH = (prodNum(cfg.horasPorSemana) || 40) * semanas; // fallback: 40 h/sem × semanas
+  let limpH = 0, parH = 0, nPar = 0;
+  for (const l of (d.limpiezas || [])) if (prodCentroStop(centro, l)) limpH += prodOverlapH(l.inicio, l.fin, desde, hasta);
+  for (const p of (d.paradas || [])) if (prodCentroStop(centro, p)) { const h = prodOverlapH(p.inicio, p.fin, desde, hasta); if (h > 0) { parH += h; nPar++; } }
+  const paradasH = (incluirLimpieza ? limpH : 0) + parH;
+  const valor = tpH > 0 ? clamp01((tpH - paradasH) / tpH) : null;
+  return { valor, tiempoPlanificadoH: Math.round(tpH * 10) / 10, limpiezasH: Math.round(limpH * 10) / 10, paradasNoPlanH: Math.round(parH * 10) / 10, paradasH: Math.round(paradasH * 10) / 10, incluirLimpieza, nParadas: nPar, esTecho: nPar === 0 };
+}
+// Rendimiento en envasado, ponderado por litros buenos. velReal = buenos/durH;
+// rendLínea = min(1, velReal/velNominal(formato)). R = Σ(rend×buenos)/Σ(buenos).
+function prodRendimientoEnv(d, cfg, desde, hasta){
+  let num = 0, den = 0, nLineas = 0, sumVelReal = 0;
+  for (const lote of (d.lotes || [])) for (const ev of (lote.envasados || [])) {
+    const ts = ev.fin || ev.inicio; if (!prodInWin(ts, desde, hasta)) continue;
+    const durH = (ev.inicio && ev.fin) ? (new Date(ev.fin) - new Date(ev.inicio)) / H_MS : 0;
+    const buenos = prodNum(ev.litrosBuenos);
+    if (durH <= 0 || buenos <= 0) continue;
+    const fmt = ev.formato || (ev.canal === 'lata' ? 'lata' : 'barril20');
+    const velNom = prodVelNominal(cfg, fmt); if (velNom <= 0) continue;
+    const velReal = buenos / durH;
+    num += Math.min(1, velReal / velNom) * buenos; den += buenos; nLineas++; sumVelReal += velReal;
+  }
+  return { valor: den > 0 ? clamp01(num / den) : null, litrosBuenos: Math.round(den), nLineas, velRealProm: nLineas ? Math.round(sumVelReal / nLineas) : null, base: 'envasado (ponderado por litros)' };
+}
+// Rendimiento opcional de brewhouse = cicloEstándar / cicloReal promedio (clamp 1).
+function prodRendimientoBrew(d, cfg, desde, hasta){
+  const est = prodNum(cfg.cicloCoccionEstandarH) || 4.2; const ciclos = [];
+  for (const lote of (d.lotes || [])) {
+    const timed = (lote.etapas || []).filter(e => e.inicio && e.fin);
+    if (!timed.length) continue;
+    const ts = timed[timed.length - 1].fin || lote.fechaCoccion; if (!prodInWin(ts, desde, hasta)) continue;
+    const real = timed.reduce((a, e) => a + (new Date(e.fin) - new Date(e.inicio)) / H_MS, 0);
+    if (real > 0) ciclos.push(real);
+  }
+  const avg = ciclos.length ? ciclos.reduce((a, b) => a + b, 0) / ciclos.length : null;
+  return { valor: avg ? clamp01(est / avg) : null, cicloEstandarH: est, cicloRealPromH: avg ? Math.round(avg * 100) / 100 : null, nCiclos: ciclos.length, base: 'brewhouse (ciclo estándar / real)' };
+}
+// Calidad = litrosBuenos / (litrosBuenos + litrosRechazados) de las líneas del
+// periodo. Excluye lotes no envasados (no hay líneas → no contribuye). Latas nivel
+// bajo y merma tapas se reportan como pérdidas adicionales (unidades, no litros).
+function prodCalidad(d, desde, hasta){
+  let buenos = 0, rech = 0, latasBajo = 0, tapas = 0, nLineas = 0;
+  for (const lote of (d.lotes || [])) for (const ev of (lote.envasados || [])) {
+    const ts = ev.fin || ev.inicio; if (!prodInWin(ts, desde, hasta)) continue;
+    const b = prodNum(ev.litrosBuenos), r = prodNum(ev.litrosRechazados);
+    if (b <= 0 && r <= 0) continue;
+    buenos += b; rech += r; latasBajo += prodNum(ev.latasNivelBajo); tapas += prodNum(ev.mermaTapas); nLineas++;
+  }
+  const tot = buenos + rech;
+  return { valor: tot > 0 ? clamp01(buenos / tot) : null, litrosBuenos: Math.round(buenos), litrosRechazados: Math.round(rech), latasNivelBajo: latasBajo, mermaTapas: tapas, nLineas };
+}
+// OEE de un centro para una ventana. Brewhouse: R por ciclo, C = null (la calidad
+// se mide al envasar). Envasado y planta: R y C por líneas de envasado.
+function prodComputeOEE(d, cfg, centro, desde, hasta, incluirLimpieza){
+  const disp = prodDisponibilidad(d, cfg, centro, desde, hasta, incluirLimpieza);
+  let rend, cal;
+  if (centro === 'brewhouse') { rend = prodRendimientoBrew(d, cfg, desde, hasta); cal = { valor: null, nota: 'La calidad se mide en envasado.' }; }
+  else { rend = prodRendimientoEnv(d, cfg, desde, hasta); cal = prodCalidad(d, desde, hasta); }
+  const D = disp.valor, R = rend.valor, C = cal.valor;
+  const oee = (D != null && R != null && C != null) ? clamp01(D * R * C) : null;
+  return { centro, desde: desde.toISOString(), hasta: hasta.toISOString(), disponibilidad: disp, rendimiento: rend, calidad: cal, oee, banda: prodBandaOee(oee) };
+}
+// Buckets de tendencia: n periodos de tamaño `bucket` terminando en `hasta`.
+function prodTrendBuckets(bucket, n, hasta){
+  const out = []; const end = new Date(hasta.getTime());
+  for (let i = n - 1; i >= 0; i--) {
+    let bDesde, bHasta, label;
+    if (bucket === 'mes') {
+      const ref = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth() - i, 1));
+      bDesde = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth(), 1));
+      bHasta = new Date(Date.UTC(ref.getUTCFullYear(), ref.getUTCMonth() + 1, 1));
+      label = ('' + (ref.getUTCMonth() + 1)).padStart(2, '0') + '/' + String(ref.getUTCFullYear()).slice(2);
+    } else {
+      const span = bucket === 'dia' ? DAY_MS : 7 * DAY_MS;
+      bHasta = new Date(end.getTime() - i * span); bDesde = new Date(bHasta.getTime() - span);
+      label = bucket === 'dia' ? (('' + bDesde.getUTCDate()).padStart(2, '0') + '/' + ('' + (bDesde.getUTCMonth() + 1)).padStart(2, '0'))
+        : ('sem ' + ('' + bDesde.getUTCDate()).padStart(2, '0') + '/' + ('' + (bDesde.getUTCMonth() + 1)).padStart(2, '0'));
+    }
+    out.push({ label, desde: bDesde, hasta: bHasta });
+  }
+  return out;
+}
+// ── Datos complementarios del dashboard ──
+// Pareto de paradas: causas (y limpiezas por tipo) que más tiempo consumen.
+function prodParetoParadas(d, centro, desde, hasta, incluirLimpieza){
+  const m = {};
+  for (const p of (d.paradas || [])) if (prodCentroStop(centro, p)) { const h = prodOverlapH(p.inicio, p.fin, desde, hasta); if (h > 0) { const k = (p.causa || p.categoria || 'otro'); m[k] = (m[k] || 0) + h; } }
+  if (incluirLimpieza) for (const l of (d.limpiezas || [])) if (prodCentroStop(centro, l)) { const h = prodOverlapH(l.inicio, l.fin, desde, hasta); if (h > 0) { const k = 'Limpieza · ' + (l.tipo || 'general'); m[k] = (m[k] || 0) + h; } }
+  return Object.entries(m).map(([k, v]) => ({ causa: k, horas: Math.round(v * 100) / 100 })).sort((a, b) => b.horas - a.horas).slice(0, 12);
+}
+// Pareto de tiempos de cocción: en qué etapa se va el ciclo (~4,2 h).
+function prodParetoCoccion(d, desde, hasta){
+  const m = {};
+  for (const lote of (d.lotes || [])) for (const e of (lote.etapas || [])) {
+    if (!e.inicio || !e.fin) continue; const ts = e.fin; if (!prodInWin(ts, desde, hasta)) continue;
+    const h = (new Date(e.fin) - new Date(e.inicio)) / H_MS; if (h > 0) m[e.nombre] = (m[e.nombre] || 0) + h;
+  }
+  return Object.entries(m).map(([k, v]) => ({ etapa: k, horas: Math.round(v * 100) / 100 })).sort((a, b) => b.horas - a.horas);
+}
+// Lead time por estilo (lotes envasados en el periodo): min = piso biológico, el
+// resto es permanencia extra en tanque. Muestra la variabilidad intra-estilo.
+function prodLeadPorEstilo(d, desde, hasta){
+  const m = {};
+  for (const lote of (d.lotes || [])) {
+    if (!lote.fechaEnvasado || !lote.fechaCoccion) continue;
+    if (!prodInWin(lote.fechaEnvasado, desde, hasta)) continue;
+    const dias = Math.max(0, Math.round((new Date(lote.fechaEnvasado) - new Date(lote.fechaCoccion)) / DAY_MS));
+    const est = (lote.estilo || '(sin estilo)').trim() || '(sin estilo)';
+    (m[est] = m[est] || []).push({ codigo: lote.codigo, dias });
+  }
+  return Object.entries(m).map(([estilo, arr]) => { const ds = arr.map(x => x.dias); return { estilo, n: arr.length, min: Math.min(...ds), max: Math.max(...ds), prom: Math.round(ds.reduce((a, b) => a + b, 0) / ds.length), lotes: arr }; }).sort((a, b) => b.n - a.n);
+}
+// Barril vs lata: litros, horas, velocidad y % del tiempo de envasado.
+function prodBarrilVsLata(d, cfg, desde, hasta){
+  const g = { barril: { litros: 0, horas: 0 }, lata: { litros: 0, horas: 0 } };
+  for (const lote of (d.lotes || [])) for (const ev of (lote.envasados || [])) {
+    const ts = ev.fin || ev.inicio; if (!prodInWin(ts, desde, hasta)) continue;
+    const fmt = ev.formato || (ev.canal === 'lata' ? 'lata' : 'barril20');
+    const fam = fmt === 'lata' ? 'lata' : 'barril';
+    const durH = (ev.inicio && ev.fin) ? (new Date(ev.fin) - new Date(ev.inicio)) / H_MS : 0;
+    g[fam].litros += prodNum(ev.litrosBuenos); g[fam].horas += Math.max(0, durH);
+  }
+  const totH = g.barril.horas + g.lata.horas;
+  const pack = (o) => ({ litros: Math.round(o.litros), horas: Math.round(o.horas * 100) / 100, velLh: o.horas > 0 ? Math.round(o.litros / o.horas) : null, pctTiempo: totH > 0 ? Math.round(o.horas / totH * 100) : 0 });
+  return { barril: pack(g.barril), lata: pack(g.lata), totalHoras: Math.round(totH * 100) / 100 };
+}
+// Merma por lote (solo envasados): merma = 1 − litrosBuenos / litrosEsperados.
+function prodMermaPorLote(d, desde, hasta){
+  const out = [];
+  for (const lote of (d.lotes || [])) {
+    if (!lote.fechaEnvasado || !prodInWin(lote.fechaEnvasado, desde, hasta)) continue;
+    const buenos = (lote.envasados || []).reduce((a, e) => a + prodNum(e.litrosBuenos), 0);
+    const esperado = prodNum(lote.volumenRealL) || prodNum(lote.volumenEsperadoL) || 0;
+    if (esperado <= 0 || buenos <= 0) continue;
+    out.push({ codigo: lote.codigo, estilo: lote.estilo || '', fechaEnvasado: lote.fechaEnvasado, esperado: Math.round(esperado), buenos: Math.round(buenos), mermaPct: Math.round((1 - buenos / esperado) * 1000) / 10 });
+  }
+  return out.sort((a, b) => new Date(a.fechaEnvasado) - new Date(b.fechaEnvasado));
+}
+// Ocupación de tanques: utilización % (tanque-días ocupados / disponibles) y lotes
+// en sobre-estadía (pasan la fecha proyectada de envasado sin envasarse).
+function prodOcupacion(d, cfg, desde, hasta){
+  const nT = (d.tanques || []).length || 1;
+  const winDias = Math.max(0.01, (hasta.getTime() - desde.getTime()) / DAY_MS);
+  const disponiblesTD = nT * winDias;
+  let ocupadosTD = 0;
+  for (const lote of (d.lotes || [])) {
+    if (!lote.tanqueId || !lote.fechaFermInicio) continue;
+    const finOcup = lote.fechaEnvasado || new Date().toISOString();
+    ocupadosTD += prodOverlapH(lote.fechaFermInicio, finOcup, desde, hasta) / 24;
+  }
+  // Sobre-estadía: lotes activos que pasaron su fecha proyectada de envasado.
+  const sobre = [];
+  for (const lote of (d.lotes || [])) {
+    if (lote.fechaEnvasado || !lote.fechaCoccion || !lote.tanqueId) continue;
+    if (!['fermentacion', 'maduracion', 'listo', 'envasado'].includes(lote.estado)) continue;
+    const lead = prodLeadObjetivo(cfg, lote.estilo);
+    const proy = new Date(lote.fechaCoccion).getTime() + lead * DAY_MS;
+    if (Date.now() > proy) sobre.push({ codigo: lote.codigo, estilo: lote.estilo || '', tanqueId: lote.tanqueId, diasSobre: Math.floor((Date.now() - proy) / DAY_MS), leadObjetivo: lead });
+  }
+  return { utilizacionPct: Math.round(ocupadosTD / disponiblesTD * 100), ocupadosTD: Math.round(ocupadosTD * 10) / 10, disponiblesTD: Math.round(disponiblesTD * 10) / 10, nTanques: nT, sobreEstadia: sobre.sort((a, b) => b.diasSobre - a.diasSobre) };
+}
+// Complementarias (NO son OEE): utilización de fermentadores y carga vs capacidad.
+function prodComplementarias(d, cfg, desde, hasta){
+  const ocup = prodOcupacion(d, cfg, desde, hasta);
+  const semanas = Math.max(0.01, (hasta.getTime() - desde.getTime()) / (7 * DAY_MS));
+  const nTrab = prodNum(cfg.nTrabajadores) || 4;
+  const capacidadH = (prodNum(cfg.horasPorSemana) || 40) * nTrab * semanas;
+  let coccionH = 0, limpiezaH = 0, envasadoH = 0;
+  for (const lote of (d.lotes || [])) for (const e of (lote.etapas || [])) if (e.inicio && e.fin && prodInWin(e.fin, desde, hasta)) coccionH += Math.max(0, (new Date(e.fin) - new Date(e.inicio)) / H_MS);
+  for (const l of (d.limpiezas || [])) limpiezaH += prodOverlapH(l.inicio, l.fin, desde, hasta);
+  for (const lote of (d.lotes || [])) for (const ev of (lote.envasados || [])) { const ts = ev.fin || ev.inicio; if (prodInWin(ts, desde, hasta) && ev.inicio && ev.fin) envasadoH += Math.max(0, (new Date(ev.fin) - new Date(ev.inicio)) / H_MS); }
+  const demandaH = coccionH + limpiezaH + envasadoH;
+  return {
+    utilizacionFermentadores: { pct: ocup.utilizacionPct, ocupadosTD: ocup.ocupadosTD, disponiblesTD: ocup.disponiblesTD, nTanques: ocup.nTanques },
+    cargaVsCapacidad: { demandaH: Math.round(demandaH * 10) / 10, capacidadH: Math.round(capacidadH * 10) / 10, pct: capacidadH > 0 ? Math.round(demandaH / capacidadH * 100) : null, coccionH: Math.round(coccionH * 10) / 10, limpiezaH: Math.round(limpiezaH * 10) / 10, envasadoH: Math.round(envasadoH * 10) / 10, nTrabajadores: nTrab },
+  };
+}
+// Parseo de la ventana desde los query params (default: últimos 30 días).
+function prodWindow(q){
+  const now = Date.now();
+  let hasta = q.hasta ? new Date(q.hasta) : new Date(now);
+  let desde = q.desde ? new Date(q.desde) : new Date(hasta.getTime() - 30 * DAY_MS);
+  if (isNaN(hasta)) hasta = new Date(now); if (isNaN(desde)) desde = new Date(hasta.getTime() - 30 * DAY_MS);
+  if (desde.getTime() > hasta.getTime()) { const t = desde; desde = hasta; hasta = t; }
+  return { desde, hasta };
+}
+// Endpoint único del dashboard de OEE: factores + crudos + tendencia + todos los
+// gráficos, para el centro y periodo pedidos.
+app.get('/admin/produccion/oee', requireAdmin, (req, res) => {
+  try {
+    const d = prodLoad(); const cfg = d.config; const q = req.query || {};
+    const centro = ['envasado', 'brewhouse', 'planta'].includes(q.centro) ? q.centro : 'envasado';
+    const { desde, hasta } = prodWindow(q);
+    const incluirLimpieza = q.incluirLimpieza != null ? (q.incluirLimpieza === '1' || q.incluirLimpieza === 'true') : (cfg.incluirLimpiezaEnDisponibilidad !== false);
+    const bucket = ['dia', 'semana', 'mes'].includes(q.bucket) ? q.bucket : 'semana';
+    const nBuckets = Math.max(1, Math.min(24, prodNum(q.n) || (bucket === 'dia' ? 14 : bucket === 'mes' ? 6 : 8)));
+    const actual = prodComputeOEE(d, cfg, centro, desde, hasta, incluirLimpieza);
+    const tendencia = prodTrendBuckets(bucket, nBuckets, hasta).map(b => {
+      const o = prodComputeOEE(d, cfg, centro, b.desde, b.hasta, incluirLimpieza);
+      return { label: b.label, oee: o.oee, d: o.disponibilidad.valor, r: o.rendimiento.valor, c: o.calidad.valor };
+    });
+    res.json({
+      centro, incluirLimpieza, bucket, desde: desde.toISOString(), hasta: hasta.toISOString(),
+      ...actual, tendencia,
+      paretoParadas: prodParetoParadas(d, centro, desde, hasta, incluirLimpieza),
+      paretoCoccion: prodParetoCoccion(d, desde, hasta),
+      leadPorEstilo: prodLeadPorEstilo(d, desde, hasta),
+      barrilVsLata: prodBarrilVsLata(d, cfg, desde, hasta),
+      mermaPorLote: prodMermaPorLote(d, desde, hasta),
+      ocupacion: prodOcupacion(d, cfg, desde, hasta),
+      complementarias: prodComplementarias(d, cfg, desde, hasta),
+    });
   } catch (e) { res.status(500).json({ error: String(e.message || e) }); }
 });
 
