@@ -3836,26 +3836,22 @@ async function erpLoginDiag(cfg){
         } catch (e) { rep.dataProbe.push({ ep, status: 0, error: String(e.message).slice(0, 60) }); }
       }));
       rep.dataProbe.sort((a, b) => ((b.isJson && b.len > 50) ? 1 : 0) - ((a.isJson && a.len > 50) ? 1 : 0));
-      // Detalle de la receta completa (ingredientes/tareas): se descubre el endpoint
-      // probando por el id de la primera receta de /Receta/GetAll.
+      // Detalle real de la receta: GetTareas (id) + MPsTipo (idReceta+tipo) — endpoints
+      // confirmados por captura de red. Dumpea el JSON para mapear los campos.
       try {
         const rec = await erpApiGetAll(base, '/Receta/GetAll', login.jar, '/Receta');
         const first = (rec.data || [])[0]; const rid = first && (first.id != null ? first.id : first.idProducto);
         rep.recetaDetalle = { idProbado: rid, resultados: [] };
         if (rid != null) {
-          const eps = ['/Receta/Get', '/Receta/GetById', '/Receta/GetReceta', '/Receta/Detalle', '/Receta/GetDetalle', '/Receta/Edit', '/Receta/GetCompleta', '/Receta/GetMateriasPrimas', '/MateriaPrima/GetAll', '/Receta/GetTareas', '/Receta/GetIngredientes'];
-          await Promise.all(eps.map(async (ep) => {
-            for (const key of ['id', 'idReceta']) {
-              try {
-                const r = await erpFetch(base + ep, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Referer': base + '/Receta', 'Origin': base }, body: key + '=' + encodeURIComponent(rid) }, login.jar);
-                const ct = r.headers.get('content-type') || ''; let t = ''; try { t = await r.text(); } catch {}
-                const isJson = /json/i.test(ct) || /^\s*[[{]/.test(t);
-                if (r.status < 400 && isJson && t.length > 30) { rep.recetaDetalle.resultados.push({ ep, param: key, status: r.status, len: t.length, snippet: t.replace(/\s+/g, ' ').slice(0, 1400) }); return; }
-                rep.recetaDetalle.resultados.push({ ep, param: key, status: r.status, len: t.length, isJson });
-              } catch (e) { rep.recetaDetalle.resultados.push({ ep, param: key, error: String(e.message).slice(0, 50) }); }
-            }
-          }));
-          rep.recetaDetalle.resultados.sort((a, b) => ((b.snippet && b.len > 50) ? 1 : 0) - ((a.snippet && a.len > 50) ? 1 : 0));
+          const push = async (ep, body) => {
+            try {
+              const r = await erpFetch(base + ep, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Referer': base + '/Receta/Ver?id=' + rid, 'Origin': base }, body }, login.jar);
+              let t = ''; try { t = await r.text(); } catch {}
+              rep.recetaDetalle.resultados.push({ ep, body, status: r.status, len: t.length, snippet: t.replace(/\s+/g, ' ').slice(0, 1600) });
+            } catch (e) { rep.recetaDetalle.resultados.push({ ep, body, error: String(e.message).slice(0, 50) }); }
+          };
+          await push('/Receta/GetTareas', 'id=' + rid);
+          for (const tipo of [1, 2, 3, 4, 5, 6]) await push('/Receta/MPsTipo', 'idReceta=' + rid + '&tipo=' + tipo);
         }
       } catch (e) { rep.recetaDetalle = { error: String(e.message).slice(0, 100) }; }
     }
@@ -3983,6 +3979,23 @@ async function erpApiGetAll(base, path, jar, referer){
   const t = await r.text(); let j = {}; try { j = JSON.parse(t); } catch { }
   const data = Array.isArray(j.data) ? j.data : (Array.isArray(j) ? j : []);
   return { status: r.status, data };
+}
+// POST autenticado a un endpoint del ERP con body form-encoded → JSON parseado.
+async function erpApiPost(base, path, body, jar, referer){
+  const r = await erpFetch(base + path, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Referer': base + (referer || '/Receta'), 'Origin': base }, body: body || '' }, jar);
+  const t = await r.text(); let j = null; try { j = JSON.parse(t); } catch { }
+  const arr = Array.isArray(j) ? j : (j && Array.isArray(j.data) ? j.data : (j && Array.isArray(j.tareas) ? j.tareas : []));
+  return { status: r.status, json: j, arr };
+}
+// Catálogo de materias primas (id → nombre/tipo/marca/unidad), cacheado 5 min.
+let erpMPCat = { at: 0, map: {} };
+async function erpMPCatalogo(base, jar){
+  if (Date.now() - erpMPCat.at < 300000 && Object.keys(erpMPCat.map).length) return erpMPCat.map;
+  const r = await erpApiGetAll(base, '/MateriaPrima/GetAll', jar, '/Receta');
+  const map = {};
+  for (const m of (r.data || [])) map[String(m.id)] = { nombre: m.nombre, tipo: m.tipo, marca: m.marca, unidad: m.unidad };
+  erpMPCat = { at: Date.now(), map };
+  return map;
 }
 // La opción <option ... selected ...>Texto</option> de un <select> (etapa/tanque).
 function erpOptSel(html){
@@ -4273,6 +4286,49 @@ app.get('/admin/produccion/recetas/export.xlsx', requireAdmin, (req, res) => {
       rows.push([{ v: r.nombre || '' }, { v: r.estilo || '' }, { v: prodNum(r.litros), t: 'n' }, { v: prodNum(r.og), t: 'n' }, { v: prodNum(r.abv), t: 'n' }, { v: prodNum(f.barril20), t: 'n' }, { v: prodNum(f.barril30), t: 'n' }, { v: prodNum(f.lata), t: 'n' }, { v: r.origen || 'local' }]);
     }
     sendXlsx(res, xlsxPackage([{ name: 'Recetas', rows }]), 'Recetas_Kairos.xlsx');
+  } catch (e) { res.status(500).json({ error: String(e.message || e) }); }
+});
+// Detalle completo de una receta desde el ERP (ingredientes por tipo + tareas del
+// proceso), on-demand. Cruza los ingredientes con el catálogo de materias primas.
+// POST /Receta/GetTareas (id) + POST /Receta/MPsTipo (idReceta+tipo, 1 por tipo).
+const ERP_MP_TIPOS = [{ tipo: 1, nombre: 'Maltas / Granos' }, { tipo: 2, nombre: 'Lúpulos' }, { tipo: 3, nombre: 'Levaduras' }, { tipo: 4, nombre: 'Adjuntos / Otros' }, { tipo: 5, nombre: 'Agua / Sales' }, { tipo: 6, nombre: 'Varios' }];
+// Elige de un objeto el primer campo presente de una lista de nombres posibles.
+const erpPick = (o, keys) => { for (const k of keys) if (o && o[k] != null && o[k] !== '') return o[k]; return null; };
+app.get('/admin/produccion/receta/:id/detalle', requireAdmin, async (req, res) => {
+  try {
+    const d = prodLoad(); const receta = (d.recetas || []).find(r => r.id === req.params.id || (r.erpId && String(r.erpId) === req.params.id));
+    if (!receta) return res.status(404).json({ error: 'Receta no encontrada.' });
+    if (!receta.erpId) return res.json({ ok: true, soloLocal: true, nombre: receta.nombre, grupos: [], tareas: [] });
+    const cfg = d.config; const cr = erpCreds(cfg);
+    const login = await erpLogin(cfg);
+    if (!login.ok) return res.status(502).json({ error: 'No pude entrar al ERP: ' + (login.error || '') + (login.stage ? ' [' + login.stage + ']' : '') });
+    const rid = receta.erpId;
+    const cat = await erpMPCatalogo(cr.base, login.jar);
+    const ref = '/Receta/Ver?id=' + rid;
+    const tareasR = await erpApiPost(cr.base, '/Receta/GetTareas', 'id=' + encodeURIComponent(rid), login.jar, ref);
+    const tareas = (tareasR.arr || []).map((t, i) => ({
+      orden: erpPick(t, ['orden', 'Orden', 'nro', 'numero']) || (i + 1),
+      titulo: erpTxt(erpPick(t, ['titulo', 'Titulo', 'nombre', 'Nombre', 'tarea', 'Tarea', 'descripcion', 'Descripcion']) || ''),
+      detalle: erpTxt(erpPick(t, ['detalle', 'Detalle', 'descripcion', 'Descripcion', 'observacion', 'nota']) || ''),
+      _raw: t,
+    }));
+    const grupos = [];
+    for (const { tipo, nombre } of ERP_MP_TIPOS) {
+      const mp = await erpApiPost(cr.base, '/Receta/MPsTipo', 'idReceta=' + encodeURIComponent(rid) + '&tipo=' + tipo, login.jar, ref);
+      const items = (mp.arr || []).map(it => {
+        const idMP = String(erpPick(it, ['idMP', 'idMateriaPrima', 'IdMP', 'idmp', 'idMateriaprima']) || '');
+        const c = cat[idMP] || {};
+        return {
+          nombre: erpTxt(erpPick(it, ['nombre', 'Nombre', 'nombreMP', 'materiaPrima']) || c.nombre || ('MP ' + idMP)),
+          marca: erpTxt(erpPick(it, ['marca', 'Marca']) || c.marca || ''),
+          cantidad: erpNumCl(erpPick(it, ['cantidad', 'Cantidad', 'cant', 'kilos', 'kg', 'gramos', 'litros']) || 0),
+          unidad: erpTxt(erpPick(it, ['unidad', 'Unidad', 'unidadMedida']) || c.unidad || ''),
+          _raw: it,
+        };
+      });
+      if (items.length) grupos.push({ tipo, nombre, items });
+    }
+    res.json({ ok: true, erpId: rid, nombre: receta.nombre, estilo: receta.estilo, litros: receta.litros, og: receta.og, abv: receta.abv, grupos, tareas, catalogoSize: Object.keys(cat).length });
   } catch (e) { res.status(500).json({ error: String(e.message || e) }); }
 });
 

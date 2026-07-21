@@ -8925,7 +8925,27 @@ function prodRecetaViewer(r){
     <div class="rec-sub">Tiempos estándar por etapa</div>
     <div class="mun-wrap"><table class="mun-table"><tbody>${tRows}</tbody></table></div>
     ${r.notas?`<div class="rec-sub">Notas</div><div class="prod-lote-meta">${escapeHtml(r.notas)}</div>`:''}
+    ${r.erpId?`<div class="rec-sub">Receta completa (ERP)</div><div id="recFull"><button class="adm-btn adm-btn-gold" id="recFullBtn" data-rec-full="${escapeAttr(r.id)}">📋 Cargar receta completa (ingredientes + proceso)</button></div>`:''}
     <div class="prod-env-actions"><button class="adm-btn adm-btn-ghost" id="recViewClose">Cerrar</button></div></div>`;
+}
+async function prodRecetaCargarFull(id){
+  const box=document.getElementById('recFull'); if(!box) return;
+  box.innerHTML='<div class="prod-erp-status">📋 Trayendo la receta completa del ERP…</div>';
+  try{
+    const r=await fetch('/admin/produccion/receta/'+encodeURIComponent(id)+'/detalle'); const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Error');
+    box.innerHTML=prodRecetaFullHtml(d);
+  }catch(e){ box.innerHTML='<div class="cal-err">⚠ '+escapeHtml(String(e.message||e))+'</div><button class="adm-btn adm-btn-ghost" data-rec-full="'+escapeAttr(id)+'">Reintentar</button>'; prodWire(); }
+}
+function prodRecetaFullHtml(d){
+  if(d.soloLocal) return '<div class="prod-lote-meta">Esta receta es local (no vino del ERP), no tiene ficha completa.</div>';
+  const grupos=(d.grupos||[]).map(g=>{
+    const rows=g.items.map(it=>`<tr><td>${escapeHtml(it.nombre)}${it.marca?(' <span class="cal-can-est">'+escapeHtml(it.marca)+'</span>'):''}</td><td class="dist-num">${it.cantidad||''} ${escapeHtml(it.unidad||'')}</td></tr>`).join('');
+    return `<div class="rec-sub" style="margin-top:.6rem">${escapeHtml(g.nombre)} <span class="cal-can-est">(${g.items.length})</span></div><div class="mun-wrap"><table class="mun-table"><tbody>${rows}</tbody></table></div>`;
+  }).join('');
+  const tareas=(d.tareas||[]).length?('<div class="rec-sub" style="margin-top:.6rem">Proceso / tareas</div><ol style="margin:.2rem 0 0 1.1rem;padding:0;font-size:.85rem;line-height:1.5">'+d.tareas.map(t=>`<li><b>${escapeHtml(t.titulo||('Paso '+t.orden))}</b>${t.detalle?(' — '+escapeHtml(t.detalle)):''}</li>`).join('')+'</ol>'):'';
+  const nada=!(d.grupos&&d.grupos.length)&&!(d.tareas&&d.tareas.length);
+  return `<div class="prod-lote-meta">Litros ${d.litros||0} · OG ${d.og||'—'} · ABV ${d.abv||'—'}%</div>${grupos}${tareas}${nada?'<div class="prod-lote-meta" style="color:#c17a10">El ERP no devolvió ingredientes/tareas para esta receta (puede estar sin cargar en Gestión Cervecera).</div>':''}`;
 }
 function prodRecetaEditor(){
   const r=prodRecEditing.id?prodRecetaById(prodRecEditing.id):null;
@@ -9618,6 +9638,7 @@ function prodWireRecetas(g){
   document.querySelectorAll('[data-rec-dup]').forEach(b=>b.onclick=()=>prodRecReq('receta/'+b.dataset.recDup+'/duplicar','POST'));
   document.querySelectorAll('[data-rec-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar la receta?')) prodRecReq('receta/'+b.dataset.recDel,'DELETE'); });
   document.querySelectorAll('[data-rec-print]').forEach(b=>b.onclick=()=>prodRecetaPrint(b.dataset.recPrint));
+  document.querySelectorAll('[data-rec-full]').forEach(b=>b.onclick=()=>prodRecetaCargarFull(b.dataset.recFull));
   if(g('recSave')) g('recSave').onclick=prodRecetaGuardar;
   if(g('recCancel')) g('recCancel').onclick=()=>{ prodRecEditing=null; renderProduccion(); };
   if(g('recViewClose')) g('recViewClose').onclick=()=>{ prodRecView=null; renderProduccion(); };
