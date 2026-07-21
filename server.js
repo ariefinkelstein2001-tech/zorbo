@@ -9258,6 +9258,23 @@ app.delete('/session/:id', (req, res) => {
   res.json({ ok: true, summary: serializeSession(session).summary });
 });
 
+// ─── Manejo de errores centralizado ────────────────────────────────────────
+// Sin esto, cualquier error que no capture una ruta puntual (el body-parser
+// rechazando un request por tamaño, una excepción no atrapada, etc.) cae en
+// la página de error HTML por defecto de Express — y el admin panel (que
+// siempre espera JSON de sus fetch) explota con "Unexpected token '<'".
+// Con esto, cualquier endpoint de API (la inmensa mayoría) devuelve JSON
+// pase lo que pase; solo una navegación real de página (Accept: text/html)
+// recibe texto plano en vez de un dump HTML de la excepción.
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  console.error('Error no manejado en', req.method, req.path, ':', (err && err.stack) || err);
+  const status = (err && (err.status || err.statusCode)) || 500;
+  const msg = (err && err.message) || 'Error interno del servidor.';
+  if (wantsHtml(req)) return res.status(status).type('text/plain').send('Error ' + status + ': ' + msg);
+  res.status(status).json({ error: msg });
+});
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;

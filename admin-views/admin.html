@@ -8692,12 +8692,24 @@ let prodRecQuery='', prodRecPage=0, prodRecEditing=null, prodRecView=null; const
 let prodOee={centro:'envasado',periodo:'mes',desde:'',hasta:'',incluirLimp:null,data:null,loading:false};
 let prodCal={tab:'inicio',data:null,sel:null,compNuevo:false,pdfs:[],medalUp:{},memImg:null,resumen:null,cervNueva:false,cervImg:null};
 const prodNow=()=>new Date().toISOString();
+// Parsea la respuesta como JSON sin explotar con "Unexpected token '<'" cuando
+// el server (o un proxy/CDN adelante) devuelve HTML en vez de JSON — típico
+// de una sesión vencida (redirect a /admin/login) o un error de infra.
+async function prodSafeJson(r){
+  const ct=(r.headers.get('content-type')||'');
+  if(!ct.includes('application/json')){
+    if(r.status===401||r.status===403) throw new Error('Tu sesión venció — recargá la página e iniciá sesión de nuevo.');
+    throw new Error('El servidor no devolvió una respuesta válida (status '+r.status+'). Probá de nuevo en un momento.');
+  }
+  try{ return await r.json(); }
+  catch(e){ throw new Error('Respuesta inválida del servidor (status '+r.status+').'); }
+}
 function prodStopTimers(){ if(prodTimers){ clearInterval(prodTimers); prodTimers=null; } }
 function prodDur(ms){ if(ms<0)ms=0; const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60; if(h>0)return h+'h '+String(m).padStart(2,'0')+'m'; if(m>0)return m+'m '+String(ss).padStart(2,'0')+'s'; return ss+'s'; }
 function prodDT(iso){ if(!iso)return '—'; const d=new Date(iso); if(isNaN(d))return '—'; return d.toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
 async function loadProduccion(){
   const body=document.getElementById('prodBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
-  try{ const r=await fetch('/admin/produccion'); prodData=await r.json(); if(prodData.error) throw new Error(prodData.error); renderProduccion(); }
+  try{ const r=await fetch('/admin/produccion'); prodData=await prodSafeJson(r); if(prodData.error) throw new Error(prodData.error); renderProduccion(); }
   catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
 }
 function renderProduccion(){
@@ -9004,7 +9016,7 @@ async function prodLoadOee(){
   body.innerHTML='<div class="adm-loading">Calculando OEE…</div>';
   const qs=new URLSearchParams({centro:prodOee.centro,desde:w.desde,hasta:w.hasta,bucket:w.bucket,n:w.n});
   if(prodOee.incluirLimp!==null) qs.set('incluirLimpieza',prodOee.incluirLimp?'1':'0');
-  try{ const r=await fetch('/admin/produccion/oee?'+qs.toString()); const j=await r.json(); if(!r.ok) throw new Error(j.error||'Error'); prodOee.data=j; body.innerHTML=prodOeeDashboard(j); }
+  try{ const r=await fetch('/admin/produccion/oee?'+qs.toString()); const j=await prodSafeJson(r); if(!r.ok) throw new Error(j.error||'Error'); prodOee.data=j; body.innerHTML=prodOeeDashboard(j); }
   catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
 }
 const oeePct=v=>v==null?'—':(v*100).toFixed(1)+'%';
@@ -9123,7 +9135,7 @@ function prodRenderCalidad(){
 async function prodLoadCalidad(){
   const body=document.getElementById('calBody'); if(!body) return;
   if(!prodCal.data){ body.innerHTML='<div class="adm-loading">Cargando…</div>'; }
-  try{ const r=await fetch('/admin/produccion/calidad'); const j=await r.json(); if(!r.ok) throw new Error(j.error||'Error'); prodCal.data=j; prodCalRender(); }
+  try{ const r=await fetch('/admin/produccion/calidad'); const j=await prodSafeJson(r); if(!r.ok) throw new Error(j.error||'Error'); prodCal.data=j; prodCalRender(); }
   catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
 }
 function prodCalRender(){
@@ -9285,7 +9297,7 @@ function prodCalReadFile(file){ return new Promise((resolve,reject)=>{ const r=n
 async function prodCalUpload(file){
   const dataBase64=await prodCalReadFile(file);
   const r=await fetch('/admin/produccion/calidad/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,contentType:file.type,dataBase64})});
-  const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error subiendo'); return d;
+  const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error subiendo'); return d;
 }
 // Lista de PDFs adjuntos (formulario de Competencias). Se refresca sola —a
 // diferencia de antes— para no perder el resto de la selección del formulario
@@ -9300,7 +9312,7 @@ function prodCalWirePdfList(){
   document.querySelectorAll('[data-cal-pdf-del]').forEach(b=>b.onclick=()=>{ prodCal.pdfs.splice(+b.dataset.calPdfDel,1); const list=g('rcPdfList'); if(list){ list.innerHTML=prodCalPdfListHtml(); prodCalWirePdfList(); } });
 }
 async function prodCalReq(path,method,body){
-  try{ const r=await fetch('/admin/produccion/calidad/'+path,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await prodLoadCalidad(); return d; }
+  try{ const r=await fetch('/admin/produccion/calidad/'+path,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await prodLoadCalidad(); return d; }
   catch(e){ alert(String(e.message||e)); return null; }
 }
 function prodCalWire(){
@@ -9357,7 +9369,7 @@ function prodCalWire(){
 // Llama a /calidad/resumir con una lista de PDFs y devuelve el resumenIA.
 async function prodCalResumirPdfs(pdfs){
   const r=await fetch('/admin/produccion/calidad/resumir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pdfs})});
-  const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+  const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error');
   return d.resumenIA||{};
 }
 // Genera desde los PDFs del formulario en curso y vuelca el resultado en los
@@ -9533,14 +9545,14 @@ function prodWire(){
   prodWireOee();
   // inventarios
   if(g('invBSave')) g('invBSave').onclick=async()=>{
-    try{ const r=await fetch('/admin/produccion/inventario/barriles',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({sucios:cNum(g('invBSuc').value),limpios:cNum(g('invBLim').value)})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+    try{ const r=await fetch('/admin/produccion/inventario/barriles',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({sucios:cNum(g('invBSuc').value),limpios:cNum(g('invBLim').value)})}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
     catch(e){ alert(String(e.message||e)); }
   };
   if(g('invAdd')) g('invAdd').onclick=async()=>{
     const err=g('invErr'); if(err) err.textContent='';
     const nombre=g('invNombre').value.trim(); if(!nombre){ if(err) err.textContent='⚠ Ingresá el nombre/diseño.'; return; }
     const body={categoria:g('invCat').value,nombre,cantidad:cNum(g('invCant').value),costoUnitario:cNum(g('invCosto').value)};
-    try{ const r=await fetch('/admin/produccion/inventario/insumo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+    try{ const r=await fetch('/admin/produccion/inventario/insumo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
     catch(e){ if(err) err.textContent='⚠ '+String(e.message||e); }
   };
   document.querySelectorAll('[data-inv-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar el ítem?')) prodDelete('inventario/insumo',b.dataset.invDel); });
@@ -9556,17 +9568,17 @@ function prodWire(){
     const body={erpBaseUrl:g('cfErpUrl').value,erpUsuario:g('cfErpUser').value};
     if(g('cfErpAuto')) body.erpAutoSyncMin=cNum(g('cfErpAuto').value);
     const k=g('cfErpKey').value; if(k&&k.trim()) body.erpClave=k.trim();
-    try{ const r=await fetch('/admin/produccion/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }catch(e){ alert(String(e.message||e)); }
+    try{ const r=await fetch('/admin/produccion/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }catch(e){ alert(String(e.message||e)); }
   };
   if(g('cfErpSync')) g('cfErpSync').onclick=async()=>{
     const st=g('cfErpStatus'); if(st) st.textContent='Sincronizando…';
-    try{ const r=await fetch('/admin/produccion/erp/sync',{method:'POST'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); if(st) st.textContent='Última sync: '+prodDT(d.ultimaSync)+' · '+(d.estado||''); setTimeout(loadProduccion,600); }
+    try{ const r=await fetch('/admin/produccion/erp/sync',{method:'POST'}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); if(st) st.textContent='Última sync: '+prodDT(d.ultimaSync)+' · '+(d.estado||''); setTimeout(loadProduccion,600); }
     catch(e){ if(st) st.textContent='⚠ '+String(e.message||e); }
   };
   if(g('cfErpDiagLogin')) g('cfErpDiagLogin').onclick=async()=>{
     const box=g('cfErpDiagBox'); box.innerHTML='<div class="prod-erp-status">🔐 Entrando al ERP y leyendo el formulario de login…</div>';
     try{
-      const r=await fetch('/admin/produccion/erp/diaglogin',{method:'POST'}); const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||'Error');
+      const r=await fetch('/admin/produccion/erp/diaglogin',{method:'POST'}); const d=await prodSafeJson(r); if(!r.ok||d.error) throw new Error(d.error||'Error');
       const L=d.login||{};
       const forms=(d.forms||[]).map((f,i)=>`<div class="est-note" style="margin-top:.4rem"><b>Form ${i+1}</b> · ${escapeHtml(f.method)} → <code>${escapeHtml(f.action||'(vacío)')}</code> · ${f.tienePassword?'<span style="color:#2e9c5a">password ✓</span>':'sin password'}<br><b>inputs:</b> ${(f.inputs||[]).map(x=>`<code>${escapeHtml(x.name)}</code>:${escapeHtml(x.type)}`).join(', ')||'—'}</div>`).join('');
       const lr=L.loginReal||{};
@@ -9591,7 +9603,7 @@ function prodWire(){
   if(g('cfErpDiag')) g('cfErpDiag').onclick=async()=>{
     const box=g('cfErpDiagBox'); box.innerHTML='<div class="prod-erp-status">🔎 Probando la API… (puede tardar ~20s)</div>';
     try{
-      const r=await fetch('/admin/produccion/erp/diag',{method:'POST'}); const d=await r.json(); if(!r.ok||d.ok===false) throw new Error(d.error||'Error');
+      const r=await fetch('/admin/produccion/erp/diag',{method:'POST'}); const d=await prodSafeJson(r); if(!r.ok||d.ok===false) throw new Error(d.error||'Error');
       const win=(d.ganadores||[]);
       const rowClass=x=>(x.status>=200&&x.status<300&&x.esJson&&!x.esLogin)?'style="background:#e3f6ea"':(x.status>=200&&x.status<300?'style="background:#fff8ea"':'');
       const rows=(d.resultados||[]).map(x=>`<tr ${rowClass(x)}><td>${escapeHtml(x.label)}</td><td class="dist-num">${x.status||(x.error||'—')}</td><td>${x.esJson?'JSON':(x.esLogin?'login':escapeHtml(x.contentType||''))}</td><td style="font-size:.7rem;color:#666">${escapeHtml(x.snippet||x.error||'')}</td></tr>`).join('');
@@ -9624,7 +9636,7 @@ async function prodGuardarMapas(){
   const err=document.getElementById('cfMapsErr'); err.textContent='';
   const lt={}; document.querySelectorAll('#cfLtMap [data-lt-row]').forEach(row=>{ const k=(row.querySelector('[data-ltk]').value||'').trim().toLowerCase(); const v=cNum(row.querySelector('[data-ltv]').value); if(k&&v) lt[k]=v; });
   const col={}; document.querySelectorAll('#cfColMap [data-col-row]').forEach(row=>{ const k=(row.querySelector('[data-colk]').value||'').trim().toLowerCase(); const v=row.querySelector('[data-colv]').value; if(k&&v) col[k]=v; });
-  try{ const r=await fetch('/admin/produccion/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({leadTimeObjetivoPorEstilo:lt,coloresPorEstilo:col})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); err.style.color='#2e9c5a'; err.textContent='✓ guardado'; setTimeout(loadProduccion,500); }
+  try{ const r=await fetch('/admin/produccion/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({leadTimeObjetivoPorEstilo:lt,coloresPorEstilo:col})}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); err.style.color='#2e9c5a'; err.textContent='✓ guardado'; setTimeout(loadProduccion,500); }
   catch(e){ err.style.color=''; err.textContent='⚠ '+String(e.message||e); }
 }
 // ── Recetas: wiring + CRUD + imprimir (D) ──
@@ -9646,7 +9658,7 @@ function prodWireRecetas(g){
   prodWireRecColor();
 }
 async function prodRecReq(path,method,body){
-  try{ const r=await fetch('/admin/produccion/'+path,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); return d; }
+  try{ const r=await fetch('/admin/produccion/'+path,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); return d; }
   catch(e){ alert(String(e.message||e)); return null; }
 }
 async function prodRecetaGuardar(){
@@ -9675,7 +9687,7 @@ function prodRecetaPrint(id){
 }
 function prodLocal(v){ return v? new Date(v).toISOString() : null; }
 async function prodPatchLote(id,patch){
-  try{ const r=await fetch('/admin/produccion/lote/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+  try{ const r=await fetch('/admin/produccion/lote/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
   catch(e){ alert(String(e.message||e)); }
 }
 function prodEtapa(key,campo){
@@ -9688,7 +9700,7 @@ async function prodCrearLote(){
   const g=id=>document.getElementById(id); const err=g('plErr'); err.textContent=''; err.classList.remove('show');
   const codigo=g('plCodigo').value.trim(); if(!codigo){ err.textContent='⚠ Ingresá el código.'; err.classList.add('show'); return; }
   const payload={codigo,recetaId:g('plReceta')?g('plReceta').value:'',producto:g('plProducto').value,estilo:g('plEstilo').value,familia:g('plFamilia').value,tanqueId:g('plTanque').value,nBatches:cNum(g('plNBatches').value)||1,volumenEsperadoL:cNum(g('plVol').value)};
-  try{ const r=await fetch('/admin/produccion/lote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+  try{ const r=await fetch('/admin/produccion/lote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
   catch(e){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); }
 }
 async function prodEnvasar(loteId){
@@ -9711,17 +9723,17 @@ async function prodEnvDel(key){
   await prodPatchLote(loteId,{envasados});
 }
 async function prodPost(kind,body){
-  try{ const r=await fetch('/admin/produccion/'+kind,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+  try{ const r=await fetch('/admin/produccion/'+kind,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
   catch(e){ alert(String(e.message||e)); }
 }
 async function prodDelete(kind,id){
-  try{ const r=await fetch('/admin/produccion/'+kind+'/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+  try{ const r=await fetch('/admin/produccion/'+kind+'/'+encodeURIComponent(id),{method:'DELETE'}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
   catch(e){ alert(String(e.message||e)); }
 }
 async function prodGuardarConfig(){
   const g=id=>document.getElementById(id);
   const body={horasPorSemana:cNum(g('cfHoras').value),nTrabajadores:cNum(g('cfTrab').value),velNominalBarrilLh:cNum(g('cfBarril').value),velNominalBarril20:cNum(g('cfB20').value),velNominalBarril30:cNum(g('cfB30').value),velNominalLata:cNum(g('cfLata').value),velNominalLataLh:cNum(g('cfLata').value),cicloCoccionEstandarH:parseFloat(g('cfCiclo').value)||4.2,leadTimeObjetivoDias:cNum(g('cfLeadObj').value),leadTimeMinDias:cNum(g('cfLead').value),incluirLimpiezaEnDisponibilidad:g('cfLimp').checked};
-  try{ const r=await fetch('/admin/produccion/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); const e=g('cfErr'); e.textContent='✓ guardado'; e.classList.add('show'); e.style.color='#2e9c5a'; }
+  try{ const r=await fetch('/admin/produccion/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); const e=g('cfErr'); e.textContent='✓ guardado'; e.classList.add('show'); e.style.color='#2e9c5a'; }
   catch(e){ const el=g('cfErr'); el.textContent='⚠ '+String(e.message||e); el.classList.add('show'); }
 }
 document.getElementById('prodReload').onclick=loadProduccion;
