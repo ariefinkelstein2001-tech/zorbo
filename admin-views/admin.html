@@ -9292,6 +9292,7 @@ function prodRenderConfig(){
     <label class="cg-field"><span>Clave del ERP ${c.erpClaveSet?'<span style="color:#2e9c5a">✓ guardada</span>':''}</span><input id="cfErpKey" type="password" placeholder="${c.erpClaveSet?'•••••••• (vacío = no cambiar)':'tu clave'}"></label>
     <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="cfErpSave" type="button">Guardar credenciales</button></div>
     <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-ghost" id="cfErpSync" type="button">🔄 Sincronizar ahora</button></div>
+    <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-ghost" id="cfErpDiagLogin" type="button">🔐 Diagnosticar login</button></div>
     <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-ghost" id="cfErpDiag" type="button">🔎 Diagnosticar API</button></div>
   </div>
   <div class="est-note" style="margin-top:.4rem">API key ${c.erpApiKeySet?'<span style="color:#2e9c5a">✓ configurada</span>':'<span style="color:#d9534f">✗ falta (env GESTION_CERVECERA_API_KEY)</span>'} · Usuario ${c.erpUsuarioSet?'<span style="color:#2e9c5a">✓</span>':'<span style="color:#d9534f">✗</span>'}. El diagnóstico prueba la API con tu key+usuario contra las URLs/auth más probables y reporta qué responde (corre en el servidor, no en el navegador).</div>
@@ -9372,6 +9373,24 @@ function prodWire(){
     const st=g('cfErpStatus'); if(st) st.textContent='Sincronizando…';
     try{ const r=await fetch('/admin/produccion/erp/sync',{method:'POST'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); if(st) st.textContent='Última sync: '+prodDT(d.ultimaSync)+' · '+(d.estado||''); setTimeout(loadProduccion,600); }
     catch(e){ if(st) st.textContent='⚠ '+String(e.message||e); }
+  };
+  if(g('cfErpDiagLogin')) g('cfErpDiagLogin').onclick=async()=>{
+    const box=g('cfErpDiagBox'); box.innerHTML='<div class="prod-erp-status">🔐 Entrando al ERP y leyendo el formulario de login…</div>';
+    try{
+      const r=await fetch('/admin/produccion/erp/diaglogin',{method:'POST'}); const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||'Error');
+      const p0=(d.pasos&&d.pasos[0])||{};
+      const forms=(d.forms||[]).map((f,i)=>`<div class="est-note" style="margin-top:.4rem"><b>Form ${i+1}</b> · method ${escapeHtml(f.method)} · action <code>${escapeHtml(f.action||'(vacío)')}</code> · ${f.tienePassword?'<span style="color:#2e9c5a">tiene password ✓</span>':'<span style="color:#c17a10">sin password</span>'}<br>
+        <b>inputs:</b> ${(f.inputs||[]).map(x=>`<code>${escapeHtml(x.name||x.id)}</code>:${escapeHtml(x.type)}`).join(', ')||'—'}<br>
+        <b>botones:</b> ${(f.botones||[]).map(x=>escapeHtml((x.texto||x.type))).join(', ')||'—'}</div>`).join('');
+      const gl=(d.linksGoogle||[]).length?`<div class="est-note" style="margin-top:.4rem;color:#c0392b"><b>⚠ Enlaces de login externo/Google detectados:</b> ${d.linksGoogle.map(x=>escapeHtml(x.texto||x.href)).join(' · ')}</div>`:'';
+      const lr=d.loginResultado||{};
+      box.innerHTML=`<div class="est-note" style="margin-top:.6rem">
+        <b>Base:</b> ${escapeHtml(d.base||'')} · <b>Página:</b> ${escapeHtml(p0.titulo||'')} (status ${p0.status||'—'})<br>
+        <b>¿Tiene campo password?</b> ${p0.tienePassword?'<span style="color:#2e9c5a">sí</span>':'<span style="color:#c0392b">NO</span>'} · <b>¿Google?</b> ${p0.tieneGoogle?'<span style="color:#c0392b">sí</span>':'no'} · <b>¿Captcha?</b> ${p0.tieneCaptcha?'<span style="color:#c0392b">sí</span>':'no'}<br>
+        <b>Login del scraper:</b> ${lr.ok?'<span style="color:#2e9c5a">✓ OK</span>':('<span style="color:#c0392b">✗ '+escapeHtml(lr.error||'')+(lr.stage?(' ['+escapeHtml(lr.stage)+']'):'')+'</span>')}</div>
+        ${gl}${forms||'<div class="est-note" style="margin-top:.4rem">No se encontraron &lt;form&gt; en la página.</div>'}
+        <div class="est-note" style="margin-top:.4rem;color:#666">Pasame esta info (campos, action, si hay Google/captcha) y ajusto el scraper.</div>`;
+    }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
   };
   if(g('cfErpDiag')) g('cfErpDiag').onclick=async()=>{
     const box=g('cfErpDiagBox'); box.innerHTML='<div class="prod-erp-status">🔎 Probando la API… (puede tardar ~20s)</div>';

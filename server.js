@@ -3658,6 +3658,40 @@ app.post('/admin/produccion/erp/diag', requireAdmin, async (req, res) => {
   try { const cfg = prodLoad().config; res.json(await erpApiProbe(cfg)); }
   catch (e) { res.status(500).json({ ok: false, error: String(e.message || e) }); }
 });
+// Diagnóstico del LOGIN (scraping): entra al ERP y dumpea la estructura real del
+// formulario de login (campos, action, Google/captcha, y en qué paso falla el login).
+// Corre en Railway (que alcanza el ERP). Sirve para arreglar el scraper con precisión.
+async function erpLoginDiag(cfg){
+  const { usuario, clave, base } = erpCreds(cfg);
+  const rep = { base, usuarioSet: !!usuario, claveSet: !!clave, pasos: [], forms: [] };
+  if (!usuario || !clave) { rep.error = 'Falta usuario o clave del ERP (Config).'; return rep; }
+  const jar = {};
+  let html = '', urlFinal = base + '/Lote';
+  try {
+    const r = await erpGet(base + '/Lote', jar, base);
+    html = await r.text(); urlFinal = r.url || urlFinal;
+    rep.pasos.push({ paso: 'GET /Lote', status: r.status, urlFinal, tienePassword: /type=["']?password/i.test(html), tieneGoogle: /accounts\.google|oauth|g_id_|data-client_?id|Iniciar sesión con Google|signin-google/i.test(html), tieneCaptcha: /recaptcha|hcaptcha|captcha/i.test(html), titulo: (/<title[^>]*>([^<]*)<\/title>/i.exec(html) || [, ''])[1].trim().slice(0, 80), len: html.length });
+  } catch (e) { rep.pasos.push({ paso: 'GET /Lote', error: String(e.message).slice(0, 120) }); return rep; }
+  // Estructura de cada <form> del login.
+  const forms = [...html.matchAll(/<form\b[^>]*>[\s\S]*?<\/form>/gi)].map(m => m[0]);
+  rep.forms = forms.map(f => ({
+    action: (/\baction=["']([^"']*)["']/i.exec(f) || [, ''])[1],
+    method: ((/\bmethod=["']([^"']*)["']/i.exec(f) || [, 'get'])[1]).toUpperCase(),
+    tienePassword: /type=["']?password/i.test(f),
+    inputs: [...f.matchAll(/<input\b[^>]*>/gi)].map(im => ({ name: (/\bname=["']([^"']+)["']/i.exec(im[0]) || [, ''])[1], type: ((/\btype=["']([^"']+)["']/i.exec(im[0]) || [, 'text'])[1]).toLowerCase(), id: (/\bid=["']([^"']+)["']/i.exec(im[0]) || [, ''])[1] })).filter(x => x.name || x.id),
+    botones: [...f.matchAll(/<button\b[^>]*>([\s\S]*?)<\/button>/gi)].map(bm => ({ name: (/\bname=["']([^"']+)["']/i.exec(bm[0]) || [, ''])[1], type: ((/\btype=["']([^"']+)["']/i.exec(bm[0]) || [, 'submit'])[1]).toLowerCase(), texto: bm[1].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim().slice(0, 40) })),
+  }));
+  // Enlaces tipo "login con Google" (para saber si el login es solo OAuth).
+  rep.linksGoogle = [...html.matchAll(/<a\b[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi)].map(a => ({ href: a[1], texto: a[2].replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() })).filter(a => /google|oauth|external|signin/i.test(a.href + a.texto)).slice(0, 6);
+  // Intento real de login con el scraper actual, para ver dónde corta.
+  try { const login = await erpLogin(cfg); rep.loginResultado = { ok: login.ok, error: login.error || null, stage: login.stage || null, debug: login.debug || null }; }
+  catch (e) { rep.loginResultado = { ok: false, error: String(e.message).slice(0, 140) }; }
+  return rep;
+}
+app.post('/admin/produccion/erp/diaglogin', requireAdmin, async (req, res) => {
+  try { const cfg = prodLoad().config; res.json(await erpLoginDiag(cfg)); }
+  catch (e) { res.status(500).json({ ok: false, error: String(e.message || e) }); }
+});
 // Cookie jar mínimo (Node fetch no maneja cookies solo).
 function erpSetCookies(jar, res){ const sc = (res.headers.getSetCookie && res.headers.getSetCookie()) || []; for (const line of sc) { const m = /^([^=]+)=([^;]*)/.exec(line); if (m) jar[m[1].trim()] = m[2]; } }
 function erpCookieHeader(jar){ return Object.entries(jar).map(([k, v]) => k + '=' + v).join('; '); }
