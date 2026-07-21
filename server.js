@@ -3713,6 +3713,19 @@ async function erpLoginDiag(cfg){
         } catch (e) { rep.rutasAuth.push({ ruta: p, status: 0, error: String(e.message).slice(0, 60) }); }
       }));
       rep.rutasAuth.sort((a, b) => a.ruta.localeCompare(b.ruta));
+      // Probar los endpoints de datos reales (POST /{Controlador}/GetActivos|GetAll,
+      // body vacío, con la cookie de sesión). Dumpea el JSON para mapear los campos.
+      rep.dataProbe = [];
+      const dataEps = ['/Lote/GetActivos', '/Lote/GetAll', '/Receta/GetActivos', '/Receta/GetAll', '/Receta/GetActivas', '/Batch/GetActivos', '/Recipe/GetAll'];
+      await Promise.all(dataEps.map(async (ep) => {
+        try {
+          const r = await erpFetch(base + ep, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Referer': base + '/Lote', 'Origin': base }, body: '' }, login.jar);
+          const ct = r.headers.get('content-type') || ''; let t = ''; try { t = await r.text(); } catch {}
+          const isJson = /json/i.test(ct) || /^\s*[[{]/.test(t);
+          rep.dataProbe.push({ ep, status: r.status, isJson, len: t.length, snippet: t.replace(/\s+/g, ' ').slice(0, 900) });
+        } catch (e) { rep.dataProbe.push({ ep, status: 0, error: String(e.message).slice(0, 60) }); }
+      }));
+      rep.dataProbe.sort((a, b) => ((b.isJson && b.len > 50) ? 1 : 0) - ((a.isJson && a.len > 50) ? 1 : 0));
     }
   } catch (e) { rep.login.loginReal = { ok: false, error: String(e.message).slice(0, 120) }; }
   return rep;
