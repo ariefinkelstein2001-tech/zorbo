@@ -1791,6 +1791,15 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .cal-resumen-cell b{color:#7a1f2b}
 /* Galería de cervezas */
 .cal-gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:1rem}
+.cal-quote{text-align:center;padding:1.2rem 1rem 1.5rem;margin-bottom:.3rem;border-bottom:1px solid var(--line,#e5e5e5)}
+.cal-quote-text{font-family:var(--display,inherit);font-weight:800;font-size:1.5rem;line-height:1.32;color:var(--text,#111);max-width:680px;margin:0 auto}
+.cal-quote-author{margin-top:.55rem;font-size:.76rem;color:var(--dim,#999);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.cal-carousel{overflow:hidden;padding:.4rem 0 .6rem;-webkit-mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent);mask-image:linear-gradient(90deg,transparent,#000 3%,#000 97%,transparent)}
+.cal-carousel-track{display:flex;gap:1rem;width:max-content;animation:calCarouselSpin linear infinite;animation-duration:calc(var(--n,6)*4.5s)}
+.cal-carousel:hover .cal-carousel-track{animation-play-state:paused}
+.cal-carousel .cal-can{flex:0 0 auto;width:160px}
+@keyframes calCarouselSpin{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.cal-carousel-track{animation:none}}
 .cal-can{border:1px solid var(--line,#e5e5e5);border-radius:14px;background:var(--surface,#fff);overflow:hidden;cursor:pointer;transition:box-shadow .15s,border-color .15s}
 .cal-can:hover{border-color:#7a1f2b;box-shadow:0 4px 14px rgba(122,31,43,.12)}
 .cal-can-img{position:relative;height:150px;display:flex;align-items:flex-end;justify-content:center;background:linear-gradient(180deg,#f7f4f1,#efe9e4);padding-top:.5rem}
@@ -8690,9 +8699,9 @@ async function loadProduccion(){
 }
 function renderProduccion(){
   const body=document.getElementById('prodBody');
-  const tabs=[['tanques','🛢 Tanques'],['coccion','🔥 Cocción'],['recetas','📖 Recetas'],['envasado','📦 Envasado'],['oee','📊 OEE'],['calidad','🏅 Calidad'],['limpiezas','🧽 Limpiezas'],['paradas','⛔ Paradas'],['config','⚙ Config']];
+  const tabs=[['tanques','🏭 Centros de Producción'],['coccion','🔥 Cocción'],['recetas','📖 Recetas'],['envasado','📦 Envasado'],['oee','📊 OEE'],['calidad','🏅 Calidad'],['inventarios','🗃 Inventarios'],['limpiezas','🧽 Limpiezas'],['paradas','⛔ Paradas'],['config','⚙ Config']];
   const tabBar=`<div class="prod-tabs">${tabs.map(([k,l])=>`<button class="prod-tab ${k===prodTab?'on':''}" data-ptab="${k}">${l}</button>`).join('')}</div>`;
-  const R={tanques:prodRenderTanques,coccion:prodRenderCoccion,recetas:prodRenderRecetas,envasado:prodRenderEnvasado,oee:prodRenderOee,calidad:prodRenderCalidad,limpiezas:prodRenderLimpiezas,paradas:prodRenderParadas,config:prodRenderConfig};
+  const R={tanques:prodRenderTanques,coccion:prodRenderCoccion,recetas:prodRenderRecetas,envasado:prodRenderEnvasado,oee:prodRenderOee,calidad:prodRenderCalidad,inventarios:prodRenderInventarios,limpiezas:prodRenderLimpiezas,paradas:prodRenderParadas,config:prodRenderConfig};
   body.innerHTML=tabBar+'<div class="prod-content">'+(R[prodTab]||(()=>''))()+'</div>';
   prodWire();
   if(prodTab==='oee') prodLoadOee();
@@ -8703,41 +8712,57 @@ function renderProduccion(){
 }
 function prodTick(){ document.querySelectorAll('.prod-timer[data-start]').forEach(el=>{ const s=new Date(el.dataset.start).getTime(); if(Number.isFinite(s)) el.textContent=prodDur(Date.now()-s); }); }
 function prodLoteById(id){ return (prodData.lotes||[]).find(l=>l.id===id); }
-// ── Tablero de tanques (SVG fermentador cónico + color + estados) ──
+// ── Centros de Producción (SVG fermentador cónico / alambique + color + estados) ──
 function prodFecha(iso){ if(!iso)return '—'; const d=new Date(iso); if(isNaN(d))return '—'; return d.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit'}); }
 function prodTankSvg(t){
   const l=t.lote; const pct=l?Math.max(6,Math.min(100,l.nivelPct||0)):0; const color=(l&&l.color)||'#b87333';
   const fillY=(62-54*pct/100).toFixed(1); const uid='tk'+t.id;
-  const path='M12 10 Q12 6 16 6 L44 6 Q48 6 48 10 L48 60 L34 80 Q30 84 26 80 L12 60 Z';
+  const esDestileria=t.tipo==='destileria';
+  // Franklin es destilería (RTD/destilados): se dibuja como alambique (cuerpo +
+  // cuello), no como fermentador cónico, para no confundir el proceso.
+  const path=esDestileria
+    ? 'M20 8 L28 8 L28 16 L34 22 Q40 30 40 42 L40 78 Q40 84 34 84 L14 84 Q8 84 8 78 L8 42 Q8 30 14 22 L20 16 Z'
+    : 'M12 10 Q12 6 16 6 L44 6 Q48 6 48 10 L48 60 L34 80 Q30 84 26 80 L12 60 Z';
   let inner='';
-  if(l) inner=`<clipPath id="${uid}"><path d="${path}"/></clipPath><rect x="10" y="${fillY}" width="40" height="82" clip-path="url(#${uid})" fill="${color}" opacity="0.85"/>`;
+  if(l) inner=`<clipPath id="${uid}"><path d="${path}"/></clipPath><rect x="0" y="${fillY}" width="60" height="88" clip-path="url(#${uid})" fill="${color}" opacity="0.85"/>`;
   else if(t.estado==='sucio') inner=`<defs><pattern id="${uid}" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="6" stroke="#9a9a9a" stroke-width="2.4"/></pattern></defs><path d="${path}" fill="url(#${uid})" opacity="0.55"/>`;
   const stroke=t.estado==='ocupado'?color:(t.estado==='sucio'?'#8a8a8a':'#cbcbcb');
-  return `<svg viewBox="0 0 60 88" class="prod-svg">${inner}<path d="${path}" fill="none" stroke="${stroke}" stroke-width="2.2"/><line x1="20" y1="17" x2="40" y2="17" stroke="${stroke}" stroke-width="1.3" opacity="0.5"/><circle cx="39" cy="30" r="2.4" fill="none" stroke="${stroke}" stroke-width="1.1" opacity="0.6"/></svg>`;
+  const extra=esDestileria
+    ? `<circle cx="24" cy="12" r="2.1" fill="none" stroke="${stroke}" stroke-width="1.1" opacity="0.6"/>`
+    : `<line x1="20" y1="17" x2="40" y2="17" stroke="${stroke}" stroke-width="1.3" opacity="0.5"/><circle cx="39" cy="30" r="2.4" fill="none" stroke="${stroke}" stroke-width="1.1" opacity="0.6"/>`;
+  return `<svg viewBox="0 0 60 88" class="prod-svg">${inner}<path d="${path}" fill="none" stroke="${stroke}" stroke-width="2.2"/>${extra}</svg>`;
+}
+function prodTankCard(t){
+  const l=t.lote;
+  const al=(l&&l.sobreEstadia>0)?'rojo':((l&&l.diasRestantes!=null&&l.diasRestantes<=3)?'ambar':'');
+  const etapaLbl=l?({fermentacion:'Fermentación',maduracion:'Maduración',listo:'Listo'}[l.estado]||l.estado):'';
+  let restante='';
+  if(l){ if(l.sobreEstadia>0) restante=`<span class="prod-tk-alert">sobre-estadía +${l.sobreEstadia} d</span>`; else if(l.diasRestantes!=null) restante=`<span class="prod-tk-rest">faltan ${Math.max(0,l.diasRestantes)} d</span>`; }
+  const info=l
+    ? `<div class="prod-tk-lote">${escapeHtml(l.codigo)} · <span>${escapeHtml(l.producto||l.estilo||'')}</span></div>
+       <div class="prod-tk-lit">${l.litrosActuales.toLocaleString('es-CL')} L · ${l.nivelPct}%</div>
+       <div class="prod-tk-est">${etapaLbl} ${restante}</div>
+       <div class="prod-tk-fechas">Cocción ${prodFecha(l.fechaCoccion)} → env. ${prodFecha(l.fechaProyEnvasado)}</div>
+       <label class="prod-color"><input type="color" data-color-lote="${l.id}" value="${escapeAttr(l.color||'#b87333')}"><span>color</span></label>`
+    : `<div class="prod-tk-est ${t.estado}">${t.estado==='sucio'?'Sucio · requiere CIP':'Vacío · listo'}</div>${t.estado==='sucio'?`<button class="adm-btn adm-btn-ghost prod-tk-cip" data-limpiar-tank="${escapeAttr(t.id)}">🧽 Marcar limpieza</button>`:''}`;
+  return `<div class="prod-tk-card ${t.estado} ${al}" data-tank="${escapeAttr(t.id)}">
+    <div class="prod-tk-svg">${prodTankSvg(t)}</div>
+    <div class="prod-tk-info"><div class="prod-tk-hd"><b>${escapeHtml(t.id)}</b><span>${t.capacidadL.toLocaleString('es-CL')} L</span></div>${info}</div>
+  </div>`;
 }
 function prodRenderTanques(){
   const ts=prodData.tanques||[];
-  const cards=ts.map(t=>{
-    const l=t.lote;
-    const al=(l&&l.sobreEstadia>0)?'rojo':((l&&l.diasRestantes!=null&&l.diasRestantes<=3)?'ambar':'');
-    const etapaLbl=l?({fermentacion:'Fermentación',maduracion:'Maduración',listo:'Listo'}[l.estado]||l.estado):'';
-    let restante='';
-    if(l){ if(l.sobreEstadia>0) restante=`<span class="prod-tk-alert">sobre-estadía +${l.sobreEstadia} d</span>`; else if(l.diasRestantes!=null) restante=`<span class="prod-tk-rest">faltan ${Math.max(0,l.diasRestantes)} d</span>`; }
-    const info=l
-      ? `<div class="prod-tk-lote">${escapeHtml(l.codigo)} · <span>${escapeHtml(l.producto||l.estilo||'')}</span></div>
-         <div class="prod-tk-lit">${l.litrosActuales.toLocaleString('es-CL')} L · ${l.nivelPct}%</div>
-         <div class="prod-tk-est">${etapaLbl} ${restante}</div>
-         <div class="prod-tk-fechas">Cocción ${prodFecha(l.fechaCoccion)} → env. ${prodFecha(l.fechaProyEnvasado)}</div>
-         <label class="prod-color"><input type="color" data-color-lote="${l.id}" value="${escapeAttr(l.color||'#b87333')}"><span>color</span></label>`
-      : `<div class="prod-tk-est ${t.estado}">${t.estado==='sucio'?'Sucio · requiere CIP':'Vacío · listo'}</div>${t.estado==='sucio'?`<button class="adm-btn adm-btn-ghost prod-tk-cip" data-limpiar-tank="${escapeAttr(t.id)}">🧽 Marcar limpieza</button>`:''}`;
-    return `<div class="prod-tk-card ${t.estado} ${al}" data-tank="${escapeAttr(t.id)}">
-      <div class="prod-tk-svg">${prodTankSvg(t)}</div>
-      <div class="prod-tk-info"><div class="prod-tk-hd"><b>${escapeHtml(t.id)}</b><span>${t.capacidadL.toLocaleString('es-CL')} L</span></div>${info}</div>
-    </div>`;
+  const sedes=(prodData.meta&&prodData.meta.sedes&&prodData.meta.sedes.length)?prodData.meta.sedes:[
+    {id:'vespucio',nombre:'CD Vespucio',modo:'Propia'},{id:'lampa',nombre:'CD Lampa',modo:'Maquila'},{id:'franklin',nombre:'CD Franklin',modo:'Maquila'}];
+  const grupos=sedes.map(s=>{
+    const grupo=ts.filter(t=>(t.sede||'vespucio')===s.id);
+    if(!grupo.length) return '';
+    const ocup=grupo.filter(t=>t.estado==='ocupado').length, suc=grupo.filter(t=>t.estado==='sucio').length;
+    const cards=grupo.map(prodTankCard).join('');
+    return `<div class="prod-sec-h">${escapeHtml(s.nombre)} - ${escapeHtml(s.modo)} <span>${ocup} ocupados · ${suc} sucios · ${grupo.length-ocup-suc} vacíos</span></div><div class="prod-tk-grid">${cards}</div>`;
   }).join('');
-  const ocup=ts.filter(t=>t.estado==='ocupado').length, suc=ts.filter(t=>t.estado==='sucio').length;
   const det=prodOpenLote?prodLoteCard(prodLoteById(prodOpenLote)):'';
-  return `<div class="prod-sec-h">Tablero de tanques <span>${ocup} ocupados · ${suc} sucios · ${ts.length-ocup-suc} vacíos</span></div><div class="prod-tk-grid">${cards}</div>${det?'<div class="prod-detail">'+det+'</div>':''}`;
+  return grupos+(det?'<div class="prod-detail">'+det+'</div>':'');
 }
 // ── Cocción / lotes ──
 function prodRenderCoccion(){
@@ -9076,8 +9101,9 @@ function prodCalFecha(iso){ if(!iso)return '—'; const d=new Date(iso); return 
 // ── Inicio: galería de latas + medallas + semáforo + detalle consolidado ──
 function prodCalInicio(){
   const cs=prodCal.data.cervezas||[]; const res=prodCal.data.resumenes||{};
-  if(!cs.length) return `<div class="cal-form"><div class="cal-form-t">Sin cervezas en el catálogo todavía</div><div class="cal-form-s">El catálogo se arma desde tus recetas y Shopify. También podés registrar una competencia/memoria y la cerveza aparecerá acá. Para cargar una imagen de lata y su estilo, andá a Competencias → "cerveza" o registrá desde los formularios.</div></div>`;
-  const cards=cs.map(c=>{
+  const quote=`<div class="cal-quote"><div class="cal-quote-text">"El éxito es la suma de pequeños esfuerzos repetidos día tras día."</div><div class="cal-quote-author">— Robert Collier</div></div>`;
+  if(!cs.length) return quote+`<div class="cal-form"><div class="cal-form-t">Sin cervezas en el catálogo todavía</div><div class="cal-form-s">El catálogo se arma desde tus recetas y Shopify (solo los productos que Producción elabora) + cervezas referenciadas y overrides/manuales. Para cargar una imagen de lata y su estilo, andá a Competencias → "cerveza" o registrá desde los formularios.</div></div>`;
+  const card=c=>{
     const r=res[c.cervezaId]||{}; const medals=(r.medallas||[]).slice(0,4);
     const medalRow=medals.length?`<div class="cal-can-medals">${medals.map(m=>prodCalMedalIco(m.resultado,m.competencia,'')).join('')}</div>`:'';
     const img=c.imagen?`<img src="${escapeAttr(c.imagen)}" alt="${escapeAttr(c.nombre)}">`:`<div class="cal-can-ph">🥫</div>`;
@@ -9085,10 +9111,13 @@ function prodCalInicio(){
     return `<div class="cal-can" data-cal-cerv="${escapeAttr(c.cervezaId)}">
       <div class="cal-can-img">${medalRow}${img}</div>
       <div class="cal-can-body"><div class="cal-can-nm">${escapeHtml(c.nombre)}</div><div class="cal-can-est">${escapeHtml(c.estilo||'—')}</div>${sem}</div></div>`;
-  }).join('');
+  };
+  // Carrusel automático: la lista se duplica una vez para lograr un loop continuo
+  // sin salto (translateX(-50%) recorre exactamente el set original).
+  const track=[...cs,...cs].map(card).join('');
   const detail=prodCal.sel?prodCalDetalle(prodCal.sel):'';
-  return `<div class="cal-form-s" style="margin-bottom:.7rem">Tocá una lata para ver su resumen consolidado de calidad. Semáforo: <b style="color:#1f7a44">Sólida</b> (con medallas, sin defectos recientes) · <b style="color:#a05f00">A observar</b> · <b style="color:#c0392b">Debe mejorar</b> (defectos recurrentes o feedback negativo).</div>
-    ${detail}<div class="cal-gal">${cards}</div>
+  return quote+`<div class="cal-form-s" style="margin:.8rem 0 .7rem">Tocá una lata para ver su resumen consolidado de calidad. Semáforo: <b style="color:#1f7a44">Sólida</b> (con medallas, sin defectos recientes) · <b style="color:#a05f00">A observar</b> · <b style="color:#c0392b">Debe mejorar</b> (defectos recurrentes o feedback negativo).</div>
+    ${detail}<div class="cal-carousel"><div class="cal-carousel-track" style="--n:${cs.length||1}">${track}</div></div>
     <div class="cal-btn-row" style="margin-top:1.2rem"><span class="cal-fld" style="flex-direction:row;align-items:center;gap:.5rem">Accesos:</span>
       <button class="adm-btn adm-btn-ghost" data-cal-goto="competencias">🏆 Competencias</button>
       <button class="adm-btn adm-btn-ghost" data-cal-goto="retro">💬 Retroalimentación</button>
@@ -9253,6 +9282,36 @@ async function prodCalGuardarRegistro(){
   const d=await prodCalReq('registro','POST',payload);
   if(d){ prodCal.pdfs=[]; prodCalRender(); }
 }
+// ── Inventarios (barriles + insumos de envasado) ──
+const PROD_INV_CAT_LBL={lata:'Latas',tapa:'Tapas de lata',etiqueta:'Etiquetas por diseño'};
+function prodRenderInventarios(){
+  const inv=prodData.inventario||{barriles:{sucios:0,limpios:0,actualizado:null},insumos:[],totalesPorCategoria:{},valorTotalInsumos:0};
+  const b=inv.barriles||{};
+  const barrilesBox=`<div class="cg-form"><div class="cg-form-title">🛢 Barriles (registro cervecero) <span class="adm-cat-chip" style="margin-left:.5rem">⏳ pendiente integración ERP · Gestión Cervecera</span></div>
+    <div class="cg-form-grid">
+      <label class="cg-field"><span>Sucios</span><input id="invBSuc" inputmode="numeric" value="${cNum(b.sucios)}"></label>
+      <label class="cg-field"><span>Limpios</span><input id="invBLim" inputmode="numeric" value="${cNum(b.limpios)}"></label>
+      <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="invBSave" type="button">Guardar conteo</button></div>
+    </div>
+    <div class="cal-form-s" style="margin-top:.5rem">Conteo manual mientras se conecta la lectura automática desde Gestión Cervecera (Arie está integrando esa parte). Última actualización: ${b.actualizado?prodDT(b.actualizado):'—'}.</div>
+  </div>`;
+  const cats=(prodData.meta&&prodData.meta.invCategorias&&prodData.meta.invCategorias.length)?prodData.meta.invCategorias:['lata','tapa','etiqueta'];
+  const form=`<div class="cg-form"><div class="cg-form-title">➕ Agregar ítem de inventario</div><div class="cg-form-grid">
+    <label class="cg-field"><span>Categoría</span><select id="invCat">${cats.map(c=>`<option value="${escapeAttr(c)}">${escapeHtml(PROD_INV_CAT_LBL[c]||c)}</option>`).join('')}</select></label>
+    <label class="cg-field"><span>Nombre / diseño</span><input id="invNombre" placeholder="Ej: Lata 473cc / Etiqueta Samba"></label>
+    <label class="cg-field"><span>Cantidad</span><input id="invCant" inputmode="numeric" placeholder="0"></label>
+    <label class="cg-field"><span>Costo unitario ($)</span><input id="invCosto" inputmode="numeric" placeholder="0"></label>
+    <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="invAdd" type="button">+ Agregar</button></div>
+  </div><div class="cg-err" id="invErr"></div></div>`;
+  const tableFor=cat=>{
+    const rows=(inv.insumos||[]).filter(x=>x.categoria===cat);
+    const trs=rows.map(x=>`<tr><td>${escapeHtml(x.nombre)}</td><td class="dist-num">${cNum(x.cantidad).toLocaleString('es-CL')}</td><td class="dist-num">${fmtMoney(x.costoUnitario)}</td><td class="dist-num">${fmtMoney(x.valorTotal)}</td><td><button class="pv-del" data-inv-del="${x.id}">✕</button></td></tr>`).join('');
+    return `<div class="prod-sec-h">${escapeHtml(PROD_INV_CAT_LBL[cat]||cat)} <span>${rows.length} ítem(s) · ${fmtMoney((inv.totalesPorCategoria||{})[cat]||0)}</span></div>
+      <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Nombre / diseño</th><th style="text-align:right">Cantidad</th><th style="text-align:right">Costo unit.</th><th style="text-align:right">Valor total</th><th></th></tr></thead><tbody>${trs||'<tr><td colspan="5" style="text-align:center;color:#999;padding:.7rem">Sin ítems registrados</td></tr>'}</tbody></table></div>`;
+  };
+  const tablas=cats.map(tableFor).join('');
+  return barrilesBox+form+tablas+`<div class="prod-sec-h" style="margin-top:1rem">Valor total del inventario de insumos <span>${fmtMoney(inv.valorTotalInsumos)}</span></div>`;
+}
 // ── Limpiezas ──
 function prodRenderLimpiezas(){
   const tipos=(prodData.meta.limpiezaTipos||[]), centros=(prodData.meta.centros||[]);
@@ -9356,6 +9415,19 @@ function prodWire(){
   prodWireRecetas(g);
   // OEE dashboard (Fase 2)
   prodWireOee();
+  // inventarios
+  if(g('invBSave')) g('invBSave').onclick=async()=>{
+    try{ const r=await fetch('/admin/produccion/inventario/barriles',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({sucios:cNum(g('invBSuc').value),limpios:cNum(g('invBLim').value)})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+    catch(e){ alert(String(e.message||e)); }
+  };
+  if(g('invAdd')) g('invAdd').onclick=async()=>{
+    const err=g('invErr'); if(err) err.textContent='';
+    const nombre=g('invNombre').value.trim(); if(!nombre){ if(err) err.textContent='⚠ Ingresá el nombre/diseño.'; return; }
+    const body={categoria:g('invCat').value,nombre,cantidad:cNum(g('invCant').value),costoUnitario:cNum(g('invCosto').value)};
+    try{ const r=await fetch('/admin/produccion/inventario/insumo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+    catch(e){ if(err) err.textContent='⚠ '+String(e.message||e); }
+  };
+  document.querySelectorAll('[data-inv-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar el ítem?')) prodDelete('inventario/insumo',b.dataset.invDel); });
   // limpiezas
   if(g('lmAdd')) g('lmAdd').onclick=async()=>{ await prodPost('limpieza',{tipo:g('lmTipo').value,centroTrabajo:g('lmCentro').value,ref:g('lmRef').value,inicio:prodLocal(g('lmIni').value),fin:prodLocal(g('lmFin').value)}); };
   document.querySelectorAll('[data-limp-del]').forEach(b=>b.onclick=()=>prodDelete('limpieza',b.dataset.limpDel));
