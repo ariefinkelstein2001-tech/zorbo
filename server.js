@@ -3850,6 +3850,7 @@ async function erpLoginDiag(cfg){
               rep.recetaDetalle.resultados.push({ ep, body, status: r.status, len: t.length, snippet: t.replace(/\s+/g, ' ').slice(0, 1600) });
             } catch (e) { rep.recetaDetalle.resultados.push({ ep, body, error: String(e.message).slice(0, 50) }); }
           };
+          try { await erpGet(base + '/Receta/Ver?id=' + rid, login.jar, base); } catch (e) { } // fija la receta en la sesión
           await push('/Receta/GetTareas', 'id=' + rid);
           for (const tipo of [1, 2, 3, 4, 5, 6]) await push('/Receta/MPsTipo', 'idReceta=' + rid + '&tipo=' + tipo);
         }
@@ -4305,6 +4306,9 @@ app.get('/admin/produccion/receta/:id/detalle', requireAdmin, async (req, res) =
     const rid = receta.erpId;
     const cat = await erpMPCatalogo(cr.base, login.jar);
     const ref = '/Receta/Ver?id=' + rid;
+    // Abrir la página de la receta primero: fija la "receta actual" en la sesión del
+    // ERP; recién ahí GetTareas/MPsTipo devuelven datos (igual que hace el navegador).
+    try { await erpGet(cr.base + ref, login.jar, cr.base); } catch (e) { }
     const tareasR = await erpApiPost(cr.base, '/Receta/GetTareas', 'id=' + encodeURIComponent(rid), login.jar, ref);
     const tareas = (tareasR.arr || []).map((t, i) => ({
       orden: erpPick(t, ['orden', 'Orden', 'nro', 'numero']) || (i + 1),
