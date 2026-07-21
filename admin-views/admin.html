@@ -9178,7 +9178,6 @@ function prodCalCompetencias(){
     <label class="cal-fld">Tipo<select id="ncTipo"><option value="nacional">Nacional</option><option value="internacional">Internacional</option></select></label></div>
     <div class="cal-medal-up">${['oro','plata','bronce'].map(m=>`<div class="m"><div>${CAL_MED_EMOJI[m]} ${m}</div><img id="ncImg_${m}" style="display:none"><label class="adm-btn adm-btn-ghost" style="cursor:pointer;font-size:.72rem;padding:.3rem .5rem">PNG<input type="file" accept="image/png,image/*" data-cal-medal="${m}" style="display:none"></label></div>`).join('')}</div>
     <div class="cal-btn-row"><button class="adm-btn adm-btn-gold" id="ncSave">Guardar competencia</button><button class="adm-btn adm-btn-ghost" id="ncCancel">Cancelar</button><span class="cal-err" id="ncErr"></span></div></div>`:'';
-  const pdfs=prodCal.pdfs.map((f,i)=>`<span class="cal-file">📄 <a href="${escapeAttr(f.url)}" target="_blank">${escapeHtml(f.name)}</a> <button data-cal-pdf-del="${i}">✕</button></span>`).join('');
   const cervNueva=prodCal.cervNueva?`<div class="cal-ia" style="border-style:solid">
     <div class="cal-ia-t">➕ Agregar / editar cerveza</div>
     <div class="cal-form-s" style="margin:-.2rem 0 .5rem">Si el nombre coincide con una cerveza que ya existe, la actualiza (sirve para cargarle la imagen). Si es nueva, se suma a la rotación de Inicio.</div>
@@ -9201,7 +9200,7 @@ function prodCalCompetencias(){
     ${cervNueva}
     ${nuevo}
     <div class="cal-fld cal-full" style="margin-top:.7rem">Feedback de la competencia (hasta 5 PDF)
-      <div class="cal-files">${pdfs}${prodCal.pdfs.length<5?`<label class="cal-file" style="cursor:pointer;border-style:dashed">➕ PDF<input type="file" accept="application/pdf" id="rcPdf" style="display:none"></label>`:''}</div></div>
+      <div class="cal-files" id="rcPdfList">${prodCalPdfListHtml()}</div></div>
     <div class="cal-ia">
       <div class="cal-ia-t">✨ Resumen del feedback (IA) <button class="adm-btn adm-btn-ghost" id="rcResumir" style="font-size:.72rem;padding:.25rem .5rem">Generar desde PDFs</button> <span class="cal-err" id="rcIaErr" style="font-weight:600"></span></div>
       ${['apariencia','aroma','sabor','sensacionBoca','conclusion'].map(k=>`<div class="cal-ia-cat"><label>${k==='sensacionBoca'?'Sensación en boca':k}</label><textarea data-ia="${k}" placeholder="editable…"></textarea></div>`).join('')}
@@ -9215,7 +9214,7 @@ function prodCalCompetencias(){
     <td>${escapeHtml(r.competenciaNombre||'')}<br><span class="cal-can-est">${r.tipo==='internacional'?'Internacional':'Nacional'}</span></td>
     <td>${prodCalFecha(r.fecha)}</td>
     <td>${prodCalMedalIco(r.resultado,r.competenciaNombre)} <span class="cal-badge-med ${r.resultado}">${CAL_RES_LBL[r.resultado]}</span></td>
-    <td class="cal-resumen-cell">${prodCalResumenPreview(r.resumenIA)}</td>
+    <td class="cal-resumen-cell">${prodCalResumenPreview(r.resumenIA)}${(r.pdfs&&r.pdfs.length)?` <button class="rec-ico" data-cal-reg-resumir="${r.id}" title="Generar/actualizar resumen desde el PDF adjunto">🔄</button>`:''}</td>
     <td><button class="pv-del" data-cal-reg-del="${r.id}">✕</button></td></tr>`).join('');
   const hist=`<div class="cal-hist-h">🏆 Historial de competencias</div><div class="mun-wrap"><table class="mun-table"><thead><tr><th>Cerveza</th><th>Competencia</th><th>Fecha</th><th>Resultado</th><th>Resumen IA</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:.8rem">Sin registros todavía</td></tr>'}</tbody></table></div>`;
   return form+hist;
@@ -9268,6 +9267,18 @@ async function prodCalUpload(file){
   const r=await fetch('/admin/produccion/calidad/upload',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:file.name,contentType:file.type,dataBase64})});
   const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error subiendo'); return d;
 }
+// Lista de PDFs adjuntos (formulario de Competencias). Se refresca sola —a
+// diferencia de antes— para no perder el resto de la selección del formulario
+// (cerveza/competencia/resultado) con cada PDF que se sube o borra.
+function prodCalPdfListHtml(){
+  const pdfs=prodCal.pdfs.map((f,i)=>`<span class="cal-file">📄 <a href="${escapeAttr(f.url)}" target="_blank">${escapeHtml(f.name)}</a> <button data-cal-pdf-del="${i}">✕</button></span>`).join('');
+  return pdfs+(prodCal.pdfs.length<5?`<label class="cal-file" style="cursor:pointer;border-style:dashed">➕ PDF<input type="file" accept="application/pdf" id="rcPdf" style="display:none"></label>`:'');
+}
+function prodCalWirePdfList(){
+  const g=id=>document.getElementById(id);
+  if(g('rcPdf')) g('rcPdf').onchange=async()=>{ const f=g('rcPdf').files[0]; if(!f)return; if(prodCal.pdfs.length>=5)return; try{ const up=await prodCalUpload(f); prodCal.pdfs.push({url:up.url,name:up.name}); const list=g('rcPdfList'); if(list){ list.innerHTML=prodCalPdfListHtml(); prodCalWirePdfList(); } }catch(e){ alert(String(e.message||e)); } };
+  document.querySelectorAll('[data-cal-pdf-del]').forEach(b=>b.onclick=()=>{ prodCal.pdfs.splice(+b.dataset.calPdfDel,1); const list=g('rcPdfList'); if(list){ list.innerHTML=prodCalPdfListHtml(); prodCalWirePdfList(); } });
+}
 async function prodCalReq(path,method,body){
   try{ const r=await fetch('/admin/produccion/calidad/'+path,{method,headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await prodLoadCalidad(); return d; }
   catch(e){ alert(String(e.message||e)); return null; }
@@ -9302,9 +9313,8 @@ function prodCalWire(){
   // competencia tipo filtro
   if(g('rcTipoFiltro')) g('rcTipoFiltro').onchange=()=>{ const f=g('rcTipoFiltro').value; g('rcComp').querySelectorAll('option').forEach(o=>{ o.hidden=(f!=='todas'&&o.dataset.tipo!==f); }); const cur=g('rcComp').selectedOptions[0]; if(cur&&cur.hidden){ const first=[...g('rcComp').options].find(o=>!o.hidden); if(first) g('rcComp').value=first.value; } };
   // PDFs
-  if(g('rcPdf')) g('rcPdf').onchange=async()=>{ const f=g('rcPdf').files[0]; if(!f)return; if(prodCal.pdfs.length>=5)return; try{ const up=await prodCalUpload(f); prodCal.pdfs.push({url:up.url,name:up.name}); prodCalRender(); }catch(e){ alert(String(e.message||e)); } };
-  document.querySelectorAll('[data-cal-pdf-del]').forEach(b=>b.onclick=()=>{ prodCal.pdfs.splice(+b.dataset.calPdfDel,1); prodCalRender(); });
-  if(g('rcResumir')) g('rcResumir').onclick=async()=>{ const e=g('rcIaErr'); e.textContent='Generando…'; try{ const r=await fetch('/admin/produccion/calidad/resumir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pdfs:prodCal.pdfs})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); const ia=d.resumenIA||{}; ['apariencia','aroma','sabor','sensacionBoca','conclusion'].forEach(k=>{ const ta=document.querySelector(`[data-ia="${k}"]`); if(ta) ta.value=ia[k]||''; }); e.textContent='✓ listo (editable)'; e.style.color='#2e9c5a'; }catch(err){ e.textContent='⚠ '+String(err.message||err); e.style.color='#d9534f'; } };
+  prodCalWirePdfList();
+  if(g('rcResumir')) g('rcResumir').onclick=async()=>{ const e=g('rcIaErr'); e.textContent='Generando…'; e.style.color=''; try{ await prodCalGenerarResumenPdfs(); e.textContent='✓ listo (editable)'; e.style.color='#2e9c5a'; }catch(err){ e.textContent='⚠ '+String(err.message||err); e.style.color='#d9534f'; } };
   if(g('rcSave')) g('rcSave').onclick=prodCalGuardarRegistro;
   // retro
   if(g('fbSave')) g('fbSave').onclick=async()=>{ const err=g('fbErr'); const sel=g('fbCerveza').selectedOptions[0]; const d=await prodCalReq('retro','POST',{cervezaId:g('fbCerveza').value,cervezaNombre:sel?sel.dataset.nombre:'',estilo:g('fbEstilo').value,autor:g('fbAutor').value,texto:g('fbTexto').value}); if(!d&&err){} };
@@ -9315,13 +9325,46 @@ function prodCalWire(){
   if(g('memSave')) g('memSave').onclick=async()=>{ const sel=g('memCerveza').selectedOptions[0]; const d=await prodCalReq('memoria','POST',{cervezaId:g('memCerveza').value,cervezaNombre:sel?sel.dataset.nombre:'',estilo:g('memEstilo').value,ubicacion:g('memUbicacion').value,canalVenta:g('memCanal').value,categoria:g('memCat').value,texto:g('memTexto').value,imagen:prodCal.memImg}); if(d) prodCal.memImg=null; };
   document.querySelectorAll('[data-cal-mem-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar?')) prodCalReq('memoria/'+b.dataset.calMemDel,'DELETE'); });
   document.querySelectorAll('[data-cal-reg-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar registro?')) prodCalReq('registro/'+b.dataset.calRegDel,'DELETE'); });
+  // Regenerar el resumen IA de un registro ya guardado (ej: se guardó sin
+  // apretar "Generar desde PDFs" en su momento — el PDF ya está en el registro).
+  document.querySelectorAll('[data-cal-reg-resumir]').forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.calRegResumir; const reg=(prodCal.data.registros||[]).find(x=>x.id===id); if(!reg) return;
+    const prev=b.textContent; b.textContent='⏳'; b.disabled=true;
+    try{ const ia=await prodCalResumirPdfs(reg.pdfs); await prodCalReq('registro/'+id,'PUT',{resumenIA:ia}); }
+    catch(e){ alert(String(e.message||e)); b.textContent=prev; b.disabled=false; }
+  });
+}
+// Llama a /calidad/resumir con una lista de PDFs y devuelve el resumenIA.
+async function prodCalResumirPdfs(pdfs){
+  const r=await fetch('/admin/produccion/calidad/resumir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pdfs})});
+  const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+  return d.resumenIA||{};
+}
+// Genera desde los PDFs del formulario en curso y vuelca el resultado en los
+// textareas [data-ia]. Tirada tanto por el botón "Generar desde PDFs" como,
+// automáticamente, por Guardar registro si el usuario se olvidó de apretarlo.
+async function prodCalGenerarResumenPdfs(){
+  const ia=await prodCalResumirPdfs(prodCal.pdfs);
+  ['apariencia','aroma','sabor','sensacionBoca','conclusion'].forEach(k=>{ const ta=document.querySelector(`[data-ia="${k}"]`); if(ta) ta.value=ia[k]||''; });
+  return ia;
 }
 async function prodCalGuardarRegistro(){
   const g=id=>document.getElementById(id); const err=g('rcErr'); err.textContent='';
   const cervSel=g('rcCerveza'); const o=cervSel.selectedOptions[0];
   if(!cervSel.value){ err.textContent='⚠ Elegí la cerveza.'; return; }
   const compSel=g('rcComp'); const co=compSel.selectedOptions[0];
-  const resumenIA={}; document.querySelectorAll('[data-ia]').forEach(ta=>resumenIA[ta.dataset.ia]=ta.value);
+  // Si hay PDFs adjuntos y todavía nadie apretó "Generar desde PDFs", se genera
+  // solo antes de guardar — así no se pierde el feedback por olvido.
+  let resumenIA={}; document.querySelectorAll('[data-ia]').forEach(ta=>resumenIA[ta.dataset.ia]=ta.value);
+  const yaHayTexto=Object.values(resumenIA).some(v=>(v||'').trim());
+  if(prodCal.pdfs.length && !yaHayTexto){
+    const ie=g('rcIaErr'); if(ie){ ie.style.color=''; ie.textContent='Generando resumen desde los PDF adjuntos…'; }
+    try{ resumenIA=await prodCalGenerarResumenPdfs(); if(ie){ ie.style.color='#2e9c5a'; ie.textContent='✓ resumen generado'; } }
+    catch(e){
+      if(ie){ ie.style.color='#d9534f'; ie.textContent='⚠ No se pudo generar el resumen (' +String(e.message||e)+ ') — revisalo o completalo a mano antes de guardar.'; }
+      return; // no guardamos a ciegas: mejor que el usuario vea el error y reintente
+    }
+  }
   const payload={ cervezaId:cervSel.value, cervezaNombre:o?o.dataset.nombre:'', estilo:g('rcEstilo').value,
     competenciaId:compSel.value, competenciaNombre:co?co.textContent:'', tipo:co?co.dataset.tipo:'nacional',
     resultado:g('rcResultado').value, fecha:g('rcFecha').value?new Date(g('rcFecha').value+'T12:00:00Z').toISOString():'',
