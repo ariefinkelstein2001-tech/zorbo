@@ -3473,13 +3473,33 @@ function prodLeadObjetivo(cfg, estilo){
   const porEst = (cfg.leadTimeObjetivoPorEstilo || {})[String(estilo || '').toLowerCase().trim()];
   return prodNum(porEst) || prodNum(cfg.leadTimeObjetivoDias) || 27;
 }
+// Tanques de Vespucio: F1–F14. F2, F6, F7 y F9 son de 4000 L; el resto 1000 L.
+const PROD_TANQUES_4000 = ['F2', 'F6', 'F7', 'F9'];
+const prodCapTanque = (id) => PROD_TANQUES_4000.includes(id) ? 4000 : 1000;
 function prodSeedTanques(){
   const t = [];
-  for (let i = 1; i <= 10; i++) t.push({ id: 'F' + i, capacidadL: 1000, estado: 'vacio', loteActualId: null, sede: 'vespucio' });
-  for (let i = 1; i <= 4; i++) t.push({ id: 'T' + i, capacidadL: 4000, estado: 'vacio', loteActualId: null, sede: 'vespucio' });
+  for (let i = 1; i <= 14; i++) { const id = 'F' + i; t.push({ id, capacidadL: prodCapTanque(id), estado: 'vacio', loteActualId: null, sede: 'vespucio' }); }
   [10000, 7000, 7000, 3500].forEach((cap, i) => t.push({ id: 'LAM' + (i + 1), capacidadL: cap, estado: 'vacio', loteActualId: null, sede: 'lampa' }));
   for (let i = 1; i <= 4; i++) t.push({ id: 'FRK' + i, capacidadL: 500, estado: 'vacio', loteActualId: null, sede: 'franklin' });
   return t;
+}
+// Reconcilia los tanques de Vespucio al set real (F1–F14 + capacidades), sin tocar
+// Lampa/Franklin ni perder tanques con lote asignado. Quita los T1–T4 viejos vacíos.
+function prodNormalizeTanques(d){
+  let changed = false;
+  for (let i = 1; i <= 14; i++) {
+    const id = 'F' + i; const cap = prodCapTanque(id);
+    let t = (d.tanques || []).find(x => x.id === id);
+    if (!t) { d.tanques.push({ id, capacidadL: cap, estado: 'vacio', loteActualId: null, sede: 'vespucio' }); changed = true; }
+    else { if (t.capacidadL !== cap) { t.capacidadL = cap; changed = true; } if (!t.sede) { t.sede = 'vespucio'; changed = true; } }
+  }
+  const usados = new Set((d.lotes || []).map(l => l.tanqueId).filter(Boolean));
+  const antes = d.tanques.length;
+  d.tanques = d.tanques.filter(t => !/^T[1-4]$/.test(t.id) || usados.has(t.id)); // T1–T4 viejos → fuera si no tienen lote
+  if (d.tanques.length !== antes) changed = true;
+  const sedeRank = { vespucio: 0, lampa: 1, franklin: 2 };
+  d.tanques.sort((a, b) => { const sa = sedeRank[a.sede] != null ? sedeRank[a.sede] : 9, sb = sedeRank[b.sede] != null ? sedeRank[b.sede] : 9; if (sa !== sb) return sa - sb; const na = /^F(\d+)$/.exec(a.id), nb = /^F(\d+)$/.exec(b.id); if (na && nb) return +na[1] - +nb[1]; return a.id.localeCompare(b.id); });
+  return changed;
 }
 // Backfill de `sede` en tanques guardados antes de "Centros de Producción" +
 // alta de los tanques de Lampa/Franklin si el archivo persistido no los tiene.
@@ -3625,6 +3645,7 @@ app.get('/admin/produccion', requireAdmin, (req, res) => {
   const d = prodLoad();
   let changed = prodNormalizeRecetas(d);
   if (prodMigrarSedesTanques(d)) changed = true;
+  if (prodNormalizeTanques(d)) { prodSyncTanques(d); changed = true; }
   if (changed) prodSave(d);
   res.json(prodDecorate(d));
 });
@@ -3966,7 +3987,7 @@ async function erpRunSync(origen){
     let nuevos = 0, act = 0;
     for (const rl of lotes) {
       if (!rl.numero && !rl.erpId) continue;
-      if (rl.tanque && !d.tanques.find(t => t.id === rl.tanque)) d.tanques.push({ id: rl.tanque, capacidadL: rl.capacidad || 1000, estado: 'vacio', loteActualId: null, sucio: false });
+      if (rl.tanque && !d.tanques.find(t => t.id === rl.tanque)) d.tanques.push({ id: rl.tanque, capacidadL: /^F([1-9]|1[0-4])$/.test(rl.tanque) ? prodCapTanque(rl.tanque) : (rl.capacidad || 1000), estado: 'vacio', loteActualId: null, sede: 'vespucio', sucio: false });
       const ex = d.lotes.find(x => x.erpId === rl.erpId || x.codigo === rl.numero);
       const estadoZ = erpEstadoZorbo(rl.etapa, rl.estado);
       if (!ex) {
