@@ -3703,10 +3703,13 @@ async function erpLoginDiag(cfg){
     if (login.ok && login.jar) {
       rep.rutasAuth = [];
       const dp = ['/Lote', '/Receta', '/Lotes', '/Recetas', '/Home/Lote', '/Home/Receta'];
+      rep.muestras = {};
       await Promise.all(dp.map(async (p) => {
         try {
           const r = await erpGet(base + p, login.jar, base); const h = await r.text();
           rep.rutasAuth.push({ ruta: p, status: r.status, filas: (h.match(/<tr\b/gi) || []).length, tieneEditLote: /Lote\/Edit\?id=/i.test(h), tieneExportar: /class=["']exportar["']/i.test(h), len: h.length });
+          // Muestra de la estructura de la tabla (thead + primeras 2 filas con datos).
+          if (r.status === 200 && /<tr\b/i.test(h) && (p === '/Lote' || p === '/Receta')) rep.muestras[p] = erpTablaMuestra(h);
         } catch (e) { rep.rutasAuth.push({ ruta: p, status: 0, error: String(e.message).slice(0, 60) }); }
       }));
       rep.rutasAuth.sort((a, b) => a.ruta.localeCompare(b.ruta));
@@ -3738,6 +3741,14 @@ async function erpGet(url, jar, base){
   throw new Error('demasiados redirects');
 }
 const erpMd5 = (s) => createHash('md5').update(String(s == null ? '' : s), 'utf8').digest('hex');
+// Muestra compacta de la estructura de una tabla HTML: thead + primeras 2 filas con
+// datos (conserva atributos de <tr>/<td>, que es lo que el parser necesita).
+function erpTablaMuestra(html){
+  const tabla = (/<table[\s\S]*?<\/table>/i.exec(html) || [])[0] || html;
+  const thead = (/<thead[\s\S]*?<\/thead>/i.exec(tabla) || [, ''])[0] || '';
+  const dataRows = [...tabla.matchAll(/<tr\b[\s\S]*?<\/tr>/gi)].map(m => m[0]).filter(r => /<td\b/i.test(r)).slice(0, 2);
+  return (thead + '\n' + dataRows.join('\n')).replace(/\s{2,}/g, ' ').trim().slice(0, 4000);
+}
 // Login real del ERP (Gestión Cervecera es ASP.NET + jQuery): jsLogin() hace
 // POST /Home/Login con { usuario, password: md5(clave) } y espera JSON {message:'ok'}.
 // La clave viaja HASHEADA en MD5 (así lo hace la propia página). Setea cookie de sesión.

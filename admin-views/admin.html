@@ -9384,11 +9384,13 @@ function prodWire(){
       const loginBadge=lr.ok?'<span style="color:#2e9c5a;font-weight:800">✓ LOGIN OK</span>':('<span style="color:#c0392b;font-weight:800">✗ login: '+escapeHtml(lr.error||'—')+(lr.stage?(' ['+escapeHtml(lr.stage)+']'):'')+'</span>');
       const auth=(d.rutasAuth||[]).map(x=>{ const good=x.status>=200&&x.status<300&&x.tieneEditLote; const bg=good?'background:#e3f6ea':(x.status>=200&&x.status<300?'background:#fff8ea':''); return `<tr style="${bg}"><td><code>${escapeHtml(x.ruta)}</code></td><td class="dist-num">${x.status||(x.error||'—')}</td><td class="dist-num">${x.filas!=null?x.filas+' filas':''}</td><td>${x.tieneEditLote?'✓ lotes':''}${x.tieneExportar?' ✓ exportar':''}</td></tr>`; }).join('');
       const authTbl=(d.rutasAuth&&d.rutasAuth.length)?`<div class="est-note" style="margin-top:.5rem"><b>Páginas de datos (ya logueado):</b><div class="mun-wrap" style="margin-top:.3rem"><table class="mun-table"><thead><tr><th>Ruta</th><th>Status</th><th>Filas</th><th>Detecta</th></tr></thead><tbody>${auth}</tbody></table></div></div>`:'';
+      const muestras=d.muestras||{};
+      const muTxt=Object.entries(muestras).map(([k,v])=>`<div style="margin-top:.5rem"><b style="font-size:.78rem">Muestra HTML de ${escapeHtml(k)} (copiala y pegámela):</b><textarea readonly style="width:100%;height:120px;font-family:ui-monospace,monospace;font-size:.68rem;margin-top:.2rem" onclick="this.select()">${escapeHtml(v)}</textarea></div>`).join('');
       box.innerHTML=`<div class="est-note" style="margin-top:.6rem">
         <b>${loginBadge}</b><br>
         <b>/login</b> · status ${L.status||'—'} · ${L.len||0} bytes · ¿form? ${L.tieneForm?'sí':'no'} · cookies: ${(L.setCookie||[]).map(escapeHtml).join(', ')||'—'}</div>
-        ${authTbl}
-        <div class="est-note" style="margin-top:.4rem;color:#666">Si el login dio ✓ OK y hay una ruta verde (✓ lotes), la sync ya debería funcionar — probá "🔄 Sincronizar ahora".</div>`;
+        ${authTbl}${muTxt}
+        <div class="est-note" style="margin-top:.4rem;color:#666">Copiame las muestras HTML de arriba (Lote y Receta) y ajusto el parser para que la sync extraiga los datos.</div>`;
     }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
   };
   if(g('cfErpDiag')) g('cfErpDiag').onclick=async()=>{
