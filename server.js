@@ -3744,10 +3744,12 @@ const erpMd5 = (s) => createHash('md5').update(String(s == null ? '' : s), 'utf8
 // Muestra compacta de la estructura de una tabla HTML: thead + primeras 2 filas con
 // datos (conserva atributos de <tr>/<td>, que es lo que el parser necesita).
 function erpTablaMuestra(html){
-  const tabla = (/<table[\s\S]*?<\/table>/i.exec(html) || [])[0] || html;
-  const thead = (/<thead[\s\S]*?<\/thead>/i.exec(tabla) || [, ''])[0] || '';
-  const dataRows = [...tabla.matchAll(/<tr\b[\s\S]*?<\/tr>/gi)].map(m => m[0]).filter(r => /<td\b/i.test(r)).slice(0, 2);
-  return (thead + '\n' + dataRows.join('\n')).replace(/\s{2,}/g, ' ').trim().slice(0, 4000);
+  // Escanear TODO el HTML por filas con <td> (datos reales), no solo la 1a tabla.
+  const rows = [...html.matchAll(/<tr\b[\s\S]*?<\/tr>/gi)].map(m => m[0]);
+  const dataRows = rows.filter(r => /<td\b/i.test(r));
+  const theadRow = rows.find(r => /<th\b/i.test(r)) || '';
+  if (dataRows.length) return ('[' + dataRows.length + ' filas de datos]\n' + theadRow + '\n' + dataRows.slice(0, 2).join('\n')).replace(/\s{2,}/g, ' ').trim().slice(0, 4200);
+  return '[0 filas de datos en el HTML → la tabla se llena por AJAX. Hacé la captura de red (DevTools) del pedido de datos.] thead: ' + theadRow.replace(/\s{2,}/g, ' ').trim().slice(0, 1200);
 }
 // Vuelca los <script> inline relevantes (DataTables / ajax / url) de una página,
 // para descubrir la URL AJAX que carga las filas de la tabla.
