@@ -5,7 +5,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { readFileSync, existsSync, mkdirSync, writeFileSync, unlinkSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import { randomUUID, createHmac, timingSafeEqual, randomBytes, scryptSync } from 'crypto';
+import { randomUUID, createHmac, timingSafeEqual, randomBytes, scryptSync, createHash } from 'crypto';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -3696,6 +3696,22 @@ async function erpLoginDiag(cfg){
     } catch (e) { rep.rutas.push({ ruta: p, status: 0, error: String(e.message).slice(0, 60) }); }
   }));
   rep.rutas.sort((a, b) => a.ruta.localeCompare(b.ruta));
+  // 3. Login real (POST /Home/Login con md5) y prueba de páginas de datos autenticadas.
+  try {
+    const login = await erpLogin(cfg);
+    rep.login.loginReal = { ok: login.ok, error: login.error || null, stage: login.stage || null };
+    if (login.ok && login.jar) {
+      rep.rutasAuth = [];
+      const dp = ['/Lote', '/Receta', '/Lotes', '/Recetas', '/Home/Lote', '/Home/Receta'];
+      await Promise.all(dp.map(async (p) => {
+        try {
+          const r = await erpGet(base + p, login.jar, base); const h = await r.text();
+          rep.rutasAuth.push({ ruta: p, status: r.status, filas: (h.match(/<tr\b/gi) || []).length, tieneEditLote: /Lote\/Edit\?id=/i.test(h), tieneExportar: /class=["']exportar["']/i.test(h), len: h.length });
+        } catch (e) { rep.rutasAuth.push({ ruta: p, status: 0, error: String(e.message).slice(0, 60) }); }
+      }));
+      rep.rutasAuth.sort((a, b) => a.ruta.localeCompare(b.ruta));
+    }
+  } catch (e) { rep.login.loginReal = { ok: false, error: String(e.message).slice(0, 120) }; }
   return rep;
 }
 app.post('/admin/produccion/erp/diaglogin', requireAdmin, async (req, res) => {
@@ -3721,44 +3737,29 @@ async function erpGet(url, jar, base){
   }
   throw new Error('demasiados redirects');
 }
-// Login: baja la página de login, descubre el formulario con campo password, llena
-// usuario/clave + los hidden (anti-forgery token) y hace POST.
+const erpMd5 = (s) => createHash('md5').update(String(s == null ? '' : s), 'utf8').digest('hex');
+// Login real del ERP (Gestión Cervecera es ASP.NET + jQuery): jsLogin() hace
+// POST /Home/Login con { usuario, password: md5(clave) } y espera JSON {message:'ok'}.
+// La clave viaja HASHEADA en MD5 (así lo hace la propia página). Setea cookie de sesión.
 async function erpLogin(cfg){
   const { usuario, clave, base } = erpCreds(cfg);
   if (!usuario || !clave) return { ok: false, jar: null, error: 'Faltan usuario o clave del ERP.', stage: 'config' };
   const jar = {};
-  let r = await erpGet(base + '/Lote', jar, base);         // fuerza el redirect al login si no hay sesión
-  let html = await r.text();
-  let loginUrl = r.url || base + '/Lote';
-  // Buscá el <form> que contenga un input password.
-  const forms = [...html.matchAll(/<form\b[^>]*>[\s\S]*?<\/form>/gi)].map(m => m[0]);
-  let form = forms.find(f => /type=["']?password/i.test(f));
-  if (!form) return { ok: false, jar, error: 'No encontré el formulario de login (¿login con Google/2FA?).', stage: 'login-form', debug: (r.status + ' ' + loginUrl) };
-  const actionM = /<form\b[^>]*\baction=["']([^"']+)["']/i.exec(form);
-  let action = actionM ? actionM[1] : loginUrl;
-  if (!/^https?:/i.test(action)) action = base + (action.startsWith('/') ? action : '/' + action);
-  // Recolectá todos los inputs del form.
-  const inputs = {};
-  let user_field = '', pass_field = '';
-  for (const im of form.matchAll(/<input\b[^>]*>/gi)) {
-    const tag = im[0];
-    const name = (/\bname=["']([^"']+)["']/i.exec(tag) || [])[1]; if (!name) continue;
-    const type = ((/\btype=["']([^"']+)["']/i.exec(tag) || [])[1] || 'text').toLowerCase();
-    const value = (/\bvalue=["']([^"']*)["']/i.exec(tag) || [])[1] || '';
-    if (type === 'password') { pass_field = name; inputs[name] = clave; }
-    else if (type === 'submit' || type === 'button') continue;
-    else if (!user_field && (type === 'email' || type === 'text' || /user|usuario|email|correo|login/i.test(name))) { user_field = name; inputs[name] = usuario; }
-    else inputs[name] = value; // hidden (token anti-forgery), etc.
-  }
-  if (!pass_field || !user_field) return { ok: false, jar, error: 'No pude identificar los campos de usuario/clave.', stage: 'login-fields' };
-  const body = new URLSearchParams(inputs).toString();
-  const pr = await erpFetch(action, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Referer': loginUrl, 'Origin': base }, body }, jar);
-  // Seguimos el redirect post-login (302 = éxito típico en ASP.NET).
-  if (pr.status >= 300 && pr.status < 400) { const loc = pr.headers.get('location') || ''; await erpGet(loc.startsWith('http') ? loc : base + loc, jar, base); }
-  // Verificá que ya hay sesión: pedí /Lote y que NO vuelva a mostrar el form de login.
+  try { await erpGet(base + '/login', jar, base); } catch (e) { /* cookies iniciales, no crítico */ }
+  const body = new URLSearchParams({ usuario, password: erpMd5(clave) }).toString();
+  let pr, txt = '';
+  try {
+    pr = await erpFetch(base + '/Home/Login', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01', 'Referer': base + '/login', 'Origin': base }, body }, jar);
+    txt = await pr.text();
+  } catch (e) { return { ok: false, jar, error: 'No pude conectar al ERP: ' + String(e.message).slice(0, 100), stage: 'post' }; }
+  let result = {}; try { result = JSON.parse(txt); } catch { }
+  const msg = String((result && result.message) || '').toLowerCase();
+  if (msg && msg !== 'ok') return { ok: false, jar, error: 'Login rechazado por el ERP: ' + String(result.message).slice(0, 120), stage: 'login-msg' };
+  if (!msg && pr.status >= 400) return { ok: false, jar, error: 'El ERP respondió ' + pr.status + ' al login.', stage: 'login-http', debug: txt.slice(0, 140) };
+  // Confirmar sesión pidiendo una página protegida: no debe volver al login.
   const chk = await erpGet(base + '/Lote', jar, base);
   const chkHtml = await chk.text();
-  if (/type=["']?password/i.test(chkHtml)) return { ok: false, jar, error: 'Usuario o clave incorrectos (sigue pidiendo login).', stage: 'login-check' };
+  if (/id=["']frmLogin["']|\/Home\/Login|placeholder=["']?Contrase/i.test(chkHtml)) return { ok: false, jar, error: 'Login no tomó (sigue pidiendo credenciales). Revisá usuario/clave.', stage: 'login-check', debug: (pr.status + ' ' + txt.slice(0, 100)) };
   return { ok: true, jar, error: null, loteHtml: chkHtml };
 }
 const erpTxt = (s) => String(s || '').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&aacute;/g, 'á').replace(/&eacute;/g, 'é').replace(/&iacute;/g, 'í').replace(/&oacute;/g, 'ó').replace(/&uacute;/g, 'ú').replace(/&ntilde;/g, 'ñ').replace(/\s+/g, ' ').trim();
