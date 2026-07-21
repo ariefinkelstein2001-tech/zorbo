@@ -5,3 +5,4 @@ logs/*.json
 # Runtime data del módulo de Producción (se persiste en el volumen en Railway)
 prompts/produccion.json
 prompts/calidad.json
+public/uploads/
