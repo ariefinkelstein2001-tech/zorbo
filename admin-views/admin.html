@@ -1634,24 +1634,30 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .prod-tab.on{background:#b87333;border-color:#b87333;color:#fff}
 .prod-sec-h{font-family:var(--display,inherit);font-weight:700;font-size:1rem;margin:.3rem 0 .7rem;display:flex;align-items:center;gap:.6rem;color:var(--text,#111)}
 .prod-sec-h span{font-family:var(--sans,inherit);font-weight:500;font-size:.78rem;color:var(--dim,#999)}
-.prod-tanks{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.7rem}
-.prod-tank{border:2px solid var(--line,#e5e5e5);border-radius:12px;background:var(--surface,#fff);padding:0;overflow:hidden;cursor:default;text-align:left;font:inherit;display:flex;flex-direction:column}
-.prod-tank.ocupado{cursor:pointer;border-color:#b87333}
-.prod-tank.ambar{border-color:#e8a13a}
-.prod-tank.rojo{border-color:#d9534f}
-.prod-tank-top{display:flex;justify-content:space-between;align-items:baseline;padding:.5rem .6rem 0}
-.prod-tank-id{font-family:var(--display,inherit);font-weight:800;font-size:1.1rem;color:var(--text,#111)}
-.prod-tank-cap{font-size:.68rem;color:var(--dim,#999);font-weight:600}
-.prod-tank-body{position:relative;min-height:74px;padding:.4rem .6rem .6rem;display:flex;flex-direction:column;justify-content:flex-end}
-.prod-tank-fill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,rgba(184,115,51,.18),rgba(184,115,51,.34));z-index:0}
-.prod-tank.ambar .prod-tank-fill{background:linear-gradient(180deg,rgba(232,161,58,.2),rgba(232,161,58,.4))}
-.prod-tank.rojo .prod-tank-fill{background:linear-gradient(180deg,rgba(217,83,79,.2),rgba(217,83,79,.42))}
-.prod-tank-lote{position:relative;z-index:1;display:flex;flex-direction:column;gap:1px}
-.prod-tank-lote b{font-size:.86rem;color:var(--text,#111)}
-.prod-tank-lote span{font-size:.7rem;color:var(--muted,#666)}
-.prod-tank-dias{font-weight:700!important;color:var(--gold-deep,#a05f00)!important}
-.prod-tank-dias.ambar{color:#c17a10!important}.prod-tank-dias.rojo{color:#d9534f!important}
-.prod-tank-vacio{position:relative;z-index:1;color:var(--dim,#bbb);font-size:.8rem;font-weight:600}
+.prod-tk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.8rem}
+.prod-tk-card{display:flex;gap:.5rem;border:1.5px solid var(--line,#e5e5e5);border-radius:14px;background:var(--surface,#fff);padding:.7rem .8rem}
+.prod-tk-card.ocupado{cursor:pointer;border-color:#d8c3ad}
+.prod-tk-card.ambar{border-color:#e8a13a;box-shadow:0 0 0 1px rgba(232,161,58,.25)}
+.prod-tk-card.rojo{border-color:#d9534f;box-shadow:0 0 0 1px rgba(217,83,79,.3)}
+.prod-tk-card.sucio{background:repeating-linear-gradient(45deg,var(--surface,#fff),var(--surface,#fff) 6px,var(--surface2,#f4f4f4) 6px,var(--surface2,#f4f4f4) 12px)}
+.prod-tk-svg{flex:none;width:54px}
+.prod-svg{width:54px;height:auto;display:block}
+.prod-tk-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.prod-tk-hd{display:flex;justify-content:space-between;align-items:baseline}
+.prod-tk-hd b{font-family:var(--display,inherit);font-weight:800;font-size:1.15rem;color:var(--text,#111)}
+.prod-tk-hd span{font-size:.68rem;color:var(--dim,#999);font-weight:600}
+.prod-tk-lote{font-size:.82rem;font-weight:700;color:var(--text,#111);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prod-tk-lote span{font-weight:500;color:var(--muted,#666)}
+.prod-tk-lit{font-family:ui-monospace,monospace;font-size:.78rem;color:var(--gold-deep,#a05f00);font-weight:700}
+.prod-tk-est{font-size:.74rem;color:var(--muted,#555);font-weight:600}
+.prod-tk-est.vacio{color:#2e9c5a}.prod-tk-est.sucio{color:#a06a2a}
+.prod-tk-rest{color:#c17a10;font-weight:700}
+.prod-tk-alert{color:#d9534f;font-weight:800}
+.prod-tk-fechas{font-size:.68rem;color:var(--dim,#999)}
+.prod-color{display:inline-flex;align-items:center;gap:.3rem;margin-top:.25rem;font-size:.68rem;color:var(--dim,#999);cursor:pointer}
+.prod-color input[type=color]{width:22px;height:22px;border:1px solid var(--line,#ccc);border-radius:5px;padding:0;background:none;cursor:pointer}
+.prod-tk-cip{margin-top:.4rem;font-size:.74rem;padding:.35rem .5rem}
+.prod-erp-status{font-size:.8rem;color:var(--muted,#555);font-weight:600;margin-top:.3rem}
 .prod-detail{margin-top:1rem}
 .prod-lote{border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.9rem 1rem;margin-bottom:.9rem;background:var(--surface,#fff)}
 .prod-lote-h{display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem}
@@ -8566,19 +8572,41 @@ function renderProduccion(){
 }
 function prodTick(){ document.querySelectorAll('.prod-timer[data-start]').forEach(el=>{ const s=new Date(el.dataset.start).getTime(); if(Number.isFinite(s)) el.textContent=prodDur(Date.now()-s); }); }
 function prodLoteById(id){ return (prodData.lotes||[]).find(l=>l.id===id); }
-// ── Tablero de tanques ──
+// ── Tablero de tanques (SVG fermentador cónico + color + estados) ──
+function prodFecha(iso){ if(!iso)return '—'; const d=new Date(iso); if(isNaN(d))return '—'; return d.toLocaleDateString('es-CL',{day:'2-digit',month:'2-digit'}); }
+function prodTankSvg(t){
+  const l=t.lote; const pct=l?Math.max(6,Math.min(100,l.nivelPct||0)):0; const color=(l&&l.color)||'#b87333';
+  const fillY=(62-54*pct/100).toFixed(1); const uid='tk'+t.id;
+  const path='M12 10 Q12 6 16 6 L44 6 Q48 6 48 10 L48 60 L34 80 Q30 84 26 80 L12 60 Z';
+  let inner='';
+  if(l) inner=`<clipPath id="${uid}"><path d="${path}"/></clipPath><rect x="10" y="${fillY}" width="40" height="82" clip-path="url(#${uid})" fill="${color}" opacity="0.85"/>`;
+  else if(t.estado==='sucio') inner=`<defs><pattern id="${uid}" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse"><line x1="0" y1="0" x2="0" y2="6" stroke="#9a9a9a" stroke-width="2.4"/></pattern></defs><path d="${path}" fill="url(#${uid})" opacity="0.55"/>`;
+  const stroke=t.estado==='ocupado'?color:(t.estado==='sucio'?'#8a8a8a':'#cbcbcb');
+  return `<svg viewBox="0 0 60 88" class="prod-svg">${inner}<path d="${path}" fill="none" stroke="${stroke}" stroke-width="2.2"/><line x1="20" y1="17" x2="40" y2="17" stroke="${stroke}" stroke-width="1.3" opacity="0.5"/><circle cx="39" cy="30" r="2.4" fill="none" stroke="${stroke}" stroke-width="1.1" opacity="0.6"/></svg>`;
+}
 function prodRenderTanques(){
   const ts=prodData.tanques||[];
-  const cards=ts.map(t=>{ const l=t.lote; const dias=l?l.diasOcup:0; const al=dias>45?'rojo':dias>30?'ambar':'';
-    const fill=l?Math.max(14,Math.min(100,Math.round((l.volumenEsperadoL||0)/t.capacidadL*100))):0;
-    return `<button class="prod-tank ${t.estado} ${al}" data-tank="${escapeAttr(t.id)}" ${l?'':'disabled'}>
-      <div class="prod-tank-top"><span class="prod-tank-id">${escapeHtml(t.id)}</span><span class="prod-tank-cap">${t.capacidadL.toLocaleString('es-CL')} L</span></div>
-      <div class="prod-tank-body"><div class="prod-tank-fill" style="height:${fill}%"></div>
-        ${l?`<div class="prod-tank-lote"><b>${escapeHtml(l.codigo)}</b><span>${escapeHtml(l.producto||l.estilo||'')}</span><span class="prod-tank-dias ${al}">${dias} d</span></div>`:'<div class="prod-tank-vacio">vacío</div>'}
-      </div></button>`;}).join('');
-  const ocup=ts.filter(t=>t.estado==='ocupado').length;
+  const cards=ts.map(t=>{
+    const l=t.lote;
+    const al=(l&&l.sobreEstadia>0)?'rojo':((l&&l.diasRestantes!=null&&l.diasRestantes<=3)?'ambar':'');
+    const etapaLbl=l?({fermentacion:'Fermentación',maduracion:'Maduración',listo:'Listo'}[l.estado]||l.estado):'';
+    let restante='';
+    if(l){ if(l.sobreEstadia>0) restante=`<span class="prod-tk-alert">sobre-estadía +${l.sobreEstadia} d</span>`; else if(l.diasRestantes!=null) restante=`<span class="prod-tk-rest">faltan ${Math.max(0,l.diasRestantes)} d</span>`; }
+    const info=l
+      ? `<div class="prod-tk-lote">${escapeHtml(l.codigo)} · <span>${escapeHtml(l.producto||l.estilo||'')}</span></div>
+         <div class="prod-tk-lit">${l.litrosActuales.toLocaleString('es-CL')} L · ${l.nivelPct}%</div>
+         <div class="prod-tk-est">${etapaLbl} ${restante}</div>
+         <div class="prod-tk-fechas">Cocción ${prodFecha(l.fechaCoccion)} → env. ${prodFecha(l.fechaProyEnvasado)}</div>
+         <label class="prod-color"><input type="color" data-color-lote="${l.id}" value="${escapeAttr(l.color||'#b87333')}"><span>color</span></label>`
+      : `<div class="prod-tk-est ${t.estado}">${t.estado==='sucio'?'Sucio · requiere CIP':'Vacío · listo'}</div>${t.estado==='sucio'?`<button class="adm-btn adm-btn-ghost prod-tk-cip" data-limpiar-tank="${escapeAttr(t.id)}">🧽 Marcar limpieza</button>`:''}`;
+    return `<div class="prod-tk-card ${t.estado} ${al}" data-tank="${escapeAttr(t.id)}">
+      <div class="prod-tk-svg">${prodTankSvg(t)}</div>
+      <div class="prod-tk-info"><div class="prod-tk-hd"><b>${escapeHtml(t.id)}</b><span>${t.capacidadL.toLocaleString('es-CL')} L</span></div>${info}</div>
+    </div>`;
+  }).join('');
+  const ocup=ts.filter(t=>t.estado==='ocupado').length, suc=ts.filter(t=>t.estado==='sucio').length;
   const det=prodOpenLote?prodLoteCard(prodLoteById(prodOpenLote)):'';
-  return `<div class="prod-sec-h">Tablero de tanques <span>${ocup}/${ts.length} ocupados · &gt;30d ámbar · &gt;45d rojo</span></div><div class="prod-tanks">${cards}</div>${det?'<div class="prod-detail">'+det+'</div>':''}`;
+  return `<div class="prod-sec-h">Tablero de tanques <span>${ocup} ocupados · ${suc} sucios · ${ts.length-ocup-suc} vacíos</span></div><div class="prod-tk-grid">${cards}</div>${det?'<div class="prod-detail">'+det+'</div>':''}`;
 }
 // ── Cocción / lotes ──
 function prodRenderCoccion(){
@@ -8691,21 +8719,35 @@ function prodRenderParadas(){
 // ── Config ──
 function prodRenderConfig(){
   const c=prodData.config||{};
-  return `<div class="cg-form"><div class="cg-form-title">Parámetros de producción</div><div class="cg-form-grid">
+  const syncTxt = c.erpLastSync ? ('Última sync: '+prodDT(c.erpLastSync)+(c.erpLastStatus?' · '+escapeHtml(c.erpLastStatus):'')) : 'Sin sincronizar todavía';
+  const erp=`<div class="cg-form"><div class="cg-form-title">Integración ERP · Gestión Cervecera</div><div class="cg-form-grid">
+    <label class="cg-field"><span>URL base del ERP</span><input id="cfErpUrl" value="${escapeAttr(c.erpBaseUrl||'')}" placeholder="https://api.gestioncervecera.com"></label>
+    <label class="cg-field"><span>API key ${c.erpApiKeySet?'<span style="color:#2e9c5a">✓ configurada</span>':''}</span><input id="cfErpKey" type="password" placeholder="${c.erpApiKeySet?'•••••••• (dejar vacío = no cambiar)':'pegá la API key'}"></label>
+    <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="cfErpSave" type="button">Guardar ERP</button></div>
+    <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-ghost" id="cfErpSync" type="button">🔄 Sincronizar ahora</button></div>
+  </div><div class="prod-erp-status" id="cfErpStatus">${syncTxt}</div>
+  <div class="est-note" style="margin-top:.4rem">La app lee del ERP (recetas, lotes, fechas, litros, stock, ventas) y el maestro solo agrega lo que el ERP no tiene (tiempos, paradas, velocidad). La sync nunca pisa datos manuales. La API key se guarda en el servidor, nunca en el navegador.</div></div>`;
+  const params=`<div class="cg-form"><div class="cg-form-title">Parámetros de producción</div><div class="cg-form-grid">
     <label class="cg-field"><span>Horas por semana</span><input id="cfHoras" inputmode="numeric" value="${escapeAttr(c.horasPorSemana)}"></label>
-    <label class="cg-field"><span>Vel. nominal barril (L/h)</span><input id="cfBarril" inputmode="numeric" value="${escapeAttr(c.velNominalBarrilLh)}"></label>
-    <label class="cg-field"><span>Vel. nominal lata (L/h)</span><input id="cfLata" inputmode="numeric" value="${escapeAttr(c.velNominalLataLh)}"></label>
+    <label class="cg-field"><span>Vel. barril (L/h)</span><input id="cfBarril" inputmode="numeric" value="${escapeAttr(c.velNominalBarrilLh)}"></label>
+    <label class="cg-field"><span>Vel. barril 20 L (L/h)</span><input id="cfB20" inputmode="numeric" value="${escapeAttr(c.velNominalBarril20||c.velNominalBarrilLh)}"></label>
+    <label class="cg-field"><span>Vel. barril 30 L (L/h)</span><input id="cfB30" inputmode="numeric" value="${escapeAttr(c.velNominalBarril30||c.velNominalBarrilLh)}"></label>
+    <label class="cg-field"><span>Vel. lata (L/h)</span><input id="cfLata" inputmode="numeric" value="${escapeAttr(c.velNominalLata||c.velNominalLataLh)}"></label>
     <label class="cg-field"><span>Ciclo cocción estándar (h)</span><input id="cfCiclo" inputmode="decimal" value="${escapeAttr(c.cicloCoccionEstandarH)}"></label>
+    <label class="cg-field"><span>Lead time objetivo (días)</span><input id="cfLeadObj" inputmode="numeric" value="${escapeAttr(c.leadTimeObjetivoDias||27)}"></label>
     <label class="cg-field"><span>Lead time mínimo (días)</span><input id="cfLead" inputmode="numeric" value="${escapeAttr(c.leadTimeMinDias)}"></label>
     <label class="cg-field" style="flex-direction:row;align-items:center;gap:.5rem"><input type="checkbox" id="cfLimp" ${c.incluirLimpiezaEnDisponibilidad!==false?'checked':''} style="width:16px;height:16px"><span>Incluir limpieza en disponibilidad (TPM)</span></label>
     <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="cfSave" type="button">Guardar</button></div>
   </div><div class="cg-err" id="cfErr"></div></div>`;
+  return erp+params;
 }
 // ── Wiring ──
 function prodWire(){
   const g=id=>document.getElementById(id);
   document.querySelectorAll('[data-ptab]').forEach(b=>b.onclick=()=>{ prodTab=b.dataset.ptab; if(prodTab!=='tanques')prodOpenLote=null; renderProduccion(); });
-  document.querySelectorAll('[data-tank]').forEach(b=>b.onclick=()=>{ const t=(prodData.tanques||[]).find(x=>x.id===b.dataset.tank); if(t&&t.lote){ prodOpenLote=(prodOpenLote===t.lote.id)?null:t.lote.id; renderProduccion(); } });
+  document.querySelectorAll('.prod-tk-card[data-tank]').forEach(c=>c.onclick=(ev)=>{ if(ev.target.closest('input,button,label,a')) return; const t=(prodData.tanques||[]).find(x=>x.id===c.dataset.tank); if(t&&t.lote){ prodOpenLote=(prodOpenLote===t.lote.id)?null:t.lote.id; renderProduccion(); } });
+  document.querySelectorAll('[data-color-lote]').forEach(inp=>inp.onchange=()=>prodPatchLote(inp.dataset.colorLote,{color:inp.value}));
+  document.querySelectorAll('[data-limpiar-tank]').forEach(b=>b.onclick=async()=>{ await prodPost('tanque/'+encodeURIComponent(b.dataset.limpiarTank)+'/limpiar',{}); });
   // etapas
   document.querySelectorAll('[data-eta-ini]').forEach(b=>b.onclick=()=>prodEtapa(b.dataset.etaIni,'inicio'));
   document.querySelectorAll('[data-eta-fin]').forEach(b=>b.onclick=()=>prodEtapa(b.dataset.etaFin,'fin'));
@@ -8728,6 +8770,16 @@ function prodWire(){
   document.querySelectorAll('[data-par-del]').forEach(b=>b.onclick=()=>prodDelete('parada',b.dataset.parDel));
   // config
   if(g('cfSave')) g('cfSave').onclick=prodGuardarConfig;
+  if(g('cfErpSave')) g('cfErpSave').onclick=async()=>{
+    const body={erpBaseUrl:g('cfErpUrl').value};
+    const k=g('cfErpKey').value; if(k&&k.trim()) body.erpApiKey=k.trim();
+    try{ const r=await fetch('/admin/produccion/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }catch(e){ alert(String(e.message||e)); }
+  };
+  if(g('cfErpSync')) g('cfErpSync').onclick=async()=>{
+    const st=g('cfErpStatus'); if(st) st.textContent='Sincronizando…';
+    try{ const r=await fetch('/admin/produccion/erp/sync',{method:'POST'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); if(st) st.textContent='Última sync: '+prodDT(d.ultimaSync)+' · '+(d.estado||''); setTimeout(loadProduccion,600); }
+    catch(e){ if(st) st.textContent='⚠ '+String(e.message||e); }
+  };
 }
 function prodLocal(v){ return v? new Date(v).toISOString() : null; }
 async function prodPatchLote(id,patch){
@@ -8770,7 +8822,7 @@ async function prodDelete(kind,id){
 }
 async function prodGuardarConfig(){
   const g=id=>document.getElementById(id);
-  const body={horasPorSemana:cNum(g('cfHoras').value),velNominalBarrilLh:cNum(g('cfBarril').value),velNominalLataLh:cNum(g('cfLata').value),cicloCoccionEstandarH:parseFloat(g('cfCiclo').value)||4.2,leadTimeMinDias:cNum(g('cfLead').value),incluirLimpiezaEnDisponibilidad:g('cfLimp').checked};
+  const body={horasPorSemana:cNum(g('cfHoras').value),velNominalBarrilLh:cNum(g('cfBarril').value),velNominalBarril20:cNum(g('cfB20').value),velNominalBarril30:cNum(g('cfB30').value),velNominalLata:cNum(g('cfLata').value),velNominalLataLh:cNum(g('cfLata').value),cicloCoccionEstandarH:parseFloat(g('cfCiclo').value)||4.2,leadTimeObjetivoDias:cNum(g('cfLeadObj').value),leadTimeMinDias:cNum(g('cfLead').value),incluirLimpiezaEnDisponibilidad:g('cfLimp').checked};
   try{ const r=await fetch('/admin/produccion/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); const e=g('cfErr'); e.textContent='✓ guardado'; e.classList.add('show'); e.style.color='#2e9c5a'; }
   catch(e){ const el=g('cfErr'); el.textContent='⚠ '+String(e.message||e); el.classList.add('show'); }
 }

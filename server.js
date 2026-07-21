@@ -3451,7 +3451,18 @@ const PROD_ETAPAS = ['Molienda', 'Maceración', 'Separación/lavado', 'Hervido',
 const PROD_LIMPIEZA_TIPOS = ['CIP_fermentador', 'brewhouse', 'general', 'tanques'];
 const PROD_CENTROS = ['brewhouse', 'fermentacion', 'envasado'];
 const PROD_PARADA_CAT = ['falla', 'espera', 'insumo', 'energia', 'otro'];
-const PROD_CONFIG_DEF = { horasPorSemana: 40, velNominalBarrilLh: 1000, velNominalLataLh: 83, cicloCoccionEstandarH: 4.2, leadTimeMinDias: 27, incluirLimpiezaEnDisponibilidad: true };
+const PROD_CONFIG_DEF = {
+  horasPorSemana: 40, velNominalBarrilLh: 1000, velNominalLataLh: 83, cicloCoccionEstandarH: 4.2, leadTimeMinDias: 27, incluirLimpiezaEnDisponibilidad: true,
+  // Fase 2 (prompt #2): fecha proyectada de envasado + velocidades por formato + integración ERP.
+  leadTimeObjetivoDias: 27, leadTimeObjetivoPorEstilo: {}, coloresPorEstilo: {},
+  velNominalBarril20: 1000, velNominalBarril30: 1000, velNominalLata: 83,
+  erpBaseUrl: '', erpApiKey: '', erpLastSync: null, erpLastStatus: '',
+};
+// Lead time objetivo de un estilo (o el global). Base para la fecha proyectada de envasado.
+function prodLeadObjetivo(cfg, estilo){
+  const porEst = (cfg.leadTimeObjetivoPorEstilo || {})[String(estilo || '').toLowerCase().trim()];
+  return prodNum(porEst) || prodNum(cfg.leadTimeObjetivoDias) || 27;
+}
 function prodSeedTanques(){
   const t = [];
   for (let i = 1; i <= 10; i++) t.push({ id: 'F' + i, capacidadL: 1000, estado: 'vacio', loteActualId: null });
@@ -3477,20 +3488,105 @@ function prodDiasOcup(lote){
   if (!Number.isFinite(ini)) return 0;
   return Math.max(0, Math.round((fin - ini) / 86400000));
 }
+// Litros ya envasados de un lote (suma de líneas de envasado, buenos + rechazados).
+function prodLitrosEnvasados(lote){ return (lote.envasados || []).reduce((a, e) => a + (prodNum(e.litrosBuenos) + prodNum(e.litrosRechazados)), 0); }
 function prodDecorate(d){
-  const byId = Object.fromEntries(d.lotes.map(l => [l.id, l]));
+  const cfg = d.config; const byId = Object.fromEntries(d.lotes.map(l => [l.id, l]));
+  const DAY = 86400000;
   const tanques = d.tanques.map(t => {
     const lote = t.loteActualId ? byId[t.loteActualId] : null;
-    return { ...t, lote: lote ? { id: lote.id, codigo: lote.codigo, producto: lote.producto, estilo: lote.estilo, estado: lote.estado, diasOcup: prodDiasOcup(lote), volumenEsperadoL: lote.volumenEsperadoL } : null };
+    let li = null;
+    if (lote) {
+      const cap = t.capacidadL;
+      const litrosBase = prodNum(lote.volumenRealL) || prodNum(lote.volumenEsperadoL) || 0;
+      const litrosActuales = Math.max(0, litrosBase - prodLitrosEnvasados(lote));
+      const lead = prodLeadObjetivo(cfg, lote.estilo);
+      const proy = lote.fechaCoccion ? new Date(new Date(lote.fechaCoccion).getTime() + lead * DAY) : null;
+      const diasRestantes = proy ? Math.ceil((proy.getTime() - Date.now()) / DAY) : null;
+      const sobreEstadia = (proy && !lote.fechaEnvasado && Date.now() > proy.getTime()) ? Math.floor((Date.now() - proy.getTime()) / DAY) : 0;
+      li = {
+        id: lote.id, codigo: lote.codigo, producto: lote.producto, estilo: lote.estilo, estado: lote.estado,
+        diasOcup: prodDiasOcup(lote), volumenEsperadoL: lote.volumenEsperadoL, litrosActuales, nivelPct: cap ? Math.round(litrosActuales / cap * 100) : 0,
+        color: lote.color || (cfg.coloresPorEstilo || {})[String(lote.estilo || '').toLowerCase().trim()] || '',
+        fechaCoccion: lote.fechaCoccion, fechaProyEnvasado: proy ? proy.toISOString() : null, diasRestantes, sobreEstadia, leadObjetivo: lead,
+      };
+    }
+    return { ...t, estado: t.loteActualId ? 'ocupado' : (t.sucio ? 'sucio' : 'vacio'), lote: li };
   });
-  const lotes = d.lotes.map(l => ({ ...l, diasOcup: prodDiasOcup(l), leadTimeDias: (l.fechaEnvasado && l.fechaCoccion) ? Math.max(0, Math.round((new Date(l.fechaEnvasado) - new Date(l.fechaCoccion)) / 86400000)) : null }));
-  return { config: d.config, tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, meta: { etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT } };
+  const lotes = d.lotes.map(l => ({ ...l, diasOcup: prodDiasOcup(l), litrosEnvasados: prodLitrosEnvasados(l), leadTimeDias: (l.fechaEnvasado && l.fechaCoccion) ? Math.max(0, Math.round((new Date(l.fechaEnvasado) - new Date(l.fechaCoccion)) / DAY)) : null }));
+  return { config: prodConfigSafe(cfg), tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, meta: { etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT } };
 }
+// Config para el front: la API key nunca se envía, solo si está configurada.
+function prodConfigSafe(cfg){ const c = { ...cfg }; c.erpApiKeySet = !!(cfg.erpApiKey || process.env.GESTION_CERVECERA_API_KEY); delete c.erpApiKey; return c; }
 app.get('/admin/produccion', requireAdmin, (req, res) => { res.json(prodDecorate(prodLoad())); });
 app.put('/admin/produccion/config', requireAdmin, (req, res) => {
-  const b = req.body || {}; const d = prodLoad();
-  d.config = { horasPorSemana: prodNum(b.horasPorSemana) || PROD_CONFIG_DEF.horasPorSemana, velNominalBarrilLh: prodNum(b.velNominalBarrilLh) || PROD_CONFIG_DEF.velNominalBarrilLh, velNominalLataLh: prodNum(b.velNominalLataLh) || PROD_CONFIG_DEF.velNominalLataLh, cicloCoccionEstandarH: prodNum(b.cicloCoccionEstandarH) || PROD_CONFIG_DEF.cicloCoccionEstandarH, leadTimeMinDias: prodNum(b.leadTimeMinDias) || PROD_CONFIG_DEF.leadTimeMinDias, incluirLimpiezaEnDisponibilidad: b.incluirLimpiezaEnDisponibilidad !== false };
-  prodSave(d); res.json({ ok: true, config: d.config });
+  const b = req.body || {}; const d = prodLoad(); const c = { ...d.config };
+  const numOr = (v, def) => prodNum(v) || def;
+  c.horasPorSemana = numOr(b.horasPorSemana, PROD_CONFIG_DEF.horasPorSemana);
+  c.velNominalBarrilLh = numOr(b.velNominalBarrilLh, PROD_CONFIG_DEF.velNominalBarrilLh);
+  c.velNominalLataLh = numOr(b.velNominalLataLh, PROD_CONFIG_DEF.velNominalLataLh);
+  c.velNominalBarril20 = numOr(b.velNominalBarril20, c.velNominalBarril20 || PROD_CONFIG_DEF.velNominalBarril20);
+  c.velNominalBarril30 = numOr(b.velNominalBarril30, c.velNominalBarril30 || PROD_CONFIG_DEF.velNominalBarril30);
+  c.velNominalLata = numOr(b.velNominalLata, c.velNominalLata || PROD_CONFIG_DEF.velNominalLata);
+  c.cicloCoccionEstandarH = numOr(b.cicloCoccionEstandarH, PROD_CONFIG_DEF.cicloCoccionEstandarH);
+  c.leadTimeMinDias = numOr(b.leadTimeMinDias, PROD_CONFIG_DEF.leadTimeMinDias);
+  c.leadTimeObjetivoDias = numOr(b.leadTimeObjetivoDias, PROD_CONFIG_DEF.leadTimeObjetivoDias);
+  if (b.incluirLimpiezaEnDisponibilidad !== undefined) c.incluirLimpiezaEnDisponibilidad = b.incluirLimpiezaEnDisponibilidad !== false;
+  if (b.leadTimeObjetivoPorEstilo && typeof b.leadTimeObjetivoPorEstilo === 'object') c.leadTimeObjetivoPorEstilo = b.leadTimeObjetivoPorEstilo;
+  if (b.coloresPorEstilo && typeof b.coloresPorEstilo === 'object') c.coloresPorEstilo = b.coloresPorEstilo;
+  if (b.erpBaseUrl != null) c.erpBaseUrl = prodStr(b.erpBaseUrl, 300);
+  // La API key solo se actualiza si viene un valor no vacío; si mandan '' se deja como está.
+  if (typeof b.erpApiKey === 'string' && b.erpApiKey.trim()) c.erpApiKey = b.erpApiKey.trim().slice(0, 300);
+  if (b.erpApiKey === null) c.erpApiKey = ''; // null explícito = borrar
+  d.config = c; prodSave(d); res.json({ ok: true, config: prodConfigSafe(c) });
+});
+// Marcar limpieza de un tanque desde su tarjeta: registra un CIP y lo deja "vacío".
+app.post('/admin/produccion/tanque/:id/limpiar', requireAdmin, (req, res) => {
+  const d = prodLoad(); const t = d.tanques.find(x => x.id === req.params.id);
+  if (!t) return res.status(404).json({ error: 'Tanque no encontrado.' });
+  const now = new Date().toISOString();
+  d.limpiezas.push({ id: prodNewId('cip'), tipo: 'CIP_fermentador', centroTrabajo: 'fermentacion', ref: t.id, inicio: now, fin: now, editadoManual: false });
+  t.sucio = false; prodSyncTanques(d); prodSave(d); res.json({ ok: true });
+});
+// ── Integración ERP "Gestión Cervecera" (capa de servicio + sync) ──
+// Adaptador: dejá listos los endpoints reales de la doc del ERP. Por ahora hace un
+// ping a erpBaseUrl y devuelve el estado; el merge por loteId respeta lo manual.
+function prodErpKey(cfg){ return cfg.erpApiKey || process.env.GESTION_CERVECERA_API_KEY || ''; }
+async function prodErpCall(cfg, path){
+  const base = String(cfg.erpBaseUrl || '').replace(/\/$/, ''); const key = prodErpKey(cfg);
+  if (!base || !key) return { configured: false, ok: false, error: 'ERP no configurado (falta URL o API key).' };
+  try {
+    const r = await fetch(base + path, { headers: { 'Authorization': 'Bearer ' + key, 'Accept': 'application/json' } });
+    if (!r.ok) return { configured: true, ok: false, error: 'ERP respondió ' + r.status };
+    return { configured: true, ok: true, data: await r.json().catch(() => null) };
+  } catch (e) { return { configured: true, ok: false, error: String(e.message || e).slice(0, 160) }; }
+}
+app.get('/admin/produccion/erp/estado', requireAdmin, (req, res) => {
+  const cfg = prodLoad().config;
+  res.json({ configurado: !!(cfg.erpBaseUrl && prodErpKey(cfg)), baseUrl: cfg.erpBaseUrl || '', ultimaSync: cfg.erpLastSync || null, ultimoEstado: cfg.erpLastStatus || '' });
+});
+app.post('/admin/produccion/erp/sync', requireAdmin, async (req, res) => {
+  const d = prodLoad(); const cfg = d.config;
+  // Endpoints reales a completar según la doc del ERP (recetas/tanques/lotes/stock/ventas).
+  const recetas = await prodErpCall(cfg, '/api/recetas');
+  const lotes = await prodErpCall(cfg, '/api/lotes');
+  let msg;
+  if (!recetas.configured) msg = 'ERP no configurado';
+  else if (!recetas.ok && !lotes.ok) msg = 'Sin conexión: ' + (recetas.error || lotes.error || 'error');
+  else {
+    // Merge por loteId respetando lo manual (origen). Adaptador a completar con el shape real.
+    const remotos = Array.isArray(lotes.data) ? lotes.data : (lotes.data && lotes.data.lotes) || [];
+    let nuevos = 0, act = 0;
+    for (const rl of remotos) {
+      const lid = String(rl.id || rl.codigo || '').trim(); if (!lid) continue;
+      const ex = d.lotes.find(x => x.codigo === lid || x.erpId === lid);
+      if (!ex) { d.lotes.push({ id: prodNewId('lote'), erpId: lid, origen: 'erp', codigo: String(rl.codigo || lid), producto: String(rl.producto || ''), estilo: String(rl.estilo || ''), tanqueId: '', nBatches: 1, volumenEsperadoL: prodNum(rl.litros), volumenRealL: 0, fechaCoccion: rl.fechaCoccion || null, fechaFermInicio: null, fechaMadInicio: null, fechaEnvasado: rl.fechaEnvasado || null, estado: 'coccion', etapas: PROD_ETAPAS.map(nombre => ({ nombre, inicio: null, fin: null, editadoManual: false })), envasados: [] }); nuevos++; }
+      else { if (rl.fechaCoccion && !ex.fechaCoccion) { ex.fechaCoccion = rl.fechaCoccion; } if (rl.litros && !ex.volumenEsperadoL) { ex.volumenEsperadoL = prodNum(rl.litros); } act++; }
+    }
+    prodSyncTanques(d); msg = 'OK · ' + nuevos + ' nuevos, ' + act + ' actualizados';
+  }
+  cfg.erpLastSync = new Date().toISOString(); cfg.erpLastStatus = msg; prodSave(d);
+  res.json({ ok: true, ultimaSync: cfg.erpLastSync, estado: msg });
 });
 // Crear lote (cocción). Ocupa el tanque destino recién al cerrar la cocción.
 app.post('/admin/produccion/lote', requireAdmin, (req, res) => {
@@ -3518,6 +3614,7 @@ app.put('/admin/produccion/lote/:id', requireAdmin, (req, res) => {
   const cur = d.lotes[idx]; const b = req.body || {};
   const merged = { ...cur };
   ['codigo', 'producto', 'estilo', 'familia', 'notas'].forEach(k => { if (b[k] != null) merged[k] = prodStr(b[k], 80); });
+  if (b.color != null) merged.color = prodStr(b.color, 20);
   if (b.tanqueId != null) merged.tanqueId = prodStr(b.tanqueId, 10);
   if (b.nBatches != null) merged.nBatches = Math.max(1, Math.min(3, prodNum(b.nBatches)));
   if (b.volumenEsperadoL != null) merged.volumenEsperadoL = prodNum(b.volumenEsperadoL);
@@ -3532,7 +3629,8 @@ app.put('/admin/produccion/lote/:id', requireAdmin, (req, res) => {
     barriles20L: prodNum(ev.barriles20L), barriles30L: prodNum(ev.barriles30L), latasBuenas: prodNum(ev.latasBuenas), latasNivelBajo: prodNum(ev.latasNivelBajo), mermaTapas: prodNum(ev.mermaTapas), editadoManual: !!ev.editadoManual,
   }));
   d.lotes[idx] = merged;
-  // Sincronizar ocupación de tanques según estado/tanque del lote.
+  // Al envasar (transición a 'envasado'), el tanque queda sucio hasta su CIP.
+  if (merged.estado === 'envasado' && cur.estado !== 'envasado' && merged.tanqueId) { const t = d.tanques.find(x => x.id === merged.tanqueId); if (t) t.sucio = true; }
   prodSyncTanques(d);
   prodSave(d); res.json({ ok: true, lote: merged });
 });
@@ -3541,15 +3639,17 @@ app.delete('/admin/produccion/lote/:id', requireAdmin, (req, res) => {
   if (d.lotes.length === n) return res.status(404).json({ error: 'Lote no encontrado.' });
   prodSyncTanques(d); prodSave(d); res.json({ ok: true });
 });
-// Recalcula qué tanque ocupa cada lote: ocupado si el lote está en ferm/mad/listo (no envasado).
+// Recalcula qué tanque ocupa cada lote: ocupado si el lote está en ferm/mad/listo
+// (no envasado). Un lote envasado deja el tanque "sucio" hasta que se registre su CIP.
 function prodSyncTanques(d){
-  d.tanques.forEach(t => { t.loteActualId = null; t.estado = 'vacio'; });
+  d.tanques.forEach(t => { t.loteActualId = null; });
   for (const l of d.lotes) {
     if (!l.tanqueId) continue;
     const t = d.tanques.find(x => x.id === l.tanqueId); if (!t) continue;
-    const ocupa = ['fermentacion', 'maduracion', 'listo'].includes(l.estado);
-    if (ocupa && !t.loteActualId) { t.loteActualId = l.id; t.estado = 'ocupado'; }
+    if (['fermentacion', 'maduracion', 'listo'].includes(l.estado) && !t.loteActualId) t.loteActualId = l.id;
   }
+  // El flag t.sucio es persistente: se prende al envasar (transición) y se apaga con el CIP.
+  d.tanques.forEach(t => { t.estado = t.loteActualId ? 'ocupado' : (t.sucio ? 'sucio' : 'vacio'); });
 }
 // Limpiezas (paradas planificadas).
 app.post('/admin/produccion/limpieza', requireAdmin, (req, res) => {
