@@ -9512,14 +9512,17 @@ function prodWire(){
       const authTbl=(d.rutasAuth&&d.rutasAuth.length)?`<div class="est-note" style="margin-top:.5rem"><b>Páginas de datos (ya logueado):</b><div class="mun-wrap" style="margin-top:.3rem"><table class="mun-table"><thead><tr><th>Ruta</th><th>Status</th><th>Filas</th><th>Detecta</th></tr></thead><tbody>${auth}</tbody></table></div></div>`:'';
       const dp=(d.dataProbe||[]);
       const dpTxt=dp.length?('<div style="margin-top:.6rem"><b style="font-size:.8rem">⭐ Endpoints de datos probados (POST, ya logueado):</b>'+dp.map(x=>{ const ok=x.isJson&&x.len>50; return `<div style="margin-top:.3rem;${ok?'background:#e3f6ea;padding:.3rem;border-radius:6px':''}"><code>${escapeHtml(x.ep)}</code> · ${x.status||(x.error||'—')} · ${x.isJson?'JSON':'no-json'} · ${x.len||0} bytes${ok?`<textarea readonly style="width:100%;height:90px;font-family:ui-monospace,monospace;font-size:.66rem;margin-top:.2rem" onclick="this.select()">${escapeHtml(x.snippet||'')}</textarea>`:''}</div>`; }).join('')+'</div>'):'';
+      const rd=d.recetaDetalle||{};
+      const rdWin=(rd.resultados||[]).filter(x=>x.snippet&&x.len>50);
+      const rdTxt=(rd.resultados&&rd.resultados.length)?('<div style="margin-top:.6rem"><b style="font-size:.8rem">⭐ Detalle de receta (id '+escapeHtml(String(rd.idProbado))+'):</b>'+(rdWin.length?rdWin.map(x=>`<div style="margin-top:.3rem;background:#e3f6ea;padding:.3rem;border-radius:6px"><code>${escapeHtml(x.ep)}</code> (${escapeHtml(x.param)}) · ${x.status} · ${x.len} bytes<textarea readonly style="width:100%;height:120px;font-family:ui-monospace,monospace;font-size:.66rem;margin-top:.2rem" onclick="this.select()">${escapeHtml(x.snippet)}</textarea></div>`).join(''):('<div style="color:#c17a10;font-size:.74rem;margin-top:.2rem">Ninguno devolvió JSON. Probados: '+(rd.resultados||[]).map(x=>escapeHtml(x.ep)+':'+(x.status||x.error||'—')).join(', ')+'. Hacé la captura de red al abrir una receta.</div>'))+'</div>'):'';
       const muestras=d.muestras||{}, scripts=d.scripts||{};
       const muTxt=Object.entries(muestras).map(([k,v])=>`<div style="margin-top:.5rem"><b style="font-size:.78rem">Muestra HTML de ${escapeHtml(k)}:</b><textarea readonly style="width:100%;height:90px;font-family:ui-monospace,monospace;font-size:.68rem;margin-top:.2rem" onclick="this.select()">${escapeHtml(v)}</textarea></div>`).join('')
         +Object.entries(scripts).map(([k,v])=>`<div style="margin-top:.5rem"><b style="font-size:.78rem">⭐ Scripts/AJAX de ${escapeHtml(k)} (copiame ESTE — trae la URL de datos):</b><textarea readonly style="width:100%;height:150px;font-family:ui-monospace,monospace;font-size:.68rem;margin-top:.2rem" onclick="this.select()">${escapeHtml(v||'(sin scripts relevantes)')}</textarea></div>`).join('');
       box.innerHTML=`<div class="est-note" style="margin-top:.6rem">
         <b>${loginBadge}</b><br>
         <b>/login</b> · status ${L.status||'—'} · ${L.len||0} bytes · ¿form? ${L.tieneForm?'sí':'no'} · cookies: ${(L.setCookie||[]).map(escapeHtml).join(', ')||'—'}</div>
-        ${authTbl}${dpTxt}${muTxt}
-        <div class="est-note" style="margin-top:.4rem;color:#666">Copiame los cuadros verdes (⭐ endpoints de datos) — con ese JSON escribo la sync.</div>`;
+        ${authTbl}${dpTxt}${rdTxt}${muTxt}
+        <div class="est-note" style="margin-top:.4rem;color:#666">Copiame los cuadros verdes (⭐ endpoints de datos y ⭐ detalle de receta) — con ese JSON traigo la receta completa.</div>`;
     }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
   };
   if(g('cfErpDiag')) g('cfErpDiag').onclick=async()=>{

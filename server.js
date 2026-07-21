@@ -3836,6 +3836,28 @@ async function erpLoginDiag(cfg){
         } catch (e) { rep.dataProbe.push({ ep, status: 0, error: String(e.message).slice(0, 60) }); }
       }));
       rep.dataProbe.sort((a, b) => ((b.isJson && b.len > 50) ? 1 : 0) - ((a.isJson && a.len > 50) ? 1 : 0));
+      // Detalle de la receta completa (ingredientes/tareas): se descubre el endpoint
+      // probando por el id de la primera receta de /Receta/GetAll.
+      try {
+        const rec = await erpApiGetAll(base, '/Receta/GetAll', login.jar, '/Receta');
+        const first = (rec.data || [])[0]; const rid = first && (first.id != null ? first.id : first.idProducto);
+        rep.recetaDetalle = { idProbado: rid, resultados: [] };
+        if (rid != null) {
+          const eps = ['/Receta/Get', '/Receta/GetById', '/Receta/GetReceta', '/Receta/Detalle', '/Receta/GetDetalle', '/Receta/Edit', '/Receta/GetCompleta', '/Receta/GetMateriasPrimas', '/MateriaPrima/GetAll', '/Receta/GetTareas', '/Receta/GetIngredientes'];
+          await Promise.all(eps.map(async (ep) => {
+            for (const key of ['id', 'idReceta']) {
+              try {
+                const r = await erpFetch(base + ep, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Referer': base + '/Receta', 'Origin': base }, body: key + '=' + encodeURIComponent(rid) }, login.jar);
+                const ct = r.headers.get('content-type') || ''; let t = ''; try { t = await r.text(); } catch {}
+                const isJson = /json/i.test(ct) || /^\s*[[{]/.test(t);
+                if (r.status < 400 && isJson && t.length > 30) { rep.recetaDetalle.resultados.push({ ep, param: key, status: r.status, len: t.length, snippet: t.replace(/\s+/g, ' ').slice(0, 1400) }); return; }
+                rep.recetaDetalle.resultados.push({ ep, param: key, status: r.status, len: t.length, isJson });
+              } catch (e) { rep.recetaDetalle.resultados.push({ ep, param: key, error: String(e.message).slice(0, 50) }); }
+            }
+          }));
+          rep.recetaDetalle.resultados.sort((a, b) => ((b.snippet && b.len > 50) ? 1 : 0) - ((a.snippet && a.len > 50) ? 1 : 0));
+        }
+      } catch (e) { rep.recetaDetalle = { error: String(e.message).slice(0, 100) }; }
     }
   } catch (e) { rep.login.loginReal = { ok: false, error: String(e.message).slice(0, 120) }; }
   return rep;
