@@ -3451,6 +3451,16 @@ const PROD_ETAPAS = ['Molienda', 'Maceración', 'Separación/lavado', 'Hervido',
 const PROD_LIMPIEZA_TIPOS = ['CIP_fermentador', 'brewhouse', 'general', 'tanques'];
 const PROD_CENTROS = ['brewhouse', 'fermentacion', 'envasado'];
 const PROD_PARADA_CAT = ['falla', 'espera', 'insumo', 'energia', 'otro'];
+// Sedes físicas de producción ("Centros de Producción"). Vespucio es la única
+// CD propia, con el flujo completo de lotes/OEE ya construido; Lampa y
+// Franklin son maquila y por ahora solo se muestran como tablero de tanques
+// (Franklin es destilería: RTD y destilados, no fermentación de cerveza).
+const PROD_SEDES = [
+  { id: 'vespucio', nombre: 'CD Vespucio', modo: 'Propia', tipo: 'cerveceria' },
+  { id: 'lampa', nombre: 'CD Lampa', modo: 'Maquila', tipo: 'cerveceria' },
+  { id: 'franklin', nombre: 'CD Franklin', modo: 'Maquila', tipo: 'destileria' },
+];
+const PROD_INV_CATS = ['lata', 'tapa', 'etiqueta'];
 const PROD_CONFIG_DEF = {
   horasPorSemana: 40, nTrabajadores: 4, velNominalBarrilLh: 1000, velNominalLataLh: 83, cicloCoccionEstandarH: 4.2, leadTimeMinDias: 27, incluirLimpiezaEnDisponibilidad: true,
   // Fase 2 (prompt #2): fecha proyectada de envasado + velocidades por formato + integración ERP.
@@ -3465,17 +3475,45 @@ function prodLeadObjetivo(cfg, estilo){
 }
 function prodSeedTanques(){
   const t = [];
-  for (let i = 1; i <= 10; i++) t.push({ id: 'F' + i, capacidadL: 1000, estado: 'vacio', loteActualId: null });
-  for (let i = 1; i <= 4; i++) t.push({ id: 'T' + i, capacidadL: 4000, estado: 'vacio', loteActualId: null });
+  for (let i = 1; i <= 10; i++) t.push({ id: 'F' + i, capacidadL: 1000, estado: 'vacio', loteActualId: null, sede: 'vespucio' });
+  for (let i = 1; i <= 4; i++) t.push({ id: 'T' + i, capacidadL: 4000, estado: 'vacio', loteActualId: null, sede: 'vespucio' });
+  [10000, 7000, 7000, 3500].forEach((cap, i) => t.push({ id: 'LAM' + (i + 1), capacidadL: cap, estado: 'vacio', loteActualId: null, sede: 'lampa' }));
+  for (let i = 1; i <= 4; i++) t.push({ id: 'FRK' + i, capacidadL: 500, estado: 'vacio', loteActualId: null, sede: 'franklin' });
   return t;
+}
+// Backfill de `sede` en tanques guardados antes de "Centros de Producción" +
+// alta de los tanques de Lampa/Franklin si el archivo persistido no los tiene.
+// Solo muta en memoria; el caller decide si vale la pena persistir.
+function prodMigrarSedesTanques(d){
+  let changed = false;
+  for (const t of d.tanques) { if (!t.sede) { t.sede = 'vespucio'; changed = true; } }
+  for (const seed of prodSeedTanques()) {
+    if (seed.sede === 'vespucio') continue; // esos ya existen en cualquier archivo previo
+    if (!d.tanques.some(t => t.id === seed.id)) { d.tanques.push(seed); changed = true; }
+  }
+  return changed;
+}
+function prodInventarioDefaults(){
+  return { barriles: { sucios: 0, limpios: 0, actualizado: null, origen: 'manual' }, insumos: [] };
 }
 const prodStr = (v, m = 200) => String(v == null ? '' : v).trim().slice(0, m);
 const prodNum = (v) => { const n = Number(String(v == null ? '' : v).replace(/[^\d.-]/g, '')); return Number.isFinite(n) ? n : 0; };
 const prodTs = (v) => { const s = prodStr(v, 40); return s || null; }; // ISO timestamp del cliente
 function prodLoad(){
-  let d = { config: { ...PROD_CONFIG_DEF }, tanques: prodSeedTanques(), lotes: [], limpiezas: [], paradas: [], recetas: [] };
-  try { if (existsSync(PROD_FILE)) { const p = JSON.parse(readFileSync(PROD_FILE, 'utf-8')); d.config = { ...PROD_CONFIG_DEF, ...(p.config || {}) }; if (Array.isArray(p.tanques) && p.tanques.length) d.tanques = p.tanques; if (Array.isArray(p.lotes)) d.lotes = p.lotes; if (Array.isArray(p.limpiezas)) d.limpiezas = p.limpiezas; if (Array.isArray(p.paradas)) d.paradas = p.paradas; if (Array.isArray(p.recetas)) d.recetas = p.recetas; } }
-  catch (e) { console.warn('produccion load:', e.message); }
+  let d = { config: { ...PROD_CONFIG_DEF }, tanques: prodSeedTanques(), lotes: [], limpiezas: [], paradas: [], recetas: [], inventario: prodInventarioDefaults() };
+  try {
+    if (existsSync(PROD_FILE)) {
+      const p = JSON.parse(readFileSync(PROD_FILE, 'utf-8'));
+      d.config = { ...PROD_CONFIG_DEF, ...(p.config || {}) };
+      if (Array.isArray(p.tanques) && p.tanques.length) d.tanques = p.tanques;
+      if (Array.isArray(p.lotes)) d.lotes = p.lotes;
+      if (Array.isArray(p.limpiezas)) d.limpiezas = p.limpiezas;
+      if (Array.isArray(p.paradas)) d.paradas = p.paradas;
+      if (Array.isArray(p.recetas)) d.recetas = p.recetas;
+      if (p.inventario && typeof p.inventario === 'object') d.inventario = { ...prodInventarioDefaults(), ...p.inventario, barriles: { ...prodInventarioDefaults().barriles, ...(p.inventario.barriles || {}) } };
+    }
+  } catch (e) { console.warn('produccion load:', e.message); }
+  prodMigrarSedesTanques(d);
   return d;
 }
 function prodSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(PROD_FILE, JSON.stringify(d, null, 2)); }
@@ -3546,8 +3584,10 @@ function prodNormalizeRecetas(d){
 }
 function prodDecorate(d){
   const cfg = d.config; const byId = Object.fromEntries(d.lotes.map(l => [l.id, l]));
+  const sedeById = Object.fromEntries(PROD_SEDES.map(s => [s.id, s]));
   const DAY = 86400000;
   const tanques = d.tanques.map(t => {
+    const sede = sedeById[t.sede || 'vespucio'] || sedeById.vespucio;
     const lote = t.loteActualId ? byId[t.loteActualId] : null;
     let li = null;
     if (lote) {
@@ -3565,14 +3605,29 @@ function prodDecorate(d){
         fechaCoccion: lote.fechaCoccion, fechaProyEnvasado: proy ? proy.toISOString() : null, diasRestantes, sobreEstadia, leadObjetivo: lead,
       };
     }
-    return { ...t, estado: t.loteActualId ? 'ocupado' : (t.sucio ? 'sucio' : 'vacio'), lote: li };
+    return { ...t, sede: sede.id, tipo: sede.tipo, estado: t.loteActualId ? 'ocupado' : (t.sucio ? 'sucio' : 'vacio'), lote: li };
   });
   const lotes = d.lotes.map(l => { const base = prodVolumenBase(l); const env = prodLitrosEnvasados(l); return { ...l, diasOcup: prodDiasOcup(l), volumenBaseL: base, litrosEnvasados: env, litrosRestantes: Math.max(0, base - env), rendEnvasado: prodRendEnvasado(l, cfg), leadTimeDias: (l.fechaEnvasado && l.fechaCoccion) ? Math.max(0, Math.round((new Date(l.fechaEnvasado) - new Date(l.fechaCoccion)) / DAY)) : null }; });
-  return { config: prodConfigSafe(cfg), tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, recetas: d.recetas || [], meta: { etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT, formatos: PROD_FORMATOS } };
+  return { config: prodConfigSafe(cfg), tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, recetas: d.recetas || [], inventario: prodDecorarInventario(d.inventario), meta: { etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT, formatos: PROD_FORMATOS, sedes: PROD_SEDES, invCategorias: PROD_INV_CATS } };
+}
+// Suma valorTotal (cantidad × costo unitario) por ítem y totales por categoría.
+function prodDecorarInventario(inv){
+  const base = inv || prodInventarioDefaults();
+  const insumos = (base.insumos || []).map(x => ({ ...x, valorTotal: Math.round(prodNum(x.cantidad) * prodNum(x.costoUnitario) * 100) / 100 }));
+  const totalesPorCategoria = {};
+  for (const cat of PROD_INV_CATS) totalesPorCategoria[cat] = Math.round(insumos.filter(x => x.categoria === cat).reduce((a, x) => a + x.valorTotal, 0) * 100) / 100;
+  const valorTotalInsumos = Math.round(insumos.reduce((a, x) => a + x.valorTotal, 0) * 100) / 100;
+  return { barriles: base.barriles || prodInventarioDefaults().barriles, insumos, totalesPorCategoria, valorTotalInsumos };
 }
 // Config para el front: la clave del ERP nunca se envía, solo si está configurada.
 function prodConfigSafe(cfg){ const c = { ...cfg }; c.erpUsuarioSet = !!(cfg.erpUsuario || process.env.GC_USUARIO); c.erpClaveSet = !!(cfg.erpClave || process.env.GC_CLAVE); c.erpApiKeySet = !!(cfg.erpApiKey || process.env.GESTION_CERVECERA_API_KEY); c.erpUsuario = cfg.erpUsuario || ''; delete c.erpClave; delete c.erpApiKey; return c; }
-app.get('/admin/produccion', requireAdmin, (req, res) => { const d = prodLoad(); if (prodNormalizeRecetas(d)) prodSave(d); res.json(prodDecorate(d)); });
+app.get('/admin/produccion', requireAdmin, (req, res) => {
+  const d = prodLoad();
+  let changed = prodNormalizeRecetas(d);
+  if (prodMigrarSedesTanques(d)) changed = true;
+  if (changed) prodSave(d);
+  res.json(prodDecorate(d));
+});
 app.put('/admin/produccion/config', requireAdmin, (req, res) => {
   const b = req.body || {}; const d = prodLoad(); const c = { ...d.config };
   const numOr = (v, def) => prodNum(v) || def;
@@ -4062,6 +4117,37 @@ app.put('/admin/produccion/parada/:id', requireAdmin, (req, res) => {
   prodSave(d); res.json({ ok: true, parada: it });
 });
 app.delete('/admin/produccion/parada/:id', requireAdmin, (req, res) => { const d = prodLoad(); const n = d.paradas.length; d.paradas = d.paradas.filter(x => x.id !== req.params.id); if (d.paradas.length === n) return res.status(404).json({ error: 'No encontrada.' }); prodSave(d); res.json({ ok: true }); });
+// ── Inventario de producción: barriles (sucios/limpios) + insumos de envasado
+// (latas, tapas, etiquetas por diseño) con cantidad y valor monetario. Los
+// barriles hoy se cuentan a mano — queda pendiente la lectura en vivo desde
+// Gestión Cervecera (ERP), que aún no expone esa data.
+app.put('/admin/produccion/inventario/barriles', requireAdmin, (req, res) => {
+  const b = req.body || {}; const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  d.inventario.barriles = { sucios: Math.max(0, Math.round(prodNum(b.sucios))), limpios: Math.max(0, Math.round(prodNum(b.limpios))), actualizado: new Date().toISOString(), origen: 'manual' };
+  prodSave(d); res.json({ ok: true, barriles: d.inventario.barriles });
+});
+app.post('/admin/produccion/inventario/insumo', requireAdmin, (req, res) => {
+  const b = req.body || {}; const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  const nombre = prodStr(b.nombre, 80); if (!nombre) return res.status(400).json({ error: 'Falta el nombre/diseño.' });
+  const it = { id: prodNewId('ins'), categoria: PROD_INV_CATS.includes(prodStr(b.categoria)) ? prodStr(b.categoria) : 'lata', nombre, cantidad: Math.max(0, Math.round(prodNum(b.cantidad))), costoUnitario: Math.max(0, prodNum(b.costoUnitario)) };
+  d.inventario.insumos.push(it); prodSave(d); res.json({ ok: true, insumo: it });
+});
+app.put('/admin/produccion/inventario/insumo/:id', requireAdmin, (req, res) => {
+  const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  const it = d.inventario.insumos.find(x => x.id === req.params.id); if (!it) return res.status(404).json({ error: 'No encontrado.' });
+  const b = req.body || {};
+  if (b.categoria != null && PROD_INV_CATS.includes(prodStr(b.categoria))) it.categoria = prodStr(b.categoria);
+  if (b.nombre != null) it.nombre = prodStr(b.nombre, 80);
+  if (b.cantidad != null) it.cantidad = Math.max(0, Math.round(prodNum(b.cantidad)));
+  if (b.costoUnitario != null) it.costoUnitario = Math.max(0, prodNum(b.costoUnitario));
+  prodSave(d); res.json({ ok: true, insumo: it });
+});
+app.delete('/admin/produccion/inventario/insumo/:id', requireAdmin, (req, res) => {
+  const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  const n = d.inventario.insumos.length; d.inventario.insumos = d.inventario.insumos.filter(x => x.id !== req.params.id);
+  if (d.inventario.insumos.length === n) return res.status(404).json({ error: 'No encontrado.' });
+  prodSave(d); res.json({ ok: true });
+});
 // ── Recetas teóricas (D) ── ERP (scraping/sync) + complemento local. La receta
 // define litros esperados por formato y tiempos estándar por etapa → base de la
 // Calidad (merma = 1 − real/esperado) y del Rendimiento teórico. Enlace por recetaId.
@@ -4284,7 +4370,9 @@ function prodMermaPorLote(d, desde, hasta){
 // Ocupación de tanques: utilización % (tanque-días ocupados / disponibles) y lotes
 // en sobre-estadía (pasan la fecha proyectada de envasado sin envasarse).
 function prodOcupacion(d, cfg, desde, hasta){
-  const nT = (d.tanques || []).length || 1;
+  // El OEE de fermentadores mide solo la CD propia (Vespucio); Lampa/Franklin
+  // son maquila y no forman parte de este flujo de lotes.
+  const nT = (d.tanques || []).filter(t => (t.sede || 'vespucio') === 'vespucio').length || 1;
   const winDias = Math.max(0.01, (hasta.getTime() - desde.getTime()) / DAY_MS);
   const disponiblesTD = nT * winDias;
   let ocupadosTD = 0;
@@ -4394,6 +4482,29 @@ function calidadLoad(){
 }
 function calidadSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(CALIDAD_FILE, JSON.stringify(d, null, 2)); }
 function calidadCleanResumen(x){ x = x || {}; const s = (v) => prodStr(v, 800); return { apariencia: s(x.apariencia), aroma: s(x.aroma), sabor: s(x.sabor), sensacionBoca: s(x.sensacionBoca), conclusion: s(x.conclusion) }; }
+// Únicos SKUs de Shopify que Producción realmente elabora (no camisetas, vasos,
+// packs mixtos u otro merch con vendor "Kairos"). Módulo de Calidad = solo esto.
+const PROD_CALIDAD_SKUS = [
+  { id: 'nada-personal', kw: ['nada personal'] },
+  { id: 'galactic-mission', kw: ['galactic'] },
+  { id: 'alerta-roja', kw: ['alerta roja'] },
+  { id: 'secret-lab', kw: ['secret lab'] },
+  { id: 'imperio-perdido', kw: ['imperio perdido'] },
+  { id: 'obertura', kw: ['obertura'] },
+  { id: 'kenny-bell', kw: ['kenny bell'] },
+  { id: 'hoyo-en-uno', kw: ['hoyo en uno'] },
+  { id: 'samba', kw: ['samba'] },
+  { id: 'ritual-de-la-banana', kw: ['ritual de la banana'] },
+  { id: 'goodbye-my-lover', kw: ['goodbye my lover', 'goodbye'] },
+  { id: 'goat-father', kw: ['goat father'] },
+  { id: 'gin-contemporaneo', kw: ['contemporáneo', 'contemporaneo'] },
+  { id: 'gin-london-dry', kw: ['london dry'] },
+  { id: 'ron-carta-blanca', kw: ['carta blanca'] },
+];
+function prodEsSkuControlado(title){
+  const t = String(title || '').toLowerCase();
+  return PROD_CALIDAD_SKUS.some(s => s.kw.some(k => t.includes(k)));
+}
 // Catálogo de cervezas: reúne recetas (nombre+estilo) + Shopify (nombre+imagen de
 // lata, best-effort) + cervezas referenciadas + overrides/manuales. Clave = slug.
 async function prodCatalogoCervezas(cd){
@@ -4410,7 +4521,7 @@ async function prodCatalogoCervezas(cd){
   for (const r of (pd.recetas || [])) add(r.nombre, r.estilo, ''); // recetas (reutilizado)
   try { // Shopify (best-effort): cervezas Kairos con su imagen de lata
     const prods = await loadProductsCache();
-    for (const p of (prods || [])) { if (!/kairos/i.test(p.vendor || '')) continue; add(p.title, p.type || '', p.image || ''); }
+    for (const p of (prods || [])) { if (!/kairos/i.test(p.vendor || '')) continue; if (!prodEsSkuControlado(p.title)) continue; add(p.title, p.type || '', p.image || ''); }
   } catch (e) { /* Shopify no disponible (sandbox/sin token): se sigue con recetas + overrides */ }
   for (const arr of [cd.registros, cd.retros, cd.memorias]) for (const x of (arr || [])) add((cd.cervezas[x.cervezaId] && cd.cervezas[x.cervezaId].nombre) || x.cervezaNombre || x.cervezaId, x.estilo, '');
   for (const [id, ov] of Object.entries(cd.cervezas || {})) { const ex = map.get(id) || { cervezaId: id, nombre: ov.nombre || id, estilo: '', imagen: '', origen: 'manual' }; if (ov.nombre) ex.nombre = ov.nombre; if (ov.estilo) ex.estilo = ov.estilo; if (ov.imagen) ex.imagen = ov.imagen; map.set(id, ex); }
