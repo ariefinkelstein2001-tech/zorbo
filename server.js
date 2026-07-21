@@ -3442,6 +3442,140 @@ app.get('/admin/nomina/export.xlsx', requireAdmin, (req, res) => {
   } catch (e) { res.status(500).send('Error: ' + String(e.message || e).slice(0, 200)); }
 });
 
+// ─── PRODUCCIÓN & OEE (Fase 1: núcleo de registro) ──────────────────────────
+// Tablero de tanques + lotes (cocción por etapas) + envasado + limpiezas +
+// paradas. Todo editable. Persistencia JSON. El OEE (Fase 2) se calcula sobre
+// estos registros. Diseñado para uso en planta: inicio/fin, pocos toques.
+const PROD_FILE = join(PROMPTS_EFFECTIVE_DIR, 'produccion.json');
+const PROD_ETAPAS = ['Molienda', 'Maceración', 'Separación/lavado', 'Hervido', 'Whirlpool', 'Enfriamiento'];
+const PROD_LIMPIEZA_TIPOS = ['CIP_fermentador', 'brewhouse', 'general', 'tanques'];
+const PROD_CENTROS = ['brewhouse', 'fermentacion', 'envasado'];
+const PROD_PARADA_CAT = ['falla', 'espera', 'insumo', 'energia', 'otro'];
+const PROD_CONFIG_DEF = { horasPorSemana: 40, velNominalBarrilLh: 1000, velNominalLataLh: 83, cicloCoccionEstandarH: 4.2, leadTimeMinDias: 27, incluirLimpiezaEnDisponibilidad: true };
+function prodSeedTanques(){
+  const t = [];
+  for (let i = 1; i <= 10; i++) t.push({ id: 'F' + i, capacidadL: 1000, estado: 'vacio', loteActualId: null });
+  for (let i = 1; i <= 4; i++) t.push({ id: 'T' + i, capacidadL: 4000, estado: 'vacio', loteActualId: null });
+  return t;
+}
+const prodStr = (v, m = 200) => String(v == null ? '' : v).trim().slice(0, m);
+const prodNum = (v) => { const n = Number(String(v == null ? '' : v).replace(/[^\d.-]/g, '')); return Number.isFinite(n) ? n : 0; };
+const prodTs = (v) => { const s = prodStr(v, 40); return s || null; }; // ISO timestamp del cliente
+function prodLoad(){
+  let d = { config: { ...PROD_CONFIG_DEF }, tanques: prodSeedTanques(), lotes: [], limpiezas: [], paradas: [] };
+  try { if (existsSync(PROD_FILE)) { const p = JSON.parse(readFileSync(PROD_FILE, 'utf-8')); d.config = { ...PROD_CONFIG_DEF, ...(p.config || {}) }; if (Array.isArray(p.tanques) && p.tanques.length) d.tanques = p.tanques; if (Array.isArray(p.lotes)) d.lotes = p.lotes; if (Array.isArray(p.limpiezas)) d.limpiezas = p.limpiezas; if (Array.isArray(p.paradas)) d.paradas = p.paradas; } }
+  catch (e) { console.warn('produccion load:', e.message); }
+  return d;
+}
+function prodSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(PROD_FILE, JSON.stringify(d, null, 2)); }
+function prodNewId(pfx){ COSTOS_ID_SEQ = (COSTOS_ID_SEQ + 1) % 100000; return pfx + '_' + Date.now().toString(36) + '_' + COSTOS_ID_SEQ.toString(36); }
+// Días de ocupación de un tanque por su lote (hoy − fechaFermInicio, o fechaEnvasado − fechaFermInicio).
+function prodDiasOcup(lote){
+  if (!lote || !lote.fechaFermInicio) return 0;
+  const ini = new Date(lote.fechaFermInicio).getTime();
+  const fin = lote.fechaEnvasado ? new Date(lote.fechaEnvasado).getTime() : Date.now();
+  if (!Number.isFinite(ini)) return 0;
+  return Math.max(0, Math.round((fin - ini) / 86400000));
+}
+function prodDecorate(d){
+  const byId = Object.fromEntries(d.lotes.map(l => [l.id, l]));
+  const tanques = d.tanques.map(t => {
+    const lote = t.loteActualId ? byId[t.loteActualId] : null;
+    return { ...t, lote: lote ? { id: lote.id, codigo: lote.codigo, producto: lote.producto, estilo: lote.estilo, estado: lote.estado, diasOcup: prodDiasOcup(lote), volumenEsperadoL: lote.volumenEsperadoL } : null };
+  });
+  const lotes = d.lotes.map(l => ({ ...l, diasOcup: prodDiasOcup(l), leadTimeDias: (l.fechaEnvasado && l.fechaCoccion) ? Math.max(0, Math.round((new Date(l.fechaEnvasado) - new Date(l.fechaCoccion)) / 86400000)) : null }));
+  return { config: d.config, tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, meta: { etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT } };
+}
+app.get('/admin/produccion', requireAdmin, (req, res) => { res.json(prodDecorate(prodLoad())); });
+app.put('/admin/produccion/config', requireAdmin, (req, res) => {
+  const b = req.body || {}; const d = prodLoad();
+  d.config = { horasPorSemana: prodNum(b.horasPorSemana) || PROD_CONFIG_DEF.horasPorSemana, velNominalBarrilLh: prodNum(b.velNominalBarrilLh) || PROD_CONFIG_DEF.velNominalBarrilLh, velNominalLataLh: prodNum(b.velNominalLataLh) || PROD_CONFIG_DEF.velNominalLataLh, cicloCoccionEstandarH: prodNum(b.cicloCoccionEstandarH) || PROD_CONFIG_DEF.cicloCoccionEstandarH, leadTimeMinDias: prodNum(b.leadTimeMinDias) || PROD_CONFIG_DEF.leadTimeMinDias, incluirLimpiezaEnDisponibilidad: b.incluirLimpiezaEnDisponibilidad !== false };
+  prodSave(d); res.json({ ok: true, config: d.config });
+});
+// Crear lote (cocción). Ocupa el tanque destino recién al cerrar la cocción.
+app.post('/admin/produccion/lote', requireAdmin, (req, res) => {
+  const b = req.body || {}; const d = prodLoad();
+  const codigo = prodStr(b.codigo, 40);
+  if (!codigo) return res.status(400).json({ error: 'Ingresá el código del lote.' });
+  const tanqueId = prodStr(b.tanqueId, 10);
+  const tanque = d.tanques.find(t => t.id === tanqueId);
+  if (tanqueId && !tanque) return res.status(400).json({ error: 'Tanque inválido.' });
+  const lote = {
+    id: prodNewId('lote'), codigo, producto: prodStr(b.producto, 80), estilo: prodStr(b.estilo, 60), familia: prodStr(b.familia, 40),
+    tanqueId: tanqueId || '', nBatches: Math.max(1, Math.min(3, prodNum(b.nBatches) || 1)),
+    volumenEsperadoL: prodNum(b.volumenEsperadoL), volumenRealL: 0,
+    fechaCoccion: prodTs(b.fechaCoccion) || new Date().toISOString(), fechaFermInicio: null, fechaMadInicio: null, fechaEnvasado: null,
+    estado: 'coccion', viabilidadLevaduraPct: null,
+    etapas: PROD_ETAPAS.map(nombre => ({ nombre, inicio: null, fin: null, editadoManual: false })),
+    envasados: [], notas: prodStr(b.notas, 300),
+  };
+  d.lotes.push(lote); prodSave(d); res.json({ ok: true, lote });
+});
+// Actualizar lote (etapas, fechas, estado, volumen, notas). El front manda el lote completo.
+app.put('/admin/produccion/lote/:id', requireAdmin, (req, res) => {
+  const d = prodLoad(); const idx = d.lotes.findIndex(l => l.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'Lote no encontrado.' });
+  const cur = d.lotes[idx]; const b = req.body || {};
+  const merged = { ...cur };
+  ['codigo', 'producto', 'estilo', 'familia', 'notas'].forEach(k => { if (b[k] != null) merged[k] = prodStr(b[k], 80); });
+  if (b.tanqueId != null) merged.tanqueId = prodStr(b.tanqueId, 10);
+  if (b.nBatches != null) merged.nBatches = Math.max(1, Math.min(3, prodNum(b.nBatches)));
+  if (b.volumenEsperadoL != null) merged.volumenEsperadoL = prodNum(b.volumenEsperadoL);
+  if (b.volumenRealL != null) merged.volumenRealL = prodNum(b.volumenRealL);
+  ['fechaCoccion', 'fechaFermInicio', 'fechaMadInicio', 'fechaEnvasado'].forEach(k => { if (b[k] !== undefined) merged[k] = prodTs(b[k]); });
+  if (b.estado != null) merged.estado = prodStr(b.estado, 20);
+  if (b.viabilidadLevaduraPct != null) merged.viabilidadLevaduraPct = prodNum(b.viabilidadLevaduraPct);
+  if (Array.isArray(b.etapas)) merged.etapas = b.etapas.map((e, i) => ({ nombre: prodStr(e.nombre, 40) || (PROD_ETAPAS[i] || 'Etapa'), inicio: prodTs(e.inicio), fin: prodTs(e.fin), editadoManual: !!e.editadoManual }));
+  if (Array.isArray(b.envasados)) merged.envasados = b.envasados.map(ev => ({
+    id: ev.id || prodNewId('env'), canal: (ev.canal === 'lata' ? 'lata' : 'barril'), inicio: prodTs(ev.inicio), fin: prodTs(ev.fin),
+    litrosEsperados: prodNum(ev.litrosEsperados), litrosBuenos: prodNum(ev.litrosBuenos), litrosRechazados: prodNum(ev.litrosRechazados),
+    barriles20L: prodNum(ev.barriles20L), barriles30L: prodNum(ev.barriles30L), latasBuenas: prodNum(ev.latasBuenas), latasNivelBajo: prodNum(ev.latasNivelBajo), mermaTapas: prodNum(ev.mermaTapas), editadoManual: !!ev.editadoManual,
+  }));
+  d.lotes[idx] = merged;
+  // Sincronizar ocupación de tanques según estado/tanque del lote.
+  prodSyncTanques(d);
+  prodSave(d); res.json({ ok: true, lote: merged });
+});
+app.delete('/admin/produccion/lote/:id', requireAdmin, (req, res) => {
+  const d = prodLoad(); const n = d.lotes.length; d.lotes = d.lotes.filter(l => l.id !== req.params.id);
+  if (d.lotes.length === n) return res.status(404).json({ error: 'Lote no encontrado.' });
+  prodSyncTanques(d); prodSave(d); res.json({ ok: true });
+});
+// Recalcula qué tanque ocupa cada lote: ocupado si el lote está en ferm/mad/listo (no envasado).
+function prodSyncTanques(d){
+  d.tanques.forEach(t => { t.loteActualId = null; t.estado = 'vacio'; });
+  for (const l of d.lotes) {
+    if (!l.tanqueId) continue;
+    const t = d.tanques.find(x => x.id === l.tanqueId); if (!t) continue;
+    const ocupa = ['fermentacion', 'maduracion', 'listo'].includes(l.estado);
+    if (ocupa && !t.loteActualId) { t.loteActualId = l.id; t.estado = 'ocupado'; }
+  }
+}
+// Limpiezas (paradas planificadas).
+app.post('/admin/produccion/limpieza', requireAdmin, (req, res) => {
+  const b = req.body || {}; const d = prodLoad();
+  const limp = { id: prodNewId('cip'), tipo: PROD_LIMPIEZA_TIPOS.includes(prodStr(b.tipo)) ? prodStr(b.tipo) : 'general', centroTrabajo: PROD_CENTROS.includes(prodStr(b.centroTrabajo)) ? prodStr(b.centroTrabajo) : 'brewhouse', ref: prodStr(b.ref, 40), inicio: prodTs(b.inicio) || new Date().toISOString(), fin: prodTs(b.fin), editadoManual: !!b.editadoManual };
+  d.limpiezas.push(limp); prodSave(d); res.json({ ok: true, limpieza: limp });
+});
+app.put('/admin/produccion/limpieza/:id', requireAdmin, (req, res) => {
+  const d = prodLoad(); const it = d.limpiezas.find(x => x.id === req.params.id); if (!it) return res.status(404).json({ error: 'No encontrada.' });
+  const b = req.body || {}; if (b.tipo != null) it.tipo = prodStr(b.tipo); if (b.centroTrabajo != null) it.centroTrabajo = prodStr(b.centroTrabajo); if (b.ref != null) it.ref = prodStr(b.ref, 40); if (b.inicio !== undefined) it.inicio = prodTs(b.inicio); if (b.fin !== undefined) it.fin = prodTs(b.fin); it.editadoManual = true;
+  prodSave(d); res.json({ ok: true, limpieza: it });
+});
+app.delete('/admin/produccion/limpieza/:id', requireAdmin, (req, res) => { const d = prodLoad(); const n = d.limpiezas.length; d.limpiezas = d.limpiezas.filter(x => x.id !== req.params.id); if (d.limpiezas.length === n) return res.status(404).json({ error: 'No encontrada.' }); prodSave(d); res.json({ ok: true }); });
+// Paradas (no planificadas — fallas/esperas). Completan la disponibilidad real.
+app.post('/admin/produccion/parada', requireAdmin, (req, res) => {
+  const b = req.body || {}; const d = prodLoad();
+  const par = { id: prodNewId('par'), centroTrabajo: PROD_CENTROS.includes(prodStr(b.centroTrabajo)) ? prodStr(b.centroTrabajo) : 'brewhouse', equipo: prodStr(b.equipo, 60), causa: prodStr(b.causa, 120), categoria: PROD_PARADA_CAT.includes(prodStr(b.categoria)) ? prodStr(b.categoria) : 'otro', inicio: prodTs(b.inicio) || new Date().toISOString(), fin: prodTs(b.fin), editadoManual: !!b.editadoManual };
+  d.paradas.push(par); prodSave(d); res.json({ ok: true, parada: par });
+});
+app.put('/admin/produccion/parada/:id', requireAdmin, (req, res) => {
+  const d = prodLoad(); const it = d.paradas.find(x => x.id === req.params.id); if (!it) return res.status(404).json({ error: 'No encontrada.' });
+  const b = req.body || {}; ['centroTrabajo', 'equipo', 'causa', 'categoria'].forEach(k => { if (b[k] != null) it[k] = prodStr(b[k], 120); }); if (b.inicio !== undefined) it.inicio = prodTs(b.inicio); if (b.fin !== undefined) it.fin = prodTs(b.fin); it.editadoManual = true;
+  prodSave(d); res.json({ ok: true, parada: it });
+});
+app.delete('/admin/produccion/parada/:id', requireAdmin, (req, res) => { const d = prodLoad(); const n = d.paradas.length; d.paradas = d.paradas.filter(x => x.id !== req.params.id); if (d.paradas.length === n) return res.status(404).json({ error: 'No encontrada.' }); prodSave(d); res.json({ ok: true }); });
+
 // ─── Conversaciones (embudo) ────────────────────────────────────────────────
 // Listado y detalle de las sesiones de chat ya persistidas en CONV_LOG. El
 // listado va liviano (resumen + primer/último mensaje); el detalle trae la

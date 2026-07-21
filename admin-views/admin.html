@@ -1628,6 +1628,52 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .nom-edit-inp{width:100%;min-width:70px;padding:.3rem .35rem;border:1px solid var(--gold-bd,#f1c97b);border-radius:6px;font:inherit;font-size:.82rem;background:var(--gold-dim,#fff8ea);color:var(--text,#111)}
 .nom-edit-inp:focus{outline:none;border-color:var(--gold,#f5a623)}
 .nom-edit-btn{color:var(--gold-deep,#a05f00)!important}
+/* Producción & OEE */
+.prod-tabs{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem;border-bottom:1px solid var(--line,#e5e5e5);padding-bottom:.6rem}
+.prod-tab{border:1px solid var(--line,#e5e5e5);background:var(--surface,#fff);border-radius:10px;padding:.5rem .8rem;cursor:pointer;font:inherit;font-size:.86rem;font-weight:600;color:var(--muted,#666)}
+.prod-tab.on{background:#b87333;border-color:#b87333;color:#fff}
+.prod-sec-h{font-family:var(--display,inherit);font-weight:700;font-size:1rem;margin:.3rem 0 .7rem;display:flex;align-items:center;gap:.6rem;color:var(--text,#111)}
+.prod-sec-h span{font-family:var(--sans,inherit);font-weight:500;font-size:.78rem;color:var(--dim,#999)}
+.prod-tanks{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.7rem}
+.prod-tank{border:2px solid var(--line,#e5e5e5);border-radius:12px;background:var(--surface,#fff);padding:0;overflow:hidden;cursor:default;text-align:left;font:inherit;display:flex;flex-direction:column}
+.prod-tank.ocupado{cursor:pointer;border-color:#b87333}
+.prod-tank.ambar{border-color:#e8a13a}
+.prod-tank.rojo{border-color:#d9534f}
+.prod-tank-top{display:flex;justify-content:space-between;align-items:baseline;padding:.5rem .6rem 0}
+.prod-tank-id{font-family:var(--display,inherit);font-weight:800;font-size:1.1rem;color:var(--text,#111)}
+.prod-tank-cap{font-size:.68rem;color:var(--dim,#999);font-weight:600}
+.prod-tank-body{position:relative;min-height:74px;padding:.4rem .6rem .6rem;display:flex;flex-direction:column;justify-content:flex-end}
+.prod-tank-fill{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,rgba(184,115,51,.18),rgba(184,115,51,.34));z-index:0}
+.prod-tank.ambar .prod-tank-fill{background:linear-gradient(180deg,rgba(232,161,58,.2),rgba(232,161,58,.4))}
+.prod-tank.rojo .prod-tank-fill{background:linear-gradient(180deg,rgba(217,83,79,.2),rgba(217,83,79,.42))}
+.prod-tank-lote{position:relative;z-index:1;display:flex;flex-direction:column;gap:1px}
+.prod-tank-lote b{font-size:.86rem;color:var(--text,#111)}
+.prod-tank-lote span{font-size:.7rem;color:var(--muted,#666)}
+.prod-tank-dias{font-weight:700!important;color:var(--gold-deep,#a05f00)!important}
+.prod-tank-dias.ambar{color:#c17a10!important}.prod-tank-dias.rojo{color:#d9534f!important}
+.prod-tank-vacio{position:relative;z-index:1;color:var(--dim,#bbb);font-size:.8rem;font-weight:600}
+.prod-detail{margin-top:1rem}
+.prod-lote{border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.9rem 1rem;margin-bottom:.9rem;background:var(--surface,#fff)}
+.prod-lote-h{display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem}
+.prod-lote-h b{font-family:var(--display,inherit);font-size:1.05rem}
+.prod-badge{display:inline-block;font-size:.72rem;font-weight:700;background:var(--surface2,#f6f6f6);border:1px solid var(--line,#e5e5e5);border-radius:20px;padding:.08rem .55rem;color:var(--muted,#555);margin-left:.3rem}
+.prod-lote-meta{font-size:.76rem;color:var(--muted,#666);margin-top:.25rem}
+.prod-etapas{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.4rem;margin:.8rem 0}
+.prod-eta{display:flex;justify-content:space-between;align-items:center;gap:.5rem;border:1px solid var(--line,#eee);border-radius:9px;padding:.4rem .55rem;background:var(--surface2,#fafafa)}
+.prod-eta.live{border-color:#e8a13a;background:#fff8ea}
+.prod-eta.done{border-color:#cde8d5;background:#f2fbf5}
+.prod-eta-n{font-size:.82rem;font-weight:600;color:var(--text,#222)}
+.prod-eta-c{display:flex;align-items:center;gap:.4rem;white-space:nowrap}
+.prod-eta-btn{border:none;border-radius:7px;padding:.32rem .55rem;font:inherit;font-size:.78rem;font-weight:700;cursor:pointer}
+.prod-eta-btn.ini{background:#b87333;color:#fff}
+.prod-eta-btn.fin{background:#d9534f;color:#fff}
+.prod-eta-live,.prod-timer{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;color:#c17a10;font-size:.82rem}
+.prod-eta-dur{font-family:ui-monospace,monospace;font-size:.8rem;color:#2e9c5a;font-weight:700}
+.prod-lote-cierre{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;margin-top:.5rem}
+.prod-ciclo{font-size:.8rem;color:var(--muted,#666)}
+.prod-env-form{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-top:.7rem}
+.prod-env-inp{padding:.45rem .55rem;border:1px solid var(--line,#e5e5e5);border-radius:8px;font:inherit;font-size:.85rem}
+.prod-content .adm-btn{white-space:nowrap}
 /* Estado de Resultado (P&L) */
 .pnl-table td{padding:.5rem .7rem}
 .pnl-table tr.pnl-sub td:first-child{padding-left:1.8rem;color:var(--muted,#666);font-size:.86rem}
@@ -2124,6 +2170,20 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <div id="nominaBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
+    <!-- Producción & OEE (Fase 1): tanques, cocción, envasado, limpiezas, paradas -->
+    <div class="adm-panel" id="produccionView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Producción · Kairos Brewing</div>
+          <div class="adm-panel-meta">registro del proceso productivo · base para medir el OEE</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="prodReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div id="prodBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
     <!-- Estado de Resultado (P&L): ingresos − costos y gastos -->
     <div class="adm-panel" id="pnlView" style="display:none">
       <div class="adm-panel-head">
@@ -2534,6 +2594,7 @@ const BASE_SECCIONES = [
   { id:'costos',    kind:'costos',   label:'Costos y Gastos', cat:'operaciones', desc:'registro de costos y gastos por proveedor · categoría · folio · valor' },
   { id:'nomina',    kind:'nomina',   label:'Gestión de Personas', cat:'operaciones', desc:'nómina de trabajadores · costo empresa · descarga de Excel' },
   { id:'pnl',       kind:'pnl',      label:'Estado de Resultado', cat:'operaciones', desc:'ingresos − costos y gastos · margen bruto · EBITDA mensual' },
+  { id:'produccion',kind:'produccion',label:'Producción & OEE', cat:'produccion', desc:'tablero de tanques · cocción por etapas · envasado · limpiezas · paradas' },
 ];
 
 // Categorías grandes de la home. accent = color del halo de la tarjeta.
@@ -2541,6 +2602,7 @@ const ADMIN_CATEGORIES = [
   { id:'marketing',       icon:'📣', label:'Marketing',                desc:'Cómo Zorbo se comunica y atrae: analítica, conversaciones del bot, campañas y contenido de marca.', accent:'#f5a623' },
   { id:'comercializacion',icon:'🛒', label:'Comercialización',         desc:'El catálogo y la venta: productos, fichas y todo lo que el cliente compra.', accent:'#2e9c5a' },
   { id:'operaciones',     icon:'📦', label:'Distribución y Operaciones',desc:'La trastienda: proveedores, costos, márgenes, órdenes de compra y cadena de valor.', accent:'#7c6bb8' },
+  { id:'produccion',      icon:'🏭', label:'Producción',               desc:'El maestro cervecero: tanques, cocción, envasado, limpiezas y paradas. Registro para medir el OEE.', accent:'#b87333' },
 ];
 
 // Frases motivacionales — sale una distinta cada vez que se abre la home.
@@ -2745,6 +2807,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'nomina') {
     showView('nomina');
     await loadNomina();
+  } else if (sec.kind === 'produccion') {
+    showView('produccion');
+    await loadProduccion();
   } else if (sec.kind === 'pnl') {
     showView('pnl');
     await loadPnl();
@@ -2791,7 +2856,9 @@ function showView(kind){
   document.getElementById('estadoView').style.display     = kind === 'estado'     ? '' : 'none';
   document.getElementById('costosView').style.display     = kind === 'costos'     ? '' : 'none';
   document.getElementById('nominaView').style.display     = kind === 'nomina'     ? '' : 'none';
+  document.getElementById('produccionView').style.display = kind === 'produccion' ? '' : 'none';
   document.getElementById('pnlView').style.display        = kind === 'pnl'        ? '' : 'none';
+  if (kind !== 'produccion' && typeof prodStopTimers === 'function') prodStopTimers();
   if (kind === 'estado') estadoBoot();
   document.getElementById('feedbackView').style.display   = kind === 'feedback'   ? '' : 'none';
   document.getElementById('tutorialsView').style.display  = kind === 'tutorials'  ? '' : 'none';
@@ -8474,6 +8541,240 @@ function renderPnl(){
 document.getElementById('pnlReload').onclick=loadPnl;
 document.getElementById('pnlMes').onchange=loadPnl;
 document.getElementById('pnlExcel').onclick=()=>{ const m=document.getElementById('pnlMes').value; if(m) window.open('/admin/pnl/export.xlsx?month='+m,'_blank'); };
+
+// ─── Producción & OEE (Fase 1) ──────────────────────────────────────────────
+let prodData=null, prodTab='tanques', prodTimers=null, prodOpenLote=null;
+const prodNow=()=>new Date().toISOString();
+function prodStopTimers(){ if(prodTimers){ clearInterval(prodTimers); prodTimers=null; } }
+function prodDur(ms){ if(ms<0)ms=0; const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60; if(h>0)return h+'h '+String(m).padStart(2,'0')+'m'; if(m>0)return m+'m '+String(ss).padStart(2,'0')+'s'; return ss+'s'; }
+function prodDT(iso){ if(!iso)return '—'; const d=new Date(iso); if(isNaN(d))return '—'; return d.toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
+async function loadProduccion(){
+  const body=document.getElementById('prodBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  try{ const r=await fetch('/admin/produccion'); prodData=await r.json(); if(prodData.error) throw new Error(prodData.error); renderProduccion(); }
+  catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function renderProduccion(){
+  const body=document.getElementById('prodBody');
+  const tabs=[['tanques','🛢 Tanques'],['coccion','🔥 Cocción'],['envasado','📦 Envasado'],['limpiezas','🧽 Limpiezas'],['paradas','⛔ Paradas'],['config','⚙ Config']];
+  const tabBar=`<div class="prod-tabs">${tabs.map(([k,l])=>`<button class="prod-tab ${k===prodTab?'on':''}" data-ptab="${k}">${l}</button>`).join('')}</div>`;
+  const R={tanques:prodRenderTanques,coccion:prodRenderCoccion,envasado:prodRenderEnvasado,limpiezas:prodRenderLimpiezas,paradas:prodRenderParadas,config:prodRenderConfig};
+  body.innerHTML=tabBar+'<div class="prod-content">'+(R[prodTab]||(()=>''))()+'</div>';
+  prodWire();
+  prodStopTimers();
+  if(prodTab==='coccion'||prodTab==='envasado'||prodTab==='tanques') prodTimers=setInterval(prodTick,1000);
+  prodTick();
+}
+function prodTick(){ document.querySelectorAll('.prod-timer[data-start]').forEach(el=>{ const s=new Date(el.dataset.start).getTime(); if(Number.isFinite(s)) el.textContent=prodDur(Date.now()-s); }); }
+function prodLoteById(id){ return (prodData.lotes||[]).find(l=>l.id===id); }
+// ── Tablero de tanques ──
+function prodRenderTanques(){
+  const ts=prodData.tanques||[];
+  const cards=ts.map(t=>{ const l=t.lote; const dias=l?l.diasOcup:0; const al=dias>45?'rojo':dias>30?'ambar':'';
+    const fill=l?Math.max(14,Math.min(100,Math.round((l.volumenEsperadoL||0)/t.capacidadL*100))):0;
+    return `<button class="prod-tank ${t.estado} ${al}" data-tank="${escapeAttr(t.id)}" ${l?'':'disabled'}>
+      <div class="prod-tank-top"><span class="prod-tank-id">${escapeHtml(t.id)}</span><span class="prod-tank-cap">${t.capacidadL.toLocaleString('es-CL')} L</span></div>
+      <div class="prod-tank-body"><div class="prod-tank-fill" style="height:${fill}%"></div>
+        ${l?`<div class="prod-tank-lote"><b>${escapeHtml(l.codigo)}</b><span>${escapeHtml(l.producto||l.estilo||'')}</span><span class="prod-tank-dias ${al}">${dias} d</span></div>`:'<div class="prod-tank-vacio">vacío</div>'}
+      </div></button>`;}).join('');
+  const ocup=ts.filter(t=>t.estado==='ocupado').length;
+  const det=prodOpenLote?prodLoteCard(prodLoteById(prodOpenLote)):'';
+  return `<div class="prod-sec-h">Tablero de tanques <span>${ocup}/${ts.length} ocupados · &gt;30d ámbar · &gt;45d rojo</span></div><div class="prod-tanks">${cards}</div>${det?'<div class="prod-detail">'+det+'</div>':''}`;
+}
+// ── Cocción / lotes ──
+function prodRenderCoccion(){
+  const lotesCoc=(prodData.lotes||[]).filter(l=>l.estado==='coccion');
+  const tanqueOpts=['<option value="">— sin asignar —</option>',...(prodData.tanques||[]).map(t=>`<option value="${escapeAttr(t.id)}"${t.estado==='ocupado'?' disabled':''}>${escapeHtml(t.id)} (${t.capacidadL} L)${t.estado==='ocupado'?' · ocupado':''}</option>`)].join('');
+  const form=`<div class="cg-form"><div class="cg-form-title">Nuevo lote (cocción)</div>
+    <div class="cg-form-grid">
+      <label class="cg-field"><span>Código</span><input id="plCodigo" placeholder="Ej: L190"></label>
+      <label class="cg-field"><span>Producto</span><input id="plProducto" placeholder="Ej: Golden"></label>
+      <label class="cg-field"><span>Estilo</span><input id="plEstilo" placeholder="Ej: Golden Ale"></label>
+      <label class="cg-field"><span>Familia (color/tipo)</span><input id="plFamilia" placeholder="rubia / oscura…"></label>
+      <label class="cg-field"><span>Tanque destino</span><select id="plTanque">${tanqueOpts}</select></label>
+      <label class="cg-field"><span>N° cocciones (1-3)</span><input id="plNBatches" inputmode="numeric" value="1"></label>
+      <label class="cg-field"><span>Volumen esperado (L)</span><input id="plVol" inputmode="numeric" placeholder="1000"></label>
+      <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="plAdd" type="button">+ Iniciar lote</button></div>
+    </div><div class="cg-err" id="plErr"></div></div>`;
+  const lista=lotesCoc.length?lotesCoc.map(l=>prodLoteCard(l)).join(''):'<div class="dist-empty">No hay lotes en cocción. Creá uno arriba.</div>';
+  return form+'<div class="prod-sec-h" style="margin-top:1rem">Lotes en cocción <span>'+lotesCoc.length+'</span></div>'+lista;
+}
+// Tarjeta de un lote con sus etapas (inicio/fin) y acciones según estado.
+function prodLoteCard(l){
+  if(!l) return '';
+  const estBadge={coccion:'🔥 Cocción',fermentacion:'🫧 Fermentación',maduracion:'🧊 Maduración',listo:'✅ Listo',envasado:'📦 Envasado'}[l.estado]||l.estado;
+  const etapas=(l.etapas||[]).map((e,i)=>{
+    let ctrl;
+    if(!e.inicio) ctrl=`<button class="prod-eta-btn ini" data-eta-ini="${l.id}|${i}">▶ Iniciar</button>`;
+    else if(!e.fin) ctrl=`<span class="prod-timer prod-eta-live" data-start="${escapeAttr(e.inicio)}">0s</span> <button class="prod-eta-btn fin" data-eta-fin="${l.id}|${i}">⏹ Finalizar</button>`;
+    else ctrl=`<span class="prod-eta-dur">${prodDur(new Date(e.fin)-new Date(e.inicio))}</span>${e.editadoManual?' ✎':''}`;
+    const st=!e.inicio?'':(!e.fin?'live':'done');
+    return `<div class="prod-eta ${st}"><span class="prod-eta-n">${i+1}. ${escapeHtml(e.nombre)}</span><span class="prod-eta-c">${ctrl}</span></div>`;
+  }).join('');
+  const cocDone=(l.etapas||[]).length && (l.etapas||[]).every(e=>e.fin);
+  const cocSomeStart=(l.etapas||[]).some(e=>e.inicio);
+  let acciones='';
+  if(l.estado==='coccion'){
+    const dur=(l.etapas||[]).filter(e=>e.inicio&&e.fin).reduce((a,e)=>a+(new Date(e.fin)-new Date(e.inicio)),0);
+    const horas=dur/3600000, est=(prodData.config&&prodData.config.cicloCoccionEstandarH)||4.2;
+    acciones=`<div class="prod-lote-cierre">${cocSomeStart?`<span class="prod-ciclo">Ciclo: <b>${horas.toFixed(1)} h</b> vs estándar ${est} h</span>`:''}
+      <button class="adm-btn adm-btn-gold" data-cerrar-coc="${l.id}" ${cocDone?'':'disabled'} title="${cocDone?'':'Cerrá todas las etapas primero'}">Cerrar cocción → Fermentación</button></div>`;
+  } else if(l.estado==='fermentacion'||l.estado==='maduracion'||l.estado==='listo'){
+    acciones=`<div class="prod-lote-cierre">
+      ${l.estado==='fermentacion'?`<button class="adm-btn adm-btn-ghost" data-mad="${l.id}">Iniciar maduración</button>`:''}
+      ${l.estado!=='listo'?`<button class="adm-btn adm-btn-ghost" data-listo="${l.id}">Marcar listo</button>`:''}
+      <button class="adm-btn adm-btn-gold" data-ir-envasado="${l.id}">📦 Envasar</button></div>`;
+  }
+  const meta=[l.producto,l.estilo,l.tanqueId?('Tanque '+l.tanqueId):'',l.nBatches>1?(l.nBatches+' cocciones'):'', (l.volumenEsperadoL?l.volumenEsperadoL+' L':'')].filter(Boolean).map(escapeHtml).join(' · ');
+  const dias=l.fechaFermInicio?` · ${l.diasOcup} d en tanque`:'';
+  const lead=l.leadTimeDias!=null?` · lead ${l.leadTimeDias} d`:'';
+  return `<div class="prod-lote">
+    <div class="prod-lote-h"><div><b>${escapeHtml(l.codigo)}</b> <span class="prod-badge">${estBadge}</span><div class="prod-lote-meta">${meta}${dias}${lead}</div></div>
+      <button class="pv-del" data-lote-del="${l.id}" title="Eliminar lote">✕</button></div>
+    ${(l.estado==='coccion'||prodTab==='tanques')?`<div class="prod-etapas">${etapas}</div>`:''}
+    ${acciones}</div>`;
+}
+// ── Envasado ──
+function prodRenderEnvasado(){
+  const lotes=(prodData.lotes||[]).filter(l=>['fermentacion','maduracion','listo','envasado'].includes(l.estado));
+  if(!lotes.length) return '<div class="dist-empty">No hay lotes para envasar. Cerrá una cocción primero.</div>';
+  return lotes.map(l=>{
+    const envs=(l.envasados||[]).map(ev=>{
+      const durH=(ev.inicio&&ev.fin)?(new Date(ev.fin)-new Date(ev.inicio))/3600000:null;
+      const vel=durH?Math.round(ev.litrosBuenos/durH):null;
+      const nom=ev.canal==='lata'?(prodData.config.velNominalLataLh):(prodData.config.velNominalBarrilLh);
+      const rend=(vel&&nom)?Math.min(100,Math.round(vel/nom*100)):null;
+      const merma=(ev.litrosEsperados)?Math.round((1-(ev.litrosBuenos/ev.litrosEsperados))*1000)/10:null;
+      return `<tr><td>${ev.canal==='lata'?'🥫 Lata':'🛢 Barril'}</td><td>${prodDT(ev.inicio)}→${ev.fin?prodDT(ev.fin):'…'}</td><td class="dist-num">${ev.litrosBuenos} L</td><td class="dist-num">${vel!=null?vel+' L/h':'—'}</td><td class="dist-num">${rend!=null?rend+'%':'—'}</td><td class="dist-num">${merma!=null?merma+'%':'pend.'}</td><td><button class="pv-del" data-env-del="${l.id}|${ev.id}">✕</button></td></tr>`;
+    }).join('');
+    return `<div class="prod-lote">
+      <div class="prod-lote-h"><div><b>${escapeHtml(l.codigo)}</b> <span class="prod-badge">${escapeHtml(l.producto||l.estilo||'')}</span><div class="prod-lote-meta">${l.tanqueId?('Tanque '+escapeHtml(l.tanqueId)):''} · ${l.volumenEsperadoL||0} L esperados${l.estado==='envasado'?' · ✅ envasado':''}</div></div></div>
+      ${envs?`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Canal</th><th>Inicio→Fin</th><th style="text-align:right">Buenos</th><th style="text-align:right">Vel.</th><th style="text-align:right">Rend.</th><th style="text-align:right">Merma</th><th></th></tr></thead><tbody>${envs}</tbody></table></div>`:''}
+      <div class="prod-env-form">
+        <select class="prod-env-inp" data-ef="canal"><option value="barril">🛢 Barril</option><option value="lata">🥫 Lata</option></select>
+        <input class="prod-env-inp" data-ef="litrosEsperados" inputmode="numeric" placeholder="L esperados" style="width:110px">
+        <input class="prod-env-inp" data-ef="litrosBuenos" inputmode="numeric" placeholder="L buenos" style="width:100px">
+        <input class="prod-env-inp" data-ef="litrosRechazados" inputmode="numeric" placeholder="L rechazo" style="width:100px">
+        <button class="adm-btn adm-btn-ghost prod-env-add" data-env-add="${l.id}">+ Registrar envasado</button>
+        ${l.estado!=='envasado'?`<button class="adm-btn adm-btn-gold" data-cerrar-env="${l.id}">Cerrar envasado (libera tanque)</button>`:''}
+      </div></div>`;
+  }).join('');
+}
+// ── Limpiezas ──
+function prodRenderLimpiezas(){
+  const tipos=(prodData.meta.limpiezaTipos||[]), centros=(prodData.meta.centros||[]);
+  const form=`<div class="cg-form"><div class="cg-form-title">Registrar limpieza (parada planificada)</div><div class="cg-form-grid">
+    <label class="cg-field"><span>Tipo</span><select id="lmTipo">${tipos.map(t=>`<option>${escapeHtml(t)}</option>`).join('')}</select></label>
+    <label class="cg-field"><span>Centro</span><select id="lmCentro">${centros.map(c=>`<option>${escapeHtml(c)}</option>`).join('')}</select></label>
+    <label class="cg-field"><span>Referencia (lote/equipo)</span><input id="lmRef" placeholder="opcional"></label>
+    <label class="cg-field"><span>Inicio</span><input type="datetime-local" id="lmIni"></label>
+    <label class="cg-field"><span>Fin</span><input type="datetime-local" id="lmFin"></label>
+    <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="lmAdd" type="button">+ Agregar</button></div>
+  </div></div>`;
+  const rows=(prodData.limpiezas||[]).slice().reverse().map(x=>`<tr><td>${escapeHtml(x.tipo)}</td><td>${escapeHtml(x.centroTrabajo)}</td><td>${escapeHtml(x.ref||'—')}</td><td>${prodDT(x.inicio)}</td><td>${x.fin?prodDT(x.fin):'<span style=color:#c80>abierta</span>'}</td><td class="dist-num">${x.inicio&&x.fin?prodDur(new Date(x.fin)-new Date(x.inicio)):'—'}</td><td><button class="pv-del" data-limp-del="${x.id}">✕</button></td></tr>`).join('');
+  return form+`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Tipo</th><th>Centro</th><th>Ref</th><th>Inicio</th><th>Fin</th><th style="text-align:right">Duración</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:#999;padding:.7rem">Sin limpiezas registradas</td></tr>'}</tbody></table></div>`;
+}
+// ── Paradas ──
+function prodRenderParadas(){
+  const centros=(prodData.meta.centros||[]), cats=(prodData.meta.paradaCategorias||[]);
+  const form=`<div class="cg-form"><div class="cg-form-title">Registrar parada no planificada (falla/espera)</div><div class="cg-form-grid">
+    <label class="cg-field"><span>Centro</span><select id="paCentro">${centros.map(c=>`<option>${escapeHtml(c)}</option>`).join('')}</select></label>
+    <label class="cg-field"><span>Equipo</span><input id="paEquipo" placeholder="Ej: llenadora"></label>
+    <label class="cg-field"><span>Causa</span><input id="paCausa" placeholder="Ej: cambio de barril"></label>
+    <label class="cg-field"><span>Categoría</span><select id="paCat">${cats.map(c=>`<option>${escapeHtml(c)}</option>`).join('')}</select></label>
+    <label class="cg-field"><span>Inicio</span><input type="datetime-local" id="paIni"></label>
+    <label class="cg-field"><span>Fin</span><input type="datetime-local" id="paFin"></label>
+    <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="paAdd" type="button">+ Agregar</button></div>
+  </div></div>`;
+  const rows=(prodData.paradas||[]).slice().reverse().map(x=>`<tr><td>${escapeHtml(x.centroTrabajo)}</td><td>${escapeHtml(x.equipo||'—')}</td><td>${escapeHtml(x.causa||'—')}</td><td><span class="cg-tag">${escapeHtml(x.categoria)}</span></td><td>${prodDT(x.inicio)}</td><td>${x.fin?prodDT(x.fin):'<span style=color:#c80>abierta</span>'}</td><td class="dist-num">${x.inicio&&x.fin?prodDur(new Date(x.fin)-new Date(x.inicio)):'—'}</td><td><button class="pv-del" data-par-del="${x.id}">✕</button></td></tr>`).join('');
+  return form+`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Centro</th><th>Equipo</th><th>Causa</th><th>Categoría</th><th>Inicio</th><th>Fin</th><th style="text-align:right">Duración</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="8" style="text-align:center;color:#999;padding:.7rem">Sin paradas registradas — el OEE mostrará la disponibilidad como un techo</td></tr>'}</tbody></table></div>`;
+}
+// ── Config ──
+function prodRenderConfig(){
+  const c=prodData.config||{};
+  return `<div class="cg-form"><div class="cg-form-title">Parámetros de producción</div><div class="cg-form-grid">
+    <label class="cg-field"><span>Horas por semana</span><input id="cfHoras" inputmode="numeric" value="${escapeAttr(c.horasPorSemana)}"></label>
+    <label class="cg-field"><span>Vel. nominal barril (L/h)</span><input id="cfBarril" inputmode="numeric" value="${escapeAttr(c.velNominalBarrilLh)}"></label>
+    <label class="cg-field"><span>Vel. nominal lata (L/h)</span><input id="cfLata" inputmode="numeric" value="${escapeAttr(c.velNominalLataLh)}"></label>
+    <label class="cg-field"><span>Ciclo cocción estándar (h)</span><input id="cfCiclo" inputmode="decimal" value="${escapeAttr(c.cicloCoccionEstandarH)}"></label>
+    <label class="cg-field"><span>Lead time mínimo (días)</span><input id="cfLead" inputmode="numeric" value="${escapeAttr(c.leadTimeMinDias)}"></label>
+    <label class="cg-field" style="flex-direction:row;align-items:center;gap:.5rem"><input type="checkbox" id="cfLimp" ${c.incluirLimpiezaEnDisponibilidad!==false?'checked':''} style="width:16px;height:16px"><span>Incluir limpieza en disponibilidad (TPM)</span></label>
+    <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="cfSave" type="button">Guardar</button></div>
+  </div><div class="cg-err" id="cfErr"></div></div>`;
+}
+// ── Wiring ──
+function prodWire(){
+  const g=id=>document.getElementById(id);
+  document.querySelectorAll('[data-ptab]').forEach(b=>b.onclick=()=>{ prodTab=b.dataset.ptab; if(prodTab!=='tanques')prodOpenLote=null; renderProduccion(); });
+  document.querySelectorAll('[data-tank]').forEach(b=>b.onclick=()=>{ const t=(prodData.tanques||[]).find(x=>x.id===b.dataset.tank); if(t&&t.lote){ prodOpenLote=(prodOpenLote===t.lote.id)?null:t.lote.id; renderProduccion(); } });
+  // etapas
+  document.querySelectorAll('[data-eta-ini]').forEach(b=>b.onclick=()=>prodEtapa(b.dataset.etaIni,'inicio'));
+  document.querySelectorAll('[data-eta-fin]').forEach(b=>b.onclick=()=>prodEtapa(b.dataset.etaFin,'fin'));
+  document.querySelectorAll('[data-cerrar-coc]').forEach(b=>b.onclick=()=>prodPatchLote(b.dataset.cerrarCoc,{estado:'fermentacion',fechaFermInicio:prodNow()}));
+  document.querySelectorAll('[data-mad]').forEach(b=>b.onclick=()=>prodPatchLote(b.dataset.mad,{estado:'maduracion',fechaMadInicio:prodNow()}));
+  document.querySelectorAll('[data-listo]').forEach(b=>b.onclick=()=>prodPatchLote(b.dataset.listo,{estado:'listo'}));
+  document.querySelectorAll('[data-ir-envasado]').forEach(b=>b.onclick=()=>{ prodTab='envasado'; prodOpenLote=null; renderProduccion(); });
+  document.querySelectorAll('[data-lote-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar el lote?')) prodDelete('lote',b.dataset.loteDel); });
+  // nuevo lote
+  if(g('plAdd')) g('plAdd').onclick=prodCrearLote;
+  // envasado
+  document.querySelectorAll('[data-env-add]').forEach(b=>b.onclick=()=>prodEnvasar(b.dataset.envAdd,b));
+  document.querySelectorAll('[data-env-del]').forEach(b=>b.onclick=()=>prodEnvDel(b.dataset.envDel));
+  document.querySelectorAll('[data-cerrar-env]').forEach(b=>b.onclick=()=>prodPatchLote(b.dataset.cerrarEnv,{estado:'envasado',fechaEnvasado:prodNow()}));
+  // limpiezas
+  if(g('lmAdd')) g('lmAdd').onclick=async()=>{ await prodPost('limpieza',{tipo:g('lmTipo').value,centroTrabajo:g('lmCentro').value,ref:g('lmRef').value,inicio:prodLocal(g('lmIni').value),fin:prodLocal(g('lmFin').value)}); };
+  document.querySelectorAll('[data-limp-del]').forEach(b=>b.onclick=()=>prodDelete('limpieza',b.dataset.limpDel));
+  // paradas
+  if(g('paAdd')) g('paAdd').onclick=async()=>{ await prodPost('parada',{centroTrabajo:g('paCentro').value,equipo:g('paEquipo').value,causa:g('paCausa').value,categoria:g('paCat').value,inicio:prodLocal(g('paIni').value),fin:prodLocal(g('paFin').value)}); };
+  document.querySelectorAll('[data-par-del]').forEach(b=>b.onclick=()=>prodDelete('parada',b.dataset.parDel));
+  // config
+  if(g('cfSave')) g('cfSave').onclick=prodGuardarConfig;
+}
+function prodLocal(v){ return v? new Date(v).toISOString() : null; }
+async function prodPatchLote(id,patch){
+  try{ const r=await fetch('/admin/produccion/lote/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+  catch(e){ alert(String(e.message||e)); }
+}
+function prodEtapa(key,campo){
+  const [id,i]=key.split('|'); const l=prodLoteById(id); if(!l) return;
+  const etapas=JSON.parse(JSON.stringify(l.etapas||[])); if(!etapas[+i]) return;
+  etapas[+i][campo]=prodNow();
+  prodPatchLote(id,{etapas});
+}
+async function prodCrearLote(){
+  const g=id=>document.getElementById(id); const err=g('plErr'); err.textContent=''; err.classList.remove('show');
+  const codigo=g('plCodigo').value.trim(); if(!codigo){ err.textContent='⚠ Ingresá el código.'; err.classList.add('show'); return; }
+  const payload={codigo,producto:g('plProducto').value,estilo:g('plEstilo').value,familia:g('plFamilia').value,tanqueId:g('plTanque').value,nBatches:cNum(g('plNBatches').value)||1,volumenEsperadoL:cNum(g('plVol').value)};
+  try{ const r=await fetch('/admin/produccion/lote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+  catch(e){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); }
+}
+async function prodEnvasar(loteId,btn){
+  const box=btn.closest('.prod-env-form'); const l=prodLoteById(loteId); if(!l) return;
+  const val={}; box.querySelectorAll('[data-ef]').forEach(el=>val[el.dataset.ef]=el.value);
+  const ev={canal:val.canal,inicio:prodNow(),fin:prodNow(),litrosEsperados:cNum(val.litrosEsperados),litrosBuenos:cNum(val.litrosBuenos),litrosRechazados:cNum(val.litrosRechazados)};
+  if(!ev.litrosBuenos){ alert('Ingresá los litros buenos.'); return; }
+  const envasados=[...(l.envasados||[]),ev];
+  await prodPatchLote(loteId,{envasados});
+}
+async function prodEnvDel(key){
+  const [loteId,evId]=key.split('|'); const l=prodLoteById(loteId); if(!l) return;
+  const envasados=(l.envasados||[]).filter(e=>e.id!==evId);
+  await prodPatchLote(loteId,{envasados});
+}
+async function prodPost(kind,body){
+  try{ const r=await fetch('/admin/produccion/'+kind,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+  catch(e){ alert(String(e.message||e)); }
+}
+async function prodDelete(kind,id){
+  try{ const r=await fetch('/admin/produccion/'+kind+'/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+  catch(e){ alert(String(e.message||e)); }
+}
+async function prodGuardarConfig(){
+  const g=id=>document.getElementById(id);
+  const body={horasPorSemana:cNum(g('cfHoras').value),velNominalBarrilLh:cNum(g('cfBarril').value),velNominalLataLh:cNum(g('cfLata').value),cicloCoccionEstandarH:parseFloat(g('cfCiclo').value)||4.2,leadTimeMinDias:cNum(g('cfLead').value),incluirLimpiezaEnDisponibilidad:g('cfLimp').checked};
+  try{ const r=await fetch('/admin/produccion/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); const e=g('cfErr'); e.textContent='✓ guardado'; e.classList.add('show'); e.style.color='#2e9c5a'; }
+  catch(e){ const el=g('cfErr'); el.textContent='⚠ '+String(e.message||e); el.classList.add('show'); }
+}
+document.getElementById('prodReload').onclick=loadProduccion;
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();
