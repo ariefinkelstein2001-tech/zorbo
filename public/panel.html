@@ -58,14 +58,32 @@ a{color:inherit;text-decoration:none}
 .h-title{font-family:var(--display);font-weight:800;color:#fff;font-size:clamp(2.6rem,6vw,4.6rem);line-height:1.02;letter-spacing:-.02em;text-transform:uppercase}
 .h-sub{color:#d3ddef;font-size:1.05rem;line-height:1.6;margin-top:1.2rem;max-width:460px}
 .h-cta{display:flex;gap:12px;margin-top:1.8rem;flex-wrap:wrap}
-.h-stat{margin-top:2rem;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(8px);border-radius:var(--r-lg);padding:16px 18px;max-width:380px}
-.h-stat .k{font-family:var(--display);font-size:.66rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
-.h-stat .v{font-family:var(--display);font-size:2.1rem;font-weight:800;color:#fff;margin:.2rem 0;letter-spacing:-.01em}
-.h-stat .d{color:#c3cfe6;font-size:.82rem}
+/* ── Widget de check-in de ánimo (reemplaza la tarjeta de stats) ── */
+.h-mood{margin-top:2rem;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(8px);border-radius:var(--r-lg);padding:16px 18px;max-width:380px}
+.h-mood .kick{font-family:var(--display);font-size:.62rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:.55rem}
+.mood-quote{font-family:var(--display);font-weight:700;font-size:1.02rem;color:#fff;line-height:1.28;letter-spacing:-.01em}
+.mood-q{color:#cdd8ec;font-size:.86rem;margin-top:.75rem}
+.mood-emojis{display:flex;justify-content:space-between;margin-top:.7rem;padding:0 2px}
+.mood-emojis span{font-size:1.05rem;line-height:1;filter:grayscale(.4);opacity:.55;transform:scale(.9);transition:transform .18s var(--ease),opacity .18s var(--ease),filter .18s var(--ease)}
+.mood-emojis span.on{filter:none;opacity:1;transform:scale(1.5)}
+.mood-range{-webkit-appearance:none;appearance:none;width:100%;height:8px;margin-top:.55rem;border-radius:999px;background:rgba(255,255,255,.18);outline:none;cursor:pointer}
+.mood-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:grab;transition:transform .12s var(--ease)}
+.mood-range:active::-webkit-slider-thumb{cursor:grabbing;transform:scale(1.14)}
+.mood-range::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--accent);border:2px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:grab}
+.mood-range::-moz-range-progress{background:var(--accent);height:8px;border-radius:999px}
+.mood-range:focus-visible{box-shadow:0 0 0 3px var(--ring)}
+.mood-scale{display:flex;justify-content:space-between;color:#8fa1c2;font-size:.62rem;margin-top:.4rem;text-transform:uppercase;letter-spacing:.09em}
+.mood-done{display:none;align-items:center;gap:.6rem;margin-top:.85rem;padding-top:.75rem;border-top:1px solid rgba(255,255,255,.12);opacity:0;transform:translateY(4px);transition:opacity .3s var(--ease),transform .3s var(--ease)}
+.mood-done.show{opacity:1;transform:none}
+.mood-done-emoji{font-size:1.7rem;line-height:1}
+.mood-done-txt{color:#fff;font-weight:600;font-size:.86rem}
+@media(prefers-reduced-motion:reduce){.mood-emojis span,.mood-range::-webkit-slider-thumb,.mood-done{transition:none!important}}
 /* Foto del equipo: para poner una real, definí background-image en .h-img (jpg propio en /public). */
-.h-img{position:relative;aspect-ratio:1/1;width:100%;max-width:440px;justify-self:end;border-radius:var(--r-xl);border:1px solid rgba(255,255,255,.16);background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.03));background-size:cover;background-position:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.7rem;color:#cdd8ec;text-align:center;padding:24px;overflow:hidden}
+.h-img{position:relative;aspect-ratio:1/1;width:100%;max-width:440px;justify-self:end;border-radius:var(--r-xl);border:1px dashed rgba(255,255,255,.28);background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.03));background-size:cover;background-position:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;color:#cdd8ec;text-align:center;padding:24px;overflow:hidden}
 .h-img .mk{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,var(--accent),var(--accent-hover));opacity:.9}
-.h-img small{font-size:.74rem;color:#aebbd6;letter-spacing:.02em}
+.h-img b{font-family:var(--display);font-weight:800;color:#fff;font-size:.95rem}
+.h-img small{font-size:.73rem;color:#aebbd6;letter-spacing:.02em}
+.ph-tag{position:absolute;top:12px;left:12px;font-size:.6rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#0b2a5e;background:var(--accent);padding:.22rem .5rem;border-radius:var(--r-full)}
 /* ── LOGIN ── */
 .login{height:100vh;background:var(--bg);display:grid;grid-template-columns:1fr 1fr}
 .lg-left{display:flex;align-items:center;justify-content:center;padding:40px;background:var(--surface)}
@@ -88,17 +106,22 @@ a{color:inherit;text-decoration:none}
 .lg-back{margin-top:1.4rem;font-size:.82rem;color:var(--text-3);cursor:pointer;display:inline-flex;align-items:center;gap:.3rem;background:none;border:0;font-family:inherit}
 .lg-back:hover{color:var(--text-2)}
 .lg-note{margin-top:1.6rem;font-size:.72rem;color:var(--text-3)}
+/* Panel derecho del login = contenedor de foto (persona feliz). Para poner una real,
+   definí background-image en .lg-right y borrá el placeholder .lg-photo-ph. */
 .lg-right{position:relative;overflow:hidden;background:linear-gradient(160deg,var(--blue-700),var(--blue-900));background-size:cover;background-position:center;display:flex;align-items:flex-end;padding:44px}
-.lg-scrim{position:absolute;inset:0;background:linear-gradient(to top,rgba(6,18,42,.82),rgba(6,18,42,.18) 55%,transparent);pointer-events:none}
+.lg-photo-ph{position:absolute;inset:0;z-index:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.55rem;color:#aebbd6;text-align:center;padding:24px}
+.lg-photo-ph .mk{width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,var(--accent),var(--accent-hover));opacity:.9}
+.lg-photo-ph small{font-size:.74rem;color:#b7c3dc;letter-spacing:.02em;max-width:220px}
+.lg-scrim{position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(6,18,42,.82),rgba(6,18,42,.30) 55%,rgba(6,18,42,.12));pointer-events:none}
 .lg-welcome{position:relative;z-index:2;color:#fff;font-family:var(--display);font-weight:800;font-size:2rem;letter-spacing:.01em;line-height:1.1;text-shadow:0 2px 14px rgba(0,0,0,.35)}
 .lg-welcome span{color:var(--accent)}
-.lg-right .mk{position:absolute;top:34px;right:34px;width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-hover));opacity:.92;z-index:2}
+.lg-right .mk-corner{position:absolute;top:34px;right:34px;width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-hover));opacity:.92;z-index:2}
 @media(max-width:820px){
   .hero-wrap{grid-template-columns:1fr;gap:20px;padding-top:96px;align-content:center}
   .h-img{justify-self:stretch;max-width:none;aspect-ratio:16/10}
   .nav-menu{display:none}.hamb{display:inline-flex}
   .login{grid-template-columns:1fr}
-  .lg-right{min-height:180px;order:-1}
+  .lg-right{min-height:200px;order:-1}
 }
 </style></head>
 <body>
@@ -148,13 +171,30 @@ a{color:inherit;text-decoration:none}
         <div class="h-cta">
           <button class="btn btn-primary" id="toLogin2">Iniciar sesión</button>
         </div>
-        <div class="h-stat">
-          <div class="k">Un solo panel</div>
-          <div class="v">22 herramientas · 4 áreas</div>
-          <div class="d">Comercial, marketing, producción y operaciones — unificados.</div>
+        <!-- ── Check-in de ánimo del equipo (solo visual — Opción A, no guarda) ── -->
+        <div class="h-mood" id="mood">
+          <div class="kick">Check-in del equipo</div>
+          <div class="mood-quote" id="moodQuote">&nbsp;</div>
+          <div class="mood-q" id="moodQuestion">&nbsp;</div>
+          <div class="mood-emojis" id="moodEmojis" aria-hidden="true">
+            <span>😢</span><span>😔</span><span>😩</span><span>😐</span><span>🙂</span><span>😄</span><span>🔥</span>
+          </div>
+          <input class="mood-range" id="moodRange" type="range" min="1" max="7" step="1" value="4"
+                 aria-labelledby="moodQuestion" aria-valuemin="1" aria-valuemax="7" aria-valuenow="4" aria-valuetext="Indiferente">
+          <div class="mood-scale"><span>menos</span><span>más</span></div>
+          <div class="mood-done" id="moodDone" aria-live="polite">
+            <span class="mood-done-emoji" id="moodDoneEmoji">😐</span>
+            <span class="mood-done-txt">¡Gracias por contarnos! 🧡</span>
+          </div>
         </div>
       </div>
-      <div class="h-img" role="img" aria-label="Equipo K-BROS"><span class="mk"></span><small>Foto del equipo</small></div>
+      <!-- Contenedor de foto del equipo (placeholder hasta cargar la real) -->
+      <div class="h-img" role="img" aria-label="Foto del equipo K-BROS (placeholder)">
+        <span class="ph-tag">Placeholder</span>
+        <span class="mk"></span>
+        <b>Foto del equipo</b>
+        <small>Reemplazar por foto real del equipo</small>
+      </div>
     </div>
   </section>
   <!-- LOGIN -->
@@ -174,7 +214,13 @@ a{color:inherit;text-decoration:none}
         <div class="lg-note">Acceso interno de K-BROS. Las cuentas las provisiona el equipo.</div>
       </div>
     </div>
-    <div class="lg-right"><span class="mk"></span><div class="lg-scrim"></div><h3 class="lg-welcome">¡Bienvenido a <span>K-BROS</span>!</h3></div>
+    <!-- Panel derecho = contenedor de foto de una persona feliz (placeholder) -->
+    <div class="lg-right">
+      <div class="lg-photo-ph"><span class="mk"></span><small>Reemplazar por foto de una persona feliz</small></div>
+      <span class="mk-corner"></span>
+      <div class="lg-scrim"></div>
+      <h3 class="lg-welcome">¡Bienvenido a <span>K-BROS</span>!</h3>
+    </div>
   </section>
 </div>
 <script>
@@ -196,6 +242,75 @@ a{color:inherit;text-decoration:none}
   document.addEventListener('click',function(){ if(open) toggleMega(null); });
   document.querySelectorAll('.mega').forEach(function(x){x.addEventListener('click',function(e){e.stopPropagation();});});
   document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ if(open) toggleMega(null); else if(track.classList.contains('login-on')) hideLogin(); } });
+
+  // ══ Widget de check-in de ánimo ══════════════════════════════════════════
+  // EDITABLE POR EL EQUIPO: agregá/sacá frases y preguntas de estos arrays.
+  // En cada carga de la página se elige una frase y una pregunta AL AZAR.
+  var MOOD_QUOTES=[
+    "Hoy es un buen día para hacer que pase.",
+    "Equipo K-BROS: a darlo todo 🔥",
+    "Un paso a la vez, pero sin parar.",
+    "Lo que hacemos hoy, se nota mañana.",
+    "Pequeños avances, grandes resultados.",
+    "Vamos con todo, que se puede.",
+    "Tu energía mueve al equipo.",
+    "Hazlo simple, hazlo bien.",
+    "Cada día es una nueva oportunidad.",
+    "Juntos llegamos más lejos."
+  ];
+  var MOOD_QUESTIONS=[
+    "¿Cómo te sientes hoy?",
+    "¿Qué tal todo para hoy?",
+    "¡Eu! ¿Cómo estás?",
+    "¿Con qué energía llegaste?"
+  ];
+  // Los 7 niveles del slider (izquierda → derecha).
+  var MOOD_LEVELS=[
+    {e:"😢",t:"Triste"},
+    {e:"😔",t:"Medianamente triste"},
+    {e:"😩",t:"Cansado"},
+    {e:"😐",t:"Indiferente"},
+    {e:"🙂",t:"Bien"},
+    {e:"😄",t:"Feliz"},
+    {e:"🔥",t:"Demasiado feliz"}
+  ];
+  function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+
+  (function initMood(){
+    var quoteEl=document.getElementById('moodQuote'); if(!quoteEl) return;
+    quoteEl.textContent=pick(MOOD_QUOTES);
+    document.getElementById('moodQuestion').textContent=pick(MOOD_QUESTIONS);
+    var range=document.getElementById('moodRange');
+    var emojis=document.getElementById('moodEmojis').children;
+    var done=document.getElementById('moodDone');
+    var doneEmoji=document.getElementById('moodDoneEmoji');
+
+    // Pinta la pista dorada + resalta el emoji del nivel actual (en vivo al arrastrar).
+    function paint(v){
+      var pct=((v-1)/6)*100;
+      range.style.background='linear-gradient(90deg,#f5a623 '+pct+'%,rgba(255,255,255,.18) '+pct+'%)';
+      for(var i=0;i<emojis.length;i++) emojis[i].classList.toggle('on',(i+1)===v);
+      range.setAttribute('aria-valuenow',v);
+      range.setAttribute('aria-valuetext',MOOD_LEVELS[v-1].t);
+    }
+    paint(parseInt(range.value,10));
+
+    // input → arrastrando (feedback en vivo). change → al soltar (o flechas de teclado).
+    range.addEventListener('input',function(){ paint(parseInt(range.value,10)); });
+    range.addEventListener('change',function(){ onMoodSelected(parseInt(range.value,10)); });
+
+    // Handler ÚNICO de selección de ánimo. Hoy solo microfeedback visual (Opción A).
+    function onMoodSelected(nivel){
+      var lv=MOOD_LEVELS[nivel-1];
+      doneEmoji.textContent=lv.e;
+      done.style.display='flex';
+      void done.offsetWidth;      // fuerza reflow para que corra la transición
+      done.classList.add('show');
+      // TODO: aquí se conectará el registro anónimo y agregado del ánimo del equipo.
+      // (sin nombre ni identidad; solo el nivel, de forma agregada)
+    }
+  })();
+
   // ── Login real → POST /admin/login (misma auth del sistema) ──
   var form=document.getElementById('loginForm'), errEl=document.getElementById('err'), btn=document.getElementById('submit');
   function showErr(m){ errEl.textContent=m; errEl.classList.add('show'); }

@@ -1638,9 +1638,6 @@ const isKbros = (req) => KBROS_HOST.test(hostOf(req));
 // no-store: la puerta K-BROS nunca se cachea en Cloudflare (evita que k-bros.cl
 // sirva una copia vieja del marketplace). El HTML es liviano, no necesita caché.
 const sendPanel = (req, res) => { res.set('Cache-Control', 'no-store, must-revalidate'); res.sendFile(join(__dirname, 'public', 'panel.html')); };
-// Diagnóstico: qué host ve la app (para depurar el ruteo por dominio). No cacheable.
-app.get('/__whoami', (req, res) => { res.set('Cache-Control', 'no-store'); res.json({ hostDetectado: hostOf(req), hostname: req.hostname, host: req.headers['host'] || null, xForwardedHost: req.headers['x-forwarded-host'] || null, isKbros: isKbros(req) }); });
-
 // ── El admin vive SOLO en k-bros.cl ──────────────────────────────────────────
 // zorbo.cl es únicamente la tienda: su /admin, /login y /panel quedan cerrados.
 // Puerta de emergencia: el dominio interno de Railway (*.up.railway.app) y
