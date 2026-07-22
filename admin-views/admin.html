@@ -5134,7 +5134,7 @@ window.addEventListener('beforeunload', e => {
 document.getElementById('btnLogout').onclick = async () => {
   if (dirty && !confirm('Hay cambios sin guardar. Cerrar sesión igual?')) return;
   try { await fetch('/admin/logout', { method:'POST' }); } catch {}
-  window.location.href = '/admin/login';
+  window.location.href = '/login';
 };
 
 // Si una respuesta 401 aparece (sesión expirada), redirigí a login
@@ -5142,7 +5142,7 @@ const _fetch = window.fetch;
 window.fetch = async (...args) => {
   const r = await _fetch(...args);
   if (r.status === 401) {
-    window.location.href = '/admin/login';
+    window.location.href = '/login';
     throw new Error('Sesión expirada');
   }
   return r;

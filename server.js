@@ -1768,7 +1768,7 @@ function requireAdmin(req, res, next){
   const sess = adminSessionFor(req);
   if (!sess) {
     if (wantsHtml(req)) return res.redirect(302, '/login');
-    return res.status(401).json({ error: 'No autorizado. Iniciá sesión en /admin/login.' });
+    return res.status(401).json({ error: 'No autorizado. Iniciá sesión en /login.' });
   }
   // Rol limitado "costeo": bloquea todo lo que no sea ver/editar lo permitido.
   if (sess.role === 'costeo' && !costeoRoleAllows(req, sess)) {
@@ -1789,7 +1789,9 @@ setInterval(() => {
 app.get('/admin/login', (req, res) => {
   // Si ya hay sesión válida, redirige al panel
   if (isAdminConfigured() && adminSessionFor(req)) return res.redirect(302, '/admin');
-  res.sendFile(join(__dirname, 'admin-views', 'login.html'));
+  // La puerta de acceso ahora es la de K-BROS (/login). El login viejo de ZORBO
+  // queda deprecado: cualquier link/bookmark a /admin/login cae en la puerta K-BROS.
+  res.redirect(302, '/login');
 });
 
 app.post('/admin/login', async (req, res) => {
