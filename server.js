@@ -1640,6 +1640,22 @@ const isKbros = (req) => KBROS_HOST.test(hostOf(req));
 const sendPanel = (req, res) => { res.set('Cache-Control', 'no-store, must-revalidate'); res.sendFile(join(__dirname, 'public', 'panel.html')); };
 // Diagnóstico: qué host ve la app (para depurar el ruteo por dominio). No cacheable.
 app.get('/__whoami', (req, res) => { res.set('Cache-Control', 'no-store'); res.json({ hostDetectado: hostOf(req), hostname: req.hostname, host: req.headers['host'] || null, xForwardedHost: req.headers['x-forwarded-host'] || null, isKbros: isKbros(req) }); });
+
+// ── El admin vive SOLO en k-bros.cl ──────────────────────────────────────────
+// zorbo.cl es únicamente la tienda: su /admin, /login y /panel quedan cerrados.
+// Puerta de emergencia: el dominio interno de Railway (*.up.railway.app) y
+// localhost siguen abiertos, así el dueño no se queda sin acceso si k-bros.cl
+// (DNS/Cloudflare) llegara a caerse. No cambia nada de la lógica/data del admin.
+const isEmergencyHost = (req) => { const h = hostOf(req); return /\.railway\.app$/.test(h) || /^(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/.test(h); };
+const ADMIN_DOOR_PATH = /^\/(admin|login|panel)(\/|$)/i;
+app.use((req, res, next) => {
+  if (ADMIN_DOOR_PATH.test(req.path) && !isKbros(req) && !isEmergencyHost(req)) {
+    // En la tienda (zorbo.cl) el panel no existe: HTML → al marketplace; API → 404.
+    if (wantsHtml(req)) return res.redirect(302, '/');
+    return res.status(404).json({ error: 'No encontrado.' });
+  }
+  next();
+});
 // El "/" ya lo maneja serveIndexWithMode (con guard isKbros) unas líneas arriba.
 app.get(['/login', '/panel'], sendPanel);
 
