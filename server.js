@@ -1631,7 +1631,9 @@ const KBROS_HOST = /(^|\.)k-bros\.cl$/i;
 // dominio original; si no, cae al Host header o req.hostname. Saca lista y puerto.
 const hostOf = (req) => String(req.headers['x-forwarded-host'] || req.headers['host'] || req.hostname || '').split(',')[0].split(':')[0].trim().toLowerCase();
 const isKbros = (req) => KBROS_HOST.test(hostOf(req));
-const sendPanel = (req, res) => res.sendFile(join(__dirname, 'public', 'panel.html'));
+// no-store: la puerta K-BROS nunca se cachea en Cloudflare (evita que k-bros.cl
+// sirva una copia vieja del marketplace). El HTML es liviano, no necesita caché.
+const sendPanel = (req, res) => { res.set('Cache-Control', 'no-store, must-revalidate'); res.sendFile(join(__dirname, 'public', 'panel.html')); };
 // Diagnóstico: qué host ve la app (para depurar el ruteo por dominio). No cacheable.
 app.get('/__whoami', (req, res) => { res.set('Cache-Control', 'no-store'); res.json({ hostDetectado: hostOf(req), hostname: req.hostname, host: req.headers['host'] || null, xForwardedHost: req.headers['x-forwarded-host'] || null, isKbros: isKbros(req) }); });
 app.get('/', (req, res, next) => { if (isKbros(req)) return sendPanel(req, res); next(); });
