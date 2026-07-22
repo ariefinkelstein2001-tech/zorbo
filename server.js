@@ -3488,15 +3488,21 @@ app.get('/admin/forecast/proyectado', requireAdmin, async (req, res) => {
   try {
     const real = await pnlCompute(month, estadoRangeFromReq(req));
     const data = forecastLoad();
-    const ajustes = (data.proyectado[month] && data.proyectado[month].ajustes) || [];
+    const bucket = data.proyectado[month] || {};
+    const ajustes = bucket.ajustes || [];
     const extra = forecastAjustesTotales(ajustes);
+    // El gasto de personal proyectado es un valor libre (no depende del real de
+    // hoy): puede haber más o menos colaboradores en el mes proyectado. Si no se
+    // definió un override, se sugiere el costo empresa actual como punto de partida.
+    const gastoPersonalOverride = (bucket.gastoPersonalOverride != null) ? Number(bucket.gastoPersonalOverride) : null;
+    const gastoPersonal = gastoPersonalOverride != null ? gastoPersonalOverride : real.costos.gastoPersonal;
     const costos = {
       costoDirecto: real.costos.costoDirecto + (extra.costo_directo || 0),
       costoIndirecto: real.costos.costoIndirecto + (extra.costo_indirecto || 0),
       gastosOper: real.costos.gastosOper + (extra.gastos_operativos || 0),
       gastosAdmin: real.costos.gastosAdmin + (extra.gastos_admin_venta || 0),
       gastosMarketing: real.costos.gastosMarketing + (extra.marketing_publicidad || 0),
-      gastoPersonal: real.costos.gastoPersonal + (extra.gasto_personal || 0),
+      gastoPersonal,
       activos: real.costos.activos,
     };
     const ingresos = real.ingresos.total;
@@ -3506,7 +3512,7 @@ app.get('/admin/forecast/proyectado', requireAdmin, async (req, res) => {
     res.json({
       month, categorias: FORECAST_CATS, ingresos: real.ingresos,
       real: { costos: real.costos, margenBruto: real.margenBruto, ebitda: real.ebitda },
-      ajustes, costos, margenBruto, ebitda,
+      ajustes, gastoPersonalOverride, costos, margenBruto, ebitda,
       ratios: {
         costoDirecto: ratio(costos.costoDirecto), costoIndirecto: ratio(costos.costoIndirecto),
         gastosOper: ratio(costos.gastosOper), gastosAdmin: ratio(costos.gastosAdmin),
@@ -3516,6 +3522,21 @@ app.get('/admin/forecast/proyectado', requireAdmin, async (req, res) => {
     });
   } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
 });
+app.post('/admin/forecast/proyectado/personal', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const month = /^\d{4}-\d{2}$/.test(String(b.month)) ? String(b.month) : null;
+  if (!month) return res.status(400).json({ error: 'Falta el mes.' });
+  const data = forecastLoad();
+  if (!data.proyectado[month]) data.proyectado[month] = { ajustes: [] };
+  if (b.valor == null || b.valor === '') {
+    delete data.proyectado[month].gastoPersonalOverride;
+  } else {
+    const v = costosNum(b.valor);
+    data.proyectado[month].gastoPersonalOverride = v;
+  }
+  forecastSave(data);
+  res.json({ ok: true, gastoPersonalOverride: data.proyectado[month].gastoPersonalOverride != null ? data.proyectado[month].gastoPersonalOverride : null });
+});
 app.post('/admin/forecast/proyectado/ajuste', requireAdmin, (req, res) => {
   const b = req.body || {};
   const month = /^\d{4}-\d{2}$/.test(String(b.month)) ? String(b.month) : null;
@@ -3523,6 +3544,7 @@ app.post('/admin/forecast/proyectado/ajuste', requireAdmin, (req, res) => {
   const descripcion = costosStr(b.descripcion, 200);
   const monto = costosNum(b.monto);
   if (!month) return res.status(400).json({ error: 'Falta el mes.' });
+  if (categoria === 'gasto_personal') return res.status(400).json({ error: 'El gasto de personal se edita directo en la fila de la tabla, no como ajuste.' });
   if (!FORECAST_CATS.some(c => c.id === categoria)) return res.status(400).json({ error: 'Elegí una categoría válida.' });
   if (!monto) return res.status(400).json({ error: 'Ingresá el monto.' });
   const data = forecastLoad();
@@ -3638,6 +3660,115 @@ app.post('/admin/forecast/anual/mapeo', requireAdmin, (req, res) => {
   else delete data.simulacionAnual[year][mesObjetivo];
   forecastSave(data);
   res.json({ ok: true, mapeo: data.simulacionAnual[year] });
+});
+
+// ─── FORECAST OPERACIONAL (v1) ───────────────────────────────────────────
+// Cuántos litros producir por marca/estilo. Fórmula (según especificación):
+//   litros a producir = (demanda proyectada + inventario objetivo − inventario inicial) / (1 − % merma)
+// desfasado hacia atrás según el lead time del estilo.
+// Limitaciones v1 (confirmadas con el usuario antes de construir):
+//  - Demanda = litros vendidos HORECA + hospitality (barriles/kegs), que ya se
+//    miden en litros hoy. Retail/web (latas Shopify) quedan fuera por ahora —
+//    no hay mapeo SKU→volumen de envase para convertirlas.
+//  - No hay tracking de inventario real de cerveza terminada todavía → inventario
+//    inicial se asume 0 (limitación conocida, no oculta: se muestra en la UI).
+//  - Un solo método de proyección (estacional simple: mismo mes año anterior ×
+//    tasa de crecimiento editable, con fallback a promedio de últimos meses).
+//    Sin Holt-Winters, sin versionado de forecast ni seguimiento de precisión.
+const OPERACIONAL_FILE = join(PROMPTS_EFFECTIVE_DIR, 'operacional.json');
+// Mapeo estilo→marca confirmado con el usuario + parámetros por defecto
+// (editables desde el panel): merma 8%, lead time / stock de seguridad en MESES
+// (no semanas, para que calce con la granularidad mensual del resto del sistema).
+const OPERACIONAL_ESTILOS_SEED = {
+  'NEIPA': 'kairos', 'Weizen': 'kairos', 'Golden': 'kairos', 'Pils': 'kairos', 'APA': 'kairos', 'Red': 'kairos',
+  'Obertura': 'kairos', 'Hoppy Lagger': 'kairos', 'IPA': 'kairos', 'Ambar': 'kairos', 'Osagui': 'kairos', 'Acholada': 'kairos',
+  'Colección de Artista': 'kairos', 'Cachupín': 'firulais', 'Gin': 'banny', 'Ron Rey de Copas': 'banny',
+};
+const OPERACIONAL_CONFIG_DEF = { mermaPct: 8, leadTimeMeses: 1, stockSeguridadMeses: 1, tamanoLoteMinL: 500, tasaCrecimientoPct: 0 };
+function operacionalLoad(){
+  let data = { estilos: {} };
+  try { if (existsSync(OPERACIONAL_FILE)) { const p = JSON.parse(readFileSync(OPERACIONAL_FILE, 'utf-8')); if (p && typeof p.estilos === 'object') data.estilos = p.estilos; } }
+  catch (e) { console.warn('operacional load:', e.message); }
+  let changed = false;
+  for (const [estilo, marca] of Object.entries(OPERACIONAL_ESTILOS_SEED)) {
+    if (!data.estilos[estilo]) { data.estilos[estilo] = { marca, ...OPERACIONAL_CONFIG_DEF }; changed = true; }
+  }
+  if (changed) operacionalSave(data);
+  return data;
+}
+function operacionalSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(OPERACIONAL_FILE, JSON.stringify(d, null, 2)); }
+// Litros vendidos por estilo en un mes, HORECA (cd_kairos_mall + ventas_cruzada)
+// + hospitality (garden + badass) — los dos canales que ya se miden en litros.
+async function opLitrosPorEstiloMes(month){
+  const out = {};
+  const add = (estilo, litros) => { if (!estilo || estilo === 'sin mapear') return; out[estilo] = (out[estilo] || 0) + (Number(litros) || 0); };
+  try {
+    const est = await estadoResolve(month, null);
+    (est.ingresos.hospitality.garden.tabla || []).forEach(r => add(r.estilo, r.litros));
+    (est.ingresos.hospitality.badass.tabla || []).forEach(r => add(r.estilo, r.litros));
+    (est.ingresos.horeca.pedidos || []).forEach(p => (p.detalle || []).forEach(d => add(d.estilo, d.litros)));
+  } catch (e) { /* mes sin datos de Shopify: litros quedan en 0 */ }
+  return out;
+}
+function opShiftMonth(month, deltaMeses){
+  const [y, m] = month.split('-').map(Number);
+  const d = new Date(y, m - 1 - Math.round(deltaMeses), 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+app.get('/admin/forecast/operacional', requireAdmin, async (req, res) => {
+  const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
+  if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
+  try {
+    const data = operacionalLoad();
+    // Fallback "promedio últimos 3 meses": se ancla al mes actual real, no al mes
+    // objetivo — si se está proyectando un mes lejano en el futuro, los 3 meses
+    // anteriores A ESE mes tampoco tendrían datos.
+    const curMonth = forecastCurMonth();
+    const [litrosAnioAnterior, litrosM1, litrosM2, litrosM3] = await Promise.all([
+      opLitrosPorEstiloMes(opShiftMonth(month, 12)), // mismo mes, un año antes
+      opLitrosPorEstiloMes(opShiftMonth(curMonth, 1)),
+      opLitrosPorEstiloMes(opShiftMonth(curMonth, 2)),
+      opLitrosPorEstiloMes(opShiftMonth(curMonth, 3)),
+    ]);
+    const estilos = Object.entries(data.estilos).map(([estilo, cfg]) => {
+      const anioAnterior = litrosAnioAnterior[estilo] || 0;
+      const promedio3m = ((litrosM1[estilo] || 0) + (litrosM2[estilo] || 0) + (litrosM3[estilo] || 0)) / 3;
+      const demandaBase = anioAnterior > 0 ? anioAnterior : promedio3m;
+      const fuenteDemanda = anioAnterior > 0 ? 'mismo mes año anterior' : (promedio3m > 0 ? 'promedio últimos 3 meses' : 'sin datos — cargar manual');
+      const demandaProyectada = Math.round(demandaBase * (1 + (Number(cfg.tasaCrecimientoPct) || 0) / 100));
+      const inventarioObjetivo = Math.round(demandaProyectada * (Number(cfg.stockSeguridadMeses) || 0));
+      const inventarioInicial = 0; // v1: sin tracking real de inventario de cerveza terminada
+      const merma = Math.min(0.95, Math.max(0, (Number(cfg.mermaPct) || 0) / 100));
+      const produccionBruta = merma < 1 ? (demandaProyectada + inventarioObjetivo - inventarioInicial) / (1 - merma) : 0;
+      const loteL = Math.max(1, Number(cfg.tamanoLoteMinL) || 1);
+      const produccionLote = Math.max(0, Math.ceil(produccionBruta / loteL) * loteL);
+      const mesProduccion = opShiftMonth(month, Number(cfg.leadTimeMeses) || 0);
+      return { estilo, ...cfg, demandaBase: Math.round(demandaBase), demandaProyectada, fuenteDemanda, inventarioObjetivo, inventarioInicial, produccionBruta: Math.round(produccionBruta), produccionLote, mesProduccion };
+    }).sort((a, b) => a.marca.localeCompare(b.marca) || a.estilo.localeCompare(b.estilo, 'es'));
+    const porMarca = {};
+    for (const m of COSTOS_MARCAS) porMarca[m] = { litrosProduccion: 0, litrosDemanda: 0 };
+    for (const e of estilos) { const b = porMarca[e.marca] || (porMarca[e.marca] = { litrosProduccion: 0, litrosDemanda: 0 }); b.litrosProduccion += e.produccionLote; b.litrosDemanda += e.demandaProyectada; }
+    res.json({ month, marcas: COSTOS_MARCAS, estilos, porMarca });
+  } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+});
+app.post('/admin/forecast/operacional/estilo', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const estilo = costosStr(b.estilo, 60);
+  if (!estilo) return res.status(400).json({ error: 'Falta el estilo.' });
+  const data = operacionalLoad();
+  const cur = data.estilos[estilo] || { marca: 'kairos', ...OPERACIONAL_CONFIG_DEF };
+  const marca = COSTOS_MARCAS.includes(b.marca) ? b.marca : cur.marca;
+  const num = (v, def) => { const n = Number(v); return Number.isFinite(n) ? n : def; };
+  data.estilos[estilo] = {
+    marca,
+    mermaPct: Math.min(95, Math.max(0, num(b.mermaPct, cur.mermaPct))),
+    leadTimeMeses: Math.min(12, Math.max(0, num(b.leadTimeMeses, cur.leadTimeMeses))),
+    stockSeguridadMeses: Math.min(12, Math.max(0, num(b.stockSeguridadMeses, cur.stockSeguridadMeses))),
+    tamanoLoteMinL: Math.max(1, num(b.tamanoLoteMinL, cur.tamanoLoteMinL)),
+    tasaCrecimientoPct: Math.min(500, Math.max(-100, num(b.tasaCrecimientoPct, cur.tasaCrecimientoPct))),
+  };
+  operacionalSave(data);
+  res.json({ ok: true, estilo: { estilo, ...data.estilos[estilo] } });
 });
 
 // ─── GESTIÓN DE PERSONAS (nómina) ───────────────────────────────────────────

@@ -8,4 +8,5 @@ prompts/calidad.json
 prompts/costos-gastos.json
 prompts/distribuidora.json
 prompts/forecast.json
+prompts/operacional.json
 public/uploads/
