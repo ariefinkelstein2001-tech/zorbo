@@ -1672,6 +1672,10 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .fc-note{font-size:.8rem;color:var(--muted,#666);background:var(--surface2,#fafafa);border:1px solid var(--border,#e5e5e5);border-radius:var(--radius-sm,8px);padding:.6rem .8rem;margin-bottom:1rem}
 .fc-changed{color:var(--gold-deep,#a05f00);font-weight:700}
 .fc-pct-inp{width:70px;padding:.3rem .4rem;border:1px solid var(--line,#e5e5e5);border-radius:7px;text-align:right}
+.fc-op-marca-h{display:flex;align-items:center;justify-content:space-between;font-family:var(--display);font-weight:800;font-size:1rem;margin:1.2rem 0 .5rem}
+.fc-op-marca-h span{font-family:var(--sans);font-weight:700;font-size:.85rem;color:var(--gold-deep,#a05f00)}
+.fc-op-open{background:var(--gold-dim,rgba(245,166,35,.06))}
+.fc-op-edit-row td{background:var(--surface2,#fafafa)}
 /* Gestión de Personas */
 .nom-costo{background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623) 55%,var(--gold-deep,#a05f00));border-radius:16px;padding:1.1rem 1.3rem;margin-bottom:1.1rem;color:#1a1408}
 .nom-costo-l{font-size:.82rem;font-weight:700;letter-spacing:.02em}
@@ -8951,18 +8955,76 @@ function forecastLoadTab(){
   if(fcTab==='pres') return fcPresLoad();
   return fcAnualLoad();
 }
-function fcOperacionalRender(){
-  document.getElementById('fcBody').innerHTML=`
-    <div class="dist-empty" style="padding:2.4rem 1rem;text-align:center">
-      <div style="font-size:2.2rem;margin-bottom:.6rem">🏭</div>
-      <div style="font-weight:800;font-family:var(--display);font-size:1.1rem;margin-bottom:.5rem">Todavía en construcción</div>
-      <div style="max-width:520px;margin:0 auto;color:var(--muted,#666);font-size:.85rem;line-height:1.5">
-        Va a calcular cuántos litros producir por marca (Kairos, Firulais, Banny) y por estilo,
-        a partir de la demanda proyectada, la merma, el inventario objetivo y el lead time de
-        cada estilo. Antes de construirlo hay algunas definiciones puntuales que hacen falta —
-        te las voy a preguntar por chat.
-      </div>
-    </div>`;
+let fcOpMonth=null, fcOpData=null, fcOpEditing=null;
+const FC_OP_MARCA_LBL={kairos:'Kairos',banny:'Banny',firulais:'Firulais'};
+async function fcOperacionalRender(){
+  const body=document.getElementById('fcBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  try{
+    if(!fcOpMonth){ await fcMonthOptions(); fcOpMonth=fcAddMonths(fcCurMonthKey(),1); } else { await fcMonthOptions(); }
+    const r=await fetch('/admin/forecast/operacional?month='+fcOpMonth); const d=await r.json();
+    if(d.error) throw new Error(d.error);
+    fcOpData=d;
+    fcOperacionalRenderData();
+  }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function fcOperacionalRenderData(){
+  const a=fcOpData, body=document.getElementById('fcBody');
+  const porMarcaCards=(a.marcas||[]).map(m=>{
+    const b=a.porMarca[m]||{litrosProduccion:0};
+    return `<div class="cg-card"><div class="cg-card-l">${FC_OP_MARCA_LBL[m]||m}</div><div class="cg-card-v">${Math.round(b.litrosProduccion).toLocaleString('es-CL')} L</div><div class="cg-card-n">a producir para ${escapeHtml(estMonthLabel(a.month))}</div></div>`;
+  }).join('');
+  const bloquesMarca=(a.marcas||[]).map(m=>{
+    const estilos=(a.estilos||[]).filter(e=>e.marca===m);
+    if(!estilos.length) return '';
+    const rows=estilos.map(e=>{
+      const abierto=fcOpEditing===e.estilo;
+      const editRow=abierto?`
+        <tr class="fc-op-edit-row"><td colspan="6">
+          <div class="cg-form-grid" style="margin-top:.4rem">
+            <label class="cg-field"><span>Marca</span><select data-fcopf="marca">${(a.marcas||[]).map(mm=>`<option value="${mm}" ${mm===e.marca?'selected':''}>${FC_OP_MARCA_LBL[mm]||mm}</option>`).join('')}</select></label>
+            <label class="cg-field"><span>% Merma</span><input type="number" min="0" max="95" step="0.5" data-fcopf="mermaPct" value="${e.mermaPct}"></label>
+            <label class="cg-field"><span>Lead time (meses)</span><input type="number" min="0" max="12" step="0.5" data-fcopf="leadTimeMeses" value="${e.leadTimeMeses}"></label>
+            <label class="cg-field"><span>Stock seguridad (meses de demanda)</span><input type="number" min="0" max="12" step="0.5" data-fcopf="stockSeguridadMeses" value="${e.stockSeguridadMeses}"></label>
+            <label class="cg-field"><span>Tamaño lote mínimo (L)</span><input type="number" min="1" step="1" data-fcopf="tamanoLoteMinL" value="${e.tamanoLoteMinL}"></label>
+            <label class="cg-field"><span>Crecimiento vs. año anterior (%)</span><input type="number" min="-100" max="500" step="1" data-fcopf="tasaCrecimientoPct" value="${e.tasaCrecimientoPct}"></label>
+            <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" data-fcopsave="${escapeAttr(e.estilo)}" type="button">Guardar</button></div>
+          </div>
+        </td></tr>`:'';
+      return `<tr class="${abierto?'fc-op-open':''}">
+        <td>${escapeHtml(e.estilo)}</td>
+        <td style="font-size:.72rem;color:var(--muted,#666)">${escapeHtml(e.fuenteDemanda)}</td>
+        <td class="dist-num">${Math.round(e.demandaProyectada).toLocaleString('es-CL')} L</td>
+        <td class="dist-num"><b>${Math.round(e.produccionLote).toLocaleString('es-CL')} L</b></td>
+        <td>${escapeHtml(estMonthLabel(e.mesProduccion))}</td>
+        <td><button class="cg-doc-link" data-fcopedit="${escapeAttr(e.estilo)}" type="button">${abierto?'cerrar':'editar'}</button></td>
+      </tr>${editRow}`;
+    }).join('');
+    const sub=a.porMarca[m]||{litrosProduccion:0};
+    return `<div class="fc-op-marca-h">${FC_OP_MARCA_LBL[m]||m} <span>${Math.round(sub.litrosProduccion).toLocaleString('es-CL')} L a producir</span></div>
+      <div class="mun-wrap" style="margin-bottom:1rem"><table class="mun-table"><thead><tr><th>Estilo</th><th>Demanda estimada de</th><th style="text-align:right">Demanda proyectada</th><th style="text-align:right">Litros a producir</th><th>Producir en</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }).join('');
+  body.innerHTML=`
+    <div class="fc-toolbar"><div class="fc-toolbar-l"><span>Mes a abastecer</span>${fcMonthSelectHtml('fcOpSel',a.month)}</div></div>
+    <div class="fc-note">v1: la demanda se calcula con litros de HORECA + hospitality (barriles/kegs), que ya se miden en litros — retail/web (latas de Shopify) todavía no están incluidas. El inventario inicial se asume en 0 porque hoy no hay stock de cerveza terminada trackeado, así que "litros a producir" incluye el stock de seguridad completo como si se partiera desde cero. Todos los parámetros por estilo son editables (botón "editar").</div>
+    <div class="cg-resumen">${porMarcaCards}</div>
+    ${bloquesMarca}`;
+  fcOperacionalWire();
+}
+function fcOperacionalWire(){
+  document.getElementById('fcOpSel').onchange=(e)=>{ fcOpMonth=e.target.value; fcOperacionalRender(); };
+  document.querySelectorAll('[data-fcopedit]').forEach(b=>b.onclick=()=>{ fcOpEditing = fcOpEditing===b.dataset.fcopedit ? null : b.dataset.fcopedit; fcOperacionalRenderData(); });
+  document.querySelectorAll('[data-fcopsave]').forEach(b=>b.onclick=()=>fcOperacionalGuardar(b.dataset.fcopsave));
+}
+async function fcOperacionalGuardar(estilo){
+  const row=[...document.querySelectorAll('.fc-op-edit-row')].find(tr=>tr.querySelector(`[data-fcopsave="${CSS.escape(estilo)}"]`));
+  const get=(name)=>row.querySelector(`[data-fcopf="${name}"]`).value;
+  const payload={ estilo, marca:get('marca'), mermaPct:get('mermaPct'), leadTimeMeses:get('leadTimeMeses'), stockSeguridadMeses:get('stockSeguridadMeses'), tamanoLoteMinL:get('tamanoLoteMinL'), tasaCrecimientoPct:get('tasaCrecimientoPct') };
+  try{
+    const r=await fetch('/admin/forecast/operacional/estilo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    fcOpEditing=null;
+    await fcOperacionalRender();
+  }catch(e){ alert(String(e.message||e)); }
 }
 
 // ── (A) Proyectado ──
