@@ -61,8 +61,7 @@ a{color:inherit;text-decoration:none}
 /* ── Widget de check-in de ánimo (reemplaza la tarjeta de stats) ── */
 .h-mood{margin-top:2rem;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(8px);border-radius:var(--r-lg);padding:16px 18px;max-width:380px}
 .h-mood .kick{font-family:var(--display);font-size:.62rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:.55rem}
-.mood-quote{font-family:var(--display);font-weight:700;font-size:1.02rem;color:#fff;line-height:1.28;letter-spacing:-.01em}
-.mood-q{color:#cdd8ec;font-size:.86rem;margin-top:.75rem}
+.mood-q{font-family:var(--display);font-size:.95rem;font-weight:800;letter-spacing:-.005em;color:var(--accent);margin-bottom:.75rem}
 .mood-emojis{display:flex;justify-content:space-between;margin-top:.7rem;padding:0 2px}
 .mood-emojis span{font-size:1.05rem;line-height:1;filter:grayscale(.4);opacity:.55;transform:scale(.9);transition:transform .18s var(--ease),opacity .18s var(--ease),filter .18s var(--ease)}
 .mood-emojis span.on{filter:none;opacity:1;transform:scale(1.5)}
@@ -78,12 +77,8 @@ a{color:inherit;text-decoration:none}
 .mood-done-emoji{font-size:1.7rem;line-height:1}
 .mood-done-txt{color:#fff;font-weight:600;font-size:.86rem}
 @media(prefers-reduced-motion:reduce){.mood-emojis span,.mood-range::-webkit-slider-thumb,.mood-done{transition:none!important}}
-/* Foto del equipo: para poner una real, definí background-image en .h-img (jpg propio en /public). */
-.h-img{position:relative;aspect-ratio:1/1;width:100%;max-width:440px;justify-self:end;border-radius:var(--r-xl);border:1px dashed rgba(255,255,255,.28);background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.03));background-size:cover;background-position:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;color:#cdd8ec;text-align:center;padding:24px;overflow:hidden}
-.h-img .mk{width:46px;height:46px;border-radius:13px;background:linear-gradient(135deg,var(--accent),var(--accent-hover));opacity:.9}
-.h-img b{font-family:var(--display);font-weight:800;color:#fff;font-size:.95rem}
-.h-img small{font-size:.73rem;color:#aebbd6;letter-spacing:.02em}
-.ph-tag{position:absolute;top:12px;left:12px;font-size:.6rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#0b2a5e;background:var(--accent);padding:.22rem .5rem;border-radius:var(--r-full)}
+/* Foto del equipo: recortada en círculo, el fondo azul del hero se ve alrededor. */
+.h-img{position:relative;aspect-ratio:1/1;width:100%;max-width:440px;justify-self:end;border-radius:50%;background-image:url('/hero-team.png');background-size:cover;background-position:center;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden}
 /* ── LOGIN ── */
 .login{height:100vh;background:var(--bg);display:grid;grid-template-columns:1fr 1fr}
 .lg-left{display:flex;align-items:center;justify-content:center;padding:40px;background:var(--surface)}
@@ -162,15 +157,13 @@ a{color:inherit;text-decoration:none}
     </div>
     <div class="hero-wrap">
       <div>
-        <h1 class="h-title">Administrando<br>ando</h1>
+        <h1 class="h-title">Vamo a darle!</h1>
         <p class="h-sub">El centro de control de K-BROS: todas tus áreas, canales y herramientas en un solo lugar.</p>
         <div class="h-cta">
           <button class="btn btn-primary" id="toLogin2">Iniciar sesión</button>
         </div>
         <!-- ── Check-in de ánimo del equipo (solo visual — Opción A, no guarda) ── -->
         <div class="h-mood" id="mood">
-          <div class="kick">Check-in del equipo</div>
-          <div class="mood-quote" id="moodQuote">&nbsp;</div>
           <div class="mood-q" id="moodQuestion">&nbsp;</div>
           <div class="mood-emojis" id="moodEmojis" aria-hidden="true">
             <span>😢</span><span>😔</span><span>😩</span><span>😐</span><span>🙂</span><span>😄</span><span>🔥</span>
@@ -180,17 +173,12 @@ a{color:inherit;text-decoration:none}
           <div class="mood-scale"><span>menos</span><span>más</span></div>
           <div class="mood-done" id="moodDone" aria-live="polite">
             <span class="mood-done-emoji" id="moodDoneEmoji">😐</span>
-            <span class="mood-done-txt">¡Gracias por contarnos! 🧡</span>
+            <span class="mood-done-txt" id="moodDoneTxt">&nbsp;</span>
           </div>
         </div>
       </div>
-      <!-- Contenedor de foto del equipo (placeholder hasta cargar la real) -->
-      <div class="h-img" role="img" aria-label="Foto del equipo K-BROS (placeholder)">
-        <span class="ph-tag">Placeholder</span>
-        <span class="mk"></span>
-        <b>Foto del equipo</b>
-        <small>Reemplazar por foto real del equipo</small>
-      </div>
+      <!-- Foto del equipo -->
+      <div class="h-img" role="img" aria-label="Foto del equipo K-BROS"></div>
     </div>
   </section>
   <!-- LOGIN -->
@@ -239,46 +227,63 @@ a{color:inherit;text-decoration:none}
   document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ if(open) toggleMega(null); else if(track.classList.contains('login-on')) hideLogin(); } });
 
   // ══ Widget de check-in de ánimo ══════════════════════════════════════════
-  // EDITABLE POR EL EQUIPO: agregá/sacá frases y preguntas de estos arrays.
-  // En cada carga de la página se elige una frase y una pregunta AL AZAR.
-  var MOOD_QUOTES=[
-    "Hoy es un buen día para hacer que pase.",
-    "Equipo K-BROS: a darlo todo 🔥",
-    "Un paso a la vez, pero sin parar.",
-    "Lo que hacemos hoy, se nota mañana.",
-    "Pequeños avances, grandes resultados.",
-    "Vamos con todo, que se puede.",
-    "Tu energía mueve al equipo.",
-    "Hazlo simple, hazlo bien.",
-    "Cada día es una nueva oportunidad.",
-    "Juntos llegamos más lejos."
-  ];
+  // EDITABLE POR EL EQUIPO: agregá/sacá preguntas de este array (se elige una al azar).
   var MOOD_QUESTIONS=[
     "¿Cómo te sientes hoy?",
     "¿Qué tal todo para hoy?",
     "¡Eu! ¿Cómo estás?",
     "¿Con qué energía llegaste?"
   ];
-  // Los 7 niveles del slider (izquierda → derecha).
+  // Los 7 niveles del slider (izquierda → derecha), cada uno con varias frases —
+  // todas calzan con esa emoción puntual (no son mensajes genéricos) y se elige
+  // una al azar cada vez, para que no se repita siempre la misma.
   var MOOD_LEVELS=[
-    {e:"😢",t:"Triste"},
-    {e:"😔",t:"Medianamente triste"},
-    {e:"😩",t:"Cansado"},
-    {e:"😐",t:"Indiferente"},
-    {e:"🙂",t:"Bien"},
-    {e:"😄",t:"Feliz"},
-    {e:"🔥",t:"Demasiado feliz"}
+    {e:"😢",t:"Triste",frases:[
+      "Un mal momento no define todo lo que eres capaz de hacer.",
+      "Está bien sentirse así. Mañana es otra oportunidad.",
+      "No estás solo en esto — el equipo está para acompañarte."
+    ]},
+    {e:"😔",t:"Medianamente triste",frases:[
+      "Está bien no estar bien todo el tiempo. Mañana pinta mejor.",
+      "Un paso chico también cuenta como avance.",
+      "Date permiso de ir más despacio hoy."
+    ]},
+    {e:"😩",t:"Cansado",frases:[
+      "Descansar también es avanzar. Hoy, con calma.",
+      "No hace falta rendir al 100% todos los días.",
+      "Un respiro a tiempo rinde más que forzar la máquina."
+    ]},
+    {e:"😐",t:"Indiferente",frases:[
+      "No hace falta estar eufórico para hacer un gran trabajo hoy.",
+      "Los días parejos también suman.",
+      "A veces lo neutro es solo el punto de partida de algo bueno."
+    ]},
+    {e:"🙂",t:"Bien",frases:[
+      "Así se construyen los grandes días: uno bueno a la vez.",
+      "Vas bien. Seguí así.",
+      "Un buen día tranquilo también es un día ganado."
+    ]},
+    {e:"😄",t:"Feliz",frases:[
+      "Esa energía se contagia — compartila con el equipo.",
+      "Aprovechá ese envión, hoy rinde el doble.",
+      "Se nota tu buena onda — gracias por traerla."
+    ]},
+    {e:"🔥",t:"Demasiado feliz",frases:[
+      "Cuando tengas ganas de ir por más, ve por más.",
+      "Esa energía no se guarda, se usa.",
+      "Con esa actitud, hoy no hay techo."
+    ]}
   ];
   function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
 
   (function initMood(){
-    var quoteEl=document.getElementById('moodQuote'); if(!quoteEl) return;
-    quoteEl.textContent=pick(MOOD_QUOTES);
-    document.getElementById('moodQuestion').textContent=pick(MOOD_QUESTIONS);
+    var qEl=document.getElementById('moodQuestion'); if(!qEl) return;
+    qEl.textContent=pick(MOOD_QUESTIONS);
     var range=document.getElementById('moodRange');
     var emojis=document.getElementById('moodEmojis').children;
     var done=document.getElementById('moodDone');
     var doneEmoji=document.getElementById('moodDoneEmoji');
+    var doneTxt=document.getElementById('moodDoneTxt');
 
     // Pinta la pista dorada + resalta el emoji del nivel actual (en vivo al arrastrar).
     function paint(v){
@@ -298,6 +303,7 @@ a{color:inherit;text-decoration:none}
     function onMoodSelected(nivel){
       var lv=MOOD_LEVELS[nivel-1];
       doneEmoji.textContent=lv.e;
+      doneTxt.textContent=pick(lv.frases);
       done.style.display='flex';
       void done.offsetWidth;      // fuerza reflow para que corra la transición
       done.classList.add('show');
