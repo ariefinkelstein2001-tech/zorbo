@@ -4624,42 +4624,65 @@ function calidadCleanResumen(x){ x = x || {}; const s = (v) => prodStr(v, 800); 
 // daba falsos positivos/negativos) — nombre/estilo/imagen se editan desde
 // Competencias → "Agregar cerveza", que también sirve para sumar productos
 // nuevos el día que se necesite.
+// shopifyTitle: título EXACTO del producto en Shopify (mapeo explícito hecho a
+// mano — no es matching automático/difuso, que ya se probó y se descartó por
+// falsos positivos/negativos). Se usa solo para traer la imagen real y el link
+// a la ficha del producto; si no matchea o Shopify no está disponible, no
+// rompe nada — sigue funcionando con la imagen manual como hasta ahora.
 const PROD_CALIDAD_SEED = [
-  { nombre: 'Nada Personal', estilo: 'Pils' },
-  { nombre: 'Galactic Mission', estilo: 'Golden' },
-  { nombre: 'Alerta Roja', estilo: 'Red' },
-  { nombre: 'Secret Lab', estilo: 'APA' },
-  { nombre: 'Imperio Perdido', estilo: 'Session NEIPA' },
-  { nombre: 'Obertura', estilo: 'Stout' },
-  { nombre: 'Kenny Bell', estilo: 'Amber' },
-  { nombre: 'Hoyo en Uno', estilo: 'Hoppy Lager' },
-  { nombre: 'Samba', estilo: 'IPA' },
-  { nombre: 'Ritual de la Banana', estilo: 'Weizen' },
-  { nombre: 'Goodbye My Lover', estilo: 'Colección de Artista' },
-  { nombre: 'Goat Father', estilo: 'Colección de Artista' },
+  { nombre: 'Nada Personal', estilo: 'Pils', shopifyTitle: 'Nada Personal Pils - Lata 473cc' },
+  { nombre: 'Galactic Mission', estilo: 'Golden', shopifyTitle: 'Galactic Golden - Lata 473cc' },
+  { nombre: 'Alerta Roja', estilo: 'Red', shopifyTitle: 'Alerta Roja Red ALE - Lata 473cc' },
+  { nombre: 'Secret Lab', estilo: 'APA', shopifyTitle: 'Secret Lab APA - Lata 473cc' },
+  { nombre: 'Imperio Perdido', estilo: 'Session NEIPA', shopifyTitle: 'Imperio Perdido NEIPA - Lata 473cc' },
+  { nombre: 'Obertura', estilo: 'Stout', shopifyTitle: '473cc Mayorista Obertura (Stout)' },
+  { nombre: 'Kenny Bell', estilo: 'Amber', shopifyTitle: '473cc Mayorista Kenny Bell (American Amber Ale)' },
+  { nombre: 'Hoyo en Uno', estilo: 'Hoppy Lager', shopifyTitle: '473cc Mayorista Hoyo en uno (Hoppy Lager)' },
+  { nombre: 'Samba', estilo: 'IPA', shopifyTitle: '473cc Mayorista Samba (IPA)' },
+  { nombre: 'Ritual de la Banana', estilo: 'Weizen', shopifyTitle: '473cc Mayorista Ritual De La Banana (Weizen)' },
+  { nombre: 'Goodbye My Lover', estilo: 'Colección de Artista', shopifyTitle: '(LATA cm3) Good Bye My Lover' },
+  { nombre: 'Goat Father', estilo: 'Colección de Artista', shopifyTitle: '(Lata cm3) Goatfather' },
   { nombre: 'Gin Banny Contemporáneo', estilo: 'Gin' },
   { nombre: 'Gin Banny London Dry', estilo: 'Gin' },
   { nombre: 'Rey de Copas Carta Blanca', estilo: 'Ron' },
 ];
+const shopifyProductUrl = (handle) => `https://${(process.env.SHOPIFY_STORE_DOMAIN || 'kairos-brewing.myshopify.com').trim()}/products/${handle}`;
 // Catálogo de cervezas: parte del listado fijo (PROD_CALIDAD_SEED) + overrides
 // manuales (nombre/estilo/imagen — incluye altas nuevas vía "Agregar cerveza")
 // + enriquecido best-effort con recetas/historial (sin sumar productos nuevos
 // desde ahí). Clave = slug del nombre.
 async function prodCatalogoCervezas(cd){
   const map = new Map();
-  const add = (nombre, estilo, imagen, crearSiNoExiste) => {
+  const add = (nombre, estilo, imagen, crearSiNoExiste, shopifyTitle) => {
     const id = prodSlug(nombre); if (!id) return;
     const ex = map.get(id);
-    if (!ex) { if (!crearSiNoExiste) return; map.set(id, { cervezaId: id, nombre, estilo: estilo || '', imagen: imagen || '', origen: 'manual' }); return; }
+    if (!ex) { if (!crearSiNoExiste) return; map.set(id, { cervezaId: id, nombre, estilo: estilo || '', imagen: imagen || '', shopifyTitle: shopifyTitle || '', origen: 'manual' }); return; }
     if (!ex.nombre) ex.nombre = nombre;
     if (estilo && !ex.estilo) ex.estilo = estilo;
     if (imagen && !ex.imagen) ex.imagen = imagen;
+    if (shopifyTitle && !ex.shopifyTitle) ex.shopifyTitle = shopifyTitle;
   };
-  for (const s of PROD_CALIDAD_SEED) add(s.nombre, s.estilo, '', true);
+  for (const s of PROD_CALIDAD_SEED) add(s.nombre, s.estilo, '', true, s.shopifyTitle);
   const pd = prodLoad();
   for (const r of (pd.recetas || [])) add(r.nombre, r.estilo, '', false); // solo enriquece, no suma productos
   for (const arr of [cd.registros, cd.retros, cd.memorias]) for (const x of (arr || [])) add((cd.cervezas[x.cervezaId] && cd.cervezas[x.cervezaId].nombre) || x.cervezaNombre || x.cervezaId, x.estilo, '', false);
-  for (const [id, ov] of Object.entries(cd.cervezas || {})) { const ex = map.get(id) || { cervezaId: id, nombre: ov.nombre || id, estilo: '', imagen: '', origen: 'manual' }; if (ov.nombre) ex.nombre = ov.nombre; if (ov.estilo) ex.estilo = ov.estilo; if (ov.imagen) ex.imagen = ov.imagen; map.set(id, ex); }
+  for (const [id, ov] of Object.entries(cd.cervezas || {})) { const ex = map.get(id) || { cervezaId: id, nombre: ov.nombre || id, estilo: '', imagen: '', shopifyTitle: '', origen: 'manual' }; if (ov.nombre) ex.nombre = ov.nombre; if (ov.estilo) ex.estilo = ov.estilo; if (ov.imagen) ex.imagen = ov.imagen; if (ov.shopifyTitle != null) ex.shopifyTitle = ov.shopifyTitle; map.set(id, ex); }
+  // Enriquecimiento best-effort con Shopify: solo para cervezas con shopifyTitle
+  // configurado (mapeo explícito, no matching difuso). Si Shopify no responde o
+  // el título no matchea, no rompe nada — sigue con la imagen manual/placeholder.
+  try {
+    const prods = await loadProductsCache();
+    if (prods && prods.length) {
+      const byTitle = new Map(prods.map(p => [String(p.title || '').trim().toLowerCase(), p]));
+      for (const ex of map.values()) {
+        if (!ex.shopifyTitle) continue;
+        const p = byTitle.get(ex.shopifyTitle.trim().toLowerCase());
+        if (!p) continue;
+        if (!ex.imagen && p.image) ex.imagen = p.image;
+        if (p.handle) ex.shopifyUrl = shopifyProductUrl(p.handle);
+      }
+    }
+  } catch (e) { /* Shopify no disponible: se sigue con imagen manual/placeholder */ }
   return [...map.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
 }
 // Resumen consolidado + semáforo por cerveza. Regla del estado:
@@ -4740,14 +4763,18 @@ app.post('/admin/produccion/calidad/resumir', requireAdmin, async (req, res) => 
 app.post('/admin/produccion/calidad/resumen/:cervezaId', requireAdmin, async (req, res) => {
   const cd = calidadLoad(); const cid = req.params.cervezaId;
   const r = calidadResumenCerveza(cd, cid);
-  const cerv = cd.cervezas[cid] || {}; const nombre = cerv.nombre || cid;
-  const regs = cd.registros.filter(x => x.cervezaId === cid);
+  const cerv = cd.cervezas[cid] || {};
+  // Si nunca se editó a mano, el nombre de fantasía viene del catálogo fijo
+  // (evita mandarle a la IA el slug, ej. "nada-personal", como si fuera nombre).
+  const seedNombre = (PROD_CALIDAD_SEED.find(s => prodSlug(s.nombre) === cid) || {}).nombre;
+  const nombre = cerv.nombre || seedNombre || cid;
+  const regs = cd.registros.filter(x => x.cervezaId === cid).slice().sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
   const mems = cd.memorias.filter(x => x.cervezaId === cid);
   const retros = cd.retros.filter(x => x.cervezaId === cid);
   try {
-    const ctx = { cerveza: nombre, medallas: r.medallas, defectosPorCategoria: r.catConteo, memorias: mems.map(m => ({ categoria: m.categoria, texto: m.texto, fecha: m.fecha })), retros: retros.map(x => ({ texto: x.texto, fecha: x.fecha })), competencias: regs.map(x => ({ competencia: x.competenciaNombre, resultado: x.resultado, resumen: x.resumenIA })) };
-    const sys = 'Sos el maestro cervecero. En 2-3 líneas MÁXIMO y en español, consolidá el estado de calidad de esta cerveza juntando: medallas obtenidas (cuáles y de qué competencia), 1 línea de tendencia de la retroalimentación, y 1 línea de defectos/memorias recurrentes si los hay. Tono directo, sin relleno.';
-    const msg = await client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 400, system: sys, messages: [{ role: 'user', content: 'Datos de la cerveza (JSON):\n' + JSON.stringify(ctx).slice(0, 6000) }] });
+    const ctx = { cerveza: nombre, medallas: r.medallas, defectosPorCategoria: r.catConteo, memorias: mems.map(m => ({ categoria: m.categoria, texto: m.texto, fecha: m.fecha })), retros: retros.map(x => ({ texto: x.texto, fecha: x.fecha })), evaluacionesSensoriales: regs.map(x => ({ competencia: x.competenciaNombre, resultado: x.resultado, fecha: x.fecha, ...x.resumenIA })) };
+    const sys = 'Sos el maestro cervecero. En español, escribí UN PÁRRAFO (5-8 frases) que resuma la EVOLUCIÓN de las evaluaciones sensoriales de esta cerveza a través del tiempo, usando "evaluacionesSensoriales" (cada una trae apariencia/aroma/sabor/sensacionBoca/conclusion + fecha + resultado de esa participación, están ordenadas de la más reciente a la más antigua). Recorré cómo fue cambiando (mejoras, defectos que se repiten o se corrigieron), mencionando las competencias/medallas relevantes de "medallas" donde corresponda, y CERRÁ el párrafo poniendo el foco específicamente en la evaluación MÁS RECIENTE (la primera de la lista): cómo está la cerveza hoy. Si solo hay una evaluación, describí esa nomás, sin inventar evolución. Si no hay ninguna evaluación sensorial, decilo brevemente y no inventes datos. Tono de juez cervecero (BJCP), directo, sin relleno ni frases genéricas.';
+    const msg = await client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 700, system: sys, messages: [{ role: 'user', content: 'Datos de la cerveza (JSON):\n' + JSON.stringify(ctx).slice(0, 8000) }] });
     const texto = (msg.content || []).map(c => c.text || '').join('').trim();
     cd.resumenes[cid] = { texto, generadoEn: new Date().toISOString() }; calidadSave(cd);
     res.json({ ok: true, resumen: cd.resumenes[cid] });
@@ -4823,6 +4850,7 @@ app.post('/admin/produccion/calidad/cerveza', requireAdmin, (req, res) => {
   if (!cervezaId) return res.status(400).json({ error: 'Ingresá el nombre de la cerveza.' });
   const ov = cd.cervezas[cervezaId] || {};
   if (nombre) ov.nombre = nombre; if (b.estilo != null) ov.estilo = prodStr(b.estilo, 80); if (b.imagen != null) ov.imagen = calUplOk(b.imagen && b.imagen.url ? b.imagen.url : b.imagen);
+  if (b.shopifyTitle != null) ov.shopifyTitle = prodStr(b.shopifyTitle, 200);
   cd.cervezas[cervezaId] = ov; calidadSave(cd); res.json({ ok: true, cervezaId, cerveza: ov });
 });
 
