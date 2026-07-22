@@ -1609,7 +1609,11 @@ const STOREFRONT_MODE = (() => {
 
 // Inyecta el modo en el <head> del index.html antes de servir el archivo
 // estático, así el frontend sabe el modo sin tener que esperar un fetch.
-function serveIndexWithMode(_req, res, next){
+function serveIndexWithMode(req, res, next){
+  // En k-bros.cl el "/" es la puerta K-BROS (panel.html), no el marketplace.
+  // Este guard va acá porque esta ruta se registra ANTES que el resto del ruteo
+  // por dominio; sin él, k-bros.cl/ caía siempre en el index del marketplace.
+  if (isKbros(req)) return sendPanel(req, res);
   try {
     const path = join(__dirname, 'public', 'index.html');
     let html = readFileSync(path, 'utf8');
@@ -1636,7 +1640,7 @@ const isKbros = (req) => KBROS_HOST.test(hostOf(req));
 const sendPanel = (req, res) => { res.set('Cache-Control', 'no-store, must-revalidate'); res.sendFile(join(__dirname, 'public', 'panel.html')); };
 // Diagnóstico: qué host ve la app (para depurar el ruteo por dominio). No cacheable.
 app.get('/__whoami', (req, res) => { res.set('Cache-Control', 'no-store'); res.json({ hostDetectado: hostOf(req), hostname: req.hostname, host: req.headers['host'] || null, xForwardedHost: req.headers['x-forwarded-host'] || null, isKbros: isKbros(req) }); });
-app.get('/', (req, res, next) => { if (isKbros(req)) return sendPanel(req, res); next(); });
+// El "/" ya lo maneja serveIndexWithMode (con guard isKbros) unas líneas arriba.
 app.get(['/login', '/panel'], sendPanel);
 
 app.use(express.static(join(__dirname, 'public')));
