@@ -131,6 +131,87 @@ body.role-costeo .adm-chat{display:none}
 body.estado-active .adm-shell{grid-template-columns:1fr}
 body.estado-active .adm-chat{display:none}
 body.admin-home .adm-chat,body.admin-home .adm-chat-fab{display:none!important}
+
+/* ═══════════ K-BROS SHELL (sidebar + topbar + dashboard) ═══════════ */
+:root{ --ks-side:268px; --ks-b900:#0b2a5e; --ks-b800:#123a7a; --ks-b950:#071d40; }
+body{ padding-left:var(--ks-side); }
+.adm-brand,.adm-pipe,.adm-sub{ display:none!important; } /* la marca ahora vive en el sidebar */
+#tabs{ display:none!important; }                          /* la navegación ahora vive en el sidebar */
+.ks-side{position:fixed;left:0;top:0;bottom:0;width:var(--ks-side);z-index:60;display:flex;flex-direction:column;background:linear-gradient(185deg,var(--ks-b800),var(--ks-b900) 42%,var(--ks-b950));border-right:1px solid rgba(255,255,255,.06)}
+.ks-side::before{content:"";position:absolute;inset:0;background:radial-gradient(70% 30% at 20% 0%,rgba(245,166,35,.14),transparent 70%);pointer-events:none}
+.ks-top{display:flex;align-items:center;gap:.55rem;padding:16px 16px 12px;cursor:pointer;position:relative}
+.ks-logo{display:flex;align-items:center;gap:.55rem;font-family:var(--display,inherit);font-weight:800;font-size:1.2rem;color:#fff;letter-spacing:.02em}
+.ks-logo .mk{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--gold-bright,#f7b733),var(--gold-deep,#d98c00));box-shadow:0 4px 14px rgba(245,166,35,.4)}
+.ks-search{margin:0 14px 10px;position:relative}
+.ks-search input{width:100%;font:inherit;font-size:.82rem;color:#eaf0fb;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:.5rem .7rem .5rem 1.9rem}
+.ks-search input::placeholder{color:#8fa1c2}
+.ks-search input:focus{outline:none;border-color:var(--gold,#f5a623);background:rgba(255,255,255,.1)}
+.ks-search .si{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);font-size:.82rem;opacity:.7}
+.ks-nav{flex:1;overflow-y:auto;padding:2px 10px 12px}
+.ks-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18)}
+.ks-g{margin-top:8px}
+.ks-gh{display:flex;align-items:center;gap:.5rem;width:100%;background:none;border:0;cursor:pointer;color:#9fb0cd;font-family:var(--display,inherit);font-size:.64rem;font-weight:800;letter-spacing:.11em;text-transform:uppercase;padding:.5rem .55rem .35rem}
+.ks-gh .gc{margin-left:auto;font-size:.58rem;opacity:.6;transition:transform .2s}
+.ks-g.col .gc{transform:rotate(-90deg)} .ks-g.col .ks-items{display:none}
+.ks-items{display:flex;flex-direction:column;gap:1px}
+.ks-i{display:flex;align-items:center;gap:.6rem;padding:.5rem .55rem;border-radius:10px;cursor:pointer;color:#cdd8ec;font-size:.85rem;font-weight:500;position:relative;transition:background .2s,color .2s}
+.ks-i .ni{font-size:.95rem;width:1.2rem;text-align:center;opacity:.9}
+.ks-i:hover{background:rgba(255,255,255,.07);color:#fff}
+.ks-i.on{background:rgba(245,166,35,.14);color:#fff;font-weight:700}
+.ks-i.on::before{content:"";position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:4px;height:60%;border-radius:0 4px 4px 0;background:linear-gradient(var(--gold,#f5a623),var(--gold-deep,#d98c00))}
+.ks-i.hide{display:none}
+.ks-foot{padding:12px 14px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:.6rem}
+.ks-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold-bright,#f7b733),var(--gold-deep,#d98c00));color:#1a1408;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex:0 0 auto}
+.ks-u{flex:1;min-width:0}
+.ks-u b{display:block;color:#fff;font-size:.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ks-u span{color:#8fa1c2;font-size:.68rem}
+.ks-out{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#dfe6f2;border-radius:9px;padding:.4rem .55rem;font:inherit;font-size:.7rem;font-weight:700;cursor:pointer}
+.ks-out:hover{background:rgba(255,255,255,.15)}
+.ks-burger{display:none;background:none;border:0;font-size:1.2rem;cursor:pointer;color:var(--text);padding:.2rem .4rem}
+.ks-crumb{display:flex;align-items:center;gap:.5rem;color:var(--dim,#999);font-size:.86rem;font-weight:600;margin-right:auto}
+.ks-crumb b{color:var(--text);font-family:var(--display,inherit);font-weight:800}
+.ks-crumb .sep{opacity:.5}
+.ks-bd{display:none;position:fixed;inset:0;background:rgba(6,18,42,.5);z-index:55}
+@media(max-width:1080px){
+  body{padding-left:0}
+  .ks-side{transform:translateX(-100%);transition:transform .25s var(--ease,ease);box-shadow:0 0 40px rgba(0,0,0,.4)}
+  body.ks-open .ks-side{transform:none}
+  body.ks-open .ks-bd{display:block}
+  .ks-burger{display:inline-flex}
+}
+/* Dashboard */
+.ks-dash{max-width:1180px;margin:0 auto}
+.ks-hello{background:linear-gradient(120deg,var(--ks-b800),var(--ks-b900));border-radius:18px;padding:24px 28px;color:#fff;position:relative;overflow:hidden;box-shadow:0 16px 40px rgba(11,42,94,.22)}
+.ks-hello::after{content:"";position:absolute;right:-40px;top:-40px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(245,166,35,.32),transparent 62%)}
+.ks-hello .k{font-family:var(--display,inherit);font-size:.66rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold,#f5a623)}
+.ks-hello h1{font-family:var(--display,inherit);font-size:1.8rem;font-weight:800;margin:.35rem 0 .3rem}
+.ks-hello p{color:#cdd8ec;font-size:.9rem;max-width:560px;line-height:1.5}
+.ks-hello .q{margin-top:.9rem;font-style:italic;color:#aebbd6;font-size:.8rem}
+.ks-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:16px}
+.ks-kpi{background:var(--surface,#fff);border:1px solid var(--border,#eee);border-radius:14px;padding:15px 17px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.ks-kpi:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.ks-kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--gold,#f5a623)}
+.ks-kpi.k2::before{background:var(--green,#2e9c5a)} .ks-kpi.k3::before{background:#7c6bb8} .ks-kpi.k4::before{background:#b87333}
+.ks-kpi .ic{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1rem;background:var(--gold-dim,#fdf3e0)}
+.ks-kpi.k2 .ic{background:#e7f6ee} .ks-kpi.k3 .ic{background:#efecf8} .ks-kpi.k4 .ic{background:#f6ede3}
+.ks-kpi .lab{color:var(--dim,#999);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-top:.6rem}
+.ks-kpi .val{font-family:var(--display,inherit);font-size:1.4rem;font-weight:800;margin-top:.12rem}
+.ks-kpi .chg{font-size:.72rem;font-weight:700;margin-top:.15rem;color:var(--dim,#999)}
+.ks-kpi .chg.up{color:var(--green,#2e9c5a)} .ks-kpi .chg.down{color:#d9534f}
+.ks-row2{display:grid;grid-template-columns:1.7fr 1fr;gap:14px;margin-top:14px}
+.ks-card{background:var(--surface,#fff);border:1px solid var(--border,#eee);border-radius:14px;padding:16px 18px}
+.ks-card-h{display:flex;align-items:center;gap:.6rem;margin-bottom:.9rem}
+.ks-card-h .t{font-family:var(--display,inherit);font-weight:800;font-size:.98rem}
+.ks-card-h .more{margin-left:auto;font-size:.74rem;color:var(--gold-deep,#a05f00);font-weight:700;cursor:pointer}
+.ks-chart{height:200px;border-radius:10px;background:linear-gradient(180deg,rgba(245,166,35,.12),rgba(245,166,35,0) 78%);position:relative;overflow:hidden;border:1px solid var(--border,#eee)}
+.ks-chart svg{position:absolute;inset:0;width:100%;height:100%}
+.ks-act{display:flex;align-items:flex-start;gap:.7rem;padding:.55rem 0;border-bottom:1px dashed var(--border,#eee)}
+.ks-act:last-child{border-bottom:0}
+.ks-act .ad{width:32px;height:32px;border-radius:9px;background:var(--gold-dim,#fdf3e0);display:flex;align-items:center;justify-content:center;font-size:.9rem;flex:0 0 auto}
+.ks-act .at{font-size:.83rem;font-weight:600} .ks-act .as{font-size:.73rem;color:var(--dim,#999);margin-top:.1rem}
+.ks-act .aw{margin-left:auto;font-size:.7rem;color:var(--dim,#999);white-space:nowrap}
+.ks-muted{color:var(--dim,#999);font-size:.82rem;padding:.5rem 0}
+@media(max-width:1080px){.ks-kpis{grid-template-columns:repeat(2,1fr)}.ks-row2{grid-template-columns:1fr}}
 .adm-home{padding:1.5rem .5rem 2.5rem;max-width:1000px;margin:0 auto;text-align:center;animation:homeIn .4s ease}
 @keyframes homeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .adm-home-welcome{font-family:var(--display);font-size:.78rem;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
@@ -2022,8 +2103,12 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 </style>
 </head>
 <body>
+<aside class="ks-side" id="ksSide"></aside>
+<div class="ks-bd" id="ksBd"></div>
 
 <header class="adm-header">
+  <button type="button" class="ks-burger" id="ksBurger" aria-label="Abrir menú">☰</button>
+  <div class="ks-crumb"><b>K-BROS</b><span class="sep">›</span><span id="ksCrumb">Inicio</span></div>
   <a class="adm-brand" href="/admin" aria-label="ZORBO Admin">
     <img src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Titulo_secundario-3.png?v=1779814975" alt="ZORBO">
   </a>
@@ -2984,30 +3069,34 @@ function showHome(){
   showView('home');
   document.getElementById('tabs').innerHTML = '';
   const q = ADMIN_QUOTES[Math.floor(Math.random() * ADMIN_QUOTES.length)];
-  const cards = ADMIN_CATEGORIES.map(c => {
-    const chips = sectionsForCat(c.id).map(s => `<span class="adm-cat-chip">${escapeHtml(s.label)}</span>`).join('');
-    return `<div class="adm-cat" data-cat="${c.id}" style="--accent:${c.accent}">
-      <div class="adm-cat-ic">${c.icon}</div>
-      <div class="adm-cat-name">${escapeHtml(c.label)}</div>
-      <div class="adm-cat-desc">${escapeHtml(c.desc)}</div>
-      <div class="adm-cat-items">${chips}</div>
-      <div class="adm-cat-go">Entrar →</div>
-    </div>`;
-  }).join('');
+  const uname = window.__adminUser || '';
+  const first = uname ? uname.replace(/@.*/,'').split(/[.\s_-]+/)[0] : '';
+  const hi = first ? (first.charAt(0).toUpperCase() + first.slice(1)) : '';
   document.getElementById('homeView').innerHTML = `
-    <div class="adm-home">
-      <div class="adm-home-welcome">Bienvenido al portal de administración de Zorbo</div>
-      <div class="adm-home-q">Qué deseas ver?</div>
-      <div class="adm-home-sub">Elegí una de las tres áreas para ver sus paneles.</div>
-      <div class="adm-home-cards">${cards}</div>
-      <div class="adm-quote">
-        <div class="adm-quote-text">“${escapeHtml(q.t)}”</div>
-        <div class="adm-quote-author">${escapeHtml(q.a)}</div>
+    <div class="ks-dash">
+      <div class="ks-hello">
+        <div class="k">Centro de control</div>
+        <h1>Buenas${hi ? ', ' + escapeHtml(hi) : ''} 👋</h1>
+        <p>Todo tu negocio en un solo lugar. Elegí una sección en el panel de la izquierda, o mirá el resumen de hoy acá abajo.</p>
+        <div class="q">“${escapeHtml(q.t)}” — ${escapeHtml(q.a)}</div>
+      </div>
+      <div class="ks-kpis" id="ksKpis">${kpiSkeleton()}</div>
+      <div class="ks-row2">
+        <div class="ks-card">
+          <div class="ks-card-h"><span class="t">Conversaciones por día · 30d</span><span class="more" data-go="analytics">Ver Analítica →</span></div>
+          <div class="ks-chart" id="ksChart"><div class="ks-muted" style="padding:1rem">Cargando…</div></div>
+        </div>
+        <div class="ks-card">
+          <div class="ks-card-h"><span class="t">Últimas conversaciones</span><span class="more" data-go="chats">Ver todas →</span></div>
+          <div id="ksActivity"><div class="ks-muted">Cargando…</div></div>
+        </div>
       </div>
     </div>`;
-  document.querySelectorAll('#homeView .adm-cat').forEach(el => {
-    el.onclick = () => openCategory(el.dataset.cat);
+  document.querySelectorAll('#homeView .more[data-go]').forEach(el => {
+    el.onclick = () => selectSeccion(el.dataset.go);
   });
+  ksSync();
+  loadDashboard();
 }
 
 function openCategory(catId){
@@ -3020,6 +3109,7 @@ function openCategory(catId){
 
 // ─── Tabs ───────────────────────────────────────────────────────────────────
 function renderTabs(){
+  ksSync();
   const wrap = document.getElementById('tabs');
   if (adminRole === 'costeo') { wrap.innerHTML = '<div class="adm-catbar"><span class="adm-catbar-label">🧾 Costeo de carta</span></div>'; return; }
   if (!activeCategory) { wrap.innerHTML = ''; return; }
@@ -10203,10 +10293,130 @@ document.getElementById('prodReload').onclick=loadProduccion;
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();
 // Arranque: primero el rol, para decidir qué mostrar.
+// ═══════════ K-BROS SHELL: sidebar de navegación + dashboard ═══════════
+const KS_ICON = {
+  analytics:'📊', ads:'📣', mundial:'🏆', chats:'💬', feedback:'📝', web:'🌐', tutoriales:'🎬',
+  general:'⚙️', kairos:'🍺', firulais:'🐶', banny:'🥃', mayorista:'🤝',
+  productos:'🏷️', puntos:'📍', topclientes:'⭐',
+  distribuidora:'🚚', costeo:'🧾', estado:'💰', costos:'💸', gastos:'🧮', nomina:'👥', pnl:'📈', forecast:'🔮',
+  produccion:'🏭'
+};
+
+// Sincroniza el item activo del sidebar + el breadcrumb del topbar con la sección actual.
+function ksSync(){
+  const cur = document.body.classList.contains('admin-home') ? null : activeSeccion;
+  document.querySelectorAll('#ksSide .ks-i').forEach(el => el.classList.toggle('on', el.dataset.id === cur));
+  const crumb = document.getElementById('ksCrumb');
+  if (crumb){
+    if (!cur){ crumb.textContent = 'Inicio'; }
+    else {
+      const s = SECCIONES.find(x => x.id === cur);
+      const c = s && ADMIN_CATEGORIES.find(k => k.id === s.cat);
+      crumb.textContent = (c ? c.label + ' · ' : '') + (s ? s.label : cur);
+    }
+  }
+}
+
+// Construye el sidebar con las mismas categorías/secciones del admin. Cada item llama a selectSeccion().
+function renderSidebar(){
+  const side = document.getElementById('ksSide');
+  if (!side) return;
+  const uname = window.__adminUser || '';
+  const initials = uname ? (uname.replace(/@.*/,'').split(/[.\s_-]+/).map(s => s[0] || '').join('').slice(0,2).toUpperCase() || 'KB') : 'KB';
+  const roleLabel = adminRole === 'costeo' ? 'Costeo de carta' : 'Administrador';
+  // El rol "costeo" solo ve Costeo de carta.
+  const groups = adminRole === 'costeo'
+    ? ADMIN_CATEGORIES.filter(c => c.id === 'operaciones').map(c => ({ ...c, only: ['costeo'] }))
+    : ADMIN_CATEGORIES.slice();
+  let navHtml = '';
+  groups.forEach(g => {
+    let secs = sectionsForCat(g.id);
+    if (g.only) secs = secs.filter(s => g.only.includes(s.id));
+    if (!secs.length) return;
+    const items = secs.map(s => `<div class="ks-i" data-id="${s.id}"><span class="ni">${KS_ICON[s.id] || '•'}</span><span class="lb">${escapeHtml(s.label)}</span></div>`).join('');
+    navHtml += `<div class="ks-g"><button type="button" class="ks-gh"><span class="gi">${g.icon}</span><span class="lb">${escapeHtml(g.label)}</span><span class="gc">▾</span></button><div class="ks-items">${items}</div></div>`;
+  });
+  side.innerHTML = `
+    <div class="ks-top" id="ksHome"><div class="ks-logo"><span class="mk"></span><span>K-BROS</span></div></div>
+    <div class="ks-search"><span class="si">🔎</span><input id="ksSearch" placeholder="Buscar sección…" autocomplete="off"></div>
+    <nav class="ks-nav">${navHtml}</nav>
+    <div class="ks-foot"><div class="ks-av">${escapeHtml(initials)}</div><div class="ks-u"><b>${escapeHtml(uname || 'K-BROS')}</b><span>${escapeHtml(roleLabel)}</span></div><button class="ks-out" id="ksOut">Salir</button></div>`;
+  side.querySelectorAll('.ks-i').forEach(el => { el.onclick = () => { selectSeccion(el.dataset.id); document.body.classList.remove('ks-open'); }; });
+  side.querySelectorAll('.ks-gh').forEach(h => { h.onclick = () => h.parentElement.classList.toggle('col'); });
+  const home = document.getElementById('ksHome'); if (home) home.onclick = () => { showHome(); document.body.classList.remove('ks-open'); };
+  const out = document.getElementById('ksOut'); if (out) out.onclick = () => { const b = document.getElementById('btnLogout'); if (b && b.onclick) b.onclick(); };
+  const s = document.getElementById('ksSearch');
+  if (s) s.oninput = () => {
+    const qq = s.value.trim().toLowerCase();
+    side.querySelectorAll('.ks-i').forEach(el => { el.classList.toggle('hide', !!qq && !el.textContent.toLowerCase().includes(qq)); });
+    side.querySelectorAll('.ks-g').forEach(g => { const any = [...g.querySelectorAll('.ks-i')].some(el => !el.classList.contains('hide')); g.style.display = any ? '' : 'none'; });
+  };
+  ksSync();
+}
+
+// Toggle del drawer en móvil.
+(function(){
+  const b = document.getElementById('ksBurger'); if (b) b.onclick = () => document.body.classList.toggle('ks-open');
+  const bd = document.getElementById('ksBd'); if (bd) bd.onclick = () => document.body.classList.remove('ks-open');
+})();
+
+// ── Dashboard de inicio con datos reales (degradación elegante: si un endpoint falla, muestra "—") ──
+function kpiCard(cls, ic, lab, val, chg, dir){
+  return `<div class="ks-kpi ${cls}"><div class="ic">${ic}</div><div class="lab">${escapeHtml(lab)}</div><div class="val">${escapeHtml(String(val))}</div>${chg ? `<div class="chg ${dir || ''}">${escapeHtml(chg)}</div>` : ''}</div>`;
+}
+function kpiSkeleton(){
+  return [['k1','💰','Ingresos mayoristas · 30d'],['k2','🧾','Ticket promedio · 30d'],['k3','💬','Conversaciones IA'],['k4','🏭','OEE producción']]
+    .map(x => `<div class="ks-kpi ${x[0]}"><div class="ic">${x[1]}</div><div class="lab">${escapeHtml(x[2])}</div><div class="val">…</div></div>`).join('');
+}
+function ksCLP(n){ return (typeof n === 'number' && isFinite(n)) ? '$' + Math.round(n).toLocaleString('es-CL') : '—'; }
+function drawKsChart(byDay){
+  const el = document.getElementById('ksChart'); if (!el) return;
+  if (!Array.isArray(byDay) || !byDay.length){ el.innerHTML = '<div class="ks-muted" style="padding:1rem">Sin datos para el rango.</div>'; return; }
+  const vals = byDay.map(d => (+d.total || 0)); const max = Math.max(1, ...vals); const n = vals.length; const W = 600, H = 200, pad = 8;
+  const pts = vals.map((v, i) => { const x = n <= 1 ? W/2 : (i/(n-1))*W; const y = H - pad - (v/max)*(H - pad*2); return x.toFixed(1) + ',' + y.toFixed(1); });
+  const line = pts.join(' ');
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polygon fill="rgba(245,166,35,.16)" points="0,${H} ${line} ${W},${H}"/><polyline fill="none" stroke="#f5a623" stroke-width="3" points="${line}"/></svg>`;
+}
+function renderKsActivity(items){
+  const el = document.getElementById('ksActivity'); if (!el) return;
+  if (!Array.isArray(items) || !items.length){ el.innerHTML = '<div class="ks-muted">Sin conversaciones recientes.</div>'; return; }
+  const txt = o => o.preview || o.lastMessage || o.title || o.summary || o.intent || (o.brand ? ('Conversación · ' + o.brand) : '') || 'Conversación';
+  el.innerHTML = items.slice(0,6).map(o => {
+    const t = String(txt(o)).slice(0,72);
+    const sub = [o.from, o.mode, o.brand].filter(Boolean).join(' · ');
+    return `<div class="ks-act"><div class="ad">💬</div><div><div class="at">${escapeHtml(t)}</div>${sub ? `<div class="as">${escapeHtml(sub)}</div>` : ''}</div></div>`;
+  }).join('');
+}
+async function loadDashboard(){
+  const kEl = document.getElementById('ksKpis'); if (!kEl) return;
+  const [salesR, oeeR, convR] = await Promise.allSettled([
+    fetch('/admin/analytics/sales?range=30d').then(r => r.json()),
+    fetch('/admin/produccion/oee').then(r => r.json()),
+    fetch('/admin/conversations?limit=6').then(r => r.json()),
+  ]);
+  const sales = salesR.status === 'fulfilled' ? (salesR.value || {}) : {};
+  const oee   = oeeR.status   === 'fulfilled' ? (oeeR.value   || {}) : {};
+  const conv  = convR.status  === 'fulfilled' ? (convR.value  || {}) : {};
+  const sm = (sales && sales.available && sales.summary) ? sales.summary : {};
+  const oeePct = (oee && typeof oee.oee === 'number') ? Math.round(oee.oee * 1000)/10 : null;
+  const convTotal = (conv && conv.stats && typeof conv.stats.total === 'number') ? conv.stats.total : (typeof conv.total === 'number' ? conv.total : null);
+  const conv24 = (conv && conv.stats && typeof conv.stats.last24h === 'number') ? conv.stats.last24h : null;
+  kEl.innerHTML = [
+    kpiCard('k1','💰','Ingresos mayoristas · 30d', typeof sm.revenue === 'number' ? ksCLP(sm.revenue) : '—', typeof sm.orders === 'number' ? (sm.orders + ' pedidos') : '', ''),
+    kpiCard('k2','🧾','Ticket promedio · 30d', typeof sm.avgTicket === 'number' ? ksCLP(sm.avgTicket) : '—', '', ''),
+    kpiCard('k3','💬','Conversaciones IA', convTotal != null ? convTotal.toLocaleString('es-CL') : '—', conv24 != null ? ('▲ ' + conv24 + ' en 24h') : '', conv24 != null ? 'up' : ''),
+    kpiCard('k4','🏭','OEE producción', oeePct != null ? (oeePct.toLocaleString('es-CL') + '%') : '—', (oee && oee.banda) ? String(oee.banda) : '', ''),
+  ].join('');
+  renderKsActivity(conv && conv.items);
+  fetch('/admin/analytics?range=30d').then(r => r.json()).then(a => drawKsChart(a && a.byDay)).catch(() => drawKsChart(null));
+}
+
 fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
   if (d && d.username) document.getElementById('btnLogout').style.display = '';
+  window.__adminUser = (d && d.username) || '';
   adminRole = (d && d.role) || 'admin';
   adminCosteoSvc = (d && d.costeoSvc) || null;
+  renderSidebar();
   if (adminRole === 'costeo') {
     // Acceso limitado: directo a Costeo de carta, sin cargar el resto del panel.
     document.body.classList.add('role-costeo');
@@ -10216,7 +10426,7 @@ fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
   } else {
     loadCustomBrands().then(() => showHome());
   }
-}).catch(() => { loadCustomBrands().then(() => showHome()); });
+}).catch(() => { renderSidebar(); loadCustomBrands().then(() => showHome()); });
 </script>
 </body>
 </html>
