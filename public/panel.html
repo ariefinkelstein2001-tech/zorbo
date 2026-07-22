@@ -106,12 +106,8 @@ a{color:inherit;text-decoration:none}
 .lg-back{margin-top:1.4rem;font-size:.82rem;color:var(--text-3);cursor:pointer;display:inline-flex;align-items:center;gap:.3rem;background:none;border:0;font-family:inherit}
 .lg-back:hover{color:var(--text-2)}
 .lg-note{margin-top:1.6rem;font-size:.72rem;color:var(--text-3)}
-/* Panel derecho del login = contenedor de foto (persona feliz). Para poner una real,
-   definí background-image en .lg-right y borrá el placeholder .lg-photo-ph. */
-.lg-right{position:relative;overflow:hidden;background:linear-gradient(160deg,var(--blue-700),var(--blue-900));background-size:cover;background-position:center;display:flex;align-items:flex-end;padding:44px}
-.lg-photo-ph{position:absolute;inset:0;z-index:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.55rem;color:#aebbd6;text-align:center;padding:24px}
-.lg-photo-ph .mk{width:44px;height:44px;border-radius:13px;background:linear-gradient(135deg,var(--accent),var(--accent-hover));opacity:.9}
-.lg-photo-ph small{font-size:.74rem;color:#b7c3dc;letter-spacing:.02em;max-width:220px}
+/* Panel derecho del login = foto real (persona feliz). */
+.lg-right{position:relative;overflow:hidden;background:linear-gradient(160deg,var(--blue-700),var(--blue-900));background-image:url('/login-hero.png');background-size:cover;background-position:center;display:flex;align-items:flex-end;padding:44px}
 .lg-scrim{position:absolute;inset:0;z-index:1;background:linear-gradient(to top,rgba(6,18,42,.82),rgba(6,18,42,.30) 55%,rgba(6,18,42,.12));pointer-events:none}
 .lg-welcome{position:relative;z-index:2;color:#fff;font-family:var(--display);font-weight:800;font-size:2rem;letter-spacing:.01em;line-height:1.1;text-shadow:0 2px 14px rgba(0,0,0,.35)}
 .lg-welcome span{color:var(--accent)}
@@ -214,9 +210,8 @@ a{color:inherit;text-decoration:none}
         <div class="lg-note">Acceso interno de K-BROS. Las cuentas las provisiona el equipo.</div>
       </div>
     </div>
-    <!-- Panel derecho = contenedor de foto de una persona feliz (placeholder) -->
+    <!-- Panel derecho = foto real -->
     <div class="lg-right">
-      <div class="lg-photo-ph"><span class="mk"></span><small>Reemplazar por foto de una persona feliz</small></div>
       <span class="mk-corner"></span>
       <div class="lg-scrim"></div>
       <h3 class="lg-welcome">¡Bienvenido a <span>K-BROS</span>!</h3>
