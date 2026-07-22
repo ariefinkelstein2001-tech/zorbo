@@ -1658,6 +1658,14 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .cg-file-name{font-size:.68rem;color:var(--dim,#999);margin-top:.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .cg-doc-link{color:var(--gold-deep,#a05f00);font-weight:600;font-size:.82rem;text-decoration:none}
 .cg-doc-link:hover{text-decoration:underline}
+.cg-marca-detalle{display:flex;flex-direction:column;gap:.4rem;grid-column:1/-1;background:var(--surface2,#fafafa);border:1px solid var(--line,#e5e5e5);border-radius:var(--radius-sm,9px);padding:.6rem .7rem}
+.cg-marca-row{display:flex;align-items:center;gap:.6rem;font-size:.85rem}
+.cg-marca-row label{display:flex;align-items:center;gap:.4rem;flex:1;cursor:pointer}
+.cg-marca-row input[type=number]{width:70px;padding:.35rem .4rem;border:1px solid var(--line,#e5e5e5);border-radius:7px;text-align:right}
+.cg-marca-row input[type=number]:disabled{opacity:.4}
+.cg-marca-total{font-size:.72rem;color:var(--muted,#666)}
+.cg-marca-total.warn{color:var(--red,#d33);font-weight:700}
+.cg-pct-note{font-size:.68rem;color:var(--muted,#666);font-weight:400;margin-top:.15rem}
 /* Gestión de Personas */
 .nom-costo{background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623) 55%,var(--gold-deep,#a05f00));border-radius:16px;padding:1.1rem 1.3rem;margin-bottom:1.1rem;color:#1a1408}
 .nom-costo-l{font-size:.82rem;font-weight:700;letter-spacing:.02em}
@@ -2359,12 +2367,12 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <div id="estadoBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
-    <!-- Costos y Gastos: registro por proveedor + categoría + folio + valor -->
+    <!-- Costos: registro por proveedor + categoría + marca + folio + valor -->
     <div class="adm-panel" id="costosView" style="display:none">
       <div class="adm-panel-head">
         <div>
-          <div class="adm-panel-title">Costos y Gastos</div>
-          <div class="adm-panel-meta">registrá cada costo/gasto: proveedor · categoría · fecha · folio · valor</div>
+          <div class="adm-panel-title">Costos</div>
+          <div class="adm-panel-meta">registrá cada costo: proveedor · categoría · marca · fecha · folio · valor</div>
         </div>
         <div class="adm-actions">
           <select id="costosMes" class="costeo-svc"><option value="">Todos los meses</option></select>
@@ -2372,6 +2380,21 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
         </div>
       </div>
       <div id="costosBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
+    <!-- Gastos: registro por proveedor + categoría + marca + % del total (opcional) + folio + valor -->
+    <div class="adm-panel" id="gastosView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Gastos</div>
+          <div class="adm-panel-meta">registrá cada gasto: proveedor · categoría · marca · % del total (si la factura es compartida) · fecha · folio · valor</div>
+        </div>
+        <div class="adm-actions">
+          <select id="gastosMes" class="costeo-svc"><option value="">Todos los meses</option></select>
+          <button class="adm-btn adm-btn-ghost" id="gastosReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div id="gastosBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
     <!-- Gestión de Personas: nómina + costo empresa -->
@@ -2810,7 +2833,8 @@ const BASE_SECCIONES = [
   { id:'distribuidora', kind:'distribuidora', label:'Distribuidora', cat:'operaciones', desc:'proveedores · costos · márgenes · órdenes de compra · comercialización' },
   { id:'costeo',    kind:'costeo',   label:'Costeo de carta', cat:'operaciones', desc:'insumos · recetas base · platos · precios de venta' },
   { id:'estado',    kind:'estado',   label:'Ingreso por Venta', cat:'operaciones', desc:'CD Kairos · ingresos por 4 canales · 100% automáticos de Shopify' },
-  { id:'costos',    kind:'costos',   label:'Costos y Gastos', cat:'operaciones', desc:'registro de costos y gastos por proveedor · categoría · folio · valor' },
+  { id:'costos',    kind:'costos',   label:'Costos', cat:'operaciones', desc:'registro de costos por proveedor · categoría · marca · folio · valor' },
+  { id:'gastos',    kind:'gastos',   label:'Gastos', cat:'operaciones', desc:'registro de gastos por proveedor · categoría · marca · % del total · folio · valor' },
   { id:'nomina',    kind:'nomina',   label:'Gestión de Personas', cat:'operaciones', desc:'nómina de trabajadores · costo empresa · descarga de Excel' },
   { id:'pnl',       kind:'pnl',      label:'Estado de Resultado', cat:'operaciones', desc:'ingresos − costos y gastos · margen bruto · EBITDA mensual' },
   { id:'produccion',kind:'produccion',label:'Producción & OEE', cat:'produccion', desc:'tablero de tanques · cocción por etapas · envasado · limpiezas · paradas' },
@@ -3022,7 +3046,10 @@ async function selectSeccion(id){
     showView('estado');
   } else if (sec.kind === 'costos') {
     showView('costos');
-    await loadCostos();
+    await loadCostos('costo');
+  } else if (sec.kind === 'gastos') {
+    showView('gastos');
+    await loadCostos('gasto');
   } else if (sec.kind === 'nomina') {
     showView('nomina');
     await loadNomina();
@@ -3074,6 +3101,7 @@ function showView(kind){
   document.getElementById('costeoView').style.display     = kind === 'costeo'     ? '' : 'none';
   document.getElementById('estadoView').style.display     = kind === 'estado'     ? '' : 'none';
   document.getElementById('costosView').style.display     = kind === 'costos'     ? '' : 'none';
+  document.getElementById('gastosView').style.display     = kind === 'gastos'     ? '' : 'none';
   document.getElementById('nominaView').style.display     = kind === 'nomina'     ? '' : 'none';
   document.getElementById('produccionView').style.display = kind === 'produccion' ? '' : 'none';
   document.getElementById('pnlView').style.display        = kind === 'pnl'        ? '' : 'none';
@@ -8512,103 +8540,169 @@ function estDrill(which){
   box.querySelector('[data-drillclose]').onclick=()=>{ box.innerHTML=''; };
 }
 
-// ─── Costos y Gastos ────────────────────────────────────────────────────────
-let costosData=null, costosForm={proveedor:'',categoria:'',fecha:'',folio:'',valor:'',adjunto:null};
-const COSTOS_CAT_LABEL={costo_directo:'Costo directo',costo_indirecto:'Costo indirecto',gastos_operativos:'Gastos operativos',gastos_admin_venta:'Gastos de administración y venta',activos_fijos:'Activos fijos'};
-async function loadCostos(){
-  const body=document.getElementById('costosBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
+// ─── Costos y Gastos (mismo backend, dos fichas separadas) ──────────────────
+const COSTOS_MARCAS_LBL={kairos:'Kairos',banny:'Banny',firulais:'Firulais'};
+const COSTOS_TIPO_CFG={
+  costo:{ bodyId:'costosBody', mesId:'costosMes', reloadId:'costosReload', pctTotal:false, vacio:'Todavía no hay costos registrados', nombre:'costo' },
+  gasto:{ bodyId:'gastosBody', mesId:'gastosMes', reloadId:'gastosReload', pctTotal:true,  vacio:'Todavía no hay gastos registrados', nombre:'gasto' },
+};
+function cgBlankForm(){ return { proveedor:'', categoria:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'' }; }
+let costosData={costo:null,gasto:null};
+let costosForm={costo:cgBlankForm(),gasto:cgBlankForm()};
+function cgId(tipo,name){ return 'cg'+name+'_'+tipo; }
+async function loadCostos(tipo){
+  const cfg=COSTOS_TIPO_CFG[tipo];
+  const body=document.getElementById(cfg.bodyId); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   try{
-    const mes=document.getElementById('costosMes').value||'';
-    const r=await fetch('/admin/costos'+(mes?'?mes='+mes:'')); costosData=await r.json();
-    if(costosData.error) throw new Error(costosData.error);
+    const mes=document.getElementById(cfg.mesId).value||'';
+    const r=await fetch('/admin/costos?tipo='+tipo+(mes?'&mes='+mes:'')); const d=await r.json();
+    if(d.error) throw new Error(d.error);
+    costosData[tipo]=d;
     // poblar el selector de meses (conserva selección)
-    const selMes=document.getElementById('costosMes'); const cur=selMes.value;
-    selMes.innerHTML='<option value="">Todos los meses</option>'+(costosData.meses||[]).map(m=>`<option value="${m}" ${m===cur?'selected':''}>${escapeHtml(estMonthLabel(m))}</option>`).join('');
-    renderCostos();
+    const selMes=document.getElementById(cfg.mesId); const cur=selMes.value;
+    selMes.innerHTML='<option value="">Todos los meses</option>'+(d.meses||[]).map(m=>`<option value="${m}" ${m===cur?'selected':''}>${escapeHtml(estMonthLabel(m))}</option>`).join('');
+    renderCostos(tipo);
   }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
 }
-function renderCostos(){
-  const a=costosData, body=document.getElementById('costosBody'); const f=costosForm;
+function cgMarcaLabel(e){
+  if(!e.marca||e.marca==='todas') return 'Todas';
+  if(e.marca==='algunas') return (e.marcaDetalle||[]).map(m=>`${COSTOS_MARCAS_LBL[m.marca]||m.marca} ${m.pct}%`).join(' · ')||'Algunas';
+  return COSTOS_MARCAS_LBL[e.marca]||e.marca;
+}
+function cgMarcaTotalText(sum){
+  return `Suma actual: ${sum}%${sum>100?' — no puede superar 100%':(sum<100?' (el resto queda sin marca asignada)':'')}`;
+}
+// Recalcula la suma de % por marca sin volver a renderizar todo el formulario
+// (evita perder el foco/cursor mientras se escribe el porcentaje).
+function cgMarcaTotalUpdate(tipo){
+  const f=costosForm[tipo];
+  const sum=['kairos','banny','firulais'].reduce((s,m)=>s+(f.marcaSel[m]?(Number(f.marcaPct[m])||0):0),0);
+  const el=document.getElementById(cgId(tipo,'MarcaTotal'));
+  if(el){ el.textContent=cgMarcaTotalText(sum); el.classList.toggle('warn',sum>100); }
+}
+function renderCostos(tipo){
+  const cfg=COSTOS_TIPO_CFG[tipo];
+  const a=costosData[tipo], body=document.getElementById(cfg.bodyId); const f=costosForm[tipo];
   const provOpts=['<option value="">— Elegí un proveedor —</option>',...(a.proveedores||[]).map(p=>`<option value="${escapeAttr(p.nombre)}" ${p.nombre===f.proveedor?'selected':''}>${escapeHtml(p.nombre)}</option>`),'<option value="__nuevo__">+ Crear nuevo proveedor…</option>'].join('');
   const catOpts=['<option value="">— Elegí una categoría —</option>',...(a.categorias||[]).map(c=>`<option value="${c.id}" ${c.id===f.categoria?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
+  const marcaOpts=['<option value="">— Elegí una marca —</option>',
+    ...['kairos','banny','firulais'].map(m=>`<option value="${m}" ${f.marca===m?'selected':''}>${COSTOS_MARCAS_LBL[m]}</option>`),
+    `<option value="todas" ${f.marca==='todas'?'selected':''}>Todas</option>`,
+    `<option value="algunas" ${f.marca==='algunas'?'selected':''}>Algunas…</option>`,
+  ].join('');
+  const marcaSum=['kairos','banny','firulais'].reduce((s,m)=>s+(f.marcaSel[m]?(Number(f.marcaPct[m])||0):0),0);
+  const marcaDetalleHtml = f.marca==='algunas' ? `
+    <div class="cg-marca-detalle">
+      ${['kairos','banny','firulais'].map(m=>`
+        <div class="cg-marca-row">
+          <label><input type="checkbox" data-cgmarcachk="${m}" ${f.marcaSel[m]?'checked':''}> ${COSTOS_MARCAS_LBL[m]}</label>
+          <input type="number" min="0" max="100" step="0.1" placeholder="%" data-cgmarcapct="${m}" value="${escapeAttr(f.marcaPct[m])}" ${f.marcaSel[m]?'':'disabled'}>
+        </div>`).join('')}
+      <div class="cg-marca-total ${marcaSum>100?'warn':''}" id="${cgId(tipo,'MarcaTotal')}">${cgMarcaTotalText(marcaSum)}</div>
+    </div>` : '';
   const rs=a.resumen||{porCategoria:{},total:0};
   const resumenCards=(a.categorias||[]).map(c=>{const b=rs.porCategoria[c.id]||{total:0,n:0};return `<div class="cg-card"><div class="cg-card-l">${escapeHtml(c.label)}</div><div class="cg-card-v">${eM(b.total)}</div><div class="cg-card-n">${b.n} doc${b.n===1?'':'s'}</div></div>`;}).join('');
-  const rows=(a.entradas||[]).map(e=>`
+  const rows=(a.entradas||[]).map(e=>{
+    const catLbl=((a.categorias||[]).find(c=>c.id===e.categoria)||{}).label || e.categoria;
+    const pctNote=(cfg.pctTotal && e.pctTotal!=null && e.pctTotal<100)?`<div class="cg-pct-note">${e.pctTotal}% Zorbo = ${eM(Math.round((Number(e.valor)||0)*e.pctTotal/100))}</div>`:'';
+    return `
     <tr>
       <td>${escapeHtml(e.fecha)}</td>
       <td>${escapeHtml(e.proveedor)}</td>
-      <td><span class="cg-tag">${escapeHtml(COSTOS_CAT_LABEL[e.categoria]||e.categoria)}</span></td>
+      <td><span class="cg-tag">${escapeHtml(catLbl)}</span></td>
+      <td>${escapeHtml(cgMarcaLabel(e))}</td>
       <td>${escapeHtml(e.folio||'—')}</td>
-      <td class="dist-num">${eM(e.valor)}</td>
+      <td class="dist-num">${eM(e.valor)}${pctNote}</td>
       <td>${e.adjunto&&e.adjunto.url?`<a class="cg-doc-link" href="${escapeAttr(e.adjunto.url)}" target="_blank" title="${escapeAttr(e.adjunto.name||'documento')}">📎 ver</a>`:'<span style="color:#ccc">—</span>'}</td>
-      <td><button class="pv-del" data-cgdel="${e.id}" title="Eliminar">✕</button></td>
-    </tr>`).join('');
+      <td><button class="pv-del" data-cgdel="${e.id}" data-cgtipo="${tipo}" title="Eliminar">✕</button></td>
+    </tr>`;}).join('');
   body.innerHTML=`
     <div class="cg-form">
-      <div class="cg-form-title">Registrar costo / gasto</div>
+      <div class="cg-form-title">Registrar ${cfg.nombre}</div>
       <div class="cg-form-grid">
-        <label class="cg-field"><span>Proveedor</span><select id="cgProv">${provOpts}</select></label>
-        <label class="cg-field"><span>Categoría (Estado de Resultado)</span><select id="cgCat">${catOpts}</select></label>
-        <label class="cg-field"><span>Fecha del documento</span><input type="date" id="cgFecha" value="${escapeAttr(f.fecha)}"></label>
-        <label class="cg-field"><span>Folio / N° documento</span><input type="text" id="cgFolio" value="${escapeAttr(f.folio)}" placeholder="Ej: 46211"></label>
-        <label class="cg-field"><span>Valor ($)</span><input type="text" inputmode="numeric" id="cgValor" value="${escapeAttr(f.valor)}" placeholder="0"></label>
-        <label class="cg-field"><span>Documento (PDF / imagen)</span><input type="file" id="cgFile" accept="application/pdf,image/png,image/jpeg,image/webp,image/gif"><small class="cg-file-name" id="cgFileName">${f.adjunto?escapeHtml(f.adjunto.filename):'opcional · máx 8 MB'}</small></label>
-        <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="cgAdd" type="button">+ Agregar</button></div>
+        <label class="cg-field"><span>Proveedor</span><select id="${cgId(tipo,'Prov')}">${provOpts}</select></label>
+        <label class="cg-field"><span>Categoría (Estado de Resultado)</span><select id="${cgId(tipo,'Cat')}">${catOpts}</select></label>
+        <label class="cg-field"><span>Marca</span><select id="${cgId(tipo,'Marca')}">${marcaOpts}</select></label>
+        ${marcaDetalleHtml}
+        <label class="cg-field"><span>Fecha del documento</span><input type="date" id="${cgId(tipo,'Fecha')}" value="${escapeAttr(f.fecha)}"></label>
+        <label class="cg-field"><span>Folio / N° documento</span><input type="text" id="${cgId(tipo,'Folio')}" value="${escapeAttr(f.folio)}" placeholder="Ej: 46211"></label>
+        <label class="cg-field"><span>Valor ($)</span><input type="text" inputmode="numeric" id="${cgId(tipo,'Valor')}" value="${escapeAttr(f.valor)}" placeholder="0"></label>
+        ${cfg.pctTotal?`<label class="cg-field"><span>Porcentaje del total (opcional)</span><input type="number" min="1" max="100" step="0.1" id="${cgId(tipo,'PctTotal')}" value="${escapeAttr(f.pctTotal)}" placeholder="Ej: 60 si la factura es compartida"></label>`:''}
+        <label class="cg-field"><span>Documento (PDF / imagen)</span><input type="file" id="${cgId(tipo,'File')}" accept="application/pdf,image/png,image/jpeg,image/webp,image/gif"><small class="cg-file-name" id="${cgId(tipo,'FileName')}">${f.adjunto?escapeHtml(f.adjunto.filename):'opcional · máx 8 MB'}</small></label>
+        <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="${cgId(tipo,'Add')}" type="button">+ Agregar</button></div>
       </div>
-      <div class="cg-err" id="cgErr"></div>
+      <div class="cg-err" id="${cgId(tipo,'Err')}"></div>
     </div>
     <div class="cg-resumen">${resumenCards}<div class="cg-card cg-card-total"><div class="cg-card-l">Total</div><div class="cg-card-v">${eM(rs.total)}</div><div class="cg-card-n">${(a.entradas||[]).length} doc${(a.entradas||[]).length===1?'':'s'}</div></div></div>
-    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Categoría</th><th>Folio</th><th style="text-align:right">Valor</th><th>Doc</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:#999;padding:.8rem">Todavía no hay costos ni gastos registrados</td></tr>'}</tbody></table></div>`;
-  wireCostos();
+    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Categoría</th><th>Marca</th><th>Folio</th><th style="text-align:right">Valor</th><th>Doc</th><th></th></tr></thead><tbody>${rows||`<tr><td colspan="8" style="text-align:center;color:#999;padding:.8rem">${cfg.vacio}</td></tr>`}</tbody></table></div>`;
+  wireCostos(tipo);
 }
-function wireCostos(){
-  const prov=document.getElementById('cgProv'), cat=document.getElementById('cgCat'), fecha=document.getElementById('cgFecha'), folio=document.getElementById('cgFolio'), valor=document.getElementById('cgValor');
+function wireCostos(tipo){
+  const cfg=COSTOS_TIPO_CFG[tipo]; const f=costosForm[tipo];
+  const prov=document.getElementById(cgId(tipo,'Prov')), cat=document.getElementById(cgId(tipo,'Cat')), marca=document.getElementById(cgId(tipo,'Marca'));
+  const fecha=document.getElementById(cgId(tipo,'Fecha')), folio=document.getElementById(cgId(tipo,'Folio')), valor=document.getElementById(cgId(tipo,'Valor'));
   prov.onchange=async()=>{
     if(prov.value==='__nuevo__'){
       const nombre=(window.prompt('Nombre del nuevo proveedor:')||'').trim();
-      if(!nombre){ prov.value=costosForm.proveedor; return; }
-      try{ const r=await fetch('/admin/costos/proveedor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); costosForm.proveedor=d.proveedor.nombre; costosSyncForm(); await loadCostos(); }
-      catch(e){ costosShowErr(String(e.message||e)); prov.value=costosForm.proveedor; }
-    } else costosForm.proveedor=prov.value;
+      if(!nombre){ prov.value=f.proveedor; return; }
+      try{ const r=await fetch('/admin/costos/proveedor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); f.proveedor=d.proveedor.nombre; await loadCostos(tipo); }
+      catch(e){ costosShowErr(tipo,String(e.message||e)); prov.value=f.proveedor; }
+    } else f.proveedor=prov.value;
   };
-  cat.onchange=()=>costosForm.categoria=cat.value;
-  fecha.onchange=()=>costosForm.fecha=fecha.value; fecha.oninput=()=>costosForm.fecha=fecha.value;
-  folio.oninput=()=>costosForm.folio=folio.value;
-  valor.oninput=()=>costosForm.valor=valor.value;
-  const file=document.getElementById('cgFile'), fname=document.getElementById('cgFileName');
+  cat.onchange=()=>f.categoria=cat.value;
+  marca.onchange=()=>{ f.marca=marca.value; renderCostos(tipo); };
+  fecha.onchange=()=>f.fecha=fecha.value; fecha.oninput=()=>f.fecha=fecha.value;
+  folio.oninput=()=>f.folio=folio.value;
+  valor.oninput=()=>f.valor=valor.value;
+  if(cfg.pctTotal){
+    const pctTotal=document.getElementById(cgId(tipo,'PctTotal'));
+    if(pctTotal) pctTotal.oninput=()=>f.pctTotal=pctTotal.value;
+  }
+  document.querySelectorAll('#'+cfg.bodyId+' [data-cgmarcachk]').forEach(chk=>{
+    chk.onchange=()=>{ f.marcaSel[chk.dataset.cgmarcachk]=chk.checked; renderCostos(tipo); };
+  });
+  document.querySelectorAll('#'+cfg.bodyId+' [data-cgmarcapct]').forEach(inp=>{
+    inp.oninput=()=>{ f.marcaPct[inp.dataset.cgmarcapct]=inp.value; cgMarcaTotalUpdate(tipo); };
+  });
+  const file=document.getElementById(cgId(tipo,'File')), fname=document.getElementById(cgId(tipo,'FileName'));
   if(file) file.onchange=()=>{
-    const f=file.files&&file.files[0]; if(!f){ costosForm.adjunto=null; return; }
-    if(f.size>8*1024*1024){ costosShowErr('El archivo supera los 8 MB.'); file.value=''; costosForm.adjunto=null; if(fname) fname.textContent='opcional · máx 8 MB'; return; }
+    const fl=file.files&&file.files[0]; if(!fl){ f.adjunto=null; return; }
+    if(fl.size>8*1024*1024){ costosShowErr(tipo,'El archivo supera los 8 MB.'); file.value=''; f.adjunto=null; if(fname) fname.textContent='opcional · máx 8 MB'; return; }
     const rd=new FileReader();
-    rd.onload=()=>{ const b64=String(rd.result).split(',')[1]||''; costosForm.adjunto={dataBase64:b64,contentType:f.type,filename:f.name}; if(fname) fname.textContent='📎 '+f.name; };
-    rd.readAsDataURL(f);
+    rd.onload=()=>{ const b64=String(rd.result).split(',')[1]||''; f.adjunto={dataBase64:b64,contentType:fl.type,filename:fl.name}; if(fname) fname.textContent='📎 '+fl.name; };
+    rd.readAsDataURL(fl);
   };
-  document.getElementById('cgAdd').onclick=costosAgregar;
-  document.querySelectorAll('[data-cgdel]').forEach(b=>b.onclick=()=>costosEliminar(b.dataset.cgdel));
+  document.getElementById(cgId(tipo,'Add')).onclick=()=>costosAgregar(tipo);
+  document.querySelectorAll(`[data-cgdel][data-cgtipo="${tipo}"]`).forEach(b=>b.onclick=()=>costosEliminar(tipo,b.dataset.cgdel));
 }
-function costosSyncForm(){ const p=document.getElementById('cgProv'); if(p) p.value=costosForm.proveedor; }
-function costosShowErr(msg){ const e=document.getElementById('cgErr'); if(e){ e.textContent='⚠ '+msg; e.classList.add('show'); } }
-async function costosAgregar(){
-  const e=document.getElementById('cgErr'); if(e){ e.textContent=''; e.classList.remove('show'); }
-  const payload={ proveedor:costosForm.proveedor, categoria:costosForm.categoria, fecha:costosForm.fecha, folio:costosForm.folio, valor:cNum(costosForm.valor), adjunto:costosForm.adjunto||null };
-  if(!payload.proveedor||payload.proveedor==='__nuevo__') return costosShowErr('Elegí un proveedor.');
-  if(!payload.categoria) return costosShowErr('Elegí una categoría.');
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(payload.fecha)) return costosShowErr('Elegí la fecha del documento.');
-  if(!payload.valor) return costosShowErr('Ingresá el valor.');
+function costosShowErr(tipo,msg){ const e=document.getElementById(cgId(tipo,'Err')); if(e){ e.textContent='⚠ '+msg; e.classList.add('show'); } }
+async function costosAgregar(tipo){
+  const cfg=COSTOS_TIPO_CFG[tipo]; const f=costosForm[tipo];
+  const e=document.getElementById(cgId(tipo,'Err')); if(e){ e.textContent=''; e.classList.remove('show'); }
+  const payload={ proveedor:f.proveedor, categoria:f.categoria, fecha:f.fecha, folio:f.folio, valor:cNum(f.valor), adjunto:f.adjunto||null, marca:f.marca };
+  if(f.marca==='algunas') payload.marcaDetalle=['kairos','banny','firulais'].filter(m=>f.marcaSel[m]).map(m=>({marca:m,pct:Number(f.marcaPct[m])||0}));
+  if(cfg.pctTotal && f.pctTotal) payload.pctTotal=Number(f.pctTotal);
+  if(!payload.proveedor||payload.proveedor==='__nuevo__') return costosShowErr(tipo,'Elegí un proveedor.');
+  if(!payload.categoria) return costosShowErr(tipo,'Elegí una categoría.');
+  if(!payload.marca) return costosShowErr(tipo,'Elegí a qué marca corresponde.');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(payload.fecha)) return costosShowErr(tipo,'Elegí la fecha del documento.');
+  if(!payload.valor) return costosShowErr(tipo,'Ingresá el valor.');
   try{
     const r=await fetch('/admin/costos/entrada',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json();
     if(!r.ok) throw new Error(d.error||'Error');
-    costosForm={proveedor:'',categoria:'',fecha:'',folio:'',valor:'',adjunto:null};
-    await loadCostos();
-  }catch(err){ costosShowErr(String(err.message||err)); }
+    costosForm[tipo]=cgBlankForm();
+    await loadCostos(tipo);
+  }catch(err){ costosShowErr(tipo,String(err.message||err)); }
 }
-async function costosEliminar(id){
+async function costosEliminar(tipo,id){
   if(!confirm('Eliminar este registro?')) return;
-  try{ const r=await fetch('/admin/costos/entrada/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadCostos(); }
+  try{ const r=await fetch('/admin/costos/entrada/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadCostos(tipo); }
   catch(e){ alert(String(e.message||e)); }
 }
-document.getElementById('costosReload').onclick=loadCostos;
-document.getElementById('costosMes').onchange=loadCostos;
+document.getElementById('costosReload').onclick=()=>loadCostos('costo');
+document.getElementById('costosMes').onchange=()=>loadCostos('costo');
+document.getElementById('gastosReload').onclick=()=>loadCostos('gasto');
+document.getElementById('gastosMes').onchange=()=>loadCostos('gasto');
 
 // ─── Gestión de Personas (nómina) ───────────────────────────────────────────
 let nominaData=null, nominaEditId=null, nominaForm={rut:'',nombre:'',ingreso:'',cargo:'',jornada:'42',contrato:'Indefinido',centroCosto:'BEER GARDEN KAIROS',afp:'',salud:''};
@@ -8738,7 +8832,7 @@ function renderPnl(){
   body.innerHTML=`
     <div class="est-top">
       <div class="est-total-box ${a.ebitda>=0?'':'pnl-box-red'}"><div class="est-total-l">Resultado del mes (EBITDA)</div><div class="est-total-v">${eM(a.ebitda)}</div><div class="est-delta">${rt.ebitda}% sobre ventas</div></div>
-      <div class="est-note">Se calcula con los <b>ingresos por venta</b> automáticos de Shopify menos los <b>costos y gastos</b> registrados en la hoja de Costos y Gastos, imputados por categoría. Los porcentajes son sobre la venta total.</div>
+      <div class="est-note">Se calcula con los <b>ingresos por venta</b> automáticos de Shopify menos los <b>costos y gastos</b> registrados en Costos y en Gastos, imputados por categoría. Los porcentajes son sobre la venta total.</div>
     </div>
     <div class="mun-wrap"><table class="mun-table pnl-table"><tbody>
       ${line('INGRESOS POR VENTA', ing.total, {pctv:100})}
@@ -8751,11 +8845,12 @@ function renderPnl(){
       ${res('MARGEN BRUTO', a.margenBruto, rt.margenBruto, a.margenBruto>=0?'pnl-pos':'pnl-red')}
       ${line('Gastos operativos', co.gastosOper, {neg:true, pctv:rt.gastosOper, doc:dc.gastos_operativos||0})}
       ${line('Gastos de administración y venta', co.gastosAdmin, {neg:true, pctv:rt.gastosAdmin, doc:dc.gastos_admin_venta||0})}
+      ${line('Marketing y publicidad', co.gastosMarketing, {neg:true, pctv:rt.gastosMarketing, doc:dc.marketing_publicidad||0})}
       ${line('Gasto de personal · nómina', co.gastoPersonal, {neg:true, pctv:rt.gastoPersonal})}
       ${res('EBITDA · Resultado operativo', a.ebitda, rt.ebitda, ebitdaCls)}
     </tbody></table></div>
     <div class="pnl-activos"><span>Activos fijos <span style="font-size:.78rem;color:var(--dim,#999)">inversión, no afecta el resultado operativo</span></span><b>${eM(co.activos)}</b> <span class="pnl-doc">${dc.activos_fijos||0} doc${(dc.activos_fijos||0)===1?'':'s'}</span></div>
-    <div class="est-note" style="margin-top:.8rem">Para cargar o editar los costos, andá a <b>Costos y Gastos</b>. Acá se resumen automáticamente por categoría.</div>`;
+    <div class="est-note" style="margin-top:.8rem">Para cargar o editar los costos y gastos, andá a <b>Costos</b> o <b>Gastos</b>. Acá se resumen automáticamente por categoría.</div>`;
 }
 document.getElementById('pnlReload').onclick=loadPnl;
 document.getElementById('pnlMes').onchange=loadPnl;
