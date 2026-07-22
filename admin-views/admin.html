@@ -1666,6 +1666,12 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .cg-marca-total{font-size:.72rem;color:var(--muted,#666)}
 .cg-marca-total.warn{color:var(--red,#d33);font-weight:700}
 .cg-pct-note{font-size:.68rem;color:var(--muted,#666);font-weight:400;margin-top:.15rem}
+.fc-toolbar{display:flex;align-items:center;gap:.8rem;margin-bottom:.8rem;flex-wrap:wrap}
+.fc-toolbar-l{display:flex;align-items:center;gap:.5rem;font-size:.8rem;color:var(--muted,#666);font-weight:600}
+.fc-toolbar-l select{padding:.45rem .6rem;border:1px solid var(--border,#e5e5e5);border-radius:var(--radius-sm,8px);background:var(--surface,#fff);font:inherit}
+.fc-note{font-size:.8rem;color:var(--muted,#666);background:var(--surface2,#fafafa);border:1px solid var(--border,#e5e5e5);border-radius:var(--radius-sm,8px);padding:.6rem .8rem;margin-bottom:1rem}
+.fc-changed{color:var(--gold-deep,#a05f00);font-weight:700}
+.fc-pct-inp{width:70px;padding:.3rem .4rem;border:1px solid var(--line,#e5e5e5);border-radius:7px;text-align:right}
 /* Gestión de Personas */
 .nom-costo{background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623) 55%,var(--gold-deep,#a05f00));border-radius:16px;padding:1.1rem 1.3rem;margin-bottom:1.1rem;color:#1a1408}
 .nom-costo-l{font-size:.82rem;font-weight:700;letter-spacing:.02em}
@@ -2442,6 +2448,22 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <div id="pnlBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
+    <!-- Forecast: EERR proyectado · presupuestos por % · simulación anual -->
+    <div class="adm-panel" id="forecastView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Forecast</div>
+          <div class="adm-panel-meta">proyecciones sobre el Estado de Resultado — no toca los costos/gastos reales</div>
+        </div>
+      </div>
+      <div class="prod-tabs" id="fcTabs">
+        <button type="button" class="prod-tab" data-fctab="proy">Proyectado</button>
+        <button type="button" class="prod-tab" data-fctab="pres">Presupuestos</button>
+        <button type="button" class="prod-tab" data-fctab="anual">Simulación anual</button>
+      </div>
+      <div id="fcBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
     <!-- Vista de tutoriales (videos técnicos) -->
     <div class="adm-panel" id="tutorialsView" style="display:none">
       <div class="adm-panel-head">
@@ -2837,6 +2859,7 @@ const BASE_SECCIONES = [
   { id:'gastos',    kind:'gastos',   label:'Gastos', cat:'operaciones', desc:'registro de gastos por proveedor · categoría · marca · % del total · folio · valor' },
   { id:'nomina',    kind:'nomina',   label:'Gestión de Personas', cat:'operaciones', desc:'nómina de trabajadores · costo empresa · descarga de Excel' },
   { id:'pnl',       kind:'pnl',      label:'Estado de Resultado', cat:'operaciones', desc:'ingresos − costos y gastos · margen bruto · EBITDA mensual' },
+  { id:'forecast',  kind:'forecast', label:'Forecast', cat:'operaciones', desc:'EERR proyectado · presupuestos por % · simulación del año' },
   { id:'produccion',kind:'produccion',label:'Producción & OEE', cat:'produccion', desc:'tablero de tanques · cocción por etapas · envasado · limpiezas · paradas' },
 ];
 
@@ -3059,6 +3082,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'pnl') {
     showView('pnl');
     await loadPnl();
+  } else if (sec.kind === 'forecast') {
+    showView('forecast');
+    forecastBoot();
   } else if (sec.kind === 'products') {
     showView('products');
     await loadProductos();
@@ -3105,6 +3131,7 @@ function showView(kind){
   document.getElementById('nominaView').style.display     = kind === 'nomina'     ? '' : 'none';
   document.getElementById('produccionView').style.display = kind === 'produccion' ? '' : 'none';
   document.getElementById('pnlView').style.display        = kind === 'pnl'        ? '' : 'none';
+  document.getElementById('forecastView').style.display   = kind === 'forecast'   ? '' : 'none';
   if (kind !== 'produccion' && typeof prodStopTimers === 'function') prodStopTimers();
   if (kind === 'estado') estadoBoot();
   document.getElementById('feedbackView').style.display   = kind === 'feedback'   ? '' : 'none';
@@ -8855,6 +8882,247 @@ function renderPnl(){
 document.getElementById('pnlReload').onclick=loadPnl;
 document.getElementById('pnlMes').onchange=loadPnl;
 document.getElementById('pnlExcel').onclick=()=>{ const m=document.getElementById('pnlMes').value; if(m) window.open('/admin/pnl/export.xlsx?month='+m,'_blank'); };
+
+// ─── Forecast: EERR proyectado · presupuestos · simulación anual ───────────
+let fcTab='proy';
+let fcProyMonth=null, fcProyData=null;
+let fcPresMonth=null, fcPresData=null, fcPresForm={ventaProyectada:'',pcts:{}};
+let fcAnualYear=null, fcAnualData=null;
+let FC_MONTHS_CACHE=null;
+const FC_MESES_CORTO=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+function fcCurMonthKey(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function fcAddMonths(key,n){ const [y,m]=key.split('-').map(Number); const d=new Date(y,m-1+n,1); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+async function fcMonthOptions(){
+  // Incluye 6 meses hacia adelante (para presupuestar el mes que viene) además
+  // de los meses pasados — a diferencia del selector de Estado de Resultado,
+  // que solo mira para atrás.
+  if(FC_MONTHS_CACHE) return FC_MONTHS_CACHE;
+  let periodos=[]; try{ periodos=((await (await fetch('/admin/estado/periodos')).json()).periodos)||[]; }catch{}
+  const set=new Set(periodos); const d=new Date();
+  for(let i=-6;i<18;i++){ const dt=new Date(d.getFullYear(),d.getMonth()-i,1); set.add(dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')); }
+  FC_MONTHS_CACHE=[...set].sort().reverse();
+  return FC_MONTHS_CACHE;
+}
+function fcMonthSelectHtml(id,current){
+  const months=FC_MONTHS_CACHE||[current];
+  return `<select id="${id}">${months.map(m=>`<option value="${m}" ${m===current?'selected':''}>${escapeHtml(estMonthLabel(m))}</option>`).join('')}</select>`;
+}
+function forecastBoot(){
+  document.querySelectorAll('#fcTabs [data-fctab]').forEach(b=>b.onclick=()=>{ fcTab=b.dataset.fctab; forecastRenderTabs(); forecastLoadTab(); });
+  forecastRenderTabs();
+  forecastLoadTab();
+}
+function forecastRenderTabs(){
+  document.querySelectorAll('#fcTabs [data-fctab]').forEach(b=>b.classList.toggle('on', b.dataset.fctab===fcTab));
+}
+function forecastLoadTab(){
+  if(fcTab==='proy') return fcProyLoad();
+  if(fcTab==='pres') return fcPresLoad();
+  return fcAnualLoad();
+}
+
+// ── (A) Proyectado ──
+async function fcProyLoad(){
+  const body=document.getElementById('fcBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  try{
+    if(!fcProyMonth){ await fcMonthOptions(); fcProyMonth=fcCurMonthKey(); } else { await fcMonthOptions(); }
+    const r=await fetch('/admin/forecast/proyectado?month='+fcProyMonth); const d=await r.json();
+    if(d.error) throw new Error(d.error);
+    fcProyData=d;
+    fcProyRender();
+  }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function fcProyRender(){
+  const a=fcProyData, body=document.getElementById('fcBody');
+  const catLbl=(id)=>{ const c=(a.categorias||[]).find(x=>x.id===id); return c?c.label:id; };
+  const line=(label,realVal,proyVal)=>`<tr><td>${escapeHtml(label)}</td><td class="dist-num">${eM(realVal)}</td><td class="dist-num ${proyVal!==realVal?'fc-changed':''}">${eM(proyVal)}</td></tr>`;
+  const co=a.costos, real=a.real.costos;
+  const ajustesRows=(a.ajustes||[]).map(j=>`<tr><td>${escapeHtml(catLbl(j.categoria))}</td><td>${escapeHtml(j.descripcion||'—')}</td><td class="dist-num">${eM(j.monto)}</td><td><button class="pv-del" data-fcajdel="${j.id}" title="Eliminar">✕</button></td></tr>`).join('');
+  const catOpts=(a.categorias||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.label)}</option>`).join('');
+  body.innerHTML=`
+    <div class="fc-toolbar"><div class="fc-toolbar-l"><span>Mes a proyectar</span>${fcMonthSelectHtml('fcProySel',fcProyMonth)}</div></div>
+    <div class="fc-note">Se parte del Estado de Resultado real de <b>${escapeHtml(estMonthLabel(a.month))}</b> y se le suman los ajustes manuales de abajo. No se toca ningún costo/gasto real — esto es solo una proyección.</div>
+    <div class="mun-wrap"><table class="mun-table pnl-table"><thead><tr><th></th><th style="text-align:right">Real</th><th style="text-align:right">Proyectado</th></tr></thead><tbody>
+      ${line('INGRESOS POR VENTA', a.ingresos.total, a.ingresos.total)}
+      ${line('Costo directo', real.costoDirecto, co.costoDirecto)}
+      ${line('Costo indirecto', real.costoIndirecto, co.costoIndirecto)}
+      ${line('Gastos operativos', real.gastosOper, co.gastosOper)}
+      ${line('Gastos de administración y venta', real.gastosAdmin, co.gastosAdmin)}
+      ${line('Marketing y publicidad', real.gastosMarketing, co.gastosMarketing)}
+      ${line('Gasto de personal · nómina', real.gastoPersonal, co.gastoPersonal)}
+      <tr class="pnl-res ${a.ebitda>=0?'pnl-pos':'pnl-red'}"><td>EBITDA proyectado</td><td class="dist-num">${eM(a.real.ebitda)}</td><td class="dist-num">${eM(a.ebitda)}</td></tr>
+    </tbody></table></div>
+    <div class="cg-form" style="margin-top:1rem">
+      <div class="cg-form-title">Agregar ajuste manual</div>
+      <div class="cg-form-grid">
+        <label class="cg-field"><span>Categoría</span><select id="fcAjCat"><option value="">— Elegí una categoría —</option>${catOpts}</select></label>
+        <label class="cg-field"><span>Descripción</span><input type="text" id="fcAjDesc" placeholder="Ej: arriendo nuevo local"></label>
+        <label class="cg-field"><span>Monto ($)</span><input type="text" inputmode="numeric" id="fcAjMonto" placeholder="0"></label>
+        <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fcAjAdd" type="button">+ Agregar ajuste</button></div>
+      </div>
+      <div class="cg-err" id="fcAjErr"></div>
+    </div>
+    <div class="mun-wrap" style="margin-top:.8rem"><table class="mun-table"><thead><tr><th>Categoría</th><th>Descripción</th><th style="text-align:right">Monto</th><th></th></tr></thead><tbody>${ajustesRows||'<tr><td colspan="4" style="text-align:center;color:#999;padding:.7rem">Sin ajustes todavía</td></tr>'}</tbody></table></div>`;
+  fcProyWire();
+}
+function fcProyWire(){
+  document.getElementById('fcProySel').onchange=(e)=>{ fcProyMonth=e.target.value; fcProyLoad(); };
+  document.getElementById('fcAjAdd').onclick=fcAjusteAgregar;
+  document.querySelectorAll('[data-fcajdel]').forEach(b=>b.onclick=()=>fcAjusteEliminar(b.dataset.fcajdel));
+}
+async function fcAjusteAgregar(){
+  const err=document.getElementById('fcAjErr'); err.textContent=''; err.classList.remove('show');
+  const categoria=document.getElementById('fcAjCat').value;
+  const descripcion=document.getElementById('fcAjDesc').value;
+  const monto=cNum(document.getElementById('fcAjMonto').value);
+  if(!categoria){ err.textContent='⚠ Elegí una categoría.'; err.classList.add('show'); return; }
+  if(!monto){ err.textContent='⚠ Ingresá el monto.'; err.classList.add('show'); return; }
+  try{
+    const r=await fetch('/admin/forecast/proyectado/ajuste',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({month:fcProyMonth,categoria,descripcion,monto})});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    await fcProyLoad();
+  }catch(e){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); }
+}
+async function fcAjusteEliminar(id){
+  if(!confirm('Eliminar este ajuste?')) return;
+  try{ const r=await fetch(`/admin/forecast/proyectado/ajuste/${encodeURIComponent(fcProyMonth)}/${encodeURIComponent(id)}`,{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await fcProyLoad(); }
+  catch(e){ alert(String(e.message||e)); }
+}
+
+// ── (B) Presupuestos ──
+async function fcPresLoad(){
+  const body=document.getElementById('fcBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  try{
+    if(!fcPresMonth){ await fcMonthOptions(); fcPresMonth=fcAddMonths(fcCurMonthKey(),1); } else { await fcMonthOptions(); }
+    const r=await fetch('/admin/forecast/presupuesto?month='+fcPresMonth); const d=await r.json();
+    if(d.error) throw new Error(d.error);
+    fcPresData=d;
+    fcPresForm={ ventaProyectada: d.ventaProyectada?String(d.ventaProyectada):'', pcts:{...d.pcts} };
+    fcPresRender();
+  }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function fcPresRealFor(real,id){
+  if(id==='ebitda') return real.ebitda;
+  if(id==='gasto_personal') return real.costos.gastoPersonal;
+  const map={costo_directo:'costoDirecto',costo_indirecto:'costoIndirecto',gastos_operativos:'gastosOper',gastos_admin_venta:'gastosAdmin',marketing_publicidad:'gastosMarketing'};
+  return real.costos[map[id]];
+}
+function fcPresRows(){ return (fcPresData.categorias||[]).concat([{id:'ebitda',label:'EBITDA'}]); }
+function fcPresRender(){
+  const a=fcPresData, body=document.getElementById('fcBody');
+  const rows=fcPresRows();
+  const sum=rows.reduce((s,c)=>s+(Number(fcPresForm.pcts[c.id])||0),0);
+  const rowsHtml=rows.map(c=>{
+    const pct=fcPresForm.pcts[c.id]!=null?fcPresForm.pcts[c.id]:'';
+    const monto=Math.round((Number(fcPresForm.ventaProyectada)||0)*((Number(pct)||0)/100));
+    const realVal=a.real?fcPresRealFor(a.real,c.id):null;
+    return `<tr class="${c.id==='ebitda'?'pnl-res':''}"><td>${escapeHtml(c.label)}</td><td><input type="number" min="0" max="100" step="0.1" class="fc-pct-inp" data-fcpct="${c.id}" value="${escapeAttr(pct)}"></td><td class="dist-num" data-fcmonto="${c.id}">${eM(monto)}</td><td class="dist-num" style="color:var(--muted,#666)">${realVal!=null?eM(realVal):'—'}</td></tr>`;
+  }).join('');
+  body.innerHTML=`
+    <div class="fc-toolbar"><div class="fc-toolbar-l"><span>Mes a presupuestar</span>${fcMonthSelectHtml('fcPresSel',fcPresMonth)}</div></div>
+    <div class="cg-form">
+      <div class="cg-form-grid" style="align-items:end">
+        <label class="cg-field"><span>Venta proyectada ($)</span><input type="text" inputmode="numeric" id="fcVenta" value="${escapeAttr(fcPresForm.ventaProyectada)}" placeholder="0"></label>
+        <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fcPresGuardar" type="button">Guardar presupuesto</button></div>
+      </div>
+      <div class="cg-err" id="fcPresErr"></div>
+    </div>
+    <div class="mun-wrap" style="margin-top:.8rem"><table class="mun-table"><thead><tr><th>Categoría</th><th style="width:110px">% objetivo</th><th style="text-align:right">Presupuesto $</th><th style="text-align:right">Real hasta ahora</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>
+    <div class="cg-marca-total ${sum>100?'warn':''}" id="fcPctTotal" style="margin-top:.5rem">Suma actual: ${sum}%${sum>100?' — no puede superar 100%':(sum<100?' (queda margen sin asignar)':'')}</div>`;
+  fcPresWire();
+}
+function fcPresWire(){
+  document.getElementById('fcPresSel').onchange=(e)=>{ fcPresMonth=e.target.value; fcPresLoad(); };
+  document.getElementById('fcVenta').oninput=(e)=>{ fcPresForm.ventaProyectada=e.target.value; fcPresRecalc(); };
+  document.querySelectorAll('[data-fcpct]').forEach(inp=>{
+    inp.oninput=()=>{ fcPresForm.pcts[inp.dataset.fcpct]=inp.value; fcPresRecalc(); };
+  });
+  document.getElementById('fcPresGuardar').onclick=fcPresGuardar;
+}
+function fcPresRecalc(){
+  let sum=0;
+  fcPresRows().forEach(c=>{
+    const pct=Number(fcPresForm.pcts[c.id])||0; sum+=pct;
+    const monto=Math.round((Number(fcPresForm.ventaProyectada)||0)*(pct/100));
+    const cell=document.querySelector(`[data-fcmonto="${c.id}"]`);
+    if(cell) cell.textContent=eM(monto);
+  });
+  const totalEl=document.getElementById('fcPctTotal');
+  if(totalEl){ totalEl.textContent=`Suma actual: ${sum}%${sum>100?' — no puede superar 100%':(sum<100?' (queda margen sin asignar)':'')}`; totalEl.classList.toggle('warn',sum>100); }
+}
+async function fcPresGuardar(){
+  const err=document.getElementById('fcPresErr'); err.textContent=''; err.classList.remove('show');
+  try{
+    const r=await fetch('/admin/forecast/presupuesto',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({month:fcPresMonth,ventaProyectada:cNum(fcPresForm.ventaProyectada),pcts:fcPresForm.pcts})});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    await fcPresLoad();
+  }catch(e){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); }
+}
+
+// ── (C) Simulación anual ──
+async function fcAnualLoad(){
+  const body=document.getElementById('fcBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  try{
+    if(!fcAnualYear) fcAnualYear=String(new Date().getFullYear());
+    const r=await fetch('/admin/forecast/anual?year='+fcAnualYear); const d=await r.json();
+    if(d.error) throw new Error(d.error);
+    fcAnualData=d;
+    fcAnualRender();
+  }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function fcAnualChart(meses){
+  const withVal=meses.filter(m=>m.valores!=null);
+  if(!withVal.length) return `<div class="oee-empty">Todavía no hay meses con datos para graficar.</div>`;
+  const maxAbs=Math.max(1,...withVal.map(m=>Math.abs(m.valores.ebitda)));
+  const W=760,Hh=180,pad=30,zeroY=Hh/2,scaleY=zeroY-14;
+  const barW=(W-2*pad)/meses.length*0.6;
+  const xs=(i)=>pad+(i+0.5)*(W-2*pad)/meses.length;
+  const bars=meses.map((m,i)=>{
+    const cx=xs(i);
+    const lbl=`<text x="${cx.toFixed(1)}" y="${Hh-6}" font-size="9" text-anchor="middle" fill="#999">${FC_MESES_CORTO[+m.month.slice(5)-1]}${m.origen==='copiado'?' *':''}</text>`;
+    if(m.valores==null) return lbl;
+    const v=m.valores.ebitda; const h=Math.abs(v)/maxAbs*scaleY;
+    const x=(cx-barW/2).toFixed(1); const y=(v>=0?zeroY-h:zeroY).toFixed(1);
+    const color=v>=0?'var(--green)':'var(--red)';
+    return `<rect x="${x}" y="${y}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" fill="${color}" rx="2"/>${lbl}`;
+  }).join('');
+  return `<div style="overflow-x:auto"><svg viewBox="0 0 ${W} ${Hh}" style="width:100%;min-width:520px;height:auto"><line x1="${pad}" y1="${zeroY}" x2="${W-pad}" y2="${zeroY}" stroke="#ddd"/>${bars}</svg></div>
+    <div class="oee-panel-s">* mes copiado de otro mes ya ocurrido (simulación)</div>`;
+}
+function fcAnualRender(){
+  const a=fcAnualData, body=document.getElementById('fcBody');
+  const curYear=new Date().getFullYear();
+  const yearOpts=[curYear-1,curYear,curYear+1].map(y=>`<option value="${y}" ${String(y)===fcAnualYear?'selected':''}>${y}</option>`).join('');
+  const pastMonths=a.meses.filter(m=>m.esPasado).map(m=>m.month);
+  const srcOpts=(cur)=>['<option value="">— sin definir —</option>',...pastMonths.map(m=>`<option value="${m}" ${m===cur?'selected':''}>${escapeHtml(estMonthLabel(m))}</option>`)].join('');
+  const rows=a.meses.map(m=>{
+    const eb=m.valores?m.valores.ebitda:null;
+    const tag=m.esPasado?'<span class="cg-tag">real</span>':(m.origen==='copiado'?`<span class="cg-tag" style="color:var(--info,#3b6fd1);background:var(--info-dim,#eaf1fb);border-color:#c2d4f5">copiado</span>`:'<span style="color:#bbb;font-size:.72rem">sin definir</span>');
+    const selector=m.esPasado?'—':`<select data-fcmesfuente="${m.month}">${srcOpts(m.fuente)}</select>`;
+    return `<tr><td>${escapeHtml(estMonthLabel(m.month))}</td><td>${tag}</td><td>${selector}</td><td class="dist-num ${eb==null?'':(eb>=0?'':'pnl-neg')}">${eb==null?'—':eM(eb)}</td></tr>`;
+  }).join('');
+  const t=a.totales;
+  body.innerHTML=`
+    <div class="fc-toolbar"><div class="fc-toolbar-l"><span>Año</span><select id="fcAnualSel">${yearOpts}</select></div></div>
+    <div class="fc-note">Los meses hasta <b>${escapeHtml(estMonthLabel(a.curMonth))}</b> son reales. Para los meses siguientes, elegí de qué mes ya ocurrido copiar los valores — así se simula cómo cerraría el año.</div>
+    <div class="oee-panel-t">Línea de tiempo del EBITDA mensual</div>
+    ${fcAnualChart(a.meses)}
+    <div class="est-total-box ${t.ebitda>=0?'':'pnl-box-red'}" style="margin-top:1rem;max-width:340px"><div class="est-total-l">EBITDA anual proyectado</div><div class="est-total-v">${eM(t.ebitda)}</div></div>
+    <div class="mun-wrap" style="margin-top:1rem"><table class="mun-table"><thead><tr><th>Mes</th><th>Origen</th><th>Copiar valores de</th><th style="text-align:right">EBITDA</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  fcAnualWire();
+}
+function fcAnualWire(){
+  document.getElementById('fcAnualSel').onchange=(e)=>{ fcAnualYear=e.target.value; fcAnualLoad(); };
+  document.querySelectorAll('[data-fcmesfuente]').forEach(sel=>{
+    sel.onchange=async()=>{
+      try{
+        const r=await fetch('/admin/forecast/anual/mapeo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({year:fcAnualYear,mesObjetivo:sel.dataset.fcmesfuente,mesFuente:sel.value||null})});
+        const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+        await fcAnualLoad();
+      }catch(e){ alert(String(e.message||e)); }
+    };
+  });
+}
 
 // ─── Producción & OEE (Fase 1) ──────────────────────────────────────────────
 let prodData=null, prodTab='tanques', prodTimers=null, prodOpenLote=null;

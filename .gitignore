@@ -7,4 +7,5 @@ prompts/produccion.json
 prompts/calidad.json
 prompts/costos-gastos.json
 prompts/distribuidora.json
+prompts/forecast.json
 public/uploads/

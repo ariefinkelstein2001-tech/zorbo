@@ -3447,6 +3447,202 @@ app.get('/admin/pnl/export.xlsx', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).send('Error: ' + String(e.message || e).slice(0, 200)); }
 });
 
+// ─── FORECAST ─────────────────────────────────────────────────────────────
+// Proyecciones sobre el Estado de Resultado:
+//  (A) "Proyectado": copia el EERR real de un mes y le suma ajustes manuales.
+//  (B) "Presupuesto": venta proyectada + % objetivo por categoría → $ por área.
+//  (C) "Simulación anual": mapea meses futuros del año a meses que ya ocurrieron,
+//      para ver cómo cerraría el año completo.
+const FORECAST_FILE = join(PROMPTS_EFFECTIVE_DIR, 'forecast.json');
+// Mismas categorías de gasto que el EERR real (menos Activos fijos, que no afecta
+// el resultado operativo) + "gasto_personal": no está en COSTOS_CATEGORIAS porque
+// viene de Gestión de Personas (nómina), no del módulo de Costos/Gastos.
+const FORECAST_CATS = [
+  ...COSTOS_CATEGORIAS.filter(c => c.tipo === 'gasto' && c.id !== 'activos_fijos').map(c => ({ id: c.id, label: c.label })),
+];
+FORECAST_CATS.unshift(...COSTOS_CATEGORIAS.filter(c => c.tipo === 'costo').map(c => ({ id: c.id, label: c.label })));
+FORECAST_CATS.push({ id: 'gasto_personal', label: 'Gasto de personal · nómina' });
+function forecastLoad(){
+  let data = { proyectado: {}, presupuestos: {}, simulacionAnual: {} };
+  try {
+    if (existsSync(FORECAST_FILE)) {
+      const p = JSON.parse(readFileSync(FORECAST_FILE, 'utf-8'));
+      if (p && typeof p.proyectado === 'object') data.proyectado = p.proyectado;
+      if (p && typeof p.presupuestos === 'object') data.presupuestos = p.presupuestos;
+      if (p && typeof p.simulacionAnual === 'object') data.simulacionAnual = p.simulacionAnual;
+    }
+  } catch (e) { console.warn('forecast load:', e.message); }
+  return data;
+}
+function forecastSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(FORECAST_FILE, JSON.stringify(d, null, 2)); }
+let FORECAST_ID_SEQ = 0;
+function forecastNewId(){ FORECAST_ID_SEQ = (FORECAST_ID_SEQ + 1) % 100000; return 'fc_' + Date.now().toString(36) + '_' + FORECAST_ID_SEQ.toString(36); }
+const forecastCurMonth = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+
+// ── (A) Proyectado ──
+function forecastAjustesTotales(ajustes){
+  const porCat = {}; FORECAST_CATS.forEach(c => porCat[c.id] = 0);
+  for (const a of (ajustes || [])) porCat[a.categoria] = (porCat[a.categoria] || 0) + (Number(a.monto) || 0);
+  return porCat;
+}
+app.get('/admin/forecast/proyectado', requireAdmin, async (req, res) => {
+  const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
+  if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
+  try {
+    const real = await pnlCompute(month, estadoRangeFromReq(req));
+    const data = forecastLoad();
+    const ajustes = (data.proyectado[month] && data.proyectado[month].ajustes) || [];
+    const extra = forecastAjustesTotales(ajustes);
+    const costos = {
+      costoDirecto: real.costos.costoDirecto + (extra.costo_directo || 0),
+      costoIndirecto: real.costos.costoIndirecto + (extra.costo_indirecto || 0),
+      gastosOper: real.costos.gastosOper + (extra.gastos_operativos || 0),
+      gastosAdmin: real.costos.gastosAdmin + (extra.gastos_admin_venta || 0),
+      gastosMarketing: real.costos.gastosMarketing + (extra.marketing_publicidad || 0),
+      gastoPersonal: real.costos.gastoPersonal + (extra.gasto_personal || 0),
+      activos: real.costos.activos,
+    };
+    const ingresos = real.ingresos.total;
+    const margenBruto = ingresos - costos.costoDirecto - costos.costoIndirecto;
+    const ebitda = margenBruto - costos.gastosOper - costos.gastosAdmin - costos.gastosMarketing - costos.gastoPersonal;
+    const ratio = (v) => ingresos ? Math.round((v / ingresos) * 1000) / 10 : 0;
+    res.json({
+      month, categorias: FORECAST_CATS, ingresos: real.ingresos,
+      real: { costos: real.costos, margenBruto: real.margenBruto, ebitda: real.ebitda },
+      ajustes, costos, margenBruto, ebitda,
+      ratios: {
+        costoDirecto: ratio(costos.costoDirecto), costoIndirecto: ratio(costos.costoIndirecto),
+        gastosOper: ratio(costos.gastosOper), gastosAdmin: ratio(costos.gastosAdmin),
+        gastosMarketing: ratio(costos.gastosMarketing), gastoPersonal: ratio(costos.gastoPersonal),
+        margenBruto: ratio(margenBruto), ebitda: ratio(ebitda),
+      },
+    });
+  } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+});
+app.post('/admin/forecast/proyectado/ajuste', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const month = /^\d{4}-\d{2}$/.test(String(b.month)) ? String(b.month) : null;
+  const categoria = costosStr(b.categoria, 40);
+  const descripcion = costosStr(b.descripcion, 200);
+  const monto = costosNum(b.monto);
+  if (!month) return res.status(400).json({ error: 'Falta el mes.' });
+  if (!FORECAST_CATS.some(c => c.id === categoria)) return res.status(400).json({ error: 'Elegí una categoría válida.' });
+  if (!monto) return res.status(400).json({ error: 'Ingresá el monto.' });
+  const data = forecastLoad();
+  if (!data.proyectado[month]) data.proyectado[month] = { ajustes: [] };
+  const ajuste = { id: forecastNewId(), categoria, descripcion, monto };
+  data.proyectado[month].ajustes.push(ajuste);
+  forecastSave(data);
+  res.json({ ok: true, ajuste });
+});
+app.delete('/admin/forecast/proyectado/ajuste/:month/:id', requireAdmin, (req, res) => {
+  const month = String(req.params.month), id = String(req.params.id);
+  const data = forecastLoad();
+  const bucket = data.proyectado[month];
+  if (!bucket) return res.status(404).json({ error: 'No se encontró el mes.' });
+  const n = bucket.ajustes.length;
+  bucket.ajustes = bucket.ajustes.filter(a => a.id !== id);
+  if (bucket.ajustes.length === n) return res.status(404).json({ error: 'No se encontró el ajuste.' });
+  forecastSave(data); res.json({ ok: true });
+});
+
+// ── (B) Presupuesto ──
+app.get('/admin/forecast/presupuesto', requireAdmin, async (req, res) => {
+  const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
+  if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
+  const data = forecastLoad();
+  const p = data.presupuestos[month] || { ventaProyectada: 0, pcts: {} };
+  let real = null;
+  try {
+    const r = await pnlCompute(month, estadoRangeFromReq(req));
+    real = { ingresos: r.ingresos.total, costos: r.costos, margenBruto: r.margenBruto, ebitda: r.ebitda };
+  } catch {}
+  const venta = Number(p.ventaProyectada) || 0;
+  const montoPor = (id) => Math.round(venta * ((Number((p.pcts || {})[id]) || 0) / 100));
+  const presupuesto = { ebitda: montoPor('ebitda') };
+  FORECAST_CATS.forEach(c => presupuesto[c.id] = montoPor(c.id));
+  res.json({ month, categorias: FORECAST_CATS, ventaProyectada: venta, pcts: p.pcts || {}, presupuesto, real });
+});
+app.post('/admin/forecast/presupuesto', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const month = /^\d{4}-\d{2}$/.test(String(b.month)) ? String(b.month) : null;
+  if (!month) return res.status(400).json({ error: 'Falta el mes.' });
+  const ventaProyectada = costosNum(b.ventaProyectada);
+  const pctsIn = (b.pcts && typeof b.pcts === 'object') ? b.pcts : {};
+  const validIds = new Set([...FORECAST_CATS.map(c => c.id), 'ebitda']);
+  const pcts = {};
+  for (const [k, v] of Object.entries(pctsIn)) {
+    if (!validIds.has(k)) continue;
+    const n = Number(v);
+    if (!Number.isFinite(n)) continue;
+    pcts[k] = Math.round(n * 10) / 10;
+  }
+  const data = forecastLoad();
+  data.presupuestos[month] = { ventaProyectada, pcts };
+  forecastSave(data);
+  res.json({ ok: true, presupuesto: data.presupuestos[month] });
+});
+
+// ── (C) Simulación anual ──
+app.get('/admin/forecast/anual', requireAdmin, async (req, res) => {
+  const year = /^\d{4}$/.test(String(req.query.year)) ? String(req.query.year) : null;
+  if (!year) return res.status(400).json({ error: 'Falta el año (YYYY).' });
+  const data = forecastLoad();
+  const mapeo = data.simulacionAnual[year] || {};
+  const curKey = forecastCurMonth();
+  const plan = [];
+  for (let m = 1; m <= 12; m++) {
+    const key = year + '-' + String(m).padStart(2, '0');
+    const esPasado = key <= curKey;
+    const fuente = esPasado ? key : (mapeo[key] || null);
+    const origen = esPasado ? 'real' : (fuente ? 'copiado' : null);
+    plan.push({ month: key, esPasado, fuente, origen });
+  }
+  // Memoiza pnlCompute por mes fuente para no repetir el mismo mes varias veces
+  // (meses pasados se piden siempre, y varios meses futuros pueden copiar el mismo origen).
+  const cache = new Map();
+  const calc = async (mes) => {
+    if (cache.has(mes)) return cache.get(mes);
+    const p = (async () => {
+      try { const r = await pnlCompute(mes, null); return { ingresos: r.ingresos.total, costos: r.costos, margenBruto: r.margenBruto, ebitda: r.ebitda }; }
+      catch (e) { return null; }
+    })();
+    cache.set(mes, p); return p;
+  };
+  const meses = [];
+  for (const it of plan) {
+    const valores = it.fuente ? await calc(it.fuente) : null;
+    meses.push({ ...it, valores });
+  }
+  const totales = meses.reduce((acc, m) => {
+    if (!m.valores) return acc;
+    acc.ingresos += m.valores.ingresos; acc.ebitda += m.valores.ebitda; acc.margenBruto += m.valores.margenBruto;
+    acc.costoDirecto += m.valores.costos.costoDirecto; acc.costoIndirecto += m.valores.costos.costoIndirecto;
+    acc.gastosOper += m.valores.costos.gastosOper; acc.gastosAdmin += m.valores.costos.gastosAdmin;
+    acc.gastosMarketing += m.valores.costos.gastosMarketing; acc.gastoPersonal += m.valores.costos.gastoPersonal;
+    return acc;
+  }, { ingresos: 0, ebitda: 0, margenBruto: 0, costoDirecto: 0, costoIndirecto: 0, gastosOper: 0, gastosAdmin: 0, gastosMarketing: 0, gastoPersonal: 0 });
+  res.json({ year, meses, mapeo, totales, curMonth: curKey });
+});
+app.post('/admin/forecast/anual/mapeo', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const year = /^\d{4}$/.test(String(b.year)) ? String(b.year) : null;
+  const mesObjetivo = /^\d{4}-\d{2}$/.test(String(b.mesObjetivo)) ? String(b.mesObjetivo) : null;
+  const mesFuenteRaw = b.mesFuente;
+  const mesFuente = (mesFuenteRaw == null || mesFuenteRaw === '') ? null : (/^\d{4}-\d{2}$/.test(String(mesFuenteRaw)) ? String(mesFuenteRaw) : undefined);
+  if (!year || !mesObjetivo) return res.status(400).json({ error: 'Falta el año o el mes objetivo.' });
+  if (mesFuente === undefined) return res.status(400).json({ error: 'Mes fuente inválido.' });
+  const curKey = forecastCurMonth();
+  if (mesObjetivo <= curKey) return res.status(400).json({ error: 'Ese mes ya ocurrió — usa sus valores reales, no se puede mapear.' });
+  if (mesFuente && mesFuente > curKey) return res.status(400).json({ error: 'El mes fuente tiene que ser un mes que ya ocurrió.' });
+  const data = forecastLoad();
+  if (!data.simulacionAnual[year]) data.simulacionAnual[year] = {};
+  if (mesFuente) data.simulacionAnual[year][mesObjetivo] = mesFuente;
+  else delete data.simulacionAnual[year][mesObjetivo];
+  forecastSave(data);
+  res.json({ ok: true, mapeo: data.simulacionAnual[year] });
+});
+
 // ─── GESTIÓN DE PERSONAS (nómina) ───────────────────────────────────────────
 // Nómina de trabajadores + costo empresa (editable a mano). El costo empresa
 // resta como "gasto de personal" en el Estado de Resultado.
