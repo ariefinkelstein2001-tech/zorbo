@@ -1621,6 +1621,17 @@ function serveIndexWithMode(_req, res, next){
 }
 app.get(['/', '/index.html'], serveIndexWithMode);
 
+// ── Cara pública de K-BROS (dominio k-bros.cl) sobre la MISMA app ──
+// Todo (código, env vars, volumen, data) vive en un solo servicio. Con k-bros.cl
+// apuntado a esta misma app, el "/" en k-bros.cl muestra la puerta de K-BROS
+// (landing + login → /admin), mientras zorbo.cl sigue sirviendo el marketplace.
+// El login usa la auth existente (POST /admin/login). Sin app nueva ni env nuevas.
+const KBROS_HOST = /(^|\.)k-bros\.cl$/i;
+const isKbros = (req) => KBROS_HOST.test(String(req.hostname || '').toLowerCase());
+const sendPanel = (req, res) => res.sendFile(join(__dirname, 'public', 'panel.html'));
+app.get('/', (req, res, next) => { if (isKbros(req)) return sendPanel(req, res); next(); });
+app.get(['/login', '/panel'], sendPanel);
+
 app.use(express.static(join(__dirname, 'public')));
 // Archivos subidos (PDF/imágenes de producto). Cuando DATA_DIR está seteado
 // viven en el volumen, así que necesitan su propia ruta estática.
@@ -1732,7 +1743,7 @@ function requireAdmin(req, res, next){
   if (process.env.ADMIN_AUTH_ENABLED === '0') return next();
   const sess = adminSessionFor(req);
   if (!sess) {
-    if (wantsHtml(req)) return res.redirect(302, '/admin/login');
+    if (wantsHtml(req)) return res.redirect(302, '/login');
     return res.status(401).json({ error: 'No autorizado. Iniciá sesión en /admin/login.' });
   }
   // Rol limitado "costeo": bloquea todo lo que no sea ver/editar lo permitido.
