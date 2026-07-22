@@ -1627,8 +1627,13 @@ app.get(['/', '/index.html'], serveIndexWithMode);
 // (landing + login → /admin), mientras zorbo.cl sigue sirviendo el marketplace.
 // El login usa la auth existente (POST /admin/login). Sin app nueva ni env nuevas.
 const KBROS_HOST = /(^|\.)k-bros\.cl$/i;
-const isKbros = (req) => KBROS_HOST.test(String(req.hostname || '').toLowerCase());
+// Host real detrás de proxies (Cloudflare/Railway): x-forwarded-host suele traer el
+// dominio original; si no, cae al Host header o req.hostname. Saca lista y puerto.
+const hostOf = (req) => String(req.headers['x-forwarded-host'] || req.headers['host'] || req.hostname || '').split(',')[0].split(':')[0].trim().toLowerCase();
+const isKbros = (req) => KBROS_HOST.test(hostOf(req));
 const sendPanel = (req, res) => res.sendFile(join(__dirname, 'public', 'panel.html'));
+// Diagnóstico: qué host ve la app (para depurar el ruteo por dominio). No cacheable.
+app.get('/__whoami', (req, res) => { res.set('Cache-Control', 'no-store'); res.json({ hostDetectado: hostOf(req), hostname: req.hostname, host: req.headers['host'] || null, xForwardedHost: req.headers['x-forwarded-host'] || null, isKbros: isKbros(req) }); });
 app.get('/', (req, res, next) => { if (isKbros(req)) return sendPanel(req, res); next(); });
 app.get(['/login', '/panel'], sendPanel);
 
