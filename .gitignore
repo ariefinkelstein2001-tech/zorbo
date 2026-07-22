@@ -9,4 +9,5 @@ prompts/costos-gastos.json
 prompts/distribuidora.json
 prompts/forecast.json
 prompts/operacional.json
+prompts/team.json
 public/uploads/
