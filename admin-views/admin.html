@@ -2452,11 +2452,14 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
     <div class="adm-panel" id="forecastView" style="display:none">
       <div class="adm-panel-head">
         <div>
-          <div class="adm-panel-title">Forecast</div>
-          <div class="adm-panel-meta">proyecciones sobre el Estado de Resultado — no toca los costos/gastos reales</div>
+          <div class="adm-panel-title" id="fcTitle">Forecast</div>
+          <div class="adm-panel-meta" id="fcMeta">elegí qué querés proyectar</div>
+        </div>
+        <div class="adm-actions" id="fcBackWrap" style="display:none">
+          <button class="adm-btn adm-btn-ghost" id="fcBack" type="button">← Forecast</button>
         </div>
       </div>
-      <div class="prod-tabs" id="fcTabs">
+      <div class="prod-tabs" id="fcTabs" style="display:none">
         <button type="button" class="prod-tab" data-fctab="proy">Proyectado</button>
         <button type="button" class="prod-tab" data-fctab="pres">Presupuestos</button>
         <button type="button" class="prod-tab" data-fctab="anual">Simulación anual</button>
@@ -8907,10 +8910,38 @@ function fcMonthSelectHtml(id,current){
   const months=FC_MONTHS_CACHE||[current];
   return `<select id="${id}">${months.map(m=>`<option value="${m}" ${m===current?'selected':''}>${escapeHtml(estMonthLabel(m))}</option>`).join('')}</select>`;
 }
+let fcArea=null; // null = eligiendo · 'financiero' | 'operacional'
+const FC_AREAS=[
+  { id:'financiero', icon:'💰', label:'Forecast Financiero', desc:'EERR proyectado, presupuestos por % y simulación del año — sobre el Estado de Resultado.' },
+  { id:'operacional', icon:'🏭', label:'Forecast Operacional', desc:'Cuántos litros producir por marca y estilo (Kairos, Firulais, Banny), en base a demanda, merma, inventario y lead time.' },
+];
 function forecastBoot(){
+  document.getElementById('fcBack').onclick=()=>{ fcArea=null; forecastRenderArea(); };
   document.querySelectorAll('#fcTabs [data-fctab]').forEach(b=>b.onclick=()=>{ fcTab=b.dataset.fctab; forecastRenderTabs(); forecastLoadTab(); });
-  forecastRenderTabs();
-  forecastLoadTab();
+  forecastRenderArea();
+}
+function forecastRenderArea(){
+  document.getElementById('fcTabs').style.display = fcArea==='financiero' ? '' : 'none';
+  document.getElementById('fcBackWrap').style.display = fcArea ? '' : 'none';
+  if(!fcArea){
+    document.getElementById('fcTitle').textContent='Forecast';
+    document.getElementById('fcMeta').textContent='elegí qué querés proyectar';
+    const cards=FC_AREAS.map(a=>`<div class="adm-cat" data-fcarea="${a.id}" style="--accent:var(--gold)">
+      <div class="adm-cat-ic">${a.icon}</div>
+      <div class="adm-cat-name">${escapeHtml(a.label)}</div>
+      <div class="adm-cat-desc">${escapeHtml(a.desc)}</div>
+      <div class="adm-cat-go">Entrar →</div>
+    </div>`).join('');
+    document.getElementById('fcBody').innerHTML=`<div class="adm-home-cards" style="margin-top:0">${cards}</div>`;
+    document.querySelectorAll('#fcBody .adm-cat').forEach(el=>el.onclick=()=>{ fcArea=el.dataset.fcarea; forecastRenderArea(); });
+    return;
+  }
+  document.getElementById('fcTitle').textContent = fcArea==='financiero' ? 'Forecast Financiero' : 'Forecast Operacional';
+  document.getElementById('fcMeta').textContent = fcArea==='financiero'
+    ? 'proyecciones sobre el Estado de Resultado — no toca los costos/gastos reales'
+    : 'litros a producir por marca y estilo';
+  if(fcArea==='financiero'){ forecastRenderTabs(); forecastLoadTab(); }
+  else{ fcOperacionalRender(); }
 }
 function forecastRenderTabs(){
   document.querySelectorAll('#fcTabs [data-fctab]').forEach(b=>b.classList.toggle('on', b.dataset.fctab===fcTab));
@@ -8919,6 +8950,19 @@ function forecastLoadTab(){
   if(fcTab==='proy') return fcProyLoad();
   if(fcTab==='pres') return fcPresLoad();
   return fcAnualLoad();
+}
+function fcOperacionalRender(){
+  document.getElementById('fcBody').innerHTML=`
+    <div class="dist-empty" style="padding:2.4rem 1rem;text-align:center">
+      <div style="font-size:2.2rem;margin-bottom:.6rem">🏭</div>
+      <div style="font-weight:800;font-family:var(--display);font-size:1.1rem;margin-bottom:.5rem">Todavía en construcción</div>
+      <div style="max-width:520px;margin:0 auto;color:var(--muted,#666);font-size:.85rem;line-height:1.5">
+        Va a calcular cuántos litros producir por marca (Kairos, Firulais, Banny) y por estilo,
+        a partir de la demanda proyectada, la merma, el inventario objetivo y el lead time de
+        cada estilo. Antes de construirlo hay algunas definiciones puntuales que hacen falta —
+        te las voy a preguntar por chat.
+      </div>
+    </div>`;
 }
 
 // ── (A) Proyectado ──
@@ -8938,7 +8982,8 @@ function fcProyRender(){
   const line=(label,realVal,proyVal)=>`<tr><td>${escapeHtml(label)}</td><td class="dist-num">${eM(realVal)}</td><td class="dist-num ${proyVal!==realVal?'fc-changed':''}">${eM(proyVal)}</td></tr>`;
   const co=a.costos, real=a.real.costos;
   const ajustesRows=(a.ajustes||[]).map(j=>`<tr><td>${escapeHtml(catLbl(j.categoria))}</td><td>${escapeHtml(j.descripcion||'—')}</td><td class="dist-num">${eM(j.monto)}</td><td><button class="pv-del" data-fcajdel="${j.id}" title="Eliminar">✕</button></td></tr>`).join('');
-  const catOpts=(a.categorias||[]).map(c=>`<option value="${c.id}">${escapeHtml(c.label)}</option>`).join('');
+  const catOpts=(a.categorias||[]).filter(c=>c.id!=='gasto_personal').map(c=>`<option value="${c.id}">${escapeHtml(c.label)}</option>`).join('');
+  const personalVal=a.gastoPersonalOverride!=null?a.gastoPersonalOverride:co.gastoPersonal;
   body.innerHTML=`
     <div class="fc-toolbar"><div class="fc-toolbar-l"><span>Mes a proyectar</span>${fcMonthSelectHtml('fcProySel',fcProyMonth)}</div></div>
     <div class="fc-note">Se parte del Estado de Resultado real de <b>${escapeHtml(estMonthLabel(a.month))}</b> y se le suman los ajustes manuales de abajo. No se toca ningún costo/gasto real — esto es solo una proyección.</div>
@@ -8949,9 +8994,10 @@ function fcProyRender(){
       ${line('Gastos operativos', real.gastosOper, co.gastosOper)}
       ${line('Gastos de administración y venta', real.gastosAdmin, co.gastosAdmin)}
       ${line('Marketing y publicidad', real.gastosMarketing, co.gastosMarketing)}
-      ${line('Gasto de personal · nómina', real.gastoPersonal, co.gastoPersonal)}
+      <tr><td>Gasto de personal · nómina</td><td class="dist-num">${eM(real.gastoPersonal)}</td><td class="dist-num"><input type="text" inputmode="numeric" id="fcPersonalInp" class="fc-pct-inp" style="width:130px" value="${escapeAttr(String(personalVal))}"> <button class="cg-doc-link" id="fcPersonalReset" type="button" title="Volver a usar el costo empresa actual">usar real</button></td></tr>
       <tr class="pnl-res ${a.ebitda>=0?'pnl-pos':'pnl-red'}"><td>EBITDA proyectado</td><td class="dist-num">${eM(a.real.ebitda)}</td><td class="dist-num">${eM(a.ebitda)}</td></tr>
     </tbody></table></div>
+    <div class="fc-note" style="margin-top:.5rem">El gasto de personal proyectado es editable directamente arriba — no queda fijo al costo empresa actual, porque el mes proyectado puede tener más o menos colaboradores.</div>
     <div class="cg-form" style="margin-top:1rem">
       <div class="cg-form-title">Agregar ajuste manual</div>
       <div class="cg-form-grid">
@@ -8969,6 +9015,16 @@ function fcProyWire(){
   document.getElementById('fcProySel').onchange=(e)=>{ fcProyMonth=e.target.value; fcProyLoad(); };
   document.getElementById('fcAjAdd').onclick=fcAjusteAgregar;
   document.querySelectorAll('[data-fcajdel]').forEach(b=>b.onclick=()=>fcAjusteEliminar(b.dataset.fcajdel));
+  const personalInp=document.getElementById('fcPersonalInp');
+  personalInp.onchange=()=>fcPersonalGuardar(cNum(personalInp.value));
+  document.getElementById('fcPersonalReset').onclick=()=>fcPersonalGuardar(null);
+}
+async function fcPersonalGuardar(valor){
+  try{
+    const r=await fetch('/admin/forecast/proyectado/personal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({month:fcProyMonth,valor})});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    await fcProyLoad();
+  }catch(e){ alert(String(e.message||e)); }
 }
 async function fcAjusteAgregar(){
   const err=document.getElementById('fcAjErr'); err.textContent=''; err.classList.remove('show');

@@ -3453,15 +3453,21 @@ app.get('/admin/forecast/proyectado', requireAdmin, async (req, res) => {
   try {
     const real = await pnlCompute(month, estadoRangeFromReq(req));
     const data = forecastLoad();
-    const ajustes = (data.proyectado[month] && data.proyectado[month].ajustes) || [];
+    const bucket = data.proyectado[month] || {};
+    const ajustes = bucket.ajustes || [];
     const extra = forecastAjustesTotales(ajustes);
+    // El gasto de personal proyectado es un valor libre (no depende del real de
+    // hoy): puede haber más o menos colaboradores en el mes proyectado. Si no se
+    // definió un override, se sugiere el costo empresa actual como punto de partida.
+    const gastoPersonalOverride = (bucket.gastoPersonalOverride != null) ? Number(bucket.gastoPersonalOverride) : null;
+    const gastoPersonal = gastoPersonalOverride != null ? gastoPersonalOverride : real.costos.gastoPersonal;
     const costos = {
       costoDirecto: real.costos.costoDirecto + (extra.costo_directo || 0),
       costoIndirecto: real.costos.costoIndirecto + (extra.costo_indirecto || 0),
       gastosOper: real.costos.gastosOper + (extra.gastos_operativos || 0),
       gastosAdmin: real.costos.gastosAdmin + (extra.gastos_admin_venta || 0),
       gastosMarketing: real.costos.gastosMarketing + (extra.marketing_publicidad || 0),
-      gastoPersonal: real.costos.gastoPersonal + (extra.gasto_personal || 0),
+      gastoPersonal,
       activos: real.costos.activos,
     };
     const ingresos = real.ingresos.total;
@@ -3471,7 +3477,7 @@ app.get('/admin/forecast/proyectado', requireAdmin, async (req, res) => {
     res.json({
       month, categorias: FORECAST_CATS, ingresos: real.ingresos,
       real: { costos: real.costos, margenBruto: real.margenBruto, ebitda: real.ebitda },
-      ajustes, costos, margenBruto, ebitda,
+      ajustes, gastoPersonalOverride, costos, margenBruto, ebitda,
       ratios: {
         costoDirecto: ratio(costos.costoDirecto), costoIndirecto: ratio(costos.costoIndirecto),
         gastosOper: ratio(costos.gastosOper), gastosAdmin: ratio(costos.gastosAdmin),
@@ -3481,6 +3487,21 @@ app.get('/admin/forecast/proyectado', requireAdmin, async (req, res) => {
     });
   } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
 });
+app.post('/admin/forecast/proyectado/personal', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const month = /^\d{4}-\d{2}$/.test(String(b.month)) ? String(b.month) : null;
+  if (!month) return res.status(400).json({ error: 'Falta el mes.' });
+  const data = forecastLoad();
+  if (!data.proyectado[month]) data.proyectado[month] = { ajustes: [] };
+  if (b.valor == null || b.valor === '') {
+    delete data.proyectado[month].gastoPersonalOverride;
+  } else {
+    const v = costosNum(b.valor);
+    data.proyectado[month].gastoPersonalOverride = v;
+  }
+  forecastSave(data);
+  res.json({ ok: true, gastoPersonalOverride: data.proyectado[month].gastoPersonalOverride != null ? data.proyectado[month].gastoPersonalOverride : null });
+});
 app.post('/admin/forecast/proyectado/ajuste', requireAdmin, (req, res) => {
   const b = req.body || {};
   const month = /^\d{4}-\d{2}$/.test(String(b.month)) ? String(b.month) : null;
@@ -3488,6 +3509,7 @@ app.post('/admin/forecast/proyectado/ajuste', requireAdmin, (req, res) => {
   const descripcion = costosStr(b.descripcion, 200);
   const monto = costosNum(b.monto);
   if (!month) return res.status(400).json({ error: 'Falta el mes.' });
+  if (categoria === 'gasto_personal') return res.status(400).json({ error: 'El gasto de personal se edita directo en la fila de la tabla, no como ajuste.' });
   if (!FORECAST_CATS.some(c => c.id === categoria)) return res.status(400).json({ error: 'Elegí una categoría válida.' });
   if (!monto) return res.status(400).json({ error: 'Ingresá el monto.' });
   const data = forecastLoad();
