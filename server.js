@@ -3174,13 +3174,21 @@ app.get('/admin/estado/preview', requireAdmin, async (req, res) => {
 // ya creados, o se crea uno nuevo), la CATEGORÍA del Estado de Resultado a la que
 // imputa, la fecha del documento, el folio y el valor. Persistencia en JSON.
 const COSTOS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'costos-gastos.json');
+// tipo: 'costo' (ficha Costos) o 'gasto' (ficha Gastos) — separa qué categorías
+// se ofrecen en cada formulario, aunque ambos comparten el mismo archivo/registro.
 const COSTOS_CATEGORIAS = [
-  { id: 'costo_directo', label: 'Costo directo' },
-  { id: 'costo_indirecto', label: 'Costo indirecto' },
-  { id: 'gastos_operativos', label: 'Gastos operativos' },
-  { id: 'gastos_admin_venta', label: 'Gastos de administración y venta' },
-  { id: 'activos_fijos', label: 'Activos fijos' },
+  { id: 'costo_directo', label: 'Costo directo', tipo: 'costo' },
+  { id: 'costo_indirecto', label: 'Costo indirecto', tipo: 'costo' },
+  { id: 'gastos_operativos', label: 'Operativos', tipo: 'gasto' },
+  { id: 'gastos_admin_venta', label: 'Administración y venta', tipo: 'gasto' },
+  { id: 'marketing_publicidad', label: 'Marketing y publicidad', tipo: 'gasto' },
+  { id: 'activos_fijos', label: 'Activos fijos', tipo: 'gasto' },
 ];
+const COSTOS_TIPOS = ['costo', 'gasto'];
+// Marcas propias de Zorbo, para poder imputar cada costo/gasto a una marca (o a
+// varias, con % de reparto) y así medir desempeño por marca a futuro.
+const COSTOS_MARCAS = ['kairos', 'banny', 'firulais'];
+const COSTOS_MARCA_VALORES = [...COSTOS_MARCAS, 'todas', 'algunas'];
 // Proveedores iniciales (semilla). Se pueden agregar más desde el panel.
 const COSTOS_PROVEEDORES_SEED = [
   'Embotelladora Andina', 'Navarro y Cía. SpA', 'Navarro y Cía. SpA (Insumo de Oasis)', 'Ariscorp SpA',
@@ -3208,24 +3216,47 @@ function costosLoad(){
 }
 function costosSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTOS_FILE, JSON.stringify(d, null, 2)); }
 const costosMes = (fecha) => /^\d{4}-\d{2}/.test(String(fecha)) ? String(fecha).slice(0, 7) : '';
+const COSTOS_CAT_TIPO = Object.fromEntries(COSTOS_CATEGORIAS.map(c => [c.id, c.tipo]));
+// Valor que efectivamente corresponde a Zorbo. En Gastos, si se cargó "Porcentaje
+// del total" (facturas compartidas con el restaurante, ej. arriendo), solo esa
+// fracción del monto de la factura cuenta para el Estado de Resultado — el monto y
+// el folio que se ven en la tabla siguen siendo los de la factura real, sin tocar.
+function costosValorEfectivo(e){
+  const valor = Number(e.valor) || 0;
+  if (COSTOS_CAT_TIPO[e.categoria] !== 'gasto') return valor;
+  const pct = e.pctTotal;
+  if (pct == null || pct === '') return valor;
+  const p = Math.min(100, Math.max(0, Number(pct) || 0));
+  return Math.round(valor * p / 100);
+}
 // Resumen por categoría (montos + cantidad) para un set de entradas.
 function costosResumen(entradas){
   const porCat = {}; COSTOS_CATEGORIAS.forEach(c => porCat[c.id] = { total: 0, n: 0 });
   let total = 0;
-  for (const e of entradas) { const c = porCat[e.categoria] || (porCat[e.categoria] = { total: 0, n: 0 }); c.total += Number(e.valor) || 0; c.n++; total += Number(e.valor) || 0; }
+  for (const e of entradas) {
+    const c = porCat[e.categoria] || (porCat[e.categoria] = { total: 0, n: 0 });
+    const v = costosValorEfectivo(e);
+    c.total += v; c.n++; total += v;
+  }
   return { porCategoria: porCat, total };
 }
-// GET: proveedores + categorías + entradas (opcional filtradas por mes) + resumen.
+// GET: proveedores + categorías + entradas (opcional filtradas por mes/tipo) + resumen.
+// tipo=costo|gasto separa la ficha de Costos de la de Gastos (mismo registro, distinta vista).
 app.get('/admin/costos', requireAdmin, (req, res) => {
   const data = costosLoad();
   const mes = /^\d{4}-\d{2}$/.test(String(req.query.mes)) ? String(req.query.mes) : null;
+  const tipo = COSTOS_TIPOS.includes(String(req.query.tipo)) ? String(req.query.tipo) : null;
   let entradas = data.entradas.slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  if (tipo) entradas = entradas.filter(e => COSTOS_CAT_TIPO[e.categoria] === tipo);
+  const entradasDelTipo = entradas;
   if (mes) entradas = entradas.filter(e => costosMes(e.fecha) === mes);
-  const meses = [...new Set(data.entradas.map(e => costosMes(e.fecha)).filter(Boolean))].sort().reverse();
+  const meses = [...new Set(entradasDelTipo.map(e => costosMes(e.fecha)).filter(Boolean))].sort().reverse();
   res.json({
-    categorias: COSTOS_CATEGORIAS,
+    categorias: tipo ? COSTOS_CATEGORIAS.filter(c => c.tipo === tipo) : COSTOS_CATEGORIAS,
+    marcas: COSTOS_MARCAS,
     proveedores: data.proveedores.slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
-    entradas, meses, mes,
+    entradas: entradas.map(e => ({ ...e, marca: e.marca || 'todas' })),
+    meses, mes,
     resumen: costosResumen(entradas),
   });
 });
@@ -3249,10 +3280,37 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
   const fecha = costosStr(b.fecha, 20);
   const folio = costosStr(b.folio, 60);
   const valor = costosNum(b.valor);
+  const marca = costosStr(b.marca, 20);
   if (!proveedor) return res.status(400).json({ error: 'Elegí un proveedor.' });
-  if (!COSTOS_CATEGORIAS.some(c => c.id === categoria)) return res.status(400).json({ error: 'Elegí una categoría válida.' });
+  const catDef = COSTOS_CATEGORIAS.find(c => c.id === categoria);
+  if (!catDef) return res.status(400).json({ error: 'Elegí una categoría válida.' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return res.status(400).json({ error: 'Elegí la fecha del documento.' });
   if (!valor) return res.status(400).json({ error: 'Ingresá el valor.' });
+  if (!COSTOS_MARCA_VALORES.includes(marca)) return res.status(400).json({ error: 'Elegí a qué marca corresponde.' });
+  // "Algunas": reparto explícito por marca, con % de esa factura para cada una.
+  let marcaDetalle = null;
+  if (marca === 'algunas') {
+    const arr = Array.isArray(b.marcaDetalle) ? b.marcaDetalle : [];
+    const seen = new Set();
+    marcaDetalle = [];
+    for (const it of arr) {
+      const m = costosStr(it && it.marca, 20);
+      if (!COSTOS_MARCAS.includes(m) || seen.has(m)) continue;
+      const pct = Number(it && it.pct);
+      if (!Number.isFinite(pct) || pct <= 0 || pct > 100) continue;
+      seen.add(m); marcaDetalle.push({ marca: m, pct: Math.round(pct * 10) / 10 });
+    }
+    if (!marcaDetalle.length) return res.status(400).json({ error: 'Elegí al menos una marca y su porcentaje.' });
+    const suma = marcaDetalle.reduce((s, it) => s + it.pct, 0);
+    if (suma > 100.01) return res.status(400).json({ error: 'La suma de los porcentajes por marca no puede superar 100%.' });
+  }
+  // "Porcentaje del total": solo aplica a Gastos (facturas compartidas con el restaurante).
+  let pctTotal = null;
+  if (catDef.tipo === 'gasto' && b.pctTotal != null && b.pctTotal !== '') {
+    const p = Number(b.pctTotal);
+    if (!Number.isFinite(p) || p <= 0 || p > 100) return res.status(400).json({ error: 'El porcentaje del total debe ser entre 1 y 100.' });
+    pctTotal = Math.round(p * 10) / 10;
+  }
   // Adjunto opcional (factura/documento) en base64 → se guarda en UPLOADS_DIR.
   let adjunto = null;
   const adj = b.adjunto;
@@ -3268,7 +3326,7 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
   const data = costosLoad();
   // Si el proveedor no está creado, lo crea al vuelo (viene de "crear nuevo").
   if (!data.proveedores.some(p => p.nombre === proveedor)) data.proveedores.push({ id: costosNewId('prov'), nombre: proveedor });
-  const entrada = { id: costosNewId('cg'), proveedor, categoria, fecha, folio, valor, adjunto };
+  const entrada = { id: costosNewId('cg'), proveedor, categoria, fecha, folio, valor, adjunto, marca, marcaDetalle, pctTotal };
   data.entradas.push(entrada); costosSave(data);
   res.json({ ok: true, entrada });
 });
@@ -3295,10 +3353,11 @@ async function pnlCompute(month, rango){
   const catTot = (id) => (rs.porCategoria[id] || { total: 0 }).total;
   const ingresos = est.totalIngresos;
   const costoDirecto = catTot('costo_directo'), costoIndirecto = catTot('costo_indirecto');
-  const gastosOper = catTot('gastos_operativos'), gastosAdmin = catTot('gastos_admin_venta'), activos = catTot('activos_fijos');
+  const gastosOper = catTot('gastos_operativos'), gastosAdmin = catTot('gastos_admin_venta');
+  const gastosMarketing = catTot('marketing_publicidad'), activos = catTot('activos_fijos');
   const gastoPersonal = nominaLoad().costoEmpresa || 0; // costo empresa de la nómina (Gestión de Personas)
   const margenBruto = ingresos - costoDirecto - costoIndirecto;
-  const ebitda = margenBruto - gastosOper - gastosAdmin - gastoPersonal;
+  const ebitda = margenBruto - gastosOper - gastosAdmin - gastosMarketing - gastoPersonal;
   const ratio = (v) => ingresos ? Math.round((v / ingresos) * 1000) / 10 : 0;
   const i = est.ingresos;
   return {
@@ -3309,12 +3368,12 @@ async function pnlCompute(month, rango){
       retail: (i.retail != null ? i.retail : 0),
       hospitality: i.hospitality.total,
     } },
-    costos: { costoDirecto, costoIndirecto, gastosOper, gastosAdmin, gastoPersonal, activos },
+    costos: { costoDirecto, costoIndirecto, gastosOper, gastosAdmin, gastosMarketing, gastoPersonal, activos },
     docs: Object.fromEntries(Object.entries(rs.porCategoria).map(([k, v]) => [k, v.n])),
     margenBruto, ebitda,
     ratios: {
       costoDirecto: ratio(costoDirecto), costoIndirecto: ratio(costoIndirecto),
-      gastosOper: ratio(gastosOper), gastosAdmin: ratio(gastosAdmin), gastoPersonal: ratio(gastoPersonal),
+      gastosOper: ratio(gastosOper), gastosAdmin: ratio(gastosAdmin), gastosMarketing: ratio(gastosMarketing), gastoPersonal: ratio(gastoPersonal),
       margenBruto: ratio(margenBruto), ebitda: ratio(ebitda), activos: ratio(activos),
     },
   };
@@ -3345,6 +3404,7 @@ function pnlSheetRows(data, month){
   blank();
   rows.push([T('Gastos operativos'), PCT(-rt.gastosOper), M(-co.gastosOper)]);
   rows.push([T('Gastos de administración y venta'), PCT(-rt.gastosAdmin), M(-co.gastosAdmin)]);
+  rows.push([T('Marketing y publicidad'), PCT(-rt.gastosMarketing), M(-co.gastosMarketing)]);
   rows.push([T('Gasto de personal (nómina)'), PCT(-rt.gastoPersonal), M(-co.gastoPersonal)]);
   rows.push([SEC('EBITDA · RESULTADO OPERATIVO'), SPCT(rt.ebitda), SM(data.ebitda)]);
   blank();
