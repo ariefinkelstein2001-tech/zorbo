@@ -1809,6 +1809,26 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .prod-tab.on{background:linear-gradient(135deg,var(--gold-bright),var(--gold) 60%,var(--gold-deep));border-color:transparent;color:#1a1408;box-shadow:var(--shadow-sm)}
 .prod-sec-h{font-family:var(--display,inherit);font-weight:700;font-size:1rem;margin:.3rem 0 .7rem;display:flex;align-items:center;gap:.6rem;color:var(--text,#111)}
 .prod-sec-h span{font-family:var(--sans,inherit);font-weight:500;font-size:.78rem;color:var(--dim,#999)}
+
+/* ── Marcas: barra persistente (breadcrumb + pestañas Diseño/Audiovisual/General) ── */
+.marcas-bar{max-width:1180px;margin:0 auto 1rem}
+.marcas-crumb{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-size:.8rem;color:var(--muted,#666);margin-bottom:.7rem}
+.marcas-crumb b{color:var(--text,#111);font-weight:700}
+.marcas-crumb .sep{color:var(--dim,#ccc)}
+.marcas-crumb .back{color:var(--gold-deep,#a05f00);font-weight:700;cursor:pointer;background:none;border:0;font:inherit;padding:0}
+.marcas-crumb .back:hover{text-decoration:underline}
+.marcas-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;max-width:1180px;margin:0 auto}
+.marcas-card{
+  background:var(--surface,#fff);border:1px solid var(--border,#eee);border-radius:14px;
+  padding:1.4rem 1rem;text-align:center;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:.5rem;
+  transition:transform .2s,box-shadow .2s,border-color .2s;
+}
+.marcas-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--gold-bd-h,#f5a623)}
+.marcas-card .ic{font-size:1.8rem}
+.marcas-card .lb{font-family:var(--display,inherit);font-weight:800;font-size:.95rem;color:var(--text,#111)}
+.marcas-card .dom{font-size:.72rem;color:var(--dim,#999)}
+.marcas-canal-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;max-width:700px;margin:0 auto}
+.marcas-title{font-family:var(--display,inherit);font-size:1.15rem;font-weight:800;margin-bottom:1rem;text-align:center}
 .prod-tk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.8rem}
 .prod-tk-card{display:flex;gap:.5rem;border:1.5px solid var(--line,#e5e5e5);border-radius:14px;background:var(--surface,#fff);padding:.7rem .8rem;box-shadow:var(--shadow-sm);transition:box-shadow var(--dur-base) var(--ease)}
 .prod-tk-card.ocupado{cursor:pointer;border-color:#d8c3ad}
@@ -2158,6 +2178,11 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
   <section>
     <div class="adm-tabs" id="tabs"></div>
 
+    <!-- Barra persistente de "Marcas": breadcrumb + pestañas Diseño/Audiovisual/General.
+         Vive fuera del interruptor de showView() para no desaparecer cuando el
+         contenido real (Página web/Tutoriales/md) toma el lugar de marcasView. -->
+    <div class="marcas-bar" id="marcasBar" style="display:none"></div>
+
     <!-- Home / selección de categoría -->
     <div id="homeView" style="display:none"></div>
 
@@ -2446,30 +2471,39 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
     <div class="adm-panel" id="costeoView" style="display:none">
       <div class="adm-panel-head">
         <div>
-          <div class="adm-panel-title">Costeo de carta</div>
+          <div class="adm-panel-title">Costeo</div>
           <div class="adm-panel-meta" id="costeoMeta">insumos → recetas base → platos · todo se recalcula solo</div>
         </div>
         <div class="adm-actions">
           <button class="adm-btn adm-btn-ghost" id="btnCosteoReload" type="button">Recargar</button>
         </div>
       </div>
-      <div class="costeo-rest" id="costeoRest">
-        <span class="costeo-rest-lbl">Restaurante</span>
-        <button type="button" class="costeo-rest-btn on" data-rest="garden">Garden</button>
-        <button type="button" class="costeo-rest-btn" data-rest="badass">Badass</button>
-        <span class="costeo-rest-lbl costeo-svc-lbl">Servicio</span>
-        <select id="costeoSvc" class="costeo-svc">
-          <option value="comida">🍽️ Comida</option>
-          <option value="barra">🍸 Barra</option>
-        </select>
+      <div class="prod-tabs" id="costeoAreaTabs">
+        <button type="button" class="prod-tab on" data-carea="gastronomia">Gastronomía</button>
+        <button type="button" class="prod-tab" data-carea="productora">Productora</button>
+        <button type="button" class="prod-tab" data-carea="comercializacion">Comercialización y Distribución</button>
       </div>
-      <div class="dist-subnav" id="costeoSubnav">
-        <button type="button" class="dist-subtab on" data-csub="insumos">Insumos</button>
-        <button type="button" class="dist-subtab" data-csub="recetas">Recetas base</button>
-        <button type="button" class="dist-subtab" data-csub="platos" id="costeoTabProd">Platos</button>
-        <button type="button" class="dist-subtab" data-csub="resumen">Carta (resumen)</button>
+      <div id="costeoGastronomia">
+        <div class="costeo-rest" id="costeoRest">
+          <span class="costeo-rest-lbl">Restaurante</span>
+          <button type="button" class="costeo-rest-btn on" data-rest="garden">Garden</button>
+          <button type="button" class="costeo-rest-btn" data-rest="badass">Badass</button>
+          <span class="costeo-rest-lbl costeo-svc-lbl">Servicio</span>
+          <select id="costeoSvc" class="costeo-svc">
+            <option value="comida">🍽️ Comida</option>
+            <option value="barra">🍸 Barra</option>
+          </select>
+        </div>
+        <div class="dist-subnav" id="costeoSubnav">
+          <button type="button" class="dist-subtab on" data-csub="insumos">Insumos</button>
+          <button type="button" class="dist-subtab" data-csub="recetas">Recetas base</button>
+          <button type="button" class="dist-subtab" data-csub="platos" id="costeoTabProd">Platos</button>
+          <button type="button" class="dist-subtab" data-csub="resumen">Carta (resumen)</button>
+        </div>
+        <div id="costeoBody"><div class="adm-loading">Cargando…</div></div>
       </div>
-      <div id="costeoBody"><div class="adm-loading">Cargando…</div></div>
+      <div id="costeoProductora" style="display:none"></div>
+      <div id="costeoComercializacion" style="display:none"></div>
     </div>
 
     <!-- Estado de Resultado mensual del CD -->
@@ -2553,7 +2587,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <div id="teamBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
-    <!-- Producción & OEE (Fase 1): tanques, cocción, envasado, limpiezas, paradas -->
+    <!-- Producción (Centro de Producción · Cocción · Recetas · Envasado · Limpiezas · Paradas · Config) -->
     <div class="adm-panel" id="produccionView" style="display:none">
       <div class="adm-panel-head">
         <div>
@@ -2565,6 +2599,47 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
         </div>
       </div>
       <div id="prodBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
+    <!-- Operación · OEE · Calidad · Inventario (mismo motor/datos que Producción, solo cambia qué pestañas se ven) -->
+    <div class="adm-panel" id="opcalidadView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Operación · OEE · Calidad · Inventario</div>
+          <div class="adm-panel-meta">indicadores de eficiencia · certificaciones y catas · stock</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="opcalidadReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div id="opcalidadBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
+    <!-- Distribución · Rutas (sin info todavía) -->
+    <div class="adm-panel" id="rutasView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Rutas</div>
+          <div class="adm-panel-meta">mapa · día y horario de despacho</div>
+        </div>
+      </div>
+      <div id="rutasBody"></div>
+    </div>
+
+    <!-- Distribución · Gestión, trazabilidad y mantenimiento (sin info todavía) -->
+    <div class="adm-panel" id="mantenimientoView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Gestión, trazabilidad y mantenimiento</div>
+          <div class="adm-panel-meta">máquinas dispensadoras · barriles despachados · mantención y limpieza</div>
+        </div>
+      </div>
+      <div id="mantenimientoBody"></div>
+    </div>
+
+    <!-- Marketing · Marcas (drill-down: marca → canal → sitio → Diseño/Audiovisual/General) -->
+    <div class="adm-panel" id="marcasView" style="display:none">
+      <div id="marcasBody"></div>
     </div>
 
     <!-- Estado de Resultado (P&L): ingresos − costos y gastos -->
@@ -3044,40 +3119,53 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 
 <script>
 // ─── Secciones disponibles ──────────────────────────────────────────────────
+// Reestructuración de navegación (8 áreas, sidebar de 2 niveles): las fichas de
+// marca (general/kairos/firulais/banny/mayorista/web/tutoriales) siguen existiendo
+// tal cual — mismo id/kind/desc, cero cambios de lógica — pero ya no aparecen como
+// ítem propio del sidebar (nav:false). Se navegan desde adentro de "Marcas"
+// (parentNav), que es quien las llama con el mismo selectSeccion(id) de siempre.
 const BASE_SECCIONES = [
   { id:'analytics', kind:'analytics',label:'Analítica',       cat:'marketing', desc:'foto general del negocio · números y gráficos' },
   { id:'ads',       kind:'ads',      label:'Centro de Ads',   cat:'marketing', desc:'campañas Google y Meta · análisis y recomendaciones con IA' },
-  { id:'mundial',   kind:'mundial',  label:'Mundial',         cat:'marketing', desc:'predicciones del pack mundialero · quién compró y qué eligió' },
+  { id:'mundial',   kind:'mundial',  label:'Campañas',        cat:'marketing', desc:'predicciones del pack mundialero · quién compró y qué eligió' },
   { id:'chats',     kind:'chats',    label:'Conversaciones',  cat:'marketing', desc:'historial completo · filtros y embudo' },
-  { id:'feedback',   kind:'feedback', label:'Feedback',        cat:'marketing', desc:'correcciones para entrenar a Zorbot' },
-  { id:'web',       kind:'web',      label:'Página web',      cat:'marketing', desc:'franja, banner, botones y marcas del home' },
-  { id:'tutoriales', kind:'tutorials',label:'Tutoriales',      cat:'marketing', desc:'videos técnicos que Zorbot comparte cuando aplica' },
-  { id:'general',   kind:'md',       label:'General',         cat:'marketing', desc:'identidad · tono · reglas globales' },
-  { id:'kairos',    kind:'md',       label:'Kairos Brewing',  cat:'marketing', desc:'cervezas artesanales' },
-  { id:'firulais',  kind:'md',       label:'Firulais',        cat:'marketing', desc:'cheladas craft' },
-  { id:'banny',     kind:'md',       label:'Banny',           cat:'marketing', desc:'destilados · RTD' },
-  { id:'mayorista', kind:'md',       label:'Mayoristas (B2B)',cat:'marketing', desc:'restaurantes · botillerías · eventos' },
-  { id:'productos',  kind:'products', label:'Productos',       cat:'comercializacion', desc:'catálogo Shopify · notas extra para Zorbot' },
-  { id:'puntos',     kind:'puntos',   label:'Puntos de venta', cat:'comercializacion', desc:'mapa de locales donde estás · venta por punto' },
-  { id:'topclientes',kind:'topclientes',label:'Top clientes',  cat:'comercializacion', desc:'quién compra más cada producto · histórico Shopify' },
-  { id:'distribuidora', kind:'distribuidora', label:'Distribuidora', cat:'operaciones', desc:'proveedores · costos · márgenes · órdenes de compra · comercialización' },
-  { id:'costeo',    kind:'costeo',   label:'Costeo de carta', cat:'operaciones', desc:'insumos · recetas base · platos · precios de venta' },
-  { id:'estado',    kind:'estado',   label:'Ingreso por Venta', cat:'operaciones', desc:'CD Kairos · ingresos por 4 canales · 100% automáticos de Shopify' },
-  { id:'costos',    kind:'costos',   label:'Costos', cat:'operaciones', desc:'registro de costos por proveedor · categoría · marca · folio · valor' },
-  { id:'gastos',    kind:'gastos',   label:'Gastos', cat:'operaciones', desc:'registro de gastos por proveedor · categoría · marca · % del total · folio · valor' },
-  { id:'nomina',    kind:'nomina',   label:'Gestión de Personas', cat:'operaciones', desc:'nómina de trabajadores · costo empresa · descarga de Excel' },
-  { id:'equipo',    kind:'equipo',   label:'Cuentas del equipo', cat:'operaciones', desc:'altas y ediciones de cuentas individuales · nombre · apodo · acceso' },
-  { id:'pnl',       kind:'pnl',      label:'Estado de Resultado', cat:'operaciones', desc:'ingresos − costos y gastos · margen bruto · EBITDA mensual' },
-  { id:'forecast',  kind:'forecast', label:'Forecast', cat:'operaciones', desc:'EERR proyectado · presupuestos por % · simulación del año' },
-  { id:'produccion',kind:'produccion',label:'Producción & OEE', cat:'produccion', desc:'tablero de tanques · cocción por etapas · envasado · limpiezas · paradas' },
+  { id:'feedback',   kind:'feedback', label:'Feedback IA',     cat:'marketing', desc:'correcciones para entrenar a Zorbot' },
+  { id:'marcas',    kind:'marcas',   label:'Marcas',          cat:'marketing', desc:'ZORBO · Kairos Brewing · Firulais · Banny · K-BROS — sitio, diseño y audiovisual de cada marca' },
+  { id:'web',       kind:'web',      label:'Página web',      cat:'marketing', desc:'franja, banner, botones y marcas del home', nav:false, parentNav:'marcas' },
+  { id:'tutoriales', kind:'tutorials',label:'Tutoriales',      cat:'marketing', desc:'videos técnicos que Zorbot comparte cuando aplica', nav:false, parentNav:'marcas' },
+  { id:'general',   kind:'md',       label:'General',         cat:'marketing', desc:'identidad · tono · reglas globales', nav:false, parentNav:'marcas' },
+  { id:'kairos',    kind:'md',       label:'Kairos Brewing',  cat:'marketing', desc:'cervezas artesanales', nav:false, parentNav:'marcas' },
+  { id:'firulais',  kind:'md',       label:'Firulais',        cat:'marketing', desc:'cheladas craft', nav:false, parentNav:'marcas' },
+  { id:'banny',     kind:'md',       label:'Banny',           cat:'marketing', desc:'destilados · RTD', nav:false, parentNav:'marcas' },
+  { id:'mayorista', kind:'md',       label:'Mayoristas (B2B)',cat:'marketing', desc:'restaurantes · botillerías · eventos', nav:false, parentNav:'marcas' },
+  { id:'productos',  kind:'products', label:'Productos',       cat:'comercial', desc:'catálogo Shopify · notas extra para Zorbot' },
+  { id:'puntos',     kind:'puntos',   label:'Puntos de venta', cat:'comercial', desc:'mapa de locales donde estás · venta por punto' },
+  { id:'topclientes',kind:'topclientes',label:'Top clientes',  cat:'comercial', desc:'quién compra más cada producto · histórico Shopify' },
+  { id:'distribuidora', kind:'distribuidora', label:'Distribuidora', cat:'distribucion', desc:'proveedores · costos · márgenes · órdenes de compra · comercialización' },
+  { id:'rutas',     kind:'rutas',    label:'Rutas',           cat:'distribucion', desc:'mapa · día y horario de despacho' },
+  { id:'mantenimiento', kind:'mantenimiento', label:'Gestión, trazabilidad y mantenimiento', cat:'distribucion', desc:'máquinas dispensadoras · barriles despachados · mantención y limpieza' },
+  { id:'costeo',    kind:'costeo',   label:'Costeo',          cat:'operacion', desc:'insumos · recetas base · platos · precios de venta' },
+  { id:'opcalidad', kind:'opcalidad',label:'OEE · Calidad · Inventario', cat:'operacion', desc:'indicadores de eficiencia · certificaciones y catas · stock' },
+  { id:'estado',    kind:'estado',   label:'Ingreso por Venta', cat:'finanzas', desc:'CD Kairos · ingresos por 4 canales · 100% automáticos de Shopify' },
+  { id:'costos',    kind:'costos',   label:'Costos', cat:'finanzas', desc:'registro de costos por proveedor · categoría · marca · folio · valor' },
+  { id:'gastos',    kind:'gastos',   label:'Gastos', cat:'finanzas', desc:'registro de gastos por proveedor · categoría · marca · % del total · folio · valor' },
+  { id:'pnl',       kind:'pnl',      label:'Estado de Resultado', cat:'finanzas', desc:'ingresos − costos y gastos · margen bruto · EBITDA mensual' },
+  { id:'nomina',    kind:'nomina',   label:'Gestión de Personas', cat:'personas', desc:'nómina de trabajadores · costo empresa · descarga de Excel' },
+  { id:'forecast',  kind:'forecast', label:'Forecast', cat:'herramientas', desc:'EERR proyectado · presupuestos por % · simulación del año' },
+  { id:'equipo',    kind:'equipo',   label:'Cuentas del equipo', cat:'herramientas', desc:'altas y ediciones de cuentas individuales · nombre · apodo · acceso' },
+  { id:'produccion',kind:'produccion',label:'Centro de Producción', cat:'produccion', desc:'tanques · cocción · recetas · envasado · limpiezas · paradas' },
 ];
 
-// Categorías grandes de la home. accent = color del halo de la tarjeta.
+// Categorías grandes (8 áreas del sidebar). accent = color del halo de la tarjeta.
 const ADMIN_CATEGORIES = [
-  { id:'marketing',       icon:'📣', label:'Marketing',                desc:'Cómo Zorbo se comunica y atrae: analítica, conversaciones del bot, campañas y contenido de marca.', accent:'#f5a623' },
-  { id:'comercializacion',icon:'🛒', label:'Comercialización',         desc:'El catálogo y la venta: productos, fichas y todo lo que el cliente compra.', accent:'#2e9c5a' },
-  { id:'operaciones',     icon:'📦', label:'Distribución y Operaciones',desc:'La trastienda: proveedores, costos, márgenes, órdenes de compra y cadena de valor.', accent:'#7c6bb8' },
-  { id:'produccion',      icon:'🏭', label:'Producción',               desc:'El maestro cervecero: tanques, cocción, envasado, limpiezas y paradas. Registro para medir el OEE.', accent:'#b87333' },
+  { id:'marketing',    icon:'📣', label:'Marketing',      desc:'Cómo Zorbo se comunica y atrae: analítica, conversaciones del bot, campañas y contenido de marca.', accent:'#f5a623' },
+  { id:'comercial',    icon:'🛒', label:'Comercial',      desc:'El catálogo y la venta: productos, fichas y todo lo que el cliente compra.', accent:'#2e9c5a' },
+  { id:'distribucion', icon:'🚚', label:'Distribución',   desc:'Proveedores, rutas de despacho, trazabilidad y mantenimiento de la cadena de distribución.', accent:'#4a90d9' },
+  { id:'operacion',    icon:'⚙️', label:'Operación',      desc:'Costeo, eficiencia (OEE), calidad e inventario.', accent:'#7c6bb8' },
+  { id:'produccion',   icon:'🏭', label:'Producción',     desc:'El maestro cervecero: tanques, cocción, recetas, envasado, limpiezas y paradas.', accent:'#b87333' },
+  { id:'finanzas',     icon:'💰', label:'Finanzas',       desc:'Ingresos, costos, gastos y Estado de Resultado.', accent:'#1f8a70' },
+  { id:'personas',     icon:'👥', label:'Gestión de Personas', desc:'Nómina y costo empresa.', accent:'#c1447e' },
+  { id:'herramientas', icon:'🛠️', label:'Herramientas',   desc:'Forecast y cuentas del equipo.', accent:'#5b6472' },
 ];
 
 // Frases motivacionales — sale una distinta cada vez que se abre la home.
@@ -3109,6 +3197,9 @@ let SECCIONES = BASE_SECCIONES.slice();
 let BRANDS = BASE_BRANDS.slice();
 let CUSTOM_BRANDS = [];
 let activeBrand = 'all';
+// Hook para que una sección con drill-down propio (ej. Marcas) escriba su propio
+// breadcrumb en #ksCrumb. Devuelve true si lo hizo (así ksSync no lo pisa).
+let ksCrumbOverride = null;
 
 // Carga las marcas custom desde site-config y reconstruye tabs / filtros / vendor.
 async function loadCustomBrands(){
@@ -3126,9 +3217,11 @@ async function loadCustomBrands(){
   applyCustomBrands();
 }
 function applyCustomBrands(){
+  // Marcas custom nuevas: entran como opción extra (6ta+) dentro de "Marcas",
+  // no como ítem propio del sidebar — mismo criterio que kairos/firulais/banny.
   const brandTabs = CUSTOM_BRANDS.map(b => ({
     id:b.key, kind:'md', label:b.label, cat:'marketing', desc:'conocimiento de ' + b.label + ' para Zorbot',
-    custom:true, vendor:b.vendor,
+    custom:true, vendor:b.vendor, nav:false, parentNav:'marcas',
   }));
   // Tabs de marca custom: justo después de Banny (dentro de Marketing).
   const secOut = [];
@@ -3163,6 +3256,138 @@ function rebuildVendorOptions(){
     sel.value = name || 'Kairos Brewing';
   };
 }
+
+// ─── Marcas (drill-down: marca → Redes Sociales/Página web → Diseño/Audiovisual/General) ──
+// Nivel 1: elegir marca. Nivel 2: Redes Sociales (sin info) o Página web. Nivel 3: el
+// sitio de esa marca (dominio, solo informativo). Nivel 4: Diseño/Audiovisual/General.
+// Las pestañas con contenido real DELEGAN en selectSeccion(id) hacia las herramientas
+// existentes (web/tutoriales/md) — sin tocar su lógica ni sus datos.
+function marcasDefs(){
+  return [
+    { id:'zorbo',    label:'ZORBO',          ic:'🦊', dominio:'ZORBO.CL',
+      tabs:{ diseno:'web', audiovisual:'tutoriales', general:null },
+      generalSub:[ { id:'b2c', label:'General B2C', target:'general' }, { id:'mayorista', label:'General Mayorista (B2B)', target:'mayorista' } ] },
+    { id:'kairos',   label:'Kairos Brewing', ic:'🍺', dominio:'KAIROS-BREWING.CL', tabs:{ diseno:null, audiovisual:null, general:'kairos' } },
+    { id:'firulais', label:'Firulais',       ic:'🐶', dominio:'PERRISIMA.CL',      tabs:{ diseno:null, audiovisual:null, general:'firulais' } },
+    { id:'banny',    label:'Banny',          ic:'🥃', dominio:'BANNY.CL',          tabs:{ diseno:null, audiovisual:null, general:'banny' } },
+    { id:'kbros',    label:'K-BROS',         ic:'🏢', dominio:'K-BROS.CL',         tabs:{ diseno:null, audiovisual:null, general:null } },
+    ...CUSTOM_BRANDS.map(b => ({ id:b.key, label:b.label, ic:'🏷️', dominio:null, tabs:{ diseno:null, audiovisual:null, general:b.key } })),
+  ];
+}
+const MARCAS_TAB_LABELS = { diseno:'Diseño', audiovisual:'Audiovisual', general:'General' };
+let marcasState = { marcaId:null, canal:null, tab:null, sub:null };
+
+function marcasBoot(){
+  marcasState = { marcaId:null, canal:null, tab:null, sub:null };
+  marcasRender();
+}
+// Se llama en CADA selectSeccion() (no solo al entrar a "marcas") para que la barra
+// persistente se muestre/oculte también cuando se navega directo a una ficha de marca.
+function marcasOnNavigate(sec){
+  const bar = document.getElementById('marcasBar'); if (!bar) return;
+  const inMarcas = sec && (sec.id === 'marcas' || sec.parentNav === 'marcas');
+  if (!inMarcas || sec.id === 'marcas') { bar.style.display = 'none'; return; }
+  marcasRenderBar();
+}
+function marcasBack(level){
+  if (level === 'root') marcasState = { marcaId:null, canal:null, tab:null, sub:null };
+  else if (level === 'marca') { marcasState.canal = null; marcasState.tab = null; marcasState.sub = null; }
+  activeSeccion = 'marcas';
+  document.body.classList.remove('admin-home');
+  renderTabs();
+  marcasRender();
+}
+function marcasGo(marcaId, canal, tabKey, sub){
+  marcasState = { marcaId, canal: canal || null, tab: tabKey || null, sub: sub || null };
+  activeSeccion = 'marcas';
+  document.body.classList.remove('admin-home');
+  renderTabs();
+  marcasRender();
+}
+function marcasRender(){
+  const marca = marcasDefs().find(m => m.id === marcasState.marcaId);
+  if (marca && marcasState.canal === 'web' && !marcasState.tab) {
+    marcasState.tab = marca.tabs.diseno ? 'diseno' : marca.tabs.audiovisual ? 'audiovisual' : 'general';
+  }
+  marcasRenderBar();
+  if (!marca || !marcasState.canal || marcasState.canal === 'redes') {
+    showView('marcas'); marcasRenderBody(marca); return;
+  }
+  const tabKey = marcasState.tab;
+  if (tabKey === 'general' && marca.generalSub) {
+    if (!marcasState.sub) { showView('marcas'); marcasRenderBody(marca); return; }
+    const subDef = marca.generalSub.find(s => s.id === marcasState.sub);
+    if (subDef) { selectSeccion(subDef.target); return; }
+  }
+  const targetId = marca.tabs[tabKey];
+  if (targetId) { selectSeccion(targetId); return; }
+  showView('marcas'); marcasRenderBody(marca);
+}
+function marcasRenderBar(){
+  const bar = document.getElementById('marcasBar'); if (!bar) return;
+  const marca = marcasDefs().find(m => m.id === marcasState.marcaId);
+  if (!marca) { bar.style.display = 'none'; return; }
+  bar.style.display = '';
+  let crumb = `<button type="button" class="back" data-mgo="root">🎨 Marcas</button>`;
+  if (!marcasState.canal) {
+    crumb += ` <span class="sep">›</span> <b>${escapeHtml(marca.label)}</b>`;
+  } else {
+    crumb += ` <span class="sep">›</span> <button type="button" class="back" data-mgo="marca">${escapeHtml(marca.label)}</button>`;
+    crumb += ` <span class="sep">›</span> <b>${marcasState.canal === 'redes' ? 'Redes Sociales' : ('Página web' + (marca.dominio ? ' · ' + escapeHtml(marca.dominio) : ''))}</b>`;
+  }
+  let tabsHtml = '';
+  if (marcasState.canal === 'web') {
+    tabsHtml = `<div class="prod-tabs">${['diseno','audiovisual','general'].map(k =>
+      `<button type="button" class="prod-tab ${marcasState.tab===k?'on':''}" data-mtab="${k}">${MARCAS_TAB_LABELS[k]}</button>`).join('')}</div>`;
+    if (marcasState.tab === 'general' && marca.generalSub) {
+      tabsHtml += `<div class="prod-tabs">${marca.generalSub.map(s =>
+        `<button type="button" class="prod-tab ${marcasState.sub===s.id?'on':''}" data-msub="${s.id}">${escapeHtml(s.label)}</button>`).join('')}</div>`;
+    }
+  }
+  bar.innerHTML = `<div class="marcas-crumb">${crumb}</div>${tabsHtml}`;
+  bar.querySelectorAll('[data-mgo="root"]').forEach(b => b.onclick = () => marcasBack('root'));
+  bar.querySelectorAll('[data-mgo="marca"]').forEach(b => b.onclick = () => marcasBack('marca'));
+  bar.querySelectorAll('[data-mtab]').forEach(b => b.onclick = () => marcasGo(marcasState.marcaId, 'web', b.dataset.mtab, null));
+  bar.querySelectorAll('[data-msub]').forEach(b => b.onclick = () => marcasGo(marcasState.marcaId, 'web', 'general', b.dataset.msub));
+}
+function marcasRenderBody(marca){
+  const body = document.getElementById('marcasBody'); if (!body) return;
+  if (!marca) {
+    const defs = marcasDefs();
+    body.innerHTML = `<div class="marcas-title">Elegí una marca</div><div class="marcas-grid">${defs.map(m =>
+      `<div class="marcas-card" data-mpick="${escapeAttr(m.id)}"><div class="ic">${m.ic || '🏷️'}</div><div class="lb">${escapeHtml(m.label)}</div>${m.dominio ? `<div class="dom">${escapeHtml(m.dominio)}</div>` : ''}</div>`).join('')}</div>`;
+    body.querySelectorAll('[data-mpick]').forEach(el => el.onclick = () => marcasGo(el.dataset.mpick, null, null, null));
+    return;
+  }
+  if (!marcasState.canal) {
+    body.innerHTML = `<div class="marcas-title">${escapeHtml(marca.label)} — elegí un acceso</div><div class="marcas-canal-row">
+      <div class="marcas-card" data-mcanal="redes"><div class="ic">📱</div><div class="lb">Redes Sociales</div></div>
+      <div class="marcas-card" data-mcanal="web"><div class="ic">🌐</div><div class="lb">Página web</div>${marca.dominio ? `<div class="dom">${escapeHtml(marca.dominio)}</div>` : ''}</div>
+    </div>`;
+    body.querySelectorAll('[data-mcanal]').forEach(el => el.onclick = () => marcasGo(marca.id, el.dataset.mcanal, null, null));
+    return;
+  }
+  if (marcasState.canal === 'redes') {
+    body.innerHTML = adminSinInfo('Redes Sociales · ' + marca.label, 'Todavía no hay nada cargado acá.', 'Cuando se defina qué se va a gestionar (publicaciones, calendario, métricas), este acceso se completa sin cambiar dónde se entra.');
+    return;
+  }
+  if (marcasState.tab === 'general' && marca.generalSub && !marcasState.sub) {
+    body.innerHTML = `<div class="marcas-title">${escapeHtml(marca.label)} · General — elegí una variante</div><div class="marcas-canal-row">${marca.generalSub.map(s =>
+      `<div class="marcas-card" data-msubpick="${escapeAttr(s.id)}"><div class="ic">📄</div><div class="lb">${escapeHtml(s.label)}</div></div>`).join('')}</div>`;
+    body.querySelectorAll('[data-msubpick]').forEach(el => el.onclick = () => marcasGo(marca.id, 'web', 'general', el.dataset.msubpick));
+    return;
+  }
+  body.innerHTML = adminSinInfo(MARCAS_TAB_LABELS[marcasState.tab] + ' · ' + marca.label, 'Todavía no hay contenido cargado para esta sección.', marca.dominio ? ('Sitio: ' + marca.dominio) : null);
+}
+// Mientras se navega por Marcas, el breadcrumb del topbar queda simple: el detalle
+// (marca/canal/pestaña) ya se ve en la barra persistente debajo.
+ksCrumbOverride = function(curSec){
+  if (!curSec || (curSec.id !== 'marcas' && curSec.parentNav !== 'marcas')) return false;
+  const crumb = document.getElementById('ksCrumb');
+  if (crumb) crumb.textContent = 'Marketing · Marcas';
+  return true;
+};
+
 let activeProdSection = 'minorista';
 let productsCache = [];
 let openProductId = null;
@@ -3179,7 +3404,9 @@ let chatStreaming = false;
 let previewCatalog = { minorista: null, mayorista: null };
 
 // ─── Home (selección de categoría) ───────────────────────────────────────────
-function sectionsForCat(catId){ return SECCIONES.filter(s => s.cat === catId); }
+// nav:false = no aparece como ítem propio del sidebar (hoy: fichas de marca,
+// que se navegan desde adentro de "Marcas" con el mismo selectSeccion(id)).
+function sectionsForCat(catId){ return SECCIONES.filter(s => s.cat === catId && s.nav !== false); }
 
 // Rol del usuario logueado. 'costeo' = acceso limitado (solo Costeo de carta).
 // adminCosteoSvc: servicio que el usuario costeo puede EDITAR ('comida'|'barra'|null=ambos).
@@ -3272,6 +3499,7 @@ async function selectSeccion(id){
   if (sec && sec.cat) activeCategory = sec.cat;
   document.body.classList.remove('admin-home');
   renderTabs();
+  marcasOnNavigate(sec);
   if (sec.kind === 'analytics') {
     showView('analytics');
     await loadAnalytics();
@@ -3286,6 +3514,7 @@ async function selectSeccion(id){
     await loadDistri();
   } else if (sec.kind === 'costeo') {
     showView('costeo');
+    costeoAreaBoot();
     await loadCosteo();
   } else if (sec.kind === 'estado') {
     showView('estado');
@@ -3303,7 +3532,7 @@ async function selectSeccion(id){
     await loadEquipo();
   } else if (sec.kind === 'produccion') {
     showView('produccion');
-    await loadProduccion();
+    await loadProduccion('produccion');
   } else if (sec.kind === 'pnl') {
     showView('pnl');
     await loadPnl();
@@ -3330,6 +3559,18 @@ async function selectSeccion(id){
   } else if (sec.kind === 'web') {
     showView('web');
     await loadWeb();
+  } else if (sec.kind === 'marcas') {
+    showView('marcas');
+    marcasBoot();
+  } else if (sec.kind === 'rutas') {
+    showView('rutas');
+    document.getElementById('rutasBody').innerHTML = adminSinInfo('Rutas', 'Todavía no hay nada cargado acá.', 'Mapa, día y horario de despacho — se completa sin cambiar dónde se entra.');
+  } else if (sec.kind === 'mantenimiento') {
+    showView('mantenimiento');
+    document.getElementById('mantenimientoBody').innerHTML = adminSinInfo('Gestión, trazabilidad y mantenimiento', 'Todavía no hay nada cargado acá.', 'Máquinas dispensadoras, barriles despachados sin regresar, registro de mantención y limpieza, estado de barriles.');
+  } else if (sec.kind === 'opcalidad') {
+    showView('opcalidad');
+    await loadProduccion('operacion');
   } else {
     showView('md');
     await loadSeccion();
@@ -3365,6 +3606,10 @@ function showView(kind){
   document.getElementById('feedbackView').style.display   = kind === 'feedback'   ? '' : 'none';
   document.getElementById('tutorialsView').style.display  = kind === 'tutorials'  ? '' : 'none';
   document.getElementById('webView').style.display        = kind === 'web'        ? '' : 'none';
+  document.getElementById('marcasView').style.display     = kind === 'marcas'     ? '' : 'none';
+  document.getElementById('rutasView').style.display      = kind === 'rutas'      ? '' : 'none';
+  document.getElementById('mantenimientoView').style.display = kind === 'mantenimiento' ? '' : 'none';
+  document.getElementById('opcalidadView').style.display  = kind === 'opcalidad'  ? '' : 'none';
 }
 
 // ─── Parse / serialize markdown ─────────────────────────────────────────────
@@ -5257,6 +5502,16 @@ function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function escapeAttr(s){ return escapeHtml(s); }
+// Estado "sin info" reutilizable — mismo look que el resto del panel (adm-empty-card),
+// para accesos nuevos que todavía no tienen contenido cargado.
+function adminSinInfo(title, text, hint){
+  return `<div class="adm-empty-card">
+    <div class="adm-empty-ico">🚧</div>
+    <div class="adm-empty-title">${escapeHtml(title)}</div>
+    <div class="adm-empty-text">${escapeHtml(text)}</div>
+    ${hint ? `<div class="adm-empty-hint">${escapeHtml(hint)}</div>` : ''}
+  </div>`;
+}
 
 // ─── Confirm leave ──────────────────────────────────────────────────────────
 window.addEventListener('beforeunload', e => {
@@ -7721,6 +7976,27 @@ function lineRendCell(l, idx, pfx){
 }
 function costeoResetState(){ rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch=''; platoEditing=null; platoDraft=[]; platoSearch=''; platoCatFilter=''; }
 
+// ── Costeo: pestañas de área (Gastronomía = herramienta real de siempre, sin
+// tocar; Productora y Comercialización y Distribución todavía sin info). ──
+let costeoArea='gastronomia';
+function costeoAreaBoot(){
+  document.querySelectorAll('#costeoAreaTabs [data-carea]').forEach(b => { b.onclick = () => costeoAreaGo(b.dataset.carea); });
+  costeoAreaGo(costeoArea);
+}
+function costeoAreaGo(area){
+  costeoArea = area;
+  document.querySelectorAll('#costeoAreaTabs [data-carea]').forEach(b => b.classList.toggle('on', b.dataset.carea === area));
+  document.getElementById('costeoGastronomia').style.display = area === 'gastronomia' ? '' : 'none';
+  document.getElementById('costeoProductora').style.display = area === 'productora' ? '' : 'none';
+  document.getElementById('costeoComercializacion').style.display = area === 'comercializacion' ? '' : 'none';
+  if (area === 'productora' && !document.getElementById('costeoProductora').innerHTML) {
+    document.getElementById('costeoProductora').innerHTML = adminSinInfo('Productora', 'Todavía no hay nada cargado acá.', 'Costeo del área productora — se completa sin cambiar dónde se entra.');
+  }
+  if (area === 'comercializacion' && !document.getElementById('costeoComercializacion').innerHTML) {
+    document.getElementById('costeoComercializacion').innerHTML = adminSinInfo('Comercialización y Distribución', 'Todavía no hay nada cargado acá.', 'Costeo del área de comercialización y distribución — se completa sin cambiar dónde se entra.');
+  }
+}
+
 async function loadCosteo(){
   const body = document.getElementById('costeoBody');
   body.innerHTML = '<div class="adm-loading">Cargando…</div>';
@@ -9597,6 +9873,18 @@ function fcAnualWire(){
 
 // ─── Producción & OEE (Fase 1) ──────────────────────────────────────────────
 let prodData=null, prodTab='tanques', prodTimers=null, prodOpenLote=null;
+// Producción & OEE se separó en dos entradas de sidebar que comparten el mismo
+// motor/datos (prodData, un solo GET /admin/produccion): 'produccion' (Centro de
+// Producción · Cocción · Recetas · Envasado · Limpiezas · Paradas · Config) y
+// 'operacion' (OEE · Calidad · Inventario). prodScope decide qué pestañas se ven
+// y en qué <div> se renderizan; las funciones prodRender* no cambian.
+let prodScope='produccion';
+const PROD_TAB_DEFS=[
+  ['tanques','🏭 Centros de Producción','produccion'],['coccion','🔥 Cocción','produccion'],['recetas','📖 Recetas','produccion'],
+  ['envasado','📦 Envasado','produccion'],['limpiezas','🧽 Limpiezas','produccion'],['paradas','⛔ Paradas','produccion'],['config','⚙ Config','produccion'],
+  ['oee','📊 OEE','operacion'],['calidad','🏅 Calidad','operacion'],['inventarios','🗃 Inventarios','operacion'],
+];
+const prodBodyElId=()=>prodScope==='operacion'?'opcalidadBody':'prodBody';
 let prodRecQuery='', prodRecPage=0, prodRecEditing=null, prodRecView=null; const PROD_REC_PER=8;
 let prodOee={centro:'envasado',periodo:'mes',desde:'',hasta:'',incluirLimp:null,data:null,loading:false};
 let prodCal={tab:'inicio',data:null,sel:null,compNuevo:false,pdfs:[],medalUp:{},memImg:null,resumen:null,cervNueva:false,cervImg:null};
@@ -9616,14 +9904,16 @@ async function prodSafeJson(r){
 function prodStopTimers(){ if(prodTimers){ clearInterval(prodTimers); prodTimers=null; } }
 function prodDur(ms){ if(ms<0)ms=0; const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),ss=s%60; if(h>0)return h+'h '+String(m).padStart(2,'0')+'m'; if(m>0)return m+'m '+String(ss).padStart(2,'0')+'s'; return ss+'s'; }
 function prodDT(iso){ if(!iso)return '—'; const d=new Date(iso); if(isNaN(d))return '—'; return d.toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); }
-async function loadProduccion(){
-  const body=document.getElementById('prodBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
+async function loadProduccion(scope){
+  if (scope) prodScope=scope;
+  const body=document.getElementById(prodBodyElId()); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   try{ const r=await fetch('/admin/produccion'); prodData=await prodSafeJson(r); if(prodData.error) throw new Error(prodData.error); renderProduccion(); }
   catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
 }
 function renderProduccion(){
-  const body=document.getElementById('prodBody');
-  const tabs=[['tanques','🏭 Centros de Producción'],['coccion','🔥 Cocción'],['recetas','📖 Recetas'],['envasado','📦 Envasado'],['oee','📊 OEE'],['calidad','🏅 Calidad'],['inventarios','🗃 Inventarios'],['limpiezas','🧽 Limpiezas'],['paradas','⛔ Paradas'],['config','⚙ Config']];
+  const body=document.getElementById(prodBodyElId());
+  const tabs=PROD_TAB_DEFS.filter(t=>t[2]===prodScope);
+  if(!tabs.some(t=>t[0]===prodTab)) prodTab=tabs[0][0];
   const tabBar=`<div class="prod-tabs">${tabs.map(([k,l])=>`<button class="prod-tab ${k===prodTab?'on':''}" data-ptab="${k}">${l}</button>`).join('')}</div>`;
   const R={tanques:prodRenderTanques,coccion:prodRenderCoccion,recetas:prodRenderRecetas,envasado:prodRenderEnvasado,oee:prodRenderOee,calidad:prodRenderCalidad,inventarios:prodRenderInventarios,limpiezas:prodRenderLimpiezas,paradas:prodRenderParadas,config:prodRenderConfig};
   body.innerHTML=tabBar+'<div class="prod-content">'+(R[prodTab]||(()=>''))()+'</div>';
@@ -10669,34 +10959,51 @@ async function prodGuardarConfig(){
   try{ const r=await fetch('/admin/produccion/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); const e=g('cfErr'); e.textContent='✓ guardado'; e.classList.add('show'); e.style.color='#2e9c5a'; }
   catch(e){ const el=g('cfErr'); el.textContent='⚠ '+String(e.message||e); el.classList.add('show'); }
 }
-document.getElementById('prodReload').onclick=loadProduccion;
+document.getElementById('prodReload').onclick=()=>loadProduccion();
+document.getElementById('opcalidadReload').onclick=()=>loadProduccion();
 
 // ─── Boot ───────────────────────────────────────────────────────────────────
 updateChatModeLabel();
 // Arranque: primero el rol, para decidir qué mostrar.
 // ═══════════ K-BROS SHELL: sidebar de navegación + dashboard ═══════════
 const KS_ICON = {
-  analytics:'📊', ads:'📣', mundial:'🏆', chats:'💬', feedback:'📝', web:'🌐', tutoriales:'🎬',
+  analytics:'📊', ads:'📣', mundial:'🏆', chats:'💬', feedback:'📝', marcas:'🎨', web:'🌐', tutoriales:'🎬',
   general:'⚙️', kairos:'🍺', firulais:'🐶', banny:'🥃', mayorista:'🤝',
   productos:'🏷️', puntos:'📍', topclientes:'⭐',
-  distribuidora:'🚚', costeo:'🧾', estado:'💰', costos:'💸', gastos:'🧮', nomina:'👥', equipo:'🪪', pnl:'📈', forecast:'🔮',
+  distribuidora:'🚚', rutas:'🗺️', mantenimiento:'🔧',
+  costeo:'🧾', opcalidad:'📊', estado:'💰', costos:'💸', gastos:'🧮', nomina:'👥', equipo:'🪪', pnl:'📈', forecast:'🔮',
   produccion:'🏭'
 };
 
 // Sincroniza el item activo del sidebar + el breadcrumb del topbar con la sección actual.
+// parentNav: si la sección activa no tiene ítem propio en el sidebar (ej. una ficha
+// de marca navegada desde adentro de "Marcas"), se resalta su padre en vez de nada.
 function ksSync(){
   const cur = document.body.classList.contains('admin-home') ? null : activeSeccion;
-  document.querySelectorAll('#ksSide .ks-i').forEach(el => el.classList.toggle('on', el.dataset.id === cur));
+  const curSec = cur ? SECCIONES.find(x => x.id === cur) : null;
+  const highlightId = (curSec && curSec.parentNav) ? curSec.parentNav : cur;
+  document.querySelectorAll('#ksSide .ks-i').forEach(el => el.classList.toggle('on', el.dataset.id === highlightId));
   const crumb = document.getElementById('ksCrumb');
   if (crumb){
     if (!cur){ crumb.textContent = 'Inicio'; }
+    else if (typeof ksCrumbOverride === 'function' && ksCrumbOverride(curSec)){ /* la sección gestiona su propio breadcrumb (ej. Marcas) */ }
     else {
-      const s = SECCIONES.find(x => x.id === cur);
-      const c = s && ADMIN_CATEGORIES.find(k => k.id === s.cat);
-      crumb.textContent = (c ? c.label + ' · ' : '') + (s ? s.label : cur);
+      const c = curSec && ADMIN_CATEGORIES.find(k => k.id === curSec.cat);
+      crumb.textContent = (c ? c.label + ' · ' : '') + (curSec ? curSec.label : cur);
     }
   }
 }
+
+// Grupos abiertos del acordeón: se recuerda entre renders (localStorage) y
+// siempre se fuerza abierto el grupo de la sección activa.
+let ksOpenGroups = null;
+function ksLoadOpenGroups(){
+  if (ksOpenGroups) return ksOpenGroups;
+  try { const saved = JSON.parse(localStorage.getItem('ks_open_groups') || 'null'); ksOpenGroups = new Set(Array.isArray(saved) ? saved : []); }
+  catch { ksOpenGroups = new Set(); }
+  return ksOpenGroups;
+}
+function ksSaveOpenGroups(){ try { localStorage.setItem('ks_open_groups', JSON.stringify([...ksOpenGroups])); } catch {} }
 
 // Construye el sidebar con las mismas categorías/secciones del admin. Cada item llama a selectSeccion().
 function renderSidebar(){
@@ -10704,18 +11011,27 @@ function renderSidebar(){
   if (!side) return;
   const uname = window.__adminUser || '';
   const initials = uname ? (uname.replace(/@.*/,'').split(/[.\s_-]+/).map(s => s[0] || '').join('').slice(0,2).toUpperCase() || 'KB') : 'KB';
-  const roleLabel = adminRole === 'costeo' ? 'Costeo de carta' : 'Administrador';
-  // El rol "costeo" solo ve Costeo de carta.
+  const roleLabel = adminRole === 'costeo' ? 'Costeo' : 'Administrador';
+  // El rol "costeo" solo ve Costeo.
   const groups = adminRole === 'costeo'
-    ? ADMIN_CATEGORIES.filter(c => c.id === 'operaciones').map(c => ({ ...c, only: ['costeo'] }))
+    ? ADMIN_CATEGORIES.filter(c => c.id === 'operacion').map(c => ({ ...c, only: ['costeo'] }))
     : ADMIN_CATEGORIES.slice();
+  const open = ksLoadOpenGroups();
+  const activeSec = SECCIONES.find(s => s.id === activeSeccion);
+  const activeCat = document.body.classList.contains('admin-home') ? null : (activeSec && activeSec.cat);
+  if (activeCat) open.add(activeCat);
   let navHtml = '';
   groups.forEach(g => {
     let secs = sectionsForCat(g.id);
     if (g.only) secs = secs.filter(s => g.only.includes(s.id));
     if (!secs.length) return;
-    const items = secs.map(s => `<div class="ks-i" data-id="${s.id}"><span class="ni">${KS_ICON[s.id] || '•'}</span><span class="lb">${escapeHtml(s.label)}</span></div>`).join('');
-    navHtml += `<div class="ks-g"><button type="button" class="ks-gh"><span class="gi">${g.icon}</span><span class="lb">${escapeHtml(g.label)}</span><span class="gc">▾</span></button><div class="ks-items">${items}</div></div>`;
+    const items = secs.map(s => {
+      // Palabras extra buscables: para "Marcas", los nombres de las fichas que absorbió.
+      const kw = SECCIONES.filter(x => x.parentNav === s.id).map(x => x.label).join(' ');
+      return `<div class="ks-i" data-id="${s.id}" data-kw="${escapeAttr(kw)}"><span class="ni">${KS_ICON[s.id] || '•'}</span><span class="lb">${escapeHtml(s.label)}</span></div>`;
+    }).join('');
+    const isOpen = open.has(g.id);
+    navHtml += `<div class="ks-g${isOpen ? '' : ' col'}" data-cat="${g.id}"><button type="button" class="ks-gh"><span class="gi">${g.icon}</span><span class="lb">${escapeHtml(g.label)}</span><span class="gc">▾</span></button><div class="ks-items">${items}</div></div>`;
   });
   side.innerHTML = `
     <div class="ks-top" id="ksHome"><div class="ks-logo"><span class="mk"></span><span>K-BROS</span></div></div>
@@ -10723,7 +11039,12 @@ function renderSidebar(){
     <nav class="ks-nav">${navHtml}</nav>
     <div class="ks-foot"><button type="button" class="ks-av" id="ksProfileBtn" title="Editar mi perfil">${escapeHtml(initials)}</button><div class="ks-u" id="ksProfileBtn2" title="Editar mi perfil" style="cursor:pointer"><b>${escapeHtml(uname || 'K-BROS')}</b><span>${escapeHtml(roleLabel)}</span></div><button class="ks-out" id="ksOut">Salir</button></div>`;
   side.querySelectorAll('.ks-i').forEach(el => { el.onclick = () => { selectSeccion(el.dataset.id); document.body.classList.remove('ks-open'); }; });
-  side.querySelectorAll('.ks-gh').forEach(h => { h.onclick = () => h.parentElement.classList.toggle('col'); });
+  side.querySelectorAll('.ks-gh').forEach(h => { h.onclick = () => {
+    const g = h.parentElement; g.classList.toggle('col');
+    const catId = g.dataset.cat;
+    if (g.classList.contains('col')) open.delete(catId); else open.add(catId);
+    ksSaveOpenGroups();
+  }; });
   const home = document.getElementById('ksHome'); if (home) home.onclick = () => { showHome(); document.body.classList.remove('ks-open'); };
   const out = document.getElementById('ksOut'); if (out) out.onclick = () => { const b = document.getElementById('btnLogout'); if (b && b.onclick) b.onclick(); };
   const pfBtn1 = document.getElementById('ksProfileBtn'); if (pfBtn1) pfBtn1.onclick = openProfileModal;
@@ -10731,8 +11052,18 @@ function renderSidebar(){
   const s = document.getElementById('ksSearch');
   if (s) s.oninput = () => {
     const qq = s.value.trim().toLowerCase();
-    side.querySelectorAll('.ks-i').forEach(el => { el.classList.toggle('hide', !!qq && !el.textContent.toLowerCase().includes(qq)); });
-    side.querySelectorAll('.ks-g').forEach(g => { const any = [...g.querySelectorAll('.ks-i')].some(el => !el.classList.contains('hide')); g.style.display = any ? '' : 'none'; });
+    side.querySelectorAll('.ks-i').forEach(el => {
+      const hay = (el.textContent + ' ' + (el.dataset.kw || '')).toLowerCase();
+      el.classList.toggle('hide', !!qq && !hay.includes(qq));
+    });
+    side.querySelectorAll('.ks-g').forEach(g => {
+      const any = [...g.querySelectorAll('.ks-i')].some(el => !el.classList.contains('hide'));
+      g.style.display = any ? '' : 'none';
+      // Buscando: despliega los grupos con match. Al limpiar la búsqueda, vuelve
+      // al estado recordado del acordeón (no deja todo expandido).
+      if (qq) g.classList.toggle('col', !any);
+      else g.classList.toggle('col', !open.has(g.dataset.cat));
+    });
   };
   ksSync();
 }
