@@ -3755,6 +3755,84 @@ app.get('/admin/pnl', requireAdmin, async (req, res) => {
   }
   catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
 });
+// ══ Inicio del área FINANZAS: 3 cuadros (datos reales) + resumen IA cacheado ══
+function finYearAgo(month){ const [y, mo] = String(month).split('-').map(Number); return (y - 1) + '-' + String(mo).padStart(2, '0'); }
+function finCurMonth(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+async function finVentaMes(m){ try { const e = await estadoResolve(m); return Math.round(e.totalIngresos || 0); } catch { return null; } }
+// Cuadro 2: ratio Gastos Operativos / Venta + peso de cada subcategoría operativa.
+function finGastosOperativos(month){
+  const cd = costosLoad();
+  const ops = (cd.entradas || []).filter(e => costosMes(e.fecha) === month && e.categoria === 'gastos_operativos');
+  const bySub = {}; let total = 0;
+  for (const e of ops) { const v = costosValorEfectivo(e); const sub = costosSubEfectiva(e); total += v; bySub[sub] = (bySub[sub] || 0) + v; }
+  const porSub = (COSTOS_SUBCATEGORIAS['gastos_operativos'] || [])
+    .map(s => ({ id: s.id, label: s.label, total: bySub[s.id] || 0, pct: total ? Math.round(((bySub[s.id] || 0) / total) * 1000) / 10 : 0 }))
+    .filter(x => x.total > 0);
+  return { total, porSub, docs: ops.length };
+}
+// Cuadro 3: Top-5 productos por unidades vendidas del mes vs su stock actual (Shopify).
+async function finTopVentaVsStock(month, n = 5){
+  const prods = await loadProductsCache().catch(() => null);
+  const inventarioDisponible = Array.isArray(prods) && prods.length > 0;
+  const stockByTitle = {};
+  if (inventarioDisponible) for (const p of prods) stockByTitle[p.title] = (p.variants || []).reduce((s, v) => s + (Number.isFinite(v.stock) ? v.stock : 0), 0);
+  const ord = await loadOrders().catch(() => ({ available: false }));
+  if (!ord || !ord.available) return { ventasDisponible: false, inventarioDisponible, items: [] };
+  const { from, to } = cdMonthRange(month);
+  const qty = {};
+  for (const o of ord.orders) { const dk = String(o.createdAt).slice(0, 10); if (dk < from || dk > to) continue; for (const li of (o.lineItems || [])) qty[li.title] = (qty[li.title] || 0) + (Number(li.qty) || 0); }
+  const items = Object.entries(qty).map(([title, u]) => ({ title, unidades: u, stock: inventarioDisponible ? (stockByTitle[title] != null ? stockByTitle[title] : null) : null }))
+    .sort((a, b) => b.unidades - a.unidades).slice(0, n);
+  return { ventasDisponible: true, inventarioDisponible, items };
+}
+app.get('/admin/finanzas/home', requireAdmin, async (req, res) => {
+  const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : finCurMonth();
+  const prev = pnlPrevMonth(month), ya = finYearAgo(month);
+  try {
+    const [vAct, vPrev, vYa] = await Promise.all([finVentaMes(month), finVentaMes(prev), finVentaMes(ya)]);
+    const gops = finGastosOperativos(month);
+    const top = await finTopVentaVsStock(month);
+    res.json({
+      month, monthLabel: estadoMonthLabel(month), prevLabel: estadoMonthLabel(prev), yearAgoLabel: estadoMonthLabel(ya),
+      ventas: { actual: vAct, mesPasado: vPrev, anioPasado: vYa },
+      gastosOperativos: { ...gops, ratioVenta: (vAct && gops.total) ? Math.round((gops.total / vAct) * 1000) / 10 : (vAct ? 0 : null) },
+      topVenta: top,
+      objetivos: objetivosLoad(),
+    });
+  } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+});
+// Resumen IA: cacheado (no se regenera en cada carga). GET devuelve el cacheado; POST /generar lo rehace.
+const FIN_RESUMEN_FILE = join(PROMPTS_EFFECTIVE_DIR, 'finanzas-resumen.json');
+function finResumenLoad(){ try { if (existsSync(FIN_RESUMEN_FILE)) return JSON.parse(readFileSync(FIN_RESUMEN_FILE, 'utf-8')); } catch (e) { console.warn('fin resumen load:', e.message); } return null; }
+function finResumenSave(o){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(FIN_RESUMEN_FILE, JSON.stringify(o, null, 2)); }
+app.get('/admin/finanzas/resumen', requireAdmin, (req, res) => res.json(finResumenLoad() || { texto: null, generadoEn: null }));
+app.post('/admin/finanzas/resumen/generar', requireAdmin, async (req, res) => {
+  try {
+    const month = finCurMonth(), prev = pnlPrevMonth(month);
+    const [pnlCur, pnlPrev] = await Promise.all([pnlCompute(month, null), pnlCompute(prev, null)]);
+    const obj = objetivosLoad();
+    const fmt = n => '$' + Math.round(Number(n) || 0).toLocaleString('es-CL');
+    // Se le pasan al modelo SÓLO cifras reales ya calculadas por el sistema.
+    const datos = [
+      `MES ACTUAL (${estadoMonthLabel(month)}):`,
+      `- Ingresos por venta: ${fmt(pnlCur.ingresos.total)}`,
+      `- Margen bruto: ${fmt(pnlCur.margenBruto)} = ${pnlCur.ratios.margenBruto}% de la venta (meta ${obj.margenBruto}%)`,
+      `- EBITDA: ${fmt(pnlCur.ebitda)} = ${pnlCur.ratios.ebitda}% (meta ${obj.ebitda}%)`,
+      `- Gasto de personal: ${pnlCur.ratios.gastoPersonal}% de la venta (meta ${obj.gastoPersonal}%)`,
+      `- Marketing y publicidad: ${pnlCur.ratios.gastosMarketing}% (meta ${obj.marketing}%)`,
+      `- Gastos operativos: ${fmt(pnlCur.costos.gastosOper)}; Administración y venta: ${fmt(pnlCur.costos.gastosAdmin)}`,
+      ``,
+      `MES ANTERIOR YA CERRADO (${estadoMonthLabel(prev)}):`,
+      `- Ingresos: ${fmt(pnlPrev.ingresos.total)}; EBITDA: ${fmt(pnlPrev.ebitda)} = ${pnlPrev.ratios.ebitda}%; Margen bruto: ${pnlPrev.ratios.margenBruto}%`,
+    ].join('\n');
+    const sys = 'Sos analista financiero de K-BROS. Escribe en español chileno neutro (tuteo), claro y directo, en 2 o 3 párrafos breves. Cubre: cómo viene el negocio según el Estado de Resultado, cómo cerró el mes pasado, y en qué poner atención este mes para mejorar, contrastando SIEMPRE contra las metas. REGLA ABSOLUTA: usa ÚNICAMENTE los números que te paso abajo; NO inventes ni estimes NINGÚN número; si falta un dato, omítelo; no inventes causas o hechos que no se deduzcan de las cifras.';
+    const msg = await client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 900, system: sys, messages: [{ role: 'user', content: 'Cifras reales ya calculadas por el sistema:\n' + datos }] });
+    const texto = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim();
+    const out = { texto, generadoEn: new Date().toISOString(), mes: month };
+    finResumenSave(out);
+    res.json(out);
+  } catch (e) { res.status(500).json({ error: 'No se pudo generar el resumen: ' + String(e.message || e).slice(0, 200) }); }
+});
 app.get('/admin/pnl/export.xlsx', requireAdmin, async (req, res) => {
   const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
   if (!month) return res.status(400).send('Falta el mes (YYYY-MM).');

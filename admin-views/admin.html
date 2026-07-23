@@ -2165,6 +2165,40 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .pnl-obj-actions{display:flex;align-items:center;gap:.7rem;padding:0 .9rem .9rem}
 .pnl-obj-msg{font-size:.8rem;color:var(--green,#2e9c5a)}.pnl-obj-msg.err{color:#c0392b}
 @media(max-width:820px){.pnl-obj-grid{grid-template-columns:1fr 1fr}}
+/* Inicio del área Finanzas (plantilla reutilizable) */
+body.finhome-active .adm-chat,body.finhome-active .adm-chat-fab{display:none!important}
+body.finhome-active .adm-shell{grid-template-columns:1fr}
+.fin-cuadros{grid-template-columns:1fr 1fr 1fr}
+.fin-ia{background:linear-gradient(120deg,var(--ks-b800,#123a7a),var(--ks-b900,#0b2a5e));color:#eaf0fb;border-radius:14px;padding:18px 20px;margin-bottom:14px}
+.fin-ia-text{font-size:.92rem;line-height:1.6}
+.fin-ia-empty{font-size:.88rem;color:#cdd8ec;line-height:1.5}
+.fin-ia-foot{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.9rem;padding-top:.7rem;border-top:1px solid rgba(255,255,255,.14)}
+.fin-ia-badge{font-family:var(--display,inherit);font-size:.64rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold,#f5a623)}
+.fin-ia-when{font-size:.72rem;color:#9fb0cd}
+.fin-ia-btn{margin-left:auto;font:inherit;font-size:.78rem;font-weight:700;background:var(--gold,#f5a623);color:#1a1408;border:0;border-radius:8px;padding:.45rem .8rem;cursor:pointer}
+.fin-ia-btn:disabled{opacity:.7;cursor:progress}
+.fin-ia-err{margin-top:.6rem;font-size:.8rem;color:#ffd9d5}
+.fin-nd{color:var(--dim,#999);font-size:.84rem;font-style:italic}
+.fin-vrow{display:flex;justify-content:space-between;align-items:baseline;gap:.6rem;padding:.5rem 0;border-bottom:1px dashed var(--border)}
+.fin-vrow:last-child{border-bottom:0}
+.fin-vrow-l{font-size:.82rem;color:var(--text-2,#52525b)}
+.fin-vrow-v{font-family:var(--display,inherit);font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fin-ratio{font-family:var(--display,inherit);font-size:2rem;font-weight:800;color:var(--gold-deep,#a05f00);line-height:1}
+.fin-ratio small{display:block;font-family:var(--sans);font-size:.7rem;font-weight:700;color:var(--dim,#999);text-transform:uppercase;letter-spacing:.03em;margin-top:.25rem}
+.fin-bars{margin-top:.9rem}
+.fin-bars-t{font-size:.72rem;color:var(--dim,#999);margin-bottom:.5rem}
+.fin-bar{display:grid;grid-template-columns:1.2fr 2.4fr auto;align-items:center;gap:.5rem;margin:.35rem 0;font-size:.75rem}
+.fin-bar-l{color:var(--text-2,#52525b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fin-bar-track{height:8px;background:var(--surface3,#eee);border-radius:20px;overflow:hidden}
+.fin-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold,#f5a623),var(--gold-deep,#a05f00));border-radius:20px}
+.fin-bar-v{font-variant-numeric:tabular-nums;font-weight:700;color:var(--text)}
+.fin-top{width:100%}
+.fin-top-h,.fin-top-r{display:grid;grid-template-columns:1fr 3.2rem 3.6rem;gap:.4rem;align-items:center;font-size:.78rem;padding:.34rem .1rem;border-bottom:1px solid var(--border)}
+.fin-top-r:last-child{border-bottom:0}
+.fin-top-h{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--dim,#999);border-bottom:1px solid var(--border-strong,#ddd)}
+.fin-top .p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fin-top .n{text-align:right;font-variant-numeric:tabular-nums}
+@media(max-width:1080px){.fin-cuadros{grid-template-columns:1fr}}
 .pnl-activos span:first-child{flex:1}
 .est-hchans{display:flex;gap:.7rem;flex-wrap:wrap}
 .est-hchan{flex:1;min-width:200px;text-align:left;border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.7rem .9rem;background:var(--surface,#fff);cursor:pointer;transition:all .15s}
@@ -2760,6 +2794,21 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
     </div>
 
     <!-- Estado de Resultado (P&L): ingresos − costos y gastos -->
+    <!-- Inicio del área Finanzas (plantilla reutilizable para otras áreas) -->
+    <div class="adm-panel" id="finhomeView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">💰 Finanzas</div>
+          <div class="adm-panel-meta">resumen del área — cifras reales del Estado de Resultado y las ventas</div>
+        </div>
+        <div class="adm-actions">
+          <select id="finhomeMes" class="costeo-svc"></select>
+          <button class="adm-btn adm-btn-ghost" id="finhomeReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div id="finhomeBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
     <div class="adm-panel" id="pnlView" style="display:none">
       <div class="adm-panel-head">
         <div>
@@ -3266,6 +3315,9 @@ const BASE_SECCIONES = [
   { id:'mantenimiento', kind:'mantenimiento', label:'Gestión, trazabilidad y mantenimiento', cat:'distribucion', desc:'máquinas dispensadoras · barriles despachados · mantención y limpieza' },
   { id:'costeo',    kind:'costeo',   label:'Costeo',          cat:'operacion', desc:'insumos · recetas base · platos · precios de venta' },
   { id:'opcalidad', kind:'opcalidad',label:'OEE · Calidad · Inventario', cat:'operacion', desc:'indicadores de eficiencia · certificaciones y catas · stock' },
+  // Inicio del área Finanzas (plantilla reutilizable). nav:false → no es item del sidebar;
+  // se abre al hacer clic en el grupo "FINANZAS" del panel lateral.
+  { id:'finanzas-home', kind:'finhome', label:'Inicio Finanzas', cat:'finanzas', nav:false, desc:'resumen del área con IA + cuadros' },
   { id:'estado',    kind:'estado',   label:'Ingreso por Venta', cat:'finanzas', desc:'CD Kairos · ingresos por 4 canales · 100% automáticos de Shopify' },
   { id:'costos',    kind:'costos',   label:'Costos', cat:'finanzas', desc:'registro de costos por proveedor · categoría · marca · folio · valor' },
   { id:'gastos',    kind:'gastos',   label:'Gastos', cat:'finanzas', desc:'registro de gastos por proveedor · categoría · marca · % del total · folio · valor' },
@@ -3663,6 +3715,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'pnl') {
     showView('pnl');
     await loadPnl();
+  } else if (sec.kind === 'finhome') {
+    showView('finhome');
+    await loadFinHome();
   } else if (sec.kind === 'forecast') {
     showView('forecast');
     forecastBoot();
@@ -3707,6 +3762,7 @@ async function selectSeccion(id){
 function showView(kind){
   // El Estado de Resultado no usa el preview de Zorbot: se oculta y la vista ocupa todo el ancho.
   document.body.classList.toggle('estado-active', kind === 'estado');
+  document.body.classList.toggle('finhome-active', kind === 'finhome'); // dashboard de área: sin panel Zorbot, a todo el ancho
   // "Último read" solo aplica a contenido de marca (md); en el resto de vistas no significa nada, así que se oculta.
   if (kind !== 'md') document.getElementById('tagBuild').style.display = 'none';
   document.getElementById('homeView').style.display       = kind === 'home'       ? '' : 'none';
@@ -3726,6 +3782,7 @@ function showView(kind){
   document.getElementById('nominaView').style.display     = kind === 'nomina'     ? '' : 'none';
   document.getElementById('equipoView').style.display     = kind === 'equipo'     ? '' : 'none';
   document.getElementById('produccionView').style.display = kind === 'produccion' ? '' : 'none';
+  document.getElementById('finhomeView').style.display    = kind === 'finhome'    ? '' : 'none';
   document.getElementById('pnlView').style.display        = kind === 'pnl'        ? '' : 'none';
   document.getElementById('forecastView').style.display   = kind === 'forecast'   ? '' : 'none';
   if (kind !== 'produccion' && typeof prodStopTimers === 'function') prodStopTimers();
@@ -9749,6 +9806,83 @@ document.getElementById('pnlReload').onclick=loadPnl;
 document.getElementById('pnlMes').onchange=loadPnl;
 document.getElementById('pnlExcel').onclick=()=>{ const m=document.getElementById('pnlMes').value; if(m) window.open('/admin/pnl/export.xlsx?month='+m,'_blank'); };
 
+// ─── Inicio del área FINANZAS (plantilla reutilizable): resumen IA + 3 cuadros ───
+let finHomeData=null, finResumen=null;
+async function loadFinHome(){
+  const body=document.getElementById('finhomeBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  const sel=document.getElementById('finhomeMes');
+  try{
+    if(!sel.options.length){
+      let periodos=[]; try{ periodos=((await (await fetch('/admin/estado/periodos')).json()).periodos)||[]; }catch{}
+      const set=new Set(periodos); const d=new Date();
+      for(let i=0;i<18;i++){ const dt=new Date(d.getFullYear(),d.getMonth()-i,1); set.add(dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')); }
+      const months=[...set].sort().reverse();
+      sel.innerHTML=months.map(m=>`<option value="${m}">${escapeHtml(estMonthLabel(m))}</option>`).join('');
+    }
+    const mes=sel.value;
+    const [homeR,resR]=await Promise.all([
+      fetch('/admin/finanzas/home?month='+mes).then(r=>r.json()),
+      fetch('/admin/finanzas/resumen').then(r=>r.json()).catch(()=>({texto:null,generadoEn:null})),
+    ]);
+    if(homeR.error) throw new Error(homeR.error);
+    finHomeData=homeR; finResumen=resR;
+    renderFinHome();
+  }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function renderFinHome(){
+  const a=finHomeData, body=document.getElementById('finhomeBody'); if(!a) return;
+  const r=finResumen||{};
+  // ── Resumen IA (con etiqueta + fecha/hora + botón de actualizar; nunca se autogenera) ──
+  const iaFoot=`<div class="fin-ia-foot"><span class="fin-ia-badge">✦ Resumen generado con IA</span>${r.generadoEn?`<span class="fin-ia-when">${new Date(r.generadoEn).toLocaleString('es-CL')}</span>`:''}<button class="fin-ia-btn" id="finIaBtn" type="button">${r.texto?'Actualizar resumen':'Generar resumen'}</button></div>`;
+  const iaBody = r.texto ? `<div class="fin-ia-text">${escapeHtml(r.texto).replace(/\n/g,'<br>')}</div>` : `<div class="fin-ia-empty">Todavía no hay un resumen generado. Se arma con las cifras reales del Estado de Resultado — apretá <b>Generar resumen</b>.</div>`;
+  const iaBlock=`<div class="fin-ia" id="finIa">${iaBody}${iaFoot}</div>`;
+  // ── Cuadro 1: Ventas comparativas ──
+  const v=a.ventas; const nd='<span class="fin-nd">Sin datos</span>';
+  const vrow=(lbl,val)=>`<div class="fin-vrow"><span class="fin-vrow-l">${escapeHtml(lbl)}</span><span class="fin-vrow-v">${val==null?nd:eM(val)}</span></div>`;
+  const card1=`<div class="ks-card"><div class="ks-card-h"><span class="t">Ventas comparativas</span></div>
+    ${vrow('Mes actual · '+a.monthLabel, v.actual)}
+    ${vrow('Mes pasado · '+a.prevLabel, v.mesPasado)}
+    ${vrow('Mismo mes año pasado · '+a.yearAgoLabel, v.anioPasado)}</div>`;
+  // ── Cuadro 2: Gastos operativos (ratio + desglose por subcategoría) ──
+  const g=a.gastosOperativos;
+  let card2Body;
+  if(g.ratioVenta==null){ card2Body='<div class="fin-nd">Sin datos de venta para el ratio.</div>'; }
+  else if(!g.porSub.length){ card2Body=`<div class="fin-ratio">${g.ratioVenta}%<small>Gastos Operativos / Venta</small></div><div class="fin-nd" style="margin-top:.5rem">Sin gastos operativos registrados este mes.</div>`; }
+  else{
+    const maxPct=Math.max(...g.porSub.map(s=>s.pct),1);
+    const bars=g.porSub.map(s=>`<div class="fin-bar"><div class="fin-bar-l">${escapeHtml(s.label)}</div><div class="fin-bar-track"><div class="fin-bar-fill" style="width:${Math.round(s.pct/maxPct*100)}%"></div></div><div class="fin-bar-v">${s.pct}%</div></div>`).join('');
+    card2Body=`<div class="fin-ratio">${g.ratioVenta}%<small>Gastos Operativos / Venta</small></div><div class="fin-bars"><div class="fin-bars-t">Peso de cada subcategoría sobre el total operativo</div>${bars}</div>`;
+  }
+  const card2=`<div class="ks-card"><div class="ks-card-h"><span class="t">Gastos operativos</span></div>${card2Body}</div>`;
+  // ── Cuadro 3: Top 5 de venta vs inventario ──
+  const t=a.topVenta; let card3Body;
+  if(!t.ventasDisponible){ card3Body='<div class="fin-nd">Sin datos de ventas (Shopify no disponible ahora).</div>'; }
+  else if(!t.items.length){ card3Body='<div class="fin-nd">Sin ventas registradas este mes.</div>'; }
+  else{
+    const rows=t.items.map(it=>`<div class="fin-top-r"><span class="p" title="${escapeAttr(it.title)}">${escapeHtml(it.title)}</span><span class="n">${it.unidades}</span><span class="n">${it.stock==null?nd:it.stock}</span></div>`).join('');
+    const nota=t.inventarioDisponible?'':'<div class="fin-nd" style="margin-top:.4rem">Inventario no conectado: la columna Stock queda sin datos.</div>';
+    card3Body=`<div class="fin-top"><div class="fin-top-h"><span>Producto</span><span class="n">Uds</span><span class="n">Stock</span></div>${rows}</div>${nota}`;
+  }
+  const card3=`<div class="ks-card"><div class="ks-card-h"><span class="t">Top 5 de venta vs inventario</span></div>${card3Body}</div>`;
+  body.innerHTML=`${iaBlock}<div class="ks-cuadros fin-cuadros">${card1}${card2}${card3}</div>`;
+  const btn=document.getElementById('finIaBtn'); if(btn) btn.onclick=finGenerarResumen;
+}
+async function finGenerarResumen(){
+  const btn=document.getElementById('finIaBtn'); const ia=document.getElementById('finIa');
+  if(btn){ btn.disabled=true; btn.textContent='Generando…'; }
+  if(ia){ const old=ia.querySelector('.fin-ia-err'); if(old) old.remove(); }
+  try{
+    const r=await fetch('/admin/finanzas/resumen/generar',{method:'POST'}); const d=await r.json();
+    if(!r.ok) throw new Error(d.error||'Error');
+    finResumen=d; renderFinHome();
+  }catch(e){
+    if(btn){ btn.disabled=false; btn.textContent='Reintentar'; }
+    if(ia){ const err=document.createElement('div'); err.className='fin-ia-err'; err.textContent='⚠ No se pudo generar: '+String(e.message||e); ia.appendChild(err); }
+  }
+}
+document.getElementById('finhomeReload').onclick=loadFinHome;
+document.getElementById('finhomeMes').onchange=loadFinHome;
+
 // ─── Forecast: EERR proyectado · presupuestos · simulación anual ───────────
 let fcTab='proy';
 let fcProyMonth=null, fcProyData=null;
@@ -11262,8 +11396,10 @@ function renderSidebar(){
     <div class="ks-foot"><button type="button" class="ks-av" id="ksProfileBtn" title="Editar mi perfil">${escapeHtml(initials)}</button><div class="ks-u" id="ksProfileBtn2" title="Editar mi perfil" style="cursor:pointer"><b>${escapeHtml(uname || 'K-BROS')}</b><span>${escapeHtml(roleLabel)}</span></div><button class="ks-out" id="ksOut">Salir</button></div>`;
   side.querySelectorAll('.ks-i').forEach(el => { el.onclick = () => { selectSeccion(el.dataset.id); document.body.classList.remove('ks-open'); }; });
   side.querySelectorAll('.ks-gh').forEach(h => { h.onclick = () => {
-    const g = h.parentElement; g.classList.toggle('col');
-    const catId = g.dataset.cat;
+    const g = h.parentElement; const catId = g.dataset.cat;
+    // El grupo FINANZAS abre su página de inicio de área (plantilla reutilizable) y se expande.
+    if (catId === 'finanzas') { g.classList.remove('col'); open.add(catId); selectSeccion('finanzas-home'); document.body.classList.remove('ks-open'); return; }
+    g.classList.toggle('col');
     if (g.classList.contains('col')) open.delete(catId); else open.add(catId);
   }; });
   const home = document.getElementById('ksHome'); if (home) home.onclick = () => { showHome(); document.body.classList.remove('ks-open'); };
