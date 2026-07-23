@@ -3410,6 +3410,61 @@ function costosResumen(entradas){
   }
   return { porCategoria: porCat, total };
 }
+// ── Vista previa de migración de categorías de Gastos (READ-ONLY, no escribe nada) ──
+// Cuenta los registros reales por categoría y muestra a dónde iría cada uno con la nueva
+// estructura jerárquica, para revisar ANTES de aplicar la migración. Página HTML simple.
+app.get('/admin/costos/migracion-preview', requireAdmin, (req, res) => {
+  const data = costosLoad();
+  const entradas = Array.isArray(data.entradas) ? data.entradas : [];
+  const counts = {};
+  COSTOS_CATEGORIAS.forEach(c => counts[c.id] = { label: c.label, tipo: c.tipo, n: 0, total: 0, opSinSub: 0 });
+  const huerfanas = {};
+  for (const e of entradas) {
+    const c = counts[e.categoria];
+    if (!c) { huerfanas[e.categoria || '(vacío)'] = (huerfanas[e.categoria || '(vacío)'] || 0) + 1; continue; }
+    c.n++; c.total += costosValorEfectivo(e);
+    if (e.categoria === 'gastos_operativos' && !e.subcategoria) c.opSinSub++;
+  }
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const clp = n => '$' + (Number(n) || 0).toLocaleString('es-CL');
+  const destino = (id) => {
+    if (id === 'gastos_operativos') return 'Operativos › <b>General</b> (por defecto; editable a Transporte/Almacenamiento/Mantención/Arriendo/OPEX)';
+    if (id === 'activos_fijos') return '<b>CAPEX y Activos Fijos</b> (solo cambia el nombre; mismo id, registros intactos)';
+    return 'Sin cambios';
+  };
+  const rows = COSTOS_CATEGORIAS.map(c => {
+    const x = counts[c.id];
+    return `<tr><td>${c.label}</td><td class="t">${c.tipo}</td><td class="n">${x.n}</td><td class="n">${clp(x.total)}</td><td>${destino(c.id)}</td></tr>`;
+  }).join('');
+  const huerfKeys = Object.keys(huerfanas);
+  const huerfHtml = huerfKeys.length
+    ? `<div class="warn"><b>⚠️ Categorías desconocidas (fuera de la lista):</b><ul>${huerfKeys.map(k => `<li>${esc(k)} — ${huerfanas[k]} registro(s)</li>`).join('')}</ul>Estas NO se tocarán; avisame para decidir su destino.</div>`
+    : `<div class="ok">✓ No hay registros en categorías desconocidas: nada quedaría sin categoría tras migrar.</div>`;
+  const totalReg = entradas.length;
+  res.set('Cache-Control', 'no-store');
+  res.send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Migración de categorías · Gastos · K-BROS</title>
+<style>
+body{font-family:'DM Sans',system-ui,sans-serif;background:#f4f5f7;color:#18181b;margin:0;padding:28px;line-height:1.5}
+.wrap{max-width:900px;margin:0 auto}
+h1{font-size:1.4rem;margin:0 0 .2rem}.sub{color:#52525b;font-size:.9rem;margin-bottom:1.2rem}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e7e7ea;border-radius:12px;overflow:hidden;font-size:.86rem}
+th,td{padding:.6rem .7rem;text-align:left;border-bottom:1px solid #eee;vertical-align:top}
+th{background:#0b2a5e;color:#eaf0fb;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}td.t{color:#9a5b00}
+.badge{display:inline-block;background:#fdf3e0;color:#9a5b00;font-weight:700;font-size:.72rem;padding:.2rem .5rem;border-radius:99px;margin-left:.4rem}
+.ok{background:#e7f6ee;color:#1f7a44;border:1px solid #bfe6cf;border-radius:10px;padding:.7rem .9rem;margin-top:1rem;font-size:.86rem}
+.warn{background:#fdeaea;color:#b91c1c;border:1px solid #f6caca;border-radius:10px;padding:.7rem .9rem;margin-top:1rem;font-size:.86rem}
+.note{color:#52525b;font-size:.8rem;margin-top:1.2rem;border-left:3px solid #f5a623;padding:.3rem .8rem}
+</style></head><body><div class="wrap">
+<h1>Migración de categorías de Gastos <span class="badge">VISTA PREVIA · no aplica nada</span></h1>
+<div class="sub">Total de registros (costos + gastos): <b>${totalReg}</b>. Esta página es de solo lectura: muestra cuántos registros hay por categoría hoy y a dónde irían con la nueva estructura. No se modifica ningún dato.</div>
+<table><thead><tr><th>Categoría actual</th><th>Tipo</th><th>Registros</th><th>Monto (efectivo)</th><th>Destino tras migrar</th></tr></thead><tbody>${rows}</tbody></table>
+${huerfHtml}
+<div class="note">Nueva estructura propuesta — <b>OPERATIVOS</b>: General · Transporte (Venta/Logístico/Administrativo) · Almacenamiento · Mantención y reparación de equipos · Arriendo y/o Gasto Común · OPEX. <b>Administración y venta</b>, <b>Marketing y publicidad</b> y los <b>Costos</b> quedan igual. <b>Activos fijos → CAPEX y Activos Fijos</b> (mismo id, solo el nombre). Los registros hoy en Operativos se asignan a <b>Operativos › General</b> y quedan editables.</div>
+</div></body></html>`);
+});
+
 // GET: proveedores + categorías + entradas (opcional filtradas por mes/tipo) + resumen.
 // tipo=costo|gasto separa la ficha de Costos de la de Gastos (mismo registro, distinta vista).
 app.get('/admin/costos', requireAdmin, (req, res) => {
