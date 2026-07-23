@@ -3640,12 +3640,16 @@ async function pnlCompute(month, rango){
     ? costosEnRango(cd.entradas, rango.from, rango.to)
     : cd.entradas.filter(e => costosMes(e.fecha) === month);
   const rs = costosResumen(entradas);
-  const catTot = (id) => (rs.porCategoria[id] || { total: 0 }).total;
-  const ingresos = est.totalIngresos;
+  // Ajustes que corrigen/complementan el EERR: boletas de honorarios (suman a su categoría),
+  // notas de crédito (restan ingresos / suman costos-gastos), y costo empresa por mes.
+  const bol = nominaBoletasDelMes(month);
+  const nc = notasCreditoDelMes(month);
+  const catTot = (id) => ((rs.porCategoria[id] || { total: 0 }).total) + (bol[id] || 0) + (nc.costo[id] || 0);
+  const ingresos = est.totalIngresos - (nc.ingreso || 0);
   const costoDirecto = catTot('costo_directo'), costoIndirecto = catTot('costo_indirecto');
   const gastosOper = catTot('gastos_operativos'), gastosAdmin = catTot('gastos_admin_venta');
   const gastosMarketing = catTot('marketing_publicidad'), activos = catTot('activos_fijos');
-  const gastoPersonal = nominaLoad().costoEmpresa || 0; // costo empresa de la nómina (Gestión de Personas)
+  const gastoPersonal = nominaCostoEmpresaMes(month); // costo empresa del mes (Gestión de Personas)
   const margenBruto = ingresos - costoDirecto - costoIndirecto;
   const ebitda = margenBruto - gastosOper - gastosAdmin - gastosMarketing - gastoPersonal;
   const ratio = (v) => ingresos ? Math.round((v / ingresos) * 1000) / 10 : 0;
@@ -3660,6 +3664,7 @@ async function pnlCompute(month, rango){
     } },
     costos: { costoDirecto, costoIndirecto, gastosOper, gastosAdmin, gastosMarketing, gastoPersonal, activos },
     docs: Object.fromEntries(Object.entries(rs.porCategoria).map(([k, v]) => [k, v.n])),
+    ajustes: { ncIngreso: nc.ingreso || 0, ncCosto: nc.costo, boletas: bol }, // notas de crédito + boletas aplicadas
     margenBruto, ebitda,
     ratios: {
       costoDirecto: ratio(costoDirecto), costoIndirecto: ratio(costoIndirecto),
@@ -3729,6 +3734,54 @@ app.put('/admin/objetivos', requireAdmin, (req, res) => {
   };
   objetivosSave(o); res.json({ ok: true, objetivos: o });
 });
+// ══ Notas de crédito: corrigen el EERR (restan ingresos de un canal o suman costos/gastos) ══
+const NC_FILE = join(PROMPTS_EFFECTIVE_DIR, 'notas-credito.json');
+const NC_TIPOS = ['ingreso', 'costo', 'gasto'];
+const NC_CANALES = [
+  { id: 'horeca', label: 'HORECA' }, { id: 'online', label: 'Venta Online' }, { id: 'retail', label: 'Retail' },
+  { id: 'hospitality', label: 'Hospitality' }, { id: 'otro', label: 'Otro canal' },
+];
+const NC_CANAL_IDS = NC_CANALES.map(c => c.id);
+function ncLoad(){ try { if (existsSync(NC_FILE)) { const p = JSON.parse(readFileSync(NC_FILE, 'utf-8')); if (Array.isArray(p.notas)) return { notas: p.notas }; } } catch (e) { console.warn('nc load:', e.message); } return { notas: [] }; }
+function ncSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(NC_FILE, JSON.stringify(d, null, 2)); }
+function ncNorm(b, id){
+  const tipo = NC_TIPOS.includes(costosStr(b.tipo, 20)) ? costosStr(b.tipo, 20) : '';
+  const out = { id: id || costosNewId('nc'), tipo, fecha: costosStr(b.fecha, 20), monto: costosNum(b.monto), referencia: costosStr(b.referencia, 80), motivo: costosStr(b.motivo, 300), anulaCompleta: !!b.anulaCompleta };
+  if (tipo === 'ingreso') out.canal = NC_CANAL_IDS.includes(costosStr(b.canal, 20)) ? costosStr(b.canal, 20) : '';
+  else out.categoria = (COSTOS_CATEGORIAS.find(c => c.id === costosStr(b.categoria, 40)) ? costosStr(b.categoria, 40) : '');
+  return out;
+}
+// Efecto de las NC del mes en el EERR: {ingreso: total a restar, costo:{catId: total a sumar}, porCanal}.
+function notasCreditoDelMes(month){
+  const d = ncLoad(); const out = { ingreso: 0, porCanal: {}, costo: {} };
+  for (const n of (d.notas || [])) {
+    if (costosMes(n.fecha) !== month) continue; const m = Number(n.monto) || 0;
+    if (n.tipo === 'ingreso') { out.ingreso += m; if (n.canal) out.porCanal[n.canal] = (out.porCanal[n.canal] || 0) + m; }
+    else if (n.categoria) { out.costo[n.categoria] = (out.costo[n.categoria] || 0) + m; }
+  }
+  return out;
+}
+app.get('/admin/notas-credito', requireAdmin, (req, res) => {
+  const mes = /^\d{4}-\d{2}$/.test(String(req.query.mes)) ? String(req.query.mes) : null;
+  const d = ncLoad(); let notas = (d.notas || []).slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  const meses = [...new Set((d.notas || []).map(n => costosMes(n.fecha)).filter(Boolean))].sort().reverse();
+  if (mes) notas = notas.filter(n => costosMes(n.fecha) === mes);
+  res.json({ notas, meses, mes, tipos: NC_TIPOS, canales: NC_CANALES, categorias: COSTOS_CATEGORIAS });
+});
+app.post('/admin/notas-credito', requireAdmin, (req, res) => {
+  const n = ncNorm(req.body || {});
+  if (!n.tipo) return res.status(400).json({ error: 'Elige el tipo de nota de crédito.' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(n.fecha)) return res.status(400).json({ error: 'Ingresa la fecha.' });
+  if (!n.monto) return res.status(400).json({ error: 'Ingresa el monto.' });
+  if (n.tipo === 'ingreso' && !n.canal) return res.status(400).json({ error: 'Elige el canal de venta a anular.' });
+  if ((n.tipo === 'costo' || n.tipo === 'gasto') && !n.categoria) return res.status(400).json({ error: 'Elige la categoría a corregir.' });
+  const d = ncLoad(); d.notas.push(n); ncSave(d); res.json({ ok: true, nota: n });
+});
+app.delete('/admin/notas-credito/:id', requireAdmin, (req, res) => {
+  const id = String(req.params.id); const d = ncLoad(); const nlen = d.notas.length; d.notas = d.notas.filter(n => n.id !== id);
+  if (d.notas.length === nlen) return res.status(404).json({ error: 'No se encontró la nota.' });
+  ncSave(d); res.json({ ok: true });
+});
 app.get('/admin/pnl', requireAdmin, async (req, res) => {
   const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
   if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
@@ -3758,7 +3811,7 @@ app.get('/admin/pnl', requireAdmin, async (req, res) => {
 // ══ Inicio del área FINANZAS: 3 cuadros (datos reales) + resumen IA cacheado ══
 function finYearAgo(month){ const [y, mo] = String(month).split('-').map(Number); return (y - 1) + '-' + String(mo).padStart(2, '0'); }
 function finCurMonth(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
-async function finVentaMes(m){ try { const e = await estadoResolve(m); return Math.round(e.totalIngresos || 0); } catch { return null; } }
+async function finVentaMes(m){ try { const e = await estadoResolve(m); return Math.round((e.totalIngresos || 0) - (notasCreditoDelMes(m).ingreso || 0)); } catch { return null; } }
 // Cuadro 2: ratio Gastos Operativos / Venta + peso de cada subcategoría operativa.
 function finGastosOperativos(month){
   const cd = costosLoad();
@@ -4377,9 +4430,28 @@ function nominaPersonaNorm(p, id){
     centroCosto: costosStr(p.centroCosto, 80), afp: costosStr(p.afp, 40), salud: costosStr(p.salud, 40),
   };
 }
+// Categorías del EERR a las que puede imputar una boleta de honorarios.
+const NOMINA_BOLETA_CATS = [
+  { id: 'gastos_operativos', label: 'Operativos' },
+  { id: 'gastos_admin_venta', label: 'Administración y venta' },
+  { id: 'marketing_publicidad', label: 'Marketing y publicidad' },
+];
+const NOMINA_BOLETA_CAT_IDS = NOMINA_BOLETA_CATS.map(c => c.id);
+function nominaBoletaNorm(b, id){
+  return {
+    id: id || costosNewId('bol'), rut: costosStr(b.rut, 20), nombre: costosStr(b.nombre, 120),
+    fecha: costosStr(b.fecha, 20), monto: costosNum(b.monto),
+    categoria: NOMINA_BOLETA_CAT_IDS.includes(costosStr(b.categoria, 40)) ? costosStr(b.categoria, 40) : '',
+  };
+}
 function nominaLoad(){
-  let data = { costoEmpresa: NOMINA_COSTO_DEFAULT, personas: [] };
-  try { if (existsSync(NOMINA_FILE)) { const p = JSON.parse(readFileSync(NOMINA_FILE, 'utf-8')); if (Array.isArray(p.personas)) data.personas = p.personas; if (Number.isFinite(Number(p.costoEmpresa))) data.costoEmpresa = Math.round(Number(p.costoEmpresa)); data._saved = true; } }
+  let data = { costoEmpresa: NOMINA_COSTO_DEFAULT, costoEmpresaPorMes: {}, personas: [], boletas: [] };
+  try { if (existsSync(NOMINA_FILE)) { const p = JSON.parse(readFileSync(NOMINA_FILE, 'utf-8'));
+    if (Array.isArray(p.personas)) data.personas = p.personas;
+    if (Number.isFinite(Number(p.costoEmpresa))) data.costoEmpresa = Math.round(Number(p.costoEmpresa));
+    if (p.costoEmpresaPorMes && typeof p.costoEmpresaPorMes === 'object') data.costoEmpresaPorMes = p.costoEmpresaPorMes;
+    if (Array.isArray(p.boletas)) data.boletas = p.boletas;
+    data._saved = true; } }
   catch (e) { console.warn('nomina load:', e.message); }
   // IDs deterministas para la semilla (estables entre cargas mientras no se guarde,
   // así editar/eliminar una persona semilla funciona antes del primer guardado).
@@ -4388,14 +4460,36 @@ function nominaLoad(){
   return data;
 }
 function nominaSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(NOMINA_FILE, JSON.stringify(d, null, 2)); }
+// Costo empresa del mes: valor específico del mes si existe; si no, el global (legacy).
+function nominaCostoEmpresaMes(month){ const d = nominaLoad(); const m = d.costoEmpresaPorMes || {}; return Number.isFinite(Number(m[month])) ? Math.round(Number(m[month])) : (Number(d.costoEmpresa) || 0); }
+// Boletas de honorarios de un mes, sumadas por categoría del EERR (suman como costo empresa).
+function nominaBoletasDelMes(month){ const d = nominaLoad(); const out = {}; for (const b of (d.boletas || [])) { if (costosMes(b.fecha) !== month) continue; out[b.categoria] = (out[b.categoria] || 0) + (Number(b.monto) || 0); } return out; }
 app.get('/admin/nomina', requireAdmin, (req, res) => {
   const d = nominaLoad();
-  res.json({ costoEmpresa: d.costoEmpresa, personas: d.personas, contratos: NOMINA_CONTRATOS });
+  res.json({ costoEmpresa: d.costoEmpresa, costoEmpresaPorMes: d.costoEmpresaPorMes || {}, personas: d.personas, boletas: d.boletas || [], contratos: NOMINA_CONTRATOS, boletaCats: NOMINA_BOLETA_CATS });
 });
 app.put('/admin/nomina/costo', requireAdmin, (req, res) => {
   const v = costosNum(req.body && req.body.costoEmpresa);
   if (v < 0) return res.status(400).json({ error: 'Valor inválido.' });
-  const d = nominaLoad(); d.costoEmpresa = v; nominaSave(d); res.json({ ok: true, costoEmpresa: v });
+  const month = /^\d{4}-\d{2}$/.test(String(req.body && req.body.month)) ? String(req.body.month) : null;
+  const d = nominaLoad();
+  if (month) { d.costoEmpresaPorMes = d.costoEmpresaPorMes || {}; d.costoEmpresaPorMes[month] = v; }
+  else d.costoEmpresa = v; // legacy: valor global por defecto
+  nominaSave(d); res.json({ ok: true, costoEmpresa: v, month });
+});
+app.post('/admin/nomina/boleta', requireAdmin, (req, res) => {
+  const b = nominaBoletaNorm(req.body || {});
+  if (!b.nombre) return res.status(400).json({ error: 'Ingresa el nombre completo.' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(b.fecha)) return res.status(400).json({ error: 'Ingresa la fecha de la boleta.' });
+  if (!b.monto) return res.status(400).json({ error: 'Ingresa el monto.' });
+  if (!b.categoria) return res.status(400).json({ error: 'Elige la categoría del Estado de Resultado.' });
+  const d = nominaLoad(); d.boletas = d.boletas || []; d.boletas.push(b); nominaSave(d); res.json({ ok: true, boleta: b });
+});
+app.delete('/admin/nomina/boleta/:id', requireAdmin, (req, res) => {
+  const id = String(req.params.id); const d = nominaLoad(); d.boletas = d.boletas || [];
+  const n = d.boletas.length; d.boletas = d.boletas.filter(b => b.id !== id);
+  if (d.boletas.length === n) return res.status(404).json({ error: 'No se encontró la boleta.' });
+  nominaSave(d); res.json({ ok: true });
 });
 app.post('/admin/nomina/persona', requireAdmin, (req, res) => {
   const p = nominaPersonaNorm(req.body || {});

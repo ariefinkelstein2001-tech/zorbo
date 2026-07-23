@@ -1844,6 +1844,11 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .cg-filters-n{margin-left:auto;font-size:.72rem;color:var(--dim,#999);font-variant-numeric:tabular-nums}
 .cg-subsel{font:inherit;font-size:.71rem;padding:.12rem .3rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text-2,#52525b);margin-left:.35rem;max-width:150px;vertical-align:middle;cursor:pointer}
 .cg-subsel:hover,.cg-subsel:focus-visible{border-color:var(--gold-bd-h,#f5a623)}
+.cg-tag.nc-in{background:#fdeaea;color:#b91c1c;border-color:#f6caca}
+.cg-tag.nc-out{background:#efeafa;color:#5e4ea3;border-color:#c8bee5}
+.cg-field-check{flex-direction:row;align-items:center;gap:.45rem;font-size:.82rem;color:var(--text-2,#52525b);align-self:end;padding-bottom:.55rem}
+.cg-field-check input{width:auto}
+.nom-costo-edit select.costeo-svc{margin-right:.4rem}
 .cg-table td{vertical-align:middle}
 .cg-file-name{font-size:.68rem;color:var(--dim,#999);margin-top:.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .cg-doc-link{color:var(--gold-deep,#a05f00);font-weight:600;font-size:.82rem;text-decoration:none}
@@ -2824,6 +2829,21 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
       <div id="pnlBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
+    <!-- Notas de crédito: anular ventas por canal o corregir costos/gastos -->
+    <div class="adm-panel" id="notascreditoView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Notas de crédito</div>
+          <div class="adm-panel-meta">anula ventas por canal (resta ingresos) o corrige costos/gastos (suma) · impacta el Estado de Resultado</div>
+        </div>
+        <div class="adm-actions">
+          <select id="ncMes" class="costeo-svc"><option value="">Todos los meses</option></select>
+          <button class="adm-btn adm-btn-ghost" id="ncReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div id="ncBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
     <!-- Forecast: EERR proyectado · presupuestos por % · simulación anual -->
     <div class="adm-panel" id="forecastView" style="display:none">
       <div class="adm-panel-head">
@@ -3322,6 +3342,7 @@ const BASE_SECCIONES = [
   { id:'costos',    kind:'costos',   label:'Costos', cat:'finanzas', desc:'registro de costos por proveedor · categoría · marca · folio · valor' },
   { id:'gastos',    kind:'gastos',   label:'Gastos', cat:'finanzas', desc:'registro de gastos por proveedor · categoría · marca · % del total · folio · valor' },
   { id:'pnl',       kind:'pnl',      label:'Estado de Resultado', cat:'finanzas', desc:'ingresos − costos y gastos · margen bruto · EBITDA mensual' },
+  { id:'notascredito', kind:'notascredito', label:'Notas de crédito', cat:'finanzas', desc:'anular ventas por canal o corregir costos/gastos · afecta el Estado de Resultado' },
   { id:'nomina',    kind:'nomina',   label:'Gestión de Personas', cat:'personas', desc:'nómina de trabajadores · costo empresa · descarga de Excel' },
   { id:'forecast',  kind:'forecast', label:'Forecast', cat:'herramientas', desc:'EERR proyectado · presupuestos por % · simulación del año' },
   { id:'equipo',    kind:'equipo',   label:'Cuentas del equipo', cat:'herramientas', desc:'altas y ediciones de cuentas individuales · nombre · apodo · acceso' },
@@ -3718,6 +3739,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'finhome') {
     showView('finhome');
     await loadFinHome();
+  } else if (sec.kind === 'notascredito') {
+    showView('notascredito');
+    await loadNotasCredito();
   } else if (sec.kind === 'forecast') {
     showView('forecast');
     forecastBoot();
@@ -3783,6 +3807,7 @@ function showView(kind){
   document.getElementById('equipoView').style.display     = kind === 'equipo'     ? '' : 'none';
   document.getElementById('produccionView').style.display = kind === 'produccion' ? '' : 'none';
   document.getElementById('finhomeView').style.display    = kind === 'finhome'    ? '' : 'none';
+  document.getElementById('notascreditoView').style.display = kind === 'notascredito' ? '' : 'none';
   document.getElementById('pnlView').style.display        = kind === 'pnl'        ? '' : 'none';
   document.getElementById('forecastView').style.display   = kind === 'forecast'   ? '' : 'none';
   if (kind !== 'produccion' && typeof prodStopTimers === 'function') prodStopTimers();
@@ -9483,6 +9508,9 @@ document.getElementById('gastosMes').onchange=()=>loadCostos('gasto');
 
 // ─── Gestión de Personas (nómina) ───────────────────────────────────────────
 let nominaData=null, nominaEditId=null, nominaForm={rut:'',nombre:'',ingreso:'',cargo:'',jornada:'42',contrato:'Indefinido',centroCosto:'BEER GARDEN KAIROS',afp:'',salud:''};
+let nominaCostoMes=''; // mes seleccionado para el costo empresa (por mes)
+let nominaBoletaForm={rut:'',nombre:'',fecha:'',monto:'',categoria:''};
+function nomMesesOpts(sel){ const d=new Date(); let o=''; for(let i=0;i<18;i++){ const dt=new Date(d.getFullYear(),d.getMonth()-i,1); const m=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'); o+=`<option value="${m}" ${m===sel?'selected':''}>${escapeHtml(estMonthLabel(m))}</option>`; } return o; }
 async function loadNomina(){
   const body=document.getElementById('nominaBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   try{ const r=await fetch('/admin/nomina'); nominaData=await r.json(); if(nominaData.error) throw new Error(nominaData.error); renderNomina(); }
@@ -9492,6 +9520,17 @@ function renderNomina(){
   const a=nominaData, body=document.getElementById('nominaBody'), f=nominaForm;
   const contratoOpts=(a.contratos||['Indefinido','Plazo fijo']).map(c=>`<option ${c===f.contrato?'selected':''}>${escapeHtml(c)}</option>`).join('');
   const contratoSel=(cur)=>(a.contratos||['Indefinido','Plazo fijo']).map(c=>`<option ${c===cur?'selected':''}>${escapeHtml(c)}</option>`).join('');
+  // Costo empresa POR MES (permite cargar meses anteriores)
+  const nowMes=(new Date().getFullYear())+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+  const mesSel=nominaCostoMes||nowMes;
+  const cpm=a.costoEmpresaPorMes||{};
+  const costoMes=Number.isFinite(Number(cpm[mesSel]))?Math.round(Number(cpm[mesSel])):(a.costoEmpresa||0);
+  const costoMesSeteado=Number.isFinite(Number(cpm[mesSel]));
+  // Boletas de honorarios
+  const bf=nominaBoletaForm; const bcats=a.boletaCats||[];
+  const bcatOpts=['<option value="">— Categoría —</option>',...bcats.map(c=>`<option value="${c.id}" ${c.id===bf.categoria?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
+  const bcatLbl=id=>(bcats.find(c=>c.id===id)||{}).label||id;
+  const bolRows=(a.boletas||[]).slice().sort((x,y)=>String(y.fecha).localeCompare(String(x.fecha))).map(b=>`<tr><td>${escapeHtml(b.fecha)}</td><td>${escapeHtml(b.rut||'—')}</td><td>${escapeHtml(b.nombre)}</td><td><span class="cg-tag">${escapeHtml(bcatLbl(b.categoria))}</span></td><td class="dist-num">${eM(b.monto)}</td><td><button class="pv-del" data-boldel="${b.id}" title="Eliminar">✕</button></td></tr>`).join('');
   const rows=(a.personas||[]).map(p=>{
     if(p.id===nominaEditId){
       const inp=(k,ph)=>`<input class="nom-edit-inp" data-ef="${k}" value="${escapeAttr(p[k]||'')}" placeholder="${ph||''}">`;
@@ -9514,9 +9553,9 @@ function renderNomina(){
   }).join('');
   body.innerHTML=`
     <div class="nom-costo">
-      <div class="nom-costo-l">Costo empresa de la nómina <span>(resta al Estado de Resultado como gasto de personal)</span></div>
-      <div class="nom-costo-edit"><span class="nom-costo-sign">$</span><input type="text" inputmode="numeric" id="nomCosto" value="${a.costoEmpresa.toLocaleString('es-CL')}"><button class="adm-btn adm-btn-gold" id="nomCostoSave" type="button">Guardar</button></div>
-      <div class="nom-costo-hint" id="nomCostoHint">${(a.personas||[]).length} personas en la nómina</div>
+      <div class="nom-costo-l">Costo empresa de la nómina <span>(resta al Estado de Resultado como gasto de personal · por mes)</span></div>
+      <div class="nom-costo-edit"><select id="nomCostoMes" class="costeo-svc">${nomMesesOpts(mesSel)}</select><span class="nom-costo-sign">$</span><input type="text" inputmode="numeric" id="nomCosto" value="${costoMes.toLocaleString('es-CL')}"><button class="adm-btn adm-btn-gold" id="nomCostoSave" type="button">Guardar mes</button></div>
+      <div class="nom-costo-hint" id="nomCostoHint">Costo empresa de <b>${escapeHtml(estMonthLabel(mesSel))}</b> — cada mes se guarda por separado. ${costoMesSeteado?'':'(mostrando el valor global por defecto hasta que guardes este mes)'}</div>
     </div>
     <div class="cg-form">
       <div class="cg-form-title">Agregar persona a la nómina</div>
@@ -9534,16 +9573,39 @@ function renderNomina(){
       </div>
       <div class="cg-err" id="nmErr"></div>
     </div>
-    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>RUT</th><th>Nombre</th><th>Ingreso</th><th>Cargo</th><th>Jornada</th><th>Contrato</th><th>Centro de costos</th><th>AFP</th><th>Salud</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="10" style="text-align:center;color:#999;padding:.8rem">Sin personas en la nómina</td></tr>'}</tbody></table></div>`;
+    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>RUT</th><th>Nombre</th><th>Ingreso</th><th>Cargo</th><th>Jornada</th><th>Contrato</th><th>Centro de costos</th><th>AFP</th><th>Salud</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="10" style="text-align:center;color:#999;padding:.8rem">Sin personas en la nómina</td></tr>'}</tbody></table></div>
+
+    <div class="cg-form" style="margin-top:1.4rem">
+      <div class="cg-form-title">Boletas de honorarios</div>
+      <div class="cg-form-grid">
+        <label class="cg-field"><span>RUT</span><input type="text" id="bhRut" value="${escapeAttr(bf.rut)}" placeholder="12.345.678-9"></label>
+        <label class="cg-field"><span>Nombre completo</span><input type="text" id="bhNombre" value="${escapeAttr(bf.nombre)}" placeholder="Apellidos Nombres"></label>
+        <label class="cg-field"><span>Fecha</span><input type="date" id="bhFecha" value="${escapeAttr(bf.fecha)}"></label>
+        <label class="cg-field"><span>Monto ($)</span><input type="text" inputmode="numeric" id="bhMonto" value="${escapeAttr(bf.monto)}" placeholder="0"></label>
+        <label class="cg-field"><span>Categoría (Estado de Resultado)</span><select id="bhCat">${bcatOpts}</select></label>
+        <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="bhAdd" type="button">+ Agregar boleta</button></div>
+      </div>
+      <div class="cg-err" id="bhErr"></div>
+      <div class="est-note" style="margin-top:.4rem">Cada boleta suma como <b>costo empresa</b> en la categoría elegida del Estado de Resultado, en el mes de su fecha.</div>
+    </div>
+    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>RUT</th><th>Nombre</th><th>Categoría</th><th style="text-align:right">Monto</th><th></th></tr></thead><tbody>${bolRows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:.8rem">Sin boletas de honorarios todavía.</td></tr>'}</tbody></table></div>`;
   wireNomina();
 }
 function wireNomina(){
   const g=(id)=>document.getElementById(id);
+  const mesEl=g('nomCostoMes'); if(mesEl) mesEl.onchange=()=>{ nominaCostoMes=mesEl.value; renderNomina(); };
   g('nomCostoSave').onclick=async()=>{
-    const v=cNum(g('nomCosto').value);
-    try{ const r=await fetch('/admin/nomina/costo',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({costoEmpresa:v})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); const h=g('nomCostoHint'); h.textContent='✓ guardado · '+(nominaData.personas||[]).length+' personas'; nominaData.costoEmpresa=v; }
+    const v=cNum(g('nomCosto').value); const month=g('nomCostoMes')?g('nomCostoMes').value:'';
+    try{ const r=await fetch('/admin/nomina/costo',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({costoEmpresa:v,month})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+      nominaData.costoEmpresaPorMes=nominaData.costoEmpresaPorMes||{}; if(month) nominaData.costoEmpresaPorMes[month]=v; else nominaData.costoEmpresa=v;
+      const h=g('nomCostoHint'); h.textContent='✓ guardado el costo de '+estMonthLabel(month||'')+'.'; }
     catch(e){ g('nomCostoHint').textContent='⚠ '+String(e.message||e); }
   };
+  // Boletas de honorarios
+  const bbind={bhRut:'rut',bhNombre:'nombre',bhFecha:'fecha',bhMonto:'monto',bhCat:'categoria'};
+  Object.entries(bbind).forEach(([id,k])=>{ const el=g(id); if(el){ const ev=el.tagName==='SELECT'||el.type==='date'?'onchange':'oninput'; el[ev]=()=>nominaBoletaForm[k]=el.value; } });
+  const bhAdd=g('bhAdd'); if(bhAdd) bhAdd.onclick=nominaBoletaAgregar;
+  document.querySelectorAll('[data-boldel]').forEach(b=>b.onclick=()=>nominaBoletaEliminar(b.dataset.boldel));
   const bind={nmRut:'rut',nmNombre:'nombre',nmIngreso:'ingreso',nmCargo:'cargo',nmJornada:'jornada',nmContrato:'contrato',nmCC:'centroCosto',nmAfp:'afp',nmSalud:'salud'};
   Object.entries(bind).forEach(([id,k])=>{ const el=g(id); if(el){ const ev=el.tagName==='SELECT'?'onchange':'oninput'; el[ev]=()=>nominaForm[k]=el.value; } });
   g('nmAdd').onclick=nominaAgregar;
@@ -9572,6 +9634,20 @@ async function nominaAgregar(){
 async function nominaEliminar(id){
   if(!confirm('Eliminar esta persona de la nómina?')) return;
   try{ const r=await fetch('/admin/nomina/persona/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadNomina(); }
+  catch(e){ alert(String(e.message||e)); }
+}
+async function nominaBoletaAgregar(){
+  const err=document.getElementById('bhErr'); if(err){ err.textContent=''; err.classList.remove('show'); }
+  const f=nominaBoletaForm;
+  const payload={ rut:f.rut, nombre:f.nombre, fecha:f.fecha, monto:cNum(f.monto), categoria:f.categoria };
+  if(!(payload.nombre||'').trim()){ if(err){err.textContent='⚠ Ingresa el nombre completo.';err.classList.add('show');} return; }
+  if(!payload.categoria){ if(err){err.textContent='⚠ Elige la categoría del Estado de Resultado.';err.classList.add('show');} return; }
+  try{ const r=await fetch('/admin/nomina/boleta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); nominaBoletaForm={rut:'',nombre:'',fecha:'',monto:'',categoria:''}; await loadNomina(); }
+  catch(e){ if(err){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); } }
+}
+async function nominaBoletaEliminar(id){
+  if(!confirm('Eliminar esta boleta de honorarios?')) return;
+  try{ const r=await fetch('/admin/nomina/boleta/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadNomina(); }
   catch(e){ alert(String(e.message||e)); }
 }
 document.getElementById('nominaReload').onclick=loadNomina;
@@ -9882,6 +9958,76 @@ async function finGenerarResumen(){
 }
 document.getElementById('finhomeReload').onclick=loadFinHome;
 document.getElementById('finhomeMes').onchange=loadFinHome;
+
+// ─── Notas de crédito (Finanzas): anular ventas por canal o corregir costos/gastos ───
+let ncData=null;
+function ncBlankForm(){ return {tipo:'',fecha:'',monto:'',canal:'',categoria:'',referencia:'',anulaCompleta:false,motivo:''}; }
+let ncForm=ncBlankForm();
+async function loadNotasCredito(){
+  const body=document.getElementById('ncBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  const sel=document.getElementById('ncMes');
+  try{
+    const mes=sel.value||'';
+    const r=await fetch('/admin/notas-credito'+(mes?('?mes='+mes):'')); ncData=await r.json();
+    if(ncData.error) throw new Error(ncData.error);
+    if(sel.options.length<=1 && (ncData.meses||[]).length){ sel.innerHTML='<option value="">Todos los meses</option>'+ncData.meses.map(m=>`<option value="${m}">${escapeHtml(estMonthLabel(m))}</option>`).join(''); sel.value=mes; }
+    renderNotasCredito();
+  }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function ncTipoLabel(t){ return t==='ingreso'?'Anular venta':(t==='costo'?'Corregir costo':'Corregir gasto'); }
+function renderNotasCredito(){
+  const a=ncData, body=document.getElementById('ncBody'), f=ncForm;
+  const canalLbl=id=>((a.canales||[]).find(c=>c.id===id)||{}).label||id;
+  const catLbl=id=>((a.categorias||[]).find(c=>c.id===id)||{}).label||id;
+  const tipoOpts=`<option value="">— Elige —</option><option value="ingreso" ${f.tipo==='ingreso'?'selected':''}>Anular venta (resta ingreso)</option><option value="costo" ${f.tipo==='costo'?'selected':''}>Corregir costo (suma)</option><option value="gasto" ${f.tipo==='gasto'?'selected':''}>Corregir gasto (suma)</option>`;
+  const canalOpts=['<option value="">— Canal —</option>',...(a.canales||[]).map(c=>`<option value="${c.id}" ${c.id===f.canal?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
+  const catList=(a.categorias||[]).filter(c=>c.tipo===f.tipo);
+  const catOpts=['<option value="">— Categoría —</option>',...catList.map(c=>`<option value="${c.id}" ${c.id===f.categoria?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
+  const condFields = f.tipo==='ingreso'
+    ? `<label class="cg-field"><span>Canal de venta a anular</span><select id="ncCanal">${canalOpts}</select></label>
+       <label class="cg-field"><span>Referencia (N° pedido / folio)</span><input type="text" id="ncRef" value="${escapeAttr(f.referencia)}" placeholder="Ej: #1234 · folio 46211"></label>
+       <label class="cg-field cg-field-check"><input type="checkbox" id="ncAnula" ${f.anulaCompleta?'checked':''}> <span>Anula la compra completa</span></label>`
+    : (f.tipo ? `<label class="cg-field"><span>Categoría a corregir</span><select id="ncCat">${catOpts}</select></label>` : '');
+  const rows=(a.notas||[]).map(n=>{
+    const detalle = n.tipo==='ingreso' ? (escapeHtml(canalLbl(n.canal))+(n.referencia?(' · '+escapeHtml(n.referencia)):'')+(n.anulaCompleta?' · <b>completa</b>':'')) : escapeHtml(catLbl(n.categoria));
+    const signo = n.tipo==='ingreso' ? '−' : '+';
+    return `<tr><td>${escapeHtml(n.fecha)}</td><td><span class="cg-tag ${n.tipo==='ingreso'?'nc-in':'nc-out'}">${ncTipoLabel(n.tipo)}</span></td><td>${detalle}</td><td class="dist-num ${n.tipo==='ingreso'?'pnl-neg':''}">${signo}${eM(n.monto)}</td><td>${escapeHtml(n.motivo||'—')}</td><td><button class="pv-del" data-ncdel="${n.id}" title="Eliminar">✕</button></td></tr>`;
+  }).join('');
+  body.innerHTML=`
+    <div class="cg-form">
+      <div class="cg-form-title">Registrar nota de crédito</div>
+      <div class="cg-form-grid">
+        <label class="cg-field"><span>Tipo</span><select id="ncTipo">${tipoOpts}</select></label>
+        ${condFields}
+        <label class="cg-field"><span>Fecha</span><input type="date" id="ncFecha" value="${escapeAttr(f.fecha)}"></label>
+        <label class="cg-field"><span>Monto ($)</span><input type="text" inputmode="numeric" id="ncMonto" value="${escapeAttr(f.monto)}" placeholder="0"></label>
+        <label class="cg-field"><span>Motivo</span><input type="text" id="ncMotivo" value="${escapeAttr(f.motivo)}" placeholder="Ej: producto devuelto · error de facturación"></label>
+        <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="ncAdd" type="button">+ Agregar</button></div>
+      </div>
+      <div class="cg-err" id="ncErr"></div>
+      <div class="est-note" style="margin-top:.4rem">Ajusta el <b>Estado de Resultado</b> del mes de su fecha: las de venta <b>restan</b> del ingreso del canal; las de costo/gasto <b>suman</b> a su categoría.</div>
+    </div>
+    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th style="text-align:right">Ajuste</th><th>Motivo</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:.8rem">Sin notas de crédito todavía.</td></tr>'}</tbody></table></div>`;
+  ncWire();
+}
+function ncWire(){
+  const g=id=>document.getElementById(id); const f=ncForm;
+  const bind=(el,k,ev)=>{ const e=g(el); if(e) e[ev||'oninput']=()=>{ f[k]=e.type==='checkbox'?e.checked:e.value; }; };
+  const tipo=g('ncTipo'); if(tipo) tipo.onchange=()=>{ f.tipo=tipo.value; f.canal=''; f.categoria=''; renderNotasCredito(); };
+  bind('ncCanal','canal','onchange'); bind('ncRef','referencia'); bind('ncCat','categoria','onchange'); bind('ncAnula','anulaCompleta','onchange');
+  bind('ncFecha','fecha','onchange'); bind('ncMonto','monto'); bind('ncMotivo','motivo');
+  const add=g('ncAdd'); if(add) add.onclick=ncAgregar;
+  document.querySelectorAll('[data-ncdel]').forEach(b=>b.onclick=()=>ncEliminar(b.dataset.ncdel));
+}
+async function ncAgregar(){
+  const f=ncForm; const err=document.getElementById('ncErr'); if(err){ err.textContent=''; err.classList.remove('show'); }
+  const payload={ tipo:f.tipo, fecha:f.fecha, monto:cNum(f.monto), canal:f.canal, categoria:f.categoria, referencia:f.referencia, motivo:f.motivo, anulaCompleta:f.anulaCompleta };
+  try{ const r=await fetch('/admin/notas-credito',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); ncForm=ncBlankForm(); await loadNotasCredito(); }
+  catch(e){ if(err){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); } }
+}
+async function ncEliminar(id){ if(!confirm('Eliminar esta nota de crédito?')) return; try{ const r=await fetch('/admin/notas-credito/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadNotasCredito(); }catch(e){ alert(String(e.message||e)); } }
+document.getElementById('ncReload').onclick=loadNotasCredito;
+document.getElementById('ncMes').onchange=loadNotasCredito;
 
 // ─── Forecast: EERR proyectado · presupuestos · simulación anual ───────────
 let fcTab='proy';
