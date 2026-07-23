@@ -211,7 +211,38 @@ body{ padding-left:var(--ks-side); }
 .ks-act .at{font-size:.83rem;font-weight:600} .ks-act .as{font-size:.73rem;color:var(--dim,#999);margin-top:.1rem}
 .ks-act .aw{margin-left:auto;font-size:.7rem;color:var(--dim,#999);white-space:nowrap}
 .ks-muted{color:var(--dim,#999);font-size:.82rem;padding:.5rem 0}
-@media(max-width:1080px){.ks-kpis{grid-template-columns:repeat(2,1fr)}.ks-row2{grid-template-columns:1fr}}
+
+/* ── Resumen (Cuadros A/B/C/D + filtro de período) ── */
+.ks-period{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:18px}
+.ks-period-btn{
+  font-family:var(--sans,inherit);font-size:.78rem;font-weight:700;color:var(--muted,#666);
+  background:var(--surface,#fff);border:1px solid var(--border,#eee);border-radius:9px;
+  padding:.5rem .85rem;cursor:pointer;transition:border-color .15s,color .15s,background .15s;
+}
+.ks-period-btn:hover{border-color:var(--gold-bd-h,#f5a623);color:var(--gold-deep,#a05f00)}
+.ks-period-btn.on{background:var(--gold,#f5a623);border-color:var(--gold,#f5a623);color:#1a1408}
+.ks-period-custom{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.ks-period-custom input[type=date]{
+  font-family:var(--sans,inherit);font-size:.78rem;color:var(--text,#111);
+  background:var(--surface,#fff);border:1px solid var(--border,#eee);border-radius:9px;padding:.44rem .6rem;
+}
+.ks-period-label{margin-left:auto;font-size:.72rem;color:var(--dim,#999);font-weight:700}
+.ks-cuadros{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.ks-cuadro-a,.ks-cuadro-c{grid-column:1/-1}
+.ks-ratio-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.ks-ratio{background:var(--surface2,#fafafa);border:1px solid var(--border,#eee);border-radius:12px;padding:14px 16px}
+.ks-ratio .lab{font-size:.68rem;font-weight:700;color:var(--dim,#999);text-transform:uppercase;letter-spacing:.04em}
+.ks-ratio .pct{font-family:var(--display,inherit);font-size:1.55rem;font-weight:800;margin-top:.25rem;color:var(--gold-deep,#a05f00)}
+.ks-ratio .base{font-size:.72rem;color:var(--dim,#999);margin-top:.2rem;font-variant-numeric:tabular-nums}
+.ks-marca-sel{
+  font-family:var(--sans,inherit);font-size:.78rem;font-weight:700;color:var(--text,#111);
+  background:var(--surface,#fff);border:1px solid var(--border,#eee);border-radius:9px;padding:.4rem .6rem;
+}
+.ks-note{font-size:.72rem;color:var(--dim,#999);margin-top:.7rem;line-height:1.5}
+.ks-note.warn{color:var(--gold-deep,#a05f00)}
+.ks-nodata{color:var(--dim,#999);font-size:.85rem;padding:1.4rem;text-align:center;border:1px dashed var(--border,#eee);border-radius:10px}
+.ks-err{color:#c0392b;font-size:.85rem;padding:1rem;background:#fdecea;border:1px solid rgba(192,57,43,.25);border-radius:10px}
+@media(max-width:1080px){.ks-kpis{grid-template-columns:repeat(2,1fr)}.ks-row2{grid-template-columns:1fr}.ks-cuadros{grid-template-columns:1fr}.ks-cuadro-a,.ks-cuadro-c{grid-column:auto}.ks-ratio-row{grid-template-columns:1fr}}
 .adm-home{padding:1.5rem .5rem 2.5rem;max-width:1000px;margin:0 auto;text-align:center;animation:homeIn .4s ease}
 @keyframes homeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .adm-home-welcome{font-family:var(--display);font-size:.78rem;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
@@ -3172,23 +3203,32 @@ function showHome(){
         <p>Todo tu negocio en un solo lugar. Elegí una sección en el panel de la izquierda, o mirá el resumen de hoy acá abajo.</p>
         <div class="q">“${escapeHtml(q.t)}” — ${escapeHtml(q.a)}</div>
       </div>
-      <div class="ks-kpis" id="ksKpis">${kpiSkeleton()}</div>
-      <div class="ks-row2">
-        <div class="ks-card">
-          <div class="ks-card-h"><span class="t">Conversaciones por día · 30d</span><span class="more" data-go="analytics">Ver Analítica →</span></div>
-          <div class="ks-chart" id="ksChart"><div class="ks-muted" style="padding:1rem">Cargando…</div></div>
+      <div class="ks-period" id="ksPeriodBar"></div>
+      <div class="ks-cuadros" id="ksCuadros">
+        <div class="ks-card ks-cuadro-a">
+          <div class="ks-card-h"><span class="t">Ventas en el tiempo</span></div>
+          <div class="ks-chart" id="dashChartA"><div class="ks-muted" style="padding:1rem">Cargando…</div></div>
+          <div class="ks-note" id="dashNoteA"></div>
         </div>
-        <div class="ks-card">
-          <div class="ks-card-h"><span class="t">Últimas conversaciones</span><span class="more" data-go="chats">Ver todas →</span></div>
-          <div id="ksActivity"><div class="ks-muted">Cargando…</div></div>
+        <div class="ks-card ks-cuadro-b">
+          <div class="ks-card-h"><span class="t">Costos y gastos sobre la venta</span></div>
+          <div id="dashRatiosB"><div class="ks-muted">Cargando…</div></div>
+        </div>
+        <div class="ks-card ks-cuadro-c">
+          <div class="ks-card-h"><span class="t">Global y por marca</span></div>
+          <div id="dashTablaC"><div class="ks-muted">Cargando…</div></div>
+        </div>
+        <div class="ks-card ks-cuadro-d">
+          <div class="ks-card-h"><span class="t">Litros vendidos por marca</span><select class="ks-marca-sel" id="dashMarcaSel"><option value="all">Todas las marcas</option><option value="kairos">Kairos Brewing</option><option value="banny">Banny</option><option value="firulais">Firulais</option></select></div>
+          <div class="ks-chart" id="dashChartD"><div class="ks-muted" style="padding:1rem">Cargando…</div></div>
+          <div class="ks-note" id="dashNoteD"></div>
         </div>
       </div>
     </div>`;
-  document.querySelectorAll('#homeView .more[data-go]').forEach(el => {
-    el.onclick = () => selectSeccion(el.dataset.go);
-  });
   ksSync();
-  loadDashboard();
+  dashRenderPeriodBar();
+  loadDashCuadros();
+  document.getElementById('dashMarcaSel').onchange = () => loadDashCuadros();
 }
 
 function openCategory(catId){
@@ -10703,55 +10743,90 @@ function renderSidebar(){
   const bd = document.getElementById('ksBd'); if (bd) bd.onclick = () => document.body.classList.remove('ks-open');
 })();
 
-// ── Dashboard de inicio con datos reales (degradación elegante: si un endpoint falla, muestra "—") ──
-function kpiCard(cls, ic, lab, val, chg, dir){
-  return `<div class="ks-kpi ${cls}"><div class="ic">${ic}</div><div class="lab">${escapeHtml(lab)}</div><div class="val">${escapeHtml(String(val))}</div>${chg ? `<div class="chg ${dir || ''}">${escapeHtml(chg)}</div>` : ''}</div>`;
-}
-function kpiSkeleton(){
-  return [['k1','💰','Ingresos mayoristas · 30d'],['k2','🧾','Ticket promedio · 30d'],['k3','💬','Conversaciones IA'],['k4','🏭','OEE producción']]
-    .map(x => `<div class="ks-kpi ${x[0]}"><div class="ic">${x[1]}</div><div class="lab">${escapeHtml(x[2])}</div><div class="val">…</div></div>`).join('');
-}
+// ── Resumen de la home: 4 cuadros con datos reales del ERP (Ingreso por Venta,
+// Costos, Gastos, Gestión de Personas, litros de Forecast Operacional). Todo es
+// solo lectura/agregación — ver GET /admin/home/dashboard en server.js. ──
+// TODO: restringir por rol si se requiere — hoy visible para todos los usuarios
+// autenticados del panel (se pidió así explícitamente).
+let dashState = { period: 'mes_actual', from: '', to: '' };
 function ksCLP(n){ return (typeof n === 'number' && isFinite(n)) ? '$' + Math.round(n).toLocaleString('es-CL') : '—'; }
-function drawKsChart(byDay){
-  const el = document.getElementById('ksChart'); if (!el) return;
-  if (!Array.isArray(byDay) || !byDay.length){ el.innerHTML = '<div class="ks-muted" style="padding:1rem">Sin datos para el rango.</div>'; return; }
-  const vals = byDay.map(d => (+d.total || 0)); const max = Math.max(1, ...vals); const n = vals.length; const W = 600, H = 200, pad = 8;
-  const pts = vals.map((v, i) => { const x = n <= 1 ? W/2 : (i/(n-1))*W; const y = H - pad - (v/max)*(H - pad*2); return x.toFixed(1) + ',' + y.toFixed(1); });
+function dashRenderPeriodBar(){
+  const el = document.getElementById('ksPeriodBar'); if (!el) return;
+  const opts = [['mes_actual', 'Mes actual'], ['mes_pasado', 'Mes pasado'], ['30d', 'Últimos 30 días'], ['custom', 'Rango personalizado']];
+  el.innerHTML = opts.map(([id, lab]) => `<button type="button" class="ks-period-btn ${dashState.period === id ? 'on' : ''}" data-period="${id}">${escapeHtml(lab)}</button>`).join('')
+    + (dashState.period === 'custom' ? `<span class="ks-period-custom"><input type="date" id="dashFrom" value="${escapeAttr(dashState.from)}" aria-label="Desde"><span>–</span><input type="date" id="dashTo" value="${escapeAttr(dashState.to)}" aria-label="Hasta"></span>` : '')
+    + `<span class="ks-period-label" id="dashPeriodLabel"></span>`;
+  el.querySelectorAll('[data-period]').forEach(b => b.onclick = () => {
+    dashState.period = b.dataset.period;
+    if (dashState.period === 'custom' && !dashState.from) {
+      const ymd = (d) => d.toISOString().slice(0, 10);
+      const to = new Date(), from = new Date(); from.setDate(from.getDate() - 29);
+      dashState.from = ymd(from); dashState.to = ymd(to);
+    }
+    dashRenderPeriodBar();
+    if (dashState.period !== 'custom') loadDashCuadros();
+  });
+  if (dashState.period === 'custom') {
+    const fEl = document.getElementById('dashFrom'), tEl = document.getElementById('dashTo');
+    const onChange = () => { dashState.from = fEl.value; dashState.to = tEl.value; if (dashState.from && dashState.to && dashState.from <= dashState.to) loadDashCuadros(); };
+    fEl.onchange = onChange; tEl.onchange = onChange;
+  }
+}
+// Gráfico de línea simple y reutilizable (Cuadro A: $ · Cuadro D: litros).
+function dashDrawChart(elId, serie, key){
+  const el = document.getElementById(elId); if (!el) return;
+  if (!Array.isArray(serie) || !serie.length || !serie.some(d => (Number(d[key]) || 0) > 0)) { el.innerHTML = '<div class="ks-nodata">Sin datos para este período.</div>'; return; }
+  const vals = serie.map(d => Number(d[key]) || 0); const max = Math.max(1, ...vals); const n = vals.length; const W = 600, H = 200, pad = 8;
+  const pts = vals.map((v, i) => { const x = n <= 1 ? W / 2 : (i / (n - 1)) * W; const y = H - pad - (v / max) * (H - pad * 2); return x.toFixed(1) + ',' + y.toFixed(1); });
   const line = pts.join(' ');
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polygon fill="rgba(245,166,35,.16)" points="0,${H} ${line} ${W},${H}"/><polyline fill="none" stroke="#f5a623" stroke-width="3" points="${line}"/></svg>`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Gráfico de evolución en el período"><polygon fill="rgba(245,166,35,.16)" points="0,${H} ${line} ${W},${H}"/><polyline fill="none" stroke="#f5a623" stroke-width="3" points="${line}"/></svg>`;
 }
-function renderKsActivity(items){
-  const el = document.getElementById('ksActivity'); if (!el) return;
-  if (!Array.isArray(items) || !items.length){ el.innerHTML = '<div class="ks-muted">Sin conversaciones recientes.</div>'; return; }
-  const txt = o => o.preview || o.lastMessage || o.title || o.summary || o.intent || (o.brand ? ('Conversación · ' + o.brand) : '') || 'Conversación';
-  el.innerHTML = items.slice(0,6).map(o => {
-    const t = String(txt(o)).slice(0,72);
-    const sub = [o.from, o.mode, o.brand].filter(Boolean).join(' · ');
-    return `<div class="ks-act"><div class="ad">💬</div><div><div class="at">${escapeHtml(t)}</div>${sub ? `<div class="as">${escapeHtml(sub)}</div>` : ''}</div></div>`;
-  }).join('');
+function dashRenderA(c){
+  dashDrawChart('dashChartA', c.serie, 'total');
+  const note = document.getElementById('dashNoteA');
+  if (note) note.textContent = (c.serie && c.serie.length) ? ('Total del período: ' + ksCLP(c.total)) : '';
 }
-async function loadDashboard(){
-  const kEl = document.getElementById('ksKpis'); if (!kEl) return;
-  const [salesR, oeeR, convR] = await Promise.allSettled([
-    fetch('/admin/analytics/sales?range=30d').then(r => r.json()),
-    fetch('/admin/produccion/oee').then(r => r.json()),
-    fetch('/admin/conversations?limit=6').then(r => r.json()),
-  ]);
-  const sales = salesR.status === 'fulfilled' ? (salesR.value || {}) : {};
-  const oee   = oeeR.status   === 'fulfilled' ? (oeeR.value   || {}) : {};
-  const conv  = convR.status  === 'fulfilled' ? (convR.value  || {}) : {};
-  const sm = (sales && sales.available && sales.summary) ? sales.summary : {};
-  const oeePct = (oee && typeof oee.oee === 'number') ? Math.round(oee.oee * 1000)/10 : null;
-  const convTotal = (conv && conv.stats && typeof conv.stats.total === 'number') ? conv.stats.total : (typeof conv.total === 'number' ? conv.total : null);
-  const conv24 = (conv && conv.stats && typeof conv.stats.last24h === 'number') ? conv.stats.last24h : null;
-  kEl.innerHTML = [
-    kpiCard('k1','💰','Ingresos mayoristas · 30d', typeof sm.revenue === 'number' ? ksCLP(sm.revenue) : '—', typeof sm.orders === 'number' ? (sm.orders + ' pedidos') : '', ''),
-    kpiCard('k2','🧾','Ticket promedio · 30d', typeof sm.avgTicket === 'number' ? ksCLP(sm.avgTicket) : '—', '', ''),
-    kpiCard('k3','💬','Conversaciones IA', convTotal != null ? convTotal.toLocaleString('es-CL') : '—', conv24 != null ? ('▲ ' + conv24 + ' en 24h') : '', conv24 != null ? 'up' : ''),
-    kpiCard('k4','🏭','OEE producción', oeePct != null ? (oeePct.toLocaleString('es-CL') + '%') : '—', (oee && oee.banda) ? String(oee.banda) : '', ''),
+function dashRenderB(b){
+  const el = document.getElementById('dashRatiosB'); if (!el) return;
+  const row = (lab, r) => `<div class="ks-ratio"><div class="lab">${escapeHtml(lab)}</div><div class="pct">${(r.pct || 0).toLocaleString('es-CL')}%</div><div class="base">${ksCLP(r.monto)} de ${ksCLP(b.ventaTotal)}</div></div>`;
+  el.innerHTML = `<div class="ks-ratio-row">
+    ${row('Costos Totales / Venta Total', b.costosTotales)}
+    ${row('Marketing y Publicidad / Venta Total', b.gastosMarketing)}
+    ${row('Gasto de RRHH / Venta Total', b.gastoRRHH)}
+  </div>`;
+}
+function dashRenderC(c){
+  const el = document.getElementById('dashTablaC'); if (!el) return;
+  const g = c.global;
+  const rows = [
+    `<tr><td><b>Global</b></td><td class="dist-num">${ksCLP(g.ventaTotal)}</td><td class="dist-num">${ksCLP(g.costoTotal)}</td><td class="dist-num">${ksCLP(g.gastoTotal)}</td></tr>`,
+    ...c.porMarca.map(m => `<tr><td>${escapeHtml(m.label)}</td><td class="dist-num">${ksCLP(m.ventaTotal)} <span class="ks-muted" style="font-size:.72em">(${(m.litrosTotales || 0).toLocaleString('es-CL')} L)</span></td><td class="dist-num">${ksCLP(m.costoTotal)}</td><td class="dist-num">${ksCLP(m.gastoTotal)}</td></tr>`),
   ].join('');
-  renderKsActivity(conv && conv.items);
-  fetch('/admin/analytics?range=30d').then(r => r.json()).then(a => drawKsChart(a && a.byDay)).catch(() => drawKsChart(null));
+  el.innerHTML = `<div class="mun-wrap"><table class="mun-table"><thead><tr><th></th><th>Venta total</th><th>Costo total</th><th>Gasto total</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    + (c.notas || []).map(n => `<div class="ks-note warn">⚠ ${escapeHtml(n)}</div>`).join('');
+}
+function dashRenderD(d){
+  dashDrawChart('dashChartD', d.serie, 'litros');
+  const note = document.getElementById('dashNoteD');
+  if (note) note.textContent = 'Total: ' + (d.total || 0).toLocaleString('es-CL') + ' L. ' + d.nota;
+}
+async function loadDashCuadros(){
+  const qs = new URLSearchParams({ period: dashState.period });
+  if (dashState.period === 'custom') { if (!dashState.from || !dashState.to) return; qs.set('from', dashState.from); qs.set('to', dashState.to); }
+  const marcaSel = document.getElementById('dashMarcaSel');
+  qs.set('marca', marcaSel ? marcaSel.value : 'all');
+  ['dashChartA', 'dashRatiosB', 'dashTablaC', 'dashChartD'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<div class="ks-muted" style="padding:1rem">Cargando…</div>'; });
+  try {
+    const r = await fetch('/admin/home/dashboard?' + qs.toString());
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error cargando el resumen.');
+    const lbl = document.getElementById('dashPeriodLabel');
+    if (lbl) lbl.textContent = d.periodo.label + ' · ' + d.periodo.from + ' a ' + d.periodo.to + (d.shopifyOk === false ? ' · ⚠ Shopify no disponible ahora mismo' : '');
+    dashRenderA(d.cuadroA); dashRenderB(d.cuadroB); dashRenderC(d.cuadroC); dashRenderD(d.cuadroD);
+  } catch (e) {
+    const msg = '<div class="ks-err">⚠ ' + escapeHtml(String(e.message || e)) + '</div>';
+    ['dashChartA', 'dashRatiosB', 'dashTablaC', 'dashChartD'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = msg; });
+  }
 }
 
 fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
