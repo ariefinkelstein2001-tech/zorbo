@@ -9961,7 +9961,7 @@ document.getElementById('finhomeMes').onchange=loadFinHome;
 
 // ─── Notas de crédito (Finanzas): anular ventas por canal o corregir costos/gastos ───
 let ncData=null;
-function ncBlankForm(){ return {tipo:'',fecha:'',monto:'',canal:'',categoria:'',referencia:'',anulaCompleta:false,motivo:''}; }
+function ncBlankForm(){ return {tipo:'',folio:'',fecha:'',monto:'',canal:'',categoria:'',referencia:'',anulaCompleta:false,motivo:''}; }
 let ncForm=ncBlankForm();
 async function loadNotasCredito(){
   const body=document.getElementById('ncBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
@@ -9991,13 +9991,14 @@ function renderNotasCredito(){
   const rows=(a.notas||[]).map(n=>{
     const detalle = n.tipo==='ingreso' ? (escapeHtml(canalLbl(n.canal))+(n.referencia?(' · '+escapeHtml(n.referencia)):'')+(n.anulaCompleta?' · <b>completa</b>':'')) : escapeHtml(catLbl(n.categoria));
     const signo = n.tipo==='ingreso' ? '−' : '+';
-    return `<tr><td>${escapeHtml(n.fecha)}</td><td><span class="cg-tag ${n.tipo==='ingreso'?'nc-in':'nc-out'}">${ncTipoLabel(n.tipo)}</span></td><td>${detalle}</td><td class="dist-num ${n.tipo==='ingreso'?'pnl-neg':''}">${signo}${eM(n.monto)}</td><td>${escapeHtml(n.motivo||'—')}</td><td><button class="pv-del" data-ncdel="${n.id}" title="Eliminar">✕</button></td></tr>`;
+    return `<tr><td>${escapeHtml(n.fecha)}</td><td><b>${escapeHtml(n.folio||'—')}</b></td><td><span class="cg-tag ${n.tipo==='ingreso'?'nc-in':'nc-out'}">${ncTipoLabel(n.tipo)}</span></td><td>${detalle}</td><td class="dist-num ${n.tipo==='ingreso'?'pnl-neg':''}">${signo}${eM(n.monto)}</td><td>${escapeHtml(n.motivo||'—')}</td><td><button class="pv-del" data-ncdel="${n.id}" title="Eliminar">✕</button></td></tr>`;
   }).join('');
   body.innerHTML=`
     <div class="cg-form">
       <div class="cg-form-title">Registrar nota de crédito</div>
       <div class="cg-form-grid">
         <label class="cg-field"><span>Tipo</span><select id="ncTipo">${tipoOpts}</select></label>
+        <label class="cg-field"><span>Folio (N° nota de crédito)</span><input type="text" id="ncFolio" value="${escapeAttr(f.folio)}" placeholder="Ej: NC-00123"></label>
         ${condFields}
         <label class="cg-field"><span>Fecha</span><input type="date" id="ncFecha" value="${escapeAttr(f.fecha)}"></label>
         <label class="cg-field"><span>Monto ($)</span><input type="text" inputmode="numeric" id="ncMonto" value="${escapeAttr(f.monto)}" placeholder="0"></label>
@@ -10007,21 +10008,22 @@ function renderNotasCredito(){
       <div class="cg-err" id="ncErr"></div>
       <div class="est-note" style="margin-top:.4rem">Ajusta el <b>Estado de Resultado</b> del mes de su fecha: las de venta <b>restan</b> del ingreso del canal; las de costo/gasto <b>suman</b> a su categoría.</div>
     </div>
-    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>Tipo</th><th>Detalle</th><th style="text-align:right">Ajuste</th><th>Motivo</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:.8rem">Sin notas de crédito todavía.</td></tr>'}</tbody></table></div>`;
+    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>Folio</th><th>Tipo</th><th>Detalle</th><th style="text-align:right">Ajuste</th><th>Motivo</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:#999;padding:.8rem">Sin notas de crédito todavía.</td></tr>'}</tbody></table></div>`;
   ncWire();
 }
 function ncWire(){
   const g=id=>document.getElementById(id); const f=ncForm;
   const bind=(el,k,ev)=>{ const e=g(el); if(e) e[ev||'oninput']=()=>{ f[k]=e.type==='checkbox'?e.checked:e.value; }; };
   const tipo=g('ncTipo'); if(tipo) tipo.onchange=()=>{ f.tipo=tipo.value; f.canal=''; f.categoria=''; renderNotasCredito(); };
-  bind('ncCanal','canal','onchange'); bind('ncRef','referencia'); bind('ncCat','categoria','onchange'); bind('ncAnula','anulaCompleta','onchange');
+  bind('ncFolio','folio'); bind('ncCanal','canal','onchange'); bind('ncRef','referencia'); bind('ncCat','categoria','onchange'); bind('ncAnula','anulaCompleta','onchange');
   bind('ncFecha','fecha','onchange'); bind('ncMonto','monto'); bind('ncMotivo','motivo');
   const add=g('ncAdd'); if(add) add.onclick=ncAgregar;
   document.querySelectorAll('[data-ncdel]').forEach(b=>b.onclick=()=>ncEliminar(b.dataset.ncdel));
 }
 async function ncAgregar(){
   const f=ncForm; const err=document.getElementById('ncErr'); if(err){ err.textContent=''; err.classList.remove('show'); }
-  const payload={ tipo:f.tipo, fecha:f.fecha, monto:cNum(f.monto), canal:f.canal, categoria:f.categoria, referencia:f.referencia, motivo:f.motivo, anulaCompleta:f.anulaCompleta };
+  const payload={ tipo:f.tipo, folio:f.folio, fecha:f.fecha, monto:cNum(f.monto), canal:f.canal, categoria:f.categoria, referencia:f.referencia, motivo:f.motivo, anulaCompleta:f.anulaCompleta };
+  if(!(f.folio||'').trim()){ if(err){ err.textContent='⚠ Ingresa el folio de la nota de crédito.'; err.classList.add('show'); } return; }
   try{ const r=await fetch('/admin/notas-credito',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); ncForm=ncBlankForm(); await loadNotasCredito(); }
   catch(e){ if(err){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); } }
 }

@@ -3746,7 +3746,7 @@ function ncLoad(){ try { if (existsSync(NC_FILE)) { const p = JSON.parse(readFil
 function ncSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(NC_FILE, JSON.stringify(d, null, 2)); }
 function ncNorm(b, id){
   const tipo = NC_TIPOS.includes(costosStr(b.tipo, 20)) ? costosStr(b.tipo, 20) : '';
-  const out = { id: id || costosNewId('nc'), tipo, fecha: costosStr(b.fecha, 20), monto: costosNum(b.monto), referencia: costosStr(b.referencia, 80), motivo: costosStr(b.motivo, 300), anulaCompleta: !!b.anulaCompleta };
+  const out = { id: id || costosNewId('nc'), tipo, folio: costosStr(b.folio, 60), fecha: costosStr(b.fecha, 20), monto: costosNum(b.monto), referencia: costosStr(b.referencia, 80), motivo: costosStr(b.motivo, 300), anulaCompleta: !!b.anulaCompleta };
   if (tipo === 'ingreso') out.canal = NC_CANAL_IDS.includes(costosStr(b.canal, 20)) ? costosStr(b.canal, 20) : '';
   else out.categoria = (COSTOS_CATEGORIAS.find(c => c.id === costosStr(b.categoria, 40)) ? costosStr(b.categoria, 40) : '');
   return out;
@@ -3771,6 +3771,7 @@ app.get('/admin/notas-credito', requireAdmin, (req, res) => {
 app.post('/admin/notas-credito', requireAdmin, (req, res) => {
   const n = ncNorm(req.body || {});
   if (!n.tipo) return res.status(400).json({ error: 'Elige el tipo de nota de crédito.' });
+  if (!n.folio) return res.status(400).json({ error: 'Ingresa el folio de la nota de crédito.' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(n.fecha)) return res.status(400).json({ error: 'Ingresa la fecha.' });
   if (!n.monto) return res.status(400).json({ error: 'Ingresa el monto.' });
   if (n.tipo === 'ingreso' && !n.canal) return res.status(400).json({ error: 'Elige el canal de venta a anular.' });
