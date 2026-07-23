@@ -2134,6 +2134,37 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .pnl-box-red{background:linear-gradient(135deg,#e0654f,#d33 60%)!important}
 .pnl-activos{display:flex;align-items:center;gap:.6rem;margin-top:1rem;padding:.7rem .9rem;border:1px dashed var(--line,#ccc);border-radius:10px;font-size:.88rem;color:var(--muted,#666)}
 .pnl-activos b{color:var(--text,#111);font-family:var(--display,inherit)}
+/* Paso 3: toggle Real/Proyectado + líneas proyectadas + chips de objetivo + editor */
+.pnl-topbar{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:1rem}
+.pnl-mode{display:inline-flex;background:var(--surface3,#f0f0f2);padding:3px;border-radius:10px;gap:2px}
+.pnl-mode-b{font:inherit;font-size:.82rem;font-weight:700;border:0;background:none;color:var(--muted,#666);padding:.4rem .9rem;border-radius:8px;cursor:pointer}
+.pnl-mode-b.on{background:var(--gold,#f5a623);color:#1a1408;box-shadow:var(--shadow-sm)}
+.pnl-proj-note{font-size:.8rem;color:var(--muted,#666)}
+.pnl-proj-tag{display:inline-block;font-size:.6rem;font-weight:800;letter-spacing:.05em;color:#7a5cc0;background:#efeafa;border:1px solid #d6c9f0;border-radius:99px;padding:.05rem .4rem;vertical-align:middle}
+.pnl-table tr.pnl-proj td{background:repeating-linear-gradient(135deg,rgba(124,92,192,.05),rgba(124,92,192,.05) 8px,transparent 8px,transparent 16px)}
+.pnl-table tr.pnl-proj td:first-child{font-style:italic}
+.pnl-table tr.pnl-proj.pnl-res td{border-top-color:#b9a6e6}
+.pnl-proj-box{outline:2px dashed #b9a6e6;outline-offset:2px}
+.pnl-obj{display:inline-block;font-size:.68rem;font-weight:700;padding:.08rem .45rem;border-radius:99px;margin-left:.45rem;vertical-align:middle;white-space:nowrap}
+.pnl-obj.ok{background:#e7f6ee;color:#1f7a44;border:1px solid #bfe6cf}
+.pnl-obj.bad{background:#fdeaea;color:#b91c1c;border:1px solid #f6caca}
+.pnl-obj-dev{font-variant-numeric:tabular-nums}
+.pnl-coment{margin-top:.9rem;border:1px solid var(--border);border-radius:10px;background:var(--surface2,#fafafa);font-size:.84rem}
+.pnl-coment>summary{cursor:pointer;padding:.55rem .8rem;font-weight:700;color:var(--gold-deep,#a05f00);list-style:none}
+.pnl-coment>summary::-webkit-details-marker{display:none}
+.pnl-coment>summary::before{content:"▸ ";opacity:.7}.pnl-coment[open]>summary::before{content:"▾ "}
+.pnl-coment-body{padding:.2rem .8rem .8rem;color:var(--text-2,#52525b);line-height:1.6}
+.pnl-obj-edit{margin-top:1rem;border:1px solid var(--border);border-left:3px solid var(--gold,#f5a623);border-radius:10px;background:var(--surface2,#fafafa)}
+.pnl-obj-edit>summary{cursor:pointer;padding:.65rem .9rem;font-weight:800;font-family:var(--display,inherit);font-size:.92rem;list-style:none}
+.pnl-obj-edit>summary::-webkit-details-marker{display:none}
+.pnl-obj-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem;padding:.2rem .9rem .6rem}
+.pnl-obj-grid label{display:flex;flex-direction:column;gap:.25rem;font-size:.74rem;font-weight:700;color:var(--muted,#666)}
+.pnl-obj-grid input{font:inherit;font-size:.9rem;padding:.45rem .6rem;border:1px solid var(--border);border-radius:8px;font-variant-numeric:tabular-nums}
+.pnl-obj-coment{display:flex;flex-direction:column;gap:.3rem;padding:0 .9rem .6rem;font-size:.74rem;font-weight:700;color:var(--muted,#666)}
+.pnl-obj-coment textarea{font:inherit;font-size:.85rem;padding:.5rem .6rem;border:1px solid var(--border);border-radius:8px;resize:vertical;color:var(--text)}
+.pnl-obj-actions{display:flex;align-items:center;gap:.7rem;padding:0 .9rem .9rem}
+.pnl-obj-msg{font-size:.8rem;color:var(--green,#2e9c5a)}.pnl-obj-msg.err{color:#c0392b}
+@media(max-width:820px){.pnl-obj-grid{grid-template-columns:1fr 1fr}}
 .pnl-activos span:first-child{flex:1}
 .est-hchans{display:flex;gap:.7rem;flex-wrap:wrap}
 .est-hchan{flex:1;min-width:200px;text-align:left;border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.7rem .9rem;background:var(--surface,#fff);cursor:pointer;transition:all .15s}
@@ -9621,6 +9652,7 @@ document.getElementById('pfSave').onclick = async () => {
 
 // ─── Estado de Resultado (P&L) ──────────────────────────────────────────────
 let pnlData=null;
+let pnlProyectado=false; // toggle Real / Proyectado (simulación de solo lectura)
 async function loadPnl(){
   const body=document.getElementById('pnlBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   const sel=document.getElementById('pnlMes');
@@ -9634,23 +9666,42 @@ async function loadPnl(){
       sel.value=(typeof estadoMonth==='string'&&estadoMonth)||months[0];
     }
     const mes=sel.value;
-    const r=await fetch('/admin/pnl?month='+mes); pnlData=await r.json();
+    const r=await fetch('/admin/pnl?month='+mes+(pnlProyectado?'&proyectar=1':'')); pnlData=await r.json();
     if(pnlData.error) throw new Error(pnlData.error);
     renderPnl();
   }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
 }
 function renderPnl(){
   const a=pnlData, body=document.getElementById('pnlBody');
-  document.getElementById('pnlMeta').textContent=(a.shopifyOk?'Shopify OK':'⚠️ Shopify no disponible')+' · '+estMonthLabel(a.month)+' · ingresos por venta − costos y gastos';
+  const proy=!!a.proyectado;
+  document.getElementById('pnlMeta').textContent=(a.shopifyOk?'Shopify OK':'⚠️ Shopify no disponible')+' · '+estMonthLabel(a.month)+' · ingresos por venta − costos y gastos'+(proy?` · PROYECTADO según ${escapeHtml(a.mesReplicadoLabel||'')}`:'');
   const ing=a.ingresos, co=a.costos, rt=a.ratios, dc=a.docs||{};
-  const pct=v=>`<span class="pnl-pct">${(v>=0?'':'')}${v}%</span>`;
+  const obj=a.objetivos||{};
+  const pct=v=>`<span class="pnl-pct">${v}%</span>`;
   const money=(v,neg)=>`<b class="${neg?'pnl-neg':''}">${neg&&v>0?'-':''}${eM(v)}</b>`;
-  const line=(label,val,{neg,pctv,doc,sub}={})=>`<tr class="${sub?'pnl-sub':''}"><td>${escapeHtml(label)}${doc!=null?` <span class="pnl-doc">${doc} doc${doc===1?'':'s'}</span>`:''}</td><td class="dist-num">${pctv!=null?pct(pctv):''}</td><td class="dist-num">${money(val,neg)}</td></tr>`;
-  const res=(label,val,pctv,cls)=>`<tr class="pnl-res ${cls||''}"><td>${escapeHtml(label)}</td><td class="dist-num">${pct(pctv)}</td><td class="dist-num">${eM(val)}</td></tr>`;
+  // Chip de objetivo + desviación (no solo color: lleva flecha, signo y valor).
+  const objChip=(real,meta,lowerBetter)=>{
+    if(meta==null) return '';
+    const dif=Math.round((real-meta)*10)/10;
+    const good=lowerBetter?(real<=meta):(real>=meta);
+    const arrow=dif>0?'▲':(dif<0?'▼':'=');
+    const sign=dif>0?'+':'';
+    return `<span class="pnl-obj ${good?'ok':'bad'}" title="Meta ${meta}% · real ${real}%">meta ${meta}% <span class="pnl-obj-dev">${arrow} ${sign}${dif} pts</span></span>`;
+  };
+  const PROJTAG='<span class="pnl-proj-tag">PROYECTADO</span>';
+  const line=(label,val,{neg,pctv,doc,sub,proj,chip}={})=>`<tr class="${sub?'pnl-sub':''} ${proj?'pnl-proj':''}"><td>${escapeHtml(label)}${proj?' '+PROJTAG:''}${doc!=null?` <span class="pnl-doc">${doc} doc${doc===1?'':'s'}</span>`:''}${chip?' '+chip:''}</td><td class="dist-num">${pctv!=null?pct(pctv):''}</td><td class="dist-num">${money(val,neg)}</td></tr>`;
+  const res=(label,val,pctv,cls,{proj,chip}={})=>`<tr class="pnl-res ${cls||''} ${proj?'pnl-proj':''}"><td>${escapeHtml(label)}${proj?' '+PROJTAG:''}${chip?' '+chip:''}</td><td class="dist-num">${pct(pctv)}</td><td class="dist-num">${eM(val)}</td></tr>`;
   const ebitdaCls=a.ebitda>=0?'pnl-pos':'pnl-red';
+  const toggle=`<div class="pnl-mode" role="tablist" aria-label="Modo del Estado de Resultado">
+    <button type="button" class="pnl-mode-b ${proy?'':'on'}" id="pnlModeReal" role="tab" aria-selected="${proy?'false':'true'}">Real</button>
+    <button type="button" class="pnl-mode-b ${proy?'on':''}" id="pnlModeProy" role="tab" aria-selected="${proy?'true':'false'}">Proyectado</button>
+  </div>`;
+  const comentario=(obj.comentario||'').trim();
+  const comentarioHtml=comentario?`<details class="pnl-coment"><summary>Ver comentario de Finanzas</summary><div class="pnl-coment-body">${escapeHtml(comentario).replace(/\n/g,'<br>')}</div></details>`:'';
   body.innerHTML=`
+    <div class="pnl-topbar">${toggle}${proy?`<span class="pnl-proj-note">Simulación: los gastos estructurales replican el total de <b>${escapeHtml(a.mesReplicadoLabel||'')}</b>. No modifica datos guardados.</span>`:''}</div>
     <div class="est-top">
-      <div class="est-total-box ${a.ebitda>=0?'':'pnl-box-red'}"><div class="est-total-l">Resultado del mes (EBITDA)</div><div class="est-total-v">${eM(a.ebitda)}</div><div class="est-delta">${rt.ebitda}% sobre ventas</div></div>
+      <div class="est-total-box ${a.ebitda>=0?'':'pnl-box-red'} ${proy?'pnl-proj-box':''}"><div class="est-total-l">Resultado del mes (EBITDA)${proy?' '+PROJTAG:''}</div><div class="est-total-v">${eM(a.ebitda)}</div><div class="est-delta">${rt.ebitda}% sobre ventas</div></div>
       <div class="est-note">Se calcula con los <b>ingresos por venta</b> automáticos de Shopify menos los <b>costos y gastos</b> registrados en Costos y en Gastos, imputados por categoría. Los porcentajes son sobre la venta total.</div>
     </div>
     <div class="mun-wrap"><table class="mun-table pnl-table"><tbody>
@@ -9661,15 +9712,38 @@ function renderPnl(){
       ${line('Hospitality', ing.canales.hospitality, {sub:true})}
       ${line('Costo directo', co.costoDirecto, {neg:true, pctv:rt.costoDirecto, doc:dc.costo_directo||0})}
       ${line('Costo indirecto', co.costoIndirecto, {neg:true, pctv:rt.costoIndirecto, doc:dc.costo_indirecto||0})}
-      ${res('MARGEN BRUTO', a.margenBruto, rt.margenBruto, a.margenBruto>=0?'pnl-pos':'pnl-red')}
-      ${line('Gastos operativos', co.gastosOper, {neg:true, pctv:rt.gastosOper, doc:dc.gastos_operativos||0})}
-      ${line('Gastos de administración y venta', co.gastosAdmin, {neg:true, pctv:rt.gastosAdmin, doc:dc.gastos_admin_venta||0})}
-      ${line('Marketing y publicidad', co.gastosMarketing, {neg:true, pctv:rt.gastosMarketing, doc:dc.marketing_publicidad||0})}
-      ${line('Gasto de personal · nómina', co.gastoPersonal, {neg:true, pctv:rt.gastoPersonal})}
-      ${res('EBITDA · Resultado operativo', a.ebitda, rt.ebitda, ebitdaCls)}
+      ${res('MARGEN BRUTO', a.margenBruto, rt.margenBruto, a.margenBruto>=0?'pnl-pos':'pnl-red', {chip:objChip(rt.margenBruto,obj.margenBruto,false)})}
+      ${line('Gastos operativos', co.gastosOper, {neg:true, pctv:rt.gastosOper, doc:proy?null:(dc.gastos_operativos||0), proj:proy})}
+      ${line('Gastos de administración y venta', co.gastosAdmin, {neg:true, pctv:rt.gastosAdmin, doc:proy?null:(dc.gastos_admin_venta||0), proj:proy})}
+      ${line('Marketing y publicidad', co.gastosMarketing, {neg:true, pctv:rt.gastosMarketing, doc:proy?null:(dc.marketing_publicidad||0), proj:proy, chip:objChip(rt.gastosMarketing,obj.marketing,true)})}
+      ${line('Gasto de personal · nómina', co.gastoPersonal, {neg:true, pctv:rt.gastoPersonal, proj:proy, chip:objChip(rt.gastoPersonal,obj.gastoPersonal,true)})}
+      ${res('EBITDA · Resultado operativo', a.ebitda, rt.ebitda, ebitdaCls, {proj:proy, chip:objChip(rt.ebitda,obj.ebitda,false)})}
     </tbody></table></div>
     <div class="pnl-activos"><span>Activos fijos <span style="font-size:.78rem;color:var(--dim,#999)">inversión, no afecta el resultado operativo</span></span><b>${eM(co.activos)}</b> <span class="pnl-doc">${dc.activos_fijos||0} doc${(dc.activos_fijos||0)===1?'':'s'}</span></div>
+    ${comentarioHtml}
+    <details class="pnl-obj-edit"><summary>🎯 Objetivos de Finanzas — editar metas y comentario</summary>
+      <div class="pnl-obj-grid">
+        <label>Margen Bruto (%)<input type="number" step="0.1" min="0" max="1000" id="objMargen" value="${escapeAttr(obj.margenBruto)}"></label>
+        <label>Gasto de personal (%)<input type="number" step="0.1" min="0" max="1000" id="objPersonal" value="${escapeAttr(obj.gastoPersonal)}"></label>
+        <label>Marketing y publicidad (%)<input type="number" step="0.1" min="0" max="1000" id="objMkt" value="${escapeAttr(obj.marketing)}"></label>
+        <label>EBITDA (%)<input type="number" step="0.1" min="0" max="1000" id="objEbitda" value="${escapeAttr(obj.ebitda)}"></label>
+      </div>
+      <label class="pnl-obj-coment">Comentario de Finanzas (contexto del mes)<textarea id="objComent" rows="4" maxlength="4000" placeholder="Notas del equipo de Finanzas…">${escapeHtml(obj.comentario||'')}</textarea></label>
+      <div class="pnl-obj-actions"><button class="adm-btn adm-btn-gold" id="objSave" type="button">Guardar objetivos</button><span class="pnl-obj-msg" id="objMsg"></span></div>
+    </details>
     <div class="est-note" style="margin-top:.8rem">Para cargar o editar los costos y gastos, ve a <b>Costos</b> o <b>Gastos</b>. Acá se resumen automáticamente por categoría.</div>`;
+  const bReal=document.getElementById('pnlModeReal'), bProy=document.getElementById('pnlModeProy');
+  if(bReal) bReal.onclick=()=>{ if(pnlProyectado){ pnlProyectado=false; loadPnl(); } };
+  if(bProy) bProy.onclick=()=>{ if(!pnlProyectado){ pnlProyectado=true; loadPnl(); } };
+  const save=document.getElementById('objSave');
+  if(save) save.onclick=pnlGuardarObjetivos;
+}
+async function pnlGuardarObjetivos(){
+  const g=id=>document.getElementById(id);
+  const body={ margenBruto:g('objMargen').value, gastoPersonal:g('objPersonal').value, marketing:g('objMkt').value, ebitda:g('objEbitda').value, comentario:g('objComent').value };
+  const msg=g('objMsg'); if(msg){ msg.textContent='Guardando…'; msg.className='pnl-obj-msg'; }
+  try{ const r=await fetch('/admin/objetivos',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadPnl(); }
+  catch(e){ if(msg){ msg.textContent='⚠ '+String(e.message||e); msg.className='pnl-obj-msg err'; } }
 }
 document.getElementById('pnlReload').onclick=loadPnl;
 document.getElementById('pnlMes').onchange=loadPnl;

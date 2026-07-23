@@ -3701,10 +3701,58 @@ function pnlSheetRows(data, month){
   rows.push([T('Activos fijos'), T(''), M(co.activos)]);
   return rows;
 }
+// ── Objetivos de Finanzas (metas editables) + proyección del mes en curso ──
+const OBJETIVOS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'objetivos-finanzas.json');
+const OBJETIVOS_DEFAULT = { margenBruto: 55, gastoPersonal: 18, marketing: 5, ebitda: 15, comentario: '' };
+function objetivosLoad(){
+  try { if (existsSync(OBJETIVOS_FILE)) { const o = JSON.parse(readFileSync(OBJETIVOS_FILE, 'utf-8')); return { ...OBJETIVOS_DEFAULT, ...o }; } }
+  catch (e) { console.warn('objetivos load:', e.message); }
+  return { ...OBJETIVOS_DEFAULT };
+}
+function objetivosSave(o){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(OBJETIVOS_FILE, JSON.stringify(o, null, 2)); }
+function pnlPrevMonth(month){ const [y, m] = String(month).split('-').map(Number); const d = new Date(y, m - 2, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+// Totales de los 4 gastos estructurales de un mes (para proyectar el mes en curso).
+function pnlGastosDeMes(month){
+  const cd = costosLoad();
+  const rs = costosResumen(cd.entradas.filter(e => costosMes(e.fecha) === month));
+  const t = id => (rs.porCategoria[id] || { total: 0 }).total;
+  return { gastosOper: t('gastos_operativos'), gastosAdmin: t('gastos_admin_venta'), gastosMarketing: t('marketing_publicidad'), gastoPersonal: nominaLoad().costoEmpresa || 0 };
+}
+app.get('/admin/objetivos', requireAdmin, (req, res) => res.json(objetivosLoad()));
+app.put('/admin/objetivos', requireAdmin, (req, res) => {
+  const b = req.body || {}; const cur = objetivosLoad();
+  const num = (v, d) => { const n = Number(v); return Number.isFinite(n) && n >= 0 && n <= 1000 ? Math.round(n * 10) / 10 : d; };
+  const o = {
+    margenBruto: num(b.margenBruto, cur.margenBruto), gastoPersonal: num(b.gastoPersonal, cur.gastoPersonal),
+    marketing: num(b.marketing, cur.marketing), ebitda: num(b.ebitda, cur.ebitda),
+    comentario: String(b.comentario == null ? cur.comentario : b.comentario).slice(0, 4000),
+  };
+  objetivosSave(o); res.json({ ok: true, objetivos: o });
+});
 app.get('/admin/pnl', requireAdmin, async (req, res) => {
   const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
   if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
-  try { res.json(await pnlCompute(month, estadoRangeFromReq(req))); }
+  try {
+    const data = await pnlCompute(month, estadoRangeFromReq(req));
+    data.objetivos = objetivosLoad();
+    // Proyección (solo lectura): replica el gasto TOTAL del mes anterior ya cerrado en las
+    // 4 líneas estructurales y recalcula el EBITDA. No toca los datos guardados.
+    if (String(req.query.proyectar) === '1') {
+      const prev = pnlPrevMonth(month);
+      const pe = pnlGastosDeMes(prev);
+      const ing = data.ingresos.total;
+      const ratio = v => ing ? Math.round((v / ing) * 1000) / 10 : 0;
+      data.costos.gastosOper = pe.gastosOper; data.costos.gastosAdmin = pe.gastosAdmin;
+      data.costos.gastosMarketing = pe.gastosMarketing; data.costos.gastoPersonal = pe.gastoPersonal;
+      data.ratios.gastosOper = ratio(pe.gastosOper); data.ratios.gastosAdmin = ratio(pe.gastosAdmin);
+      data.ratios.gastosMarketing = ratio(pe.gastosMarketing); data.ratios.gastoPersonal = ratio(pe.gastoPersonal);
+      data.ebitda = data.margenBruto - pe.gastosOper - pe.gastosAdmin - pe.gastosMarketing - pe.gastoPersonal;
+      data.ratios.ebitda = ratio(data.ebitda);
+      data.proyectado = true; data.mesReplicado = prev; data.mesReplicadoLabel = estadoMonthLabel(prev);
+      data.lineasProyectadas = ['gastosOper', 'gastosAdmin', 'gastosMarketing', 'gastoPersonal', 'ebitda'];
+    }
+    res.json(data);
+  }
   catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
 });
 app.get('/admin/pnl/export.xlsx', requireAdmin, async (req, res) => {
