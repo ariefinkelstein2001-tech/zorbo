@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Zorbo Admin — Panel interno</title>
+<title>K-BROS</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -131,6 +131,37 @@ body.role-costeo .adm-chat{display:none}
 body.estado-active .adm-shell{grid-template-columns:1fr}
 body.estado-active .adm-chat{display:none}
 body.admin-home .adm-chat,body.admin-home .adm-chat-fab{display:none!important}
+
+/* ── Zorbot · Preview colapsable (recuerda estado) ── */
+.adm-chat-collapse{
+  position:absolute;top:.9rem;left:-14px;width:28px;height:28px;border-radius:50%;
+  background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;
+  justify-content:center;cursor:pointer;z-index:5;color:var(--muted);
+  box-shadow:0 2px 6px rgba(0,0,0,.1);transition:left .2s,transform .2s,border-color .15s,color .15s;
+}
+.adm-chat-collapse:hover{border-color:var(--gold-bd-h);color:var(--gold)}
+.adm-chat-collapse svg{transition:transform .2s}
+body.zb-collapsed .adm-shell{grid-template-columns:1fr 54px}
+body.zb-collapsed .adm-chat-head{flex-direction:column;padding:2.6rem .4rem .8rem;gap:.6rem}
+body.zb-collapsed .adm-chat-title-col,
+body.zb-collapsed .adm-chat-mode,
+body.zb-collapsed .adm-chat-x,
+body.zb-collapsed .adm-chat-body,
+body.zb-collapsed .adm-chat-foot{display:none}
+body.zb-collapsed .adm-chat-collapse{left:50%;top:.8rem;transform:translateX(-50%)}
+body.zb-collapsed .adm-chat-collapse svg{transform:rotate(180deg)}
+body.admin-home.zb-collapsed .adm-shell,
+body.role-costeo.zb-collapsed .adm-shell,
+body.estado-active.zb-collapsed .adm-shell{grid-template-columns:1fr}
+@media(max-width:1080px){
+  body.zb-collapsed .adm-shell{grid-template-columns:1fr}
+}
+@media(min-width:601px) and (max-width:1080px){
+  body.zb-collapsed .adm-chat{min-height:0}
+  body.zb-collapsed .adm-chat-head{flex-direction:row;padding:.7rem 2.6rem .7rem 1rem}
+  body.zb-collapsed .adm-chat-collapse{left:auto;right:.9rem;top:.9rem;transform:none}
+  body.zb-collapsed .adm-chat-collapse svg{transform:rotate(90deg)}
+}
 
 /* ═══════════ K-BROS SHELL (sidebar + topbar + dashboard) ═══════════ */
 :root{ --ks-side:268px; --ks-b900:#0b2a5e; --ks-b800:#123a7a; --ks-b950:#071d40; }
@@ -347,7 +378,7 @@ body{ padding-left:var(--ks-side); }
   font-family:var(--display);font-size:1.55rem;font-weight:800;letter-spacing:-.005em;line-height:1;
   color:var(--gold-deep);
 }
-.adm-panel-meta{font-family:var(--mono);font-size:.7rem;color:var(--dim);margin-top:6px}
+.adm-panel-meta{font-family:var(--sans);font-size:.7rem;color:var(--dim);margin-top:6px}
 .adm-actions{display:flex;gap:.5rem;flex-shrink:0;align-items:center;flex-wrap:wrap}
 .adm-btn{
   font-family:var(--sans);font-size:.78rem;font-weight:700;letter-spacing:.04em;
@@ -1721,11 +1752,40 @@ body.drawer-open{overflow:hidden}
 /* ── ESTADO DE RESULTADO ── */
 .est-top{display:flex;gap:1rem;align-items:stretch;flex-wrap:wrap;margin-bottom:1rem}
 .est-total-box{background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623) 60%,var(--gold-deep,#a05f00));color:#1a1408;border-radius:14px;padding:1rem 1.4rem;min-width:240px}
-.est-total-l{font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.est-total-l{font-size:.7rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.8;display:flex;align-items:center;gap:.4rem}
 .est-total-v{font-family:var(--display,inherit);font-size:2rem;font-weight:800;line-height:1.1}
-.est-delta{font-size:.78rem;font-weight:700;margin-top:.2rem;opacity:.85}
 .est-note{flex:1;min-width:240px;font-size:.82rem;color:var(--muted,#777);align-self:center;line-height:1.5}
-.est-alert{background:rgba(211,51,51,.08);border:1px solid rgba(211,51,51,.3);color:#a02020;border-radius:10px;padding:.6rem .9rem;font-size:.82rem;margin-bottom:1rem;line-height:1.5}
+.est-delta{font-size:.78rem;font-weight:700;margin-top:.2rem;opacity:.85}
+.est-diag-btn{position:relative;width:20px;height:20px;border-radius:50%;border:1px solid rgba(26,20,8,.35);background:rgba(255,255,255,.35);color:#1a1408;font-size:.72rem;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.est-diag-btn:hover{background:rgba(255,255,255,.6)}
+.est-diag-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--red,#d33);border:1px solid #fff}
+.est-diag{background:var(--surface-2,#faf6ec);border:1px solid var(--line,#e5e5e5);border-radius:10px;padding:.7rem .9rem;margin-bottom:1rem;font-size:.82rem;color:var(--muted,#666);line-height:1.5}
+.est-diag-h{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--dim,#999);margin-bottom:.3rem}
+.est-diag-row{margin:.15rem 0}
+.est-diag-row.est-diag-alert{color:#a02020}
+.est-diag-row b{color:var(--text,#111)}
+.est-tip-wrap{position:relative;display:inline-flex}
+.est-tip{
+  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  background:#1a1408;color:#fff;font-size:.72rem;line-height:1.4;font-weight:500;
+  padding:.4rem .6rem;border-radius:8px;width:max-content;max-width:220px;
+  opacity:0;visibility:hidden;pointer-events:none;transition:opacity .15s;z-index:20;
+  box-shadow:0 4px 14px rgba(0,0,0,.2);
+}
+.est-tip::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1a1408}
+.est-tip-wrap:hover .est-tip,.est-tip-wrap:focus-within .est-tip{opacity:1;visibility:visible}
+.est-help-btn{
+  width:26px;height:26px;border-radius:50%;border:1px solid var(--line,#ddd);background:var(--surface,#fff);
+  color:var(--muted,#666);font-size:.78rem;font-weight:800;cursor:pointer;flex-shrink:0;
+}
+.est-help-btn:hover{border-color:var(--gold,#f5a623);color:var(--gold-deep,#a05f00)}
+.est-help-btn[aria-expanded="true"]{background:var(--gold,#f5a623);border-color:var(--gold,#f5a623);color:#1a1408}
+.est-help-box{
+  background:var(--surface-2,#faf6ec);border:1px solid var(--line,#e5e5e5);border-radius:10px;
+  padding:.7rem .9rem;margin:.6rem 0 0;font-size:.8rem;color:var(--muted,#666);line-height:1.6;
+}
+.est-help-box b{color:var(--text,#111)}
+.est-help-box div{margin:.15rem 0}
 .est-precios{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;background:var(--surface-2,#faf6ec);border-radius:10px;padding:.6rem .9rem;margin-bottom:1rem}
 .est-pr{display:inline-flex;align-items:center;gap:.35rem;font-size:.78rem;font-weight:700;color:var(--muted,#666);text-transform:capitalize}
 .est-pr-inp{width:80px;text-align:right;padding:.3rem .5rem;border:1px solid var(--line,#ddd);border-radius:var(--radius-sm,7px)}
@@ -2480,10 +2540,10 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
         </div>
       </div>
       <div class="tc-search">
-        <input type="text" id="tcInput" placeholder="Escribí un producto… ej: Samba, Golden, Banny">
+        <input type="text" id="tcInput" placeholder="Escribe un producto… ej: Samba, Golden, Banny">
         <button class="adm-btn" id="tcBtn" type="button">Buscar</button>
       </div>
-      <div id="tcBody"><div class="dist-empty">Escribí el nombre de un producto y dale Buscar para ver el ranking de clientes.</div></div>
+      <div id="tcBody"><div class="dist-empty">Escribe el nombre de un producto y presiona Buscar para ver el ranking de clientes.</div></div>
     </div>
 
     <!-- Vista Distribuidora (proveedores · costos · márgenes · OC · comercialización) -->
@@ -2551,19 +2611,26 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
     <div class="adm-panel" id="estadoView" style="display:none">
       <div class="adm-panel-head">
         <div>
-          <div class="adm-panel-title">Ingreso por Venta · CD Kairos</div>
-          <div class="adm-panel-meta" id="estadoMeta">ingresos por 4 canales · 100% automáticos de Shopify</div>
+          <div class="adm-panel-title">Ingreso por Venta</div>
         </div>
         <div class="adm-actions">
           <select id="estadoMonth" class="costeo-svc"></select>
           <label class="est-daterange">Desde <input type="date" id="estadoFrom" class="est-date"></label>
           <label class="est-daterange">Hasta <input type="date" id="estadoTo" class="est-date"></label>
-          <button class="adm-btn adm-btn-ghost" id="estadoMesCompleto" type="button" title="Volver al mes completo">Mes completo</button>
-          <button class="adm-btn adm-btn-ghost" id="estadoNuevo" type="button">+ Mes</button>
-          <button class="adm-btn adm-btn-ghost" id="estadoEditar" type="button">📝 Editar</button>
-          <button class="adm-btn adm-btn-gold" id="estadoExcel" type="button">📊 Ver Excel</button>
-          <button class="adm-btn adm-btn-ghost" id="estadoReload" type="button">Recargar</button>
+          <span class="est-tip-wrap"><button class="adm-btn adm-btn-ghost" id="estadoMesCompleto" type="button" aria-describedby="tt-mescompleto">Mes completo</button><span class="est-tip" id="tt-mescompleto" role="tooltip">Vuelve al mes calendario completo (descarta el rango de fechas manual).</span></span>
+          <span class="est-tip-wrap"><button class="adm-btn adm-btn-ghost" id="estadoNuevo" type="button" aria-describedby="tt-nuevo">+ Mes</button><span class="est-tip" id="tt-nuevo" role="tooltip">Crea un mes nuevo (puede duplicar los datos de otro mes ya cargado) y cambia a él.</span></span>
+          <span class="est-tip-wrap"><button class="adm-btn adm-btn-ghost" id="estadoEditar" type="button" aria-describedby="tt-editar">📝 Editar</button><span class="est-tip" id="tt-editar" role="tooltip">Vuelve a la vista editable del módulo (sale de la vista de solo lectura del Excel).</span></span>
+          <span class="est-tip-wrap"><button class="adm-btn adm-btn-gold" id="estadoExcel" type="button" aria-describedby="tt-excel">📊 Ver Excel</button><span class="est-tip" id="tt-excel" role="tooltip">Muestra la planilla Excel de referencia de este mes, en solo lectura.</span></span>
+          <span class="est-tip-wrap"><button class="adm-btn adm-btn-ghost" id="estadoReload" type="button" aria-describedby="tt-reload">Recargar</button><span class="est-tip" id="tt-reload" role="tooltip">Vuelve a pedir los datos (de Shopify o de la planilla, según la vista activa).</span></span>
+          <button type="button" class="est-help-btn" id="estHelpToggle" aria-expanded="false" aria-controls="estHelpBox" aria-label="Mostrar explicación de cada botón">?</button>
         </div>
+      </div>
+      <div class="est-help-box" id="estHelpBox" hidden>
+        <div><b>Mes completo</b> — vuelve al mes calendario completo (descarta el rango de fechas manual).</div>
+        <div><b>+ Mes</b> — crea un mes nuevo (puede duplicar los datos de otro mes ya cargado) y cambia a él.</div>
+        <div><b>Editar</b> — vuelve a la vista editable del módulo (sale de la vista de solo lectura del Excel).</div>
+        <div><b>Ver Excel</b> — muestra la planilla Excel de referencia de este mes, en solo lectura.</div>
+        <div><b>Recargar</b> — vuelve a pedir los datos (de Shopify o de la planilla, según la vista activa).</div>
       </div>
       <div id="estadoBody"><div class="adm-loading">Cargando…</div></div>
     </div>
@@ -2573,7 +2640,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <div class="adm-panel-head">
         <div>
           <div class="adm-panel-title">Costos</div>
-          <div class="adm-panel-meta">registrá cada costo: proveedor · categoría · marca · fecha · folio · valor</div>
+          <div class="adm-panel-meta">registra cada costo: proveedor · categoría · marca · fecha · folio · valor</div>
         </div>
         <div class="adm-actions">
           <select id="costosMes" class="costeo-svc"><option value="">Todos los meses</option></select>
@@ -2588,7 +2655,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <div class="adm-panel-head">
         <div>
           <div class="adm-panel-title">Gastos</div>
-          <div class="adm-panel-meta">registrá cada gasto: proveedor · categoría · marca · % del total (si la factura es compartida) · fecha · folio · valor</div>
+          <div class="adm-panel-meta">registra cada gasto: proveedor · categoría · marca · % del total (si la factura es compartida) · fecha · folio · valor</div>
         </div>
         <div class="adm-actions">
           <select id="gastosMes" class="costeo-svc"><option value="">Todos los meses</option></select>
@@ -2704,7 +2771,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <div class="adm-panel-head">
         <div>
           <div class="adm-panel-title" id="fcTitle">Forecast</div>
-          <div class="adm-panel-meta" id="fcMeta">elegí qué querés proyectar</div>
+          <div class="adm-panel-meta" id="fcMeta">elige qué quieres proyectar</div>
         </div>
         <div class="adm-actions" id="fcBackWrap" style="display:none">
           <button class="adm-btn adm-btn-ghost" id="fcBack" type="button">← Forecast</button>
@@ -2750,7 +2817,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
           <input class="adm-input" id="tutTitle" type="text" placeholder="Ej: Pinchado del barril paso a paso">
         </div>
         <div class="adm-fb-col">
-          <label class="adm-fb-label">URL del video (podés dejarlo vacío y completarlo cuando lo graben)</label>
+          <label class="adm-fb-label">URL del video (puedes dejarlo vacío y completarlo cuando lo graben)</label>
           <input class="adm-input" id="tutVideo" type="url" placeholder="https://youtu.be/… o https://vimeo.com/…">
         </div>
         <div class="adm-fb-col">
@@ -2857,7 +2924,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
         <button type="button" class="adm-fb-x" data-act="close-np" aria-label="Cerrar">✕</button>
         <div class="adm-fb-head">
           <div class="adm-fb-title">Agregar producto</div>
-          <div class="adm-fb-sub">Subí la foto de la lata y completá los datos. La maqueta (lata + cuadro) se arma sola y el producto se crea en Shopify con su tag.</div>
+          <div class="adm-fb-sub">Sube la foto de la lata y completa los datos. La maqueta (lata + cuadro) se arma sola y el producto se crea en Shopify con su tag.</div>
         </div>
         <div class="adm-np-grid">
           <div class="adm-np-form">
@@ -2930,7 +2997,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
           <div class="adm-np-preview">
             <label class="adm-fb-label">Maqueta (preview)</label>
             <canvas id="npCanvas" width="1200" height="1200"></canvas>
-            <div class="adm-np-hint" id="npHint">Subí la foto de la lata para ver la maqueta.</div>
+            <div class="adm-np-hint" id="npHint">Sube la foto de la lata para ver la maqueta.</div>
           </div>
         </div>
         <div class="adm-np-err" id="npErr" style="display:none"></div>
@@ -3025,7 +3092,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <button type="button" class="adm-fb-x" data-act="close-fb" aria-label="Cerrar">✕</button>
       <div class="adm-fb-head">
         <div class="adm-fb-title">Sugerir un mensaje</div>
-        <div class="adm-fb-sub">Refiná la respuesta. La próxima vez que aparezca una situación parecida, Zorbot la usa como ejemplo.</div>
+        <div class="adm-fb-sub">Refina la respuesta. La próxima vez que aparezca una situación parecida, Zorbot la usa como ejemplo.</div>
       </div>
       <div class="adm-fb-cols">
         <div class="adm-fb-col">
@@ -3121,6 +3188,9 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 
   <!-- Mini chat -->
   <aside class="adm-chat" id="chatAside">
+    <button type="button" class="adm-chat-collapse" id="chatCollapseBtn" aria-expanded="true" aria-controls="chatAside" aria-label="Colapsar panel de Zorbot">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
     <div class="adm-chat-head">
       <div class="adm-chat-av"><img src="/zorbot-avatar.jpg" alt="Zorbot"></div>
       <div class="adm-chat-title-col">
@@ -3134,7 +3204,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <button type="button" class="adm-chat-x" id="chatPopupClose" aria-label="Cerrar">✕</button>
     </div>
     <div class="adm-chat-body" id="chatBody">
-      <div class="adm-chat-empty">Editá un bloque, guardá los cambios y conversá con Zorbot acá para validar antes de soltarlo a producción.</div>
+      <div class="adm-chat-empty">Edita un bloque, guarda los cambios y conversa con Zorbot acá para validar antes de soltarlo a producción.</div>
     </div>
     <div class="adm-chat-foot">
       <textarea class="adm-chat-in" id="chatIn" rows="1" placeholder="Conversa con Zorbot…"></textarea>
@@ -3395,13 +3465,13 @@ function marcasRenderBody(marca){
   const body = document.getElementById('marcasBody'); if (!body) return;
   if (!marca) {
     const defs = marcasDefs();
-    body.innerHTML = `<div class="marcas-title">Elegí una marca</div><div class="marcas-grid">${defs.map(m =>
+    body.innerHTML = `<div class="marcas-title">Elige una marca</div><div class="marcas-grid">${defs.map(m =>
       `<div class="marcas-card" data-mpick="${escapeAttr(m.id)}"><div class="ic">${m.ic || '🏷️'}</div><div class="lb">${escapeHtml(m.label)}</div>${m.dominio ? `<div class="dom">${escapeHtml(m.dominio)}</div>` : ''}</div>`).join('')}</div>`;
     body.querySelectorAll('[data-mpick]').forEach(el => el.onclick = () => marcasGo(el.dataset.mpick, null, null, null));
     return;
   }
   if (!marcasState.canal) {
-    body.innerHTML = `<div class="marcas-title">${escapeHtml(marca.label)} — elegí un acceso</div><div class="marcas-canal-row">
+    body.innerHTML = `<div class="marcas-title">${escapeHtml(marca.label)} — elige un acceso</div><div class="marcas-canal-row">
       <div class="marcas-card" data-mcanal="redes"><div class="ic">📱</div><div class="lb">Redes Sociales</div></div>
       <div class="marcas-card" data-mcanal="web"><div class="ic">🌐</div><div class="lb">Página web</div>${marca.dominio ? `<div class="dom">${escapeHtml(marca.dominio)}</div>` : ''}</div>
     </div>`;
@@ -3413,7 +3483,7 @@ function marcasRenderBody(marca){
     return;
   }
   if (marcasState.tab === 'general' && marca.generalSub && !marcasState.sub) {
-    body.innerHTML = `<div class="marcas-title">${escapeHtml(marca.label)} · General — elegí una variante</div><div class="marcas-canal-row">${marca.generalSub.map(s =>
+    body.innerHTML = `<div class="marcas-title">${escapeHtml(marca.label)} · General — elige una variante</div><div class="marcas-canal-row">${marca.generalSub.map(s =>
       `<div class="marcas-card" data-msubpick="${escapeAttr(s.id)}"><div class="ic">📄</div><div class="lb">${escapeHtml(s.label)}</div></div>`).join('')}</div>`;
     body.querySelectorAll('[data-msubpick]').forEach(el => el.onclick = () => marcasGo(marca.id, 'web', 'general', el.dataset.msubpick));
     return;
@@ -3454,7 +3524,7 @@ function sectionsForCat(catId){ return SECCIONES.filter(s => s.cat === catId && 
 let adminRole = 'admin', adminCosteoSvc = null;
 function showHome(){
   if (adminRole === 'costeo') { selectSeccion('costeo'); return; }
-  if (dirty && !confirm('Tenés cambios sin guardar. Descartar?')) return;
+  if (dirty && !confirm('Tienes cambios sin guardar. Descartar?')) return;
   dirty = false;
   activeCategory = null;
   document.body.classList.add('admin-home');
@@ -3468,7 +3538,7 @@ function showHome(){
       <div class="ks-hello">
         <div class="k">Centro de control</div>
         <h1>Buenas${hi ? ', ' + escapeHtml(hi) : ''} 👋</h1>
-        <p>Todo tu negocio en un solo lugar. Elegí una sección en el panel de la izquierda, o mirá el resumen de hoy acá abajo.</p>
+        <p>Todo tu negocio en un solo lugar. Elige una sección en el panel de la izquierda, o mira el resumen de hoy acá abajo.</p>
         <div class="q">“${escapeHtml(q.t)}” — ${escapeHtml(q.a)}</div>
       </div>
       <div class="ks-period" id="ksPeriodBar"></div>
@@ -3541,7 +3611,7 @@ function renderTabs(){
 
 async function selectSeccion(id){
   if (adminRole === 'costeo') id = 'costeo'; // rol limitado: siempre Costeo de carta
-  if (dirty && !confirm('Tenés cambios sin guardar en esta sección. Descartar?')) return;
+  if (dirty && !confirm('Tienes cambios sin guardar en esta sección. Descartar?')) return;
   activeSeccion = id;
   const sec = SECCIONES.find(s => s.id === id);
   if (sec && sec.cat) activeCategory = sec.cat;
@@ -3691,7 +3761,7 @@ function renderBlocks(){
   const wrap = document.getElementById('blocks');
   document.getElementById('btnAddBlock').style.display = '';
   if (!blocks.length) {
-    wrap.innerHTML = '<div class="adm-empty">Este archivo está vacío. Agregá un bloque para empezar.</div>';
+    wrap.innerHTML = '<div class="adm-empty">Este archivo está vacío. Agrega un bloque para empezar.</div>';
     return;
   }
   wrap.innerHTML = blocks.map((b, i) => {
@@ -3786,7 +3856,7 @@ function renderBrandQuestionnaire(seccion){
   wrap.innerHTML = `
     <div class="bq-card">
       <div class="bq-title">Contanos de ${escapeHtml(seccion.label)} 🍻</div>
-      <div class="bq-sub">Respondé lo que sepas y Zorbot arma todo su conocimiento solo. Después podés editar cada bloque.</div>
+      <div class="bq-sub">Responde lo que sepas y Zorbot arma todo su conocimiento solo. Después puedes editar cada bloque.</div>
       <label class="bq-label">¿De qué se trata la marca? (historia, personalidad, qué la hace distinta)</label>
       <textarea class="adm-input bq-ta" id="bqAbout" placeholder="Ej: marca nacida en el sur, foco en cervezas lager fáciles de tomar, vibra de barrio…"></textarea>
       <label class="bq-label">¿Qué productos tiene? (estilos, formatos, lo que vendan)</label>
@@ -3813,7 +3883,7 @@ async function generateBrandKnowledge(key){
     extra:    document.getElementById('bqExtra').value,
   };
   if (!body.about.trim() && !body.products.trim() && !body.extra.trim()) {
-    st.className = 'adm-status err'; st.textContent = 'Escribí al menos algo de la marca.'; st.classList.remove('hidden'); return;
+    st.className = 'adm-status err'; st.textContent = 'Escribe al menos algo de la marca.'; st.classList.remove('hidden'); return;
   }
   btn.disabled = true;
   st.className = 'adm-status loading'; st.textContent = 'Generando con IA… (unos segundos)'; st.classList.remove('hidden');
@@ -3829,7 +3899,7 @@ async function generateBrandKnowledge(key){
     renderBlocks();
     updateBuildTag();
     setDirty(false);
-    showToast('Conocimiento generado ✓ — revisalo y guardá', 'ok');
+    showToast('Conocimiento generado ✓ — revísalo y guarda', 'ok');
   } catch (e) {
     btn.disabled = false;
     st.className = 'adm-status err'; st.textContent = e.message;
@@ -3990,7 +4060,7 @@ function productCardHtml(p){
       </div>
       <label class="adm-prod-label">Notas para Zorbot (Markdown soportado)</label>
       <textarea class="adm-prod-extra" data-pid="${p.id}" rows="8"
-        placeholder="Descripción extendida, maridajes, ocasiones, tono que querés que use el bot al hablar de este producto…">${escapeHtml(p.extra || '')}</textarea>
+        placeholder="Descripción extendida, maridajes, ocasiones, tono que quieres que use el bot al hablar de este producto…">${escapeHtml(p.extra || '')}</textarea>
       <label class="adm-prod-label">Imagen override (URL · opcional)</label>
       <input class="adm-prod-img" data-pid="${p.id}" type="url"
         placeholder="https://… (vacío = usa la imagen de Shopify)"
@@ -4429,7 +4499,7 @@ document.getElementById('npCreate').onclick = async () => {
   const title = document.getElementById('npName').value.trim();
   if (!title) { npShowErr('Falta el nombre del producto.'); document.getElementById('npName').focus(); return; }
   const packs = getSelectedPacks();
-  if (!packs.length) { npShowErr('Elegí al menos un pack o barril (marcá el check y poné la cantidad).'); return; }
+  if (!packs.length) { npShowErr('Elige al menos un pack o barril (marca el check y pon la cantidad).'); return; }
   const btn = document.getElementById('npCreate');
   btn.disabled = true; const o = btn.textContent; btn.textContent = 'Creando…';
   try {
@@ -4914,7 +4984,7 @@ document.getElementById('fbSubmit').onclick = async () => {
   const explanation = document.getElementById('fbExplain').value;
   if (!original.trim()) return;
   if (improved.trim() === original.trim() && !explanation.trim()) {
-    showToast('Cambiá el mensaje mejorado o agregá una explicación.', 'err');
+    showToast('Cambia el mensaje mejorado o agrega una explicación.', 'err');
     return;
   }
   const btn = document.getElementById('fbSubmit');
@@ -4996,7 +5066,7 @@ async function loadFeedbackList(){
     document.getElementById('fbCountMeta').textContent =
       `${total} corrección${total === 1 ? '' : 'es'} guardadas · Zorbot inyecta las últimas 20 como few-shot en cada respuesta`;
     if (!items.length) {
-      list.innerHTML = '<div class="adm-empty">Todavía no hay feedback. Andá a Conversaciones o al preview chat y apretá "Dar feedback" en cualquier mensaje del bot.</div>';
+      list.innerHTML = '<div class="adm-empty">Todavía no hay feedback. Ve a Conversaciones o al preview chat y presiona "Dar feedback" en cualquier mensaje del bot.</div>';
       return;
     }
     list.innerHTML = items.map(fbItemHtml).join('');
@@ -5091,7 +5161,7 @@ async function loadTutorials(){
     document.getElementById('tutMeta').textContent =
       `${total} tutorial${total === 1 ? '' : 'es'} guardado${total === 1 ? '' : 's'} · el bot los menciona cuando el cliente pregunta por algo que matchea`;
     if (!tutCache.length) {
-      list.innerHTML = '<div class="adm-empty">Todavía no hay tutoriales cargados. Apretá <strong>+ Nuevo tutorial</strong> arriba para empezar.</div>';
+      list.innerHTML = '<div class="adm-empty">Todavía no hay tutoriales cargados. Presiona <strong>+ Nuevo tutorial</strong> arriba para empezar.</div>';
       return;
     }
     list.innerHTML = tutCache.map(tutItemHtml).join('');
@@ -5500,6 +5570,27 @@ function closeChatPopup(){
 }
 document.getElementById('chatFab').addEventListener('click', openChatPopup);
 document.getElementById('chatPopupClose').addEventListener('click', closeChatPopup);
+
+// ─── Zorbot · Preview colapsable (recuerda estado en localStorage) ────────
+function zbApplyCollapsed(collapsed){
+  document.body.classList.toggle('zb-collapsed', collapsed);
+  const btn = document.getElementById('chatCollapseBtn');
+  if (btn){
+    btn.setAttribute('aria-expanded', String(!collapsed));
+    btn.setAttribute('aria-label', collapsed ? 'Expandir panel de Zorbot' : 'Colapsar panel de Zorbot');
+  }
+}
+(function zbCollapseInit(){
+  let saved = null;
+  try { saved = localStorage.getItem('zb_collapsed'); } catch(e) {}
+  zbApplyCollapsed(saved === '1');
+  const btn = document.getElementById('chatCollapseBtn');
+  if (btn) btn.addEventListener('click', () => {
+    const next = !document.body.classList.contains('zb-collapsed');
+    zbApplyCollapsed(next);
+    try { localStorage.setItem('zb_collapsed', next ? '1' : '0'); } catch(e) {}
+  });
+})();
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && document.getElementById('chatAside').classList.contains('popup-open')) {
     closeChatPopup();
@@ -5517,7 +5608,7 @@ document.getElementById('chatIn').addEventListener('input', e => {
 document.getElementById('chatClear').onclick = () => {
   chatSessionId = null;
   document.getElementById('chatBody').innerHTML =
-    '<div class="adm-chat-empty">Conversación limpia. Probá un cambio y volvé a chatear para validar.</div>';
+    '<div class="adm-chat-empty">Conversación limpia. Prueba un cambio y vuelve a chatear para validar.</div>';
 };
 document.querySelectorAll('.adm-mode').forEach(b => {
   b.onclick = () => {
@@ -5801,9 +5892,9 @@ function renderPixis(d){
   const needs = (d.needs||[]).map(n=>`<code>${n}</code>`).join(' y ');
   el.innerHTML = `
     <div class="adm-empty-ico">🔌</div>
-    <div class="adm-empty-title">Conectá tu cuenta de Pixis</div>
+    <div class="adm-empty-title">Conecta tu cuenta de Pixis</div>
     <div class="adm-empty-text">${escapeHtml(d.reason||'Pixis no está conectado.')} Con Pixis vas a ver sell-out de toda la cadena, competencia y puntos de mayor crecimiento — data que no está en Shopify.</div>
-    <div class="adm-empty-hint">Para conectarlo necesitás cargar en Railway las variables ${needs||'<code>PIXIS_API_BASE</code> y <code>PIXIS_API_KEY</code>'} con los datos de tu cuenta Pixis (API base URL + API key). Una vez cargadas, esta sección se activa sola.</div>`;
+    <div class="adm-empty-hint">Para conectarlo necesitas cargar en Railway las variables ${needs||'<code>PIXIS_API_BASE</code> y <code>PIXIS_API_KEY</code>'} con los datos de tu cuenta Pixis (API base URL + API key). Una vez cargadas, esta sección se activa sola.</div>`;
 }
 
 // ─── Clientes mayoristas ────────────────────────────────────────────────────
@@ -5818,7 +5909,7 @@ async function loadWholesale(force){
     const r = await fetch('/admin/customers/wholesale' + (force?'?refresh=1':''));
     const d = await r.json();
     if (!d.available) {
-      list.innerHTML = `<div class="adm-empty">${escapeHtml(d.reason||'No disponible.')} ${/read_customers|read_orders/.test(d.reason||'')?'Re-autorizá la app de Shopify con el permiso de clientes.':''}</div>`;
+      list.innerHTML = `<div class="adm-empty">${escapeHtml(d.reason||'No disponible.')} ${/read_customers|read_orders/.test(d.reason||'')?'Re-autoriza la app de Shopify con el permiso de clientes.':''}</div>`;
       document.getElementById('wsCount').textContent = '';
       return;
     }
@@ -6373,7 +6464,7 @@ function renderWeb(){
     </div>`).join('');
 
   const heroImgs = (arr,kind)=>arr.map((u,i)=>`
-    <div class="web-img" draggable="true" data-dragitem data-group="${kind}" data-i="${i}" title="Arrastrá para reordenar">
+    <div class="web-img" draggable="true" data-dragitem data-group="${kind}" data-i="${i}" title="Arrastra para reordenar">
       <img src="${escA(u)}" alt="" draggable="false">
       <span class="web-img-grip">⠿</span>
       <button data-delimg="${kind}" data-i="${i}" title="Quitar">✕</button>
@@ -6433,13 +6524,13 @@ function renderWeb(){
     </div>
     <div class="web-group">
       <div class="web-group-t">Banner principal</div>
-      <div class="web-group-d">Fotos del carrusel. Computador y celular se configuran por separado — subí cada una con el tamaño recomendado para que se vea nítida y sin recortes. <b>Arrastrá las fotos para cambiar el orden.</b></div>
+      <div class="web-group-d">Fotos del carrusel. Computador y celular se configuran por separado — sube cada una con el tamaño recomendado para que se vea nítida y sin recortes. <b>Arrastra las fotos para cambiar el orden.</b></div>
       <div class="web-subhead">Computador</div>
       <span class="web-mini">Apaisada (horizontal). Recomendado <b>1920 × 600 px</b> (relación ≈ 16:5). Se muestra a todo el ancho, máximo 420 px de alto y sin recortar. Usá la misma proporción en todas para que el carrusel no salte.</span>
       <div class="web-imgs">${heroImgs(c.heroDesktop,'desktop')}</div>
       <button class="web-add" id="webAddHeroD" type="button">+ Agregar foto (computador)</button>
       <div class="web-subhead" style="margin-top:.9rem">Celular</div>
-      <span class="web-mini">Vertical o cuadrada. Recomendado <b>1080 × 1080 px</b> (cuadrada) o <b>1080 × 1350 px</b> (vertical). Se muestra a todo el ancho con su alto natural — mantené la misma proporción en todas.</span>
+      <span class="web-mini">Vertical o cuadrada. Recomendado <b>1080 × 1080 px</b> (cuadrada) o <b>1080 × 1350 px</b> (vertical). Se muestra a todo el ancho con su alto natural — mantén la misma proporción en todas.</span>
       <div class="web-imgs">${heroImgs(c.heroMobile,'mobile')}</div>
       <button class="web-add" id="webAddHeroM" type="button">+ Agregar foto (celular)</button>
     </div>
@@ -6451,13 +6542,13 @@ function renderWeb(){
     </div>
     <div class="web-group">
       <div class="web-group-t">Marcas</div>
-      <div class="web-group-d">Logos que giran en la portada y aparecen en el catálogo lateral. Logo recomendado: <b>cuadrado 400 × 400 px</b>, PNG con fondo transparente. Elegí una categoría existente o creá una nueva — si creás una, se genera su sección en el catálogo y se llena con los productos cuyo vendor en Shopify coincida (deben tener el tag ZORBO).</div>
+      <div class="web-group-d">Logos que giran en la portada y aparecen en el catálogo lateral. Logo recomendado: <b>cuadrado 400 × 400 px</b>, PNG con fondo transparente. Elige una categoría existente o crea una nueva — si creas una, se genera su sección en el catálogo y se llena con los productos cuyo vendor en Shopify coincida (deben tener el tag ZORBO).</div>
       <div>${brandsHtml}</div>
       <button class="web-add" id="webAddBrand" type="button">+ Agregar marca</button>
     </div>
     <div class="web-group">
       <div class="web-group-t">Orden de las secciones</div>
-      <div class="web-group-d">El orden en que aparecen las categorías en el catálogo del home. <b>Arrastrá para reordenar.</b></div>
+      <div class="web-group-d">El orden en que aparecen las categorías en el catálogo del home. <b>Arrastra para reordenar.</b></div>
       <div>${orderHtml}</div>
     </div>
     <div class="web-group">
@@ -6528,7 +6619,7 @@ function renderWebMayoHtml(esc, escA, heroImgs){
     </div>
     <div class="web-group">
       <div class="web-group-t">Banner mayorista</div>
-      <div class="web-group-d">Fotos del carrusel del home mayorista (son distintas al B2C). <b>Arrastrá para reordenar.</b> Apaisadas, recomendado <b>1920 × 600 px</b>.</div>
+      <div class="web-group-d">Fotos del carrusel del home mayorista (son distintas al B2C). <b>Arrastra para reordenar.</b> Apaisadas, recomendado <b>1920 × 600 px</b>.</div>
       <div class="web-imgs">${heroHtml}</div>
       <button class="web-add" id="webAddMayoHero" type="button">+ Agregar foto</button>
     </div>
@@ -6540,13 +6631,13 @@ function renderWebMayoHtml(esc, escA, heroImgs){
     </div>
     <div class="web-group">
       <div class="web-group-t">Marcas / círculos</div>
-      <div class="web-group-d">Logos que giran arriba del catálogo mayorista. Cada uno lleva a una sección. <b>Arrastrá para reordenar.</b></div>
+      <div class="web-group-d">Logos que giran arriba del catálogo mayorista. Cada uno lleva a una sección. <b>Arrastra para reordenar.</b></div>
       <div>${brandsHtml}</div>
       <button class="web-add" id="webAddMayoBrand" type="button">+ Agregar marca</button>
     </div>
     <div class="web-group">
       <div class="web-group-t">Orden y títulos de las secciones</div>
-      <div class="web-group-d">Las 5 secciones del mayorista (fijas por formato). Reordenalas arrastrando y editá su título/subtítulo.</div>
+      <div class="web-group-d">Las 5 secciones del mayorista (fijas por formato). Reordénalas arrastrando y edita su título/subtítulo.</div>
       <div>${orderHtml}</div>
     </div>
     <div class="web-group">
@@ -6755,7 +6846,7 @@ async function saveWeb(){
     // Reconstruye tabs/filtros: si se agregó una marca, su botón aparece arriba.
     await loadCustomBrands();
     renderTabs();
-    st.className = 'adm-status ok'; st.textContent = 'Guardado ✓ — recargá el home para verlo';
+    st.className = 'adm-status ok'; st.textContent = 'Guardado ✓ — recarga el home para verlo';
     setTimeout(()=>st.classList.add('hidden'), 3500);
   } catch (err) {
     st.className = 'adm-status err'; st.textContent = err.message;
@@ -6888,7 +6979,7 @@ async function renderDistOrdenes(){
   let prods = [];
   try { const pd = await loadDistProducts(); if (pd && pd.available) prods = pd.products || []; } catch {}
   const datalist = prods.map(p => `<option data-cost="${p.cost||''}" data-neto="${p.precioNeto||''}" data-ila="${p.ilaPct||''}" data-despacho="${p.dispatch||''}" data-price="${p.price||''}" value="${escapeAttr(p.title)}">`).join('');
-  const supOpts = '<option value="">Elegí un proveedor…</option>' + sups.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+  const supOpts = '<option value="">Elige un proveedor…</option>' + sups.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
   const orders = (distData?.purchaseOrders || []).slice().sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt));
 
   // Totales del borrador
@@ -6909,7 +7000,7 @@ async function renderDistOrdenes(){
       <td class="dist-num">${ocMoney(it.precioUnitario)}</td>
       <td class="dist-num">${ocMoney(it.cantidad*it.precioUnitario)}</td>
       <td><button class="pv-del" type="button" data-oc-rm="${i}">✕</button></td>
-    </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:#aaa;padding:.8rem">Agregá artículos…</td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:#aaa;padding:.8rem">Agrega artículos…</td></tr>`;
 
   const list = orders.length ? orders.map(po => `
     <div class="oc-card">
@@ -6925,7 +7016,7 @@ async function renderDistOrdenes(){
           <button class="pv-del" type="button" data-oc-del="${po.id}">Eliminar</button>
         </span>
       </div>
-    </div>`).join('') : '<div class="dist-empty">Todavía no hay órdenes de compra. Creá la primera arriba.</div>';
+    </div>`).join('') : '<div class="dist-empty">Todavía no hay órdenes de compra. Crea la primera arriba.</div>';
 
   const F = (id,label,ph,val)=>`<div class="dist-field"><label>${label}</label><input id="${id}" placeholder="${ph||''}" value="${val?escapeAttr(val):''}"></div>`;
 
@@ -6933,7 +7024,7 @@ async function renderDistOrdenes(){
     <datalist id="ocProds">${datalist}</datalist>
     <div class="dist-form">
       <div class="dist-sec-title">Nueva orden de compra</div>
-      <div class="dist-sec-sub">Comprador: <b>500 Sabores SpA</b>. Completá los datos del proveedor y los artículos — se genera el PDF y le llega al portal del proveedor.</div>
+      <div class="dist-sec-sub">Comprador: <b>500 Sabores SpA</b>. Completa los datos del proveedor y los artículos — se genera el PDF y le llega al portal del proveedor.</div>
 
       <div class="dist-form-grid" style="margin-top:.9rem">
         <div class="dist-field"><label>Proveedor</label><select id="ocSup">${supOpts}</select></div>
@@ -7044,7 +7135,7 @@ function addOcLine(){
   const articulo=document.getElementById('ocPTitle').value.trim();
   const cantidad=Number(document.getElementById('ocPQty').value)||0;
   const precioUnitario=Number(document.getElementById('ocPCost').value)||0;
-  if(!articulo||cantidad<=0){ alert('Poné un artículo y una cantidad.'); return; }
+  if(!articulo||cantidad<=0){ alert('Pon un artículo y una cantidad.'); return; }
   const opt=[...document.querySelectorAll('#ocProds option')].find(o=>o.value===articulo);
   const ilaPct=opt?Number(opt.dataset.ila)||0:0;
   const despachoUnitario=opt?Number(opt.dataset.despacho)||0:0;
@@ -7054,8 +7145,8 @@ function addOcLine(){
 async function saveOc(){
   const st=document.getElementById('ocStatusMsg');
   const g=(id)=>{const el=document.getElementById(id);return el?el.value:'';};
-  if(!g('ocSup')){ st.className='dist-status err'; st.textContent='Elegí un proveedor.'; return; }
-  if(!ocDraft.length){ st.className='dist-status err'; st.textContent='Agregá al menos un artículo.'; return; }
+  if(!g('ocSup')){ st.className='dist-status err'; st.textContent='Elige un proveedor.'; return; }
+  if(!ocDraft.length){ st.className='dist-status err'; st.textContent='Agrega al menos un artículo.'; return; }
   const payload={
     supplierId:g('ocSup'), fecha:g('ocFecha'),
     entrega:g('ocEntrega'), plazoEntrega:g('ocPlazo'), pago:g('ocPago'),
@@ -7181,7 +7272,7 @@ function renderDistCostos(data){
     <div class="dist-sec-head">
       <div>
         <div class="dist-sec-title">Costos de compra</div>
-        <div class="dist-sec-sub">Cargá lo que Zorbo le paga al proveedor por unidad y la categoría (define el margen). La categoría arranca sugerida según el proveedor. Se guarda solo al cambiar cada campo.</div>
+        <div class="dist-sec-sub">Carga lo que Zorbo le paga al proveedor por unidad y la categoría (define el margen). La categoría arranca sugerida según el proveedor. Se guarda solo al cambiar cada campo.</div>
       </div>
       <button class="adm-btn adm-btn-ghost" id="costRefresh" type="button">Refrescar de Shopify</button>
     </div>
@@ -7308,7 +7399,7 @@ function renderDistProveedores(){
         <button type="button" class="del" data-del="${s.id}">Eliminar</button>
       </div>
       ${distPortalBlock(s)}
-    </div>`).join('')}</div>` : '<div class="dist-empty">Todavía no hay proveedores. Agregá el primero arriba.</div>';
+    </div>`).join('')}</div>` : '<div class="dist-empty">Todavía no hay proveedores. Agrega el primero arriba.</div>';
 
   document.getElementById('distBody').innerHTML = form + cards;
 
@@ -7471,7 +7562,7 @@ function renderPuntos(d){
       <td class="dist-num">${(p.units||0).toLocaleString('es-CL')}</td>
       <td class="dist-num">${p.orders||0}</td>
       <td>${p.manualId ? `<button class="pv-del" data-punto-del="${p.manualId}" title="Eliminar punto">✕</button>` : ''}</td>
-    </tr>`).join('') : `<tr><td colspan="7" class="pv-noloc" style="padding:1.5rem;text-align:center">Todavía no hay puntos de venta. Agregá el primero con el formulario.</td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="7" class="pv-noloc" style="padding:1.5rem;text-align:center">Todavía no hay puntos de venta. Agrega el primero con el formulario.</td></tr>`;
 
   const ordersNote = d.ordersReason
     ? `<div class="pv-geo">⚠ Ventas no disponibles ahora (${escapeHtml(d.ordersReason)}). Se muestran los puntos cargados a mano.</div>` : '';
@@ -7487,7 +7578,7 @@ function renderPuntos(d){
       ${hasMap ? '<div id="pvMap"></div>' : '<div></div>'}
       <div class="pv-form">
         <div class="pv-form-title">Agregar punto de venta</div>
-        <div class="pv-form-sub">Cargá un local y se registra como cliente en Shopify, además de quedar en el mapa.</div>
+        <div class="pv-form-sub">Carga un local y se registra como cliente en Shopify, además de quedar en el mapa.</div>
         <div class="dist-field"><label>Nombre del local</label><input id="pf_name" placeholder="Ej: Bar La Esquina"></div>
         <div class="dist-field"><label>País</label><input id="pf_country" value="Chile"></div>
         <div class="dist-field"><label>Región</label><input id="pf_region" placeholder="Ej: Metropolitana"></div>
@@ -7720,20 +7811,20 @@ async function renderAdsGoogle(){
       <div class="ads-empty">
         <div class="ads-empty-ic">🔌</div>
         <div class="ads-empty-t">Conecta tu cuenta de Google Ads</div>
-        <div class="ads-empty-d">Cuando conectes la cuenta, acá vas a ver todas tus campañas activas con sus métricas y un semáforo de rendimiento. Necesitás conseguir estas credenciales y cargarlas como variables de entorno en Railway:</div>
+        <div class="ads-empty-d">Cuando conectes la cuenta, acá vas a ver todas tus campañas activas con sus métricas y un semáforo de rendimiento. Necesitas conseguir estas credenciales y cargarlas como variables de entorno en Railway:</div>
         <div class="ads-steps">
           <div class="ads-step"><span class="ads-step-n">1</span><span><b>Developer token:</b> en tu cuenta de Google Ads → Herramientas → Configuración → API Center. (Requiere solicitar acceso a la API, lo aprueba Google.)</span></div>
           <div class="ads-step"><span class="ads-step-n">2</span><span><b>Client ID y Client Secret:</b> en Google Cloud Console → crear un proyecto → APIs y servicios → Credenciales → ID de cliente OAuth (tipo App de escritorio).</span></div>
           <div class="ads-step"><span class="ads-step-n">3</span><span><b>Refresh token:</b> se genera autorizando tu cuenta con el OAuth Playground (o el flujo OAuth) usando el scope de Google Ads.</span></div>
-          <div class="ads-step"><span class="ads-step-n">4</span><span><b>Customer ID:</b> el número de tu cuenta de Google Ads (arriba a la derecha, formato 123-456-7890). Si usás una cuenta administradora (MCC), también el login customer ID.</span></div>
+          <div class="ads-step"><span class="ads-step-n">4</span><span><b>Customer ID:</b> el número de tu cuenta de Google Ads (arriba a la derecha, formato 123-456-7890). Si usas una cuenta administradora (MCC), también el login customer ID.</span></div>
         </div>
         <div class="ads-envs">${envs}</div>
-        <div class="ads-note">Cargá esas variables en Railway → tu servicio → Variables, y recargá esta sección. Mientras tanto, el resto del Centro de Ads queda listo esperando los datos.</div>
+        <div class="ads-note">Carga esas variables en Railway → tu servicio → Variables, y recarga esta sección. Mientras tanto, el resto del Centro de Ads queda listo esperando los datos.</div>
       </div>`;
     return;
   }
   if (d.error) {
-    body.innerHTML = adsRangeBar() + `<div class="dist-empty">⚠ ${escapeHtml(d.error)}<br><span style="font-size:.78rem;color:#888">Revisá que las credenciales y el Customer ID sean correctos.</span></div>`;
+    body.innerHTML = adsRangeBar() + `<div class="dist-empty">⚠ ${escapeHtml(d.error)}<br><span style="font-size:.78rem;color:#888">Revisa que las credenciales y el Customer ID sean correctos.</span></div>`;
     wireAdsRange();
     return;
   }
@@ -7802,20 +7893,20 @@ async function renderAdsMeta(){
       <div class="ads-empty">
         <div class="ads-empty-ic">📱</div>
         <div class="ads-empty-t">Conecta tu cuenta de Meta Ads</div>
-        <div class="ads-empty-d">Cuando conectes la cuenta vas a ver acá las campañas de Facebook e Instagram con sus métricas (alcance, frecuencia, conversiones) y el semáforo de rendimiento. Necesitás conseguir esto y cargarlo como variables de entorno en Railway:</div>
+        <div class="ads-empty-d">Cuando conectes la cuenta vas a ver acá las campañas de Facebook e Instagram con sus métricas (alcance, frecuencia, conversiones) y el semáforo de rendimiento. Necesitas conseguir esto y cargarlo como variables de entorno en Railway:</div>
         <div class="ads-steps">
           <div class="ads-step"><span class="ads-step-n">1</span><span><b>Cuenta publicitaria:</b> en Meta Business Suite → Configuración del negocio → Cuentas publicitarias. El ID se ve como <b>act_1234567890</b>.</span></div>
-          <div class="ads-step"><span class="ads-step-n">2</span><span><b>App de Meta:</b> en developers.facebook.com creá una app (tipo Negocio) y agregá el producto <b>Marketing API</b>.</span></div>
+          <div class="ads-step"><span class="ads-step-n">2</span><span><b>App de Meta:</b> en developers.facebook.com crea una app (tipo Negocio) y agrega el producto <b>Marketing API</b>.</span></div>
           <div class="ads-step"><span class="ads-step-n">3</span><span><b>Access token de larga duración:</b> idealmente un token de <b>usuario del sistema</b> (System User) en Business Manager con permiso <b>ads_read</b> sobre la cuenta publicitaria. Ese token no expira si lo generás como System User.</span></div>
           <div class="ads-step"><span class="ads-step-n">4</span><span>(Opcional) <b>App ID y App Secret</b> de la app, por si más adelante hay que renovar tokens automáticamente.</span></div>
         </div>
         <div class="ads-envs">${envs}</div>
-        <div class="ads-note">Cargá esas variables en Railway → tu servicio → Variables, y recargá esta sección. Solo pedimos permiso de <b>lectura</b> (ads_read): el Centro de Ads nunca crea ni edita campañas.</div>
+        <div class="ads-note">Carga esas variables en Railway → tu servicio → Variables, y recarga esta sección. Solo pedimos permiso de <b>lectura</b> (ads_read): el Centro de Ads nunca crea ni edita campañas.</div>
       </div>`;
     return;
   }
   if (d.error) {
-    body.innerHTML = adsRangeBar() + `<div class="dist-empty">⚠ ${escapeHtml(d.error)}<br><span style="font-size:.78rem;color:#888">Revisá el token (permiso ads_read) y el ID de la cuenta publicitaria.</span></div>`;
+    body.innerHTML = adsRangeBar() + `<div class="dist-empty">⚠ ${escapeHtml(d.error)}<br><span style="font-size:.78rem;color:#888">Revisa el token (permiso ads_read) y el ID de la cuenta publicitaria.</span></div>`;
     wireAdsRange();
     return;
   }
@@ -7862,7 +7953,7 @@ function renderAdsIA(){
   document.getElementById('adsBody').innerHTML = `
     <div class="ads-ia-intro">
       <div class="ads-ia-intro-t">Recomendaciones con IA</div>
-      <div class="ads-ia-intro-d">Claude analiza tus campañas reales de Google y Meta y te dice cómo repartir los <b>${distMoney(adsConfig.monthlyBudget)}</b> del mes: qué escalar, qué pausar y por qué. Analiza y recomienda — los cambios los hacés vos en cada plataforma.</div>
+      <div class="ads-ia-intro-d">Claude analiza tus campañas reales de Google y Meta y te dice cómo repartir los <b>${distMoney(adsConfig.monthlyBudget)}</b> del mes: qué escalar, qué pausar y por qué. Analiza y recomienda — los cambios los haces tú en cada plataforma.</div>
       <button class="adm-btn" id="iaGenBtn" type="button">Generar recomendaciones</button>
       <span class="dist-status" id="iaStatus" style="margin-left:.6rem"></span>
     </div>
@@ -7927,14 +8018,14 @@ function renderIAResult(d){
     </div>
     <div class="ads-ia-sech">Campañas nuevas a evaluar</div>
     ${list(d.abrir)}
-    <div class="ads-ia-foot">Generado por IA sobre tus datos reales · ${new Date(d.generatedAt).toLocaleString('es-CL')} · revisá siempre antes de aplicar cambios.</div>`;
+    <div class="ads-ia-foot">Generado por IA sobre tus datos reales · ${new Date(d.generatedAt).toLocaleString('es-CL')} · revisa siempre antes de aplicar cambios.</div>`;
 }
 
 // ─── Top clientes por producto ───────────────────────────────────────────────
 async function runTopClientes(){
   const q = document.getElementById('tcInput').value.trim();
   const body = document.getElementById('tcBody');
-  if (!q) { body.innerHTML = '<div class="dist-empty">Escribí el nombre de un producto.</div>'; return; }
+  if (!q) { body.innerHTML = '<div class="dist-empty">Escribe el nombre de un producto.</div>'; return; }
   body.innerHTML = '<div class="adm-loading">Buscando en todos los pedidos…</div>';
   try {
     const r = await fetch('/admin/top-clientes?q=' + encodeURIComponent(q));
@@ -7974,7 +8065,7 @@ async function runTopClientes(){
         <div class="mun-count">${d.count} clientes · ${d.totalUnits.toLocaleString('es-CL')} unidades · ${(d.totalPedidos||0).toLocaleString('es-CL')} pedidos · coincidencias: ${d.matchedProducts.map(escapeHtml).join(' · ')||'—'}</div>
         <button class="adm-btn adm-btn-gold" id="tcXlBtn" type="button">Descargar Excel</button>
       </div>
-      <div class="mun-hint">Tocá un cliente para ver el detalle de cada pedido.</div>
+      <div class="mun-hint">Toca un cliente para ver el detalle de cada pedido.</div>
       <div class="mun-wrap"><table class="mun-table">
         <thead><tr><th>#</th><th>Cliente</th><th>Contacto</th><th style="text-align:right">Unidades</th><th style="text-align:right">Gasto</th><th style="text-align:right">Pedidos</th><th>Última</th></tr></thead>
         <tbody>${rows}</tbody>
@@ -8099,7 +8190,7 @@ function costeoLockView(){
   body.querySelectorAll('[data-rbedit],[data-rbdel],[data-pledit],[data-pldel],[data-idel]').forEach(el=>el.remove());
   let msg;
   if (costeoSub==='recetas' || costeoSub==='platos')
-    msg = 'Estás viendo '+(isBarra()?'Barra':'Comida')+' en modo lectura. Solo podés editar '+(adminCosteoSvc==='barra'?'Barra':'Comida')+'.';
+    msg = 'Estás viendo '+(isBarra()?'Barra':'Comida')+' en modo lectura. Solo puedes editar '+(adminCosteoSvc==='barra'?'Barra':'Comida')+'.';
   else
     msg = 'Solo lectura · esta sección la editan los administradores.';
   body.insertAdjacentHTML('afterbegin', '<div class="ro-note">👁️ '+msg+'</div>');
@@ -8252,7 +8343,7 @@ function renderCosteoRecetas(){
     <td class="dist-num">${cMoney(ep)}</td>
     <td class="dist-num"><input type="text" inputmode="decimal" class="dist-input-sm dist-num" data-rbqty="${idx}" value="${l.cantidad}" style="width:80px"></td>
     <td class="dist-num">${cMoney((Number(l.cantidad)||0)*ep)}</td>
-    <td><button class="pv-del" data-rbrm="${idx}">✕</button></td></tr>`;}).join('') : `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:.7rem">Agregá insumos o recetas…</td></tr>`;
+    <td><button class="pv-del" data-rbrm="${idx}">✕</button></td></tr>`;}).join('') : `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:.7rem">Agrega insumos o recetas…</td></tr>`;
   const rq = rbSearch.toLowerCase();
   const rbAll = (costeoData.recetasBase||[]).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
   const list = rbAll.filter(rb=>!rq || rb.nombre.toLowerCase().includes(rq)).map(rb=>`
@@ -8265,14 +8356,14 @@ function renderCosteoRecetas(){
   document.getElementById('costeoBody').innerHTML = costeoIngDatalist() + `
     <div class="dist-form">
       <div class="dist-sec-title">${rbEditing?'Editar receta base':'Nueva receta base'}</div>
-      <div class="dist-sec-sub">Agregá insumos o incluso otras recetas. El costo y el precio por unidad se calculan solos.</div>
+      <div class="dist-sec-sub">Agrega insumos o incluso otras recetas. El costo y el precio por unidad se calculan solos.</div>
       <div class="dist-form-grid" style="margin-top:.8rem">
         <div class="dist-field wide"><label>Nombre</label><input id="rbNombre" placeholder="Ej: RB Salsa Cheddar" value="${rbEditing?escapeAttr(rbEditing.nombre):''}"></div>
         <div class="dist-field"><label>Producción total</label><input id="rbProd" type="text" inputmode="decimal" placeholder="ej: 36 o 9,5" value="${rbEditing?rbEditing.produccion:''}"></div>
         <div class="dist-field"><label>Unidad de la receta</label><select id="rbUnidad">${C_UNITS(rbEditing?rbEditing.unidad:'litro')}</select></div>
       </div>
       <div class="oc-line">
-        <div class="dist-field" style="flex:2"><label>Insumo o receta</label><input id="rbIng" list="cIngList" placeholder="Escribí para buscar…"></div>
+        <div class="dist-field" style="flex:2"><label>Insumo o receta</label><input id="rbIng" list="cIngList" placeholder="Escribe para buscar…"></div>
         <div class="dist-field"><label>Cantidad</label><input id="rbCant" type="text" inputmode="decimal" placeholder="0"></div>
         <button class="adm-btn adm-btn-ghost" id="rbAddLine" type="button">+ Agregar</button>
       </div>
@@ -8291,7 +8382,7 @@ function renderCosteoRecetas(){
       </div>
     </div>
     <div class="ct-toolbar" style="margin-top:1.4rem">
-      <div class="ct-toolbar-info"><b>Recetas base (${(costeoData.recetasBase||[]).length})</b> · descargá el detalle con el desglose de cada insumo por RB.</div>
+      <div class="ct-toolbar-info"><b>Recetas base (${(costeoData.recetasBase||[]).length})</b> · descarga el detalle con el desglose de cada insumo por RB.</div>
       <div class="ct-pdf"><span>Excel</span><button class="adm-btn adm-btn-gold" id="rbXlBtn" type="button">Descargar Excel</button></div>
     </div>
     <div class="tc-search"><input type="text" id="rbSearchInp" placeholder="Buscar receta base…" value="${escapeAttr(rbSearch)}"></div>
@@ -8323,7 +8414,7 @@ function rbAddLine(){
   const val=document.getElementById('rbIng').value.replace(/ \(RB\)$/,'');
   const g=(costeoData.ingredientes||[]).find(x=>x.nombre===val);
   const cant=cNum(document.getElementById('rbCant').value);
-  if(!g){ alert('Elegí un insumo o receta de la lista.'); return; }
+  if(!g){ alert('Elige un insumo o receta de la lista.'); return; }
   if(rbEditing && g.type==='rb' && g.id===rbEditing.id){ alert('Una receta no puede usarse a sí misma.'); return; }
   rbDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant, rendAplica:g.rendimiento!=null, rendInsumo:g.rendimiento||null, base100:g.base100||null, rend:null });
   document.getElementById('rbIng').value=''; document.getElementById('rbCant').value='';
@@ -8333,7 +8424,7 @@ async function rbSave(){
   const st=document.getElementById('rbSt');
   const nombre=document.getElementById('rbNombre').value.trim();
   if(!nombre){ st.className='dist-status err'; st.textContent='Falta el nombre.'; return; }
-  if(!rbDraft.length){ st.className='dist-status err'; st.textContent='Agregá al menos un insumo.'; return; }
+  if(!rbDraft.length){ st.className='dist-status err'; st.textContent='Agrega al menos un insumo.'; return; }
   const payload={ nombre, unidad:document.getElementById('rbUnidad').value, produccion:cNum(document.getElementById('rbProd').value), lineas:rbDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad),rend:l.rend})) };
   st.className='dist-status'; st.textContent='Guardando…';
   try{
@@ -8382,7 +8473,7 @@ function renderCosteoPlatos(){
     <td class="dist-num">${cMoney(ep)}</td>
     <td class="dist-num"><input type="text" inputmode="decimal" class="dist-input-sm dist-num" data-plqty="${idx}" value="${l.cantidad}" style="width:80px"></td>
     <td class="dist-num">${cMoney((Number(l.cantidad)||0)*ep)}</td>
-    <td><button class="pv-del" data-plrm="${idx}">✕</button></td></tr>`;}).join('') : `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:.7rem">Agregá insumos o recetas base…</td></tr>`;
+    <td><button class="pv-del" data-plrm="${idx}">✕</button></td></tr>`;}).join('') : `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:.7rem">Agrega insumos o recetas base…</td></tr>`;
   // Lista agrupada por categoría
   const q = platoSearch.toLowerCase();
   const platos = (costeoData.platos||[]).filter(p=>(!platoCatFilter||p.categoria===platoCatFilter) && (!q||p.nombre.toLowerCase().includes(q)));
@@ -8407,7 +8498,7 @@ function renderCosteoPlatos(){
   document.getElementById('costeoBody').innerHTML = costeoIngDatalist() + `
     <div class="dist-form">
       <div class="dist-sec-title">${platoEditing?'Editar plato':'Nuevo plato'}</div>
-      <div class="dist-sec-sub">Agregá insumos y/o recetas base con su gramaje. El precio de venta sugerido sale de la cadena de costo (protección 10% + IVA 19%) dividida por el margen.</div>
+      <div class="dist-sec-sub">Agrega insumos y/o recetas base con su gramaje. El precio de venta sugerido sale de la cadena de costo (protección 10% + IVA 19%) dividida por el margen.</div>
       <div class="dist-form-grid" style="margin-top:.8rem">
         <div class="dist-field wide"><label>Nombre del plato</label><input id="plNombre" placeholder="Ej: Acevichado 420" value="${platoEditing?escapeAttr(platoEditing.nombre):''}"></div>
         <div class="dist-field"><label>Categoría</label><select id="plCat">${catOptions}</select></div>
@@ -8415,7 +8506,7 @@ function renderCosteoPlatos(){
         <div class="dist-field"><label>IVA</label><label class="pl-iva"><input type="checkbox" id="plIva" ${curIva?'checked':''}> Incluir IVA 19%</label></div>
       </div>
       <div class="oc-line">
-        <div class="dist-field" style="flex:2"><label>Insumo o receta base</label><input id="plIng" list="cIngList" placeholder="Escribí para buscar…"></div>
+        <div class="dist-field" style="flex:2"><label>Insumo o receta base</label><input id="plIng" list="cIngList" placeholder="Escribe para buscar…"></div>
         <div class="dist-field"><label>Gramaje / cantidad</label><input id="plCant" type="text" inputmode="decimal" placeholder="0"></div>
         <button class="adm-btn adm-btn-ghost" id="plAddLine" type="button">+ Agregar</button>
       </div>
@@ -8438,7 +8529,7 @@ function renderCosteoPlatos(){
       </div>
     </div>
     <div class="ct-toolbar" style="margin-top:1.4rem">
-      <div class="ct-toolbar-info"><b>${isBarra()?'Tragos':'Platos'} (${(costeoData.platos||[]).length})</b> · descargá el listado con la cadena de costo y el precio real.</div>
+      <div class="ct-toolbar-info"><b>${isBarra()?'Tragos':'Platos'} (${(costeoData.platos||[]).length})</b> · descarga el listado con la cadena de costo y el precio real.</div>
       <div class="ct-pdf"><span>Excel</span><button class="adm-btn adm-btn-gold" id="plXlBtn" type="button">Descargar Excel</button></div>
     </div>
     <div class="tc-search" style="display:flex;gap:.5rem;flex-wrap:wrap">
@@ -8477,7 +8568,7 @@ function platoAddLine(){
   const val=document.getElementById('plIng').value.replace(/ \(RB\)$/,'');
   const g=(costeoData.ingredientes||[]).find(x=>x.nombre===val);
   const cant=cNum(document.getElementById('plCant').value);
-  if(!g){ alert('Elegí un insumo o receta base de la lista.'); return; }
+  if(!g){ alert('Elige un insumo o receta base de la lista.'); return; }
   platoDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant, rendAplica:g.rendimiento!=null, rendInsumo:g.rendimiento||null, base100:g.base100||null, rend:null });
   document.getElementById('plIng').value=''; document.getElementById('plCant').value='';
   renderCosteoPlatosKeep();
@@ -8575,7 +8666,7 @@ function drawCarta(){
         <div class="ct-sec-h" style="border:none">Reventa · destilados y bebidas <span>(venta directa)</span></div>
         <button class="adm-btn adm-btn-ghost" id="rvAddSec" type="button">+ Sección</button>
       </div>
-      <div class="ct-toolbar-info" style="margin:-.3rem 0 .6rem">Se compran hechos y se revenden. Cargá el <b>precio de compra</b> y el <b>% de costo</b> = compra ÷ venta se calcula solo.</div>
+      <div class="ct-toolbar-info" style="margin:-.3rem 0 .6rem">Se compran hechos y se revenden. Carga el <b>precio de compra</b> y el <b>% de costo</b> = compra ÷ venta se calcula solo.</div>
       ${rest.map(reventaSectionBlock).join('')}`;
   }
   document.getElementById('costeoBody').innerHTML = `
@@ -8700,7 +8791,7 @@ async function reventaSaveProd(id){
 async function reventaAddProd(seccionId){
   const wrap=document.querySelector(`#costeoBody .rv-addbtn[data-s="${seccionId}"]`).closest('tr');
   const g=nf=>wrap.querySelector(`.rv-new[data-nf="${nf}"]`).value;
-  const nombre=g('nombre').trim(); if(!nombre){ alert('Escribí el nombre del producto.'); return; }
+  const nombre=g('nombre').trim(); if(!nombre){ alert('Escribe el nombre del producto.'); return; }
   try{
     const r=await fetch(cRest('/admin/costeo/reventa/producto'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seccionId,nombre,precioVenta:cNum(g('precioVenta')),precioCompra:cNum(g('precioCompra'))})});
     if(!r.ok){const e=await r.json();throw new Error(e.error||'Error');}
@@ -8749,6 +8840,10 @@ async function estadoBoot(){
   document.getElementById('estadoMesCompleto').onclick=()=>{ const [y,mo]=estadoMonth.split('-').map(Number); document.getElementById('estadoFrom').value=estadoMonth+'-01'; document.getElementById('estadoTo').value=estadoMonth+'-'+String(new Date(y,mo,0).getDate()).padStart(2,'0'); estRefresh(); };
   document.getElementById('estadoReload').onclick=estRefresh;
   document.getElementById('estadoNuevo').onclick=estadoNuevoMes;
+  const helpBtn=document.getElementById('estHelpToggle'), helpBox=document.getElementById('estHelpBox');
+  if(helpBtn && helpBox) helpBtn.onclick=()=>{
+    const open=helpBox.hidden; helpBox.hidden=!open; helpBtn.setAttribute('aria-expanded',String(open));
+  };
   document.getElementById('estadoExcel').onclick=()=>{ if(!estadoShowExcel){ estadoShowExcel=true; estadoRenderExcel(); estadoSyncViewBtns(); } };
   document.getElementById('estadoEditar').onclick=()=>{ if(estadoShowExcel){ estadoShowExcel=false; estadoFetch(); estadoSyncViewBtns(); } };
   estadoSyncViewBtns();
@@ -8836,22 +8931,28 @@ function estRecalc(){
   set('estOnline',eM(c.online)); set('estOnlinePct',c.pctOnline+'%');
   set('estRetail',eM(c.retail)); set('estRetailPct',c.pctRetail+'%'); set('estRetailG',eM(c.retail));
   set('estHospitality',eM(c.hospitality)); set('estHospitalityPct',c.pctHospitality+'%'); set('estHospitalityG',eM(c.hospitality));
-  if(estadoData.excelRef && estadoData.excelRef.ingresos_total){ const ex=estadoData.excelRef.ingresos_total; const el=document.getElementById('estDeltaExcel'); if(el){ const dif=c.total-ex; el.textContent=(dif>=0?'+':'')+eM(dif)+' vs Excel ('+eM(ex)+')'; } }
+  if(estadoData.excelRef && estadoData.excelRef.ingresos_total){ const ex=estadoData.excelRef.ingresos_total; const el=document.getElementById('estDiagExcel'); if(el){ const dif=c.total-ex; el.textContent=(dif>=0?'+':'')+eM(dif)+' vs Excel ('+eM(ex)+')'; } }
 }
 function renderEstado(){
   const a=estadoData, body=document.getElementById('estadoBody');
   estHorecaChan=null; estHorecaFilter={marca:'',razon:'',sector:''};
   estWebProv=null; estWebFilter={entrega:'',tienda:''}; estWalmartMarca=''; estHospChan=null; estHospGarden='';
   const rg = a.rango ? `${a.rango.from.slice(8)}/${a.rango.from.slice(5,7)}–${a.rango.to.slice(8)}/${a.rango.to.slice(5,7)}${a.mesCompleto?' (mes completo)':' (rango parcial)'}` : '';
-  document.getElementById('estadoMeta').textContent = (a.shopifyOk ? `Shopify OK · ${estMonthLabel(a.month)}` : `⚠️ ${a.shopifyError||'Shopify no disponible'} — solo líneas manuales`) + (rg?` · Shopify entre ${rg}`:'');
+  const shopifyLine = (a.shopifyOk ? `Shopify OK · ${estMonthLabel(a.month)}` : `⚠️ ${a.shopifyError||'Shopify no disponible'} — solo líneas manuales`) + (rg?` · Shopify entre ${rg}`:'');
   const c=estCompute();
   const alertas=[];
-  if((a.alertas.codigosNuevos||[]).length) alertas.push(`<b>Códigos nuevos sin clasificar:</b> ${a.alertas.codigosNuevos.map(escapeHtml).join(', ')} — avisame para mapearlos`);
+  if((a.alertas.codigosNuevos||[]).length) alertas.push(`<b>Códigos nuevos sin clasificar:</b> ${a.alertas.codigosNuevos.map(escapeHtml).join(', ')} — avísanos para mapearlos`);
   if((a.alertas.sinMapear||[]).length) alertas.push(`<b>Productos sin mapear (transferencias):</b> ${a.alertas.sinMapear.map(x=>escapeHtml(x.producto)).join(' · ')}`);
-  const alertBox = alertas.length? `<div class="est-alert">⚠️ ${alertas.join('<br>')}</div>`:'';
+  const diagBox = `
+    <div class="est-diag" id="estDiag" hidden>
+      <div class="est-diag-h">Diagnóstico</div>
+      <div class="est-diag-row">${shopifyLine}</div>
+      ${a.excelRef?`<div class="est-diag-row" id="estDiagExcel"></div>`:''}
+      ${alertas.length?`<div class="est-diag-row est-diag-alert">⚠️ ${alertas.join('<br>')}</div>`:''}
+    </div>`;
   const pr=estadoDraft.preciosTransfer;
   const transTabla=(t,titulo,editable,drillKey)=>{
-    const rows=(t.tabla||[]).map(r=>`<tr><td>${escapeHtml(r.estilo)}</td><td class="dist-num">${eM(r.precioLt)}</td><td class="dist-num">${eM(r.despachoLt)}</td><td class="dist-num">${r.litros}</td><td class="dist-num">${r.pct}%</td><td class="dist-num">${eM(r.valor)}</td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:#999;padding:.6rem">Sin litros${editable?' — agregá abajo':''}</td></tr>`;
+    const rows=(t.tabla||[]).map(r=>`<tr><td>${escapeHtml(r.estilo)}</td><td class="dist-num">${eM(r.precioLt)}</td><td class="dist-num">${eM(r.despachoLt)}</td><td class="dist-num">${r.litros}</td><td class="dist-num">${r.pct}%</td><td class="dist-num">${eM(r.valor)}</td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:#999;padding:.6rem">Sin litros${editable?' — agrega abajo':''}</td></tr>`;
     const verPed = (drillKey && (t.pedidos||[]).length) ? ` <button class="dist-portal-link" data-drill="${drillKey}">ver pedidos</button>` : '';
     return `<div class="est-sec"><div class="est-sec-h">${titulo} <b>${eM(t.valor)}</b> <span class="est-lt">${t.litros} lt</span>${verPed}</div>
       ${drillKey?`<div class="est-drill-box" id="estDrill_${drillKey}"></div>`:''}
@@ -8862,16 +8963,18 @@ function renderEstado(){
   const chanCard=(id,label,sub,val,pct)=>`<div class="est-chan"><div class="est-chan-l">${label}</div><div class="est-chan-sub">${sub}</div><div class="est-chan-v" id="${id}">${eM(val)}</div><div class="est-chan-pct" id="${id}Pct">${pct}%</div></div>`;
   body.innerHTML=`
     <div class="est-top">
-      <div class="est-total-box"><div class="est-total-l">Total Ingresos</div><div class="est-total-v" id="estTotal">${eM(c.total)}</div>${a.excelRef?`<div class="est-delta" id="estDeltaExcel"></div>`:''}</div>
-      <div class="est-note">Ingresos por <b>4 canales</b>, <b>100% automáticos de Shopify</b> (sin carga manual): HORECA (CD Kairos + Cruzada) · Venta Online (web) · Retail (Walmart) · Hospitality (locales propios).</div>
+      <div class="est-total-box">
+        <div class="est-total-l">Total Ingresos <button type="button" class="est-diag-btn" id="estDiagToggle" aria-expanded="false" aria-controls="estDiag" aria-label="Ver diagnóstico">ⓘ${alertas.length?'<span class="est-diag-dot"></span>':''}</button></div>
+        <div class="est-total-v" id="estTotal">${eM(c.total)}</div>
+      </div>
     </div>
+    ${diagBox}
     <div class="est-chans">
       ${chanCard('estHoreca','① HORECA','CD Kairos + Ventas Cruzada',c.horeca,c.pctHoreca)}
       ${chanCard('estOnline','② Venta Online','Página web',c.online,c.pctOnline)}
       ${chanCard('estRetail','③ Retail','Walmart',c.retail,c.pctRetail)}
       ${chanCard('estHospitality','④ Hospitality','Garden Vespucio · Garden Antofa · Badass',c.hospitality,c.pctHospitality)}
     </div>
-    ${alertBox}
     <div class="est-precios">
       <span class="est-sub">Precios de transferencia ($/lt):</span>
       ${['cerveza','gin','ron','despacho'].map(k=>`<label class="est-pr">${k}<input class="est-pr-inp" data-pr="${k}" type="text" inputmode="decimal" value="${pr[k]}"></label>`).join('')}
@@ -8893,7 +8996,7 @@ function renderEstado(){
         ${(a.ingresos.ventas_web.proveedores||[]).map(pv=>{const b=(a.ingresos.ventas_web.porProveedor||{})[pv]||{total:0,n:0};return `<button class="est-hchan" data-wprov="${escapeHtml(pv)}"><b>${escapeHtml(pv)}</b><span>${eM(b.total)} · ${b.n} pedidos</span></button>`;}).join('')}
       </div>
       <div id="estWebPanel"></div>
-      ${a.ingresos.ventas_web.detalleEntrega===false?`<div class="est-auto" style="margin-top:.5rem">ℹ️ El detalle de entrega (retiro/despacho, courier, origen, tienda) no está disponible: falta el permiso de Shopify de <b>fulfillment orders</b>. Re-autorizá la app para verlo.</div>`:(a.ingresos.ventas_web.origenDespacho===false?`<div class="est-auto" style="margin-top:.5rem">ℹ️ El <b>origen del despacho</b> (de dónde sale) necesita el permiso de Shopify de <b>fulfillment orders</b>. La tienda del Kioskify y el courier sí se muestran.</div>`:'')}
+      ${a.ingresos.ventas_web.detalleEntrega===false?`<div class="est-auto" style="margin-top:.5rem">ℹ️ El detalle de entrega (retiro/despacho, courier, origen, tienda) no está disponible: falta el permiso de Shopify de <b>fulfillment orders</b>. Re-autoriza la app para verlo.</div>`:(a.ingresos.ventas_web.origenDespacho===false?`<div class="est-auto" style="margin-top:.5rem">ℹ️ El <b>origen del despacho</b> (de dónde sale) necesita el permiso de Shopify de <b>fulfillment orders</b>. La tienda del Kioskify y el courier sí se muestran.</div>`:'')}
     </div>
 
     <div class="est-group">③ Retail <span>· Walmart · por marca</span><b id="estRetailG">${eM(c.retail)}</b></div>
@@ -8917,6 +9020,10 @@ function renderEstado(){
 }
 function estWire(){
   const body=document.getElementById('estadoBody');
+  const diagBtn=document.getElementById('estDiagToggle'), diag=document.getElementById('estDiag');
+  if(diagBtn && diag) diagBtn.onclick=()=>{
+    const open=diag.hidden; diag.hidden=!open; diagBtn.setAttribute('aria-expanded',String(open));
+  };
   // líneas manuales
   body.querySelectorAll('.est-inp[data-lf]').forEach(inp=>inp.oninput=()=>{
     const tr=inp.closest('tr'); const list=estGetList(tr.dataset.lp); const it=list[+tr.dataset.li]; const f=inp.dataset.lf;
@@ -9164,9 +9271,9 @@ function cgMarcaTotalUpdate(tipo){
 function renderCostos(tipo){
   const cfg=COSTOS_TIPO_CFG[tipo];
   const a=costosData[tipo], body=document.getElementById(cfg.bodyId); const f=costosForm[tipo];
-  const provOpts=['<option value="">— Elegí un proveedor —</option>',...(a.proveedores||[]).map(p=>`<option value="${escapeAttr(p.nombre)}" ${p.nombre===f.proveedor?'selected':''}>${escapeHtml(p.nombre)}</option>`),'<option value="__nuevo__">+ Crear nuevo proveedor…</option>'].join('');
-  const catOpts=['<option value="">— Elegí una categoría —</option>',...(a.categorias||[]).map(c=>`<option value="${c.id}" ${c.id===f.categoria?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
-  const marcaOpts=['<option value="">— Elegí una marca —</option>',
+  const provOpts=['<option value="">— Elige un proveedor —</option>',...(a.proveedores||[]).map(p=>`<option value="${escapeAttr(p.nombre)}" ${p.nombre===f.proveedor?'selected':''}>${escapeHtml(p.nombre)}</option>`),'<option value="__nuevo__">+ Crear nuevo proveedor…</option>'].join('');
+  const catOpts=['<option value="">— Elige una categoría —</option>',...(a.categorias||[]).map(c=>`<option value="${c.id}" ${c.id===f.categoria?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
+  const marcaOpts=['<option value="">— Elige una marca —</option>',
     ...['kairos','banny','firulais'].map(m=>`<option value="${m}" ${f.marca===m?'selected':''}>${COSTOS_MARCAS_LBL[m]}</option>`),
     `<option value="todas" ${f.marca==='todas'?'selected':''}>Todas</option>`,
     `<option value="algunas" ${f.marca==='algunas'?'selected':''}>Algunas…</option>`,
@@ -9263,11 +9370,11 @@ async function costosAgregar(tipo){
   const payload={ proveedor:f.proveedor, categoria:f.categoria, fecha:f.fecha, folio:f.folio, valor:cNum(f.valor), adjunto:f.adjunto||null, marca:f.marca };
   if(f.marca==='algunas') payload.marcaDetalle=['kairos','banny','firulais'].filter(m=>f.marcaSel[m]).map(m=>({marca:m,pct:Number(f.marcaPct[m])||0}));
   if(cfg.pctTotal && f.pctTotal) payload.pctTotal=Number(f.pctTotal);
-  if(!payload.proveedor||payload.proveedor==='__nuevo__') return costosShowErr(tipo,'Elegí un proveedor.');
-  if(!payload.categoria) return costosShowErr(tipo,'Elegí una categoría.');
-  if(!payload.marca) return costosShowErr(tipo,'Elegí a qué marca corresponde.');
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(payload.fecha)) return costosShowErr(tipo,'Elegí la fecha del documento.');
-  if(!payload.valor) return costosShowErr(tipo,'Ingresá el valor.');
+  if(!payload.proveedor||payload.proveedor==='__nuevo__') return costosShowErr(tipo,'Elige un proveedor.');
+  if(!payload.categoria) return costosShowErr(tipo,'Elige una categoría.');
+  if(!payload.marca) return costosShowErr(tipo,'Elige a qué marca corresponde.');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(payload.fecha)) return costosShowErr(tipo,'Elige la fecha del documento.');
+  if(!payload.valor) return costosShowErr(tipo,'Ingresa el valor.');
   try{
     const r=await fetch('/admin/costos/entrada',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json();
     if(!r.ok) throw new Error(d.error||'Error');
@@ -9359,13 +9466,13 @@ function wireNomina(){
 async function nominaGuardar(id){
   const row=document.querySelector(`tr[data-erow="${id}"]`); if(!row) return;
   const payload={}; row.querySelectorAll('[data-ef]').forEach(el=>payload[el.dataset.ef]=el.value);
-  if(!(payload.nombre||'').trim()){ alert('Ingresá el nombre completo.'); return; }
+  if(!(payload.nombre||'').trim()){ alert('Ingresa el nombre completo.'); return; }
   try{ const r=await fetch('/admin/nomina/persona/'+encodeURIComponent(id),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); nominaEditId=null; await loadNomina(); }
   catch(e){ alert(String(e.message||e)); }
 }
 async function nominaAgregar(){
   const err=document.getElementById('nmErr'); err.textContent=''; err.classList.remove('show');
-  if(!nominaForm.nombre.trim()){ err.textContent='⚠ Ingresá el nombre completo.'; err.classList.add('show'); return; }
+  if(!nominaForm.nombre.trim()){ err.textContent='⚠ Ingresa el nombre completo.'; err.classList.add('show'); return; }
   try{
     const r=await fetch('/admin/nomina/persona',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(nominaForm)}); const d=await r.json();
     if(!r.ok) throw new Error(d.error||'Error');
@@ -9421,7 +9528,7 @@ function openTeamModal(member){
   teamEditId = member ? member.id : null;
   document.getElementById('tmTitle').textContent = member ? 'Editar cuenta' : 'Nueva cuenta';
   document.getElementById('tmSub').textContent = member
-    ? 'Actualizá su nombre, apodo o restablecé su contraseña.'
+    ? 'Actualiza su nombre, apodo o restablece su contraseña.'
     : 'Crea un acceso individual para que esta persona inicie sesión con su propio correo y vea su nombre/apodo en el saludo.';
   document.getElementById('tmUserWrap').style.display = member ? 'none' : '';
   document.getElementById('tmUsername').value = member ? member.username : '';
@@ -9561,7 +9668,7 @@ function renderPnl(){
       ${res('EBITDA · Resultado operativo', a.ebitda, rt.ebitda, ebitdaCls)}
     </tbody></table></div>
     <div class="pnl-activos"><span>Activos fijos <span style="font-size:.78rem;color:var(--dim,#999)">inversión, no afecta el resultado operativo</span></span><b>${eM(co.activos)}</b> <span class="pnl-doc">${dc.activos_fijos||0} doc${(dc.activos_fijos||0)===1?'':'s'}</span></div>
-    <div class="est-note" style="margin-top:.8rem">Para cargar o editar los costos y gastos, andá a <b>Costos</b> o <b>Gastos</b>. Acá se resumen automáticamente por categoría.</div>`;
+    <div class="est-note" style="margin-top:.8rem">Para cargar o editar los costos y gastos, ve a <b>Costos</b> o <b>Gastos</b>. Acá se resumen automáticamente por categoría.</div>`;
 }
 document.getElementById('pnlReload').onclick=loadPnl;
 document.getElementById('pnlMes').onchange=loadPnl;
@@ -9606,7 +9713,7 @@ function forecastRenderArea(){
   document.getElementById('fcBackWrap').style.display = fcArea ? '' : 'none';
   if(!fcArea){
     document.getElementById('fcTitle').textContent='Forecast';
-    document.getElementById('fcMeta').textContent='elegí qué querés proyectar';
+    document.getElementById('fcMeta').textContent='elige qué quieres proyectar';
     const cards=FC_AREAS.map(a=>`<div class="adm-cat" data-fcarea="${a.id}" style="--accent:var(--gold)">
       <div class="adm-cat-ic">${a.icon}</div>
       <div class="adm-cat-name">${escapeHtml(a.label)}</div>
@@ -9740,7 +9847,7 @@ function fcProyRender(){
     <div class="cg-form" style="margin-top:1rem">
       <div class="cg-form-title">Agregar ajuste manual</div>
       <div class="cg-form-grid">
-        <label class="cg-field"><span>Categoría</span><select id="fcAjCat"><option value="">— Elegí una categoría —</option>${catOpts}</select></label>
+        <label class="cg-field"><span>Categoría</span><select id="fcAjCat"><option value="">— Elige una categoría —</option>${catOpts}</select></label>
         <label class="cg-field"><span>Descripción</span><input type="text" id="fcAjDesc" placeholder="Ej: arriendo nuevo local"></label>
         <label class="cg-field"><span>Monto ($)</span><input type="text" inputmode="numeric" id="fcAjMonto" placeholder="0"></label>
         <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fcAjAdd" type="button">+ Agregar ajuste</button></div>
@@ -9770,8 +9877,8 @@ async function fcAjusteAgregar(){
   const categoria=document.getElementById('fcAjCat').value;
   const descripcion=document.getElementById('fcAjDesc').value;
   const monto=cNum(document.getElementById('fcAjMonto').value);
-  if(!categoria){ err.textContent='⚠ Elegí una categoría.'; err.classList.add('show'); return; }
-  if(!monto){ err.textContent='⚠ Ingresá el monto.'; err.classList.add('show'); return; }
+  if(!categoria){ err.textContent='⚠ Elige una categoría.'; err.classList.add('show'); return; }
+  if(!monto){ err.textContent='⚠ Ingresa el monto.'; err.classList.add('show'); return; }
   try{
     const r=await fetch('/admin/forecast/proyectado/ajuste',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({month:fcProyMonth,categoria,descripcion,monto})});
     const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
@@ -9899,7 +10006,7 @@ function fcAnualRender(){
   const t=a.totales;
   body.innerHTML=`
     <div class="fc-toolbar"><div class="fc-toolbar-l"><span>Año</span><select id="fcAnualSel">${yearOpts}</select></div></div>
-    <div class="fc-note">Los meses hasta <b>${escapeHtml(estMonthLabel(a.curMonth))}</b> son reales. Para los meses siguientes, elegí de qué mes ya ocurrido copiar los valores — así se simula cómo cerraría el año.</div>
+    <div class="fc-note">Los meses hasta <b>${escapeHtml(estMonthLabel(a.curMonth))}</b> son reales. Para los meses siguientes, elige de qué mes ya ocurrido copiar los valores — así se simula cómo cerraría el año.</div>
     <div class="oee-panel-t">Línea de tiempo del EBITDA mensual</div>
     ${fcAnualChart(a.meses)}
     <div class="est-total-box ${t.ebitda>=0?'':'pnl-box-red'}" style="margin-top:1rem;max-width:340px"><div class="est-total-l">EBITDA anual proyectado</div><div class="est-total-v">${eM(t.ebitda)}</div></div>
@@ -9943,8 +10050,8 @@ const prodNow=()=>new Date().toISOString();
 async function prodSafeJson(r){
   const ct=(r.headers.get('content-type')||'');
   if(!ct.includes('application/json')){
-    if(r.status===401||r.status===403) throw new Error('Tu sesión venció — recargá la página e iniciá sesión de nuevo.');
-    throw new Error('El servidor no devolvió una respuesta válida (status '+r.status+'). Probá de nuevo en un momento.');
+    if(r.status===401||r.status===403) throw new Error('Tu sesión venció — recarga la página e inicia sesión de nuevo.');
+    throw new Error('El servidor no devolvió una respuesta válida (status '+r.status+'). Prueba de nuevo en un momento.');
   }
   try{ return await r.json(); }
   catch(e){ throw new Error('Respuesta inválida del servidor (status '+r.status+').'); }
@@ -10049,7 +10156,7 @@ function prodRenderCoccion(){
       <label class="cg-field"><span>Volumen esperado (L)</span><input id="plVol" inputmode="numeric" placeholder="1000"></label>
       <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="plAdd" type="button">+ Iniciar lote</button></div>
     </div><div class="cg-err" id="plErr"></div></div>`;
-  const lista=lotesCoc.length?lotesCoc.map(l=>prodLoteCard(l)).join(''):'<div class="dist-empty">No hay lotes en cocción. Creá uno arriba.</div>';
+  const lista=lotesCoc.length?lotesCoc.map(l=>prodLoteCard(l)).join(''):'<div class="dist-empty">No hay lotes en cocción. Crea uno arriba.</div>';
   return form+'<div class="prod-sec-h" style="margin-top:1rem">Lotes en cocción <span>'+lotesCoc.length+'</span></div>'+lista;
 }
 // Tarjeta de un lote con sus etapas (inicio/fin) y acciones según estado.
@@ -10071,7 +10178,7 @@ function prodLoteCard(l){
     const dur=(l.etapas||[]).filter(e=>e.inicio&&e.fin).reduce((a,e)=>a+(new Date(e.fin)-new Date(e.inicio)),0);
     const horas=dur/3600000, est=(prodData.config&&prodData.config.cicloCoccionEstandarH)||4.2;
     acciones=`<div class="prod-lote-cierre">${cocSomeStart?`<span class="prod-ciclo">Ciclo: <b>${horas.toFixed(1)} h</b> vs estándar ${est} h</span>`:''}
-      <button class="adm-btn adm-btn-gold" data-cerrar-coc="${l.id}" ${cocDone?'':'disabled'} title="${cocDone?'':'Cerrá todas las etapas primero'}">Cerrar cocción → Fermentación</button></div>`;
+      <button class="adm-btn adm-btn-gold" data-cerrar-coc="${l.id}" ${cocDone?'':'disabled'} title="${cocDone?'':'Cierra todas las etapas primero'}">Cerrar cocción → Fermentación</button></div>`;
   } else if(l.estado==='fermentacion'||l.estado==='maduracion'||l.estado==='listo'){
     acciones=`<div class="prod-lote-cierre">
       ${l.estado==='fermentacion'?`<button class="adm-btn adm-btn-ghost" data-mad="${l.id}">Iniciar maduración</button>`:''}
@@ -10098,7 +10205,7 @@ function prodVelNominalFmt(fmt){
 }
 function prodRenderEnvasado(){
   const lotes=(prodData.lotes||[]).filter(l=>['fermentacion','maduracion','listo','envasado'].includes(l.estado));
-  if(!lotes.length) return '<div class="dist-empty">No hay lotes para envasar. Cerrá una cocción primero.</div>';
+  if(!lotes.length) return '<div class="dist-empty">No hay lotes para envasar. Cierra una cocción primero.</div>';
   return lotes.map(l=>{
     const base=l.volumenBaseL||l.volumenEsperadoL||0;
     const envd=l.litrosEnvasados||0;
@@ -10169,7 +10276,7 @@ function prodRenderRecetas(){
         <button class="rec-ico" data-rec-del="${r.id}" title="Eliminar">🗑</button>
       </div></td></tr>`;
   }).join('');
-  const table=`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Nombre</th><th>Estilo</th><th style="text-align:right">Litros</th><th style="text-align:right">OG</th><th style="text-align:right">ABV %</th><th></th></tr></thead><tbody>${rows||`<tr><td colspan="6" style="text-align:center;color:#999;padding:.8rem">${q?'Sin resultados para «'+escapeHtml(prodRecQuery)+'»':'No hay recetas. Creá una o sincronizá el ERP.'}</td></tr>`}</tbody></table></div>`;
+  const table=`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Nombre</th><th>Estilo</th><th style="text-align:right">Litros</th><th style="text-align:right">OG</th><th style="text-align:right">ABV %</th><th></th></tr></thead><tbody>${rows||`<tr><td colspan="6" style="text-align:center;color:#999;padding:.8rem">${q?'Sin resultados para «'+escapeHtml(prodRecQuery)+'»':'No hay recetas. Crea una o sincroniza el ERP.'}</td></tr>`}</tbody></table></div>`;
   const pager=filt.length>PROD_REC_PER?`<div class="rec-pager"><button class="rec-ico" id="recPrev" ${prodRecPage<=0?'disabled':''}>‹</button><span>Página ${prodRecPage+1} de ${pages} · ${filt.length} recetas</span><button class="rec-ico" id="recNext" ${prodRecPage>=pages-1?'disabled':''}>›</button></div>`:`<div class="rec-pager"><span>${filt.length} receta${filt.length===1?'':'s'}</span></div>`;
   return toolbar+editor+viewer+table+pager;
 }
@@ -10259,7 +10366,7 @@ function prodOeePeriodWindow(p){
 async function prodLoadOee(){
   const body=document.getElementById('oeeBody'); if(!body) return;
   const w=prodOeePeriodWindow(prodOee.periodo);
-  if(prodOee.periodo==='rango'){ if(!prodOee.desde||!prodOee.hasta){ body.innerHTML='<div class="oee-empty">Elegí un rango de fechas.</div>'; return; } w.desde=prodOee.desde; w.hasta=prodOee.hasta; }
+  if(prodOee.periodo==='rango'){ if(!prodOee.desde||!prodOee.hasta){ body.innerHTML='<div class="oee-empty">Elige un rango de fechas.</div>'; return; } w.desde=prodOee.desde; w.hasta=prodOee.hasta; }
   body.innerHTML='<div class="adm-loading">Calculando OEE…</div>';
   const qs=new URLSearchParams({centro:prodOee.centro,desde:w.desde,hasta:w.hasta,bucket:w.bucket,n:w.n});
   if(prodOee.incluirLimp!==null) qs.set('incluirLimpieza',prodOee.incluirLimp?'1':'0');
@@ -10302,7 +10409,7 @@ function prodOeeDashboard(j){
     ${prodOeeCard('Calidad',C.valor,bC, j.centro==='brewhouse'?'—':'buenos / (buenos + rechazados)',
       j.centro==='brewhouse'?'<i>La calidad se mide en envasado.</i>':`Buenos <b>${C.litrosBuenos} L</b> · Rech. <b>${C.litrosRechazados} L</b><br>Latas nivel bajo <b>${C.latasNivelBajo}</b> · Merma tapas <b>${C.mermaTapas}</b>`)}
   </div>`;
-  const aviso=D.esTecho?`<div class="oee-warn">⚠ Disponibilidad es un <b>techo</b>: no hay paradas no planificadas registradas en este centro/periodo. Cargá fallas/esperas para el número real.</div>`:'';
+  const aviso=D.esTecho?`<div class="oee-warn">⚠ Disponibilidad es un <b>techo</b>: no hay paradas no planificadas registradas en este centro/periodo. Carga fallas/esperas para el número real.</div>`:'';
   return controls_meta(j)+cards+aviso+prodOeeTrend(j)+`<div class="oee-grid">${prodOeeParetoParadas(j)}${prodOeeParetoCoccion(j)}${prodOeeLead(j)}${prodOeeBarrilLata(j)}</div>`+prodOeeMerma(j)+`<div class="oee-grid">${prodOeeOcupacion(j)}${prodOeeComplementarias(j)}</div>`;
 }
 function controls_meta(j){
@@ -10393,7 +10500,7 @@ function prodCalRender(){
 }
 function prodCalCervOpts(sel){
   const cs=prodCal.data.cervezas||[];
-  return '<option value="">— elegí una cerveza —</option>'+cs.map(c=>`<option value="${escapeAttr(c.cervezaId)}" data-nombre="${escapeAttr(c.nombre)}" data-estilo="${escapeAttr(c.estilo||'')}" ${sel===c.cervezaId?'selected':''}>${escapeHtml(c.nombre)}${c.estilo?(' · '+escapeHtml(c.estilo)):''}</option>`).join('');
+  return '<option value="">— elige una cerveza —</option>'+cs.map(c=>`<option value="${escapeAttr(c.cervezaId)}" data-nombre="${escapeAttr(c.nombre)}" data-estilo="${escapeAttr(c.estilo||'')}" ${sel===c.cervezaId?'selected':''}>${escapeHtml(c.nombre)}${c.estilo?(' · '+escapeHtml(c.estilo)):''}</option>`).join('');
 }
 function prodCalCompByName(){ const m={}; (prodCal.data.competencias||[]).forEach(c=>m[c.nombre]=c); return m; }
 function prodCalMedalIco(resultado,compNombre,cls){
@@ -10409,7 +10516,7 @@ function prodCalInicio(){
   const cs=prodCal.data.cervezas||[]; const res=prodCal.data.resumenes||{};
   const header=`<h2 class="cal-hero-t">ESPACIO SAGRADO! Encuentra aquí la evolución y diagnóstico histórico de nuestros productos</h2>
     <div class="cal-quote"><div class="cal-quote-text">"El éxito es la suma de pequeños esfuerzos repetidos día tras día."</div><div class="cal-quote-author">— Robert Collier</div></div>`;
-  if(!cs.length) return header+`<div class="cal-form"><div class="cal-form-t">Sin cervezas en el catálogo todavía</div><div class="cal-form-s">El catálogo se arma desde tus recetas y Shopify (solo los productos que Producción elabora) + cervezas referenciadas y overrides/manuales. Para cargar una imagen de lata y su estilo, andá a Competencias → "cerveza" o registrá desde los formularios.</div></div>`;
+  if(!cs.length) return header+`<div class="cal-form"><div class="cal-form-t">Sin cervezas en el catálogo todavía</div><div class="cal-form-s">El catálogo se arma desde tus recetas y Shopify (solo los productos que Producción elabora) + cervezas referenciadas y overrides/manuales. Para cargar una imagen de lata y su estilo, ve a Competencias → "cerveza" o registra desde los formularios.</div></div>`;
   const search=`<div class="cal-search"><label class="cal-search-lbl" for="calSearchSel">🔎 Selecciona la cerveza que quieres observar</label><select id="calSearchSel" class="cal-search-sel">${prodCalCervOpts(prodCal.sel)}</select></div>`;
   const detail=prodCal.sel?prodCalDetalle(prodCal.sel):'';
   const card=c=>{
@@ -10427,7 +10534,7 @@ function prodCalInicio(){
   // Carrusel automático: la lista se duplica una vez para lograr un loop continuo
   // sin salto (translateX(-50%) recorre exactamente el set original).
   const track=[...cs,...cs].map(card).join('');
-  return header+search+detail+`<div class="cal-form-s" style="margin:1.4rem 0 .7rem">Las latas siguen girando acá abajo — tocá una para ver su resumen. Semáforo: <b style="color:#1f7a44">Sólida</b> (con medallas, sin defectos recientes) · <b style="color:#a05f00">A observar</b> · <b style="color:#c0392b">Debe mejorar</b> (defectos recurrentes o feedback negativo).</div>
+  return header+search+detail+`<div class="cal-form-s" style="margin:1.4rem 0 .7rem">Las latas siguen girando acá abajo — toca una para ver su resumen. Semáforo: <b style="color:#1f7a44">Sólida</b> (con medallas, sin defectos recientes) · <b style="color:#a05f00">A observar</b> · <b style="color:#c0392b">Debe mejorar</b> (defectos recurrentes o feedback negativo).</div>
     <div class="cal-carousel"><div class="cal-carousel-track" style="--n:${cs.length||1}">${track}</div></div>
     <div class="cal-btn-row" style="margin-top:1.2rem"><span class="cal-fld" style="flex-direction:row;align-items:center;gap:.5rem">Accesos:</span>
       <button class="adm-btn adm-btn-ghost" data-cal-goto="competencias">🏆 Competencias</button>
@@ -10489,7 +10596,7 @@ function prodCalCompetencias(){
     </div>
     <div class="cal-medal-up"><div class="m"><div>🥫 Imagen de la lata (manual, gana sobre la de Shopify)</div><img id="cvImg" style="display:none"><label class="adm-btn adm-btn-ghost" style="cursor:pointer;font-size:.72rem;padding:.3rem .5rem">Subir<input type="file" accept="image/png,image/*" id="cvImgInp" style="display:none"></label></div></div>
     <div class="cal-btn-row"><button class="adm-btn adm-btn-gold" id="cvSave">Guardar cerveza</button><button class="adm-btn adm-btn-ghost" id="cvCancel">Cancelar</button><span class="cal-err" id="cvErr"></span></div></div>`:'';
-  const form=`<div class="cal-form"><div class="cal-form-t">Registrar participación en competencia <button class="adm-btn adm-btn-ghost" id="cvAdd" style="margin-left:.6rem;font-size:.72rem;padding:.25rem .55rem;vertical-align:middle">➕ Agregar cerveza</button></div><div class="cal-form-s">Elegí la cerveza (autocompleta el estilo), la competencia, el resultado y el feedback. La IA resume los PDFs en 5 categorías.</div>
+  const form=`<div class="cal-form"><div class="cal-form-t">Registrar participación en competencia <button class="adm-btn adm-btn-ghost" id="cvAdd" style="margin-left:.6rem;font-size:.72rem;padding:.25rem .55rem;vertical-align:middle">➕ Agregar cerveza</button></div><div class="cal-form-s">Elige la cerveza (autocompleta el estilo), la competencia, el resultado y el feedback. La IA resume los PDFs en 5 categorías.</div>
     <div class="cal-grid">
       <label class="cal-fld">Cerveza evaluada<select id="rcCerveza" class="cal-cerv" data-estilo-for="rcEstilo">${prodCalCervOpts()}</select></label>
       <label class="cal-fld">Estilo (auto)<input id="rcEstilo" placeholder="—"></label>
@@ -10535,7 +10642,7 @@ function prodCalRetro(){
       <label class="cal-fld">Estilo (auto)<input id="fbEstilo" placeholder="—"></label>
     </div>
     <label class="cal-fld cal-full" style="margin-top:.6rem">Retroalimentación (máx. 500)
-      <textarea id="fbTexto" maxlength="500" data-count="fbCount" placeholder="Escribí la retroalimentación…"></textarea>
+      <textarea id="fbTexto" maxlength="500" data-count="fbCount" placeholder="Escribe la retroalimentación…"></textarea>
       <span class="cal-count" id="fbCount">0 / 500</span></label>
     <div class="cal-btn-row"><button class="adm-btn adm-btn-gold" id="fbSave">Guardar</button><span class="cal-err" id="fbErr"></span></div></div>`;
   const list=(prodCal.data.retros||[]).slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
@@ -10554,7 +10661,7 @@ function prodCalMemorias(){
       <label class="cal-fld">Categoría<select id="memCat">${Object.entries(CAL_CAT_LBL).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
     </div>
     <label class="cal-fld cal-full" style="margin-top:.6rem">Memoria (máx. 500)
-      <textarea id="memTexto" maxlength="500" data-count="memCount" placeholder="Describí el defecto/problema…"></textarea>
+      <textarea id="memTexto" maxlength="500" data-count="memCount" placeholder="Describe el defecto/problema…"></textarea>
       <span class="cal-count" id="memCount">0 / 500</span></label>
     <div class="cal-fld cal-full">Imagen (foto del defecto)<div class="cal-files">${img}${!prodCal.memImg?`<label class="cal-file" style="cursor:pointer;border-style:dashed">➕ Imagen<input type="file" accept="image/*" id="memImgInp" style="display:none"></label>`:''}</div></div>
     <div class="cal-btn-row"><button class="adm-btn adm-btn-gold" id="memSave">Guardar memoria</button><span class="cal-err" id="memErr"></span></div></div>`;
@@ -10604,7 +10711,7 @@ function prodCalWire(){
   if(g('cvCancel')) g('cvCancel').onclick=()=>{ prodCal.cervNueva=false; prodCal.cervImg=null; prodCalRender(); };
   if(g('cvImgInp')) g('cvImgInp').onchange=async()=>{ const f=g('cvImgInp').files[0]; if(!f)return; try{ const up=await prodCalUpload(f); prodCal.cervImg=up.url; const im=g('cvImg'); if(im){im.src=up.url;im.style.display='';} }catch(e){ alert(String(e.message||e)); } };
   if(g('cvSave')) g('cvSave').onclick=async()=>{
-    const err=g('cvErr'); const nombre=g('cvNombre').value.trim(); if(!nombre){ err.textContent='⚠ Ingresá el nombre.'; return; }
+    const err=g('cvErr'); const nombre=g('cvNombre').value.trim(); if(!nombre){ err.textContent='⚠ Ingresa el nombre.'; return; }
     const body={nombre,estilo:g('cvEstilo').value,shopifyTitle:g('cvShopifyTitle').value}; if(prodCal.cervImg) body.imagen=prodCal.cervImg;
     const d=await prodCalReq('cerveza','POST',body);
     if(d){ prodCal.cervNueva=false; prodCal.cervImg=null; prodCalRender(); }
@@ -10655,7 +10762,7 @@ async function prodCalGenerarResumenPdfs(){
 async function prodCalGuardarRegistro(){
   const g=id=>document.getElementById(id); const err=g('rcErr'); err.textContent='';
   const cervSel=g('rcCerveza'); const o=cervSel.selectedOptions[0];
-  if(!cervSel.value){ err.textContent='⚠ Elegí la cerveza.'; return; }
+  if(!cervSel.value){ err.textContent='⚠ Elige la cerveza.'; return; }
   const compSel=g('rcComp'); const co=compSel.selectedOptions[0];
   // Si hay PDFs adjuntos y todavía nadie apretó "Generar desde PDFs", se genera
   // solo antes de guardar — así no se pierde el feedback por olvido.
@@ -10665,7 +10772,7 @@ async function prodCalGuardarRegistro(){
     const ie=g('rcIaErr'); if(ie){ ie.style.color=''; ie.textContent='Generando resumen desde los PDF adjuntos…'; }
     try{ resumenIA=await prodCalGenerarResumenPdfs(); if(ie){ ie.style.color='#2e9c5a'; ie.textContent='✓ resumen generado'; } }
     catch(e){
-      if(ie){ ie.style.color='#d9534f'; ie.textContent='⚠ No se pudo generar el resumen (' +String(e.message||e)+ ') — revisalo o completalo a mano antes de guardar.'; }
+      if(ie){ ie.style.color='#d9534f'; ie.textContent='⚠ No se pudo generar el resumen (' +String(e.message||e)+ ') — revísalo o complétalo a mano antes de guardar.'; }
       return; // no guardamos a ciegas: mejor que el usuario vea el error y reintente
     }
   }
@@ -10822,7 +10929,7 @@ function prodWire(){
   };
   if(g('invAdd')) g('invAdd').onclick=async()=>{
     const err=g('invErr'); if(err) err.textContent='';
-    const nombre=g('invNombre').value.trim(); if(!nombre){ if(err) err.textContent='⚠ Ingresá el nombre/diseño.'; return; }
+    const nombre=g('invNombre').value.trim(); if(!nombre){ if(err) err.textContent='⚠ Ingresa el nombre/diseño.'; return; }
     const body={categoria:g('invCat').value,nombre,cantidad:cNum(g('invCant').value),costoUnitario:cNum(g('invCosto').value)};
     try{ const r=await fetch('/admin/produccion/inventario/insumo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
     catch(e){ if(err) err.textContent='⚠ '+String(e.message||e); }
@@ -10878,7 +10985,7 @@ function prodWire(){
       const win=(d.ganadores||[]);
       const rowClass=x=>(x.status>=200&&x.status<300&&x.esJson&&!x.esLogin)?'style="background:#e3f6ea"':(x.status>=200&&x.status<300?'style="background:#fff8ea"':'');
       const rows=(d.resultados||[]).map(x=>`<tr ${rowClass(x)}><td>${escapeHtml(x.label)}</td><td class="dist-num">${x.status||(x.error||'—')}</td><td>${x.esJson?'JSON':(x.esLogin?'login':escapeHtml(x.contentType||''))}</td><td style="font-size:.7rem;color:#666">${escapeHtml(x.snippet||x.error||'')}</td></tr>`).join('');
-      box.innerHTML=`<div class="est-note" style="margin-top:.6rem">${win.length?('<b style="color:#2e9c5a">✓ '+win.length+' combinación(es) con JSON</b> — probablemente la API real. Pasame estos resultados y escribo el adaptador.'):'<b style="color:#c17a10">Ninguna combinación devolvió JSON.</b> Puede que la API use otra URL/auth. Copiame la tabla y/o conseguí la doc de la API con Gestión Cervecera.'}</div>
+      box.innerHTML=`<div class="est-note" style="margin-top:.6rem">${win.length?('<b style="color:#2e9c5a">✓ '+win.length+' combinación(es) con JSON</b> — probablemente la API real. Pasame estos resultados y escribo el adaptador.'):'<b style="color:#c17a10">Ninguna combinación devolvió JSON.</b> Puede que la API use otra URL/auth. Copiame la tabla y/o consigue la doc de la API con Gestión Cervecera.'}</div>
         <div class="mun-wrap" style="margin-top:.5rem"><table class="mun-table"><thead><tr><th>Auth · URL</th><th>Status</th><th>Tipo</th><th>Respuesta</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
   };
@@ -10947,7 +11054,7 @@ function prodRecetaPrint(id){
   const r=prodRecetaById(id); if(!r) return;
   const f=r.litrosEsperadosPorFormato||{}, t=r.tiemposEstandar||{};
   const tRows=Object.entries(t).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td>${v} h</td></tr>`).join('')||'<tr><td colspan="2">—</td></tr>';
-  const w=window.open('','_blank'); if(!w){ alert('Permití las ventanas emergentes para imprimir.'); return; }
+  const w=window.open('','_blank'); if(!w){ alert('Permite las ventanas emergentes para imprimir.'); return; }
   w.document.write(`<html><head><title>Receta ${escapeHtml(r.nombre||'')}</title><style>body{font-family:system-ui,Arial;padding:2rem;color:#111}h1{margin:0}h2{margin:1.2rem 0 .4rem;font-size:1rem}table{border-collapse:collapse;width:100%;margin:.3rem 0}td,th{border:1px solid #ccc;padding:.35rem .6rem;text-align:left;font-size:.9rem}</style></head><body>
     <h1>${escapeHtml(r.nombre||'')}</h1><div>${escapeHtml(r.estilo||'')} · ${r.litros||0} L · OG ${r.og||'—'} · ABV ${r.abv||'—'}%</div>
     <h2>Litros esperados por formato</h2><table><tr><th>Barril 20 L</th><th>Barril 30 L</th><th>Lata</th></tr><tr><td>${f.barril20||0}</td><td>${f.barril30||0}</td><td>${f.lata||0}</td></tr></table>
@@ -10969,7 +11076,7 @@ function prodEtapa(key,campo){
 }
 async function prodCrearLote(){
   const g=id=>document.getElementById(id); const err=g('plErr'); err.textContent=''; err.classList.remove('show');
-  const codigo=g('plCodigo').value.trim(); if(!codigo){ err.textContent='⚠ Ingresá el código.'; err.classList.add('show'); return; }
+  const codigo=g('plCodigo').value.trim(); if(!codigo){ err.textContent='⚠ Ingresa el código.'; err.classList.add('show'); return; }
   const payload={codigo,recetaId:g('plReceta')?g('plReceta').value:'',producto:g('plProducto').value,estilo:g('plEstilo').value,familia:g('plFamilia').value,tanqueId:g('plTanque').value,nBatches:cNum(g('plNBatches').value)||1,volumenEsperadoL:cNum(g('plVol').value)};
   try{ const r=await fetch('/admin/produccion/lote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
   catch(e){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); }
@@ -10978,7 +11085,7 @@ async function prodEnvasar(loteId){
   const box=document.querySelector('[data-env-box="'+loteId+'"]'); const l=prodLoteById(loteId); if(!box||!l) return;
   const val={}; box.querySelectorAll('[data-ef]').forEach(el=>val[el.dataset.ef]=el.value);
   const buenos=cNum(val.litrosBuenos), rech=cNum(val.litrosRechazados);
-  if(!buenos&&!rech){ alert('Ingresá litros buenos o rechazados.'); return; }
+  if(!buenos&&!rech){ alert('Ingresa litros buenos o rechazados.'); return; }
   // Validación en el front (el server también valida): no superar lo que queda.
   const base=l.volumenBaseL||l.volumenEsperadoL||0, yaEnv=l.litrosEnvasados||0;
   if(base>0 && (yaEnv+buenos+rech)>base+0.5){ alert('Esa línea supera los litros del lote. Quedan '+(base-yaEnv).toLocaleString('es-CL')+' L.'); return; }
