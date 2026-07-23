@@ -3352,8 +3352,47 @@ const COSTOS_CATEGORIAS = [
   { id: 'gastos_operativos', label: 'Operativos', tipo: 'gasto' },
   { id: 'gastos_admin_venta', label: 'Administración y venta', tipo: 'gasto' },
   { id: 'marketing_publicidad', label: 'Marketing y publicidad', tipo: 'gasto' },
-  { id: 'activos_fijos', label: 'Activos fijos', tipo: 'gasto' },
+  // Renombre: el id se MANTIENE (activos_fijos) para no romper los registros existentes
+  // ni la referencia del Estado de Resultado; solo cambia el label visible.
+  { id: 'activos_fijos', label: 'CAPEX y Activos Fijos', tipo: 'gasto' },
 ];
+// Subcategorías (2º nivel). Transporte tiene un 3º nivel (sub). Solo Operativos las usa hoy.
+const COSTOS_SUBCATEGORIAS = {
+  gastos_operativos: [
+    { id: 'general', label: 'General' },
+    { id: 'transporte', label: 'Transporte', sub: [
+      { id: 'venta', label: 'Venta' },
+      { id: 'logistico', label: 'Logístico' },
+      { id: 'administrativo', label: 'Administrativo' },
+    ] },
+    { id: 'almacenamiento', label: 'Almacenamiento' },
+    { id: 'mantencion', label: 'Mantención y reparación de equipos' },
+    { id: 'arriendo', label: 'Arriendo y/o Gasto Común' },
+    { id: 'opex', label: 'OPEX' },
+  ],
+};
+// Subcategoría efectiva: los Operativos sin subcategoría se muestran como "General"
+// (migración NO destructiva — no se reescribe el archivo; el default se aplica al leer).
+function costosSubEfectiva(e){
+  if (e.categoria !== 'gastos_operativos') return e.subcategoria || '';
+  return e.subcategoria || 'general';
+}
+function costosSubLabel(catId, subId, subnivel){
+  const subs = COSTOS_SUBCATEGORIAS[catId]; if (!subs || !subId) return '';
+  const s = subs.find(x => x.id === subId); if (!s) return '';
+  if (subnivel && Array.isArray(s.sub)) { const n = s.sub.find(x => x.id === subnivel); if (n) return s.label + ' · ' + n.label; }
+  return s.label;
+}
+// Valida (categoria, subcategoria, subnivel) contra la estructura; devuelve {sub, subnivel} saneados.
+function costosSubValidar(catId, subId, subnivel){
+  const subs = COSTOS_SUBCATEGORIAS[catId];
+  if (!subs) return { subcategoria: '', subnivel: '' };
+  const s = subs.find(x => x.id === subId);
+  if (!s) return { subcategoria: '', subnivel: '' };
+  let sn = '';
+  if (Array.isArray(s.sub) && subnivel) { const n = s.sub.find(x => x.id === subnivel); if (n) sn = n.id; }
+  return { subcategoria: s.id, subnivel: sn };
+}
 const COSTOS_TIPOS = ['costo', 'gasto'];
 // Marcas propias de Zorbo, para poder imputar cada costo/gasto a una marca (o a
 // varias, con % de reparto) y así medir desempeño por marca a futuro.
@@ -3478,9 +3517,11 @@ app.get('/admin/costos', requireAdmin, (req, res) => {
   const meses = [...new Set(entradasDelTipo.map(e => costosMes(e.fecha)).filter(Boolean))].sort().reverse();
   res.json({
     categorias: tipo ? COSTOS_CATEGORIAS.filter(c => c.tipo === tipo) : COSTOS_CATEGORIAS,
+    subcategorias: COSTOS_SUBCATEGORIAS,
     marcas: COSTOS_MARCAS,
     proveedores: data.proveedores.slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
-    entradas: entradas.map(e => ({ ...e, marca: e.marca || 'todas' })),
+    // subEfectiva/subLabel: incluyen el default "General" para Operativos sin subcategoría (no destructivo).
+    entradas: entradas.map(e => { const sub = costosSubEfectiva(e); return { ...e, marca: e.marca || 'todas', subEfectiva: sub, subLabel: costosSubLabel(e.categoria, sub, e.subnivel) }; }),
     meses, mes,
     resumen: costosResumen(entradas),
   });
@@ -3508,7 +3549,10 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
   const marca = costosStr(b.marca, 20);
   if (!proveedor) return res.status(400).json({ error: 'Elegí un proveedor.' });
   const catDef = COSTOS_CATEGORIAS.find(c => c.id === categoria);
-  if (!catDef) return res.status(400).json({ error: 'Elegí una categoría válida.' });
+  if (!catDef) return res.status(400).json({ error: 'Elige una categoría válida.' });
+  // Subcategoría (2 niveles). Si la categoría tiene subcategorías, se exige elegir una.
+  const { subcategoria, subnivel } = costosSubValidar(categoria, costosStr(b.subcategoria, 40), costosStr(b.subnivel, 40));
+  if (COSTOS_SUBCATEGORIAS[categoria] && !subcategoria) return res.status(400).json({ error: 'Elige una subcategoría.' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return res.status(400).json({ error: 'Elegí la fecha del documento.' });
   if (!valor) return res.status(400).json({ error: 'Ingresá el valor.' });
   if (!COSTOS_MARCA_VALORES.includes(marca)) return res.status(400).json({ error: 'Elegí a qué marca corresponde.' });
@@ -3551,9 +3595,22 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
   const data = costosLoad();
   // Si el proveedor no está creado, lo crea al vuelo (viene de "crear nuevo").
   if (!data.proveedores.some(p => p.nombre === proveedor)) data.proveedores.push({ id: costosNewId('prov'), nombre: proveedor });
-  const entrada = { id: costosNewId('cg'), proveedor, categoria, fecha, folio, valor, adjunto, marca, marcaDetalle, pctTotal };
+  const entrada = { id: costosNewId('cg'), proveedor, categoria, subcategoria, subnivel, fecha, folio, valor, adjunto, marca, marcaDetalle, pctTotal };
   data.entradas.push(entrada); costosSave(data);
   res.json({ ok: true, entrada });
+});
+// PUT: reclasifica la subcategoría/subnivel de un registro existente (edición no destructiva).
+app.put('/admin/costos/entrada/:id/subcategoria', requireAdmin, (req, res) => {
+  const id = String(req.params.id); const data = costosLoad();
+  const e = (data.entradas || []).find(x => x.id === id);
+  if (!e) return res.status(404).json({ error: 'Registro no encontrado.' });
+  if (!COSTOS_SUBCATEGORIAS[e.categoria]) return res.status(400).json({ error: 'Esta categoría no usa subcategorías.' });
+  const b = req.body || {};
+  const { subcategoria, subnivel } = costosSubValidar(e.categoria, costosStr(b.subcategoria, 40), costosStr(b.subnivel, 40));
+  if (!subcategoria) return res.status(400).json({ error: 'Elige una subcategoría válida.' });
+  e.subcategoria = subcategoria; e.subnivel = subnivel;
+  costosSave(data);
+  res.json({ ok: true });
 });
 app.delete('/admin/costos/entrada/:id', requireAdmin, (req, res) => {
   const id = String(req.params.id); const data = costosLoad();

@@ -1837,6 +1837,13 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .cg-card-v{font-family:var(--display,inherit);font-weight:700;font-size:1.08rem;color:var(--text,#111);margin-top:.2rem}
 .cg-card-n{font-size:.7rem;color:var(--dim,#999);margin-top:.1rem}
 .cg-tag{display:inline-block;font-size:.72rem;font-weight:700;color:var(--gold-deep,#a05f00);background:var(--gold-dim,rgba(245,166,35,.1));border:1px solid var(--gold-bd,#f1c97b);border-radius:20px;padding:.1rem .55rem}
+.cg-filters{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin:.2rem 0 .8rem}
+.cg-filters-l{font-size:.72rem;font-weight:700;color:var(--dim,#999);text-transform:uppercase;letter-spacing:.04em}
+.cg-filters select{font:inherit;font-size:.8rem;padding:.4rem .6rem;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
+.cg-filter-clear{font:inherit;font-size:.75rem;font-weight:700;color:var(--gold-deep,#a05f00);background:none;border:0;cursor:pointer}
+.cg-filters-n{margin-left:auto;font-size:.72rem;color:var(--dim,#999);font-variant-numeric:tabular-nums}
+.cg-subsel{font:inherit;font-size:.71rem;padding:.12rem .3rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text-2,#52525b);margin-left:.35rem;max-width:150px;vertical-align:middle;cursor:pointer}
+.cg-subsel:hover,.cg-subsel:focus-visible{border-color:var(--gold-bd-h,#f5a623)}
 .cg-table td{vertical-align:middle}
 .cg-file-name{font-size:.68rem;color:var(--dim,#999);margin-top:.15rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .cg-doc-link{color:var(--gold-deep,#a05f00);font-weight:600;font-size:.82rem;text-decoration:none}
@@ -9171,7 +9178,9 @@ const COSTOS_TIPO_CFG={
   costo:{ bodyId:'costosBody', mesId:'costosMes', reloadId:'costosReload', pctTotal:false, vacio:'Todavía no hay costos registrados', nombre:'costo' },
   gasto:{ bodyId:'gastosBody', mesId:'gastosMes', reloadId:'gastosReload', pctTotal:true,  vacio:'Todavía no hay gastos registrados', nombre:'gasto' },
 };
-function cgBlankForm(){ return { proveedor:'', categoria:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'' }; }
+function cgBlankForm(){ return { proveedor:'', categoria:'', subcategoria:'', subnivel:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'' }; }
+// Filtros de la tabla (por categoría padre y por subcategoría). Por tipo.
+let costosFiltro={costo:{cat:'',sub:''},gasto:{cat:'',sub:''}};
 let costosData={costo:null,gasto:null};
 let costosForm={costo:cgBlankForm(),gasto:cgBlankForm()};
 function cgId(tipo,name){ return 'cg'+name+'_'+tipo; }
@@ -9210,6 +9219,13 @@ function renderCostos(tipo){
   const a=costosData[tipo], body=document.getElementById(cfg.bodyId); const f=costosForm[tipo];
   const provOpts=['<option value="">— Elige un proveedor —</option>',...(a.proveedores||[]).map(p=>`<option value="${escapeAttr(p.nombre)}" ${p.nombre===f.proveedor?'selected':''}>${escapeHtml(p.nombre)}</option>`),'<option value="__nuevo__">+ Crear nuevo proveedor…</option>'].join('');
   const catOpts=['<option value="">— Elige una categoría —</option>',...(a.categorias||[]).map(c=>`<option value="${c.id}" ${c.id===f.categoria?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
+  // Subcategoría (2º nivel) + subnivel (3º, solo Transporte). Encadenados: aparecen según la selección.
+  const SUBMAP=a.subcategorias||{};
+  const subsForm=SUBMAP[f.categoria]||null;
+  const subFormOpts=subsForm?['<option value="">— Elige una subcategoría —</option>',...subsForm.map(s=>`<option value="${s.id}" ${s.id===f.subcategoria?'selected':''}>${escapeHtml(s.label)}</option>`)].join(''):'';
+  const subDefForm=subsForm?subsForm.find(s=>s.id===f.subcategoria):null;
+  const subnivelForm=subDefForm&&Array.isArray(subDefForm.sub)?subDefForm.sub:null;
+  const subnivelFormOpts=subnivelForm?['<option value="">— Elige —</option>',...subnivelForm.map(n=>`<option value="${n.id}" ${n.id===f.subnivel?'selected':''}>${escapeHtml(n.label)}</option>`)].join(''):'';
   const marcaOpts=['<option value="">— Elige una marca —</option>',
     ...['kairos','banny','firulais'].map(m=>`<option value="${m}" ${f.marca===m?'selected':''}>${COSTOS_MARCAS_LBL[m]}</option>`),
     `<option value="todas" ${f.marca==='todas'?'selected':''}>Todas</option>`,
@@ -9227,14 +9243,34 @@ function renderCostos(tipo){
     </div>` : '';
   const rs=a.resumen||{porCategoria:{},total:0};
   const resumenCards=(a.categorias||[]).map(c=>{const b=rs.porCategoria[c.id]||{total:0,n:0};return `<div class="cg-card"><div class="cg-card-l">${escapeHtml(c.label)}</div><div class="cg-card-v">${eM(b.total)}</div><div class="cg-card-n">${b.n} doc${b.n===1?'':'s'}</div></div>`;}).join('');
-  const rows=(a.entradas||[]).map(e=>{
+  // Filtros por categoría padre + subcategoría (cliente).
+  const flt=costosFiltro[tipo]||{cat:'',sub:''};
+  let visibles=(a.entradas||[]);
+  if(flt.cat) visibles=visibles.filter(e=>e.categoria===flt.cat);
+  if(flt.sub) visibles=visibles.filter(e=>(e.subEfectiva||'')===flt.sub);
+  const catFilterOpts=['<option value="">Todas las categorías</option>',...(a.categorias||[]).map(c=>`<option value="${c.id}" ${c.id===flt.cat?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
+  const subFilterSubs=SUBMAP[flt.cat]||null;
+  const subFilterOpts=subFilterSubs?['<option value="">Todas las subcategorías</option>',...subFilterSubs.map(s=>`<option value="${s.id}" ${s.id===flt.sub?'selected':''}>${escapeHtml(s.label)}</option>`)].join(''):'';
+  const filterBar=`<div class="cg-filters"><span class="cg-filters-l">Filtrar</span><select id="${cgId(tipo,'FCat')}">${catFilterOpts}</select>${subFilterSubs?`<select id="${cgId(tipo,'FSub')}">${subFilterOpts}</select>`:''}${(flt.cat||flt.sub)?`<button class="cg-filter-clear" id="${cgId(tipo,'FClear')}" type="button">✕ limpiar</button>`:''}<span class="cg-filters-n">${visibles.length} de ${(a.entradas||[]).length}</span></div>`;
+  const rows=visibles.map(e=>{
     const catLbl=((a.categorias||[]).find(c=>c.id===e.categoria)||{}).label || e.categoria;
+    const subsRow=SUBMAP[e.categoria]||null;
+    let catCell;
+    if(subsRow){ // categoría con subcategorías → chip padre + selector(es) para reclasificar (editable)
+      const subOpts=subsRow.map(s=>`<option value="${s.id}" ${s.id===e.subEfectiva?'selected':''}>${escapeHtml(s.label)}</option>`).join('');
+      const cur=subsRow.find(s=>s.id===e.subEfectiva);
+      const snArr=cur&&Array.isArray(cur.sub)?cur.sub:null;
+      const snOpts=snArr?['<option value="">— tipo —</option>',...snArr.map(n=>`<option value="${n.id}" ${n.id===(e.subnivel||'')?'selected':''}>${escapeHtml(n.label)}</option>`)].join(''):'';
+      catCell=`<span class="cg-tag">${escapeHtml(catLbl)}</span><select class="cg-subsel" data-cgsub="${e.id}" data-cgtipo="${tipo}" title="Reclasificar subcategoría">${subOpts}</select>${snArr?`<select class="cg-subsel" data-cgsubn="${e.id}" data-cgtipo="${tipo}" title="Tipo de transporte">${snOpts}</select>`:''}`;
+    } else {
+      catCell=`<span class="cg-tag">${escapeHtml(catLbl)}</span>`;
+    }
     const pctNote=(cfg.pctTotal && e.pctTotal!=null && e.pctTotal<100)?`<div class="cg-pct-note">${e.pctTotal}% Zorbo = ${eM(Math.round((Number(e.valor)||0)*e.pctTotal/100))}</div>`:'';
     return `
     <tr>
       <td>${escapeHtml(e.fecha)}</td>
       <td>${escapeHtml(e.proveedor)}</td>
-      <td><span class="cg-tag">${escapeHtml(catLbl)}</span></td>
+      <td>${catCell}</td>
       <td>${escapeHtml(cgMarcaLabel(e))}</td>
       <td>${escapeHtml(e.folio||'—')}</td>
       <td class="dist-num">${eM(e.valor)}${pctNote}</td>
@@ -9247,6 +9283,8 @@ function renderCostos(tipo){
       <div class="cg-form-grid">
         <label class="cg-field"><span>Proveedor</span><select id="${cgId(tipo,'Prov')}">${provOpts}</select></label>
         <label class="cg-field"><span>Categoría (Estado de Resultado)</span><select id="${cgId(tipo,'Cat')}">${catOpts}</select></label>
+        ${subsForm?`<label class="cg-field"><span>Subcategoría</span><select id="${cgId(tipo,'Sub')}">${subFormOpts}</select></label>`:''}
+        ${subnivelForm?`<label class="cg-field"><span>Tipo de ${escapeHtml(subDefForm.label)}</span><select id="${cgId(tipo,'Subnivel')}">${subnivelFormOpts}</select></label>`:''}
         <label class="cg-field"><span>Marca</span><select id="${cgId(tipo,'Marca')}">${marcaOpts}</select></label>
         ${marcaDetalleHtml}
         <label class="cg-field"><span>Fecha del documento</span><input type="date" id="${cgId(tipo,'Fecha')}" value="${escapeAttr(f.fecha)}"></label>
@@ -9259,7 +9297,8 @@ function renderCostos(tipo){
       <div class="cg-err" id="${cgId(tipo,'Err')}"></div>
     </div>
     <div class="cg-resumen">${resumenCards}<div class="cg-card cg-card-total"><div class="cg-card-l">Total</div><div class="cg-card-v">${eM(rs.total)}</div><div class="cg-card-n">${(a.entradas||[]).length} doc${(a.entradas||[]).length===1?'':'s'}</div></div></div>
-    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Categoría</th><th>Marca</th><th>Folio</th><th style="text-align:right">Valor</th><th>Doc</th><th></th></tr></thead><tbody>${rows||`<tr><td colspan="8" style="text-align:center;color:#999;padding:.8rem">${cfg.vacio}</td></tr>`}</tbody></table></div>`;
+    ${filterBar}
+    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Categoría</th><th>Marca</th><th>Folio</th><th style="text-align:right">Valor</th><th>Doc</th><th></th></tr></thead><tbody>${rows||`<tr><td colspan="8" style="text-align:center;color:#999;padding:.8rem">${(flt.cat||flt.sub)?'Sin registros para el filtro elegido.':cfg.vacio}</td></tr>`}</tbody></table></div>`;
   wireCostos(tipo);
 }
 function wireCostos(tipo){
@@ -9274,7 +9313,23 @@ function wireCostos(tipo){
       catch(e){ costosShowErr(tipo,String(e.message||e)); prov.value=f.proveedor; }
     } else f.proveedor=prov.value;
   };
-  cat.onchange=()=>f.categoria=cat.value;
+  // Categoría → resetea subcategoría/subnivel y re-renderiza para mostrar el selector encadenado.
+  cat.onchange=()=>{ f.categoria=cat.value; f.subcategoria=''; f.subnivel=''; renderCostos(tipo); };
+  const sub=document.getElementById(cgId(tipo,'Sub'));
+  if(sub) sub.onchange=()=>{ f.subcategoria=sub.value; f.subnivel=''; renderCostos(tipo); };
+  const subn=document.getElementById(cgId(tipo,'Subnivel'));
+  if(subn) subn.onchange=()=>{ f.subnivel=subn.value; };
+  // Filtros de la tabla (categoría padre + subcategoría).
+  const fcat=document.getElementById(cgId(tipo,'FCat'));
+  if(fcat) fcat.onchange=()=>{ costosFiltro[tipo].cat=fcat.value; costosFiltro[tipo].sub=''; renderCostos(tipo); };
+  const fsub=document.getElementById(cgId(tipo,'FSub'));
+  if(fsub) fsub.onchange=()=>{ costosFiltro[tipo].sub=fsub.value; renderCostos(tipo); };
+  const fclr=document.getElementById(cgId(tipo,'FClear'));
+  if(fclr) fclr.onclick=()=>{ costosFiltro[tipo]={cat:'',sub:''}; renderCostos(tipo); };
+  // Reclasificación inline de subcategoría/subnivel (edita registros existentes).
+  document.querySelectorAll(`#${cfg.bodyId} [data-cgsub],#${cfg.bodyId} [data-cgsubn]`).forEach(sel=>{
+    sel.onchange=()=>{ const id=sel.dataset.cgsub||sel.dataset.cgsubn; costosReclasificar(tipo,id); };
+  });
   marca.onchange=()=>{ f.marca=marca.value; renderCostos(tipo); };
   fecha.onchange=()=>f.fecha=fecha.value; fecha.oninput=()=>f.fecha=fecha.value;
   folio.oninput=()=>f.folio=folio.value;
@@ -9304,11 +9359,13 @@ function costosShowErr(tipo,msg){ const e=document.getElementById(cgId(tipo,'Err
 async function costosAgregar(tipo){
   const cfg=COSTOS_TIPO_CFG[tipo]; const f=costosForm[tipo];
   const e=document.getElementById(cgId(tipo,'Err')); if(e){ e.textContent=''; e.classList.remove('show'); }
-  const payload={ proveedor:f.proveedor, categoria:f.categoria, fecha:f.fecha, folio:f.folio, valor:cNum(f.valor), adjunto:f.adjunto||null, marca:f.marca };
+  const payload={ proveedor:f.proveedor, categoria:f.categoria, subcategoria:f.subcategoria, subnivel:f.subnivel, fecha:f.fecha, folio:f.folio, valor:cNum(f.valor), adjunto:f.adjunto||null, marca:f.marca };
   if(f.marca==='algunas') payload.marcaDetalle=['kairos','banny','firulais'].filter(m=>f.marcaSel[m]).map(m=>({marca:m,pct:Number(f.marcaPct[m])||0}));
   if(cfg.pctTotal && f.pctTotal) payload.pctTotal=Number(f.pctTotal);
   if(!payload.proveedor||payload.proveedor==='__nuevo__') return costosShowErr(tipo,'Elige un proveedor.');
   if(!payload.categoria) return costosShowErr(tipo,'Elige una categoría.');
+  const subMap=(costosData[tipo]&&costosData[tipo].subcategorias)||{};
+  if(subMap[payload.categoria] && !payload.subcategoria) return costosShowErr(tipo,'Elige una subcategoría.');
   if(!payload.marca) return costosShowErr(tipo,'Elige a qué marca corresponde.');
   if(!/^\d{4}-\d{2}-\d{2}$/.test(payload.fecha)) return costosShowErr(tipo,'Elige la fecha del documento.');
   if(!payload.valor) return costosShowErr(tipo,'Ingresa el valor.');
@@ -9322,6 +9379,13 @@ async function costosAgregar(tipo){
 async function costosEliminar(tipo,id){
   if(!confirm('Eliminar este registro?')) return;
   try{ const r=await fetch('/admin/costos/entrada/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadCostos(tipo); }
+  catch(e){ alert(String(e.message||e)); }
+}
+// Reclasifica la subcategoría/subnivel de un registro existente (edición no destructiva).
+async function costosReclasificar(tipo,id){
+  const subSel=document.querySelector(`[data-cgsub="${id}"]`), snSel=document.querySelector(`[data-cgsubn="${id}"]`);
+  const body={ subcategoria: subSel?subSel.value:'', subnivel: snSel?snSel.value:'' };
+  try{ const r=await fetch('/admin/costos/entrada/'+encodeURIComponent(id)+'/subcategoria',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadCostos(tipo); }
   catch(e){ alert(String(e.message||e)); }
 }
 document.getElementById('costosReload').onclick=()=>loadCostos('costo');
