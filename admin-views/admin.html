@@ -227,22 +227,63 @@ body{ padding-left:var(--ks-side); }
   background:var(--surface,#fff);border:1px solid var(--border,#eee);border-radius:9px;padding:.44rem .6rem;
 }
 .ks-period-label{margin-left:auto;font-size:.72rem;color:var(--dim,#999);font-weight:700}
-.ks-cuadros{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
-.ks-cuadro-a,.ks-cuadro-c{grid-column:1/-1}
-.ks-ratio-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.ks-ratio{background:var(--surface2,#fafafa);border:1px solid var(--border,#eee);border-radius:12px;padding:14px 16px}
-.ks-ratio .lab{font-size:.68rem;font-weight:700;color:var(--dim,#999);text-transform:uppercase;letter-spacing:.04em}
-.ks-ratio .pct{font-family:var(--display,inherit);font-size:1.55rem;font-weight:800;margin-top:.25rem;color:var(--gold-deep,#a05f00)}
-.ks-ratio .base{font-size:.72rem;color:var(--dim,#999);margin-top:.2rem;font-variant-numeric:tabular-nums}
-.ks-marca-sel{
-  font-family:var(--sans,inherit);font-size:.78rem;font-weight:700;color:var(--text,#111);
-  background:var(--surface,#fff);border:1px solid var(--border,#eee);border-radius:9px;padding:.4rem .6rem;
-}
+/* Home densa: 3 columnas lado a lado (A gráfico · B ratios · C tabla), sin scroll. */
+.ks-dash .ks-hello{padding:15px 24px}
+.ks-dash .ks-hello h1{font-size:1.45rem;margin:.2rem 0 .25rem}
+.ks-dash .ks-hello p{font-size:.82rem}
+.ks-dash .ks-hello .q{margin-top:.55rem}
+.ks-cuadros{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.55fr);gap:12px;margin-top:12px;align-items:start}
+.ks-cuadros>.ks-card{min-width:0;padding:13px 15px}
+.ks-cuadros .ks-card-h{margin-bottom:.6rem}
+.ks-total{margin-left:auto;font-size:.74rem;font-weight:700;color:var(--gold-deep,#a05f00);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ks-ratio-row{display:grid;grid-template-columns:1fr;gap:8px}
+.ks-ratio{background:var(--surface2,#fafafa);border:1px solid var(--border,#eee);border-radius:11px;padding:8px 11px;display:grid;grid-template-columns:1fr auto;column-gap:.5rem;align-items:baseline}
+.ks-ratio .lab{font-size:.66rem;font-weight:700;color:var(--dim,#999);text-transform:uppercase;letter-spacing:.03em;line-height:1.2}
+.ks-ratio .pct{font-family:var(--display,inherit);font-size:1.3rem;font-weight:800;color:var(--gold-deep,#a05f00);font-variant-numeric:tabular-nums;text-align:right}
+.ks-ratio .base{grid-column:1/-1;font-size:.68rem;color:var(--dim,#999);margin-top:.1rem;font-variant-numeric:tabular-nums}
+.ks-cuadro-c .mun-wrap{overflow-x:auto}
+.ks-cuadro-c .mun-table th,.ks-cuadro-c .mun-table td{font-size:.73rem;padding:.3rem .45rem;white-space:nowrap}
+.ks-cuadro-c .mun-table td.dist-num{font-variant-numeric:tabular-nums}
 .ks-note{font-size:.72rem;color:var(--dim,#999);margin-top:.7rem;line-height:1.5}
 .ks-note.warn{color:var(--gold-deep,#a05f00)}
-.ks-nodata{color:var(--dim,#999);font-size:.85rem;padding:1.4rem;text-align:center;border:1px dashed var(--border,#eee);border-radius:10px}
-.ks-err{color:#c0392b;font-size:.85rem;padding:1rem;background:#fdecea;border:1px solid rgba(192,57,43,.25);border-radius:10px}
-@media(max-width:1080px){.ks-kpis{grid-template-columns:repeat(2,1fr)}.ks-row2{grid-template-columns:1fr}.ks-cuadros{grid-template-columns:1fr}.ks-cuadro-a,.ks-cuadro-c{grid-column:auto}.ks-ratio-row{grid-template-columns:1fr}}
+.ks-nodata{color:var(--dim,#999);font-size:.85rem;padding:1.1rem;text-align:center;border:1px dashed var(--border,#eee);border-radius:10px}
+.ks-err{color:#c0392b;font-size:.82rem;padding:.8rem;background:#fdecea;border:1px solid rgba(192,57,43,.25);border-radius:10px}
+/* Eje del gráfico + tooltip */
+.ks-chart-ax{height:186px;background:#fff;border:1px solid var(--border,#eee)}
+.ks-tip{position:absolute;top:6px;transform:translateX(-50%);background:#0b2a5e;color:#fff;font-size:.7rem;font-weight:600;padding:.28rem .5rem;border-radius:7px;white-space:nowrap;pointer-events:none;z-index:5;box-shadow:0 6px 16px rgba(0,0,0,.25)}
+/* ⓘ nota con tooltip accesible */
+.ks-info{position:relative;margin-left:auto;background:none;border:0;cursor:pointer;color:var(--dim,#999);font-size:.95rem;line-height:1;padding:.1rem .15rem}
+.ks-info:hover,.ks-info:focus-visible{color:var(--gold-deep,#a05f00)}
+.ks-info-pop{display:none;position:absolute;right:0;top:135%;z-index:40;width:260px;background:#0b2a5e;color:#eaf0fb;border-radius:10px;padding:10px 12px;font-size:.72rem;line-height:1.45;font-weight:500;text-align:left;box-shadow:0 12px 30px rgba(0,0,0,.3)}
+.ks-info-pop div{margin:.2rem 0}
+.ks-info.open .ks-info-pop,.ks-info:hover .ks-info-pop,.ks-info:focus-within .ks-info-pop{display:block}
+/* Carrusel de medallas de KPI */
+.ks-medals-wrap{margin-top:13px}
+.ks-medals-head{display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem}
+.ks-medals-head .t{font-family:var(--display,inherit);font-weight:800;font-size:.9rem}
+.ks-medals-ctrl{margin-left:auto;display:flex;gap:.35rem}
+.ks-medal-arrow{width:30px;height:30px;border-radius:8px;border:1px solid var(--border,#eee);background:var(--surface,#fff);cursor:pointer;font-size:1rem;line-height:1;color:var(--text,#111)}
+.ks-medal-arrow:hover{border-color:var(--gold,#f5a623);color:var(--gold-deep,#a05f00)}
+.ks-medals{overflow-x:auto;scrollbar-width:none;border-radius:12px}
+.ks-medals::-webkit-scrollbar{display:none}
+.ks-medals:focus-visible{outline:2px solid var(--gold,#f5a623);outline-offset:2px}
+.ks-medal-track{display:flex;gap:12px;padding:2px}
+.ks-medal{flex:0 0 auto;width:132px;background:transparent;border:0;padding:0;text-align:center}
+.ks-medal-img{width:100%;aspect-ratio:5/7;border-radius:10px;position:relative;overflow:hidden;background:#0b2a5e;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;color:var(--gold,#f5a623);box-shadow:var(--shadow-sm)}
+.ks-medal-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+/* placeholder: sólo si el arte no está subido (img con onerror agrega .noimg) */
+.ks-medal-img .ph,.ks-medal-img .phs{display:none}
+.ks-medal-img.noimg{background:linear-gradient(160deg,var(--gold-dim,#fdf3e0),#fff);border:1px dashed var(--gold-bd,#f0dcae);color:var(--gold-deep,#a05f00)}
+.ks-medal-img.noimg .ph{display:block;font-size:1.6rem}
+.ks-medal-img.noimg .phs{display:block;font-size:.54rem;letter-spacing:.02em;text-transform:uppercase;font-weight:700;opacity:.85;padding:0 .3rem;line-height:1.2}
+.ks-medal.pend .ks-medal-img{filter:grayscale(1);opacity:.55}
+.ks-medal-name{font-size:.73rem;font-weight:700;margin-top:.5rem;line-height:1.2;color:var(--text,#111)}
+.ks-medal-badge{display:inline-block;font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:.15rem .4rem;border-radius:99px;margin-top:.35rem}
+.ks-medal-badge.ok{background:#e7f6ee;color:#1f7a44}
+.ks-medal-badge.prog{background:var(--gold-dim,#fdf3e0);color:var(--gold-deep,#a05f00)}
+.ks-medal-prog{font-size:.67rem;color:var(--dim,#999);margin-top:.25rem;font-variant-numeric:tabular-nums}
+@media(max-width:1080px){.ks-kpis{grid-template-columns:repeat(2,1fr)}.ks-row2{grid-template-columns:1fr}.ks-cuadros{grid-template-columns:1fr}.ks-ratio-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:640px){.ks-ratio-row{grid-template-columns:1fr}}
 .adm-home{padding:1.5rem .5rem 2.5rem;max-width:1000px;margin:0 auto;text-align:center;animation:homeIn .4s ease}
 @keyframes homeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .adm-home-welcome{font-family:var(--display);font-size:.78rem;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
@@ -3433,29 +3474,36 @@ function showHome(){
       <div class="ks-period" id="ksPeriodBar"></div>
       <div class="ks-cuadros" id="ksCuadros">
         <div class="ks-card ks-cuadro-a">
-          <div class="ks-card-h"><span class="t">Ventas en el tiempo</span></div>
-          <div class="ks-chart" id="dashChartA"><div class="ks-muted" style="padding:1rem">Cargando…</div></div>
-          <div class="ks-note" id="dashNoteA"></div>
+          <div class="ks-card-h"><span class="t">Ventas en el tiempo</span><span class="ks-total" id="dashTotalA"></span></div>
+          <div class="ks-chart ks-chart-ax" id="dashChartA"><div class="ks-muted" style="padding:1rem">Cargando…</div></div>
         </div>
         <div class="ks-card ks-cuadro-b">
           <div class="ks-card-h"><span class="t">Costos y gastos sobre la venta</span></div>
           <div id="dashRatiosB"><div class="ks-muted">Cargando…</div></div>
         </div>
         <div class="ks-card ks-cuadro-c">
-          <div class="ks-card-h"><span class="t">Global y por marca</span></div>
+          <div class="ks-card-h"><span class="t">Global y por marca</span><button type="button" class="ks-info" id="dashInfoC" aria-label="Notas sobre estos datos" aria-expanded="false" style="display:none">ⓘ<span class="ks-info-pop" id="dashInfoPop" role="tooltip"></span></button></div>
           <div id="dashTablaC"><div class="ks-muted">Cargando…</div></div>
         </div>
-        <div class="ks-card ks-cuadro-d">
-          <div class="ks-card-h"><span class="t">Litros vendidos por marca</span><select class="ks-marca-sel" id="dashMarcaSel"><option value="all">Todas las marcas</option><option value="kairos">Kairos Brewing</option><option value="banny">Banny</option><option value="firulais">Firulais</option></select></div>
-          <div class="ks-chart" id="dashChartD"><div class="ks-muted" style="padding:1rem">Cargando…</div></div>
-          <div class="ks-note" id="dashNoteD"></div>
+      </div>
+      <div class="ks-medals-wrap">
+        <div class="ks-medals-head">
+          <span class="t">Metas del equipo</span>
+          <div class="ks-medals-ctrl">
+            <button type="button" class="ks-medal-arrow" id="kpiPrev" aria-label="Ver KPI anterior">‹</button>
+            <button type="button" class="ks-medal-arrow" id="kpiNext" aria-label="Ver KPI siguiente">›</button>
+          </div>
         </div>
+        <div class="ks-medals" id="kpiTrackWrap" tabindex="0" role="group" aria-label="Carrusel de medallas de KPI. Usá las flechas para navegar."><div class="ks-medal-track" id="kpiTrack"></div></div>
       </div>
     </div>`;
   ksSync();
+  const infoBtn = document.getElementById('dashInfoC');
+  if (infoBtn) infoBtn.onclick = () => { const ex = infoBtn.getAttribute('aria-expanded') === 'true'; infoBtn.setAttribute('aria-expanded', String(!ex)); infoBtn.classList.toggle('open', !ex); };
   dashRenderPeriodBar();
+  renderKpis(null);      // medallas con placeholders; los KPIs "auto" se llenan al cargar datos reales
+  initKpiCarousel();
   loadDashCuadros();
-  document.getElementById('dashMarcaSel').onchange = () => loadDashCuadros();
 }
 
 function openCategory(catId){
@@ -11103,18 +11151,72 @@ function dashDrawChart(elId, serie, key){
   const line = pts.join(' ');
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Gráfico de evolución en el período"><polygon fill="rgba(245,166,35,.16)" points="0,${H} ${line} ${W},${H}"/><polyline fill="none" stroke="#f5a623" stroke-width="3" points="${line}"/></svg>`;
 }
+// $ abreviado para el eje Y: $10M, $1,2M, $500K…
+function dashAbbrevCLP(n){
+  const a = Math.abs(n);
+  if (a >= 1e6) return '$' + (n/1e6).toLocaleString('es-CL',{maximumFractionDigits:1}) + 'M';
+  if (a >= 1e3) return '$' + Math.round(n/1e3) + 'K';
+  return '$' + Math.round(n);
+}
+// Marcas parejas (escala LINEAL) para el eje Y.
+function dashNiceTicks(max, count){
+  if (!(max > 0)) return { max: 1, ticks: [0, 1] };
+  const raw = max / count, mag = Math.pow(10, Math.floor(Math.log10(raw))), norm = raw / mag;
+  let step = norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10; step *= mag;
+  const nm = Math.ceil(max / step) * step, ticks = [];
+  for (let v = 0; v <= nm + step * 0.01; v += step) ticks.push(v);
+  return { max: nm, ticks };
+}
+function dashFmtDate(f){ const p = String(f).split('-'); return p.length === 3 ? (p[2] + '/' + p[1]) : f; }
+// Gráfico de ventas con ejes X/Y, guías sutiles y tooltip. serie = [{fecha, total}].
+function dashDrawChartAxes(elId, serie){
+  const el = document.getElementById(elId); if (!el) return;
+  if (!Array.isArray(serie) || !serie.length || !serie.some(d => (Number(d.total) || 0) > 0)) { el.innerHTML = '<div class="ks-nodata">Sin datos para este período.</div>'; return; }
+  const W = el.clientWidth || 600, H = el.clientHeight || 186;
+  const padL = 52, padR = 10, padT = 10, padB = 22, plotW = W - padL - padR, plotH = H - padT - padB;
+  const vals = serie.map(d => Number(d.total) || 0), rawMax = Math.max(...vals);
+  const { max, ticks } = dashNiceTicks(rawMax, 4), n = serie.length;
+  const X = i => n <= 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW;
+  const Y = v => padT + plotH - (v / max) * plotH;
+  const linePts = serie.map((d, i) => X(i).toFixed(1) + ',' + Y(vals[i]).toFixed(1)).join(' ');
+  let grid = '', ylab = '';
+  ticks.forEach(t => { const y = Y(t); grid += `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="rgba(17,17,17,.07)" stroke-width="1"/>`; ylab += `<text x="${padL - 6}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="#9a9aa2">${dashAbbrevCLP(t)}</text>`; });
+  let xlab = ''; const step = Math.max(1, Math.floor(n / 5));
+  for (let i = 0; i < n; i += step) { xlab += `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="#9a9aa2">${dashFmtDate(serie[i].fecha)}</text>`; }
+  const baseY = (padT + plotH).toFixed(1);
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Ventas en el tiempo durante el período">
+    ${grid}
+    <polygon fill="rgba(245,166,35,.14)" points="${padL},${baseY} ${linePts} ${X(n-1).toFixed(1)},${baseY}"/>
+    <polyline fill="none" stroke="#f5a623" stroke-width="2.5" points="${linePts}"/>
+    ${ylab}${xlab}
+    <line class="ks-guide" x1="0" y1="0" x2="0" y2="${(padT+plotH).toFixed(1)}" stroke="#f5a623" stroke-width="1" style="display:none" transform="translate(${padL},${padT})"/>
+  </svg><div class="ks-tip" hidden></div>`;
+  el.__serie = serie; el.__geo = { padL, plotW, n, X };
+  el.onmousemove = ev => dashTip(el, ev);
+  el.onmouseleave = () => { const t = el.querySelector('.ks-tip'); if (t) t.hidden = true; };
+}
+function dashTip(el, ev){
+  const g = el.__geo, serie = el.__serie; if (!g || !serie) return;
+  const rect = el.getBoundingClientRect(), x = ev.clientX - rect.left;
+  let i = Math.round(((x - g.padL) / g.plotW) * (g.n - 1));
+  i = Math.max(0, Math.min(g.n - 1, i));
+  const d = serie[i], tip = el.querySelector('.ks-tip'); if (!tip) return;
+  tip.innerHTML = '<b>' + dashFmtDate(d.fecha) + '</b> · ' + ksCLP(d.total);
+  tip.hidden = false;
+  tip.style.left = Math.min(Math.max(g.X(i), 44), rect.width - 44) + 'px';
+}
 function dashRenderA(c){
-  dashDrawChart('dashChartA', c.serie, 'total');
-  const note = document.getElementById('dashNoteA');
-  if (note) note.textContent = (c.serie && c.serie.length) ? ('Total del período: ' + ksCLP(c.total)) : '';
+  dashDrawChartAxes('dashChartA', c.serie);
+  const tot = document.getElementById('dashTotalA');
+  if (tot) tot.textContent = (c.serie && c.serie.length) ? ('Total: ' + ksCLP(c.total)) : '';
 }
 function dashRenderB(b){
   const el = document.getElementById('dashRatiosB'); if (!el) return;
   const row = (lab, r) => `<div class="ks-ratio"><div class="lab">${escapeHtml(lab)}</div><div class="pct">${(r.pct || 0).toLocaleString('es-CL')}%</div><div class="base">${ksCLP(r.monto)} de ${ksCLP(b.ventaTotal)}</div></div>`;
   el.innerHTML = `<div class="ks-ratio-row">
-    ${row('Costos Totales / Venta Total', b.costosTotales)}
-    ${row('Marketing y Publicidad / Venta Total', b.gastosMarketing)}
-    ${row('Gasto de RRHH / Venta Total', b.gastoRRHH)}
+    ${row('Costos / Venta', b.costosTotales)}
+    ${row('Marketing / Venta', b.gastosMarketing)}
+    ${row('RRHH / Venta', b.gastoRRHH)}
   </div>`;
 }
 function dashRenderC(c){
@@ -11124,8 +11226,12 @@ function dashRenderC(c){
     `<tr><td><b>Global</b></td><td class="dist-num">${ksCLP(g.ventaTotal)}</td><td class="dist-num">${ksCLP(g.costoTotal)}</td><td class="dist-num">${ksCLP(g.gastoTotal)}</td></tr>`,
     ...c.porMarca.map(m => `<tr><td>${escapeHtml(m.label)}</td><td class="dist-num">${ksCLP(m.ventaTotal)} <span class="ks-muted" style="font-size:.72em">(${(m.litrosTotales || 0).toLocaleString('es-CL')} L)</span></td><td class="dist-num">${ksCLP(m.costoTotal)}</td><td class="dist-num">${ksCLP(m.gastoTotal)}</td></tr>`),
   ].join('');
-  el.innerHTML = `<div class="mun-wrap"><table class="mun-table"><thead><tr><th></th><th>Venta total</th><th>Costo total</th><th>Gasto total</th></tr></thead><tbody>${rows}</tbody></table></div>`
-    + (c.notas || []).map(n => `<div class="ks-note warn">⚠ ${escapeHtml(n)}</div>`).join('');
+  el.innerHTML = `<div class="mun-wrap"><table class="mun-table"><thead><tr><th></th><th>Venta total</th><th>Costo total</th><th>Gasto total</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  // Las advertencias no se pierden: van al ⓘ del encabezado (tooltip accesible).
+  const notas = c.notas || [];
+  const pop = document.getElementById('dashInfoPop'), info = document.getElementById('dashInfoC');
+  if (pop) pop.innerHTML = notas.length ? notas.map(n => `<div>ⓘ ${escapeHtml(n)}</div>`).join('') : '';
+  if (info) info.style.display = notas.length ? '' : 'none';
 }
 function dashRenderD(d){
   dashDrawChart('dashChartD', d.serie, 'litros');
@@ -11135,20 +11241,112 @@ function dashRenderD(d){
 async function loadDashCuadros(){
   const qs = new URLSearchParams({ period: dashState.period });
   if (dashState.period === 'custom') { if (!dashState.from || !dashState.to) return; qs.set('from', dashState.from); qs.set('to', dashState.to); }
-  const marcaSel = document.getElementById('dashMarcaSel');
-  qs.set('marca', marcaSel ? marcaSel.value : 'all');
-  ['dashChartA', 'dashRatiosB', 'dashTablaC', 'dashChartD'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<div class="ks-muted" style="padding:1rem">Cargando…</div>'; });
+  ['dashChartA', 'dashRatiosB', 'dashTablaC'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<div class="ks-muted" style="padding:1rem">Cargando…</div>'; });
   try {
     const r = await fetch('/admin/home/dashboard?' + qs.toString());
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Error cargando el resumen.');
     const lbl = document.getElementById('dashPeriodLabel');
     if (lbl) lbl.textContent = d.periodo.label + ' · ' + d.periodo.from + ' a ' + d.periodo.to + (d.shopifyOk === false ? ' · ⚠ Shopify no disponible ahora mismo' : '');
-    dashRenderA(d.cuadroA); dashRenderB(d.cuadroB); dashRenderC(d.cuadroC); dashRenderD(d.cuadroD);
+    dashRenderA(d.cuadroA); dashRenderB(d.cuadroB); dashRenderC(d.cuadroC);
+    renderKpis(d);   // llena los KPIs "auto" con los valores reales del período
   } catch (e) {
     const msg = '<div class="ks-err">⚠ ' + escapeHtml(String(e.message || e)) + '</div>';
-    ['dashChartA', 'dashRatiosB', 'dashTablaC', 'dashChartD'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = msg; });
+    ['dashChartA', 'dashRatiosB', 'dashTablaC'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = msg; });
   }
+}
+
+// ═══════════ MEDALLAS DE KPI (carrusel) ═══════════
+// EDITABLE POR EL EQUIPO. Cada medalla = un arte (PNG en public/kpi/) que YA trae su nombre y su meta.
+// Acá sólo definimos: nombre (para lector de pantalla), meta (numérica, para calcular el estado),
+// unidad, dirección de la meta y la fuente automática si existe.
+//  - meta = null → medalla de logro (sin número). actual = null → aún sin dato (NO se inventan valores).
+//  - auto:'ventaTotal' → se llena solo con la venta real del período (endpoint del resumen).
+//  - metaDir:'lte' → la meta es un techo (mejor si es MENOR: merma, costos). Por defecto 'gte' (mejor si es MAYOR).
+//  - estado: con meta y actual numéricos se calcula (cumplido/en progreso); si no, 'progreso'.
+// TODO: conectar KPIs medibles automáticamente (EBITDA por marca, seguidores IG, merma, costos A&B).
+const KPI_CONFIG = [
+  { id:'kpi1',  img:'KPI1.png',  nombre:'Venta mensual',                             meta:200000000, unidad:'$',   auto:'ventaTotal' },
+  { id:'kpi2',  img:'KPI2.png',  nombre:'+10K seguidores Instagram · Kairos Garden', meta:10000,     unidad:'seg' },
+  { id:'kpi3',  img:'KPI3.png',  nombre:'Merma de cerveza',                          meta:1,         unidad:'%', metaDir:'lte' },
+  { id:'kpi4',  img:'KPI4.png',  nombre:'EBITDA general',                            meta:20,        unidad:'%' },
+  { id:'kpi5',  img:'KPI5.png',  nombre:'EBITDA · Kairos Garden',                    meta:15,        unidad:'%' },
+  { id:'kpi6',  img:'KPI6.png',  nombre:'EBITDA · Kairos Badass',                    meta:15,        unidad:'%' },
+  { id:'kpi7',  img:'KPI7.png',  nombre:'EBITDA cervecería',                         meta:15,        unidad:'%' },
+  { id:'kpi8',  img:'KPI8.png',  nombre:'+10K seguidores Instagram · Kairos Badass', meta:10000,     unidad:'seg' },
+  { id:'kpi9',  img:'KPI9.png',  nombre:'+10K seguidores Instagram · Firulais',      meta:10000,     unidad:'seg' },
+  { id:'kpi10', img:'KPI10.png', nombre:'Venta mensual',                             meta:100000000, unidad:'$',   auto:'ventaTotal' },
+  { id:'kpi11', img:'KPI11.png', nombre:'5 medallas de bronce',                      meta:null,      unidad:'' },
+  { id:'kpi12', img:'KPI12.png', nombre:'5 medallas de plata',                       meta:null,      unidad:'' },
+  { id:'kpi13', img:'KPI13.png', nombre:'5 medallas de oro',                         meta:null,      unidad:'' },
+  { id:'kpi14', img:'KPI14.png', nombre:'Costo prom. ponderado A&B · Badass',        meta:30,        unidad:'%', metaDir:'lte' },
+  { id:'kpi15', img:'KPI15.png', nombre:'Costo prom. ponderado A&B · Garden',        meta:25,        unidad:'%', metaDir:'lte' },
+];
+function kpiFmt(v, unidad){
+  if (v == null || !isFinite(v)) return '—';
+  if (unidad === '$') return ksCLP(v);
+  if (unidad === '%') return (Math.round(v * 10) / 10).toLocaleString('es-CL') + '%';
+  if (unidad === 'L') return v.toLocaleString('es-CL') + ' L';
+  if (unidad === 'seg') return v.toLocaleString('es-CL');
+  return v.toLocaleString('es-CL');
+}
+function renderKpis(dash){
+  const track = document.getElementById('kpiTrack'); if (!track) return;
+  const autoVal = (k) => {
+    if (!dash || !k.auto) return null;
+    if (k.auto === 'ventaTotal') return dash.cuadroC && dash.cuadroC.global ? dash.cuadroC.global.ventaTotal : null;
+    if (k.auto === 'litros')     return dash.cuadroD ? dash.cuadroD.total : null;
+    return null;
+  };
+  const cardHtml = (k) => {
+    const actual = (k.auto && autoVal(k) != null) ? autoVal(k) : (k.actual != null ? k.actual : null);
+    const cumplido = (typeof k.meta === 'number' && typeof actual === 'number')
+      ? (k.metaDir === 'lte' ? actual <= k.meta : actual >= k.meta)
+      : (k.estado === 'cumplido');
+    const estadoTxt = cumplido ? 'Cumplido' : 'En progreso';
+    const hasProg = (k.meta != null) || (actual != null);
+    const prog = hasProg ? (kpiFmt(actual, k.unidad) + ' / ' + (k.meta != null ? kpiFmt(k.meta, k.unidad) : '—')) : '';
+    const alt = 'Medalla ' + k.nombre + (k.meta != null ? (' · meta ' + kpiFmt(k.meta, k.unidad)) : '') + ' — ' + estadoTxt + (hasProg ? (' (' + prog + ')') : '');
+    return `<div class="ks-medal ${cumplido ? '' : 'pend'}" role="group" aria-label="${escapeAttr(alt)}">
+      <div class="ks-medal-img">
+        <img src="/kpi/${escapeAttr(k.img)}" alt="${escapeAttr(alt)}" loading="lazy" onerror="this.style.display='none';this.parentNode.classList.add('noimg')">
+        <span class="ph" aria-hidden="true">🏅</span><span class="phs" aria-hidden="true">${escapeHtml(k.nombre)}</span>
+      </div>
+      <div class="ks-medal-badge ${cumplido ? 'ok' : 'prog'}">${estadoTxt}</div>
+      ${prog ? `<div class="ks-medal-prog">${escapeHtml(prog)}</div>` : ''}
+    </div>`;
+  };
+  // Se duplica la lista para que el loop del carrusel sea continuo (sin salto visible).
+  const html = KPI_CONFIG.map(cardHtml).join('');
+  track.innerHTML = html + html;
+  track.dataset.count = String(KPI_CONFIG.length);
+}
+function initKpiCarousel(){
+  const wrap = document.getElementById('kpiTrackWrap'); if (!wrap || wrap.__kpiInit) return;
+  wrap.__kpiInit = true;
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let paused = false;
+  wrap.addEventListener('mouseenter', () => paused = true);
+  wrap.addEventListener('mouseleave', () => paused = false);
+  wrap.addEventListener('focusin', () => paused = true);
+  wrap.addEventListener('focusout', () => paused = false);
+  const stepBy = (dir) => { wrap.scrollBy({ left: dir * 134, behavior: 'smooth' }); };
+  const prev = document.getElementById('kpiPrev'), next = document.getElementById('kpiNext');
+  if (prev) prev.onclick = () => stepBy(-1);
+  if (next) next.onclick = () => stepBy(1);
+  wrap.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') { e.preventDefault(); stepBy(1); } else if (e.key === 'ArrowLeft') { e.preventDefault(); stepBy(-1); } });
+  if (reduce) return; // sin movimiento automático: solo flechas/teclado
+  // Auto-avance lento y continuo; el track está duplicado, así que al pasar la mitad se reinicia sin salto.
+  function tick(){
+    if (!paused) {
+      const half = wrap.scrollWidth / 2;
+      let x = wrap.scrollLeft + 0.4;
+      if (half > 0 && x >= half) x -= half;
+      wrap.scrollLeft = x;
+    }
+    wrap.__raf = requestAnimationFrame(tick);
+  }
+  wrap.__raf = requestAnimationFrame(tick);
 }
 
 fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
