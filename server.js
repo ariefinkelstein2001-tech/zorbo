@@ -1804,12 +1804,17 @@ app.post('/admin/login', async (req, res) => {
   const creds = adminCreds();
   const userLc = username.trim().toLowerCase();
 
-  // Admin completo (env/default) o usuario de rol "costeo".
+  // Admin completo (env/default), cuenta individual propia, o usuario de rol "costeo".
   let account = null;
   if (safeStrEq(userLc, String(creds.user).trim().toLowerCase()) && safeStrEq(password, String(creds.pass))) {
     account = { username: creds.user, role: 'admin' };
-  } else if (COSTEO_USERS[userLc] && safeStrEq(password, COSTEO_USERS_PASS)) {
-    account = { username: userLc, role: 'costeo', costeoSvc: COSTEO_USERS[userLc].svc };
+  } else {
+    const teamMember = teamFindByUsername(userLc);
+    if (teamMember && teamMember.passwordHash && teamVerifyPassword(password, teamMember.passwordHash)) {
+      account = { username: teamMember.username, role: teamMember.role || 'admin', teamId: teamMember.id };
+    } else if (COSTEO_USERS[userLc] && safeStrEq(password, COSTEO_USERS_PASS)) {
+      account = { username: userLc, role: 'costeo', costeoSvc: COSTEO_USERS[userLc].svc };
+    }
   }
 
   // Pequeño delay artificial para frenar fuerza bruta
@@ -1819,9 +1824,14 @@ app.post('/admin/login', async (req, res) => {
     return res.status(401).json({ error: 'Usuario o contraseña incorrectos.' });
   }
 
+  // Perfil (nombre/apodo) enganchado por username, sin importar la puerta de login.
+  const profile = teamProfileFor(account.username) || {};
   const token = randomBytes(32).toString('hex');
   const expiresAt = Date.now() + ADMIN_TTL_MS;
-  ADMIN_SESSIONS.set(token, { username: account.username, role: account.role, costeoSvc: account.costeoSvc, expiresAt });
+  ADMIN_SESSIONS.set(token, {
+    username: account.username, role: account.role, costeoSvc: account.costeoSvc, teamId: account.teamId || null,
+    nombre: profile.nombre || '', apodo: profile.apodo || '', expiresAt,
+  });
 
   const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
   const parts = [
@@ -1854,6 +1864,58 @@ function safeStrEq(a, b){
   return timingSafeEqual(A, B);
 }
 
+// ─── Cuentas individuales de equipo (saludo personalizado) ─────────────────
+// ADITIVO — no reemplaza ni toca ADMIN_USER/ADMIN_PASSWORD: esa credencial
+// compartida sigue funcionando exactamente igual. Esto agrega:
+//  (a) cuentas propias reales (usuario + clave propios) para el rol admin, y
+//  (b) "perfiles" (nombre/apodo) que se enganchan por username a CUALQUIER
+//      login exitoso (compartido, propio o costeo) para poder saludar por
+//      apodo sin importar por qué puerta entró la persona.
+const TEAM_FILE = join(PROMPTS_EFFECTIVE_DIR, 'team.json');
+function teamHashPassword(pw){
+  const salt = randomBytes(16).toString('hex');
+  const hash = scryptSync(pw, salt, 64).toString('hex');
+  return salt + ':' + hash;
+}
+function teamVerifyPassword(pw, stored){
+  const [salt, hash] = String(stored || '').split(':');
+  if (!salt || !hash) return false;
+  let calc; try { calc = scryptSync(pw, salt, 64); } catch { return false; }
+  const orig = Buffer.from(hash, 'hex');
+  if (calc.length !== orig.length) return false;
+  return timingSafeEqual(calc, orig);
+}
+let TEAM_ID_SEQ = 0;
+function teamNewId(){ TEAM_ID_SEQ = (TEAM_ID_SEQ + 1) % 100000; return 'team_' + Date.now().toString(36) + '_' + TEAM_ID_SEQ.toString(36); }
+function teamSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(TEAM_FILE, JSON.stringify(d, null, 2)); }
+function teamLoad(){
+  let data = { members: [] };
+  try { if (existsSync(TEAM_FILE)) { const p = JSON.parse(readFileSync(TEAM_FILE, 'utf-8')); if (Array.isArray(p.members)) data.members = p.members; } }
+  catch (e) { console.warn('team load:', e.message); }
+  // Semilla única: perfil de Arie enganchado al username ya usado hoy para
+  // entrar (la credencial compartida) — sin contraseña propia (profileOnly),
+  // así el saludo funciona apenas se despliega, sin tocar el login existente.
+  if (!data.members.some(m => (m.username || '').toLowerCase() === 'afinkelstein@kairosdrinks.com')) {
+    data.members.push({
+      id: teamNewId(), username: 'afinkelstein@kairosdrinks.com', passwordHash: null, profileOnly: true,
+      nombre: 'Arie', apellido: '', apodo: 'Dj Cookie', role: 'admin', createdAt: Date.now(),
+    });
+    teamSave(data);
+  }
+  return data;
+}
+function teamFindByUsername(username){
+  const uLc = String(username || '').trim().toLowerCase();
+  if (!uLc) return null;
+  return teamLoad().members.find(m => (m.username || '').toLowerCase() === uLc) || null;
+}
+// Perfil (nombre/apodo) para decorar el saludo, sin importar la puerta de login.
+function teamProfileFor(username){
+  const m = teamFindByUsername(username);
+  if (!m) return null;
+  return { nombre: m.nombre || '', apellido: m.apellido || '', apodo: m.apodo || '' };
+}
+
 // ─── Rutas protegidas ───────────────────────────────────────────────────────
 
 app.get('/admin', requireAdmin, (_req, res) => {
@@ -1862,8 +1924,77 @@ app.get('/admin', requireAdmin, (_req, res) => {
 
 app.get('/admin/me', requireAdmin, (req, res) => {
   const s = adminSessionFor(req);
-  if (!s) return res.json({ username: null, role: 'admin', costeoSvc: null, expiresAt: null }); // auth deshabilitada
-  res.json({ username: s.username, role: s.role || 'admin', costeoSvc: s.costeoSvc || null, expiresAt: s.expiresAt });
+  if (!s) return res.json({ username: null, role: 'admin', costeoSvc: null, nombre: '', apodo: '', teamId: null, expiresAt: null }); // auth deshabilitada
+  res.json({ username: s.username, role: s.role || 'admin', costeoSvc: s.costeoSvc || null, nombre: s.nombre || '', apodo: s.apodo || '', teamId: s.teamId || null, expiresAt: s.expiresAt });
+});
+
+// ─── Cuentas de equipo: alta / edición / listado ────────────────────────────
+// Mismo permiso plano que el resto del panel (cualquier sesión admin puede
+// gestionar el equipo, igual que ya puede tocar cualquier otra sección).
+const teamPublic = (m) => ({ id: m.id, username: m.username, nombre: m.nombre || '', apellido: m.apellido || '', apodo: m.apodo || '', role: m.role || 'admin', profileOnly: !!m.profileOnly, createdAt: m.createdAt || null });
+app.get('/admin/team', requireAdmin, (req, res) => {
+  res.json({ members: teamLoad().members.map(teamPublic) });
+});
+app.post('/admin/team', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const username = costosStr(b.username, 120).toLowerCase();
+  const password = String(b.password || '');
+  const nombre = costosStr(b.nombre, 80);
+  const apellido = costosStr(b.apellido, 80);
+  const apodo = costosStr(b.apodo, 40);
+  if (!username || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(username)) return res.status(400).json({ error: 'Ingresá un correo válido como usuario.' });
+  if (!nombre) return res.status(400).json({ error: 'Falta el nombre.' });
+  if (!password || password.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
+  const data = teamLoad();
+  if (data.members.some(m => (m.username || '').toLowerCase() === username)) return res.status(409).json({ error: 'Ya existe una cuenta con ese correo.' });
+  const member = { id: teamNewId(), username, passwordHash: teamHashPassword(password), profileOnly: false, nombre, apellido, apodo, role: 'admin', createdAt: Date.now() };
+  data.members.push(member); teamSave(data);
+  res.json({ ok: true, member: teamPublic(member) });
+});
+app.put('/admin/team/me', requireAdmin, (req, res) => {
+  const s = adminSessionFor(req);
+  if (!s) return res.status(401).json({ error: 'No autorizado.' });
+  const data = teamLoad();
+  let member = (s.teamId && data.members.find(m => m.id === s.teamId)) || data.members.find(m => (m.username || '').toLowerCase() === String(s.username || '').toLowerCase());
+  if (!member) {
+    // Primera vez que esta persona edita su perfil (venía solo del saludo genérico): lo crea profileOnly.
+    member = { id: teamNewId(), username: s.username, passwordHash: null, profileOnly: true, nombre: '', apellido: '', apodo: '', role: s.role || 'admin', createdAt: Date.now() };
+    data.members.push(member);
+  }
+  const b = req.body || {};
+  if (b.nombre != null) member.nombre = costosStr(b.nombre, 80);
+  if (b.apellido != null) member.apellido = costosStr(b.apellido, 80);
+  if (b.apodo != null) member.apodo = costosStr(b.apodo, 40);
+  teamSave(data);
+  // Refresca la sesión activa (en memoria) para que el saludo se actualice sin
+  // requerir un nuevo login: adminSessionFor() devuelve una copia, así que
+  // mutamos el objeto real del Map directamente.
+  const rawSession = ADMIN_SESSIONS.get(s.token);
+  if (rawSession) { rawSession.nombre = member.nombre; rawSession.apodo = member.apodo; rawSession.teamId = member.id; }
+  res.json({ ok: true, member: teamPublic(member) });
+});
+app.put('/admin/team/:id', requireAdmin, (req, res) => {
+  const data = teamLoad();
+  const member = data.members.find(m => m.id === req.params.id);
+  if (!member) return res.status(404).json({ error: 'No se encontró la cuenta.' });
+  const b = req.body || {};
+  if (b.nombre != null) member.nombre = costosStr(b.nombre, 80);
+  if (b.apellido != null) member.apellido = costosStr(b.apellido, 80);
+  if (b.apodo != null) member.apodo = costosStr(b.apodo, 40);
+  if (b.password) {
+    if (String(b.password).length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
+    member.passwordHash = teamHashPassword(String(b.password)); member.profileOnly = false;
+  }
+  teamSave(data);
+  res.json({ ok: true, member: teamPublic(member) });
+});
+app.delete('/admin/team/:id', requireAdmin, (req, res) => {
+  const data = teamLoad();
+  const n = data.members.length;
+  data.members = data.members.filter(m => m.id !== req.params.id);
+  if (data.members.length === n) return res.status(404).json({ error: 'No se encontró la cuenta.' });
+  teamSave(data);
+  res.json({ ok: true });
 });
 
 app.get('/admin/brand/:seccion', requireAdmin, (req, res) => {
@@ -2801,6 +2932,11 @@ async function cdShopifyMonth(month, precios, rango){
   };
   let totalCobrado = 0, totalOriginal = 0, sinCodigo = 0;
   const codesHist = {}; const codigosNuevos = new Set();
+  // Venta por día (misma base de valorización que usa totalIngresos por canal:
+  // original en HORECA/walmart, cobrado en retail, revaluado a precio de
+  // transferencia en garden/badass) — insumo del gráfico "ventas en el tiempo".
+  const porDia = {};
+  const addDia = (fecha, monto) => { if (!fecha || !monto) return; porDia[fecha] = (porDia[fecha] || 0) + Math.round(monto); };
   for (const o of orders) {
     const codes = (o.discountCodes || []).map(c => String(c).toUpperCase().trim()).filter(Boolean);
     if (!codes.length) sinCodigo++;
@@ -2833,6 +2969,7 @@ async function cdShopifyMonth(month, precios, rango){
       rec.grupo = pdv.grupo; rec.sector = pdv.sector; rec.razon = pdv.razon; rec.marca = pdv.marca; rec.litros = cdR3(litros); rec.detalle = det;
       // El "plata" del pedido HORECA es el ORIGINAL (pre-descuento).
       rec.monto = rec.original;
+      addDia(rec.fecha, rec.original);
     }
     // VENTA WEB (retail) y RETAIL WALMART: dividir por proveedor/marca (vendor de
     // Shopify) + detalle de lo pedido. La web además trae detalle de entrega.
@@ -2848,18 +2985,25 @@ async function cdShopifyMonth(month, precios, rango){
       rec.detalle = det;
       rec.porProveedor = Object.entries(porProv).map(([proveedor, monto]) => ({ proveedor, monto: cdMoney(monto) }));
       rec.proveedor = (rec.porProveedor.slice().sort((a, b) => b.monto - a.monto)[0] || {}).proveedor || 'Otros';
+      addDia(rec.fecha, bucketName === 'retail' ? total : orig);
     }
     if (transferLocal) {
       const lineas = [];
+      let valorTransfer = 0;
       for (const li of (o.lineItems && o.lineItems.nodes) || []) {
         const est = cdEstiloOf(li.product && li.product.title, li.variant && li.variant.title);
         const ltU = cdLitrosUnidad(li.product && li.product.title, li.variant && li.variant.title);
         const litros = (Number(li.quantity) || 0) * ltU;
-        if (est) { addLitros(transferLocal, est.estilo, est.tipo, litros); lineas.push({ producto: (li.product && li.product.title) || '', variante: (li.variant && li.variant.title) || '', cantidad: li.quantity, estilo: est.estilo, tipo: est.tipo, litros: cdR3(litros) }); }
+        if (est) {
+          addLitros(transferLocal, est.estilo, est.tipo, litros);
+          valorTransfer += litros * (P[est.tipo] || P.cerveza) + P.despacho * litros;
+          lineas.push({ producto: (li.product && li.product.title) || '', variante: (li.variant && li.variant.title) || '', cantidad: li.quantity, estilo: est.estilo, tipo: est.tipo, litros: cdR3(litros) });
+        }
         else if (li.product) { const k = li.product.title + ' :: ' + (li.variant ? li.variant.title : ''); estiloUnmapped.set(k, (estiloUnmapped.get(k) || 0) + 1); lineas.push({ producto: li.product.title, variante: (li.variant && li.variant.title) || '', cantidad: li.quantity, estilo: 'sin mapear', litros: cdR3(litros) }); }
       }
       transfers[transferLocal].ordenes++;
       transfers[transferLocal].pedidos.push({ ...rec, lineas });
+      addDia(rec.fecha, valorTransfer);
     }
     bucket[bucketName].n++; bucket[bucketName].cobrado += total; bucket[bucketName].original += orig;
     if (bucket[bucketName].pedidos.length < 500) bucket[bucketName].pedidos.push(rec);
@@ -2880,7 +3024,7 @@ async function cdShopifyMonth(month, precios, rango){
     transfers[loc].valor = cdMoney(valor);
     transfers[loc].porEstilo = Object.entries(byE).map(([k, lt]) => ({ estilo: k.split('|')[0], tipo: k.split('|')[1], litros: cdR3(lt) })).sort((a, b) => b.litros - a.litros);
   }
-  return { ordenes: orders.length, transfers, bucket, totalCobrado: cdMoney(totalCobrado), totalOriginal: cdMoney(totalOriginal), sinCodigo, codesHist, codigosNuevos: [...codigosNuevos], sinMapear: [...estiloUnmapped.entries()].map(([producto, lineas]) => ({ producto, lineas })) };
+  return { ordenes: orders.length, transfers, bucket, totalCobrado: cdMoney(totalCobrado), totalOriginal: cdMoney(totalOriginal), sinCodigo, codesHist, codigosNuevos: [...codigosNuevos], sinMapear: [...estiloUnmapped.entries()].map(([producto, lineas]) => ({ producto, lineas })), porDia };
 }
 app.get('/admin/cd/diag', requireAdmin, async (req, res) => {
   if (!process.env.SHOPIFY_ADMIN_TOKEN) return res.status(503).json({ error: 'Shopify no conectado.' });
@@ -3023,6 +3167,13 @@ async function estadoResolve(month, rango){
   const walmartSeed = CD_WALMART_SEED[month] || [];
   const walmartPedidos = [...(shOk ? sh.bucket.walmart.pedidos : []), ...walmartSeed];
   const retail = shWalmart + walmartSeed.reduce((a, p) => a + (Number(p.original) || 0), 0);
+  // Venta por día = total real de Shopify por día + seeds históricos puntuales (que
+  // también traen su fecha real). Misma base de valorización que totalIngresos.
+  const porDia = {};
+  const addDia = (fecha, monto) => { if (!fecha || !monto) return; porDia[fecha] = (porDia[fecha] || 0) + Math.round(monto); };
+  if (shOk) Object.entries(sh.porDia).forEach(([f, v]) => addDia(f, v));
+  gardenSeed.forEach(p => addDia(p.fecha, (p.lineas || []).reduce((s, l) => s + (Number(l.litros) || 0) * ((precios[l.tipo] || precios.cerveza) + precios.despacho), 0)));
+  walmartSeed.forEach(p => addDia(p.fecha, Number(p.original) || 0));
   // Walmart por marca (vendor de Shopify): resumen + filtro, igual que Venta Online.
   const wmProvKeys = [...CD_WEB_PROVEEDORES, 'Otros'];
   const walmartPorProv = {}; for (const k of wmProvKeys) walmartPorProv[k] = { total: 0, n: 0, pedidos: [] };
@@ -3069,7 +3220,7 @@ async function estadoResolve(month, rango){
   };
   const totalIngresos = cdNeto + cruzTotal + hospitalityTotal + shWeb + retail;
   return {
-    month, precios, periodo: per, ingresos, totalIngresos,
+    month, precios, periodo: per, ingresos, totalIngresos, porDia,
     rango: r, mesCompleto: (r.from === cdMonthRange(month).from && r.to === cdMonthRange(month).to),
     shopifyOk: shOk, shopifyError: sh.error || null,
     alertas: { codigosNuevos: shOk ? sh.codigosNuevos : [], sinMapear: shOk ? sh.sinMapear : [], sinCodigo: shOk ? sh.sinCodigo : 0 },
@@ -3364,10 +3515,18 @@ app.delete('/admin/costos/entrada/:id', requireAdmin, (req, res) => {
 // ─── ESTADO DE RESULTADO (P&L) = Ingresos por venta − Costos y Gastos ────────
 // Cruza los ingresos automáticos (hoja Ingreso por Venta) con los costos/gastos
 // registrados del mes, agrupados por categoría, y calcula margen bruto y EBITDA.
+// Costos/gastos dentro de un rango de fechas exacto (inclusive, YYYY-MM-DD) en vez
+// de un mes calendario completo — necesario para períodos como "Últimos 30 días"
+// o un rango personalizado que no calzan con costosMes().
+function costosEnRango(entradas, from, to){
+  return entradas.filter(e => { const f = costosStr(e.fecha, 20); return f && f >= from && f <= to; });
+}
 async function pnlCompute(month, rango){
   const est = await estadoResolve(month, rango);
   const cd = costosLoad();
-  const entradas = cd.entradas.filter(e => costosMes(e.fecha) === month);
+  const entradas = (rango && rango.from && rango.to)
+    ? costosEnRango(cd.entradas, rango.from, rango.to)
+    : cd.entradas.filter(e => costosMes(e.fecha) === month);
   const rs = costosResumen(entradas);
   const catTot = (id) => (rs.porCategoria[id] || { total: 0 }).total;
   const ingresos = est.totalIngresos;
@@ -3701,11 +3860,11 @@ function operacionalLoad(){
 function operacionalSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(OPERACIONAL_FILE, JSON.stringify(d, null, 2)); }
 // Litros vendidos por estilo en un mes, HORECA (cd_kairos_mall + ventas_cruzada)
 // + hospitality (garden + badass) — los dos canales que ya se miden en litros.
-async function opLitrosPorEstiloMes(month){
+async function opLitrosPorEstiloMes(month, rango){
   const out = {};
   const add = (estilo, litros) => { if (!estilo || estilo === 'sin mapear') return; out[estilo] = (out[estilo] || 0) + (Number(litros) || 0); };
   try {
-    const est = await estadoResolve(month, null);
+    const est = await estadoResolve(month, rango || null);
     (est.ingresos.hospitality.garden.tabla || []).forEach(r => add(r.estilo, r.litros));
     (est.ingresos.hospitality.badass.tabla || []).forEach(r => add(r.estilo, r.litros));
     (est.ingresos.horeca.pedidos || []).forEach(p => (p.detalle || []).forEach(d => add(d.estilo, d.litros)));
@@ -3771,6 +3930,181 @@ app.post('/admin/forecast/operacional/estilo', requireAdmin, (req, res) => {
   };
   operacionalSave(data);
   res.json({ ok: true, estilo: { estilo, ...data.estilos[estilo] } });
+});
+
+// ─── HOME · Resumen (4 cuadros con datos reales) ────────────────────────────
+// TODO: restringir por rol si se requiere — hoy visible para todos los usuarios
+// autenticados del panel (se pidió así explícitamente).
+// Todo lo de acá abajo es SOLO LECTURA / agregación sobre datos que el ERP ya
+// registra (Ingreso por Venta, Costos, Gastos, Gestión de Personas, litros de
+// Forecast Operacional). No se crea ni modifica ningún registro.
+const DASH_MARCAS = [
+  { id: 'kairos', label: 'Kairos Brewing' },
+  { id: 'banny', label: 'Banny' },
+  { id: 'firulais', label: 'Firulais' },
+];
+// Litros por día y por marca (HORECA + Hospitality, únicos canales medidos en
+// litros hoy). Retail/web queda fuera: no hay mapeo SKU→volumen de envase.
+async function opLitrosPorDiaMarca(month, rango, opEstilos){
+  const serieDia = {};
+  const zero = () => ({ kairos: 0, banny: 0, firulais: 0, sinMapear: 0, total: 0 });
+  const add = (fecha, estilo, litros) => {
+    const lt = Number(litros) || 0;
+    if (!fecha || !lt) return;
+    const marcaRaw = (opEstilos[estilo] || {}).marca;
+    const key = ['kairos', 'banny', 'firulais'].includes(marcaRaw) ? marcaRaw : 'sinMapear';
+    if (!serieDia[fecha]) serieDia[fecha] = zero();
+    serieDia[fecha][key] += lt; serieDia[fecha].total += lt;
+  };
+  try {
+    const est = await estadoResolve(month, rango || null);
+    (est.ingresos.horeca.pedidos || []).forEach(p => (p.detalle || []).forEach(d => add(p.fecha, d.estilo, d.litros)));
+    (est.ingresos.hospitality.garden.pedidos || []).forEach(p => (p.lineas || []).forEach(l => add(p.fecha, l.estilo, l.litros)));
+    (est.ingresos.hospitality.badass.pedidos || []).forEach(p => (p.lineas || []).forEach(l => add(p.fecha, l.estilo, l.litros)));
+  } catch (e) { /* mes sin datos de Shopify: serie queda vacía */ }
+  return serieDia;
+}
+// Resuelve el selector de período del dashboard a {month, rango, label}. "month"
+// ancla la tabla de precios de transferencia (se guarda por mes calendario en
+// Ingreso por Venta); para rangos que no calzan con un mes completo se usa el
+// mes que contiene el fin del rango — mismo criterio que ya usa Ingreso por
+// Venta con su propio selector de rango personalizado.
+function dashResolvePeriodo(tipo, fromQ, toQ){
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const ymd = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const monthOf = (s) => s.slice(0, 7);
+  const today = new Date();
+  if (tipo === 'mes_pasado') {
+    const d = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const month = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+    return { tipo, month, rango: null, label: 'Mes pasado' };
+  }
+  if (tipo === '30d') {
+    const to = new Date(today), from = new Date(today); from.setDate(from.getDate() - 29);
+    const toS = ymd(to), fromS = ymd(from);
+    return { tipo, month: monthOf(toS), rango: { from: fromS, to: toS }, label: 'Últimos 30 días' };
+  }
+  if (tipo === 'custom') {
+    const d = /^\d{4}-\d{2}-\d{2}$/;
+    if (!d.test(fromQ || '') || !d.test(toQ || '') || fromQ > toQ) return null;
+    return { tipo, month: monthOf(toQ), rango: { from: fromQ, to: toQ }, label: 'Rango personalizado' };
+  }
+  const month = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}`;
+  return { tipo: 'mes_actual', month, rango: null, label: 'Mes actual' };
+}
+async function dashboardCompute(periodo, marcaFiltro){
+  const { month, rango } = periodo;
+  const opEstilos = operacionalLoad().estilos;
+  const [pnl, est, litrosPorDiaMarca] = await Promise.all([
+    pnlCompute(month, rango),
+    estadoResolve(month, rango),
+    opLitrosPorDiaMarca(month, rango, opEstilos),
+  ]);
+
+  // Cuadro A: ventas en el tiempo (serie diaria ya calculada por estadoResolve/cdShopifyMonth).
+  const serieA = Object.entries(est.porDia).sort((a, b) => a[0].localeCompare(b[0])).map(([fecha, total]) => ({ fecha, total: Math.round(total) }));
+  const cuadroA = { serie: serieA, total: Math.round(serieA.reduce((a, r) => a + r.total, 0)) };
+
+  // Cuadro B: ratios como % (valores base para el tooltip/subtítulo). Costos Totales
+  // = costo directo + costo indirecto. Gasto de RRHH = costo empresa de la nómina
+  // (Gestión de Personas), dividido en la venta total del período — tal como se
+  // confirmó con el usuario.
+  const ventaTotal = pnl.ingresos.total;
+  const costosTotalesMonto = pnl.costos.costoDirecto + pnl.costos.costoIndirecto;
+  const pct = (v) => ventaTotal ? Math.round((v / ventaTotal) * 1000) / 10 : 0;
+  const cuadroB = {
+    ventaTotal: Math.round(ventaTotal),
+    costosTotales: { monto: Math.round(costosTotalesMonto), pct: pct(costosTotalesMonto) },
+    gastosMarketing: { monto: Math.round(pnl.costos.gastosMarketing), pct: pnl.ratios.gastosMarketing },
+    gastoRRHH: { monto: Math.round(pnl.costos.gastoPersonal), pct: pnl.ratios.gastoPersonal },
+  };
+
+  // Cuadro C: global + por marca (tabla densa).
+  const gastoTotalGlobal = pnl.costos.gastosOper + pnl.costos.gastosAdmin + pnl.costos.gastosMarketing + pnl.costos.gastoPersonal;
+  const cd = costosLoad();
+  const entradasPeriodo = (rango && rango.from && rango.to)
+    ? costosEnRango(cd.entradas, rango.from, rango.to)
+    : cd.entradas.filter(e => costosMes(e.fecha) === month);
+  // Costo/Gasto por marca: usa el campo marca/marcaDetalle que ya trae cada entrada
+  // (prorratea "algunas" por su %). Las entradas marcadas "todas" son transversales
+  // a las 3 marcas y NO se reparten (no hay una regla definida para hacerlo sin
+  // inventar el dato) — solo quedan reflejadas en el Global.
+  const cgPorMarca = { kairos: { costo: 0, gasto: 0 }, banny: { costo: 0, gasto: 0 }, firulais: { costo: 0, gasto: 0 } };
+  let huboEntradasTodas = false;
+  for (const e of entradasPeriodo) {
+    const tipo = COSTOS_CAT_TIPO[e.categoria];
+    if (tipo !== 'costo' && tipo !== 'gasto') continue;
+    const v = costosValorEfectivo(e);
+    if (e.marca === 'todas') { huboEntradasTodas = true; continue; }
+    if (e.marca === 'algunas' && Array.isArray(e.marcaDetalle)) {
+      for (const d of e.marcaDetalle) { if (cgPorMarca[d.marca]) cgPorMarca[d.marca][tipo] += Math.round(v * ((Number(d.pct) || 0) / 100)); }
+    } else if (cgPorMarca[e.marca]) {
+      cgPorMarca[e.marca][tipo] += v;
+    }
+  }
+  // Venta por marca: retail/web (cobrado) + walmart (original) + hospitality (valorizado
+  // a precio de transferencia por línea de pedido — no se usa la tabla agregada por
+  // estilo porque esa tabla no incluye los pedidos "seed" pre-Shopify), todas ya
+  // atribuidas por marca. HORECA (Kairos Mall + Ventas Cruzadas) NO se incluye: esos
+  // pedidos no capturan ingreso por línea de producto, así que no hay forma de saber
+  // cuánto corresponde a cada marca.
+  const ventaPorMarca = { kairos: 0, banny: 0, firulais: 0 };
+  const provMarca = { 'Kairos Brewing': 'kairos', Firulais: 'firulais', Banny: 'banny' };
+  for (const [prov, info] of Object.entries(est.ingresos.ventas_web.porProveedor || {})) { const m = provMarca[prov]; if (m) ventaPorMarca[m] += info.total || 0; }
+  for (const [prov, info] of Object.entries(est.ingresos.walmart.porProveedor || {})) { const m = provMarca[prov]; if (m) ventaPorMarca[m] += info.total || 0; }
+  const addHospPedidos = (pedidos) => (pedidos || []).forEach(p => (p.lineas || []).forEach(l => {
+    const m = (opEstilos[l.estilo] || {}).marca; if (ventaPorMarca[m] == null) return;
+    const lt = Number(l.litros) || 0;
+    ventaPorMarca[m] += lt * (est.precios[l.tipo] || est.precios.cerveza) + est.precios.despacho * lt;
+  }));
+  addHospPedidos(est.ingresos.hospitality.garden.pedidos); addHospPedidos(est.ingresos.hospitality.badass.pedidos);
+  // Litros por marca (HORECA + Hospitality): se suma directamente la serie diaria ya
+  // calculada (misma fuente pedido a pedido, incluye seeds pre-Shopify).
+  const litrosPorMarca = { kairos: 0, banny: 0, firulais: 0, sinMapear: 0 };
+  for (const dia of Object.values(litrosPorDiaMarca)) {
+    litrosPorMarca.kairos += dia.kairos; litrosPorMarca.banny += dia.banny; litrosPorMarca.firulais += dia.firulais; litrosPorMarca.sinMapear += dia.sinMapear;
+  }
+  const porMarca = DASH_MARCAS.map(m => ({
+    marca: m.id, label: m.label,
+    ventaTotal: Math.round(ventaPorMarca[m.id] || 0),
+    litrosTotales: Math.round((litrosPorMarca[m.id] || 0) * 10) / 10,
+    costoTotal: Math.round((cgPorMarca[m.id] || {}).costo || 0),
+    gastoTotal: Math.round((cgPorMarca[m.id] || {}).gasto || 0),
+  }));
+  const cuadroC = {
+    global: { ventaTotal: Math.round(ventaTotal), costoTotal: Math.round(costosTotalesMonto), gastoTotal: Math.round(gastoTotalGlobal) },
+    porMarca,
+    notas: [
+      'La "Venta total" por marca excluye HORECA (Kairos Mall + Ventas Cruzadas): esos pedidos no registran el ingreso por línea de producto, así que no se pueden atribuir a una marca — sí están incluidos en el Global.',
+      huboEntradasTodas ? 'Hay costos/gastos del período marcados como "Todas las marcas": no se reparten entre marcas (no hay una regla definida para hacerlo) — solo suman al Global.' : null,
+      litrosPorMarca.sinMapear > 0.5 ? `Hay ${Math.round(litrosPorMarca.sinMapear)} L vendidos en estilos sin marca asignada en Forecast Operacional — no están en ninguna fila de marca.` : null,
+    ].filter(Boolean),
+  };
+
+  // Cuadro D: litros vendidos por marca en el tiempo (mismo universo de Cuadro C: HORECA + Hospitality).
+  const serieD = Object.entries(litrosPorDiaMarca).sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([fecha, v]) => ({ fecha, litros: Math.round(((marcaFiltro !== 'all' ? (v[marcaFiltro] || 0) : v.total)) * 10) / 10 }));
+  const cuadroD = {
+    marcas: DASH_MARCAS, marcaFiltro,
+    serie: serieD,
+    total: Math.round((marcaFiltro !== 'all' ? (litrosPorMarca[marcaFiltro] || 0) : (litrosPorMarca.kairos + litrosPorMarca.banny + litrosPorMarca.firulais + litrosPorMarca.sinMapear)) * 10) / 10,
+    nota: 'Incluye HORECA y Hospitality (litros ya medidos hoy). No incluye venta retail/web: no existe un mapeo de SKU a volumen de envase para convertir latas/unidades a litros.',
+  };
+
+  const r = rango || cdMonthRange(month);
+  return {
+    periodo: { tipo: periodo.tipo, from: r.from, to: r.to, label: periodo.label, month },
+    shopifyOk: est.shopifyOk,
+    cuadroA, cuadroB, cuadroC, cuadroD,
+  };
+}
+app.get('/admin/home/dashboard', requireAdmin, async (req, res) => {
+  const tipo = ['mes_actual', 'mes_pasado', '30d', 'custom'].includes(String(req.query.period)) ? String(req.query.period) : 'mes_actual';
+  const periodo = dashResolvePeriodo(tipo, String(req.query.from || ''), String(req.query.to || ''));
+  if (!periodo) return res.status(400).json({ error: 'Rango de fechas inválido.' });
+  const marcaFiltro = ['kairos', 'banny', 'firulais'].includes(String(req.query.marca)) ? String(req.query.marca) : 'all';
+  try { res.json(await dashboardCompute(periodo, marcaFiltro)); }
+  catch (e) { res.status(500).json({ error: 'Error calculando el resumen: ' + String(e.message || e).slice(0, 300) }); }
 });
 
 // ─── GESTIÓN DE PERSONAS (nómina) ───────────────────────────────────────────

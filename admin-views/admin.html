@@ -161,7 +161,7 @@ body{ padding-left:var(--ks-side); }
 .ks-i.on::before{content:"";position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:4px;height:60%;border-radius:0 4px 4px 0;background:linear-gradient(var(--gold,#f5a623),var(--gold-deep,#d98c00))}
 .ks-i.hide{display:none}
 .ks-foot{padding:12px 14px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:.6rem}
-.ks-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold-bright,#f7b733),var(--gold-deep,#d98c00));color:#1a1408;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex:0 0 auto}
+.ks-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold-bright,#f7b733),var(--gold-deep,#d98c00));color:#1a1408;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex:0 0 auto;border:none;padding:0;font-family:inherit;cursor:pointer}
 .ks-u{flex:1;min-width:0}
 .ks-u b{display:block;color:#fff;font-size:.8rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ks-u span{color:#8fa1c2;font-size:.68rem}
@@ -211,7 +211,38 @@ body{ padding-left:var(--ks-side); }
 .ks-act .at{font-size:.83rem;font-weight:600} .ks-act .as{font-size:.73rem;color:var(--dim,#999);margin-top:.1rem}
 .ks-act .aw{margin-left:auto;font-size:.7rem;color:var(--dim,#999);white-space:nowrap}
 .ks-muted{color:var(--dim,#999);font-size:.82rem;padding:.5rem 0}
-@media(max-width:1080px){.ks-kpis{grid-template-columns:repeat(2,1fr)}.ks-row2{grid-template-columns:1fr}}
+
+/* ── Resumen (Cuadros A/B/C/D + filtro de período) ── */
+.ks-period{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:18px}
+.ks-period-btn{
+  font-family:var(--sans,inherit);font-size:.78rem;font-weight:700;color:var(--muted,#666);
+  background:var(--surface,#fff);border:1px solid var(--border,#eee);border-radius:9px;
+  padding:.5rem .85rem;cursor:pointer;transition:border-color .15s,color .15s,background .15s;
+}
+.ks-period-btn:hover{border-color:var(--gold-bd-h,#f5a623);color:var(--gold-deep,#a05f00)}
+.ks-period-btn.on{background:var(--gold,#f5a623);border-color:var(--gold,#f5a623);color:#1a1408}
+.ks-period-custom{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.ks-period-custom input[type=date]{
+  font-family:var(--sans,inherit);font-size:.78rem;color:var(--text,#111);
+  background:var(--surface,#fff);border:1px solid var(--border,#eee);border-radius:9px;padding:.44rem .6rem;
+}
+.ks-period-label{margin-left:auto;font-size:.72rem;color:var(--dim,#999);font-weight:700}
+.ks-cuadros{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.ks-cuadro-a,.ks-cuadro-c{grid-column:1/-1}
+.ks-ratio-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.ks-ratio{background:var(--surface2,#fafafa);border:1px solid var(--border,#eee);border-radius:12px;padding:14px 16px}
+.ks-ratio .lab{font-size:.68rem;font-weight:700;color:var(--dim,#999);text-transform:uppercase;letter-spacing:.04em}
+.ks-ratio .pct{font-family:var(--display,inherit);font-size:1.55rem;font-weight:800;margin-top:.25rem;color:var(--gold-deep,#a05f00)}
+.ks-ratio .base{font-size:.72rem;color:var(--dim,#999);margin-top:.2rem;font-variant-numeric:tabular-nums}
+.ks-marca-sel{
+  font-family:var(--sans,inherit);font-size:.78rem;font-weight:700;color:var(--text,#111);
+  background:var(--surface,#fff);border:1px solid var(--border,#eee);border-radius:9px;padding:.4rem .6rem;
+}
+.ks-note{font-size:.72rem;color:var(--dim,#999);margin-top:.7rem;line-height:1.5}
+.ks-note.warn{color:var(--gold-deep,#a05f00)}
+.ks-nodata{color:var(--dim,#999);font-size:.85rem;padding:1.4rem;text-align:center;border:1px dashed var(--border,#eee);border-radius:10px}
+.ks-err{color:#c0392b;font-size:.85rem;padding:1rem;background:#fdecea;border:1px solid rgba(192,57,43,.25);border-radius:10px}
+@media(max-width:1080px){.ks-kpis{grid-template-columns:repeat(2,1fr)}.ks-row2{grid-template-columns:1fr}.ks-cuadros{grid-template-columns:1fr}.ks-cuadro-a,.ks-cuadro-c{grid-column:auto}.ks-ratio-row{grid-template-columns:1fr}}
 .adm-home{padding:1.5rem .5rem 2.5rem;max-width:1000px;margin:0 auto;text-align:center;animation:homeIn .4s ease}
 @keyframes homeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .adm-home-welcome{font-family:var(--display);font-size:.78rem;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
@@ -2118,7 +2149,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
   </a>
   <span class="adm-pipe"></span>
   <span class="adm-sub">Admin</span>
-  <div class="adm-tag" id="tagBuild">cargando…</div>
+  <div class="adm-tag" id="tagBuild" style="display:none">cargando…</div>
   <button type="button" class="adm-out" id="btnLogout" title="Cerrar sesión" style="display:none">Salir</button>
 </header>
 
@@ -2507,6 +2538,21 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <div id="nominaBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
+    <!-- Cuentas del equipo: altas/edición de cuentas individuales (saludo personalizado + acceso) -->
+    <div class="adm-panel" id="equipoView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Cuentas del equipo</div>
+          <div class="adm-panel-meta">nombre, apodo y acceso individual de cada persona · no cambia el usuario/contraseña compartido de admin</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-gold" id="teamNew" type="button">+ Nueva cuenta</button>
+          <button class="adm-btn adm-btn-ghost" id="teamReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div id="teamBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
     <!-- Producción & OEE (Fase 1): tanques, cocción, envasado, limpiezas, paradas -->
     <div class="adm-panel" id="produccionView" style="display:none">
       <div class="adm-panel-head">
@@ -2887,6 +2933,76 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
     </div>
   </div>
 
+  <!-- Modal Editar mi perfil (nombre / apellido / apodo · saludo de la home) -->
+  <div class="adm-fb" id="profileModal" aria-hidden="true">
+    <div class="adm-fb-bg" data-act="close-profile"></div>
+    <div class="adm-fb-card">
+      <button type="button" class="adm-fb-x" data-act="close-profile" aria-label="Cerrar">✕</button>
+      <div class="adm-fb-head">
+        <div class="adm-fb-title">Editar mi perfil</div>
+        <div class="adm-fb-sub">Así te va a saludar la home. No cambia tu correo ni tu contraseña de acceso.</div>
+      </div>
+      <div class="adm-fb-cols">
+        <div class="adm-fb-col">
+          <label class="adm-fb-label">Nombre</label>
+          <input type="text" class="adm-input" id="pfNombre" placeholder="Ej: Arie" maxlength="80">
+        </div>
+        <div class="adm-fb-col">
+          <label class="adm-fb-label">Apellido</label>
+          <input type="text" class="adm-input" id="pfApellido" placeholder="Ej: Finkelstein" maxlength="80">
+        </div>
+      </div>
+      <div class="adm-fb-col">
+        <label class="adm-fb-label">¿Cómo te gustaría que te llamemos? (apodo, opcional)</label>
+        <input type="text" class="adm-input" id="pfApodo" placeholder="Ej: Dj Cookie" maxlength="40">
+      </div>
+      <div class="adm-fb-col" id="pfErr" style="display:none;color:var(--red);font-size:.8rem"></div>
+      <div class="adm-fb-acts">
+        <button type="button" class="adm-btn adm-btn-ghost" data-act="close-profile">Cancelar</button>
+        <button type="button" class="adm-btn adm-btn-gold" id="pfSave">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Cuenta de equipo (crear/editar acceso individual) -->
+  <div class="adm-fb" id="teamModal" aria-hidden="true">
+    <div class="adm-fb-bg" data-act="close-team"></div>
+    <div class="adm-fb-card">
+      <button type="button" class="adm-fb-x" data-act="close-team" aria-label="Cerrar">✕</button>
+      <div class="adm-fb-head">
+        <div class="adm-fb-title" id="tmTitle">Nueva cuenta</div>
+        <div class="adm-fb-sub" id="tmSub">Crea un acceso individual para que esta persona inicie sesión con su propio correo y vea su nombre/apodo en el saludo.</div>
+      </div>
+      <div class="adm-fb-col" id="tmUserWrap">
+        <label class="adm-fb-label">Correo (usuario de acceso)</label>
+        <input type="email" class="adm-input" id="tmUsername" placeholder="persona@kairosdrinks.com">
+      </div>
+      <div class="adm-fb-cols">
+        <div class="adm-fb-col">
+          <label class="adm-fb-label">Nombre</label>
+          <input type="text" class="adm-input" id="tmNombre" placeholder="Ej: Arie" maxlength="80">
+        </div>
+        <div class="adm-fb-col">
+          <label class="adm-fb-label">Apellido</label>
+          <input type="text" class="adm-input" id="tmApellido" placeholder="Ej: Finkelstein" maxlength="80">
+        </div>
+      </div>
+      <div class="adm-fb-col">
+        <label class="adm-fb-label">¿Cómo le gustaría que le llamemos? (apodo, opcional)</label>
+        <input type="text" class="adm-input" id="tmApodo" placeholder="Ej: Dj Cookie" maxlength="40">
+      </div>
+      <div class="adm-fb-col">
+        <label class="adm-fb-label" id="tmPassLabel">Contraseña (mínimo 8 caracteres)</label>
+        <input type="password" class="adm-input" id="tmPassword" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <div class="adm-fb-col" id="tmErr" style="display:none;color:var(--red);font-size:.8rem"></div>
+      <div class="adm-fb-acts">
+        <button type="button" class="adm-btn adm-btn-ghost" data-act="close-team">Cancelar</button>
+        <button type="button" class="adm-btn adm-btn-gold" id="tmSave">Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Mini chat -->
   <aside class="adm-chat" id="chatAside">
     <div class="adm-chat-head">
@@ -2950,6 +3066,7 @@ const BASE_SECCIONES = [
   { id:'costos',    kind:'costos',   label:'Costos', cat:'operaciones', desc:'registro de costos por proveedor · categoría · marca · folio · valor' },
   { id:'gastos',    kind:'gastos',   label:'Gastos', cat:'operaciones', desc:'registro de gastos por proveedor · categoría · marca · % del total · folio · valor' },
   { id:'nomina',    kind:'nomina',   label:'Gestión de Personas', cat:'operaciones', desc:'nómina de trabajadores · costo empresa · descarga de Excel' },
+  { id:'equipo',    kind:'equipo',   label:'Cuentas del equipo', cat:'operaciones', desc:'altas y ediciones de cuentas individuales · nombre · apodo · acceso' },
   { id:'pnl',       kind:'pnl',      label:'Estado de Resultado', cat:'operaciones', desc:'ingresos − costos y gastos · margen bruto · EBITDA mensual' },
   { id:'forecast',  kind:'forecast', label:'Forecast', cat:'operaciones', desc:'EERR proyectado · presupuestos por % · simulación del año' },
   { id:'produccion',kind:'produccion',label:'Producción & OEE', cat:'produccion', desc:'tablero de tanques · cocción por etapas · envasado · limpiezas · paradas' },
@@ -3076,9 +3193,8 @@ function showHome(){
   showView('home');
   document.getElementById('tabs').innerHTML = '';
   const q = ADMIN_QUOTES[Math.floor(Math.random() * ADMIN_QUOTES.length)];
-  const uname = window.__adminUser || '';
-  const first = uname ? uname.replace(/@.*/,'').split(/[.\s_-]+/)[0] : '';
-  const hi = first ? (first.charAt(0).toUpperCase() + first.slice(1)) : '';
+  // Saludo: apodo → Nombre → genérico. Nunca username/correo (ver instrucción del producto).
+  const hi = window.__adminApodo || window.__adminNombre || '';
   document.getElementById('homeView').innerHTML = `
     <div class="ks-dash">
       <div class="ks-hello">
@@ -3087,23 +3203,32 @@ function showHome(){
         <p>Todo tu negocio en un solo lugar. Elegí una sección en el panel de la izquierda, o mirá el resumen de hoy acá abajo.</p>
         <div class="q">“${escapeHtml(q.t)}” — ${escapeHtml(q.a)}</div>
       </div>
-      <div class="ks-kpis" id="ksKpis">${kpiSkeleton()}</div>
-      <div class="ks-row2">
-        <div class="ks-card">
-          <div class="ks-card-h"><span class="t">Conversaciones por día · 30d</span><span class="more" data-go="analytics">Ver Analítica →</span></div>
-          <div class="ks-chart" id="ksChart"><div class="ks-muted" style="padding:1rem">Cargando…</div></div>
+      <div class="ks-period" id="ksPeriodBar"></div>
+      <div class="ks-cuadros" id="ksCuadros">
+        <div class="ks-card ks-cuadro-a">
+          <div class="ks-card-h"><span class="t">Ventas en el tiempo</span></div>
+          <div class="ks-chart" id="dashChartA"><div class="ks-muted" style="padding:1rem">Cargando…</div></div>
+          <div class="ks-note" id="dashNoteA"></div>
         </div>
-        <div class="ks-card">
-          <div class="ks-card-h"><span class="t">Últimas conversaciones</span><span class="more" data-go="chats">Ver todas →</span></div>
-          <div id="ksActivity"><div class="ks-muted">Cargando…</div></div>
+        <div class="ks-card ks-cuadro-b">
+          <div class="ks-card-h"><span class="t">Costos y gastos sobre la venta</span></div>
+          <div id="dashRatiosB"><div class="ks-muted">Cargando…</div></div>
+        </div>
+        <div class="ks-card ks-cuadro-c">
+          <div class="ks-card-h"><span class="t">Global y por marca</span></div>
+          <div id="dashTablaC"><div class="ks-muted">Cargando…</div></div>
+        </div>
+        <div class="ks-card ks-cuadro-d">
+          <div class="ks-card-h"><span class="t">Litros vendidos por marca</span><select class="ks-marca-sel" id="dashMarcaSel"><option value="all">Todas las marcas</option><option value="kairos">Kairos Brewing</option><option value="banny">Banny</option><option value="firulais">Firulais</option></select></div>
+          <div class="ks-chart" id="dashChartD"><div class="ks-muted" style="padding:1rem">Cargando…</div></div>
+          <div class="ks-note" id="dashNoteD"></div>
         </div>
       </div>
     </div>`;
-  document.querySelectorAll('#homeView .more[data-go]').forEach(el => {
-    el.onclick = () => selectSeccion(el.dataset.go);
-  });
   ksSync();
-  loadDashboard();
+  dashRenderPeriodBar();
+  loadDashCuadros();
+  document.getElementById('dashMarcaSel').onchange = () => loadDashCuadros();
 }
 
 function openCategory(catId){
@@ -3173,6 +3298,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'nomina') {
     showView('nomina');
     await loadNomina();
+  } else if (sec.kind === 'equipo') {
+    showView('equipo');
+    await loadEquipo();
   } else if (sec.kind === 'produccion') {
     showView('produccion');
     await loadProduccion();
@@ -3211,6 +3339,8 @@ async function selectSeccion(id){
 function showView(kind){
   // El Estado de Resultado no usa el preview de Zorbot: se oculta y la vista ocupa todo el ancho.
   document.body.classList.toggle('estado-active', kind === 'estado');
+  // "Último read" solo aplica a contenido de marca (md); en el resto de vistas no significa nada, así que se oculta.
+  if (kind !== 'md') document.getElementById('tagBuild').style.display = 'none';
   document.getElementById('homeView').style.display       = kind === 'home'       ? '' : 'none';
   document.getElementById('mdView').style.display         = kind === 'md'         ? '' : 'none';
   document.getElementById('productsView').style.display   = kind === 'products'   ? '' : 'none';
@@ -3226,6 +3356,7 @@ function showView(kind){
   document.getElementById('costosView').style.display     = kind === 'costos'     ? '' : 'none';
   document.getElementById('gastosView').style.display     = kind === 'gastos'     ? '' : 'none';
   document.getElementById('nominaView').style.display     = kind === 'nomina'     ? '' : 'none';
+  document.getElementById('equipoView').style.display     = kind === 'equipo'     ? '' : 'none';
   document.getElementById('produccionView').style.display = kind === 'produccion' ? '' : 'none';
   document.getElementById('pnlView').style.display        = kind === 'pnl'        ? '' : 'none';
   document.getElementById('forecastView').style.display   = kind === 'forecast'   ? '' : 'none';
@@ -3446,7 +3577,9 @@ function updateBuildTag(){
   const now = new Date();
   const hh = String(now.getHours()).padStart(2,'0');
   const mm = String(now.getMinutes()).padStart(2,'0');
-  document.getElementById('tagBuild').textContent = `Último read: ${hh}:${mm}`;
+  const tag = document.getElementById('tagBuild');
+  tag.textContent = `Último read: ${hh}:${mm}`;
+  tag.style.display = '';
 }
 
 // ─── Add block ──────────────────────────────────────────────────────────────
@@ -8924,6 +9057,136 @@ async function nominaEliminar(id){
 document.getElementById('nominaReload').onclick=loadNomina;
 document.getElementById('nominaExcel').onclick=()=>window.open('/admin/nomina/export.xlsx','_blank');
 
+// ─── Cuentas del equipo (accesos individuales) ──────────────────────────────
+let teamData=[];
+async function loadEquipo(){
+  const body=document.getElementById('teamBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  try{ const r=await fetch('/admin/team'); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); teamData=d.members||[]; renderEquipo(); }
+  catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function renderEquipo(){
+  const body=document.getElementById('teamBody');
+  const rows=teamData.map(m=>{
+    const nombreCompleto=[m.nombre,m.apellido].filter(Boolean).join(' ')||'—';
+    const tipo=m.profileOnly?'Sobre credencial compartida':'Acceso propio';
+    return `<tr>
+      <td>${escapeHtml(m.username)}</td><td>${escapeHtml(nombreCompleto)}</td><td>${escapeHtml(m.apodo||'—')}</td>
+      <td>${escapeHtml(tipo)}</td>
+      <td style="white-space:nowrap"><button class="pv-del nom-edit-btn" data-teamedit="${escapeAttr(m.id)}" title="Editar">✎</button> <button class="pv-del" data-teamdel="${escapeAttr(m.id)}" title="Eliminar">✕</button></td>
+    </tr>`;
+  }).join('');
+  body.innerHTML=`<div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Correo</th><th>Nombre</th><th>Apodo</th><th>Tipo</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="5" style="text-align:center;color:#999;padding:.8rem">Sin cuentas todavía</td></tr>'}</tbody></table></div>`;
+  wireEquipo();
+}
+function wireEquipo(){
+  document.querySelectorAll('[data-teamedit]').forEach(b=>b.onclick=()=>{
+    const m=teamData.find(x=>x.id===b.dataset.teamedit); if(m) openTeamModal(m);
+  });
+  document.querySelectorAll('[data-teamdel]').forEach(b=>b.onclick=()=>teamEliminar(b.dataset.teamdel));
+}
+async function teamEliminar(id){
+  if(!confirm('Eliminar esta cuenta? La persona ya no podrá iniciar sesión con su correo propio.')) return;
+  try{ const r=await fetch('/admin/team/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadEquipo(); }
+  catch(e){ alert(String(e.message||e)); }
+}
+document.getElementById('teamReload').onclick=loadEquipo;
+document.getElementById('teamNew').onclick=()=>openTeamModal(null);
+
+let teamEditId=null;
+function openTeamModal(member){
+  teamEditId = member ? member.id : null;
+  document.getElementById('tmTitle').textContent = member ? 'Editar cuenta' : 'Nueva cuenta';
+  document.getElementById('tmSub').textContent = member
+    ? 'Actualizá su nombre, apodo o restablecé su contraseña.'
+    : 'Crea un acceso individual para que esta persona inicie sesión con su propio correo y vea su nombre/apodo en el saludo.';
+  document.getElementById('tmUserWrap').style.display = member ? 'none' : '';
+  document.getElementById('tmUsername').value = member ? member.username : '';
+  document.getElementById('tmNombre').value = member ? (member.nombre||'') : '';
+  document.getElementById('tmApellido').value = member ? (member.apellido||'') : '';
+  document.getElementById('tmApodo').value = member ? (member.apodo||'') : '';
+  document.getElementById('tmPassword').value = '';
+  document.getElementById('tmPassLabel').textContent = member ? 'Nueva contraseña (opcional · dejar en blanco para no cambiarla)' : 'Contraseña (mínimo 8 caracteres)';
+  const err=document.getElementById('tmErr'); err.style.display='none'; err.textContent='';
+  document.getElementById('teamModal').classList.add('open');
+  document.getElementById('teamModal').setAttribute('aria-hidden','false');
+}
+function closeTeamModal(){
+  document.getElementById('teamModal').classList.remove('open');
+  document.getElementById('teamModal').setAttribute('aria-hidden','true');
+}
+document.getElementById('teamModal').addEventListener('click',(e)=>{ if(e.target.dataset.act==='close-team') closeTeamModal(); });
+document.getElementById('tmSave').onclick = async () => {
+  const err=document.getElementById('tmErr'); err.style.display='none';
+  const nombre=document.getElementById('tmNombre').value.trim();
+  const apellido=document.getElementById('tmApellido').value.trim();
+  const apodo=document.getElementById('tmApodo').value.trim();
+  const password=document.getElementById('tmPassword').value;
+  try{
+    let r, d;
+    if (teamEditId){
+      const body={nombre,apellido,apodo}; if(password) body.password=password;
+      r=await fetch('/admin/team/'+encodeURIComponent(teamEditId),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    } else {
+      const username=document.getElementById('tmUsername').value.trim();
+      r=await fetch('/admin/team',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,nombre,apellido,apodo,password})});
+    }
+    d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    closeTeamModal();
+    await loadEquipo();
+    showToast('Cuenta guardada');
+  }catch(e){ err.textContent='⚠ '+String(e.message||e); err.style.display='block'; }
+};
+
+// ─── Editar mi perfil (saludo de la home: nombre / apodo) ───────────────────
+async function openProfileModal(){
+  const err=document.getElementById('pfErr'); err.style.display='none'; err.textContent='';
+  document.getElementById('pfNombre').value = window.__adminNombre || '';
+  document.getElementById('pfApellido').value = '';
+  document.getElementById('pfApodo').value = window.__adminApodo || '';
+  try{
+    const r=await fetch('/admin/team');
+    if (r.ok){
+      const d=await r.json();
+      const me=(d.members||[]).find(m=>(m.username||'').toLowerCase()===(window.__adminUser||'').toLowerCase());
+      if (me){
+        document.getElementById('pfNombre').value = me.nombre||'';
+        document.getElementById('pfApellido').value = me.apellido||'';
+        document.getElementById('pfApodo').value = me.apodo||'';
+      }
+    }
+  }catch(_){}
+  document.getElementById('profileModal').classList.add('open');
+  document.getElementById('profileModal').setAttribute('aria-hidden','false');
+}
+function closeProfileModal(){
+  document.getElementById('profileModal').classList.remove('open');
+  document.getElementById('profileModal').setAttribute('aria-hidden','true');
+}
+document.getElementById('profileModal').addEventListener('click',(e)=>{ if(e.target.dataset.act==='close-profile') closeProfileModal(); });
+document.addEventListener('keydown',(e)=>{
+  if (e.key!=='Escape') return;
+  if (document.getElementById('profileModal').classList.contains('open')) closeProfileModal();
+  if (document.getElementById('teamModal').classList.contains('open')) closeTeamModal();
+});
+document.getElementById('pfSave').onclick = async () => {
+  const err=document.getElementById('pfErr'); err.style.display='none';
+  const body={
+    nombre: document.getElementById('pfNombre').value.trim(),
+    apellido: document.getElementById('pfApellido').value.trim(),
+    apodo: document.getElementById('pfApodo').value.trim(),
+  };
+  try{
+    const r=await fetch('/admin/team/me',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+    window.__adminNombre = d.member.nombre||'';
+    window.__adminApodo = d.member.apodo||'';
+    closeProfileModal();
+    renderSidebar();
+    if (document.body.classList.contains('admin-home')) showHome();
+    showToast('Perfil actualizado');
+  }catch(e){ err.textContent='⚠ '+String(e.message||e); err.style.display='block'; }
+};
+
 // ─── Estado de Resultado (P&L) ──────────────────────────────────────────────
 let pnlData=null;
 async function loadPnl(){
@@ -10416,7 +10679,7 @@ const KS_ICON = {
   analytics:'📊', ads:'📣', mundial:'🏆', chats:'💬', feedback:'📝', web:'🌐', tutoriales:'🎬',
   general:'⚙️', kairos:'🍺', firulais:'🐶', banny:'🥃', mayorista:'🤝',
   productos:'🏷️', puntos:'📍', topclientes:'⭐',
-  distribuidora:'🚚', costeo:'🧾', estado:'💰', costos:'💸', gastos:'🧮', nomina:'👥', pnl:'📈', forecast:'🔮',
+  distribuidora:'🚚', costeo:'🧾', estado:'💰', costos:'💸', gastos:'🧮', nomina:'👥', equipo:'🪪', pnl:'📈', forecast:'🔮',
   produccion:'🏭'
 };
 
@@ -10458,11 +10721,13 @@ function renderSidebar(){
     <div class="ks-top" id="ksHome"><div class="ks-logo"><span class="mk"></span><span>K-BROS</span></div></div>
     <div class="ks-search"><span class="si">🔎</span><input id="ksSearch" placeholder="Buscar sección…" autocomplete="off"></div>
     <nav class="ks-nav">${navHtml}</nav>
-    <div class="ks-foot"><div class="ks-av">${escapeHtml(initials)}</div><div class="ks-u"><b>${escapeHtml(uname || 'K-BROS')}</b><span>${escapeHtml(roleLabel)}</span></div><button class="ks-out" id="ksOut">Salir</button></div>`;
+    <div class="ks-foot"><button type="button" class="ks-av" id="ksProfileBtn" title="Editar mi perfil">${escapeHtml(initials)}</button><div class="ks-u" id="ksProfileBtn2" title="Editar mi perfil" style="cursor:pointer"><b>${escapeHtml(uname || 'K-BROS')}</b><span>${escapeHtml(roleLabel)}</span></div><button class="ks-out" id="ksOut">Salir</button></div>`;
   side.querySelectorAll('.ks-i').forEach(el => { el.onclick = () => { selectSeccion(el.dataset.id); document.body.classList.remove('ks-open'); }; });
   side.querySelectorAll('.ks-gh').forEach(h => { h.onclick = () => h.parentElement.classList.toggle('col'); });
   const home = document.getElementById('ksHome'); if (home) home.onclick = () => { showHome(); document.body.classList.remove('ks-open'); };
   const out = document.getElementById('ksOut'); if (out) out.onclick = () => { const b = document.getElementById('btnLogout'); if (b && b.onclick) b.onclick(); };
+  const pfBtn1 = document.getElementById('ksProfileBtn'); if (pfBtn1) pfBtn1.onclick = openProfileModal;
+  const pfBtn2 = document.getElementById('ksProfileBtn2'); if (pfBtn2) pfBtn2.onclick = openProfileModal;
   const s = document.getElementById('ksSearch');
   if (s) s.oninput = () => {
     const qq = s.value.trim().toLowerCase();
@@ -10478,60 +10743,97 @@ function renderSidebar(){
   const bd = document.getElementById('ksBd'); if (bd) bd.onclick = () => document.body.classList.remove('ks-open');
 })();
 
-// ── Dashboard de inicio con datos reales (degradación elegante: si un endpoint falla, muestra "—") ──
-function kpiCard(cls, ic, lab, val, chg, dir){
-  return `<div class="ks-kpi ${cls}"><div class="ic">${ic}</div><div class="lab">${escapeHtml(lab)}</div><div class="val">${escapeHtml(String(val))}</div>${chg ? `<div class="chg ${dir || ''}">${escapeHtml(chg)}</div>` : ''}</div>`;
-}
-function kpiSkeleton(){
-  return [['k1','💰','Ingresos mayoristas · 30d'],['k2','🧾','Ticket promedio · 30d'],['k3','💬','Conversaciones IA'],['k4','🏭','OEE producción']]
-    .map(x => `<div class="ks-kpi ${x[0]}"><div class="ic">${x[1]}</div><div class="lab">${escapeHtml(x[2])}</div><div class="val">…</div></div>`).join('');
-}
+// ── Resumen de la home: 4 cuadros con datos reales del ERP (Ingreso por Venta,
+// Costos, Gastos, Gestión de Personas, litros de Forecast Operacional). Todo es
+// solo lectura/agregación — ver GET /admin/home/dashboard en server.js. ──
+// TODO: restringir por rol si se requiere — hoy visible para todos los usuarios
+// autenticados del panel (se pidió así explícitamente).
+let dashState = { period: 'mes_actual', from: '', to: '' };
 function ksCLP(n){ return (typeof n === 'number' && isFinite(n)) ? '$' + Math.round(n).toLocaleString('es-CL') : '—'; }
-function drawKsChart(byDay){
-  const el = document.getElementById('ksChart'); if (!el) return;
-  if (!Array.isArray(byDay) || !byDay.length){ el.innerHTML = '<div class="ks-muted" style="padding:1rem">Sin datos para el rango.</div>'; return; }
-  const vals = byDay.map(d => (+d.total || 0)); const max = Math.max(1, ...vals); const n = vals.length; const W = 600, H = 200, pad = 8;
-  const pts = vals.map((v, i) => { const x = n <= 1 ? W/2 : (i/(n-1))*W; const y = H - pad - (v/max)*(H - pad*2); return x.toFixed(1) + ',' + y.toFixed(1); });
+function dashRenderPeriodBar(){
+  const el = document.getElementById('ksPeriodBar'); if (!el) return;
+  const opts = [['mes_actual', 'Mes actual'], ['mes_pasado', 'Mes pasado'], ['30d', 'Últimos 30 días'], ['custom', 'Rango personalizado']];
+  el.innerHTML = opts.map(([id, lab]) => `<button type="button" class="ks-period-btn ${dashState.period === id ? 'on' : ''}" data-period="${id}">${escapeHtml(lab)}</button>`).join('')
+    + (dashState.period === 'custom' ? `<span class="ks-period-custom"><input type="date" id="dashFrom" value="${escapeAttr(dashState.from)}" aria-label="Desde"><span>–</span><input type="date" id="dashTo" value="${escapeAttr(dashState.to)}" aria-label="Hasta"></span>` : '')
+    + `<span class="ks-period-label" id="dashPeriodLabel"></span>`;
+  el.querySelectorAll('[data-period]').forEach(b => b.onclick = () => {
+    dashState.period = b.dataset.period;
+    if (dashState.period === 'custom' && !dashState.from) {
+      const ymd = (d) => d.toISOString().slice(0, 10);
+      const to = new Date(), from = new Date(); from.setDate(from.getDate() - 29);
+      dashState.from = ymd(from); dashState.to = ymd(to);
+    }
+    dashRenderPeriodBar();
+    if (dashState.period !== 'custom') loadDashCuadros();
+  });
+  if (dashState.period === 'custom') {
+    const fEl = document.getElementById('dashFrom'), tEl = document.getElementById('dashTo');
+    const onChange = () => { dashState.from = fEl.value; dashState.to = tEl.value; if (dashState.from && dashState.to && dashState.from <= dashState.to) loadDashCuadros(); };
+    fEl.onchange = onChange; tEl.onchange = onChange;
+  }
+}
+// Gráfico de línea simple y reutilizable (Cuadro A: $ · Cuadro D: litros).
+function dashDrawChart(elId, serie, key){
+  const el = document.getElementById(elId); if (!el) return;
+  if (!Array.isArray(serie) || !serie.length || !serie.some(d => (Number(d[key]) || 0) > 0)) { el.innerHTML = '<div class="ks-nodata">Sin datos para este período.</div>'; return; }
+  const vals = serie.map(d => Number(d[key]) || 0); const max = Math.max(1, ...vals); const n = vals.length; const W = 600, H = 200, pad = 8;
+  const pts = vals.map((v, i) => { const x = n <= 1 ? W / 2 : (i / (n - 1)) * W; const y = H - pad - (v / max) * (H - pad * 2); return x.toFixed(1) + ',' + y.toFixed(1); });
   const line = pts.join(' ');
-  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><polygon fill="rgba(245,166,35,.16)" points="0,${H} ${line} ${W},${H}"/><polyline fill="none" stroke="#f5a623" stroke-width="3" points="${line}"/></svg>`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Gráfico de evolución en el período"><polygon fill="rgba(245,166,35,.16)" points="0,${H} ${line} ${W},${H}"/><polyline fill="none" stroke="#f5a623" stroke-width="3" points="${line}"/></svg>`;
 }
-function renderKsActivity(items){
-  const el = document.getElementById('ksActivity'); if (!el) return;
-  if (!Array.isArray(items) || !items.length){ el.innerHTML = '<div class="ks-muted">Sin conversaciones recientes.</div>'; return; }
-  const txt = o => o.preview || o.lastMessage || o.title || o.summary || o.intent || (o.brand ? ('Conversación · ' + o.brand) : '') || 'Conversación';
-  el.innerHTML = items.slice(0,6).map(o => {
-    const t = String(txt(o)).slice(0,72);
-    const sub = [o.from, o.mode, o.brand].filter(Boolean).join(' · ');
-    return `<div class="ks-act"><div class="ad">💬</div><div><div class="at">${escapeHtml(t)}</div>${sub ? `<div class="as">${escapeHtml(sub)}</div>` : ''}</div></div>`;
-  }).join('');
+function dashRenderA(c){
+  dashDrawChart('dashChartA', c.serie, 'total');
+  const note = document.getElementById('dashNoteA');
+  if (note) note.textContent = (c.serie && c.serie.length) ? ('Total del período: ' + ksCLP(c.total)) : '';
 }
-async function loadDashboard(){
-  const kEl = document.getElementById('ksKpis'); if (!kEl) return;
-  const [salesR, oeeR, convR] = await Promise.allSettled([
-    fetch('/admin/analytics/sales?range=30d').then(r => r.json()),
-    fetch('/admin/produccion/oee').then(r => r.json()),
-    fetch('/admin/conversations?limit=6').then(r => r.json()),
-  ]);
-  const sales = salesR.status === 'fulfilled' ? (salesR.value || {}) : {};
-  const oee   = oeeR.status   === 'fulfilled' ? (oeeR.value   || {}) : {};
-  const conv  = convR.status  === 'fulfilled' ? (convR.value  || {}) : {};
-  const sm = (sales && sales.available && sales.summary) ? sales.summary : {};
-  const oeePct = (oee && typeof oee.oee === 'number') ? Math.round(oee.oee * 1000)/10 : null;
-  const convTotal = (conv && conv.stats && typeof conv.stats.total === 'number') ? conv.stats.total : (typeof conv.total === 'number' ? conv.total : null);
-  const conv24 = (conv && conv.stats && typeof conv.stats.last24h === 'number') ? conv.stats.last24h : null;
-  kEl.innerHTML = [
-    kpiCard('k1','💰','Ingresos mayoristas · 30d', typeof sm.revenue === 'number' ? ksCLP(sm.revenue) : '—', typeof sm.orders === 'number' ? (sm.orders + ' pedidos') : '', ''),
-    kpiCard('k2','🧾','Ticket promedio · 30d', typeof sm.avgTicket === 'number' ? ksCLP(sm.avgTicket) : '—', '', ''),
-    kpiCard('k3','💬','Conversaciones IA', convTotal != null ? convTotal.toLocaleString('es-CL') : '—', conv24 != null ? ('▲ ' + conv24 + ' en 24h') : '', conv24 != null ? 'up' : ''),
-    kpiCard('k4','🏭','OEE producción', oeePct != null ? (oeePct.toLocaleString('es-CL') + '%') : '—', (oee && oee.banda) ? String(oee.banda) : '', ''),
+function dashRenderB(b){
+  const el = document.getElementById('dashRatiosB'); if (!el) return;
+  const row = (lab, r) => `<div class="ks-ratio"><div class="lab">${escapeHtml(lab)}</div><div class="pct">${(r.pct || 0).toLocaleString('es-CL')}%</div><div class="base">${ksCLP(r.monto)} de ${ksCLP(b.ventaTotal)}</div></div>`;
+  el.innerHTML = `<div class="ks-ratio-row">
+    ${row('Costos Totales / Venta Total', b.costosTotales)}
+    ${row('Marketing y Publicidad / Venta Total', b.gastosMarketing)}
+    ${row('Gasto de RRHH / Venta Total', b.gastoRRHH)}
+  </div>`;
+}
+function dashRenderC(c){
+  const el = document.getElementById('dashTablaC'); if (!el) return;
+  const g = c.global;
+  const rows = [
+    `<tr><td><b>Global</b></td><td class="dist-num">${ksCLP(g.ventaTotal)}</td><td class="dist-num">${ksCLP(g.costoTotal)}</td><td class="dist-num">${ksCLP(g.gastoTotal)}</td></tr>`,
+    ...c.porMarca.map(m => `<tr><td>${escapeHtml(m.label)}</td><td class="dist-num">${ksCLP(m.ventaTotal)} <span class="ks-muted" style="font-size:.72em">(${(m.litrosTotales || 0).toLocaleString('es-CL')} L)</span></td><td class="dist-num">${ksCLP(m.costoTotal)}</td><td class="dist-num">${ksCLP(m.gastoTotal)}</td></tr>`),
   ].join('');
-  renderKsActivity(conv && conv.items);
-  fetch('/admin/analytics?range=30d').then(r => r.json()).then(a => drawKsChart(a && a.byDay)).catch(() => drawKsChart(null));
+  el.innerHTML = `<div class="mun-wrap"><table class="mun-table"><thead><tr><th></th><th>Venta total</th><th>Costo total</th><th>Gasto total</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    + (c.notas || []).map(n => `<div class="ks-note warn">⚠ ${escapeHtml(n)}</div>`).join('');
+}
+function dashRenderD(d){
+  dashDrawChart('dashChartD', d.serie, 'litros');
+  const note = document.getElementById('dashNoteD');
+  if (note) note.textContent = 'Total: ' + (d.total || 0).toLocaleString('es-CL') + ' L. ' + d.nota;
+}
+async function loadDashCuadros(){
+  const qs = new URLSearchParams({ period: dashState.period });
+  if (dashState.period === 'custom') { if (!dashState.from || !dashState.to) return; qs.set('from', dashState.from); qs.set('to', dashState.to); }
+  const marcaSel = document.getElementById('dashMarcaSel');
+  qs.set('marca', marcaSel ? marcaSel.value : 'all');
+  ['dashChartA', 'dashRatiosB', 'dashTablaC', 'dashChartD'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = '<div class="ks-muted" style="padding:1rem">Cargando…</div>'; });
+  try {
+    const r = await fetch('/admin/home/dashboard?' + qs.toString());
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error cargando el resumen.');
+    const lbl = document.getElementById('dashPeriodLabel');
+    if (lbl) lbl.textContent = d.periodo.label + ' · ' + d.periodo.from + ' a ' + d.periodo.to + (d.shopifyOk === false ? ' · ⚠ Shopify no disponible ahora mismo' : '');
+    dashRenderA(d.cuadroA); dashRenderB(d.cuadroB); dashRenderC(d.cuadroC); dashRenderD(d.cuadroD);
+  } catch (e) {
+    const msg = '<div class="ks-err">⚠ ' + escapeHtml(String(e.message || e)) + '</div>';
+    ['dashChartA', 'dashRatiosB', 'dashTablaC', 'dashChartD'].forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = msg; });
+  }
 }
 
 fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
   if (d && d.username) document.getElementById('btnLogout').style.display = '';
   window.__adminUser = (d && d.username) || '';
+  window.__adminNombre = (d && d.nombre) || '';
+  window.__adminApodo = (d && d.apodo) || '';
   adminRole = (d && d.role) || 'admin';
   adminCosteoSvc = (d && d.costeoSvc) || null;
   renderSidebar();
