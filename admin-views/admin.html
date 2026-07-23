@@ -1646,6 +1646,10 @@ body.drawer-open{overflow:hidden}
 .dist-input-sm{width:100%;max-width:120px;font-family:var(--sans);font-size:.82rem;padding:.4rem .5rem;border:1px solid var(--border,#e5e5e5);border-radius:var(--radius-sm,8px);background:var(--surface,#fff);color:var(--text,#111);outline:none;transition:border-color var(--dur-base) var(--ease)}
 .dist-input-sm:focus{border-color:var(--gold-bd-h,#f5a623)}
 .dist-num{text-align:right;font-variant-numeric:tabular-nums}
+.ci-money{position:relative;display:inline-block}
+.ci-money:before{content:'$';position:absolute;left:.55rem;top:50%;transform:translateY(-50%);color:var(--muted,#666);font-size:.8rem;pointer-events:none}
+.ci-money input{padding-left:1.3rem!important}
+.dist-field .ci-money{display:block}
 .dist-pill{display:inline-block;font-size:.64rem;font-weight:800;padding:.2rem .55rem;border-radius:999px;letter-spacing:.04em}
 .dist-pill.pend{background:#fff3d6;color:#a05f00}
 .dist-pill.recib{background:#e3f6ea;color:#1f7a44}
@@ -8119,7 +8123,7 @@ function renderCosteoInsumos(){
   const rows = list.map(i=> barra ? `
     <tr data-iid="${i.id}">
       <td><input class="ci-inp" style="width:100%" data-f="descripcion" value="${escapeAttr(i.descripcion)}"></td>
-      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:95px" data-f="precioNeto" value="${i.precioNeto||''}"></td>
+      <td class="dist-num"><span class="ci-money"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:95px" data-f="precioNeto" value="${i.precioNeto||''}"></span></td>
       <td class="dist-num"><select class="ci-inp dist-num" data-f="ila" style="width:72px">${C_ILA(i.ila)}</select></td>
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:78px" data-f="despacho" value="${i.despacho||''}" placeholder="0"></td>
       <td class="dist-num" data-netoila>${cMoney((Number(i.precioNeto)||0)*(1+(Number(i.ila)||0)/100)+(Number(i.despacho)||0))}</td>
@@ -8129,7 +8133,7 @@ function renderCosteoInsumos(){
     </tr>` : `
     <tr data-iid="${i.id}">
       <td><input class="ci-inp" style="width:100%" data-f="descripcion" value="${escapeAttr(i.descripcion)}"></td>
-      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:95px" data-f="precioNeto" value="${i.precioNeto||''}"></td>
+      <td class="dist-num"><span class="ci-money"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:95px" data-f="precioNeto" value="${i.precioNeto||''}"></span></td>
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:60px" data-f="formato" value="${i.formato||''}" placeholder="1"></td>
       <td><select class="ci-inp" data-f="unidad">${C_UNITS(i.unidad)}</select></td>
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:70px" data-f="rendimiento" value="${i.rendimiento||''}" placeholder="—"></td>
@@ -8161,7 +8165,7 @@ function renderCosteoInsumos(){
       <div class="dist-sec-title">Nuevo insumo de barra</div>
       <div class="dist-form-grid" style="margin-top:.7rem">
         <div class="dist-field wide"><label>Descripción</label><input id="niDesc" placeholder="Ej: Absolut"></div>
-        <div class="dist-field"><label>Precio neto (botella)</label><input id="niPrecio" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="dist-field"><label>Precio neto (botella)</label><span class="ci-money"><input id="niPrecio" type="text" inputmode="decimal" placeholder="0"></span></div>
         <div class="dist-field"><label>ILA</label><select id="niIla">${C_ILA(0)}</select></div>
         <div class="dist-field"><label>Despacho (neto, sin ILA)</label><input id="niDesp" type="text" inputmode="decimal" placeholder="0"></div>
         <div class="dist-field"><label>Volumen botella (L)</label><input id="niVol" type="text" inputmode="decimal" placeholder="ej: 0,75"></div>
@@ -8169,7 +8173,7 @@ function renderCosteoInsumos(){
       <div class="dist-sec-title">Nuevo insumo</div>
       <div class="dist-form-grid" style="margin-top:.7rem">
         <div class="dist-field wide"><label>Descripción</label><input id="niDesc" placeholder="Ej: Salmón fresco"></div>
-        <div class="dist-field"><label>Precio neto</label><input id="niPrecio" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="dist-field"><label>Precio neto</label><span class="ci-money"><input id="niPrecio" type="text" inputmode="decimal" placeholder="0"></span></div>
         <div class="dist-field"><label>Formato (cantidad, opcional)</label><input id="niFormato" type="text" inputmode="decimal" placeholder="ej: 0,5"></div>
         <div class="dist-field"><label>Unidad</label><select id="niUnidad">${C_UNITS('kilogramo')}</select></div>
         <div class="dist-field"><label>% Rendimiento (0-1, opcional)</label><input id="niRend" type="text" inputmode="decimal" placeholder="ej: 0,6"></div>
