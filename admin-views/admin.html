@@ -11659,11 +11659,16 @@ function dashDrawChartAxes(elId, serie){
     <polygon fill="rgba(245,166,35,.14)" points="${padL},${baseY} ${linePts} ${X(n-1).toFixed(1)},${baseY}"/>
     <polyline fill="none" stroke="#f5a623" stroke-width="2.5" points="${linePts}"/>
     ${ylab}${xlab}
-    <line class="ks-guide" x1="0" y1="0" x2="0" y2="${(padT+plotH).toFixed(1)}" stroke="#f5a623" stroke-width="1" style="display:none" transform="translate(${padL},${padT})"/>
+    <line id="${elId}Guide" x1="0" y1="${padT}" x2="0" y2="${baseY}" stroke="#f5a623" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>
+    <circle id="${elId}Dot" r="4.5" fill="#fff" stroke="#f5a623" stroke-width="2.5" opacity="0"/>
   </svg><div class="ks-tip" hidden></div>`;
-  el.__serie = serie; el.__geo = { padL, plotW, n, X };
+  el.__serie = serie; el.__geo = { padL, plotW, n, X, Y, vals, elId };
   el.onmousemove = ev => dashTip(el, ev);
-  el.onmouseleave = () => { const t = el.querySelector('.ks-tip'); if (t) t.hidden = true; };
+  el.onmouseleave = () => {
+    const t = el.querySelector('.ks-tip'); if (t) t.hidden = true;
+    const gd = document.getElementById(elId + 'Guide'), dt = document.getElementById(elId + 'Dot');
+    if (gd) gd.setAttribute('opacity', '0'); if (dt) dt.setAttribute('opacity', '0');
+  };
 }
 function dashTip(el, ev){
   const g = el.__geo, serie = el.__serie; if (!g || !serie) return;
@@ -11671,9 +11676,14 @@ function dashTip(el, ev){
   let i = Math.round(((x - g.padL) / g.plotW) * (g.n - 1));
   i = Math.max(0, Math.min(g.n - 1, i));
   const d = serie[i], tip = el.querySelector('.ks-tip'); if (!tip) return;
+  const px = g.X(i), py = g.Y(g.vals[i]);
   tip.innerHTML = '<b>' + dashFmtDate(d.fecha) + '</b> · ' + ksCLP(d.total);
   tip.hidden = false;
-  tip.style.left = Math.min(Math.max(g.X(i), 44), rect.width - 44) + 'px';
+  tip.style.left = Math.min(Math.max(px, 44), rect.width - 44) + 'px';
+  // Punto indicador + línea guía que siguen al cursor, pegados al dato más cercano.
+  const gd = document.getElementById(g.elId + 'Guide'), dt = document.getElementById(g.elId + 'Dot');
+  if (gd) { gd.setAttribute('x1', px.toFixed(1)); gd.setAttribute('x2', px.toFixed(1)); gd.setAttribute('opacity', '1'); }
+  if (dt) { dt.setAttribute('cx', px.toFixed(1)); dt.setAttribute('cy', py.toFixed(1)); dt.setAttribute('opacity', '1'); }
 }
 function dashRenderA(c){
   dashDrawChartAxes('dashChartA', c.serie);
