@@ -1869,6 +1869,11 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .fc-pct-inp{width:70px;padding:.3rem .4rem;border:1px solid var(--line,#e5e5e5);border-radius:7px;text-align:right}
 .fc-op-marca-h{display:flex;align-items:center;justify-content:space-between;font-family:var(--display);font-weight:800;font-size:1rem;margin:1.2rem 0 .5rem}
 .fc-op-marca-h span{font-family:var(--sans);font-weight:700;font-size:.85rem;color:var(--gold-deep,#a05f00)}
+.fc-op-crumb{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;font-size:.8rem;color:var(--muted,#666);margin-bottom:1rem}
+.fc-op-crumb b{color:var(--text,#111);font-weight:700}
+.fc-op-crumb .sep{color:var(--dim,#ccc)}
+.fc-op-crumb .back{color:var(--gold-deep,#a05f00);font-weight:700;cursor:pointer;background:none;border:0;font:inherit;padding:0}
+.fc-op-crumb .back:hover{text-decoration:underline}
 .fc-op-open{background:var(--gold-dim,rgba(245,166,35,.06))}
 .fc-op-edit-row td{background:var(--surface2,#fafafa)}
 /* Gestión de Personas */
@@ -2601,6 +2606,7 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
           <div class="adm-panel-meta" id="distMeta">operación de comercialización · data manual que Shopify no registra</div>
         </div>
         <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="goFcOpDist" type="button" onclick="goForecastOperacional()">🏭 Forecast Operacional</button>
           <button class="adm-btn adm-btn-ghost" id="btnDistReload" type="button">Recargar</button>
         </div>
       </div>
@@ -2751,6 +2757,7 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
           <div class="adm-panel-meta">registro del proceso productivo · base para medir el OEE</div>
         </div>
         <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="goFcOpProd" type="button" onclick="goForecastOperacional()">🏭 Forecast Operacional</button>
           <button class="adm-btn adm-btn-ghost" id="prodReload" type="button">Recargar</button>
         </div>
       </div>
@@ -2765,6 +2772,7 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
           <div class="adm-panel-meta">indicadores de eficiencia · certificaciones y catas · stock</div>
         </div>
         <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="goFcOpOpcalidad" type="button" onclick="goForecastOperacional()">🏭 Forecast Operacional</button>
           <button class="adm-btn adm-btn-ghost" id="opcalidadReload" type="button">Recargar</button>
         </div>
       </div>
@@ -10072,8 +10080,14 @@ function fcMonthSelectHtml(id,current){
 let fcArea=null; // null = eligiendo · 'financiero' | 'operacional'
 const FC_AREAS=[
   { id:'financiero', icon:'💰', label:'Forecast Financiero', desc:'EERR proyectado, presupuestos por % y simulación del año — sobre el Estado de Resultado.' },
-  { id:'operacional', icon:'🏭', label:'Forecast Operacional', desc:'Cuántos litros producir por marca y estilo (Kairos, Firulais, Banny), en base a demanda, merma, inventario y lead time.' },
+  { id:'operacional', icon:'🏭', label:'Forecast Operacional', desc:'Proyección de demanda, plan de producción, inventario y cámara, y flota de barriles — por canal, marca y estilo.' },
 ];
+// Enlace desde Producción / Operación / Distribución hacia el motor de
+// proyección — sin duplicar funcionalidad, solo navega y lo abre directo.
+function goForecastOperacional(){
+  fcArea='operacional'; fcOpModule=null;
+  selectSeccion('forecast');
+}
 function forecastBoot(){
   document.getElementById('fcBack').onclick=()=>{ fcArea=null; forecastRenderArea(); };
   document.querySelectorAll('#fcTabs [data-fctab]').forEach(b=>b.onclick=()=>{ fcTab=b.dataset.fctab; forecastRenderTabs(); forecastLoadTab(); });
@@ -10092,13 +10106,13 @@ function forecastRenderArea(){
       <div class="adm-cat-go">Entrar →</div>
     </div>`).join('');
     document.getElementById('fcBody').innerHTML=`<div class="adm-home-cards" style="margin-top:0">${cards}</div>`;
-    document.querySelectorAll('#fcBody .adm-cat').forEach(el=>el.onclick=()=>{ fcArea=el.dataset.fcarea; forecastRenderArea(); });
+    document.querySelectorAll('#fcBody .adm-cat').forEach(el=>el.onclick=()=>{ fcArea=el.dataset.fcarea; fcOpModule=null; forecastRenderArea(); });
     return;
   }
   document.getElementById('fcTitle').textContent = fcArea==='financiero' ? 'Forecast Financiero' : 'Forecast Operacional';
   document.getElementById('fcMeta').textContent = fcArea==='financiero'
     ? 'proyecciones sobre el Estado de Resultado — no toca los costos/gastos reales'
-    : 'litros a producir por marca y estilo';
+    : 'proyección de inventario, producción y flota de barriles';
   if(fcArea==='financiero'){ forecastRenderTabs(); forecastLoadTab(); }
   else{ fcOperacionalRender(); }
 }
@@ -10110,76 +10124,39 @@ function forecastLoadTab(){
   if(fcTab==='pres') return fcPresLoad();
   return fcAnualLoad();
 }
-let fcOpMonth=null, fcOpData=null, fcOpEditing=null;
-const FC_OP_MARCA_LBL={kairos:'Kairos',banny:'Banny',firulais:'Firulais'};
-async function fcOperacionalRender(){
-  const body=document.getElementById('fcBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
-  try{
-    if(!fcOpMonth){ await fcMonthOptions(); fcOpMonth=fcAddMonths(fcCurMonthKey(),1); } else { await fcMonthOptions(); }
-    const r=await fetch('/admin/forecast/operacional?month='+fcOpMonth); const d=await r.json();
-    if(d.error) throw new Error(d.error);
-    fcOpData=d;
-    fcOperacionalRenderData();
-  }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
-}
-function fcOperacionalRenderData(){
-  const a=fcOpData, body=document.getElementById('fcBody');
-  const porMarcaCards=(a.marcas||[]).map(m=>{
-    const b=a.porMarca[m]||{litrosProduccion:0};
-    return `<div class="cg-card"><div class="cg-card-l">${FC_OP_MARCA_LBL[m]||m}</div><div class="cg-card-v">${Math.round(b.litrosProduccion).toLocaleString('es-CL')} L</div><div class="cg-card-n">a producir para ${escapeHtml(estMonthLabel(a.month))}</div></div>`;
-  }).join('');
-  const bloquesMarca=(a.marcas||[]).map(m=>{
-    const estilos=(a.estilos||[]).filter(e=>e.marca===m);
-    if(!estilos.length) return '';
-    const rows=estilos.map(e=>{
-      const abierto=fcOpEditing===e.estilo;
-      const editRow=abierto?`
-        <tr class="fc-op-edit-row"><td colspan="6">
-          <div class="cg-form-grid" style="margin-top:.4rem">
-            <label class="cg-field"><span>Marca</span><select data-fcopf="marca">${(a.marcas||[]).map(mm=>`<option value="${mm}" ${mm===e.marca?'selected':''}>${FC_OP_MARCA_LBL[mm]||mm}</option>`).join('')}</select></label>
-            <label class="cg-field"><span>% Merma</span><input type="number" min="0" max="95" step="0.5" data-fcopf="mermaPct" value="${e.mermaPct}"></label>
-            <label class="cg-field"><span>Lead time (meses)</span><input type="number" min="0" max="12" step="0.5" data-fcopf="leadTimeMeses" value="${e.leadTimeMeses}"></label>
-            <label class="cg-field"><span>Stock seguridad (meses de demanda)</span><input type="number" min="0" max="12" step="0.5" data-fcopf="stockSeguridadMeses" value="${e.stockSeguridadMeses}"></label>
-            <label class="cg-field"><span>Tamaño lote mínimo (L)</span><input type="number" min="1" step="1" data-fcopf="tamanoLoteMinL" value="${e.tamanoLoteMinL}"></label>
-            <label class="cg-field"><span>Crecimiento vs. año anterior (%)</span><input type="number" min="-100" max="500" step="1" data-fcopf="tasaCrecimientoPct" value="${e.tasaCrecimientoPct}"></label>
-            <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" data-fcopsave="${escapeAttr(e.estilo)}" type="button">Guardar</button></div>
-          </div>
-        </td></tr>`:'';
-      return `<tr class="${abierto?'fc-op-open':''}">
-        <td>${escapeHtml(e.estilo)}</td>
-        <td style="font-size:.72rem;color:var(--muted,#666)">${escapeHtml(e.fuenteDemanda)}</td>
-        <td class="dist-num">${Math.round(e.demandaProyectada).toLocaleString('es-CL')} L</td>
-        <td class="dist-num"><b>${Math.round(e.produccionLote).toLocaleString('es-CL')} L</b></td>
-        <td>${escapeHtml(estMonthLabel(e.mesProduccion))}</td>
-        <td><button class="cg-doc-link" data-fcopedit="${escapeAttr(e.estilo)}" type="button">${abierto?'cerrar':'editar'}</button></td>
-      </tr>${editRow}`;
-    }).join('');
-    const sub=a.porMarca[m]||{litrosProduccion:0};
-    return `<div class="fc-op-marca-h">${FC_OP_MARCA_LBL[m]||m} <span>${Math.round(sub.litrosProduccion).toLocaleString('es-CL')} L a producir</span></div>
-      <div class="mun-wrap" style="margin-bottom:1rem"><table class="mun-table"><thead><tr><th>Estilo</th><th>Demanda estimada de</th><th style="text-align:right">Demanda proyectada</th><th style="text-align:right">Litros a producir</th><th>Producir en</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  }).join('');
+// ── Forecast Operacional: motor nuevo de proyección de inventario, producción
+// y flota de barriles (reemplaza el cálculo v1 de "litros a producir" — la
+// lógica v1 y sus endpoints siguen en el servidor sin usarse, no se borraron).
+// Cascarón de navegación: grilla de submódulos + breadcrumb, cada uno en
+// "En construcción" hasta que se implemente su fase correspondiente.
+let fcOpModule=null;
+const FC_OP_MODULES=[
+  { id:'proyeccion',  icon:'📈', label:'Proyección',            desc:'Demanda proyectada por canal, estilo y formato, con badge de confiabilidad y banda de incertidumbre en series cortas.' },
+  { id:'plan',        icon:'🗓️', label:'Plan de producción',     desc:'Calendario de cocciones, ocupación de fermentadores en línea de tiempo y la decisión maquila vs. propio a costo marginal.' },
+  { id:'inventario',  icon:'❄️', label:'Inventario y cámara',    desc:'Stock proyectado por bodega/estilo/formato, ocupación de cámara de frío por instalación y riesgo de vencimiento por lote.' },
+  { id:'flota',       icon:'🛢️', label:'Flota de barriles',      desc:'Barriles 20L/30L necesarios por mes, cobertura actual vs. objetivo y comparación contra el gasto en PET evitado.' },
+  { id:'alertas',     icon:'⚠️', label:'Alertas',                desc:'Quiebres proyectados dentro del lead time, infactibilidad de capacidad, lotes por vencer y desviaciones del modelo.' },
+  { id:'parametros',  icon:'⚙️', label:'Parámetros',             desc:'Todos los supuestos del modelo, editables, con fecha de vigencia y quién los cambió — nunca escondidos en el código.' },
+  { id:'precision',   icon:'🎯', label:'Precisión del modelo',   desc:'MAPE y sesgo por canal/estilo/horizonte, nivel de servicio real vs. objetivo y merma por vencimiento.' },
+];
+function fcOperacionalRender(){
+  const body=document.getElementById('fcBody');
+  if(!fcOpModule){
+    const cards=FC_OP_MODULES.map(m=>`<div class="adm-cat" data-fcopgo="${m.id}" style="--accent:var(--gold)">
+      <div class="adm-cat-ic">${m.icon}</div>
+      <div class="adm-cat-name">${escapeHtml(m.label)}</div>
+      <div class="adm-cat-desc">${escapeHtml(m.desc)}</div>
+      <div class="adm-cat-go">Entrar →</div>
+    </div>`).join('');
+    body.innerHTML=`<div class="adm-home-cards" style="margin-top:0">${cards}</div>`;
+    body.querySelectorAll('[data-fcopgo]').forEach(el=>el.onclick=()=>{ fcOpModule=el.dataset.fcopgo; fcOperacionalRender(); });
+    return;
+  }
+  const mod=FC_OP_MODULES.find(m=>m.id===fcOpModule);
   body.innerHTML=`
-    <div class="fc-toolbar"><div class="fc-toolbar-l"><span>Mes a abastecer</span>${fcMonthSelectHtml('fcOpSel',a.month)}</div></div>
-    <div class="fc-note">v1: la demanda se calcula con litros de HORECA + hospitality (barriles/kegs), que ya se miden en litros — retail/web (latas de Shopify) todavía no están incluidas. El inventario inicial se asume en 0 porque hoy no hay stock de cerveza terminada trackeado, así que "litros a producir" incluye el stock de seguridad completo como si se partiera desde cero. Todos los parámetros por estilo son editables (botón "editar").</div>
-    <div class="cg-resumen">${porMarcaCards}</div>
-    ${bloquesMarca}`;
-  fcOperacionalWire();
-}
-function fcOperacionalWire(){
-  document.getElementById('fcOpSel').onchange=(e)=>{ fcOpMonth=e.target.value; fcOperacionalRender(); };
-  document.querySelectorAll('[data-fcopedit]').forEach(b=>b.onclick=()=>{ fcOpEditing = fcOpEditing===b.dataset.fcopedit ? null : b.dataset.fcopedit; fcOperacionalRenderData(); });
-  document.querySelectorAll('[data-fcopsave]').forEach(b=>b.onclick=()=>fcOperacionalGuardar(b.dataset.fcopsave));
-}
-async function fcOperacionalGuardar(estilo){
-  const row=[...document.querySelectorAll('.fc-op-edit-row')].find(tr=>tr.querySelector(`[data-fcopsave="${CSS.escape(estilo)}"]`));
-  const get=(name)=>row.querySelector(`[data-fcopf="${name}"]`).value;
-  const payload={ estilo, marca:get('marca'), mermaPct:get('mermaPct'), leadTimeMeses:get('leadTimeMeses'), stockSeguridadMeses:get('stockSeguridadMeses'), tamanoLoteMinL:get('tamanoLoteMinL'), tasaCrecimientoPct:get('tasaCrecimientoPct') };
-  try{
-    const r=await fetch('/admin/forecast/operacional/estilo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
-    fcOpEditing=null;
-    await fcOperacionalRender();
-  }catch(e){ alert(String(e.message||e)); }
+    <div class="fc-op-crumb"><button type="button" class="back" data-fcopback>🏭 Forecast Operacional</button> <span class="sep">›</span> <b>${escapeHtml(mod.label)}</b></div>
+    ${adminSinInfo('En construcción · '+mod.label, mod.desc, 'Este submódulo se arma en las próximas fases del modelo de proyección de inventario, producción y flota de barriles — todavía no hay datos que mostrar.')}`;
+  body.querySelector('[data-fcopback]').onclick=()=>{ fcOpModule=null; fcOperacionalRender(); };
 }
 
 // ── (A) Proyectado ──
