@@ -9983,13 +9983,17 @@ function renderNotasCredito(){
   const canalOpts=['<option value="">— Canal —</option>',...(a.canales||[]).map(c=>`<option value="${c.id}" ${c.id===f.canal?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
   const catList=(a.categorias||[]).filter(c=>c.tipo===f.tipo);
   const catOpts=['<option value="">— Categoría —</option>',...catList.map(c=>`<option value="${c.id}" ${c.id===f.categoria?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
+  const checkAnula = `<label class="cg-field cg-field-check"><input type="checkbox" id="ncAnula" ${f.anulaCompleta?'checked':''}> <span>Anula la compra completa (si no, es parcial)</span></label>`;
   const condFields = f.tipo==='ingreso'
     ? `<label class="cg-field"><span>Canal de venta a anular</span><select id="ncCanal">${canalOpts}</select></label>
-       <label class="cg-field"><span>Referencia (N° pedido / folio)</span><input type="text" id="ncRef" value="${escapeAttr(f.referencia)}" placeholder="Ej: #1234 · folio 46211"></label>
-       <label class="cg-field cg-field-check"><input type="checkbox" id="ncAnula" ${f.anulaCompleta?'checked':''}> <span>Anula la compra completa</span></label>`
-    : (f.tipo ? `<label class="cg-field"><span>Categoría a corregir</span><select id="ncCat">${catOpts}</select></label>` : '');
+       <label class="cg-field"><span>Referencia (N° pedido)</span><input type="text" id="ncRef" value="${escapeAttr(f.referencia)}" placeholder="Ej: #1234"></label>
+       ${checkAnula}`
+    : (f.tipo ? `<label class="cg-field"><span>Categoría a corregir</span><select id="ncCat">${catOpts}</select></label>${checkAnula}` : '');
   const rows=(a.notas||[]).map(n=>{
-    const detalle = n.tipo==='ingreso' ? (escapeHtml(canalLbl(n.canal))+(n.referencia?(' · '+escapeHtml(n.referencia)):'')+(n.anulaCompleta?' · <b>completa</b>':'')) : escapeHtml(catLbl(n.categoria));
+    const alcance = n.anulaCompleta ? ' · <b>completa</b>' : ' · parcial';
+    const detalle = n.tipo==='ingreso'
+      ? (escapeHtml(canalLbl(n.canal))+(n.referencia?(' · '+escapeHtml(n.referencia)):'')+alcance)
+      : (escapeHtml(catLbl(n.categoria))+alcance);
     const signo = n.tipo==='ingreso' ? '−' : '+';
     return `<tr><td>${escapeHtml(n.fecha)}</td><td><b>${escapeHtml(n.folio||'—')}</b></td><td><span class="cg-tag ${n.tipo==='ingreso'?'nc-in':'nc-out'}">${ncTipoLabel(n.tipo)}</span></td><td>${detalle}</td><td class="dist-num ${n.tipo==='ingreso'?'pnl-neg':''}">${signo}${eM(n.monto)}</td><td>${escapeHtml(n.motivo||'—')}</td><td><button class="pv-del" data-ncdel="${n.id}" title="Eliminar">✕</button></td></tr>`;
   }).join('');
