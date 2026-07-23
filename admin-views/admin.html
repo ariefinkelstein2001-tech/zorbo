@@ -8094,7 +8094,7 @@ function costeoLockView(){
   if (adminRole !== 'costeo' || costeoSubEditable()) return;
   const body=document.getElementById('costeoBody'); if(!body) return;
   // Controles que se mantienen (búsqueda, filtros, export).
-  const keep = new Set(['ciSearch','rbSearchInp','plSearchInp','plCatFilter','ctXlScope','rbXlBtn','plXlBtn','ctXlBtn','ctPdfBtn']);
+  const keep = new Set(['ciSearch','ciXlBtn','rbSearchInp','plSearchInp','plCatFilter','ctXlScope','rbXlBtn','plXlBtn','ctXlBtn','ctPdfBtn']);
   body.querySelectorAll('.dist-form').forEach(f=>f.style.display='none'); // formularios de alta/edición
   body.querySelectorAll('input,select,textarea,button').forEach(el=>{
     if (keep.has(el.id)) return;
@@ -8187,6 +8187,10 @@ function renderCosteoInsumos(){
       ${form}
       <div class="dist-form-actions"><button class="adm-btn" id="niAdd" type="button">Agregar insumo</button><span class="dist-status" id="niSt"></span></div>
     </div>
+    <div class="ct-toolbar" style="margin-top:1.4rem">
+      <div class="ct-toolbar-info"><b>Insumos (${list.length})</b> · descargá el listado completo con precios e insumos de recetas base.</div>
+      <div class="ct-pdf"><span>Excel</span><button class="adm-btn adm-btn-gold" id="ciXlBtn" type="button">Descargar Excel</button></div>
+    </div>
     <div class="tc-search"><input type="text" id="ciSearch" placeholder="Buscar insumo o receta base…" value="${escapeAttr(insumoSearch)}"></div>
     <div class="mun-count">${list.length} insumos · ${rbList.length} recetas base (RB) · ${countTxt}</div>
     <div class="mun-wrap"><table class="mun-table">
@@ -8196,6 +8200,7 @@ function renderCosteoInsumos(){
   const s=document.getElementById('ciSearch');
   s.oninput=()=>{ insumoSearch=s.value; const p=s.selectionStart; renderCosteoInsumos(); const n=document.getElementById('ciSearch'); n.focus(); try{n.setSelectionRange(p,p);}catch{} };
   document.getElementById('niAdd').onclick=addInsumo;
+  { const x=document.getElementById('ciXlBtn'); if(x) x.onclick=()=>costeoExportXlsx('insumos'); }
   document.querySelectorAll('#costeoBody .ci-inp').forEach(el=>{ const h=()=>saveInsumo(el.closest('tr').dataset.iid); el.onblur=h; if(el.tagName==='SELECT') el.onchange=h; });
   document.querySelectorAll('#costeoBody [data-idel]').forEach(b=>b.onclick=()=>delInsumo(b.dataset.idel));
   document.querySelectorAll('#costeoBody [data-rbgoto]').forEach(b=>b.onclick=()=>{ costeoSub='recetas'; loadCosteo().then(()=>{ setTimeout(()=>rbLoadEdit(b.dataset.rbgoto),50); }); });

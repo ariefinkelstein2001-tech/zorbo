@@ -8764,6 +8764,41 @@ function platosSheetRows(doc){
   return rows;
 }
 
+// Filas de la hoja de Insumos: mismas columnas que la tabla maestra de la UI
+// (varían según barra/comida) + las recetas base (RB) que también aparecen ahí.
+function insumosSheetRows(doc, svc){
+  const barra = costeoSvcKey(svc) === 'barra';
+  const S = { header: 1, money: 3, pct: 4 };
+  const rows = [barra
+    ? [{ v: 'Descripción', s: S.header }, { v: 'Precio neto', s: S.header }, { v: 'ILA', s: S.header }, { v: 'Despacho', s: S.header }, { v: 'Neto + ILA + Desp.', s: S.header }, { v: 'Volumen bot.', s: S.header }, { v: 'Precio 1L', s: S.header }]
+    : [{ v: 'Descripción', s: S.header }, { v: 'Precio neto', s: S.header }, { v: 'Formato', s: S.header }, { v: 'Unidad', s: S.header }, { v: '% Rend.', s: S.header }, { v: 'Precio real', s: S.header }]];
+  (doc.insumos || []).slice().sort((a, b) => a.descripcion.localeCompare(b.descripcion)).forEach(i => {
+    if (barra) {
+      const netoIla = (Number(i.precioNeto) || 0) * (1 + (Number(i.ila) || 0) / 100) + (Number(i.despacho) || 0);
+      rows.push([
+        { v: i.descripcion }, { v: Number(i.precioNeto) || 0, t: 'n', s: S.money }, { v: (Number(i.ila) || 0) / 100, t: 'n', s: S.pct },
+        { v: Number(i.despacho) || 0, t: 'n', s: S.money }, { v: Math.round(netoIla), t: 'n', s: S.money },
+        { v: i.volumen || '' }, { v: Number(i.precioReal) || 0, t: 'n', s: S.money },
+      ]);
+    } else {
+      const rendCell = i.rendimiento != null ? { v: i.rendimiento, t: 'n', s: S.pct } : { v: '' };
+      rows.push([
+        { v: i.descripcion }, { v: Number(i.precioNeto) || 0, t: 'n', s: S.money }, { v: i.formato || '' }, { v: i.unidad || '' },
+        rendCell, { v: Number(i.precioReal) || 0, t: 'n', s: S.money },
+      ]);
+    }
+  });
+  const rbList = (doc.recetasBase || []).slice().sort((a, b) => a.nombre.localeCompare(b.nombre));
+  if (rbList.length) {
+    rows.push([]);
+    rows.push([{ v: 'Recetas base (RB)', s: S.header }]);
+    rbList.forEach(r => rows.push(barra
+      ? [{ v: r.nombre }, { v: '' }, { v: '' }, { v: '' }, { v: '' }, { v: '' }, { v: Number(r.precioUnidad) || 0, t: 'n', s: S.money }]
+      : [{ v: r.nombre }, { v: '' }, { v: '' }, { v: r.unidad || '' }, { v: '' }, { v: Number(r.precioUnidad) || 0, t: 'n', s: S.money }]));
+  }
+  return rows;
+}
+
 app.get('/admin/costeo/carta/export.xlsx', requireAdmin, (req, res) => {
   const scope = String(req.query.rest || 'garden');
   const svc = costeoSvcKey(req.query.svc);
@@ -8772,6 +8807,14 @@ app.get('/admin/costeo/carta/export.xlsx', requireAdmin, (req, res) => {
   const sfx = svc === 'barra' ? '-barra' : '';
   const fname = scope === 'both' ? `carta${sfx}-zorbo.xlsx` : `carta${sfx}-${costeoRestKey(scope)}.xlsx`;
   sendXlsx(res, xlsxPackage(sheets), fname);
+});
+// Export de Insumos a Excel (listado maestro: insumos editables + recetas base).
+app.get('/admin/costeo/insumos/export.xlsx', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest); const svc = costeoSvcKey(req.query.svc);
+  const doc = resolveCosteo(loadCosteo(rest, svc));
+  const rows = [[{ v: svcSheetLabel(rest, svc) + ' · Insumos', s: 5 }], []].concat(insumosSheetRows(doc, svc));
+  const sfx = svc === 'barra' ? '-barra' : '';
+  sendXlsx(res, xlsxPackage([{ name: svcSheetLabel(rest, svc), rows }]), `insumos${sfx}-${rest}.xlsx`);
 });
 // Export de Recetas base a Excel.
 app.get('/admin/costeo/recetas/export.xlsx', requireAdmin, (req, res) => {
