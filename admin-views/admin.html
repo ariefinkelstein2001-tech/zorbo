@@ -10994,16 +10994,11 @@ function ksSync(){
   }
 }
 
-// Grupos abiertos del acordeón: se recuerda entre renders (localStorage) y
-// siempre se fuerza abierto el grupo de la sección activa.
-let ksOpenGroups = null;
-function ksLoadOpenGroups(){
-  if (ksOpenGroups) return ksOpenGroups;
-  try { const saved = JSON.parse(localStorage.getItem('ks_open_groups') || 'null'); ksOpenGroups = new Set(Array.isArray(saved) ? saved : []); }
-  catch { ksOpenGroups = new Set(); }
-  return ksOpenGroups;
-}
-function ksSaveOpenGroups(){ try { localStorage.setItem('ks_open_groups', JSON.stringify([...ksOpenGroups])); } catch {} }
+// Grupos abiertos del acordeón: todos arrancan cerrados en cada inicio de
+// sesión (recarga de página). Dentro de la misma sesión se recuerda cuáles
+// abrió/cerró a mano (no se fuerza ninguno solo por estar activo).
+let ksOpenGroups = new Set();
+function ksLoadOpenGroups(){ return ksOpenGroups; }
 
 // Construye el sidebar con las mismas categorías/secciones del admin. Cada item llama a selectSeccion().
 function renderSidebar(){
@@ -11017,9 +11012,6 @@ function renderSidebar(){
     ? ADMIN_CATEGORIES.filter(c => c.id === 'operacion').map(c => ({ ...c, only: ['costeo'] }))
     : ADMIN_CATEGORIES.slice();
   const open = ksLoadOpenGroups();
-  const activeSec = SECCIONES.find(s => s.id === activeSeccion);
-  const activeCat = document.body.classList.contains('admin-home') ? null : (activeSec && activeSec.cat);
-  if (activeCat) open.add(activeCat);
   let navHtml = '';
   groups.forEach(g => {
     let secs = sectionsForCat(g.id);
@@ -11043,7 +11035,6 @@ function renderSidebar(){
     const g = h.parentElement; g.classList.toggle('col');
     const catId = g.dataset.cat;
     if (g.classList.contains('col')) open.delete(catId); else open.add(catId);
-    ksSaveOpenGroups();
   }; });
   const home = document.getElementById('ksHome'); if (home) home.onclick = () => { showHome(); document.body.classList.remove('ks-open'); };
   const out = document.getElementById('ksOut'); if (out) out.onclick = () => { const b = document.getElementById('btnLogout'); if (b && b.onclick) b.onclick(); };
