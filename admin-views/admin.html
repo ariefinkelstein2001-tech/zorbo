@@ -8118,7 +8118,7 @@ document.getElementById('btnCosteoReload').onclick = ()=>loadCosteo();
 function renderCosteoInsumos(){
   const barra = isBarra();
   const q = insumoSearch.toLowerCase();
-  const list = costeoData.insumos.filter(i=>!q || i.descripcion.toLowerCase().includes(q)).slice(0,500);
+  const list = costeoData.insumos.filter(i=>!q || i.descripcion.toLowerCase().includes(q)).sort((a,b)=>a.descripcion.localeCompare(b.descripcion,'es')).slice(0,500);
   const rbList = (costeoData.recetasBase||[]).filter(r=>!q || r.nombre.toLowerCase().includes(q)).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
   const rows = list.map(i=> barra ? `
     <tr data-iid="${i.id}">
