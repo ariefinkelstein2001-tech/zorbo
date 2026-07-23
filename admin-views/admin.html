@@ -268,12 +268,15 @@ body{ padding-left:var(--ks-side); }
 .ks-medals::-webkit-scrollbar{display:none}
 .ks-medals:focus-visible{outline:2px solid var(--gold,#f5a623);outline-offset:2px}
 .ks-medal-track{display:flex;gap:12px;padding:2px}
-.ks-medal{flex:0 0 auto;width:118px;background:var(--surface,#fff);border:1px solid var(--border,#eee);border-radius:12px;padding:10px;text-align:center}
-.ks-medal-img{width:100%;aspect-ratio:5/7;border-radius:9px;position:relative;overflow:hidden;background:linear-gradient(160deg,var(--gold-dim,#fdf3e0),#fff);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;color:var(--gold-deep,#a05f00);border:1px dashed var(--gold-bd,#f0dcae)}
+.ks-medal{flex:0 0 auto;width:132px;background:transparent;border:0;padding:0;text-align:center}
+.ks-medal-img{width:100%;aspect-ratio:5/7;border-radius:10px;position:relative;overflow:hidden;background:#0b2a5e;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.2rem;color:var(--gold,#f5a623);box-shadow:var(--shadow-sm)}
 .ks-medal-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
-.ks-medal-img .ph{font-size:1.6rem}
-.ks-medal-img .phs{font-size:.54rem;letter-spacing:.03em;text-transform:uppercase;font-weight:700;opacity:.85;padding:0 .3rem}
-.ks-medal.pend .ks-medal-img{filter:grayscale(1);opacity:.5}
+/* placeholder: sólo si el arte no está subido (img con onerror agrega .noimg) */
+.ks-medal-img .ph,.ks-medal-img .phs{display:none}
+.ks-medal-img.noimg{background:linear-gradient(160deg,var(--gold-dim,#fdf3e0),#fff);border:1px dashed var(--gold-bd,#f0dcae);color:var(--gold-deep,#a05f00)}
+.ks-medal-img.noimg .ph{display:block;font-size:1.6rem}
+.ks-medal-img.noimg .phs{display:block;font-size:.54rem;letter-spacing:.02em;text-transform:uppercase;font-weight:700;opacity:.85;padding:0 .3rem;line-height:1.2}
+.ks-medal.pend .ks-medal-img{filter:grayscale(1);opacity:.55}
 .ks-medal-name{font-size:.73rem;font-weight:700;margin-top:.5rem;line-height:1.2;color:var(--text,#111)}
 .ks-medal-badge{display:inline-block;font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:.15rem .4rem;border-radius:99px;margin-top:.35rem}
 .ks-medal-badge.ok{background:#e7f6ee;color:#1f7a44}
@@ -11254,31 +11257,41 @@ async function loadDashCuadros(){
 }
 
 // ═══════════ MEDALLAS DE KPI (carrusel) ═══════════
-// EDITABLE POR EL EQUIPO. Cada KPI: nombre, meta, valor actual, unidad, imagen y (opcional) fuente automática.
-//  - meta / actual = null  → queda MANUAL (lo completás acá). NO se inventan valores.
-//  - auto:'ventaTotal' | 'litros'  → se llena solo con el dato real del período (del endpoint del resumen).
-//  - estado se calcula si hay meta y actual numéricos (actual>=meta ⇒ cumplido); si no, 'progreso'.
-// IMÁGENES: subí una PNG/WebP vertical (proporción tipo carta, ~5:7) por KPI a  public/kpi/<img>
-//  con el nombre indicado abajo. Una sola versión a color por medalla: el estado PENDIENTE
-//  se pinta en gris por CSS (no subas dos versiones). Mientras no exista el archivo, se ve un placeholder.
+// EDITABLE POR EL EQUIPO. Cada medalla = un arte (PNG en public/kpi/) que YA trae su nombre y su meta.
+// Acá sólo definimos: nombre (para lector de pantalla), meta (numérica, para calcular el estado),
+// unidad, dirección de la meta y la fuente automática si existe.
+//  - meta = null → medalla de logro (sin número). actual = null → aún sin dato (NO se inventan valores).
+//  - auto:'ventaTotal' → se llena solo con la venta real del período (endpoint del resumen).
+//  - metaDir:'lte' → la meta es un techo (mejor si es MENOR: merma, costos). Por defecto 'gte' (mejor si es MAYOR).
+//  - estado: con meta y actual numéricos se calcula (cumplido/en progreso); si no, 'progreso'.
+// TODO: conectar KPIs medibles automáticamente (EBITDA por marca, seguidores IG, merma, costos A&B).
 const KPI_CONFIG = [
-  { id:'ventas',   nombre:'Ventas del período', meta:null, actual:null, unidad:'$', auto:'ventaTotal', img:'ventas.png'   },
-  { id:'litros',   nombre:'Litros vendidos',    meta:null, actual:null, unidad:'L', auto:'litros',     img:'litros.png'   },
-  { id:'clientes', nombre:'Clientes nuevos',    meta:null, actual:null, unidad:'',  img:'clientes.png' },
-  { id:'ticket',   nombre:'Ticket promedio',    meta:null, actual:null, unidad:'$', img:'ticket.png'   },
-  { id:'oee',      nombre:'OEE producción',     meta:null, actual:null, unidad:'%', img:'oee.png'      },
-  { id:'nps',      nombre:'Satisfacción',       meta:null, actual:null, unidad:'',  img:'nps.png'      },
+  { id:'kpi1',  img:'KPI1.png',  nombre:'Venta mensual',                             meta:200000000, unidad:'$',   auto:'ventaTotal' },
+  { id:'kpi2',  img:'KPI2.png',  nombre:'+10K seguidores Instagram · Kairos Garden', meta:10000,     unidad:'seg' },
+  { id:'kpi3',  img:'KPI3.png',  nombre:'Merma de cerveza',                          meta:1,         unidad:'%', metaDir:'lte' },
+  { id:'kpi4',  img:'KPI4.png',  nombre:'EBITDA general',                            meta:20,        unidad:'%' },
+  { id:'kpi5',  img:'KPI5.png',  nombre:'EBITDA · Kairos Garden',                    meta:15,        unidad:'%' },
+  { id:'kpi6',  img:'KPI6.png',  nombre:'EBITDA · Kairos Badass',                    meta:15,        unidad:'%' },
+  { id:'kpi7',  img:'KPI7.png',  nombre:'EBITDA cervecería',                         meta:15,        unidad:'%' },
+  { id:'kpi8',  img:'KPI8.png',  nombre:'+10K seguidores Instagram · Kairos Badass', meta:10000,     unidad:'seg' },
+  { id:'kpi9',  img:'KPI9.png',  nombre:'+10K seguidores Instagram · Firulais',      meta:10000,     unidad:'seg' },
+  { id:'kpi10', img:'KPI10.png', nombre:'Venta mensual',                             meta:100000000, unidad:'$',   auto:'ventaTotal' },
+  { id:'kpi11', img:'KPI11.png', nombre:'5 medallas de bronce',                      meta:null,      unidad:'' },
+  { id:'kpi12', img:'KPI12.png', nombre:'5 medallas de plata',                       meta:null,      unidad:'' },
+  { id:'kpi13', img:'KPI13.png', nombre:'5 medallas de oro',                         meta:null,      unidad:'' },
+  { id:'kpi14', img:'KPI14.png', nombre:'Costo prom. ponderado A&B · Badass',        meta:30,        unidad:'%', metaDir:'lte' },
+  { id:'kpi15', img:'KPI15.png', nombre:'Costo prom. ponderado A&B · Garden',        meta:25,        unidad:'%', metaDir:'lte' },
 ];
 function kpiFmt(v, unidad){
   if (v == null || !isFinite(v)) return '—';
   if (unidad === '$') return ksCLP(v);
   if (unidad === '%') return (Math.round(v * 10) / 10).toLocaleString('es-CL') + '%';
   if (unidad === 'L') return v.toLocaleString('es-CL') + ' L';
+  if (unidad === 'seg') return v.toLocaleString('es-CL');
   return v.toLocaleString('es-CL');
 }
 function renderKpis(dash){
   const track = document.getElementById('kpiTrack'); if (!track) return;
-  // TODO: conectar KPIs medibles automáticamente (más fuentes del ERP: OEE, clientes, ticket…).
   const autoVal = (k) => {
     if (!dash || !k.auto) return null;
     if (k.auto === 'ventaTotal') return dash.cuadroC && dash.cuadroC.global ? dash.cuadroC.global.ventaTotal : null;
@@ -11286,19 +11299,21 @@ function renderKpis(dash){
     return null;
   };
   const cardHtml = (k) => {
-    const actual = (k.auto && autoVal(k) != null) ? autoVal(k) : k.actual;
-    const cumplido = (typeof k.meta === 'number' && typeof actual === 'number') ? (actual >= k.meta) : (k.estado === 'cumplido');
+    const actual = (k.auto && autoVal(k) != null) ? autoVal(k) : (k.actual != null ? k.actual : null);
+    const cumplido = (typeof k.meta === 'number' && typeof actual === 'number')
+      ? (k.metaDir === 'lte' ? actual <= k.meta : actual >= k.meta)
+      : (k.estado === 'cumplido');
     const estadoTxt = cumplido ? 'Cumplido' : 'En progreso';
-    const prog = kpiFmt(actual, k.unidad) + ' / ' + (k.meta != null ? kpiFmt(k.meta, k.unidad) : '—');
-    const altBase = k.nombre + ' — ' + estadoTxt + (k.meta != null || actual != null ? (' (' + prog + ')') : '');
-    return `<div class="ks-medal ${cumplido ? '' : 'pend'}" role="group" aria-label="${escapeAttr(altBase)}">
+    const hasProg = (k.meta != null) || (actual != null);
+    const prog = hasProg ? (kpiFmt(actual, k.unidad) + ' / ' + (k.meta != null ? kpiFmt(k.meta, k.unidad) : '—')) : '';
+    const alt = 'Medalla ' + k.nombre + (k.meta != null ? (' · meta ' + kpiFmt(k.meta, k.unidad)) : '') + ' — ' + estadoTxt + (hasProg ? (' (' + prog + ')') : '');
+    return `<div class="ks-medal ${cumplido ? '' : 'pend'}" role="group" aria-label="${escapeAttr(alt)}">
       <div class="ks-medal-img">
-        <img src="/kpi/${escapeAttr(k.img)}" alt="${escapeAttr('Medalla ' + k.nombre)}" onerror="this.style.display='none'">
-        <span class="ph" aria-hidden="true">🏅</span><span class="phs" aria-hidden="true">${escapeHtml(k.img)}</span>
+        <img src="/kpi/${escapeAttr(k.img)}" alt="${escapeAttr(alt)}" loading="lazy" onerror="this.style.display='none';this.parentNode.classList.add('noimg')">
+        <span class="ph" aria-hidden="true">🏅</span><span class="phs" aria-hidden="true">${escapeHtml(k.nombre)}</span>
       </div>
-      <div class="ks-medal-name">${escapeHtml(k.nombre)}</div>
       <div class="ks-medal-badge ${cumplido ? 'ok' : 'prog'}">${estadoTxt}</div>
-      <div class="ks-medal-prog">${escapeHtml(prog)}</div>
+      ${prog ? `<div class="ks-medal-prog">${escapeHtml(prog)}</div>` : ''}
     </div>`;
   };
   // Se duplica la lista para que el loop del carrusel sea continuo (sin salto visible).
