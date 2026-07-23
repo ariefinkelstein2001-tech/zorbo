@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Zorbo Admin — Panel interno</title>
+<title>K-BROS · Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -347,7 +347,7 @@ body{ padding-left:var(--ks-side); }
   font-family:var(--display);font-size:1.55rem;font-weight:800;letter-spacing:-.005em;line-height:1;
   color:var(--gold-deep);
 }
-.adm-panel-meta{font-family:var(--mono);font-size:.7rem;color:var(--dim);margin-top:6px}
+.adm-panel-meta{font-family:var(--sans);font-size:.78rem;color:var(--muted);margin-top:6px;line-height:1.5}
 .adm-actions{display:flex;gap:.5rem;flex-shrink:0;align-items:center;flex-wrap:wrap}
 .adm-btn{
   font-family:var(--sans);font-size:.78rem;font-weight:700;letter-spacing:.04em;
@@ -444,7 +444,33 @@ body{ padding-left:var(--ks-side); }
 }
 .adm-add-block:hover{border-color:var(--gold-bd-h);color:var(--gold);background:var(--gold-dim)}
 
-.adm-loading{padding:2.5rem;text-align:center;color:var(--muted);font-size:.85rem;font-family:var(--mono)}
+.adm-loading{padding:2.5rem;text-align:center;color:var(--muted);font-size:.85rem;font-family:var(--sans)}
+/* Diagnóstico de datos colapsable (fuera del flujo principal) */
+.est-diag{margin:.8rem 0;border:1px solid var(--border);border-radius:10px;background:var(--surface2,#fafafa);font-size:.8rem}
+.est-diag>summary{cursor:pointer;padding:.55rem .8rem;font-weight:700;color:var(--gold-deep,#a05f00);list-style:none}
+.est-diag>summary::-webkit-details-marker{display:none}
+.est-diag>summary::before{content:"▸ ";opacity:.7}
+.est-diag[open]>summary::before{content:"▾ "}
+.est-diag-body{padding:.2rem .8rem .7rem;color:var(--text-2,#52525b);line-height:1.6}
+/* Ayuda de botones: tooltip por botón (hover + foco de teclado) + panel "?" persistente */
+.adm-has-tip{position:relative}
+.adm-tip{position:absolute;left:50%;top:calc(100% + 6px);transform:translateX(-50%);z-index:50;display:none;width:max-content;max-width:230px;background:#0b2a5e;color:#eaf0fb;font-family:var(--sans);font-weight:500;font-size:.72rem;line-height:1.4;text-align:left;padding:.5rem .65rem;border-radius:8px;box-shadow:0 10px 26px rgba(0,0,0,.28);white-space:normal;pointer-events:none}
+.adm-has-tip:hover .adm-tip,.adm-has-tip:focus-visible .adm-tip,.adm-has-tip:focus-within .adm-tip{display:block}
+.adm-help-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--surface,#fff);color:var(--muted);font-weight:800;cursor:pointer;font-size:.9rem;font-family:var(--sans)}
+.adm-help-btn:hover,.adm-help-btn[aria-expanded="true"]{border-color:var(--gold,#f5a623);color:var(--gold-deep,#a05f00)}
+.adm-help-panel{margin:.2rem 0 .6rem;padding:.7rem .9rem;border:1px solid var(--border);border-left:3px solid var(--gold,#f5a623);border-radius:10px;background:var(--surface2,#fafafa);font-size:.78rem;color:var(--text-2,#52525b);line-height:1.7}
+.adm-help-panel b{color:var(--text)}
+/* Zorbot: colapsar / reabrir el panel (escritorio; en móvil se usa el FAB) */
+.adm-chat-collapse{background:none;border:0;color:var(--muted);cursor:pointer;font-size:.85rem;font-weight:800;padding:.2rem .4rem;border-radius:6px;line-height:1}
+.adm-chat-collapse:hover{color:var(--gold-deep,#a05f00);background:var(--gold-dim,#fdf3e0)}
+@media(max-width:1080px){.adm-chat-collapse{display:none}}
+body.chat-collapsed .adm-chat{display:none}
+body.chat-collapsed .adm-shell{grid-template-columns:1fr}
+.adm-chat-reopen{display:none;position:fixed;right:18px;bottom:18px;z-index:45;align-items:center;gap:.4rem;background:linear-gradient(135deg,var(--gold,#f5a623),var(--gold-deep,#d98c00));color:#1a1408;border:0;border-radius:999px;padding:.6rem 1rem;font-family:var(--sans);font-weight:800;font-size:.82rem;cursor:pointer;box-shadow:0 10px 26px rgba(245,166,35,.4)}
+.adm-chat-reopen:hover{filter:brightness(1.05)}
+body.chat-collapsed .adm-chat-reopen{display:inline-flex}
+body.chat-collapsed.admin-home .adm-chat-reopen,body.chat-collapsed.estado-active .adm-chat-reopen,body.chat-collapsed.role-costeo .adm-chat-reopen{display:none}
+@media(max-width:1080px){.adm-chat-reopen{display:none!important}}
 .adm-empty{padding:1.5rem;text-align:center;color:var(--dim);font-size:.85rem}
 
 /* ── PRODUCTOS ── */
@@ -2484,10 +2510,10 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
         </div>
       </div>
       <div class="tc-search">
-        <input type="text" id="tcInput" placeholder="Escribí un producto… ej: Samba, Golden, Banny">
+        <input type="text" id="tcInput" placeholder="Escribe un producto… ej: Samba, Golden, Banny">
         <button class="adm-btn" id="tcBtn" type="button">Buscar</button>
       </div>
-      <div id="tcBody"><div class="dist-empty">Escribí el nombre de un producto y dale Buscar para ver el ranking de clientes.</div></div>
+      <div id="tcBody"><div class="dist-empty">Escribe el nombre de un producto y dale Buscar para ver el ranking de clientes.</div></div>
     </div>
 
     <!-- Vista Distribuidora (proveedores · costos · márgenes · OC · comercialización) -->
@@ -2555,19 +2581,27 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
     <div class="adm-panel" id="estadoView" style="display:none">
       <div class="adm-panel-head">
         <div>
-          <div class="adm-panel-title">Ingreso por Venta · CD Kairos</div>
-          <div class="adm-panel-meta" id="estadoMeta">ingresos por 4 canales · 100% automáticos de Shopify</div>
+          <div class="adm-panel-title">Ingreso por Venta</div>
         </div>
         <div class="adm-actions">
           <select id="estadoMonth" class="costeo-svc"></select>
           <label class="est-daterange">Desde <input type="date" id="estadoFrom" class="est-date"></label>
           <label class="est-daterange">Hasta <input type="date" id="estadoTo" class="est-date"></label>
-          <button class="adm-btn adm-btn-ghost" id="estadoMesCompleto" type="button" title="Volver al mes completo">Mes completo</button>
-          <button class="adm-btn adm-btn-ghost" id="estadoNuevo" type="button">+ Mes</button>
-          <button class="adm-btn adm-btn-ghost" id="estadoEditar" type="button">📝 Editar</button>
-          <button class="adm-btn adm-btn-gold" id="estadoExcel" type="button">📊 Ver Excel</button>
-          <button class="adm-btn adm-btn-ghost" id="estadoReload" type="button">Recargar</button>
+          <button class="adm-btn adm-btn-ghost adm-has-tip" id="estadoMesCompleto" type="button" aria-describedby="estHelpMesCompleto">Mes completo<span role="tooltip" id="estHelpMesCompleto" class="adm-tip">Vuelve a mostrar el mes completo, descartando el rango de fechas elegido.</span></button>
+          <button class="adm-btn adm-btn-ghost adm-has-tip" id="estadoNuevo" type="button" aria-describedby="estHelpNuevo">+ Mes<span role="tooltip" id="estHelpNuevo" class="adm-tip">Agrega un mes nuevo para empezar a registrar sus ingresos.</span></button>
+          <button class="adm-btn adm-btn-ghost adm-has-tip" id="estadoEditar" type="button" aria-describedby="estHelpEditar">📝 Editar<span role="tooltip" id="estHelpEditar" class="adm-tip">Edita las líneas manuales del mes (precios de transferencia, litros, etc.).</span></button>
+          <button class="adm-btn adm-btn-gold adm-has-tip" id="estadoExcel" type="button" aria-describedby="estHelpExcel">📊 Ver Excel<span role="tooltip" id="estHelpExcel" class="adm-tip">Descarga el Estado de Ingresos del mes en una planilla Excel.</span></button>
+          <button class="adm-btn adm-btn-ghost adm-has-tip" id="estadoReload" type="button" aria-describedby="estHelpReload">Recargar<span role="tooltip" id="estHelpReload" class="adm-tip">Vuelve a traer los datos desde Shopify y recalcula los totales.</span></button>
+          <button class="adm-help-btn" id="estHelpToggle" type="button" aria-expanded="false" aria-controls="estHelpPanel" title="Qué hace cada botón">?</button>
         </div>
+      </div>
+      <!-- Ayuda persistente (para quien no descubre el hover): la despliega el botón "?" -->
+      <div class="adm-help-panel" id="estHelpPanel" hidden>
+        <div><b>Mes completo:</b> vuelve al mes entero descartando el rango de fechas.</div>
+        <div><b>+ Mes:</b> agrega un mes nuevo para registrar sus ingresos.</div>
+        <div><b>📝 Editar:</b> edita las líneas manuales del mes (precios de transferencia, litros).</div>
+        <div><b>📊 Ver Excel:</b> descarga el Estado de Ingresos del mes en Excel.</div>
+        <div><b>Recargar:</b> vuelve a traer datos de Shopify y recalcula.</div>
       </div>
       <div id="estadoBody"><div class="adm-loading">Cargando…</div></div>
     </div>
@@ -2577,7 +2611,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <div class="adm-panel-head">
         <div>
           <div class="adm-panel-title">Costos</div>
-          <div class="adm-panel-meta">registrá cada costo: proveedor · categoría · marca · fecha · folio · valor</div>
+          <div class="adm-panel-meta">registra cada costo: proveedor · categoría · marca · fecha · folio · valor</div>
         </div>
         <div class="adm-actions">
           <select id="costosMes" class="costeo-svc"><option value="">Todos los meses</option></select>
@@ -2592,7 +2626,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <div class="adm-panel-head">
         <div>
           <div class="adm-panel-title">Gastos</div>
-          <div class="adm-panel-meta">registrá cada gasto: proveedor · categoría · marca · % del total (si la factura es compartida) · fecha · folio · valor</div>
+          <div class="adm-panel-meta">registra cada gasto: proveedor · categoría · marca · % del total (si la factura es compartida) · fecha · folio · valor</div>
         </div>
         <div class="adm-actions">
           <select id="gastosMes" class="costeo-svc"><option value="">Todos los meses</option></select>
@@ -2708,7 +2742,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
       <div class="adm-panel-head">
         <div>
           <div class="adm-panel-title" id="fcTitle">Forecast</div>
-          <div class="adm-panel-meta" id="fcMeta">elegí qué querés proyectar</div>
+          <div class="adm-panel-meta" id="fcMeta">elige qué quieres proyectar</div>
         </div>
         <div class="adm-actions" id="fcBackWrap" style="display:none">
           <button class="adm-btn adm-btn-ghost" id="fcBack" type="button">← Forecast</button>
@@ -2754,7 +2788,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
           <input class="adm-input" id="tutTitle" type="text" placeholder="Ej: Pinchado del barril paso a paso">
         </div>
         <div class="adm-fb-col">
-          <label class="adm-fb-label">URL del video (podés dejarlo vacío y completarlo cuando lo graben)</label>
+          <label class="adm-fb-label">URL del video (puedes dejarlo vacío y completarlo cuando lo graben)</label>
           <input class="adm-input" id="tutVideo" type="url" placeholder="https://youtu.be/… o https://vimeo.com/…">
         </div>
         <div class="adm-fb-col">
@@ -2861,7 +2895,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
         <button type="button" class="adm-fb-x" data-act="close-np" aria-label="Cerrar">✕</button>
         <div class="adm-fb-head">
           <div class="adm-fb-title">Agregar producto</div>
-          <div class="adm-fb-sub">Subí la foto de la lata y completá los datos. La maqueta (lata + cuadro) se arma sola y el producto se crea en Shopify con su tag.</div>
+          <div class="adm-fb-sub">Sube la foto de la lata y completá los datos. La maqueta (lata + cuadro) se arma sola y el producto se crea en Shopify con su tag.</div>
         </div>
         <div class="adm-np-grid">
           <div class="adm-np-form">
@@ -2934,7 +2968,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
           <div class="adm-np-preview">
             <label class="adm-fb-label">Maqueta (preview)</label>
             <canvas id="npCanvas" width="1200" height="1200"></canvas>
-            <div class="adm-np-hint" id="npHint">Subí la foto de la lata para ver la maqueta.</div>
+            <div class="adm-np-hint" id="npHint">Sube la foto de la lata para ver la maqueta.</div>
           </div>
         </div>
         <div class="adm-np-err" id="npErr" style="display:none"></div>
@@ -3135,10 +3169,11 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
         <button class="adm-mode on" data-mode="b2c" type="button">B2C</button>
         <button class="adm-mode" data-mode="b2b" type="button">B2B</button>
       </div>
+      <button type="button" class="adm-chat-collapse" id="chatCollapse" aria-label="Colapsar Zorbot" title="Colapsar el panel">⟩⟩</button>
       <button type="button" class="adm-chat-x" id="chatPopupClose" aria-label="Cerrar">✕</button>
     </div>
     <div class="adm-chat-body" id="chatBody">
-      <div class="adm-chat-empty">Editá un bloque, guardá los cambios y conversá con Zorbot acá para validar antes de soltarlo a producción.</div>
+      <div class="adm-chat-empty">Edita un bloque, guarda los cambios y conversa con Zorbot acá para validar antes de soltarlo a producción.</div>
     </div>
     <div class="adm-chat-foot">
       <textarea class="adm-chat-in" id="chatIn" rows="1" placeholder="Conversa con Zorbot…"></textarea>
@@ -3149,6 +3184,8 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
     </div>
   </aside>
 </main>
+<!-- Reabrir Zorbot cuando el panel está colapsado (solo escritorio; en móvil está el FAB) -->
+<button type="button" class="adm-chat-reopen" id="chatReopen" aria-label="Abrir el panel de Zorbot">💬 Zorbot</button>
 
 <!-- FAB del preview chat (solo móvil): bola flotante con avatar de Zorbot.
      Tap → abre el preview chat como popup fullscreen. -->
@@ -3399,13 +3436,13 @@ function marcasRenderBody(marca){
   const body = document.getElementById('marcasBody'); if (!body) return;
   if (!marca) {
     const defs = marcasDefs();
-    body.innerHTML = `<div class="marcas-title">Elegí una marca</div><div class="marcas-grid">${defs.map(m =>
+    body.innerHTML = `<div class="marcas-title">Elige una marca</div><div class="marcas-grid">${defs.map(m =>
       `<div class="marcas-card" data-mpick="${escapeAttr(m.id)}"><div class="ic">${m.ic || '🏷️'}</div><div class="lb">${escapeHtml(m.label)}</div>${m.dominio ? `<div class="dom">${escapeHtml(m.dominio)}</div>` : ''}</div>`).join('')}</div>`;
     body.querySelectorAll('[data-mpick]').forEach(el => el.onclick = () => marcasGo(el.dataset.mpick, null, null, null));
     return;
   }
   if (!marcasState.canal) {
-    body.innerHTML = `<div class="marcas-title">${escapeHtml(marca.label)} — elegí un acceso</div><div class="marcas-canal-row">
+    body.innerHTML = `<div class="marcas-title">${escapeHtml(marca.label)} — elige un acceso</div><div class="marcas-canal-row">
       <div class="marcas-card" data-mcanal="redes"><div class="ic">📱</div><div class="lb">Redes Sociales</div></div>
       <div class="marcas-card" data-mcanal="web"><div class="ic">🌐</div><div class="lb">Página web</div>${marca.dominio ? `<div class="dom">${escapeHtml(marca.dominio)}</div>` : ''}</div>
     </div>`;
@@ -3417,7 +3454,7 @@ function marcasRenderBody(marca){
     return;
   }
   if (marcasState.tab === 'general' && marca.generalSub && !marcasState.sub) {
-    body.innerHTML = `<div class="marcas-title">${escapeHtml(marca.label)} · General — elegí una variante</div><div class="marcas-canal-row">${marca.generalSub.map(s =>
+    body.innerHTML = `<div class="marcas-title">${escapeHtml(marca.label)} · General — elige una variante</div><div class="marcas-canal-row">${marca.generalSub.map(s =>
       `<div class="marcas-card" data-msubpick="${escapeAttr(s.id)}"><div class="ic">📄</div><div class="lb">${escapeHtml(s.label)}</div></div>`).join('')}</div>`;
     body.querySelectorAll('[data-msubpick]').forEach(el => el.onclick = () => marcasGo(marca.id, 'web', 'general', el.dataset.msubpick));
     return;
@@ -3472,7 +3509,7 @@ function showHome(){
       <div class="ks-hello">
         <div class="k">Centro de control</div>
         <h1>Buenas${hi ? ', ' + escapeHtml(hi) : ''} 👋</h1>
-        <p>Todo tu negocio en un solo lugar. Elegí una sección en el panel de la izquierda, o mirá el resumen de hoy acá abajo.</p>
+        <p>Todo tu negocio en un solo lugar. Elige una sección en el panel de la izquierda, o mira el resumen de hoy acá abajo.</p>
         <div class="q">“${escapeHtml(q.t)}” — ${escapeHtml(q.a)}</div>
       </div>
       <div class="ks-period" id="ksPeriodBar"></div>
@@ -3498,7 +3535,7 @@ function showHome(){
             <button type="button" class="ks-medal-arrow" id="kpiNext" aria-label="Ver KPI siguiente">›</button>
           </div>
         </div>
-        <div class="ks-medals" id="kpiTrackWrap" tabindex="0" role="group" aria-label="Carrusel de medallas de KPI. Usá las flechas para navegar."><div class="ks-medal-track" id="kpiTrack"></div></div>
+        <div class="ks-medals" id="kpiTrackWrap" tabindex="0" role="group" aria-label="Carrusel de medallas de KPI. Usa las flechas para navegar."><div class="ks-medal-track" id="kpiTrack"></div></div>
       </div>
     </div>`;
   ksSync();
@@ -3695,7 +3732,7 @@ function renderBlocks(){
   const wrap = document.getElementById('blocks');
   document.getElementById('btnAddBlock').style.display = '';
   if (!blocks.length) {
-    wrap.innerHTML = '<div class="adm-empty">Este archivo está vacío. Agregá un bloque para empezar.</div>';
+    wrap.innerHTML = '<div class="adm-empty">Este archivo está vacío. Agrega un bloque para empezar.</div>';
     return;
   }
   wrap.innerHTML = blocks.map((b, i) => {
@@ -3790,7 +3827,7 @@ function renderBrandQuestionnaire(seccion){
   wrap.innerHTML = `
     <div class="bq-card">
       <div class="bq-title">Contanos de ${escapeHtml(seccion.label)} 🍻</div>
-      <div class="bq-sub">Respondé lo que sepas y Zorbot arma todo su conocimiento solo. Después podés editar cada bloque.</div>
+      <div class="bq-sub">Responde lo que sepas y Zorbot arma todo su conocimiento solo. Después puedes editar cada bloque.</div>
       <label class="bq-label">¿De qué se trata la marca? (historia, personalidad, qué la hace distinta)</label>
       <textarea class="adm-input bq-ta" id="bqAbout" placeholder="Ej: marca nacida en el sur, foco en cervezas lager fáciles de tomar, vibra de barrio…"></textarea>
       <label class="bq-label">¿Qué productos tiene? (estilos, formatos, lo que vendan)</label>
@@ -3817,7 +3854,7 @@ async function generateBrandKnowledge(key){
     extra:    document.getElementById('bqExtra').value,
   };
   if (!body.about.trim() && !body.products.trim() && !body.extra.trim()) {
-    st.className = 'adm-status err'; st.textContent = 'Escribí al menos algo de la marca.'; st.classList.remove('hidden'); return;
+    st.className = 'adm-status err'; st.textContent = 'Escribe al menos algo de la marca.'; st.classList.remove('hidden'); return;
   }
   btn.disabled = true;
   st.className = 'adm-status loading'; st.textContent = 'Generando con IA… (unos segundos)'; st.classList.remove('hidden');
@@ -3833,7 +3870,7 @@ async function generateBrandKnowledge(key){
     renderBlocks();
     updateBuildTag();
     setDirty(false);
-    showToast('Conocimiento generado ✓ — revisalo y guardá', 'ok');
+    showToast('Conocimiento generado ✓ — revísalo y guarda', 'ok');
   } catch (e) {
     btn.disabled = false;
     st.className = 'adm-status err'; st.textContent = e.message;
@@ -3994,7 +4031,7 @@ function productCardHtml(p){
       </div>
       <label class="adm-prod-label">Notas para Zorbot (Markdown soportado)</label>
       <textarea class="adm-prod-extra" data-pid="${p.id}" rows="8"
-        placeholder="Descripción extendida, maridajes, ocasiones, tono que querés que use el bot al hablar de este producto…">${escapeHtml(p.extra || '')}</textarea>
+        placeholder="Descripción extendida, maridajes, ocasiones, tono que quieres que use el bot al hablar de este producto…">${escapeHtml(p.extra || '')}</textarea>
       <label class="adm-prod-label">Imagen override (URL · opcional)</label>
       <input class="adm-prod-img" data-pid="${p.id}" type="url"
         placeholder="https://… (vacío = usa la imagen de Shopify)"
@@ -4433,7 +4470,7 @@ document.getElementById('npCreate').onclick = async () => {
   const title = document.getElementById('npName').value.trim();
   if (!title) { npShowErr('Falta el nombre del producto.'); document.getElementById('npName').focus(); return; }
   const packs = getSelectedPacks();
-  if (!packs.length) { npShowErr('Elegí al menos un pack o barril (marcá el check y poné la cantidad).'); return; }
+  if (!packs.length) { npShowErr('Elige al menos un pack o barril (marca el check y pon la cantidad).'); return; }
   const btn = document.getElementById('npCreate');
   btn.disabled = true; const o = btn.textContent; btn.textContent = 'Creando…';
   try {
@@ -4918,7 +4955,7 @@ document.getElementById('fbSubmit').onclick = async () => {
   const explanation = document.getElementById('fbExplain').value;
   if (!original.trim()) return;
   if (improved.trim() === original.trim() && !explanation.trim()) {
-    showToast('Cambiá el mensaje mejorado o agregá una explicación.', 'err');
+    showToast('Cambiá el mensaje mejorado o agrega una explicación.', 'err');
     return;
   }
   const btn = document.getElementById('fbSubmit');
@@ -5000,7 +5037,7 @@ async function loadFeedbackList(){
     document.getElementById('fbCountMeta').textContent =
       `${total} corrección${total === 1 ? '' : 'es'} guardadas · Zorbot inyecta las últimas 20 como few-shot en cada respuesta`;
     if (!items.length) {
-      list.innerHTML = '<div class="adm-empty">Todavía no hay feedback. Andá a Conversaciones o al preview chat y apretá "Dar feedback" en cualquier mensaje del bot.</div>';
+      list.innerHTML = '<div class="adm-empty">Todavía no hay feedback. Ve a Conversaciones o al preview chat y aprieta "Dar feedback" en cualquier mensaje del bot.</div>';
       return;
     }
     list.innerHTML = items.map(fbItemHtml).join('');
@@ -5521,7 +5558,7 @@ document.getElementById('chatIn').addEventListener('input', e => {
 document.getElementById('chatClear').onclick = () => {
   chatSessionId = null;
   document.getElementById('chatBody').innerHTML =
-    '<div class="adm-chat-empty">Conversación limpia. Probá un cambio y volvé a chatear para validar.</div>';
+    '<div class="adm-chat-empty">Conversación limpia. Prueba un cambio y vuelve a chatear para validar.</div>';
 };
 document.querySelectorAll('.adm-mode').forEach(b => {
   b.onclick = () => {
@@ -5807,7 +5844,7 @@ function renderPixis(d){
     <div class="adm-empty-ico">🔌</div>
     <div class="adm-empty-title">Conectá tu cuenta de Pixis</div>
     <div class="adm-empty-text">${escapeHtml(d.reason||'Pixis no está conectado.')} Con Pixis vas a ver sell-out de toda la cadena, competencia y puntos de mayor crecimiento — data que no está en Shopify.</div>
-    <div class="adm-empty-hint">Para conectarlo necesitás cargar en Railway las variables ${needs||'<code>PIXIS_API_BASE</code> y <code>PIXIS_API_KEY</code>'} con los datos de tu cuenta Pixis (API base URL + API key). Una vez cargadas, esta sección se activa sola.</div>`;
+    <div class="adm-empty-hint">Para conectarlo necesitas cargar en Railway las variables ${needs||'<code>PIXIS_API_BASE</code> y <code>PIXIS_API_KEY</code>'} con los datos de tu cuenta Pixis (API base URL + API key). Una vez cargadas, esta sección se activa sola.</div>`;
 }
 
 // ─── Clientes mayoristas ────────────────────────────────────────────────────
@@ -5822,7 +5859,7 @@ async function loadWholesale(force){
     const r = await fetch('/admin/customers/wholesale' + (force?'?refresh=1':''));
     const d = await r.json();
     if (!d.available) {
-      list.innerHTML = `<div class="adm-empty">${escapeHtml(d.reason||'No disponible.')} ${/read_customers|read_orders/.test(d.reason||'')?'Re-autorizá la app de Shopify con el permiso de clientes.':''}</div>`;
+      list.innerHTML = `<div class="adm-empty">${escapeHtml(d.reason||'No disponible.')} ${/read_customers|read_orders/.test(d.reason||'')?'Re-autoriza la app de Shopify con el permiso de clientes.':''}</div>`;
       document.getElementById('wsCount').textContent = '';
       return;
     }
@@ -6437,9 +6474,9 @@ function renderWeb(){
     </div>
     <div class="web-group">
       <div class="web-group-t">Banner principal</div>
-      <div class="web-group-d">Fotos del carrusel. Computador y celular se configuran por separado — subí cada una con el tamaño recomendado para que se vea nítida y sin recortes. <b>Arrastrá las fotos para cambiar el orden.</b></div>
+      <div class="web-group-d">Fotos del carrusel. Computador y celular se configuran por separado — sube cada una con el tamaño recomendado para que se vea nítida y sin recortes. <b>Arrastrá las fotos para cambiar el orden.</b></div>
       <div class="web-subhead">Computador</div>
-      <span class="web-mini">Apaisada (horizontal). Recomendado <b>1920 × 600 px</b> (relación ≈ 16:5). Se muestra a todo el ancho, máximo 420 px de alto y sin recortar. Usá la misma proporción en todas para que el carrusel no salte.</span>
+      <span class="web-mini">Apaisada (horizontal). Recomendado <b>1920 × 600 px</b> (relación ≈ 16:5). Se muestra a todo el ancho, máximo 420 px de alto y sin recortar. Usa la misma proporción en todas para que el carrusel no salte.</span>
       <div class="web-imgs">${heroImgs(c.heroDesktop,'desktop')}</div>
       <button class="web-add" id="webAddHeroD" type="button">+ Agregar foto (computador)</button>
       <div class="web-subhead" style="margin-top:.9rem">Celular</div>
@@ -6455,7 +6492,7 @@ function renderWeb(){
     </div>
     <div class="web-group">
       <div class="web-group-t">Marcas</div>
-      <div class="web-group-d">Logos que giran en la portada y aparecen en el catálogo lateral. Logo recomendado: <b>cuadrado 400 × 400 px</b>, PNG con fondo transparente. Elegí una categoría existente o creá una nueva — si creás una, se genera su sección en el catálogo y se llena con los productos cuyo vendor en Shopify coincida (deben tener el tag ZORBO).</div>
+      <div class="web-group-d">Logos que giran en la portada y aparecen en el catálogo lateral. Logo recomendado: <b>cuadrado 400 × 400 px</b>, PNG con fondo transparente. Elige una categoría existente o crea una nueva — si creas una, se genera su sección en el catálogo y se llena con los productos cuyo vendor en Shopify coincida (deben tener el tag ZORBO).</div>
       <div>${brandsHtml}</div>
       <button class="web-add" id="webAddBrand" type="button">+ Agregar marca</button>
     </div>
@@ -6550,12 +6587,12 @@ function renderWebMayoHtml(esc, escA, heroImgs){
     </div>
     <div class="web-group">
       <div class="web-group-t">Orden y títulos de las secciones</div>
-      <div class="web-group-d">Las 5 secciones del mayorista (fijas por formato). Reordenalas arrastrando y editá su título/subtítulo.</div>
+      <div class="web-group-d">Las 5 secciones del mayorista (fijas por formato). Reordénalas arrastrando y edita su título/subtítulo.</div>
       <div>${orderHtml}</div>
     </div>
     <div class="web-group">
       <div class="web-group-t">Chat del bot</div>
-      <div class="web-group-d">El mensaje de Zorbot arriba del catálogo mayorista. Una línea = un párrafo. Usá <b>{nombre}</b> donde quieras que aparezca el nombre del cliente. Admite HTML básico.</div>
+      <div class="web-group-d">El mensaje de Zorbot arriba del catálogo mayorista. Una línea = un párrafo. Usa <b>{nombre}</b> donde quieras que aparezca el nombre del cliente. Admite HTML básico.</div>
       <div>${welcomeHtml}</div>
       <button class="web-add" id="webAddMayoWelcome" type="button">+ Agregar línea</button>
     </div>`;
@@ -6759,7 +6796,7 @@ async function saveWeb(){
     // Reconstruye tabs/filtros: si se agregó una marca, su botón aparece arriba.
     await loadCustomBrands();
     renderTabs();
-    st.className = 'adm-status ok'; st.textContent = 'Guardado ✓ — recargá el home para verlo';
+    st.className = 'adm-status ok'; st.textContent = 'Guardado ✓ — recarga el home para verlo';
     setTimeout(()=>st.classList.add('hidden'), 3500);
   } catch (err) {
     st.className = 'adm-status err'; st.textContent = err.message;
@@ -6892,7 +6929,7 @@ async function renderDistOrdenes(){
   let prods = [];
   try { const pd = await loadDistProducts(); if (pd && pd.available) prods = pd.products || []; } catch {}
   const datalist = prods.map(p => `<option data-cost="${p.cost||''}" data-neto="${p.precioNeto||''}" data-ila="${p.ilaPct||''}" data-despacho="${p.dispatch||''}" data-price="${p.price||''}" value="${escapeAttr(p.title)}">`).join('');
-  const supOpts = '<option value="">Elegí un proveedor…</option>' + sups.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+  const supOpts = '<option value="">Elige un proveedor…</option>' + sups.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
   const orders = (distData?.purchaseOrders || []).slice().sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt));
 
   // Totales del borrador
@@ -6913,7 +6950,7 @@ async function renderDistOrdenes(){
       <td class="dist-num">${ocMoney(it.precioUnitario)}</td>
       <td class="dist-num">${ocMoney(it.cantidad*it.precioUnitario)}</td>
       <td><button class="pv-del" type="button" data-oc-rm="${i}">✕</button></td>
-    </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:#aaa;padding:.8rem">Agregá artículos…</td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:#aaa;padding:.8rem">Agrega artículos…</td></tr>`;
 
   const list = orders.length ? orders.map(po => `
     <div class="oc-card">
@@ -6929,7 +6966,7 @@ async function renderDistOrdenes(){
           <button class="pv-del" type="button" data-oc-del="${po.id}">Eliminar</button>
         </span>
       </div>
-    </div>`).join('') : '<div class="dist-empty">Todavía no hay órdenes de compra. Creá la primera arriba.</div>';
+    </div>`).join('') : '<div class="dist-empty">Todavía no hay órdenes de compra. Crea la primera arriba.</div>';
 
   const F = (id,label,ph,val)=>`<div class="dist-field"><label>${label}</label><input id="${id}" placeholder="${ph||''}" value="${val?escapeAttr(val):''}"></div>`;
 
@@ -7048,7 +7085,7 @@ function addOcLine(){
   const articulo=document.getElementById('ocPTitle').value.trim();
   const cantidad=Number(document.getElementById('ocPQty').value)||0;
   const precioUnitario=Number(document.getElementById('ocPCost').value)||0;
-  if(!articulo||cantidad<=0){ alert('Poné un artículo y una cantidad.'); return; }
+  if(!articulo||cantidad<=0){ alert('Pon un artículo y una cantidad.'); return; }
   const opt=[...document.querySelectorAll('#ocProds option')].find(o=>o.value===articulo);
   const ilaPct=opt?Number(opt.dataset.ila)||0:0;
   const despachoUnitario=opt?Number(opt.dataset.despacho)||0:0;
@@ -7058,8 +7095,8 @@ function addOcLine(){
 async function saveOc(){
   const st=document.getElementById('ocStatusMsg');
   const g=(id)=>{const el=document.getElementById(id);return el?el.value:'';};
-  if(!g('ocSup')){ st.className='dist-status err'; st.textContent='Elegí un proveedor.'; return; }
-  if(!ocDraft.length){ st.className='dist-status err'; st.textContent='Agregá al menos un artículo.'; return; }
+  if(!g('ocSup')){ st.className='dist-status err'; st.textContent='Elige un proveedor.'; return; }
+  if(!ocDraft.length){ st.className='dist-status err'; st.textContent='Agrega al menos un artículo.'; return; }
   const payload={
     supplierId:g('ocSup'), fecha:g('ocFecha'),
     entrega:g('ocEntrega'), plazoEntrega:g('ocPlazo'), pago:g('ocPago'),
@@ -7185,7 +7222,7 @@ function renderDistCostos(data){
     <div class="dist-sec-head">
       <div>
         <div class="dist-sec-title">Costos de compra</div>
-        <div class="dist-sec-sub">Cargá lo que Zorbo le paga al proveedor por unidad y la categoría (define el margen). La categoría arranca sugerida según el proveedor. Se guarda solo al cambiar cada campo.</div>
+        <div class="dist-sec-sub">Carga lo que Zorbo le paga al proveedor por unidad y la categoría (define el margen). La categoría arranca sugerida según el proveedor. Se guarda solo al cambiar cada campo.</div>
       </div>
       <button class="adm-btn adm-btn-ghost" id="costRefresh" type="button">Refrescar de Shopify</button>
     </div>
@@ -7312,7 +7349,7 @@ function renderDistProveedores(){
         <button type="button" class="del" data-del="${s.id}">Eliminar</button>
       </div>
       ${distPortalBlock(s)}
-    </div>`).join('')}</div>` : '<div class="dist-empty">Todavía no hay proveedores. Agregá el primero arriba.</div>';
+    </div>`).join('')}</div>` : '<div class="dist-empty">Todavía no hay proveedores. Agrega el primero arriba.</div>';
 
   document.getElementById('distBody').innerHTML = form + cards;
 
@@ -7475,7 +7512,7 @@ function renderPuntos(d){
       <td class="dist-num">${(p.units||0).toLocaleString('es-CL')}</td>
       <td class="dist-num">${p.orders||0}</td>
       <td>${p.manualId ? `<button class="pv-del" data-punto-del="${p.manualId}" title="Eliminar punto">✕</button>` : ''}</td>
-    </tr>`).join('') : `<tr><td colspan="7" class="pv-noloc" style="padding:1.5rem;text-align:center">Todavía no hay puntos de venta. Agregá el primero con el formulario.</td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="7" class="pv-noloc" style="padding:1.5rem;text-align:center">Todavía no hay puntos de venta. Agrega el primero con el formulario.</td></tr>`;
 
   const ordersNote = d.ordersReason
     ? `<div class="pv-geo">⚠ Ventas no disponibles ahora (${escapeHtml(d.ordersReason)}). Se muestran los puntos cargados a mano.</div>` : '';
@@ -7491,7 +7528,7 @@ function renderPuntos(d){
       ${hasMap ? '<div id="pvMap"></div>' : '<div></div>'}
       <div class="pv-form">
         <div class="pv-form-title">Agregar punto de venta</div>
-        <div class="pv-form-sub">Cargá un local y se registra como cliente en Shopify, además de quedar en el mapa.</div>
+        <div class="pv-form-sub">Carga un local y se registra como cliente en Shopify, además de quedar en el mapa.</div>
         <div class="dist-field"><label>Nombre del local</label><input id="pf_name" placeholder="Ej: Bar La Esquina"></div>
         <div class="dist-field"><label>País</label><input id="pf_country" value="Chile"></div>
         <div class="dist-field"><label>Región</label><input id="pf_region" placeholder="Ej: Metropolitana"></div>
@@ -7729,15 +7766,15 @@ async function renderAdsGoogle(){
           <div class="ads-step"><span class="ads-step-n">1</span><span><b>Developer token:</b> en tu cuenta de Google Ads → Herramientas → Configuración → API Center. (Requiere solicitar acceso a la API, lo aprueba Google.)</span></div>
           <div class="ads-step"><span class="ads-step-n">2</span><span><b>Client ID y Client Secret:</b> en Google Cloud Console → crear un proyecto → APIs y servicios → Credenciales → ID de cliente OAuth (tipo App de escritorio).</span></div>
           <div class="ads-step"><span class="ads-step-n">3</span><span><b>Refresh token:</b> se genera autorizando tu cuenta con el OAuth Playground (o el flujo OAuth) usando el scope de Google Ads.</span></div>
-          <div class="ads-step"><span class="ads-step-n">4</span><span><b>Customer ID:</b> el número de tu cuenta de Google Ads (arriba a la derecha, formato 123-456-7890). Si usás una cuenta administradora (MCC), también el login customer ID.</span></div>
+          <div class="ads-step"><span class="ads-step-n">4</span><span><b>Customer ID:</b> el número de tu cuenta de Google Ads (arriba a la derecha, formato 123-456-7890). Si usas una cuenta administradora (MCC), también el login customer ID.</span></div>
         </div>
         <div class="ads-envs">${envs}</div>
-        <div class="ads-note">Cargá esas variables en Railway → tu servicio → Variables, y recargá esta sección. Mientras tanto, el resto del Centro de Ads queda listo esperando los datos.</div>
+        <div class="ads-note">Carga esas variables en Railway → tu servicio → Variables, y recarga esta sección. Mientras tanto, el resto del Centro de Ads queda listo esperando los datos.</div>
       </div>`;
     return;
   }
   if (d.error) {
-    body.innerHTML = adsRangeBar() + `<div class="dist-empty">⚠ ${escapeHtml(d.error)}<br><span style="font-size:.78rem;color:#888">Revisá que las credenciales y el Customer ID sean correctos.</span></div>`;
+    body.innerHTML = adsRangeBar() + `<div class="dist-empty">⚠ ${escapeHtml(d.error)}<br><span style="font-size:.78rem;color:#888">Revisa que las credenciales y el Customer ID sean correctos.</span></div>`;
     wireAdsRange();
     return;
   }
@@ -7809,17 +7846,17 @@ async function renderAdsMeta(){
         <div class="ads-empty-d">Cuando conectes la cuenta vas a ver acá las campañas de Facebook e Instagram con sus métricas (alcance, frecuencia, conversiones) y el semáforo de rendimiento. Necesitás conseguir esto y cargarlo como variables de entorno en Railway:</div>
         <div class="ads-steps">
           <div class="ads-step"><span class="ads-step-n">1</span><span><b>Cuenta publicitaria:</b> en Meta Business Suite → Configuración del negocio → Cuentas publicitarias. El ID se ve como <b>act_1234567890</b>.</span></div>
-          <div class="ads-step"><span class="ads-step-n">2</span><span><b>App de Meta:</b> en developers.facebook.com creá una app (tipo Negocio) y agregá el producto <b>Marketing API</b>.</span></div>
+          <div class="ads-step"><span class="ads-step-n">2</span><span><b>App de Meta:</b> en developers.facebook.com crea una app (tipo Negocio) y agrega el producto <b>Marketing API</b>.</span></div>
           <div class="ads-step"><span class="ads-step-n">3</span><span><b>Access token de larga duración:</b> idealmente un token de <b>usuario del sistema</b> (System User) en Business Manager con permiso <b>ads_read</b> sobre la cuenta publicitaria. Ese token no expira si lo generás como System User.</span></div>
           <div class="ads-step"><span class="ads-step-n">4</span><span>(Opcional) <b>App ID y App Secret</b> de la app, por si más adelante hay que renovar tokens automáticamente.</span></div>
         </div>
         <div class="ads-envs">${envs}</div>
-        <div class="ads-note">Cargá esas variables en Railway → tu servicio → Variables, y recargá esta sección. Solo pedimos permiso de <b>lectura</b> (ads_read): el Centro de Ads nunca crea ni edita campañas.</div>
+        <div class="ads-note">Carga esas variables en Railway → tu servicio → Variables, y recarga esta sección. Solo pedimos permiso de <b>lectura</b> (ads_read): el Centro de Ads nunca crea ni edita campañas.</div>
       </div>`;
     return;
   }
   if (d.error) {
-    body.innerHTML = adsRangeBar() + `<div class="dist-empty">⚠ ${escapeHtml(d.error)}<br><span style="font-size:.78rem;color:#888">Revisá el token (permiso ads_read) y el ID de la cuenta publicitaria.</span></div>`;
+    body.innerHTML = adsRangeBar() + `<div class="dist-empty">⚠ ${escapeHtml(d.error)}<br><span style="font-size:.78rem;color:#888">Revisa el token (permiso ads_read) y el ID de la cuenta publicitaria.</span></div>`;
     wireAdsRange();
     return;
   }
@@ -7866,7 +7903,7 @@ function renderAdsIA(){
   document.getElementById('adsBody').innerHTML = `
     <div class="ads-ia-intro">
       <div class="ads-ia-intro-t">Recomendaciones con IA</div>
-      <div class="ads-ia-intro-d">Claude analiza tus campañas reales de Google y Meta y te dice cómo repartir los <b>${distMoney(adsConfig.monthlyBudget)}</b> del mes: qué escalar, qué pausar y por qué. Analiza y recomienda — los cambios los hacés vos en cada plataforma.</div>
+      <div class="ads-ia-intro-d">Claude analiza tus campañas reales de Google y Meta y te dice cómo repartir los <b>${distMoney(adsConfig.monthlyBudget)}</b> del mes: qué escalar, qué pausar y por qué. Analiza y recomienda — los cambios los haces vos en cada plataforma.</div>
       <button class="adm-btn" id="iaGenBtn" type="button">Generar recomendaciones</button>
       <span class="dist-status" id="iaStatus" style="margin-left:.6rem"></span>
     </div>
@@ -7931,14 +7968,14 @@ function renderIAResult(d){
     </div>
     <div class="ads-ia-sech">Campañas nuevas a evaluar</div>
     ${list(d.abrir)}
-    <div class="ads-ia-foot">Generado por IA sobre tus datos reales · ${new Date(d.generatedAt).toLocaleString('es-CL')} · revisá siempre antes de aplicar cambios.</div>`;
+    <div class="ads-ia-foot">Generado por IA sobre tus datos reales · ${new Date(d.generatedAt).toLocaleString('es-CL')} · revisa siempre antes de aplicar cambios.</div>`;
 }
 
 // ─── Top clientes por producto ───────────────────────────────────────────────
 async function runTopClientes(){
   const q = document.getElementById('tcInput').value.trim();
   const body = document.getElementById('tcBody');
-  if (!q) { body.innerHTML = '<div class="dist-empty">Escribí el nombre de un producto.</div>'; return; }
+  if (!q) { body.innerHTML = '<div class="dist-empty">Escribe el nombre de un producto.</div>'; return; }
   body.innerHTML = '<div class="adm-loading">Buscando en todos los pedidos…</div>';
   try {
     const r = await fetch('/admin/top-clientes?q=' + encodeURIComponent(q));
@@ -8103,7 +8140,7 @@ function costeoLockView(){
   body.querySelectorAll('[data-rbedit],[data-rbdel],[data-pledit],[data-pldel],[data-idel]').forEach(el=>el.remove());
   let msg;
   if (costeoSub==='recetas' || costeoSub==='platos')
-    msg = 'Estás viendo '+(isBarra()?'Barra':'Comida')+' en modo lectura. Solo podés editar '+(adminCosteoSvc==='barra'?'Barra':'Comida')+'.';
+    msg = 'Estás viendo '+(isBarra()?'Barra':'Comida')+' en modo lectura. Solo puedes editar '+(adminCosteoSvc==='barra'?'Barra':'Comida')+'.';
   else
     msg = 'Solo lectura · esta sección la editan los administradores.';
   body.insertAdjacentHTML('afterbegin', '<div class="ro-note">👁️ '+msg+'</div>');
@@ -8188,7 +8225,7 @@ function renderCosteoInsumos(){
       <div class="dist-form-actions"><button class="adm-btn" id="niAdd" type="button">Agregar insumo</button><span class="dist-status" id="niSt"></span></div>
     </div>
     <div class="ct-toolbar" style="margin-top:1.4rem">
-      <div class="ct-toolbar-info"><b>Insumos (${list.length})</b> · descargá el listado completo con precios e insumos de recetas base.</div>
+      <div class="ct-toolbar-info"><b>Insumos (${list.length})</b> · descarga el listado completo con precios e insumos de recetas base.</div>
       <div class="ct-pdf"><span>Excel</span><button class="adm-btn adm-btn-gold" id="ciXlBtn" type="button">Descargar Excel</button></div>
     </div>
     <div class="tc-search"><input type="text" id="ciSearch" placeholder="Buscar insumo o receta base…" value="${escapeAttr(insumoSearch)}"></div>
@@ -8261,7 +8298,7 @@ function renderCosteoRecetas(){
     <td class="dist-num">${cMoney(ep)}</td>
     <td class="dist-num"><input type="text" inputmode="decimal" class="dist-input-sm dist-num" data-rbqty="${idx}" value="${l.cantidad}" style="width:80px"></td>
     <td class="dist-num">${cMoney((Number(l.cantidad)||0)*ep)}</td>
-    <td><button class="pv-del" data-rbrm="${idx}">✕</button></td></tr>`;}).join('') : `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:.7rem">Agregá insumos o recetas…</td></tr>`;
+    <td><button class="pv-del" data-rbrm="${idx}">✕</button></td></tr>`;}).join('') : `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:.7rem">Agrega insumos o recetas…</td></tr>`;
   const rq = rbSearch.toLowerCase();
   const rbAll = (costeoData.recetasBase||[]).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
   const list = rbAll.filter(rb=>!rq || rb.nombre.toLowerCase().includes(rq)).map(rb=>`
@@ -8274,14 +8311,14 @@ function renderCosteoRecetas(){
   document.getElementById('costeoBody').innerHTML = costeoIngDatalist() + `
     <div class="dist-form">
       <div class="dist-sec-title">${rbEditing?'Editar receta base':'Nueva receta base'}</div>
-      <div class="dist-sec-sub">Agregá insumos o incluso otras recetas. El costo y el precio por unidad se calculan solos.</div>
+      <div class="dist-sec-sub">Agrega insumos o incluso otras recetas. El costo y el precio por unidad se calculan solos.</div>
       <div class="dist-form-grid" style="margin-top:.8rem">
         <div class="dist-field wide"><label>Nombre</label><input id="rbNombre" placeholder="Ej: RB Salsa Cheddar" value="${rbEditing?escapeAttr(rbEditing.nombre):''}"></div>
         <div class="dist-field"><label>Producción total</label><input id="rbProd" type="text" inputmode="decimal" placeholder="ej: 36 o 9,5" value="${rbEditing?rbEditing.produccion:''}"></div>
         <div class="dist-field"><label>Unidad de la receta</label><select id="rbUnidad">${C_UNITS(rbEditing?rbEditing.unidad:'litro')}</select></div>
       </div>
       <div class="oc-line">
-        <div class="dist-field" style="flex:2"><label>Insumo o receta</label><input id="rbIng" list="cIngList" placeholder="Escribí para buscar…"></div>
+        <div class="dist-field" style="flex:2"><label>Insumo o receta</label><input id="rbIng" list="cIngList" placeholder="Escribe para buscar…"></div>
         <div class="dist-field"><label>Cantidad</label><input id="rbCant" type="text" inputmode="decimal" placeholder="0"></div>
         <button class="adm-btn adm-btn-ghost" id="rbAddLine" type="button">+ Agregar</button>
       </div>
@@ -8300,7 +8337,7 @@ function renderCosteoRecetas(){
       </div>
     </div>
     <div class="ct-toolbar" style="margin-top:1.4rem">
-      <div class="ct-toolbar-info"><b>Recetas base (${(costeoData.recetasBase||[]).length})</b> · descargá el detalle con el desglose de cada insumo por RB.</div>
+      <div class="ct-toolbar-info"><b>Recetas base (${(costeoData.recetasBase||[]).length})</b> · descarga el detalle con el desglose de cada insumo por RB.</div>
       <div class="ct-pdf"><span>Excel</span><button class="adm-btn adm-btn-gold" id="rbXlBtn" type="button">Descargar Excel</button></div>
     </div>
     <div class="tc-search"><input type="text" id="rbSearchInp" placeholder="Buscar receta base…" value="${escapeAttr(rbSearch)}"></div>
@@ -8332,7 +8369,7 @@ function rbAddLine(){
   const val=document.getElementById('rbIng').value.replace(/ \(RB\)$/,'');
   const g=(costeoData.ingredientes||[]).find(x=>x.nombre===val);
   const cant=cNum(document.getElementById('rbCant').value);
-  if(!g){ alert('Elegí un insumo o receta de la lista.'); return; }
+  if(!g){ alert('Elige un insumo o receta de la lista.'); return; }
   if(rbEditing && g.type==='rb' && g.id===rbEditing.id){ alert('Una receta no puede usarse a sí misma.'); return; }
   rbDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant, rendAplica:g.rendimiento!=null, rendInsumo:g.rendimiento||null, base100:g.base100||null, rend:null });
   document.getElementById('rbIng').value=''; document.getElementById('rbCant').value='';
@@ -8342,7 +8379,7 @@ async function rbSave(){
   const st=document.getElementById('rbSt');
   const nombre=document.getElementById('rbNombre').value.trim();
   if(!nombre){ st.className='dist-status err'; st.textContent='Falta el nombre.'; return; }
-  if(!rbDraft.length){ st.className='dist-status err'; st.textContent='Agregá al menos un insumo.'; return; }
+  if(!rbDraft.length){ st.className='dist-status err'; st.textContent='Agrega al menos un insumo.'; return; }
   const payload={ nombre, unidad:document.getElementById('rbUnidad').value, produccion:cNum(document.getElementById('rbProd').value), lineas:rbDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad),rend:l.rend})) };
   st.className='dist-status'; st.textContent='Guardando…';
   try{
@@ -8391,7 +8428,7 @@ function renderCosteoPlatos(){
     <td class="dist-num">${cMoney(ep)}</td>
     <td class="dist-num"><input type="text" inputmode="decimal" class="dist-input-sm dist-num" data-plqty="${idx}" value="${l.cantidad}" style="width:80px"></td>
     <td class="dist-num">${cMoney((Number(l.cantidad)||0)*ep)}</td>
-    <td><button class="pv-del" data-plrm="${idx}">✕</button></td></tr>`;}).join('') : `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:.7rem">Agregá insumos o recetas base…</td></tr>`;
+    <td><button class="pv-del" data-plrm="${idx}">✕</button></td></tr>`;}).join('') : `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:.7rem">Agrega insumos o recetas base…</td></tr>`;
   // Lista agrupada por categoría
   const q = platoSearch.toLowerCase();
   const platos = (costeoData.platos||[]).filter(p=>(!platoCatFilter||p.categoria===platoCatFilter) && (!q||p.nombre.toLowerCase().includes(q)));
@@ -8416,7 +8453,7 @@ function renderCosteoPlatos(){
   document.getElementById('costeoBody').innerHTML = costeoIngDatalist() + `
     <div class="dist-form">
       <div class="dist-sec-title">${platoEditing?'Editar plato':'Nuevo plato'}</div>
-      <div class="dist-sec-sub">Agregá insumos y/o recetas base con su gramaje. El precio de venta sugerido sale de la cadena de costo (protección 10% + IVA 19%) dividida por el margen.</div>
+      <div class="dist-sec-sub">Agrega insumos y/o recetas base con su gramaje. El precio de venta sugerido sale de la cadena de costo (protección 10% + IVA 19%) dividida por el margen.</div>
       <div class="dist-form-grid" style="margin-top:.8rem">
         <div class="dist-field wide"><label>Nombre del plato</label><input id="plNombre" placeholder="Ej: Acevichado 420" value="${platoEditing?escapeAttr(platoEditing.nombre):''}"></div>
         <div class="dist-field"><label>Categoría</label><select id="plCat">${catOptions}</select></div>
@@ -8424,7 +8461,7 @@ function renderCosteoPlatos(){
         <div class="dist-field"><label>IVA</label><label class="pl-iva"><input type="checkbox" id="plIva" ${curIva?'checked':''}> Incluir IVA 19%</label></div>
       </div>
       <div class="oc-line">
-        <div class="dist-field" style="flex:2"><label>Insumo o receta base</label><input id="plIng" list="cIngList" placeholder="Escribí para buscar…"></div>
+        <div class="dist-field" style="flex:2"><label>Insumo o receta base</label><input id="plIng" list="cIngList" placeholder="Escribe para buscar…"></div>
         <div class="dist-field"><label>Gramaje / cantidad</label><input id="plCant" type="text" inputmode="decimal" placeholder="0"></div>
         <button class="adm-btn adm-btn-ghost" id="plAddLine" type="button">+ Agregar</button>
       </div>
@@ -8447,7 +8484,7 @@ function renderCosteoPlatos(){
       </div>
     </div>
     <div class="ct-toolbar" style="margin-top:1.4rem">
-      <div class="ct-toolbar-info"><b>${isBarra()?'Tragos':'Platos'} (${(costeoData.platos||[]).length})</b> · descargá el listado con la cadena de costo y el precio real.</div>
+      <div class="ct-toolbar-info"><b>${isBarra()?'Tragos':'Platos'} (${(costeoData.platos||[]).length})</b> · descarga el listado con la cadena de costo y el precio real.</div>
       <div class="ct-pdf"><span>Excel</span><button class="adm-btn adm-btn-gold" id="plXlBtn" type="button">Descargar Excel</button></div>
     </div>
     <div class="tc-search" style="display:flex;gap:.5rem;flex-wrap:wrap">
@@ -8486,7 +8523,7 @@ function platoAddLine(){
   const val=document.getElementById('plIng').value.replace(/ \(RB\)$/,'');
   const g=(costeoData.ingredientes||[]).find(x=>x.nombre===val);
   const cant=cNum(document.getElementById('plCant').value);
-  if(!g){ alert('Elegí un insumo o receta base de la lista.'); return; }
+  if(!g){ alert('Elige un insumo o receta base de la lista.'); return; }
   platoDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant, rendAplica:g.rendimiento!=null, rendInsumo:g.rendimiento||null, base100:g.base100||null, rend:null });
   document.getElementById('plIng').value=''; document.getElementById('plCant').value='';
   renderCosteoPlatosKeep();
@@ -8584,7 +8621,7 @@ function drawCarta(){
         <div class="ct-sec-h" style="border:none">Reventa · destilados y bebidas <span>(venta directa)</span></div>
         <button class="adm-btn adm-btn-ghost" id="rvAddSec" type="button">+ Sección</button>
       </div>
-      <div class="ct-toolbar-info" style="margin:-.3rem 0 .6rem">Se compran hechos y se revenden. Cargá el <b>precio de compra</b> y el <b>% de costo</b> = compra ÷ venta se calcula solo.</div>
+      <div class="ct-toolbar-info" style="margin:-.3rem 0 .6rem">Se compran hechos y se revenden. Carga el <b>precio de compra</b> y el <b>% de costo</b> = compra ÷ venta se calcula solo.</div>
       ${rest.map(reventaSectionBlock).join('')}`;
   }
   document.getElementById('costeoBody').innerHTML = `
@@ -8709,7 +8746,7 @@ async function reventaSaveProd(id){
 async function reventaAddProd(seccionId){
   const wrap=document.querySelector(`#costeoBody .rv-addbtn[data-s="${seccionId}"]`).closest('tr');
   const g=nf=>wrap.querySelector(`.rv-new[data-nf="${nf}"]`).value;
-  const nombre=g('nombre').trim(); if(!nombre){ alert('Escribí el nombre del producto.'); return; }
+  const nombre=g('nombre').trim(); if(!nombre){ alert('Escribe el nombre del producto.'); return; }
   try{
     const r=await fetch(cRest('/admin/costeo/reventa/producto'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seccionId,nombre,precioVenta:cNum(g('precioVenta')),precioCompra:cNum(g('precioCompra'))})});
     if(!r.ok){const e=await r.json();throw new Error(e.error||'Error');}
@@ -8845,22 +8882,21 @@ function estRecalc(){
   set('estOnline',eM(c.online)); set('estOnlinePct',c.pctOnline+'%');
   set('estRetail',eM(c.retail)); set('estRetailPct',c.pctRetail+'%'); set('estRetailG',eM(c.retail));
   set('estHospitality',eM(c.hospitality)); set('estHospitalityPct',c.pctHospitality+'%'); set('estHospitalityG',eM(c.hospitality));
-  if(estadoData.excelRef && estadoData.excelRef.ingresos_total){ const ex=estadoData.excelRef.ingresos_total; const el=document.getElementById('estDeltaExcel'); if(el){ const dif=c.total-ex; el.textContent=(dif>=0?'+':'')+eM(dif)+' vs Excel ('+eM(ex)+')'; } }
+  // Delta vs Excel: dato de migración, removido de la vista (la lógica de cálculo se conserva).
 }
 function renderEstado(){
   const a=estadoData, body=document.getElementById('estadoBody');
   estHorecaChan=null; estHorecaFilter={marca:'',razon:'',sector:''};
   estWebProv=null; estWebFilter={entrega:'',tienda:''}; estWalmartMarca=''; estHospChan=null; estHospGarden='';
-  const rg = a.rango ? `${a.rango.from.slice(8)}/${a.rango.from.slice(5,7)}–${a.rango.to.slice(8)}/${a.rango.to.slice(5,7)}${a.mesCompleto?' (mes completo)':' (rango parcial)'}` : '';
-  document.getElementById('estadoMeta').textContent = (a.shopifyOk ? `Shopify OK · ${estMonthLabel(a.month)}` : `⚠️ ${a.shopifyError||'Shopify no disponible'} — solo líneas manuales`) + (rg?` · Shopify entre ${rg}`:'');
   const c=estCompute();
   const alertas=[];
-  if((a.alertas.codigosNuevos||[]).length) alertas.push(`<b>Códigos nuevos sin clasificar:</b> ${a.alertas.codigosNuevos.map(escapeHtml).join(', ')} — avisame para mapearlos`);
+  if((a.alertas.codigosNuevos||[]).length) alertas.push(`<b>Códigos nuevos sin clasificar:</b> ${a.alertas.codigosNuevos.map(escapeHtml).join(', ')} — avísame para mapearlos`);
   if((a.alertas.sinMapear||[]).length) alertas.push(`<b>Productos sin mapear (transferencias):</b> ${a.alertas.sinMapear.map(x=>escapeHtml(x.producto)).join(' · ')}`);
-  const alertBox = alertas.length? `<div class="est-alert">⚠️ ${alertas.join('<br>')}</div>`:'';
+  // Diagnóstico de datos: fuera del flujo principal, en un bloque colapsado (cerrado por defecto).
+  const alertBox = alertas.length? `<details class="est-diag"><summary>ⓘ Diagnóstico de datos (${alertas.length})</summary><div class="est-diag-body">${alertas.map(x=>'⚠️ '+x).join('<br>')}</div></details>`:'';
   const pr=estadoDraft.preciosTransfer;
   const transTabla=(t,titulo,editable,drillKey)=>{
-    const rows=(t.tabla||[]).map(r=>`<tr><td>${escapeHtml(r.estilo)}</td><td class="dist-num">${eM(r.precioLt)}</td><td class="dist-num">${eM(r.despachoLt)}</td><td class="dist-num">${r.litros}</td><td class="dist-num">${r.pct}%</td><td class="dist-num">${eM(r.valor)}</td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:#999;padding:.6rem">Sin litros${editable?' — agregá abajo':''}</td></tr>`;
+    const rows=(t.tabla||[]).map(r=>`<tr><td>${escapeHtml(r.estilo)}</td><td class="dist-num">${eM(r.precioLt)}</td><td class="dist-num">${eM(r.despachoLt)}</td><td class="dist-num">${r.litros}</td><td class="dist-num">${r.pct}%</td><td class="dist-num">${eM(r.valor)}</td></tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:#999;padding:.6rem">Sin litros${editable?' — agrega abajo':''}</td></tr>`;
     const verPed = (drillKey && (t.pedidos||[]).length) ? ` <button class="dist-portal-link" data-drill="${drillKey}">ver pedidos</button>` : '';
     return `<div class="est-sec"><div class="est-sec-h">${titulo} <b>${eM(t.valor)}</b> <span class="est-lt">${t.litros} lt</span>${verPed}</div>
       ${drillKey?`<div class="est-drill-box" id="estDrill_${drillKey}"></div>`:''}
@@ -8871,8 +8907,7 @@ function renderEstado(){
   const chanCard=(id,label,sub,val,pct)=>`<div class="est-chan"><div class="est-chan-l">${label}</div><div class="est-chan-sub">${sub}</div><div class="est-chan-v" id="${id}">${eM(val)}</div><div class="est-chan-pct" id="${id}Pct">${pct}%</div></div>`;
   body.innerHTML=`
     <div class="est-top">
-      <div class="est-total-box"><div class="est-total-l">Total Ingresos</div><div class="est-total-v" id="estTotal">${eM(c.total)}</div>${a.excelRef?`<div class="est-delta" id="estDeltaExcel"></div>`:''}</div>
-      <div class="est-note">Ingresos por <b>4 canales</b>, <b>100% automáticos de Shopify</b> (sin carga manual): HORECA (CD Kairos + Cruzada) · Venta Online (web) · Retail (Walmart) · Hospitality (locales propios).</div>
+      <div class="est-total-box"><div class="est-total-l">Total Ingresos</div><div class="est-total-v" id="estTotal">${eM(c.total)}</div></div>
     </div>
     <div class="est-chans">
       ${chanCard('estHoreca','① HORECA','CD Kairos + Ventas Cruzada',c.horeca,c.pctHoreca)}
@@ -8902,7 +8937,7 @@ function renderEstado(){
         ${(a.ingresos.ventas_web.proveedores||[]).map(pv=>{const b=(a.ingresos.ventas_web.porProveedor||{})[pv]||{total:0,n:0};return `<button class="est-hchan" data-wprov="${escapeHtml(pv)}"><b>${escapeHtml(pv)}</b><span>${eM(b.total)} · ${b.n} pedidos</span></button>`;}).join('')}
       </div>
       <div id="estWebPanel"></div>
-      ${a.ingresos.ventas_web.detalleEntrega===false?`<div class="est-auto" style="margin-top:.5rem">ℹ️ El detalle de entrega (retiro/despacho, courier, origen, tienda) no está disponible: falta el permiso de Shopify de <b>fulfillment orders</b>. Re-autorizá la app para verlo.</div>`:(a.ingresos.ventas_web.origenDespacho===false?`<div class="est-auto" style="margin-top:.5rem">ℹ️ El <b>origen del despacho</b> (de dónde sale) necesita el permiso de Shopify de <b>fulfillment orders</b>. La tienda del Kioskify y el courier sí se muestran.</div>`:'')}
+      ${a.ingresos.ventas_web.detalleEntrega===false?`<div class="est-auto" style="margin-top:.5rem">ℹ️ El detalle de entrega (retiro/despacho, courier, origen, tienda) no está disponible: falta el permiso de Shopify de <b>fulfillment orders</b>. Re-autoriza la app para verlo.</div>`:(a.ingresos.ventas_web.origenDespacho===false?`<div class="est-auto" style="margin-top:.5rem">ℹ️ El <b>origen del despacho</b> (de dónde sale) necesita el permiso de Shopify de <b>fulfillment orders</b>. La tienda del Kioskify y el courier sí se muestran.</div>`:'')}
     </div>
 
     <div class="est-group">③ Retail <span>· Walmart · por marca</span><b id="estRetailG">${eM(c.retail)}</b></div>
@@ -9173,9 +9208,9 @@ function cgMarcaTotalUpdate(tipo){
 function renderCostos(tipo){
   const cfg=COSTOS_TIPO_CFG[tipo];
   const a=costosData[tipo], body=document.getElementById(cfg.bodyId); const f=costosForm[tipo];
-  const provOpts=['<option value="">— Elegí un proveedor —</option>',...(a.proveedores||[]).map(p=>`<option value="${escapeAttr(p.nombre)}" ${p.nombre===f.proveedor?'selected':''}>${escapeHtml(p.nombre)}</option>`),'<option value="__nuevo__">+ Crear nuevo proveedor…</option>'].join('');
-  const catOpts=['<option value="">— Elegí una categoría —</option>',...(a.categorias||[]).map(c=>`<option value="${c.id}" ${c.id===f.categoria?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
-  const marcaOpts=['<option value="">— Elegí una marca —</option>',
+  const provOpts=['<option value="">— Elige un proveedor —</option>',...(a.proveedores||[]).map(p=>`<option value="${escapeAttr(p.nombre)}" ${p.nombre===f.proveedor?'selected':''}>${escapeHtml(p.nombre)}</option>`),'<option value="__nuevo__">+ Crear nuevo proveedor…</option>'].join('');
+  const catOpts=['<option value="">— Elige una categoría —</option>',...(a.categorias||[]).map(c=>`<option value="${c.id}" ${c.id===f.categoria?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
+  const marcaOpts=['<option value="">— Elige una marca —</option>',
     ...['kairos','banny','firulais'].map(m=>`<option value="${m}" ${f.marca===m?'selected':''}>${COSTOS_MARCAS_LBL[m]}</option>`),
     `<option value="todas" ${f.marca==='todas'?'selected':''}>Todas</option>`,
     `<option value="algunas" ${f.marca==='algunas'?'selected':''}>Algunas…</option>`,
@@ -9272,11 +9307,11 @@ async function costosAgregar(tipo){
   const payload={ proveedor:f.proveedor, categoria:f.categoria, fecha:f.fecha, folio:f.folio, valor:cNum(f.valor), adjunto:f.adjunto||null, marca:f.marca };
   if(f.marca==='algunas') payload.marcaDetalle=['kairos','banny','firulais'].filter(m=>f.marcaSel[m]).map(m=>({marca:m,pct:Number(f.marcaPct[m])||0}));
   if(cfg.pctTotal && f.pctTotal) payload.pctTotal=Number(f.pctTotal);
-  if(!payload.proveedor||payload.proveedor==='__nuevo__') return costosShowErr(tipo,'Elegí un proveedor.');
-  if(!payload.categoria) return costosShowErr(tipo,'Elegí una categoría.');
-  if(!payload.marca) return costosShowErr(tipo,'Elegí a qué marca corresponde.');
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(payload.fecha)) return costosShowErr(tipo,'Elegí la fecha del documento.');
-  if(!payload.valor) return costosShowErr(tipo,'Ingresá el valor.');
+  if(!payload.proveedor||payload.proveedor==='__nuevo__') return costosShowErr(tipo,'Elige un proveedor.');
+  if(!payload.categoria) return costosShowErr(tipo,'Elige una categoría.');
+  if(!payload.marca) return costosShowErr(tipo,'Elige a qué marca corresponde.');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(payload.fecha)) return costosShowErr(tipo,'Elige la fecha del documento.');
+  if(!payload.valor) return costosShowErr(tipo,'Ingresa el valor.');
   try{
     const r=await fetch('/admin/costos/entrada',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json();
     if(!r.ok) throw new Error(d.error||'Error');
@@ -9368,13 +9403,13 @@ function wireNomina(){
 async function nominaGuardar(id){
   const row=document.querySelector(`tr[data-erow="${id}"]`); if(!row) return;
   const payload={}; row.querySelectorAll('[data-ef]').forEach(el=>payload[el.dataset.ef]=el.value);
-  if(!(payload.nombre||'').trim()){ alert('Ingresá el nombre completo.'); return; }
+  if(!(payload.nombre||'').trim()){ alert('Ingresa el nombre completo.'); return; }
   try{ const r=await fetch('/admin/nomina/persona/'+encodeURIComponent(id),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); nominaEditId=null; await loadNomina(); }
   catch(e){ alert(String(e.message||e)); }
 }
 async function nominaAgregar(){
   const err=document.getElementById('nmErr'); err.textContent=''; err.classList.remove('show');
-  if(!nominaForm.nombre.trim()){ err.textContent='⚠ Ingresá el nombre completo.'; err.classList.add('show'); return; }
+  if(!nominaForm.nombre.trim()){ err.textContent='⚠ Ingresa el nombre completo.'; err.classList.add('show'); return; }
   try{
     const r=await fetch('/admin/nomina/persona',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(nominaForm)}); const d=await r.json();
     if(!r.ok) throw new Error(d.error||'Error');
@@ -9570,7 +9605,7 @@ function renderPnl(){
       ${res('EBITDA · Resultado operativo', a.ebitda, rt.ebitda, ebitdaCls)}
     </tbody></table></div>
     <div class="pnl-activos"><span>Activos fijos <span style="font-size:.78rem;color:var(--dim,#999)">inversión, no afecta el resultado operativo</span></span><b>${eM(co.activos)}</b> <span class="pnl-doc">${dc.activos_fijos||0} doc${(dc.activos_fijos||0)===1?'':'s'}</span></div>
-    <div class="est-note" style="margin-top:.8rem">Para cargar o editar los costos y gastos, andá a <b>Costos</b> o <b>Gastos</b>. Acá se resumen automáticamente por categoría.</div>`;
+    <div class="est-note" style="margin-top:.8rem">Para cargar o editar los costos y gastos, ve a <b>Costos</b> o <b>Gastos</b>. Acá se resumen automáticamente por categoría.</div>`;
 }
 document.getElementById('pnlReload').onclick=loadPnl;
 document.getElementById('pnlMes').onchange=loadPnl;
@@ -9615,7 +9650,7 @@ function forecastRenderArea(){
   document.getElementById('fcBackWrap').style.display = fcArea ? '' : 'none';
   if(!fcArea){
     document.getElementById('fcTitle').textContent='Forecast';
-    document.getElementById('fcMeta').textContent='elegí qué querés proyectar';
+    document.getElementById('fcMeta').textContent='elige qué quieres proyectar';
     const cards=FC_AREAS.map(a=>`<div class="adm-cat" data-fcarea="${a.id}" style="--accent:var(--gold)">
       <div class="adm-cat-ic">${a.icon}</div>
       <div class="adm-cat-name">${escapeHtml(a.label)}</div>
@@ -9749,7 +9784,7 @@ function fcProyRender(){
     <div class="cg-form" style="margin-top:1rem">
       <div class="cg-form-title">Agregar ajuste manual</div>
       <div class="cg-form-grid">
-        <label class="cg-field"><span>Categoría</span><select id="fcAjCat"><option value="">— Elegí una categoría —</option>${catOpts}</select></label>
+        <label class="cg-field"><span>Categoría</span><select id="fcAjCat"><option value="">— Elige una categoría —</option>${catOpts}</select></label>
         <label class="cg-field"><span>Descripción</span><input type="text" id="fcAjDesc" placeholder="Ej: arriendo nuevo local"></label>
         <label class="cg-field"><span>Monto ($)</span><input type="text" inputmode="numeric" id="fcAjMonto" placeholder="0"></label>
         <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fcAjAdd" type="button">+ Agregar ajuste</button></div>
@@ -9779,8 +9814,8 @@ async function fcAjusteAgregar(){
   const categoria=document.getElementById('fcAjCat').value;
   const descripcion=document.getElementById('fcAjDesc').value;
   const monto=cNum(document.getElementById('fcAjMonto').value);
-  if(!categoria){ err.textContent='⚠ Elegí una categoría.'; err.classList.add('show'); return; }
-  if(!monto){ err.textContent='⚠ Ingresá el monto.'; err.classList.add('show'); return; }
+  if(!categoria){ err.textContent='⚠ Elige una categoría.'; err.classList.add('show'); return; }
+  if(!monto){ err.textContent='⚠ Ingresa el monto.'; err.classList.add('show'); return; }
   try{
     const r=await fetch('/admin/forecast/proyectado/ajuste',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({month:fcProyMonth,categoria,descripcion,monto})});
     const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
@@ -9908,7 +9943,7 @@ function fcAnualRender(){
   const t=a.totales;
   body.innerHTML=`
     <div class="fc-toolbar"><div class="fc-toolbar-l"><span>Año</span><select id="fcAnualSel">${yearOpts}</select></div></div>
-    <div class="fc-note">Los meses hasta <b>${escapeHtml(estMonthLabel(a.curMonth))}</b> son reales. Para los meses siguientes, elegí de qué mes ya ocurrido copiar los valores — así se simula cómo cerraría el año.</div>
+    <div class="fc-note">Los meses hasta <b>${escapeHtml(estMonthLabel(a.curMonth))}</b> son reales. Para los meses siguientes, elige de qué mes ya ocurrido copiar los valores — así se simula cómo cerraría el año.</div>
     <div class="oee-panel-t">Línea de tiempo del EBITDA mensual</div>
     ${fcAnualChart(a.meses)}
     <div class="est-total-box ${t.ebitda>=0?'':'pnl-box-red'}" style="margin-top:1rem;max-width:340px"><div class="est-total-l">EBITDA anual proyectado</div><div class="est-total-v">${eM(t.ebitda)}</div></div>
@@ -9952,8 +9987,8 @@ const prodNow=()=>new Date().toISOString();
 async function prodSafeJson(r){
   const ct=(r.headers.get('content-type')||'');
   if(!ct.includes('application/json')){
-    if(r.status===401||r.status===403) throw new Error('Tu sesión venció — recargá la página e iniciá sesión de nuevo.');
-    throw new Error('El servidor no devolvió una respuesta válida (status '+r.status+'). Probá de nuevo en un momento.');
+    if(r.status===401||r.status===403) throw new Error('Tu sesión venció — recarga la página e iniciá sesión de nuevo.');
+    throw new Error('El servidor no devolvió una respuesta válida (status '+r.status+'). Prueba de nuevo en un momento.');
   }
   try{ return await r.json(); }
   catch(e){ throw new Error('Respuesta inválida del servidor (status '+r.status+').'); }
@@ -10058,7 +10093,7 @@ function prodRenderCoccion(){
       <label class="cg-field"><span>Volumen esperado (L)</span><input id="plVol" inputmode="numeric" placeholder="1000"></label>
       <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="plAdd" type="button">+ Iniciar lote</button></div>
     </div><div class="cg-err" id="plErr"></div></div>`;
-  const lista=lotesCoc.length?lotesCoc.map(l=>prodLoteCard(l)).join(''):'<div class="dist-empty">No hay lotes en cocción. Creá uno arriba.</div>';
+  const lista=lotesCoc.length?lotesCoc.map(l=>prodLoteCard(l)).join(''):'<div class="dist-empty">No hay lotes en cocción. Crea uno arriba.</div>';
   return form+'<div class="prod-sec-h" style="margin-top:1rem">Lotes en cocción <span>'+lotesCoc.length+'</span></div>'+lista;
 }
 // Tarjeta de un lote con sus etapas (inicio/fin) y acciones según estado.
@@ -10178,7 +10213,7 @@ function prodRenderRecetas(){
         <button class="rec-ico" data-rec-del="${r.id}" title="Eliminar">🗑</button>
       </div></td></tr>`;
   }).join('');
-  const table=`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Nombre</th><th>Estilo</th><th style="text-align:right">Litros</th><th style="text-align:right">OG</th><th style="text-align:right">ABV %</th><th></th></tr></thead><tbody>${rows||`<tr><td colspan="6" style="text-align:center;color:#999;padding:.8rem">${q?'Sin resultados para «'+escapeHtml(prodRecQuery)+'»':'No hay recetas. Creá una o sincronizá el ERP.'}</td></tr>`}</tbody></table></div>`;
+  const table=`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Nombre</th><th>Estilo</th><th style="text-align:right">Litros</th><th style="text-align:right">OG</th><th style="text-align:right">ABV %</th><th></th></tr></thead><tbody>${rows||`<tr><td colspan="6" style="text-align:center;color:#999;padding:.8rem">${q?'Sin resultados para «'+escapeHtml(prodRecQuery)+'»':'No hay recetas. Crea una o sincronizá el ERP.'}</td></tr>`}</tbody></table></div>`;
   const pager=filt.length>PROD_REC_PER?`<div class="rec-pager"><button class="rec-ico" id="recPrev" ${prodRecPage<=0?'disabled':''}>‹</button><span>Página ${prodRecPage+1} de ${pages} · ${filt.length} recetas</span><button class="rec-ico" id="recNext" ${prodRecPage>=pages-1?'disabled':''}>›</button></div>`:`<div class="rec-pager"><span>${filt.length} receta${filt.length===1?'':'s'}</span></div>`;
   return toolbar+editor+viewer+table+pager;
 }
@@ -10268,7 +10303,7 @@ function prodOeePeriodWindow(p){
 async function prodLoadOee(){
   const body=document.getElementById('oeeBody'); if(!body) return;
   const w=prodOeePeriodWindow(prodOee.periodo);
-  if(prodOee.periodo==='rango'){ if(!prodOee.desde||!prodOee.hasta){ body.innerHTML='<div class="oee-empty">Elegí un rango de fechas.</div>'; return; } w.desde=prodOee.desde; w.hasta=prodOee.hasta; }
+  if(prodOee.periodo==='rango'){ if(!prodOee.desde||!prodOee.hasta){ body.innerHTML='<div class="oee-empty">Elige un rango de fechas.</div>'; return; } w.desde=prodOee.desde; w.hasta=prodOee.hasta; }
   body.innerHTML='<div class="adm-loading">Calculando OEE…</div>';
   const qs=new URLSearchParams({centro:prodOee.centro,desde:w.desde,hasta:w.hasta,bucket:w.bucket,n:w.n});
   if(prodOee.incluirLimp!==null) qs.set('incluirLimpieza',prodOee.incluirLimp?'1':'0');
@@ -10311,7 +10346,7 @@ function prodOeeDashboard(j){
     ${prodOeeCard('Calidad',C.valor,bC, j.centro==='brewhouse'?'—':'buenos / (buenos + rechazados)',
       j.centro==='brewhouse'?'<i>La calidad se mide en envasado.</i>':`Buenos <b>${C.litrosBuenos} L</b> · Rech. <b>${C.litrosRechazados} L</b><br>Latas nivel bajo <b>${C.latasNivelBajo}</b> · Merma tapas <b>${C.mermaTapas}</b>`)}
   </div>`;
-  const aviso=D.esTecho?`<div class="oee-warn">⚠ Disponibilidad es un <b>techo</b>: no hay paradas no planificadas registradas en este centro/periodo. Cargá fallas/esperas para el número real.</div>`:'';
+  const aviso=D.esTecho?`<div class="oee-warn">⚠ Disponibilidad es un <b>techo</b>: no hay paradas no planificadas registradas en este centro/periodo. Carga fallas/esperas para el número real.</div>`:'';
   return controls_meta(j)+cards+aviso+prodOeeTrend(j)+`<div class="oee-grid">${prodOeeParetoParadas(j)}${prodOeeParetoCoccion(j)}${prodOeeLead(j)}${prodOeeBarrilLata(j)}</div>`+prodOeeMerma(j)+`<div class="oee-grid">${prodOeeOcupacion(j)}${prodOeeComplementarias(j)}</div>`;
 }
 function controls_meta(j){
@@ -10402,7 +10437,7 @@ function prodCalRender(){
 }
 function prodCalCervOpts(sel){
   const cs=prodCal.data.cervezas||[];
-  return '<option value="">— elegí una cerveza —</option>'+cs.map(c=>`<option value="${escapeAttr(c.cervezaId)}" data-nombre="${escapeAttr(c.nombre)}" data-estilo="${escapeAttr(c.estilo||'')}" ${sel===c.cervezaId?'selected':''}>${escapeHtml(c.nombre)}${c.estilo?(' · '+escapeHtml(c.estilo)):''}</option>`).join('');
+  return '<option value="">— elige una cerveza —</option>'+cs.map(c=>`<option value="${escapeAttr(c.cervezaId)}" data-nombre="${escapeAttr(c.nombre)}" data-estilo="${escapeAttr(c.estilo||'')}" ${sel===c.cervezaId?'selected':''}>${escapeHtml(c.nombre)}${c.estilo?(' · '+escapeHtml(c.estilo)):''}</option>`).join('');
 }
 function prodCalCompByName(){ const m={}; (prodCal.data.competencias||[]).forEach(c=>m[c.nombre]=c); return m; }
 function prodCalMedalIco(resultado,compNombre,cls){
@@ -10418,7 +10453,7 @@ function prodCalInicio(){
   const cs=prodCal.data.cervezas||[]; const res=prodCal.data.resumenes||{};
   const header=`<h2 class="cal-hero-t">ESPACIO SAGRADO! Encuentra aquí la evolución y diagnóstico histórico de nuestros productos</h2>
     <div class="cal-quote"><div class="cal-quote-text">"El éxito es la suma de pequeños esfuerzos repetidos día tras día."</div><div class="cal-quote-author">— Robert Collier</div></div>`;
-  if(!cs.length) return header+`<div class="cal-form"><div class="cal-form-t">Sin cervezas en el catálogo todavía</div><div class="cal-form-s">El catálogo se arma desde tus recetas y Shopify (solo los productos que Producción elabora) + cervezas referenciadas y overrides/manuales. Para cargar una imagen de lata y su estilo, andá a Competencias → "cerveza" o registrá desde los formularios.</div></div>`;
+  if(!cs.length) return header+`<div class="cal-form"><div class="cal-form-t">Sin cervezas en el catálogo todavía</div><div class="cal-form-s">El catálogo se arma desde tus recetas y Shopify (solo los productos que Producción elabora) + cervezas referenciadas y overrides/manuales. Para cargar una imagen de lata y su estilo, ve a Competencias → "cerveza" o registra desde los formularios.</div></div>`;
   const search=`<div class="cal-search"><label class="cal-search-lbl" for="calSearchSel">🔎 Selecciona la cerveza que quieres observar</label><select id="calSearchSel" class="cal-search-sel">${prodCalCervOpts(prodCal.sel)}</select></div>`;
   const detail=prodCal.sel?prodCalDetalle(prodCal.sel):'';
   const card=c=>{
@@ -10498,7 +10533,7 @@ function prodCalCompetencias(){
     </div>
     <div class="cal-medal-up"><div class="m"><div>🥫 Imagen de la lata (manual, gana sobre la de Shopify)</div><img id="cvImg" style="display:none"><label class="adm-btn adm-btn-ghost" style="cursor:pointer;font-size:.72rem;padding:.3rem .5rem">Subir<input type="file" accept="image/png,image/*" id="cvImgInp" style="display:none"></label></div></div>
     <div class="cal-btn-row"><button class="adm-btn adm-btn-gold" id="cvSave">Guardar cerveza</button><button class="adm-btn adm-btn-ghost" id="cvCancel">Cancelar</button><span class="cal-err" id="cvErr"></span></div></div>`:'';
-  const form=`<div class="cal-form"><div class="cal-form-t">Registrar participación en competencia <button class="adm-btn adm-btn-ghost" id="cvAdd" style="margin-left:.6rem;font-size:.72rem;padding:.25rem .55rem;vertical-align:middle">➕ Agregar cerveza</button></div><div class="cal-form-s">Elegí la cerveza (autocompleta el estilo), la competencia, el resultado y el feedback. La IA resume los PDFs en 5 categorías.</div>
+  const form=`<div class="cal-form"><div class="cal-form-t">Registrar participación en competencia <button class="adm-btn adm-btn-ghost" id="cvAdd" style="margin-left:.6rem;font-size:.72rem;padding:.25rem .55rem;vertical-align:middle">➕ Agregar cerveza</button></div><div class="cal-form-s">Elige la cerveza (autocompleta el estilo), la competencia, el resultado y el feedback. La IA resume los PDFs en 5 categorías.</div>
     <div class="cal-grid">
       <label class="cal-fld">Cerveza evaluada<select id="rcCerveza" class="cal-cerv" data-estilo-for="rcEstilo">${prodCalCervOpts()}</select></label>
       <label class="cal-fld">Estilo (auto)<input id="rcEstilo" placeholder="—"></label>
@@ -10544,7 +10579,7 @@ function prodCalRetro(){
       <label class="cal-fld">Estilo (auto)<input id="fbEstilo" placeholder="—"></label>
     </div>
     <label class="cal-fld cal-full" style="margin-top:.6rem">Retroalimentación (máx. 500)
-      <textarea id="fbTexto" maxlength="500" data-count="fbCount" placeholder="Escribí la retroalimentación…"></textarea>
+      <textarea id="fbTexto" maxlength="500" data-count="fbCount" placeholder="Escribe la retroalimentación…"></textarea>
       <span class="cal-count" id="fbCount">0 / 500</span></label>
     <div class="cal-btn-row"><button class="adm-btn adm-btn-gold" id="fbSave">Guardar</button><span class="cal-err" id="fbErr"></span></div></div>`;
   const list=(prodCal.data.retros||[]).slice().sort((a,b)=>new Date(b.fecha)-new Date(a.fecha));
@@ -10563,7 +10598,7 @@ function prodCalMemorias(){
       <label class="cal-fld">Categoría<select id="memCat">${Object.entries(CAL_CAT_LBL).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>
     </div>
     <label class="cal-fld cal-full" style="margin-top:.6rem">Memoria (máx. 500)
-      <textarea id="memTexto" maxlength="500" data-count="memCount" placeholder="Describí el defecto/problema…"></textarea>
+      <textarea id="memTexto" maxlength="500" data-count="memCount" placeholder="Describe el defecto/problema…"></textarea>
       <span class="cal-count" id="memCount">0 / 500</span></label>
     <div class="cal-fld cal-full">Imagen (foto del defecto)<div class="cal-files">${img}${!prodCal.memImg?`<label class="cal-file" style="cursor:pointer;border-style:dashed">➕ Imagen<input type="file" accept="image/*" id="memImgInp" style="display:none"></label>`:''}</div></div>
     <div class="cal-btn-row"><button class="adm-btn adm-btn-gold" id="memSave">Guardar memoria</button><span class="cal-err" id="memErr"></span></div></div>`;
@@ -10613,7 +10648,7 @@ function prodCalWire(){
   if(g('cvCancel')) g('cvCancel').onclick=()=>{ prodCal.cervNueva=false; prodCal.cervImg=null; prodCalRender(); };
   if(g('cvImgInp')) g('cvImgInp').onchange=async()=>{ const f=g('cvImgInp').files[0]; if(!f)return; try{ const up=await prodCalUpload(f); prodCal.cervImg=up.url; const im=g('cvImg'); if(im){im.src=up.url;im.style.display='';} }catch(e){ alert(String(e.message||e)); } };
   if(g('cvSave')) g('cvSave').onclick=async()=>{
-    const err=g('cvErr'); const nombre=g('cvNombre').value.trim(); if(!nombre){ err.textContent='⚠ Ingresá el nombre.'; return; }
+    const err=g('cvErr'); const nombre=g('cvNombre').value.trim(); if(!nombre){ err.textContent='⚠ Ingresa el nombre.'; return; }
     const body={nombre,estilo:g('cvEstilo').value,shopifyTitle:g('cvShopifyTitle').value}; if(prodCal.cervImg) body.imagen=prodCal.cervImg;
     const d=await prodCalReq('cerveza','POST',body);
     if(d){ prodCal.cervNueva=false; prodCal.cervImg=null; prodCalRender(); }
@@ -10664,7 +10699,7 @@ async function prodCalGenerarResumenPdfs(){
 async function prodCalGuardarRegistro(){
   const g=id=>document.getElementById(id); const err=g('rcErr'); err.textContent='';
   const cervSel=g('rcCerveza'); const o=cervSel.selectedOptions[0];
-  if(!cervSel.value){ err.textContent='⚠ Elegí la cerveza.'; return; }
+  if(!cervSel.value){ err.textContent='⚠ Elige la cerveza.'; return; }
   const compSel=g('rcComp'); const co=compSel.selectedOptions[0];
   // Si hay PDFs adjuntos y todavía nadie apretó "Generar desde PDFs", se genera
   // solo antes de guardar — así no se pierde el feedback por olvido.
@@ -10674,7 +10709,7 @@ async function prodCalGuardarRegistro(){
     const ie=g('rcIaErr'); if(ie){ ie.style.color=''; ie.textContent='Generando resumen desde los PDF adjuntos…'; }
     try{ resumenIA=await prodCalGenerarResumenPdfs(); if(ie){ ie.style.color='#2e9c5a'; ie.textContent='✓ resumen generado'; } }
     catch(e){
-      if(ie){ ie.style.color='#d9534f'; ie.textContent='⚠ No se pudo generar el resumen (' +String(e.message||e)+ ') — revisalo o completalo a mano antes de guardar.'; }
+      if(ie){ ie.style.color='#d9534f'; ie.textContent='⚠ No se pudo generar el resumen (' +String(e.message||e)+ ') — revísalo o completalo a mano antes de guardar.'; }
       return; // no guardamos a ciegas: mejor que el usuario vea el error y reintente
     }
   }
@@ -10831,7 +10866,7 @@ function prodWire(){
   };
   if(g('invAdd')) g('invAdd').onclick=async()=>{
     const err=g('invErr'); if(err) err.textContent='';
-    const nombre=g('invNombre').value.trim(); if(!nombre){ if(err) err.textContent='⚠ Ingresá el nombre/diseño.'; return; }
+    const nombre=g('invNombre').value.trim(); if(!nombre){ if(err) err.textContent='⚠ Ingresa el nombre/diseño.'; return; }
     const body={categoria:g('invCat').value,nombre,cantidad:cNum(g('invCant').value),costoUnitario:cNum(g('invCosto').value)};
     try{ const r=await fetch('/admin/produccion/inventario/insumo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
     catch(e){ if(err) err.textContent='⚠ '+String(e.message||e); }
@@ -10887,7 +10922,7 @@ function prodWire(){
       const win=(d.ganadores||[]);
       const rowClass=x=>(x.status>=200&&x.status<300&&x.esJson&&!x.esLogin)?'style="background:#e3f6ea"':(x.status>=200&&x.status<300?'style="background:#fff8ea"':'');
       const rows=(d.resultados||[]).map(x=>`<tr ${rowClass(x)}><td>${escapeHtml(x.label)}</td><td class="dist-num">${x.status||(x.error||'—')}</td><td>${x.esJson?'JSON':(x.esLogin?'login':escapeHtml(x.contentType||''))}</td><td style="font-size:.7rem;color:#666">${escapeHtml(x.snippet||x.error||'')}</td></tr>`).join('');
-      box.innerHTML=`<div class="est-note" style="margin-top:.6rem">${win.length?('<b style="color:#2e9c5a">✓ '+win.length+' combinación(es) con JSON</b> — probablemente la API real. Pasame estos resultados y escribo el adaptador.'):'<b style="color:#c17a10">Ninguna combinación devolvió JSON.</b> Puede que la API use otra URL/auth. Copiame la tabla y/o conseguí la doc de la API con Gestión Cervecera.'}</div>
+      box.innerHTML=`<div class="est-note" style="margin-top:.6rem">${win.length?('<b style="color:#2e9c5a">✓ '+win.length+' combinación(es) con JSON</b> — probablemente la API real. Pasame estos resultados y escribo el adaptador.'):'<b style="color:#c17a10">Ninguna combinación devolvió JSON.</b> Puede que la API use otra URL/auth. Copiame la tabla y/o consigue la doc de la API con Gestión Cervecera.'}</div>
         <div class="mun-wrap" style="margin-top:.5rem"><table class="mun-table"><thead><tr><th>Auth · URL</th><th>Status</th><th>Tipo</th><th>Respuesta</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
   };
@@ -10978,7 +11013,7 @@ function prodEtapa(key,campo){
 }
 async function prodCrearLote(){
   const g=id=>document.getElementById(id); const err=g('plErr'); err.textContent=''; err.classList.remove('show');
-  const codigo=g('plCodigo').value.trim(); if(!codigo){ err.textContent='⚠ Ingresá el código.'; err.classList.add('show'); return; }
+  const codigo=g('plCodigo').value.trim(); if(!codigo){ err.textContent='⚠ Ingresa el código.'; err.classList.add('show'); return; }
   const payload={codigo,recetaId:g('plReceta')?g('plReceta').value:'',producto:g('plProducto').value,estilo:g('plEstilo').value,familia:g('plFamilia').value,tanqueId:g('plTanque').value,nBatches:cNum(g('plNBatches').value)||1,volumenEsperadoL:cNum(g('plVol').value)};
   try{ const r=await fetch('/admin/produccion/lote',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
   catch(e){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); }
@@ -10987,7 +11022,7 @@ async function prodEnvasar(loteId){
   const box=document.querySelector('[data-env-box="'+loteId+'"]'); const l=prodLoteById(loteId); if(!box||!l) return;
   const val={}; box.querySelectorAll('[data-ef]').forEach(el=>val[el.dataset.ef]=el.value);
   const buenos=cNum(val.litrosBuenos), rech=cNum(val.litrosRechazados);
-  if(!buenos&&!rech){ alert('Ingresá litros buenos o rechazados.'); return; }
+  if(!buenos&&!rech){ alert('Ingresa litros buenos o rechazados.'); return; }
   // Validación en el front (el server también valida): no superar lo que queda.
   const base=l.volumenBaseL||l.volumenEsperadoL||0, yaEnv=l.litrosEnvasados||0;
   if(base>0 && (yaEnv+buenos+rech)>base+0.5){ alert('Esa línea supera los litros del lote. Quedan '+(base-yaEnv).toLocaleString('es-CL')+' L.'); return; }
@@ -11367,6 +11402,26 @@ function initKpiCarousel(){
     wrap.scrollLeft = x;
   }, TICK_MS);
 }
+
+// Zorbot colapsable con memoria (localStorage). Delegado + restaura estado al cargar.
+(function(){
+  const KEY='kbChatCollapsed';
+  const apply = on => document.body.classList.toggle('chat-collapsed', on);
+  try{ if(localStorage.getItem(KEY)==='1') apply(true); }catch(e){}
+  document.addEventListener('click', function(e){
+    if(e.target.closest('#chatCollapse')){ apply(true); try{localStorage.setItem(KEY,'1');}catch(e){} }
+    else if(e.target.closest('#chatReopen')){ apply(false); try{localStorage.setItem(KEY,'0');}catch(e){} }
+  });
+})();
+
+// Toggle del panel de ayuda "?" (Ingreso por Venta). Delegado: funciona aunque la vista se re-renderice.
+document.addEventListener('click', function(e){
+  const t = e.target.closest('#estHelpToggle'); if(!t) return;
+  const panel = document.getElementById('estHelpPanel'); if(!panel) return;
+  const willOpen = panel.hasAttribute('hidden');
+  if(willOpen) panel.removeAttribute('hidden'); else panel.setAttribute('hidden','');
+  t.setAttribute('aria-expanded', String(willOpen));
+});
 
 fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
   if (d && d.username) document.getElementById('btnLogout').style.display = '';
