@@ -11398,7 +11398,13 @@ function renderSidebar(){
   side.querySelectorAll('.ks-gh').forEach(h => { h.onclick = () => {
     const g = h.parentElement; const catId = g.dataset.cat;
     // El grupo FINANZAS abre su página de inicio de área (plantilla reutilizable) y se expande.
-    if (catId === 'finanzas') { g.classList.remove('col'); open.add(catId); selectSeccion('finanzas-home'); document.body.classList.remove('ks-open'); return; }
+    if (catId === 'finanzas') {
+      // Toggle normal: si estaba abierto se colapsa; si estaba colapsado se abre Y muestra el inicio de área.
+      g.classList.toggle('col');
+      if (g.classList.contains('col')) { open.delete(catId); }
+      else { open.add(catId); selectSeccion('finanzas-home'); document.body.classList.remove('ks-open'); }
+      return;
+    }
     g.classList.toggle('col');
     if (g.classList.contains('col')) open.delete(catId); else open.add(catId);
   }; });
