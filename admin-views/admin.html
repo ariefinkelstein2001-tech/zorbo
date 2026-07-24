@@ -10185,6 +10185,24 @@ function fcOperacionalRender(){
     fcPlanRender();
     return;
   }
+  if(fcOpModule==='flota'){
+    body.innerHTML=crumb+'<div id="fcFlotaRoot"></div>';
+    document.querySelector('#fcBody [data-fcopback]').onclick=()=>{ fcOpModule=null; fcOperacionalRender(); };
+    fcFlotaRender();
+    return;
+  }
+  if(fcOpModule==='inventario'){
+    body.innerHTML=crumb+'<div id="fcInvRoot"></div>';
+    document.querySelector('#fcBody [data-fcopback]').onclick=()=>{ fcOpModule=null; fcOperacionalRender(); };
+    fcInvRender();
+    return;
+  }
+  if(fcOpModule==='alertas'){
+    body.innerHTML=crumb+'<div id="fcAlertRoot"></div>';
+    document.querySelector('#fcBody [data-fcopback]').onclick=()=>{ fcOpModule=null; fcOperacionalRender(); };
+    fcAlertRender();
+    return;
+  }
   body.innerHTML=crumb+adminSinInfo('En construcción · '+mod.label, mod.desc, 'Este submódulo se arma en las próximas fases del modelo de proyección de inventario, producción y flota de barriles — todavía no hay datos que mostrar.');
   body.querySelector('[data-fcopback]').onclick=()=>{ fcOpModule=null; fcOperacionalRender(); };
 }
@@ -10653,6 +10671,104 @@ async function fcPlanRenderData(){
     ${d.costoPetPorLitro!=null?`<div class="fc-note" style="margin-top:.6rem">PET como holgura: $${d.costoPetPorLitro.toLocaleString('es-CL')}/L cargado — no se pudo calcular cuántos litros cubriría porque no hay dato real de déficit de flota (sin trazabilidad de barriles).</div>`:''}
     <div class="fc-op-marca-h" style="margin-top:1.2rem">Brecha de ocupación de estanque <span>regla 5.6</span></div>
     ${brecha}`;
+}
+
+// ── Forecast Operacional · Flota de barriles (Fase 4, sección 6) ──
+async function fcFlotaRender(){
+  const root=document.getElementById('fcFlotaRoot'); if(!root) return;
+  root.innerHTML='<div class="adm-loading">Cargando…</div>';
+  let d;
+  try{ d=await (await fetch('/admin/forecast/flota')).json(); if(d.error) throw new Error(d.error); }
+  catch(e){ root.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+  const dim=d.dimension;
+  const dimBox = dim.ok ? `
+    <div class="cg-resumen">
+      <div class="cg-card"><div class="cg-card-l">Peak mensual</div><div class="cg-card-v">${dim.peakMensualBarril.toLocaleString('es-CL')}</div><div class="cg-card-n">barriles equivalentes (${dim.peakLitrosMes.toLocaleString('es-CL')} L, últimos 12m)</div></div>
+      <div class="cg-card"><div class="cg-card-l">Flota necesaria</div><div class="cg-card-v">${dim.flotaNecesariaUnidades.toLocaleString('es-CL')}</div><div class="cg-card-n">factor de cobertura ${dim.factorCobertura}x</div></div>
+      <div class="cg-card"><div class="cg-card-l">Flota actual</div><div class="cg-card-v">${dim.flotaActualUnidades.toLocaleString('es-CL')}</div><div class="cg-card-n">${dim.coberturaActualFactor!=null?'cobertura '+dim.coberturaActualFactor+'x':'conteo manual sucios+limpios'}</div></div>
+    </div>
+    ${dim.deficitUnidades>0?`<div class="fc-note" style="margin-top:.6rem;border-left:3px solid var(--red,#d33)">⚠️ Déficit de ${dim.deficitUnidades.toLocaleString('es-CL')} barriles vs. el objetivo de cobertura.</div>`:'<div class="fc-note" style="margin-top:.6rem;border-left:3px solid var(--green,#2e9c5a)">✓ La flota actual cubre el objetivo.</div>'}
+  ` : `<div class="dist-empty">🛢️ <b>Sin dimensionamiento</b><br>Hacen falta datos de venta por canal (Shopify) para calcular el peak mensual de litros.</div>`;
+  const petBox = d.pet.aplica ? `
+    <div class="fc-op-marca-h" style="margin-top:1.2rem">PET vs. comprar flota <span>regla 5.5</span></div>
+    <div class="mun-wrap"><table class="mun-table"><tbody>
+      <tr><td>Déficit</td><td class="dist-num">${d.pet.deficitUnidades.toLocaleString('es-CL')} barriles (${d.pet.litrosDeficitMes.toLocaleString('es-CL')} L/mes)</td></tr>
+      <tr><td>Costo PET mensual</td><td class="dist-num">${d.pet.costoPetMensual!=null?'$'+d.pet.costoPetMensual.toLocaleString('es-CL'):'Sin dato (falta costoPetPorLitro en Parámetros)'}</td></tr>
+      <tr><td>Costo comprar flota (una vez)</td><td class="dist-num">${d.pet.costoComprarFlotaUnaVez!=null?'$'+d.pet.costoComprarFlotaUnaVez.toLocaleString('es-CL'):'Sin dato (falta costoBarrilNuevoUnidad en Parámetros)'}</td></tr>
+    </tbody></table></div>` : '';
+  const cicloRows=d.ciclos.map(c=>`<tr><td>${escapeHtml(c.puntoVenta)}</td><td class="dist-num">${c.promedioDias} d</td><td class="dist-num">${c.ciclosMedidos}</td></tr>`).join('');
+  root.innerHTML=`
+    ${dimBox}
+    ${petBox}
+    <div class="fc-op-marca-h" style="margin-top:1.2rem">Ciclo real de retorno por punto de venta <span>desde trazabilidad manual</span></div>
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Punto de venta</th><th style="text-align:right">Ciclo promedio</th><th style="text-align:right">Ciclos medidos</th></tr></thead><tbody>${cicloRows||'<tr><td colspan="3" style="text-align:center;color:#999;padding:.7rem">Sin trazabilidad cargada todavía</td></tr>'}</tbody></table></div>
+    <div class="fc-op-marca-h" style="margin-top:1.2rem">Registrar despacho / retorno</div>
+    <div class="cg-form">
+      <div class="cg-form-grid">
+        <label class="cg-field"><span>Fecha</span><input type="date" id="fbFecha"></label>
+        <label class="cg-field"><span>Tipo</span><select id="fbTipo"><option value="despacho">Despacho</option><option value="retorno">Retorno</option></select></label>
+        <label class="cg-field"><span>Punto de venta</span><input type="text" id="fbPV" placeholder="Ej: Garden Vespucio"></label>
+        <label class="cg-field"><span>Cantidad</span><input type="text" inputmode="numeric" id="fbCant" placeholder="1"></label>
+        <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fbAdd" type="button">+ Registrar</button></div>
+      </div>
+      <div class="cg-err" id="fbErr"></div>
+    </div>
+    <div class="fc-note" style="margin-top:.6rem">El simulador de sensibilidad ciclo↔flota y el ranking completo se recalculan solos a medida que se carga más trazabilidad — con pocos eventos el ciclo mostrado arriba ya es real, solo que con poca muestra.</div>`;
+  document.getElementById('fbAdd').onclick=async()=>{
+    const err=document.getElementById('fbErr'); err.textContent='';
+    const payload={ fecha:document.getElementById('fbFecha').value, tipo:document.getElementById('fbTipo').value, puntoVenta:document.getElementById('fbPV').value, cantidad:cNum(document.getElementById('fbCant').value)||1 };
+    if(!payload.fecha||!payload.puntoVenta){ err.textContent='Falta la fecha o el punto de venta.'; return; }
+    try{ const r=await fetch('/admin/forecast/data/barrilesEventos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const rd=await r.json(); if(!r.ok) throw new Error(rd.error||'Error'); await fcFlotaRender(); }
+    catch(e){ err.textContent=String(e.message||e); }
+  };
+}
+
+// ── Forecast Operacional · Inventario y cámara (Fase 4) ──
+async function fcInvRender(){
+  const root=document.getElementById('fcInvRoot'); if(!root) return;
+  root.innerHTML='<div class="adm-loading">Cargando…</div>';
+  let d;
+  try{ d=await (await fetch('/admin/forecast/inventario-camara')).json(); if(d.error) throw new Error(d.error); }
+  catch(e){ root.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+  if(!d.filas.length){
+    root.innerHTML=adminSinInfo('Sin inventario cargado','Carga el conteo de cerveza terminada por estilo en Parámetros › Registro manual para ver stock, ocupación de cámara y riesgo de vencimiento acá.','');
+    return;
+  }
+  const rows=d.filas.map(f=>{
+    let venc='<span style="color:var(--muted,#888);font-size:.78rem">Sin lotes envasados de este estilo</span>';
+    if(f.vencimiento){
+      const v=f.vencimiento;
+      const badge = v.diasParaVencer<0 ? '<span class="adm-status err">✗ Vencido</span>' : v.diasParaVencer<=30 ? '<span class="adm-status warn">⚠ Vence en '+v.diasParaVencer+' d</span>' : '<span class="adm-status ok">✓ '+v.diasParaVencer+' d</span>';
+      venc=`${badge} <span style="font-size:.72rem;color:var(--muted,#888)">lote ${escapeHtml(String(v.loteMasAntiguo))} · ${v.diasDesdeEnvasado} d desde envasado</span>`;
+    }
+    return `<tr><td>${escapeHtml(f.estilo)}</td><td class="dist-num">${Number(f.litros).toLocaleString('es-CL')} L</td><td style="font-size:.78rem;color:var(--muted,#888)">${escapeHtml(f.fechaConteo)}</td><td>${venc}</td></tr>`;
+  }).join('');
+  root.innerHTML=`
+    <div class="cg-resumen">
+      <div class="cg-card"><div class="cg-card-l">Stock total</div><div class="cg-card-v">${d.totalLitros.toLocaleString('es-CL')} L</div><div class="cg-card-n">último conteo por estilo</div></div>
+      <div class="cg-card"><div class="cg-card-l">Cámara declarada</div><div class="cg-card-v">${d.capCamaraTotal!=null?d.capCamaraTotal.toLocaleString('es-CL')+' L':'—'}</div><div class="cg-card-n">${d.camarasCargadas?'Parámetros › Capacidades':'sin capacidad cargada'}</div></div>
+      <div class="cg-card"><div class="cg-card-l">Ocupación</div><div class="cg-card-v">${d.ocupacionPct!=null?d.ocupacionPct+'%':'—'}</div><div class="cg-card-n">stock / capacidad de cámara</div></div>
+    </div>
+    <div class="fc-op-marca-h" style="margin-top:1.2rem">Stock y vencimiento por estilo <span>vida útil anclada al lote real más antiguo</span></div>
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Estilo</th><th style="text-align:right">Litros</th><th>Conteo</th><th>Vencimiento</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+// ── Forecast Operacional · Alertas (Fase 4) ──
+const FC_ALERT_ICON={driver_externo:'📉',vida_util:'⏳',sobreestadia:'🛢️',error_pronostico:'🎯'};
+async function fcAlertRender(){
+  const root=document.getElementById('fcAlertRoot'); if(!root) return;
+  root.innerHTML='<div class="adm-loading">Cargando…</div>';
+  let d;
+  try{ d=await (await fetch('/admin/forecast/alertas')).json(); if(d.error) throw new Error(d.error); }
+  catch(e){ root.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+  if(!d.alertas.length){
+    root.innerHTML=`<div class="dist-empty">✅ <b>Sin alertas activas</b><br>No hay quiebres de vida útil, sobre-estadía de lotes, desviación del driver externo ni pronósticos fuera de banda ahora mismo.</div>`;
+    return;
+  }
+  const rows=d.alertas.map(a=>`<tr><td>${FC_ALERT_ICON[a.tipo]||'⚠️'}</td><td><span class="adm-status ${a.severidad==='err'?'err':'warn'}">${a.severidad==='err'?'Crítica':'Advertencia'}</span></td><td>${escapeHtml(a.mensaje)}</td></tr>`).join('');
+  root.innerHTML=`
+    <div class="fc-note">Generado ${new Date(d.generadoEn).toLocaleString('es-CL')} — se recalcula cada vez que abres esta pantalla.</div>
+    <div class="mun-wrap" style="margin-top:.8rem"><table class="mun-table"><tbody>${rows}</tbody></table></div>`;
 }
 
 // ── (A) Proyectado ──

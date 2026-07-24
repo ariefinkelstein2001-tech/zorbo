@@ -4239,7 +4239,7 @@ const FORECAST_LOTE_ESTILO_SEED = {
   'Kenny Bell': 'Ámbar', 'Obertura': 'Stout', 'Hoyo en Uno': 'Hoppy Lager', 'CDA': 'Colección de Artista',
 };
 function forecastDataDefaults(){
-  return { sinonimos: {}, loteEstilo: { ...FORECAST_LOTE_ESTILO_SEED }, driverExterno: [], traspasos500: [], eventos: [], capacidadMaquila: [], capacidad: [], parametros: [], analogos: [], inventarioActual: [], quiebres: [] };
+  return { sinonimos: {}, loteEstilo: { ...FORECAST_LOTE_ESTILO_SEED }, driverExterno: [], traspasos500: [], eventos: [], capacidadMaquila: [], capacidad: [], parametros: [], analogos: [], inventarioActual: [], quiebres: [], barrilesEventos: [] };
 }
 function forecastDataLoad(){
   const d = forecastDataDefaults();
@@ -4249,7 +4249,7 @@ function forecastDataLoad(){
       if (p && typeof p === 'object') {
         if (p.sinonimos && typeof p.sinonimos === 'object') d.sinonimos = p.sinonimos;
         if (p.loteEstilo && typeof p.loteEstilo === 'object') d.loteEstilo = { ...d.loteEstilo, ...p.loteEstilo };
-        for (const k of ['driverExterno', 'traspasos500', 'eventos', 'capacidadMaquila', 'capacidad', 'parametros', 'analogos', 'inventarioActual', 'quiebres']) {
+        for (const k of ['driverExterno', 'traspasos500', 'eventos', 'capacidadMaquila', 'capacidad', 'parametros', 'analogos', 'inventarioActual', 'quiebres', 'barrilesEventos']) {
           if (Array.isArray(p[k])) d[k] = p[k];
         }
       }
@@ -4355,7 +4355,7 @@ app.get('/admin/forecast/data', requireAdmin, (req, res) => {
   const parametrosVigentes = paramClaves.map(k => { const [clave, estilo] = k.split('|'); return forecastVigente(d.parametros, p => p.clave === clave && (p.estilo || '') === estilo); }).filter(Boolean);
   res.json({ ...d, capacidadVigente, parametrosVigentes });
 });
-const FORECAST_LISTS = ['driverExterno', 'traspasos500', 'eventos', 'capacidadMaquila', 'capacidad', 'parametros', 'analogos', 'inventarioActual', 'quiebres'];
+const FORECAST_LISTS = ['driverExterno', 'traspasos500', 'eventos', 'capacidadMaquila', 'capacidad', 'parametros', 'analogos', 'inventarioActual', 'quiebres', 'barrilesEventos'];
 app.post('/admin/forecast/data/:list', requireAdmin, (req, res) => {
   const list = req.params.list;
   if (!FORECAST_LISTS.includes(list)) return res.status(400).json({ error: 'Lista inválida.' });
@@ -4396,6 +4396,10 @@ app.post('/admin/forecast/data/:list', requireAdmin, (req, res) => {
     entry.mes = b.mes; entry.canal = costosStr(b.canal, 40); entry.estilo = costosStr(b.estilo, 60);
     entry.litrosObservados = Math.max(0, Number(b.litrosObservados) || 0); entry.litrosCorregidos = Math.max(0, Number(b.litrosCorregidos) || 0);
     entry.nota = costosStr(b.nota, 200);
+  } else if (list === 'barrilesEventos') {
+    if (!fecha.test(b.fecha) || !['despacho', 'retorno'].includes(b.tipo) || !costosStr(b.puntoVenta)) return res.status(400).json({ error: 'Falta la fecha, el tipo (despacho/retorno) o el punto de venta.' });
+    entry.fecha = b.fecha; entry.tipo = b.tipo; entry.formato = prodFormatoOk(b.formato) === 'lata' ? 'barril20' : prodFormatoOk(b.formato);
+    entry.puntoVenta = costosStr(b.puntoVenta, 60); entry.cantidad = Math.max(1, Math.round(Number(b.cantidad) || 1)); entry.nota = costosStr(b.nota, 200);
   }
   const d = forecastDataLoad(); d[list].push(entry); forecastDataSave(d);
   res.json({ ok: true, entry });
@@ -4797,6 +4801,151 @@ app.get('/admin/forecast/plan-produccion', requireAdmin, async (req, res) => {
     const costoPetPorLitro = forecastParamVigente('costoPetPorLitro', null, d, null);
     res.json({ ok: true, ...req1, regla54, factibilidad, brechaOcupacion: brecha, costoPetPorLitro });
   } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+});
+
+// ─── Forecast Operacional · Fase 4: flota de barriles y tableros (alertas, inventario) ───
+const FORECAST_CANAL_LBL_SRV = { cd_kairos: 'CD Kairos', ventas_cruzada: 'Ventas Cruzada (500 Sabores)', garden: 'Garden Vespucio', badass: 'Badass', antofagasta: 'Antofagasta' };
+// Ciclo real de barriles por punto de venta: empareja cada despacho con el
+// retorno más próximo posterior de ESE punto de venta (FIFO) — nunca asumido,
+// solo trazabilidad manual real cargada (no existe trazabilidad automática hoy).
+function forecastCicloBarriles(data){
+  const d = data || forecastDataLoad();
+  const eventos = (d.barrilesEventos || []).slice().sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const porPV = {};
+  eventos.forEach(e => { (porPV[e.puntoVenta] = porPV[e.puntoVenta] || []).push(e); });
+  const resultados = [];
+  for (const [pv, evs] of Object.entries(porPV)) {
+    const cola = []; const ciclos = [];
+    for (const e of evs) {
+      if (e.tipo === 'despacho') { for (let i = 0; i < e.cantidad; i++) cola.push(e.fecha); }
+      else { for (let i = 0; i < e.cantidad && cola.length; i++) { const fD = cola.shift(); const dias = Math.round((new Date(e.fecha) - new Date(fD)) / 86400000); if (dias >= 0) ciclos.push(dias); } }
+    }
+    if (ciclos.length) resultados.push({ puntoVenta: pv, ciclosMedidos: ciclos.length, promedioDias: Math.round(ciclos.reduce((a, b) => a + b, 0) / ciclos.length * 10) / 10 });
+  }
+  return resultados.sort((a, b) => b.promedioDias - a.promedioDias);
+}
+// Dimensionamiento: flota_necesaria = peak_mensual_barril × factor_cobertura
+// (recomendado 2,0–2,5x). Peak = pico REAL de litros/mes de los últimos 12
+// meses (todos los canales medidos), no un supuesto. Flota actual = único dato
+// real disponible hoy (conteo manual agregado sucios+limpios de Producción).
+async function forecastFlotaDimensionamiento(data){
+  const d = data || forecastDataLoad();
+  const hastaMes = forecastMesActualStr();
+  const porMes = {}; const mesesConError = [];
+  for (const canal of FORECAST_PROY_CANALES) {
+    const { serie, mesesConError: mce } = await forecastSerieMensual(canal, null, hastaMes, 12, d);
+    mesesConError.push(...mce);
+    serie.forEach(p => { if (p.litros != null) porMes[p.mes] = (porMes[p.mes] || 0) + p.litros; });
+  }
+  const valores = Object.values(porMes);
+  if (!valores.length) return { ok: false, reason: 'sin_datos', mesesConError: mesesConError.length };
+  const peakLitrosMes = Math.max(...valores);
+  const tamanoBarrilL = forecastParamVigente('tamanoBarrilPromedioL', null, d, 25);
+  const peakMensualBarril = peakLitrosMes / tamanoBarrilL;
+  const factorCobertura = forecastParamVigente('factorCoberturaFlota', null, d, 2);
+  const flotaNecesariaUnidades = Math.ceil(peakMensualBarril * factorCobertura);
+  const prod = prodLoad();
+  const flotaActualUnidades = (prod.inventario && prod.inventario.barriles) ? (Number(prod.inventario.barriles.sucios) || 0) + (Number(prod.inventario.barriles.limpios) || 0) : 0;
+  const coberturaActualFactor = peakMensualBarril ? Math.round((flotaActualUnidades / peakMensualBarril) * 100) / 100 : null;
+  return {
+    ok: true, peakLitrosMes: Math.round(peakLitrosMes), tamanoBarrilL, peakMensualBarril: Math.round(peakMensualBarril * 10) / 10,
+    factorCobertura, flotaNecesariaUnidades, flotaActualUnidades, coberturaActualFactor,
+    deficitUnidades: Math.max(0, flotaNecesariaUnidades - flotaActualUnidades), mesesConError: mesesConError.length,
+  };
+}
+// Regla 5.5 — PET como variable de holgura CON COSTO (nunca como capacidad):
+// solo se puede costear si hay déficit real de flota Y los parámetros de costo
+// están cargados; si no, se declara qué falta en vez de omitir en silencio.
+function forecastPetComparativa(dimension, data){
+  const d = data || forecastDataLoad();
+  if (!dimension.ok || dimension.deficitUnidades <= 0) return { aplica: false };
+  const costoPetPorLitro = forecastParamVigente('costoPetPorLitro', null, d, null);
+  const costoBarrilNuevo = forecastParamVigente('costoBarrilNuevoUnidad', null, d, null);
+  const litrosDeficitMes = dimension.deficitUnidades * dimension.tamanoBarrilL;
+  return {
+    aplica: true, deficitUnidades: dimension.deficitUnidades, litrosDeficitMes: Math.round(litrosDeficitMes),
+    costoPetPorLitro, costoBarrilNuevo,
+    costoPetMensual: costoPetPorLitro != null ? Math.round(litrosDeficitMes * costoPetPorLitro) : null,
+    costoComprarFlotaUnaVez: costoBarrilNuevo != null ? Math.round(dimension.deficitUnidades * costoBarrilNuevo) : null,
+  };
+}
+app.get('/admin/forecast/flota', requireAdmin, async (req, res) => {
+  try {
+    const d = forecastDataLoad();
+    const dimension = await forecastFlotaDimensionamiento(d);
+    const ciclos = forecastCicloBarriles(d);
+    const pet = forecastPetComparativa(dimension, d);
+    res.json({ dimension, ciclos, pet });
+  } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+});
+// Vencimiento por estilo anclado a lotes REALES de Producción (fechaEnvasado),
+// no al conteo manual de inventario — el lote más antiguo vivo manda.
+function forecastVencimientoEstilo(estilo, data){
+  const d = data || forecastDataLoad();
+  const prod = prodLoad();
+  const vidaUtilDias = forecastParamVigente('vidaUtilDias', estilo, d, 180);
+  const lotes = (prod.lotes || []).filter(l => l.estilo === estilo && l.fechaEnvasado);
+  if (!lotes.length) return null;
+  const hoy = Date.now();
+  const conEdad = lotes.map(l => ({ codigo: l.codigo || l.id, dias: Math.round((hoy - new Date(l.fechaEnvasado).getTime()) / 86400000) })).filter(l => l.dias >= 0).sort((a, b) => b.dias - a.dias);
+  if (!conEdad.length) return null;
+  const masAntiguo = conEdad[0];
+  return { loteMasAntiguo: masAntiguo.codigo, diasDesdeEnvasado: masAntiguo.dias, diasParaVencer: vidaUtilDias - masAntiguo.dias, vidaUtilDias };
+}
+app.get('/admin/forecast/inventario-camara', requireAdmin, (req, res) => {
+  try {
+    const d = forecastDataLoad();
+    const porEstilo = {};
+    (d.inventarioActual || []).forEach(e => { if (!porEstilo[e.estilo] || e.fecha > porEstilo[e.estilo].fecha) porEstilo[e.estilo] = e; });
+    const filas = Object.values(porEstilo).map(e => ({ estilo: e.estilo, litros: e.litros, fechaConteo: e.fecha, vencimiento: forecastVencimientoEstilo(e.estilo, d) }));
+    const totalLitros = filas.reduce((a, f) => a + f.litros, 0);
+    const camaraSedes = [...new Set((d.capacidad || []).filter(c => c.tipo === 'camara_frio').map(c => c.sede))];
+    const capCamaraTotal = camaraSedes.reduce((a, sede) => { const v = forecastVigente(d.capacidad, x => x.tipo === 'camara_frio' && x.sede === sede); return v ? a + v.valor : a; }, 0);
+    const ocupacionPct = capCamaraTotal ? Math.round((totalLitros / capCamaraTotal) * 1000) / 10 : null;
+    res.json({ filas, totalLitros, capCamaraTotal: capCamaraTotal || null, ocupacionPct, camarasCargadas: camaraSedes.length > 0 });
+  } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+});
+// Alertas — agrega lo que YA calculan los demás motores (driver externo,
+// backtesting) más 2 chequeos directos sobre datos reales de Producción (vida
+// útil y sobre-estadía en fermentador). Misma escala semántica del resto del
+// admin (ok/warn/err), nunca solo color.
+async function forecastAlertas(data){
+  const d = data || forecastDataLoad();
+  const alertas = [];
+  const hastaMes = forecastMesActualStr();
+  const driver = await forecastDriverExterno(hastaMes, d);
+  if (driver.ok && driver.alertaDesviacion) {
+    alertas.push({ tipo: 'driver_externo', severidad: 'warn', mensaje: `La participación de CD Kairos en Grupo Mil Sabores se desvió más de 2 desviaciones estándar del promedio suavizado (último ratio: ${driver.ultimoRatio}).` });
+  }
+  const prod = prodLoad();
+  const hoy = Date.now();
+  const vidaUtilDefault = forecastParamVigente('vidaUtilDias', null, d, 180);
+  (prod.lotes || []).filter(l => l.fechaEnvasado).forEach(l => {
+    const dias = Math.round((hoy - new Date(l.fechaEnvasado).getTime()) / 86400000);
+    if (dias < 0) return;
+    const vidaUtil = forecastParamVigente('vidaUtilDias', l.estilo, d, vidaUtilDefault);
+    if (dias > vidaUtil) alertas.push({ tipo: 'vida_util', severidad: 'err', mensaje: `Lote ${l.codigo || l.id} (${l.estilo || 'sin estilo'}) envasado hace ${dias} días — excede la vida útil de ${vidaUtil} días.` });
+    else if (dias > vidaUtil - 30) alertas.push({ tipo: 'vida_util', severidad: 'warn', mensaje: `Lote ${l.codigo || l.id} (${l.estilo || 'sin estilo'}) vence en ${vidaUtil - dias} días.` });
+  });
+  const leadTimeDefault = forecastParamVigente('leadTimePlanDias', null, d, 21);
+  (prod.lotes || []).filter(l => l.fechaFermInicio && !l.fechaEnvasado).forEach(l => {
+    const dias = prodDiasOcup(l);
+    const leadTime = forecastParamVigente('leadTimePlanDias', l.estilo, d, leadTimeDefault);
+    if (dias > leadTime * 1.5) alertas.push({ tipo: 'sobreestadia', severidad: 'warn', mensaje: `Lote ${l.codigo || l.id} (${l.estilo || 'sin estilo'}) lleva ${dias} días en el estanque — el plan es ${leadTime} días.` });
+  });
+  for (const canal of FORECAST_PROY_CANALES) {
+    const bt = await forecastBacktestSerie(canal, null, hastaMes, 3, d);
+    if (bt.ok && bt.pares.length >= 2) {
+      const ultimos2 = bt.pares.slice(-2);
+      const fueraBanda = ultimos2.every(p => p.real > 0 && Math.abs((p.pronostico - p.real) / p.real) > 0.25);
+      if (fueraBanda) alertas.push({ tipo: 'error_pronostico', severidad: 'err', mensaje: `El pronóstico de ${FORECAST_CANAL_LBL_SRV[canal] || canal} viene fuera de banda (>25% de error) los últimos 2 meses medidos — revisar supuestos.` });
+    }
+  }
+  return { alertas, generadoEn: new Date().toISOString() };
+}
+app.get('/admin/forecast/alertas', requireAdmin, async (req, res) => {
+  try { res.json(await forecastAlertas(forecastDataLoad())); }
+  catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
 });
 
 // ─── HOME · Resumen (4 cuadros con datos reales) ────────────────────────────
