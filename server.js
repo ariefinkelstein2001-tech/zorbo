@@ -5206,14 +5206,19 @@ app.post('/admin/produccion/erp/sync', requireAdmin, async (req, res) => {
 //   PYXIS_LOGIN_PATH (fuerza el endpoint de login), PYXIS_AUTOSYNC_MIN
 // ─────────────────────────────────────────────────────────────────────────────
 function pyxisCreds(){
+  // web = frontend Angular (login page + bundles). api = backend REST (subdominio
+  // api-pyxis + /api, descubierto en el bundle). Ambos overridables por env.
+  const web = String(process.env.PYXIS_API_BASE || process.env.PYXIS_WEB_BASE || 'https://pyxis.grupomilsabores.cl').replace(/\/$/, '');
+  let api = String(process.env.PYXIS_API_URL || '').replace(/\/$/, '');
+  if (!api) api = web.replace(/^https?:\/\/(www\.)?/i, 'https://api-') + '/api';
   return {
     email: process.env.PYXIS_EMAIL || '',
     password: process.env.PYXIS_PASSWORD || '',
-    base: String(process.env.PYXIS_API_BASE || 'https://pyxis.grupomilsabores.cl').replace(/\/$/, ''),
-    loginPath: (process.env.PYXIS_LOGIN_PATH || '').trim(),
+    web, api,
+    loginPath: (process.env.PYXIS_LOGIN_PATH || '/auth/login').trim(),
   };
 }
-function pyxisCredsSafe(){ const c = pyxisCreds(); return { emailSet: !!c.email, passwordSet: !!c.password, base: c.base, loginPathSet: !!c.loginPath, loginPath: c.loginPath || '' }; }
+function pyxisCredsSafe(){ const c = pyxisCreds(); return { emailSet: !!c.email, passwordSet: !!c.password, web: c.web, api: c.api, loginPath: c.loginPath }; }
 async function pyxisFetch(url, opts, jar, token){
   const headers = { 'User-Agent': ERP_UA, 'Accept': 'application/json, text/plain, */*', ...(opts.headers || {}) };
   const ck = erpCookieHeader(jar); if (ck) headers['Cookie'] = ck;
@@ -5233,17 +5238,18 @@ function pyxisPickToken(obj){
   }
   return null;
 }
-// Endpoints de login candidatos para una SPA moderna. El diagnóstico los prueba todos;
-// el login real usa PYXIS_LOGIN_PATH si está seteado, o el primero que funcione.
-const PYXIS_LOGIN_CANDIDATES = ['/api/login', '/api/auth/login', '/api/authenticate', '/api/v1/login', '/api/v1/auth/login', '/api/users/login', '/api/user/login', '/api/session', '/api/account/login', '/auth/login', '/login'];
-// Un intento de login: POST JSON con varios alias de campo (email/usuario/correo/username,
-// password/clave). No exponemos la clave; sí el body de respuesta (que no la trae).
-async function pyxisLoginTry(base, path, email, password, jar){
-  const url = base + path;
+// Endpoints de login candidatos (relativos al host de API). El real es /auth/login
+// (descubierto en el bundle); el resto queda de fallback por si cambia.
+const PYXIS_LOGIN_CANDIDATES = ['/auth/login', '/login', '/auth/signin', '/authenticate', '/users/login', '/user/login', '/session'];
+// Un intento de login: POST JSON al host de API con varios alias de campo
+// (email/usuario/correo/username, password/clave). No exponemos la clave; sí el body
+// de respuesta (que no la trae). Origin/Referer apuntan al frontend (web).
+async function pyxisLoginTry(api, web, path, email, password, jar){
+  const url = api + path;
   const body = JSON.stringify({ email, password, usuario: email, correo: email, username: email, clave: password });
   let r, txt = '';
   try {
-    r = await pyxisFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'Origin': base, 'Referer': base + '/login' }, body }, jar);
+    r = await pyxisFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'Origin': web, 'Referer': web + '/login' }, body }, jar);
     txt = await r.text();
   } catch (e) { return { path, ok: false, status: 0, error: String(e.message).slice(0, 90) }; }
   let json = null; try { json = JSON.parse(txt); } catch {}
@@ -5251,23 +5257,22 @@ async function pyxisLoginTry(base, path, email, password, jar){
   const setCookie = (r.headers.getSetCookie && r.headers.getSetCookie().map(c => c.split(';')[0].split('=')[0])) || [];
   const gotSession = setCookie.some(n => /sess|token|auth|jwt|sid|connect|xsrf|laravel/i.test(n));
   const ok = r.status >= 200 && r.status < 300 && (!!token || gotSession);
-  return { path, ok, status: r.status, hasToken: !!token, token, setCookie, isJson: !!json, snippet: txt.replace(/\s+/g, ' ').slice(0, 220) };
+  return { path, ok, status: r.status, hasToken: !!token, token, setCookie, isJson: !!json, snippet: txt.replace(/\s+/g, ' ').slice(0, 260) };
 }
-// Login real: prime cookies en /login, luego prueba los candidatos (o el forzado) y
-// devuelve { ok, jar, token, endpoint }. El token/jar se usan en las llamadas de datos.
+// Login real: POST /auth/login al host de API. Devuelve { ok, jar, token, endpoint }.
+// El token (Bearer) se usa en las llamadas de datos.
 async function pyxisLogin(){
-  const { email, password, base, loginPath } = pyxisCreds();
+  const { email, password, web, api, loginPath } = pyxisCreds();
   if (!email || !password) return { ok: false, jar: null, token: null, error: 'Faltan PYXIS_EMAIL / PYXIS_PASSWORD (Railway env).' };
   const jar = {};
-  try { await pyxisFetch(base + '/login', { method: 'GET' }, jar); } catch {}
-  const cands = loginPath ? [loginPath] : PYXIS_LOGIN_CANDIDATES;
+  const cands = loginPath ? [loginPath, ...PYXIS_LOGIN_CANDIDATES.filter(p => p !== loginPath)] : PYXIS_LOGIN_CANDIDATES;
   let last = null;
   for (const p of cands) {
-    const t = await pyxisLoginTry(base, p, email, password, jar);
+    const t = await pyxisLoginTry(api, web, p, email, password, jar);
     last = t;
     if (t.ok) return { ok: true, jar, token: t.token || null, endpoint: p, error: null };
   }
-  return { ok: false, jar, token: null, endpoint: last && last.path, status: last && last.status, error: 'Ningún endpoint de login respondió OK. Corré el diagnóstico para ver el contrato real.' };
+  return { ok: false, jar, token: null, endpoint: last && last.path, status: last && last.status, error: 'El login no entró. Revisá credenciales o el contrato con el diagnóstico.', debug: last && last.snippet };
 }
 // yyyy-m-d SIN zero-pad (así lo manda el dashboard: 2026-7-24).
 function pyxisFechaHoy(){ const d = new Date(); return d.getUTCFullYear() + '-' + (d.getUTCMonth() + 1) + '-' + d.getUTCDate(); }
@@ -5293,8 +5298,9 @@ function pyxisMineBundle(js){
 // credenciales reales, (3) si alguno funciona, prueba endpoints de datos candidatos
 // (incluidos los vistos en la captura: ownpower y 2?ini=&end=) y vuelca el JSON.
 async function pyxisDiag(){
-  const { email, password, base } = pyxisCreds();
-  const rep = { base, emailSet: !!email, passwordSet: !!password, loginPage: null, forms: [], loginProbe: [], dataProbe: [], winner: null };
+  const { email, password, web, api } = pyxisCreds();
+  const base = web;
+  const rep = { web, api, emailSet: !!email, passwordSet: !!password, loginPage: null, forms: [], loginProbe: [], dataProbe: [], winner: null };
   const jar = {};
   // 1. Página de login.
   let html = '';
@@ -5333,31 +5339,31 @@ async function pyxisDiag(){
     rep.bundle.apiPaths = [...mined.apiPaths].slice(0, 60);
     rep.bundle.captura = [...mined.captura].slice(0, 50);
   } catch (e) { rep.bundle.error = String(e.message).slice(0, 120); }
-  // 2. Probar endpoints de login (secuencial, corta en el primero que funciona).
+  // 2. Probar endpoints de login (contra el host de API, secuencial, corta al 1° OK).
   if (email && password) {
     for (const p of PYXIS_LOGIN_CANDIDATES) {
-      const t = await pyxisLoginTry(base, p, email, password, jar);
+      const t = await pyxisLoginTry(api, web, p, email, password, jar);
       rep.loginProbe.push({ path: t.path, ok: t.ok, status: t.status, hasToken: !!t.hasToken, isJson: !!t.isJson, setCookie: t.setCookie || [], token: t.token ? ('‹token ' + t.token.length + ' chars›') : null, snippet: t.snippet || t.error || '' });
       if (t.ok) break;
     }
     const w = rep.loginProbe.find(x => x.ok);
     rep.winner = w ? w.path : null;
-    // 3. Con login OK, probar endpoints de datos candidatos (los de la captura + variantes).
+    // 3. Con login OK, traer el bootstrap (auth/ownpower) que expone grupos/locales, y
+    //    probar los reportes descubiertos en el bundle con el rango de fechas de la captura.
     if (w) {
       const login = await pyxisLogin();
       if (login.ok) {
         const hoy = pyxisFechaHoy();
-        const rango = 'ini=' + hoy + '&end=' + hoy;
-        const bases = [...new Set([base, base + '/api', base + '/api/v1'])];
-        const paths = ['/ownpower', '/2?' + rango, '/ventas?' + rango, '/sales?' + rango, '/dashboard?' + rango, '/clientes', '/compradores', '/customers', '/clients'];
-        const jobs = []; for (const b of bases) for (const p of paths) jobs.push(b + p);
-        await Promise.all(jobs.map(async (url) => {
+        const rango = '?ini=' + hoy + '&end=' + hoy;
+        const paths = ['/auth/ownpower', '/auth/perfil', '/grupo-mil-sabores/2/detalle-ventas' + rango, '/grupo-mil-sabores/2/costo-venta' + rango, '/grupo-mil-sabores/2/detalle-ventas-delivery' + rango];
+        await Promise.all(paths.map(async (p) => {
+          const url = api + p;
           try {
-            const r = await pyxisFetch(url, { method: 'GET', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Referer': base + '/', 'Origin': base } }, { ...login.jar }, login.token);
+            const r = await pyxisFetch(url, { method: 'GET', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Referer': web + '/', 'Origin': web } }, { ...login.jar }, login.token);
             const ct = r.headers.get('content-type') || ''; let t = ''; try { t = await r.text(); } catch {}
             const isJson = /json/i.test(ct) || /^\s*[[{]/.test(t);
-            rep.dataProbe.push({ url: url.replace(base, ''), status: r.status, isJson, len: t.length, snippet: t.replace(/\s+/g, ' ').slice(0, 700) });
-          } catch (e) { rep.dataProbe.push({ url: url.replace(base, ''), status: 0, error: String(e.message).slice(0, 60) }); }
+            rep.dataProbe.push({ url: p, status: r.status, isJson, len: t.length, snippet: t.replace(/\s+/g, ' ').slice(0, 900) });
+          } catch (e) { rep.dataProbe.push({ url: p, status: 0, error: String(e.message).slice(0, 60) }); }
         }));
         rep.dataProbe.sort((a, b) => ((b.isJson && b.len > 30) ? 1 : 0) - ((a.isJson && a.len > 30) ? 1 : 0));
       }

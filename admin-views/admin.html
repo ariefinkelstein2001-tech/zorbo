@@ -11372,7 +11372,7 @@ function prodWire(){
   if(g('pyxisBox')){
     (async()=>{ try{ const r=await fetch('/admin/pyxis/estado'); const d=await prodSafeJson(r); const est=g('pyxisEstado'); if(!est) return;
       const ok=(b,y,n)=>b?('<span style="color:#2e9c5a">✓ '+y+'</span>'):('<span style="color:#d9534f">✗ '+n+'</span>');
-      est.innerHTML=`Base: <code>${escapeHtml(d.base||'')}</code> · ${ok(d.emailSet,'PYXIS_EMAIL','falta PYXIS_EMAIL')} · ${ok(d.passwordSet,'PYXIS_PASSWORD','falta PYXIS_PASSWORD')}${d.loginPathSet?(' · login path forzado: <code>'+escapeHtml(d.loginPath)+'</code>'):''}`;
+      est.innerHTML=`Web: <code>${escapeHtml(d.web||'')}</code> · API: <code>${escapeHtml(d.api||'')}</code> · login <code>${escapeHtml(d.loginPath||'')}</code><br>${ok(d.emailSet,'PYXIS_EMAIL','falta PYXIS_EMAIL')} · ${ok(d.passwordSet,'PYXIS_PASSWORD','falta PYXIS_PASSWORD')}`;
     }catch(e){ const est=g('pyxisEstado'); if(est) est.textContent='⚠ '+String(e.message||e); } })();
   }
   if(g('pyxisDiag')) g('pyxisDiag').onclick=async()=>{
