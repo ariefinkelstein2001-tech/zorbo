@@ -11237,6 +11237,14 @@ function prodRenderConfig(){
   <div class="prod-erp-status" id="cfErpStatus">${syncTxt}${(c.erpAutoSyncMin>0)?(' · <span style="color:#2e9c5a">auto cada '+c.erpAutoSyncMin+' min</span>'):' · <span style="color:#c17a10">auto desactivado</span>'}</div>
   <div id="cfErpDiagBox"></div>
   <div class="est-note" style="margin-top:.4rem">Zorbo entra al ERP (login con clave MD5), baja recetas y lotes por su API JSON (<b>/Receta/GetAll</b>, <b>/Lote/GetAll</b>) y los sincroniza. La clave se guarda en el servidor (nunca en el navegador). El merge <b>nunca pisa</b> lo que cargaste a mano (tiempos, envasados, paradas). Con auto-sync &gt; 0, el servidor sincroniza solo cada X minutos (no hace falta apretar el botón).</div></div>`;
+  const pyxis=`<div class="cg-form" id="pyxisBox"><div class="cg-form-title">Integración ERP · Pyxis (BiPyxis · Grupo Mil Sabores)</div>
+    <div class="est-note">Trae la data de nuestros compradores/clientes HORECA desde <code>pyxis.grupomilsabores.cl</code>. Mismo esquema que Gestión Cervecera: el login corre en el <b>servidor</b> (Railway alcanza el ERP), las credenciales van en <b>variables de entorno de Railway</b> (nunca en el navegador ni en el repo).</div>
+    <div class="prod-erp-status" id="pyxisEstado">Cargando estado…</div>
+    <div class="cg-form-grid" style="margin-top:.5rem">
+      <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="pyxisDiag" type="button">🔎 Diagnosticar Pyxis</button></div>
+    </div>
+    <div id="pyxisDiagBox"></div>
+    <div class="est-note" style="margin-top:.4rem;color:#666">Cargá <code>PYXIS_EMAIL</code>, <code>PYXIS_PASSWORD</code> y <code>PYXIS_API_BASE</code> en Railway y apretá <b>Diagnosticar</b>. El diagnóstico prueba el login real contra los endpoints más probables y, si entra, prueba los endpoints de datos (los de tu captura: <code>ownpower</code> y <code>2?ini=&end=</code>) — con lo que devuelva escribo el adaptador que baja los compradores.</div></div>`;
   const params=`<div class="cg-form"><div class="cg-form-title">Parámetros de producción</div><div class="cg-form-grid">
     <label class="cg-field"><span>Horas por semana</span><input id="cfHoras" inputmode="numeric" value="${escapeAttr(c.horasPorSemana)}"></label>
     <label class="cg-field"><span>N° trabajadores</span><input id="cfTrab" inputmode="numeric" value="${escapeAttr(c.nTrabajadores||4)}"></label>
@@ -11266,7 +11274,7 @@ function prodRenderConfig(){
     <button class="adm-btn adm-btn-ghost" id="cfColAdd" type="button">+ Agregar estilo</button>
     <div class="cg-field cg-field-btn" style="margin-top:.8rem"><button class="adm-btn adm-btn-gold" id="cfMapsSave" type="button">Guardar mapas</button></div>
     <div class="cg-err" id="cfMapsErr"></div></div>`;
-  return erp+params+maps+dl;
+  return erp+pyxis+params+maps+dl;
 }
 // ── Wiring ──
 function prodWire(){
@@ -11358,6 +11366,29 @@ function prodWire(){
       const rows=(d.resultados||[]).map(x=>`<tr ${rowClass(x)}><td>${escapeHtml(x.label)}</td><td class="dist-num">${x.status||(x.error||'—')}</td><td>${x.esJson?'JSON':(x.esLogin?'login':escapeHtml(x.contentType||''))}</td><td style="font-size:.7rem;color:#666">${escapeHtml(x.snippet||x.error||'')}</td></tr>`).join('');
       box.innerHTML=`<div class="est-note" style="margin-top:.6rem">${win.length?('<b style="color:#2e9c5a">✓ '+win.length+' combinación(es) con JSON</b> — probablemente la API real. Pasame estos resultados y escribo el adaptador.'):'<b style="color:#c17a10">Ninguna combinación devolvió JSON.</b> Puede que la API use otra URL/auth. Copiame la tabla y/o consigue la doc de la API con Gestión Cervecera.'}</div>
         <div class="mun-wrap" style="margin-top:.5rem"><table class="mun-table"><thead><tr><th>Auth · URL</th><th>Status</th><th>Tipo</th><th>Respuesta</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
+  };
+  // Pyxis (BiPyxis) — estado + diagnóstico
+  if(g('pyxisBox')){
+    (async()=>{ try{ const r=await fetch('/admin/pyxis/estado'); const d=await prodSafeJson(r); const est=g('pyxisEstado'); if(!est) return;
+      const ok=(b,y,n)=>b?('<span style="color:#2e9c5a">✓ '+y+'</span>'):('<span style="color:#d9534f">✗ '+n+'</span>');
+      est.innerHTML=`Base: <code>${escapeHtml(d.base||'')}</code> · ${ok(d.emailSet,'PYXIS_EMAIL','falta PYXIS_EMAIL')} · ${ok(d.passwordSet,'PYXIS_PASSWORD','falta PYXIS_PASSWORD')}${d.loginPathSet?(' · login path forzado: <code>'+escapeHtml(d.loginPath)+'</code>'):''}`;
+    }catch(e){ const est=g('pyxisEstado'); if(est) est.textContent='⚠ '+String(e.message||e); } })();
+  }
+  if(g('pyxisDiag')) g('pyxisDiag').onclick=async()=>{
+    const box=g('pyxisDiagBox'); box.innerHTML='<div class="prod-erp-status">🔎 Entrando a Pyxis y probando login + endpoints de datos… (puede tardar ~20s)</div>';
+    try{
+      const r=await fetch('/admin/pyxis/diag',{method:'POST'}); const d=await prodSafeJson(r); if(!r.ok||d.error) throw new Error(d.error||'Error');
+      const P=d.loginPage||{};
+      const pageTxt=`<div class="est-note" style="margin-top:.6rem"><b>/login</b> · status ${P.status||(P.error||'—')} · ${P.esSPA?'<span style="color:#2e9c5a">SPA (JS)</span>':'HTML clásico'} · ¿form? ${P.tieneForm?'sí':'no'} · cookies: ${(P.setCookie||[]).map(escapeHtml).join(', ')||'—'}${(P.scripts&&P.scripts.length)?('<br><b>scripts:</b> '+P.scripts.map(s=>'<code>'+escapeHtml(s)+'</code>').join(' ')):''}</div>`;
+      const forms=(d.forms||[]).map((f,i)=>`<div class="est-note" style="margin-top:.3rem"><b>Form ${i+1}</b> · ${escapeHtml(f.method)} → <code>${escapeHtml(f.action||'(vacío)')}</code> · inputs: ${(f.inputs||[]).map(x=>`<code>${escapeHtml(x.name)}</code>:${escapeHtml(x.type)}`).join(', ')||'—'}</div>`).join('');
+      const lp=(d.loginProbe||[]);
+      const lpRows=lp.map(x=>{ const bg=x.ok?'background:#e3f6ea':(x.status>=200&&x.status<300?'background:#fff8ea':''); return `<tr style="${bg}"><td><code>${escapeHtml(x.path)}</code></td><td class="dist-num">${x.status||'—'}</td><td>${x.ok?'<b style="color:#2e9c5a">✓ OK</b>':(x.hasToken?'token':(x.isJson?'json':''))}</td><td>${(x.setCookie||[]).map(escapeHtml).join(', ')||(x.token||'')}</td><td style="font-size:.68rem;color:#666">${escapeHtml((x.snippet||'').slice(0,140))}</td></tr>`; }).join('');
+      const lpTbl=lp.length?`<div class="est-note" style="margin-top:.5rem"><b>Login probado:</b> ${d.winner?('<span style="color:#2e9c5a;font-weight:800">✓ entró por '+escapeHtml(d.winner)+'</span>'):'<span style="color:#c0392b;font-weight:800">✗ ningún endpoint entró</span>'}<div class="mun-wrap" style="margin-top:.3rem"><table class="mun-table"><thead><tr><th>Endpoint</th><th>Status</th><th>Auth</th><th>Cookie/Token</th><th>Respuesta</th></tr></thead><tbody>${lpRows}</tbody></table></div></div>`:'';
+      const dp=(d.dataProbe||[]);
+      const dpTxt=dp.length?('<div style="margin-top:.6rem"><b style="font-size:.8rem">⭐ Endpoints de datos (ya logueado):</b>'+dp.map(x=>{ const ok=x.isJson&&x.len>30; return `<div style="margin-top:.3rem;${ok?'background:#e3f6ea;padding:.3rem;border-radius:6px':''}"><code>${escapeHtml(x.url)}</code> · ${x.status||(x.error||'—')} · ${x.isJson?'JSON':'no-json'} · ${x.len||0} bytes${ok?`<textarea readonly style="width:100%;height:90px;font-family:ui-monospace,monospace;font-size:.66rem;margin-top:.2rem" onclick="this.select()">${escapeHtml(x.snippet||'')}</textarea>`:''}</div>`; }).join('')+'</div>'):'';
+      const guia=d.winner? '<div class="est-note" style="margin-top:.4rem;color:#666">Login OK ✓. Copiame los cuadros verdes (⭐ endpoints de datos) — con ese JSON escribo el sync de compradores. Si ninguno trae JSON, pegame de tu captura la <b>URL completa</b> de un pedido de datos (el <code>ownpower</code> o el <code>2?ini=&end=</code>) y su respuesta.</div>' : '<div class="est-note" style="margin-top:.4rem;color:#c0392b">Ningún endpoint de login entró. Si ya cargaste PYXIS_EMAIL/PYXIS_PASSWORD, pegame de tu captura la <b>URL del POST de login</b> + el <b>Request Payload</b> (nombres de campos) y seteo <code>PYXIS_LOGIN_PATH</code>.</div>';
+      box.innerHTML=pageTxt+forms+lpTbl+dpTxt+guia;
     }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
   };
   // config: mapas por estilo (E)
