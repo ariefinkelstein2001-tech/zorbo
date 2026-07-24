@@ -5348,24 +5348,48 @@ async function pyxisDiag(){
     }
     const w = rep.loginProbe.find(x => x.ok);
     rep.winner = w ? w.path : null;
-    // 3. Con login OK, traer el bootstrap (auth/ownpower) que expone grupos/locales, y
-    //    probar los reportes descubiertos en el bundle con el rango de fechas de la captura.
+    // 3. Con login OK, traer el bootstrap (auth/ownpower), parsearlo para exponer los
+    //    grupos/locales a los que SÍ hay acceso, y probar el endpoint de ventas real
+    //    contra esos ids con varios prefijos (el 2?ini=&end= de la captura).
     if (w) {
       const login = await pyxisLogin();
+      rep.loginToken = !!login.token;
       if (login.ok) {
         const hoy = pyxisFechaHoy();
-        const rango = '?ini=' + hoy + '&end=' + hoy;
-        const paths = ['/auth/ownpower', '/auth/perfil', '/grupo-mil-sabores/2/detalle-ventas' + rango, '/grupo-mil-sabores/2/costo-venta' + rango, '/grupo-mil-sabores/2/detalle-ventas-delivery' + rango];
-        await Promise.all(paths.map(async (p) => {
+        const q = '?ini=' + hoy + '&end=' + hoy;
+        const jar = { ...login.jar }, tok = login.token;
+        const hit = async (p, method) => {
           const url = api + p;
           try {
-            const r = await pyxisFetch(url, { method: 'GET', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Referer': web + '/', 'Origin': web } }, { ...login.jar }, login.token);
+            const r = await pyxisFetch(url, { method: method || 'GET', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/plain, */*', 'Referer': web + '/', 'Origin': web } }, jar, tok);
             const ct = r.headers.get('content-type') || ''; let t = ''; try { t = await r.text(); } catch {}
             const isJson = /json/i.test(ct) || /^\s*[[{]/.test(t);
-            rep.dataProbe.push({ url: p, status: r.status, isJson, len: t.length, snippet: t.replace(/\s+/g, ' ').slice(0, 900) });
-          } catch (e) { rep.dataProbe.push({ url: p, status: 0, error: String(e.message).slice(0, 60) }); }
-        }));
-        rep.dataProbe.sort((a, b) => ((b.isJson && b.len > 30) ? 1 : 0) - ((a.isJson && a.len > 30) ? 1 : 0));
+            return { url: (method === 'POST' ? 'POST ' : '') + p, status: r.status, isJson, len: t.length, text: t };
+          } catch (e) { return { url: p, status: 0, error: String(e.message).slice(0, 60) }; }
+        };
+        // Bootstrap: parsear grupos/locales.
+        const op = await hit('/auth/ownpower');
+        rep.dataProbe.push({ url: op.url, status: op.status, isJson: op.isJson, len: op.len, snippet: (op.text || '').replace(/\s+/g, ' ').slice(0, 3200), error: op.error });
+        let grupos = [];
+        try {
+          const j = JSON.parse(op.text || '{}'); const b = j.body || j;
+          const locKeys = ['locales', 'empresas', 'sucursales', 'tiendas', 'establecimientos', 'restaurantes', 'children', 'hijos'];
+          grupos = (b.grupos || b.grupo || []).map(g => {
+            const lk = locKeys.find(k => Array.isArray(g[k]));
+            return { id: g.id, nombre: g.nombre, codigo: g.codigo, locales: lk ? g[lk].map(l => ({ id: l.id, nombre: l.nombre || l.name })) : undefined, keys: Object.keys(g) };
+          });
+          rep.ownpower = { bodyKeys: Object.keys(b), cmf: b.cmf ? Object.keys(b.cmf) : null, grupos };
+        } catch (e) { rep.ownpower = { parseError: String(e.message).slice(0, 100) }; }
+        // Endpoint de ventas: probar {prefijo}/{grupoId} con el rango de fechas.
+        const ids = (grupos.length ? grupos.map(g => g.id) : [1, 2]).filter(x => x != null).slice(0, 3);
+        const resources = ['', 'dashboard/', 'home/', 'resumen/', 'general/', 'ventas/', 'venta/', 'sales/', 'sale/', 'sales-widget/', 'widget/', 'grupo/'];
+        const urls = new Set();
+        for (const id of ids) for (const rsc of resources) urls.add('/' + rsc + id + q);
+        const results = await Promise.all([...urls].map(u => hit(u)));
+        for (const r of results) rep.dataProbe.push({ url: r.url, status: r.status, isJson: r.isJson, len: r.len, snippet: (r.text || '').replace(/\s+/g, ' ').slice(0, 900), error: r.error });
+        const good = x => (x.status >= 200 && x.status < 300 && x.isJson && x.len > 60) ? 1 : 0;
+        rep.dataProbe.sort((a, b) => good(b) - good(a));
+        rep.dataWinner = (rep.dataProbe.find(x => good(x) && !/ownpower/.test(x.url)) || {}).url || null;
       }
     }
   }
