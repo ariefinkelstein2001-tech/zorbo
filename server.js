@@ -3192,7 +3192,21 @@ async function estadoResolve(month, rango){
   // punto de venta (marca/razón/sector) para filtrar.
   const horecaPedidos = shOk ? [...sh.bucket.cd_kairos_mall.pedidos, ...sh.bucket.ventas_cruzada.pedidos] : [];
   const chanTotal = (g) => horecaPedidos.filter(p => p.grupo === g).reduce((a, p) => a + (p.monto || 0), 0);
-  const horeca = { total: cdNeto + cruzTotal, milSabores: chanTotal('mil_sabores'), otros: chanTotal('otros'), pedidos: horecaPedidos };
+  // Corrección HORECA 2025: la clasificación por tag/vendor de Shopify no marcó
+  // bien varios meses históricos de HORECA/500 Sabores — el monto quedaba cayendo
+  // por defecto en Venta Online, dejando HORECA en $0 casi todo el año. Para 2025
+  // usamos el ingreso mensual validado HORECA+Venta Online de la carga histórica
+  // (Fase 1 del Forecast Operacional, ventasHistoricas canal=cd_kairos) menos la
+  // Venta Online ya resuelta acá (esa sí es 100% confiable, acceso directo a
+  // Shopify) — así el total HORECA queda correcto aunque el pedido individual no
+  // se haya podido clasificar. El sub-detalle Mil Sabores/Otros sigue mostrando
+  // solo lo que Shopify sí pudo clasificar (puede no sumar al total corregido).
+  let horecaTotal = cdNeto + cruzTotal, horecaCorregido = false;
+  if (month.slice(0, 4) === '2025') {
+    const histRow = (forecastDataLoad().ventasHistoricas || []).find(r => r.fecha === month && r.canal === 'cd_kairos');
+    if (histRow && histRow.ingreso != null) { horecaTotal = histRow.ingreso - shWeb; horecaCorregido = true; }
+  }
+  const horeca = { total: horecaTotal, milSabores: chanTotal('mil_sabores'), otros: chanTotal('otros'), pedidos: horecaPedidos, corregido: horecaCorregido };
   // VENTA WEB por proveedor (vendor de Shopify): 4 secciones + Otros. El monto de
   // cada sección se prorratea del cobrado real del pedido según la participación
   // de cada proveedor en las líneas, así las secciones suman ≈ el total web.
@@ -3218,7 +3232,7 @@ async function estadoResolve(month, rango){
     retail,
     walmart: { total: retail, n: walmartPedidos.length, pedidos: walmartPedidos, porProveedor: walmartPorProv, proveedores: wmProvKeys },
   };
-  const totalIngresos = cdNeto + cruzTotal + hospitalityTotal + shWeb + retail;
+  const totalIngresos = horeca.total + hospitalityTotal + shWeb + retail;
   return {
     month, precios, periodo: per, ingresos, totalIngresos, porDia,
     rango: r, mesCompleto: (r.from === cdMonthRange(month).from && r.to === cdMonthRange(month).to),
@@ -3268,7 +3282,7 @@ function estadoSheetRows(data, month){
   blank();
   rows.push([SEC('INGRESOS'), SEC(''), SEC(''), SEC(''), SEC(''), SM(data.totalIngresos)]);
   blank();
-  const horeca = i.cd_kairos.neto + i.ventas_cruzada.total, online = i.ventas_web.cobrado, retail = (i.retail != null ? i.retail : 0), hospitality = i.hospitality.total;
+  const horeca = i.horeca.total, online = i.ventas_web.cobrado, retail = (i.retail != null ? i.retail : 0), hospitality = i.hospitality.total;
   const pctOf = (v) => data.totalIngresos ? Math.round(v / data.totalIngresos * 1000) / 10 : 0;
   rows.push([SEC('CANALES'), SEC(''), SEC(''), SEC(''), SEC('%'), SEC('Monto')]);
   rows.push([T('① HORECA (restaurantes/bares)'), T(''), T(''), T(''), PCT(pctOf(horeca)), SM(horeca)]);
@@ -3657,7 +3671,7 @@ async function pnlCompute(month, rango){
   return {
     month, shopifyOk: est.shopifyOk,
     ingresos: { total: ingresos, canales: {
-      horeca: i.cd_kairos.neto + i.ventas_cruzada.total,
+      horeca: i.horeca.total,
       online: i.ventas_web.cobrado,
       retail: (i.retail != null ? i.retail : 0),
       hospitality: i.hospitality.total,

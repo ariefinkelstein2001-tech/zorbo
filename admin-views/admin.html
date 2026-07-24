@@ -9002,7 +9002,11 @@ function estCompute(){
   const cdNeto=shCd, cruzTotal=shCruz;
   const retail=a.ingresos.retail!=null?a.ingresos.retail:0; // Walmart 100% auto (Shopify)
   const hospitality=gardenValor+badassValor;
-  const horeca=cdNeto+cruzTotal, online=shWeb;
+  // HORECA: usa el total ya resuelto en el servidor, no cdNeto+cruzTotal — en 2025
+  // ese total viene corregido con el histórico validado cuando Shopify no clasificó
+  // bien el pedido (ver estadoResolve). cdNeto/cruzTotal siguen siendo el detalle
+  // crudo de Shopify, para las líneas de Mil Sabores/Otros.
+  const horeca=a.ingresos.horeca.total, online=shWeb;
   const total=horeca+online+retail+hospitality;
   const pctOf=v=>total?Math.round(v/total*1000)/10:0;
   return {shCd,shCruz,shWeb,cdNeto,cruzTotal,gardenValor,badassValor,retail,hospitality,horeca,online,total,
@@ -9056,7 +9060,7 @@ function renderEstado(){
       <div class="est-total-box"><div class="est-total-l">Total Ingresos</div><div class="est-total-v" id="estTotal">${eM(c.total)}</div></div>
     </div>
     <div class="est-chans">
-      ${chanCard('estHoreca','① HORECA','CD Kairos + Ventas Cruzada',c.horeca,c.pctHoreca)}
+      ${chanCard('estHoreca','① HORECA','CD Kairos + Ventas Cruzada'+(a.ingresos.horeca.corregido?' · corregido con histórico':''),c.horeca,c.pctHoreca)}
       ${chanCard('estOnline','② Venta Online','Página web',c.online,c.pctOnline)}
       ${chanCard('estRetail','③ Retail','Walmart',c.retail,c.pctRetail)}
       ${chanCard('estHospitality','④ Hospitality','Garden Vespucio · Garden Antofa · Badass',c.hospitality,c.pctHospitality)}
@@ -9067,10 +9071,8 @@ function renderEstado(){
       ${['cerveza','gin','ron','despacho'].map(k=>`<label class="est-pr">${k}<input class="est-pr-inp" data-pr="${k}" type="text" inputmode="decimal" value="${pr[k]}"></label>`).join('')}
     </div>
 
-    <div class="est-group">① HORECA <span>· canales de venta</span><b id="estHorecaG">${eM(c.horeca)}</b></div>
-    <div class="est-line est-auto-line">
-      <div class="est-hchans">
-        <button class="est-hchan" data-hchan="mil_sabores"><b>Grupo Mil Sabores</b><span>${eM(a.ingresos.horeca.milSabores)} · ${a.ingresos.horeca.pedidos.filter(p=>p.grupo==='mil_sabores').length} pedidos</span></button>
+    <div class="est-group">① HORECA <span>· canales de venta</span>${a.ingresos.horeca.corregido?' <span class="est-tag">corregido con histórico 2025</span>':''}<b id="estHorecaG">${eM(c.horeca)}</b></div>
+    ${a.ingresos.horeca.corregido?'<div class="est-auto" style="margin:-.3rem 0 .5rem">ℹ️ Shopify no clasificó bien varios pedidos HORECA de 2025 (quedaban en Venta Online). Este mes usa el ingreso mensual HORECA+Venta Online de la carga histórica validada, menos la Venta Online ya resuelta abajo — el sub-detalle Mil Sabores/Otros solo muestra lo que Shopify sí pudo clasificar y puede no sumar al total.</div>':''}\n    <div class="est-line est-auto-line">\n      <div class="est-hchans">\n        <button class="est-hchan" data-hchan="mil_sabores"><b>Grupo Mil Sabores</b><span>${eM(a.ingresos.horeca.milSabores)} · ${a.ingresos.horeca.pedidos.filter(p=>p.grupo==='mil_sabores').length} pedidos</span></button>
         <button class="est-hchan" data-hchan="otros"><b>Otros</b><span>${eM(a.ingresos.horeca.otros)} · ${a.ingresos.horeca.pedidos.filter(p=>p.grupo==='otros').length} pedidos</span></button>
       </div>
       <div id="estHorecaPanel"></div>
