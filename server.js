@@ -5233,7 +5233,7 @@ function pyxisPickToken(obj){
   if (!obj || typeof obj !== 'object') return null;
   const direct = ['token', 'access_token', 'accessToken', 'jwt', 'id_token', 'idToken', 'apiToken', 'api_token', 'sessionToken', 'authToken', 'bearer'];
   for (const k of direct) if (typeof obj[k] === 'string' && obj[k].length > 10) return obj[k];
-  for (const wrap of ['data', 'result', 'user', 'payload', 'session', 'auth', 'response']) {
+  for (const wrap of ['body', 'data', 'result', 'user', 'payload', 'session', 'auth', 'response']) {
     const w = obj[wrap]; if (w && typeof w === 'object') { const t = pyxisPickToken(w); if (t) return t; }
   }
   return null;
