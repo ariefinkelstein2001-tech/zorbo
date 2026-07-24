@@ -10179,6 +10179,12 @@ function fcOperacionalRender(){
     fcPrecRender();
     return;
   }
+  if(fcOpModule==='plan'){
+    body.innerHTML=crumb+'<div id="fcPlanRoot"></div>';
+    document.querySelector('#fcBody [data-fcopback]').onclick=()=>{ fcOpModule=null; fcOperacionalRender(); };
+    fcPlanRender();
+    return;
+  }
   body.innerHTML=crumb+adminSinInfo('En construcción · '+mod.label, mod.desc, 'Este submódulo se arma en las próximas fases del modelo de proyección de inventario, producción y flota de barriles — todavía no hay datos que mostrar.');
   body.querySelector('[data-fcopback]').onclick=()=>{ fcOpModule=null; fcOperacionalRender(); };
 }
@@ -10310,6 +10316,8 @@ function fcParamRenderManual(body){
   const trasRows=(d.traspasos500||[]).slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(x=>`<tr><td>${escapeHtml(x.fecha)}</td><td>${escapeHtml(x.estilo)}</td><td class="dist-num">${Number(x.litros).toLocaleString('es-CL')} L</td><td><button class="pv-del" data-fpdel="traspasos500|${x.id}">✕</button></td></tr>`).join('');
   const evRows=(d.eventos||[]).slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(x=>`<tr><td>${escapeHtml(x.fecha)}</td><td>${escapeHtml(x.estilo)}</td><td class="dist-num">${Number(x.litros).toLocaleString('es-CL')} L</td><td style="font-size:.72rem">${escapeHtml(x.motivo||'')}</td><td><button class="pv-del" data-fpdel="eventos|${x.id}">✕</button></td></tr>`).join('');
   const maqRows=(d.capacidadMaquila||[]).slice().sort((a,b)=>b.mes.localeCompare(a.mes)).map(x=>`<tr><td>${escapeHtml(x.mes)}</td><td>${escapeHtml(x.sede)}</td><td class="dist-num">${Number(x.litrosReservados).toLocaleString('es-CL')} L</td><td><button class="pv-del" data-fpdel="capacidadMaquila|${x.id}">✕</button></td></tr>`).join('');
+  const invRows=(d.inventarioActual||[]).slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(x=>`<tr><td>${escapeHtml(x.fecha)}</td><td>${escapeHtml(x.estilo)}</td><td class="dist-num">${Number(x.litros).toLocaleString('es-CL')} L</td><td><button class="pv-del" data-fpdel="inventarioActual|${x.id}">✕</button></td></tr>`).join('');
+  const quiebreRows=(d.quiebres||[]).slice().sort((a,b)=>b.mes.localeCompare(a.mes)).map(x=>`<tr><td>${escapeHtml(x.mes)}</td><td>${escapeHtml(FC_PARAM_CANAL_LBL[x.canal]||x.canal)}</td><td>${escapeHtml(x.estilo)}</td><td class="dist-num">${Number(x.litrosObservados).toLocaleString('es-CL')} L</td><td class="dist-num">${Number(x.litrosCorregidos).toLocaleString('es-CL')} L</td><td><button class="pv-del" data-fpdel="quiebres|${x.id}">✕</button></td></tr>`).join('');
   body.innerHTML=`
     <div class="fc-note">Registro manual mínimo del documento — lo que no llega estructurado por Shopify ni Gestión Cervecera.</div>
     <div class="fc-manual-grid">
@@ -10357,11 +10365,39 @@ function fcParamRenderManual(body){
         <div class="cg-err" id="fpMaqErr"></div>
         <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table"><thead><tr><th>Mes</th><th>Sede</th><th style="text-align:right">Litros</th><th></th></tr></thead><tbody>${maqRows||'<tr><td colspan="4" style="text-align:center;color:#999;padding:.6rem">Sin datos</td></tr>'}</tbody></table></div>
       </div>
+      <div class="cg-form">
+        <div class="cg-form-title">Inventario actual de cerveza terminada</div>
+        <div class="cg-form-grid">
+          <label class="cg-field"><span>Fecha del conteo</span><input type="date" id="fpInvFecha"></label>
+          <label class="cg-field"><span>Estilo</span><input type="text" id="fpInvEstilo" placeholder="Ej: Golden"></label>
+          <label class="cg-field"><span>Litros disponibles</span><input type="text" inputmode="decimal" id="fpInvLitros" placeholder="0"></label>
+          <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fpInvAdd" type="button">+ Agregar</button></div>
+        </div>
+        <div class="cg-err" id="fpInvErr"></div>
+        <div class="fc-note" style="margin-top:.5rem">No hay tracking automático de stock de cerveza terminada hoy — el plan de producción usa el conteo más reciente de cada estilo.</div>
+        <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table"><thead><tr><th>Fecha</th><th>Estilo</th><th style="text-align:right">Litros</th><th></th></tr></thead><tbody>${invRows||'<tr><td colspan="4" style="text-align:center;color:#999;padding:.6rem">Sin datos</td></tr>'}</tbody></table></div>
+      </div>
+      <div class="cg-form">
+        <div class="cg-form-title">Quiebres de stock (regla 5.3)</div>
+        <div class="cg-form-grid">
+          <label class="cg-field"><span>Mes</span><input type="month" id="fpQbMes"></label>
+          <label class="cg-field"><span>Canal</span><select id="fpQbCanal">${Object.entries(FC_PARAM_CANAL_LBL).map(([k,v])=>`<option value="${k}">${escapeHtml(v)}</option>`).join('')}</select></label>
+          <label class="cg-field"><span>Estilo</span><input type="text" id="fpQbEstilo" placeholder="Ej: Golden"></label>
+          <label class="cg-field"><span>Litros observados (con quiebre)</span><input type="text" inputmode="decimal" id="fpQbObs" placeholder="0"></label>
+          <label class="cg-field"><span>Litros corregidos (demanda real estimada)</span><input type="text" inputmode="decimal" id="fpQbCorr" placeholder="0"></label>
+          <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fpQbAdd" type="button">+ Agregar</button></div>
+        </div>
+        <div class="cg-err" id="fpQbErr"></div>
+        <div class="fc-note" style="margin-top:.5rem">Demanda censurada por quiebre: se registra el valor observado Y el corregido — nunca se reemplaza uno por el otro en silencio.</div>
+        <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table"><thead><tr><th>Mes</th><th>Canal</th><th>Estilo</th><th style="text-align:right">Observado</th><th style="text-align:right">Corregido</th><th></th></tr></thead><tbody>${quiebreRows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:.6rem">Sin datos</td></tr>'}</tbody></table></div>
+      </div>
     </div>`;
   document.getElementById('fpDrvAdd').onclick=()=>fcParamManualAdd('driverExterno',{mes:document.getElementById('fpDrvMes').value,litrosMilSabores:cNum(document.getElementById('fpDrvLitros').value)},'fpDrvErr',b=>!b.mes?'Falta el mes.':null);
   document.getElementById('fpTrsAdd').onclick=()=>fcParamManualAdd('traspasos500',{fecha:document.getElementById('fpTrsFecha').value,estilo:document.getElementById('fpTrsEstilo').value,litros:cNum(document.getElementById('fpTrsLitros').value)},'fpTrsErr',b=>!b.fecha?'Falta la fecha.':null);
   document.getElementById('fpEvAdd').onclick=()=>fcParamManualAdd('eventos',{fecha:document.getElementById('fpEvFecha').value,estilo:document.getElementById('fpEvEstilo').value,litros:cNum(document.getElementById('fpEvLitros').value),motivo:document.getElementById('fpEvMotivo').value},'fpEvErr',b=>!b.fecha?'Falta la fecha.':null);
   document.getElementById('fpMaqAdd').onclick=()=>fcParamManualAdd('capacidadMaquila',{mes:document.getElementById('fpMaqMes').value,sede:document.getElementById('fpMaqSede').value,litrosReservados:cNum(document.getElementById('fpMaqLitros').value)},'fpMaqErr',b=>!b.mes?'Falta el mes.':null);
+  document.getElementById('fpInvAdd').onclick=()=>fcParamManualAdd('inventarioActual',{fecha:document.getElementById('fpInvFecha').value,estilo:document.getElementById('fpInvEstilo').value,litros:cNum(document.getElementById('fpInvLitros').value)},'fpInvErr',b=>!b.fecha?'Falta la fecha.':(!b.estilo?'Falta el estilo.':null));
+  document.getElementById('fpQbAdd').onclick=()=>fcParamManualAdd('quiebres',{mes:document.getElementById('fpQbMes').value,canal:document.getElementById('fpQbCanal').value,estilo:document.getElementById('fpQbEstilo').value,litrosObservados:cNum(document.getElementById('fpQbObs').value),litrosCorregidos:cNum(document.getElementById('fpQbCorr').value)},'fpQbErr',b=>!b.mes?'Falta el mes.':(!b.estilo?'Falta el estilo.':null));
   body.querySelectorAll('[data-fpdel]').forEach(b=>b.onclick=()=>fcParamDelEntry(b.dataset.fpdel));
 }
 async function fcParamManualAdd(list,payload,errId,validate){
@@ -10530,6 +10566,93 @@ async function fcPrecRenderData(){
     </div>
     ${sesgoWarn?`<div class="fc-note" style="margin-top:.6rem">⚠️ Un sesgo de ${d.sesgo}% sostenido en el tiempo es un supuesto del modelo mal calibrado, no ruido — conviene revisar los parámetros antes de confiar en la proyección.</div>`:''}
     <div class="mun-wrap" style="margin-top:.8rem"><table class="mun-table"><thead><tr><th>Mes</th><th style="text-align:right">Real</th><th style="text-align:right">Pronóstico</th><th style="text-align:right">Diferencia</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+// ── Forecast Operacional · Plan de producción (Fase 3, capas 4-5) ──
+let fcPlanState={canal:null, estilo:'', mes:''};
+const FC_RESTR_ICON={fermentacion:'🛢️',camara_frio:'❄️',flota_barriles:'🚚',envasado:'⚙️'};
+async function fcPlanRender(){
+  const root=document.getElementById('fcPlanRoot'); if(!root) return;
+  root.innerHTML='<div class="adm-loading">Cargando…</div>';
+  let canales=[];
+  try{ canales=(await (await fetch('/admin/forecast/canales')).json()).canales||[]; }catch(e){}
+  if(!fcPlanState.canal) fcPlanState.canal=canales[0]||'cd_kairos';
+  root.innerHTML=`
+    <div class="fc-toolbar">
+      <div class="fc-toolbar-l"><span>Canal</span><select id="fplCanal">${canales.map(c=>`<option value="${c}" ${c===fcPlanState.canal?'selected':''}>${escapeHtml(FC_PARAM_CANAL_LBL[c]||c)}</option>`).join('')}</select></div>
+      <div class="fc-toolbar-l"><span>Estilo</span><input type="text" id="fplEstilo" placeholder="Ej: Golden" value="${escapeAttr(fcPlanState.estilo)}"></div>
+      <div class="fc-toolbar-l"><span>Mes a abastecer</span><input type="month" id="fplMes" value="${escapeAttr(fcPlanState.mes)}"></div>
+      <button class="adm-btn adm-btn-gold" id="fplGo" type="button">Calcular plan</button>
+    </div>
+    <div class="fc-note">El plan es por estilo — el lote mínimo, la merma y el resto de los parámetros son por estilo, no por canal agregado.</div>
+    <div id="fplBody"></div>`;
+  document.getElementById('fplGo').onclick=()=>{
+    fcPlanState.canal=document.getElementById('fplCanal').value;
+    fcPlanState.estilo=document.getElementById('fplEstilo').value.trim();
+    fcPlanState.mes=document.getElementById('fplMes').value;
+    fcPlanRenderData();
+  };
+  if(fcPlanState.estilo) fcPlanRenderData();
+  else document.getElementById('fplBody').innerHTML=adminSinInfo('Elige un estilo', 'Escribe el nombre de un estilo (ej: Golden, APA, Red) y presiona "Calcular plan".', '');
+}
+async function fcPlanRenderData(){
+  const body=document.getElementById('fplBody'); if(!body) return;
+  if(!fcPlanState.estilo){ body.innerHTML=adminSinInfo('Elige un estilo','Escribe el nombre de un estilo y presiona "Calcular plan".',''); return; }
+  body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  const qs=new URLSearchParams({canal:fcPlanState.canal, estilo:fcPlanState.estilo});
+  if(fcPlanState.mes) qs.set('mes', fcPlanState.mes);
+  let d;
+  try{ d=await (await fetch('/admin/forecast/plan-produccion?'+qs)).json(); if(d.error) throw new Error(d.error); }
+  catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+  if(!d.ok){
+    const motivos={ serie_corta:`Serie corta: solo ${d.mesesDisponibles} de los 24 meses limpios que hacen falta.`, sin_analogo:`Serie corta (${d.mesesDisponibles} meses) y no hay análogo declarado — declara uno en Parámetros.`, analogo_sin_datos:`Serie corta y el análogo declarado tampoco tiene datos suficientes.` };
+    body.innerHTML=`<div class="dist-empty">🏭 <b>Sin plan de producción</b><br>${escapeHtml(motivos[d.reason]||d.reason||'Sin datos suficientes.')}</div>`;
+    return;
+  }
+  const desglose=`
+    <div class="mun-wrap"><table class="mun-table"><tbody>
+      <tr><td>Pronóstico (${escapeHtml(estMonthLabel(d.mesObjetivo))})</td><td class="dist-num">${d.pronosticoCentral.toLocaleString('es-CL')} L</td></tr>
+      <tr><td>+ Stock de seguridad${d.sigmaFuente==='sin_datos'?' <span style="color:var(--muted,#888);font-size:.72rem">(sin backtest suficiente, no se sumó)</span>':''}</td><td class="dist-num">${d.stockSeguridad!=null?'+'+d.stockSeguridad.toLocaleString('es-CL')+' L':'—'}</td></tr>
+      <tr><td>− Inventario disponible${d.inventarioFecha?' <span style="color:var(--muted,#888);font-size:.72rem">(al '+escapeHtml(d.inventarioFecha)+')</span>':' <span style="color:var(--muted,#888);font-size:.72rem">(sin dato cargado)</span>'}</td><td class="dist-num">${d.inventarioDisponible?'−'+d.inventarioDisponible.toLocaleString('es-CL')+' L':'0 L'}</td></tr>
+      <tr><td>− Producción en tránsito (lotes reales sin envasar)</td><td class="dist-num">${d.produccionEnTransito?'−'+d.produccionEnTransito.toLocaleString('es-CL')+' L':'0 L'}</td></tr>
+      <tr class="fc-total-row"><td>Requerimiento neto</td><td class="dist-num">${d.requerimientoNeto.toLocaleString('es-CL')} L</td></tr>
+      <tr><td>Redondeado a lote mínimo (${d.tamanoLoteMinL.toLocaleString('es-CL')} L)</td><td class="dist-num"><b>${d.loteRedondeado.toLocaleString('es-CL')} L</b></td></tr>
+    </tbody></table></div>`;
+  const r54=d.regla54&&d.regla54.aplica?`
+    <div class="fc-note" style="margin-top:.8rem;border-left:3px solid var(--gold,#f5a623)">
+      ⚠️ <b>El lote mínimo (${d.regla54.loteMinL.toLocaleString('es-CL')} L) es mayor que la demanda anual proyectada (${d.regla54.demandaAnual.toLocaleString('es-CL')} L)</b> — no se programa automático. Opciones:
+      <ul style="margin:.4rem 0 0 1.1rem;padding:0">
+        <li>Producir igual y asumir ${d.regla54.opciones.producirEstimarMerma.litrosSobrantes.toLocaleString('es-CL')} L sobrantes (merma adicional ~${d.regla54.opciones.producirEstimarMerma.mermaAdicionalPct}%).</li>
+        <li>Concentrar la producción antes del peak estacional (${escapeHtml(estMonthLabel(d.regla54.opciones.concentrarAntesDelPeak.mesRecomendado))}).</li>
+        <li>Descontinuar: ${d.regla54.opciones.descontinuar.litrosVentaAnual.toLocaleString('es-CL')} L/año en juego${d.regla54.opciones.descontinuar.valorAnualEstimado!=null?' (≈ $'+d.regla54.opciones.descontinuar.valorAnualEstimado.toLocaleString('es-CL')+', '+escapeHtml(d.regla54.opciones.descontinuar.notaValor)+')':''}.</li>
+      </ul>
+    </div>`:'';
+  const restrRows=d.factibilidad.restricciones.map(r=>{
+    let estado;
+    if(r.sinDatos) estado='<span class="adm-status">Sin datos</span>';
+    else if(!r.ok) estado='<span class="adm-status warn">Sin capacidad cargada</span>';
+    else if(r.excedida) estado='<span class="adm-status err">✗ Excede la capacidad</span>';
+    else estado='<span class="adm-status ok">✓ Dentro de capacidad</span>';
+    const detalle=r.sinDatos?'No hay trazabilidad de barriles todavía (ver Paso 0) — el conteo manual de sucios/limpios no reemplaza esto.':(r.capacidadL!=null?`${r.capacidadL.toLocaleString('es-CL')} L de capacidad · uso ${r.usoPct}%`:'Sin capacidad cargada — ve a Parámetros › Capacidades.');
+    return `<tr><td>${FC_RESTR_ICON[r.id]||''} ${escapeHtml(r.label)}</td><td>${estado}</td><td style="font-size:.78rem;color:var(--muted,#666)">${escapeHtml(detalle)}</td></tr>`;
+  }).join('');
+  const factibNota=d.factibilidad.factible?'':`<div class="fc-note" style="margin-top:.6rem;border-left:3px solid var(--red,#d33)">⚠️ El plan excede: ${d.factibilidad.restriccionesExcedidas.map(id=>FC_RESTR_ICON[id]).join(' ')} — hay que sacrificar volumen, mover a maquila o reprogramar antes de confirmar este plan.</div>`;
+  const brecha=d.brechaOcupacion.ok?`
+    <div class="cg-resumen" style="margin-top:.8rem">
+      <div class="cg-card"><div class="cg-card-l">Plan (objetivo)</div><div class="cg-card-v">${d.brechaOcupacion.leadTimePlanDias} d</div><div class="cg-card-n">lead time planificado</div></div>
+      <div class="cg-card"><div class="cg-card-l">Ocupación real</div><div class="cg-card-v">${d.brechaOcupacion.promedioReal} d</div><div class="cg-card-n">medida en ${d.brechaOcupacion.n} lotes cerrados</div></div>
+      <div class="cg-card"><div class="cg-card-l">Brecha</div><div class="cg-card-v" style="color:${d.brechaOcupacion.brechaDias>0?'var(--red,#d33)':'var(--green,#2e9c5a)'}">${d.brechaOcupacion.brechaDias>=0?'+':''}${d.brechaOcupacion.brechaDias} d</div><div class="cg-card-n">indicador de eficiencia de envasado</div></div>
+    </div>`:`<div class="fc-note" style="margin-top:.6rem">Sin lotes cerrados todavía para medir la ocupación real.</div>`;
+  body.innerHTML=`
+    <div class="fc-proy-head"><span class="adm-status ${d.fuenteProyeccion==='analogo'?'warn':'ok'}">${d.fuenteProyeccion==='analogo'?'⚠ Estacionalidad prestada':'✓ Dato real'}</span><span class="fc-proy-r2">R² tendencia: ${d.r2}</span></div>
+    ${desglose}
+    ${r54}
+    <div class="fc-op-marca-h" style="margin-top:1.2rem">Factibilidad <span>capas 4-5 · en orden</span></div>
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Restricción</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>${restrRows}</tbody></table></div>
+    ${factibNota}
+    ${d.costoPetPorLitro!=null?`<div class="fc-note" style="margin-top:.6rem">PET como holgura: $${d.costoPetPorLitro.toLocaleString('es-CL')}/L cargado — no se pudo calcular cuántos litros cubriría porque no hay dato real de déficit de flota (sin trazabilidad de barriles).</div>`:''}
+    <div class="fc-op-marca-h" style="margin-top:1.2rem">Brecha de ocupación de estanque <span>regla 5.6</span></div>
+    ${brecha}`;
 }
 
 // ── (A) Proyectado ──

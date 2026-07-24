@@ -4239,7 +4239,7 @@ const FORECAST_LOTE_ESTILO_SEED = {
   'Kenny Bell': 'Ámbar', 'Obertura': 'Stout', 'Hoyo en Uno': 'Hoppy Lager', 'CDA': 'Colección de Artista',
 };
 function forecastDataDefaults(){
-  return { sinonimos: {}, loteEstilo: { ...FORECAST_LOTE_ESTILO_SEED }, driverExterno: [], traspasos500: [], eventos: [], capacidadMaquila: [], capacidad: [], parametros: [], analogos: [] };
+  return { sinonimos: {}, loteEstilo: { ...FORECAST_LOTE_ESTILO_SEED }, driverExterno: [], traspasos500: [], eventos: [], capacidadMaquila: [], capacidad: [], parametros: [], analogos: [], inventarioActual: [], quiebres: [] };
 }
 function forecastDataLoad(){
   const d = forecastDataDefaults();
@@ -4249,7 +4249,7 @@ function forecastDataLoad(){
       if (p && typeof p === 'object') {
         if (p.sinonimos && typeof p.sinonimos === 'object') d.sinonimos = p.sinonimos;
         if (p.loteEstilo && typeof p.loteEstilo === 'object') d.loteEstilo = { ...d.loteEstilo, ...p.loteEstilo };
-        for (const k of ['driverExterno', 'traspasos500', 'eventos', 'capacidadMaquila', 'capacidad', 'parametros', 'analogos']) {
+        for (const k of ['driverExterno', 'traspasos500', 'eventos', 'capacidadMaquila', 'capacidad', 'parametros', 'analogos', 'inventarioActual', 'quiebres']) {
           if (Array.isArray(p[k])) d[k] = p[k];
         }
       }
@@ -4279,6 +4279,16 @@ function forecastVigente(lista, filtro, fechaRef){
   const ref = fechaRef || new Date().toISOString().slice(0, 10);
   const candidatas = (lista || []).filter(e => filtro(e) && e.vigenteDesde <= ref).sort((a, b) => b.vigenteDesde.localeCompare(a.vigenteDesde));
   return candidatas[0] || null;
+}
+// Parámetro versionado, opcionalmente por estilo: si hay una entrada específica
+// del estilo la usa, si no cae al valor general de la clave (estilo=null); si
+// no hay ninguna, devuelve el valor por defecto — nunca inventa, solo declara
+// explícitamente cuál es el default hasta que alguien lo cargue en Parámetros.
+function forecastParamVigente(clave, estilo, data, defecto){
+  const d = data || forecastDataLoad();
+  if (estilo) { const esp = forecastVigente(d.parametros, p => p.clave === clave && p.estilo === estilo); if (esp) return esp.valor; }
+  const gen = forecastVigente(d.parametros, p => p.clave === clave && !p.estilo);
+  return gen ? gen.valor : defecto;
 }
 // Filas de ventas (HECHOS: fecha/canal/estilo/litros) de un mes, reusando
 // estadoResolve (mismo Shopify ya integrado en Ingreso por Venta) — sin volver
@@ -4341,11 +4351,11 @@ app.get('/admin/forecast/data', requireAdmin, (req, res) => {
   // no repite la lógica de "el más reciente con vigenteDesde <= hoy".
   const capClaves = [...new Set((d.capacidad || []).map(c => c.tipo + '|' + (c.sede || '')))];
   const capacidadVigente = capClaves.map(k => { const [tipo, sede] = k.split('|'); return forecastVigente(d.capacidad, c => c.tipo === tipo && (c.sede || '') === sede); }).filter(Boolean);
-  const paramClaves = [...new Set((d.parametros || []).map(p => p.clave))];
-  const parametrosVigentes = paramClaves.map(clave => forecastVigente(d.parametros, p => p.clave === clave)).filter(Boolean);
+  const paramClaves = [...new Set((d.parametros || []).map(p => p.clave + '|' + (p.estilo || '')))];
+  const parametrosVigentes = paramClaves.map(k => { const [clave, estilo] = k.split('|'); return forecastVigente(d.parametros, p => p.clave === clave && (p.estilo || '') === estilo); }).filter(Boolean);
   res.json({ ...d, capacidadVigente, parametrosVigentes });
 });
-const FORECAST_LISTS = ['driverExterno', 'traspasos500', 'eventos', 'capacidadMaquila', 'capacidad', 'parametros', 'analogos'];
+const FORECAST_LISTS = ['driverExterno', 'traspasos500', 'eventos', 'capacidadMaquila', 'capacidad', 'parametros', 'analogos', 'inventarioActual', 'quiebres'];
 app.post('/admin/forecast/data/:list', requireAdmin, (req, res) => {
   const list = req.params.list;
   if (!FORECAST_LISTS.includes(list)) return res.status(400).json({ error: 'Lista inválida.' });
@@ -4371,11 +4381,20 @@ app.post('/admin/forecast/data/:list', requireAdmin, (req, res) => {
     entry.unidad = costosStr(b.unidad || 'L', 10); entry.vigenteDesde = b.vigenteDesde; entry.nota = costosStr(b.nota, 200);
   } else if (list === 'parametros') {
     if (!costosStr(b.clave) || !fecha.test(b.vigenteDesde)) return res.status(400).json({ error: 'Falta la clave o la fecha de vigencia (YYYY-MM-DD).' });
-    entry.clave = costosStr(b.clave, 60); entry.valor = Number(b.valor); entry.vigenteDesde = b.vigenteDesde; entry.nota = costosStr(b.nota, 200);
+    entry.clave = costosStr(b.clave, 60); entry.estilo = costosStr(b.estilo, 60) || null; entry.valor = Number(b.valor); entry.vigenteDesde = b.vigenteDesde; entry.nota = costosStr(b.nota, 200);
   } else if (list === 'analogos') {
     if (!costosStr(b.canal) || !costosStr(b.analogoCanal)) return res.status(400).json({ error: 'Falta el canal o el análogo.' });
     entry.canal = costosStr(b.canal, 40); entry.estilo = costosStr(b.estilo, 60) || null;
     entry.analogoCanal = costosStr(b.analogoCanal, 40); entry.analogoEstilo = costosStr(b.analogoEstilo, 60) || null;
+    entry.nota = costosStr(b.nota, 200);
+  } else if (list === 'inventarioActual') {
+    if (!fecha.test(b.fecha) || !costosStr(b.estilo)) return res.status(400).json({ error: 'Falta la fecha o el estilo.' });
+    entry.fecha = b.fecha; entry.estilo = costosStr(b.estilo, 60); entry.formato = prodFormatoOk(b.formato);
+    entry.litros = Math.max(0, Number(b.litros) || 0); entry.nota = costosStr(b.nota, 200);
+  } else if (list === 'quiebres') {
+    if (!mes.test(b.mes) || !costosStr(b.canal) || !costosStr(b.estilo)) return res.status(400).json({ error: 'Falta el mes, el canal o el estilo.' });
+    entry.mes = b.mes; entry.canal = costosStr(b.canal, 40); entry.estilo = costosStr(b.estilo, 60);
+    entry.litrosObservados = Math.max(0, Number(b.litrosObservados) || 0); entry.litrosCorregidos = Math.max(0, Number(b.litrosCorregidos) || 0);
     entry.nota = costosStr(b.nota, 200);
   }
   const d = forecastDataLoad(); d[list].push(entry); forecastDataSave(d);
@@ -4633,6 +4652,151 @@ app.get('/admin/forecast/precision', requireAdmin, async (req, res) => {
   const nMesesTest = Math.min(12, Math.max(3, parseInt(req.query.meses, 10) || 6));
   try { res.json(await forecastBacktestSerie(canal, estilo, hastaMes, nMesesTest, forecastDataLoad())); }
   catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+});
+
+// ─── Forecast Operacional · Fase 3: plan de producción y factibilidad (capas 4-5) ───
+// Requerimiento neto = pronóstico + stock de seguridad − inventario disponible −
+// producción en tránsito, redondeado al lote mínimo factible del estilo (el que
+// ya existe en Operacional — no se duplica). SS = z·σ_error·√(leadTime/30), con
+// σ_error salido del backtesting REAL (Fase 2), nunca un supuesto fijo.
+async function forecastRequerimientoNeto(canal, estilo, mesObjetivo, data){
+  const d = data || forecastDataLoad();
+  const hastaMes = opShiftMonth(mesObjetivo, 1); // mes anterior al objetivo = último dato de entrenamiento
+  const res1 = await forecastResolverEstacionalidad(canal, estilo, hastaMes, d, 0);
+  if (!res1.ok) return { ok: false, reason: res1.reason, mesesDisponibles: res1.mesesDisponibles };
+  const mesNum = Number(mesObjetivo.slice(5, 7));
+  const idx = res1.mesesUsados;
+  const tendenciaVal = res1.tendencia.intercepto + res1.tendencia.pendiente * idx;
+  const idxEst = res1.indiceEstacional[mesNum] != null ? res1.indiceEstacional[mesNum] : 1;
+  const central = Math.max(0, tendenciaVal * idxEst);
+
+  const bt = await forecastBacktestSerie(canal, estilo, hastaMes, 6, d);
+  let sigmaError = null, sigmaFuente = 'sin_datos';
+  if (bt.ok && bt.pares.length >= 3) { sigmaError = forecastStdDev(bt.pares.map(p => p.pronostico - p.real)); sigmaFuente = 'backtest'; }
+
+  const z = forecastParamVigente('z_nivelServicio', estilo, d, 1.65);
+  const leadTimePlanDias = forecastParamVigente('leadTimePlanDias', estilo, d, 21);
+  const stockSeguridad = sigmaError != null ? z * sigmaError * Math.sqrt(leadTimePlanDias / 30) : null;
+
+  // Inventario disponible: manual (no hay tracking automático de cerveza terminada — ver Paso 0).
+  const invEntry = (d.inventarioActual || []).filter(e => e.estilo === estilo).sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
+  const inventarioDisponible = invEntry ? invEntry.litros : 0;
+
+  // Producción en tránsito: lotes REALES del estilo que aún no completaron envasado.
+  const prod = prodLoad();
+  const enTransito = (prod.lotes || []).filter(l => (l.estilo || '') === estilo && !l.fechaEnvasado)
+    .reduce((a, l) => a + Math.max(0, prodVolumenBase(l) - prodLitrosEnvasados(l)), 0);
+
+  const neto = Math.max(0, central + (stockSeguridad || 0) - inventarioDisponible - enTransito);
+  const opCfg = (operacionalLoad().estilos || {})[estilo] || {};
+  const loteMinL = Math.max(1, Number(opCfg.tamanoLoteMinL) || 500);
+  const loteRedondeado = Math.ceil(neto / loteMinL) * loteMinL;
+
+  return {
+    ok: true, canal, estilo, mesObjetivo,
+    pronosticoCentral: Math.round(central), fuenteProyeccion: res1.fuente, r2: Math.round(res1.tendencia.r2 * 1000) / 1000,
+    sigmaError: sigmaError != null ? Math.round(sigmaError) : null, sigmaFuente, z, leadTimePlanDias,
+    stockSeguridad: stockSeguridad != null ? Math.round(stockSeguridad) : null,
+    inventarioDisponible, inventarioFecha: invEntry ? invEntry.fecha : null,
+    produccionEnTransito: Math.round(enTransito),
+    requerimientoNeto: Math.round(neto), tamanoLoteMinL: loteMinL, loteRedondeado,
+  };
+}
+// Regla 5.4: si el lote mínimo excede la demanda ANUAL proyectada del estilo, no
+// se programa automático — 3 opciones cuantificadas (nunca un plan imposible).
+async function forecastRegla54(canal, estilo, mesObjetivo, data){
+  const d = data || forecastDataLoad();
+  const hastaMes = opShiftMonth(mesObjetivo, 1);
+  const res1 = await forecastResolverEstacionalidad(canal, estilo, hastaMes, d, 0);
+  if (!res1.ok) return { aplica: false };
+  const opCfg = (operacionalLoad().estilos || {})[estilo] || {};
+  const loteMinL = Math.max(1, Number(opCfg.tamanoLoteMinL) || 500);
+  let demandaAnual = 0, mesPeak = null, valorPeak = -1;
+  for (let h = 1; h <= 12; h++){
+    const dt = opShiftMonth(mesObjetivo, -(h - 1));
+    const mesNum = Number(dt.slice(5, 7));
+    const idx = res1.mesesUsados - 1 + h;
+    const val = Math.max(0, (res1.tendencia.intercepto + res1.tendencia.pendiente * idx) * (res1.indiceEstacional[mesNum] != null ? res1.indiceEstacional[mesNum] : 1));
+    demandaAnual += val;
+    if (val > valorPeak) { valorPeak = val; mesPeak = dt; }
+  }
+  if (loteMinL <= demandaAnual) return { aplica: false };
+  let precioLt = null;
+  try { const est = await estadoResolve(hastaMes, null); precioLt = est.precios.cerveza; } catch (e) {}
+  const sobrante = loteMinL - demandaAnual;
+  return {
+    aplica: true, loteMinL: Math.round(loteMinL), demandaAnual: Math.round(demandaAnual), mesPeak,
+    opciones: {
+      producirEstimarMerma: { litrosSobrantes: Math.round(sobrante), mermaAdicionalPct: Number(opCfg.mermaPct) || 0 },
+      concentrarAntesDelPeak: { mesRecomendado: mesPeak },
+      descontinuar: { litrosVentaAnual: Math.round(demandaAnual), valorAnualEstimado: precioLt != null ? Math.round(demandaAnual * precioLt) : null, notaValor: 'valorizado al precio de transferencia interno, no es margen neto' },
+    },
+  };
+}
+// Capa 5 — factibilidad contra 4 restricciones EN ORDEN: fermentación (real),
+// cámara de frío (manual, por instalación separada — nunca se suman sedes
+// distintas), flota de barriles (sin trazabilidad hoy — ver Paso 0), envasado
+// (manual). Nunca entrega un plan imposible sin decir qué restricción se ató.
+function forecastFactibilidad(litrosAProducir, mesObjetivo, data){
+  const d = data || forecastDataLoad();
+  const prod = prodLoad();
+  const porSede = {};
+  (prod.tanques || []).forEach(t => { porSede[t.sede] = (porSede[t.sede] || 0) + (Number(t.capacidadL) || 0); });
+  const fermentacion = Object.entries(porSede).map(([sede, cap]) => ({ sede, capacidadL: cap }));
+  const capFermentacionTotal = fermentacion.reduce((a, f) => a + f.capacidadL, 0);
+  const usoFermentacionPct = capFermentacionTotal ? Math.round((litrosAProducir / capFermentacionTotal) * 1000) / 10 : null;
+
+  const fechaRef = mesObjetivo + '-15';
+  const camaraSedes = [...new Set((d.capacidad || []).filter(c => c.tipo === 'camara_frio').map(c => c.sede))];
+  const capCamaraTotal = camaraSedes.reduce((a, sede) => { const v = forecastVigente(d.capacidad, x => x.tipo === 'camara_frio' && x.sede === sede, fechaRef); return v ? a + v.valor : a; }, 0);
+  const camaraOk = camaraSedes.length > 0 && capCamaraTotal > 0;
+  const usoCamaraPct = camaraOk ? Math.round((litrosAProducir / capCamaraTotal) * 1000) / 10 : null;
+
+  const barrilesManual = (prod.inventario && prod.inventario.barriles) || null;
+
+  const envasadoSedes = [...new Set((d.capacidad || []).filter(c => c.tipo === 'envasado').map(c => c.sede))];
+  const turnosPorMes = forecastParamVigente('turnosEnvasadoPorMes', null, d, 20);
+  const capEnvasadoTotal = envasadoSedes.reduce((a, sede) => { const v = forecastVigente(d.capacidad, x => x.tipo === 'envasado' && x.sede === sede, fechaRef); return v ? a + v.valor : a; }, 0) * turnosPorMes;
+  const envasadoOk = envasadoSedes.length > 0 && capEnvasadoTotal > 0;
+  const usoEnvasadoPct = envasadoOk ? Math.round((litrosAProducir / capEnvasadoTotal) * 1000) / 10 : null;
+
+  const restricciones = [
+    { id: 'fermentacion', label: 'Fermentación', ok: capFermentacionTotal > 0, capacidadL: capFermentacionTotal || null, usoPct: usoFermentacionPct, excedida: usoFermentacionPct != null && usoFermentacionPct > 100, detalle: fermentacion },
+    { id: 'camara_frio', label: 'Cámara de frío', ok: camaraOk, capacidadL: camaraOk ? capCamaraTotal : null, usoPct: usoCamaraPct, excedida: usoCamaraPct != null && usoCamaraPct > 100 },
+    { id: 'flota_barriles', label: 'Flota de barriles', ok: false, sinDatos: true, notaManual: barrilesManual },
+    { id: 'envasado', label: 'Envasado', ok: envasadoOk, capacidadL: envasadoOk ? capEnvasadoTotal : null, usoPct: usoEnvasadoPct, excedida: usoEnvasadoPct != null && usoEnvasadoPct > 100, turnosPorMes },
+  ];
+  const excedidas = restricciones.filter(r => r.excedida);
+  return { restricciones, factible: excedidas.length === 0, restriccionesExcedidas: excedidas.map(r => r.id) };
+}
+// Regla 5.6: se planifica con leadTimePlanDias (21 por defecto) pero se MIDE la
+// ocupación real de estanque (fermentación→envasado) de los lotes ya cerrados —
+// la brecha es un indicador de eficiencia de envasado, no un error a esconder.
+function forecastBrechaOcupacion(estilo, data){
+  const d = data || forecastDataLoad();
+  const prod = prodLoad();
+  const cerrados = (prod.lotes || []).filter(l => (!estilo || l.estilo === estilo) && l.fechaEnvasado && l.fechaFermInicio);
+  if (!cerrados.length) return { ok: false, reason: 'sin_lotes_completos' };
+  const dias = cerrados.map(l => prodDiasOcup(l));
+  const promedioReal = dias.reduce((a, b) => a + b, 0) / dias.length;
+  const leadTimePlanDias = forecastParamVigente('leadTimePlanDias', estilo, d, 21);
+  return { ok: true, n: cerrados.length, promedioReal: Math.round(promedioReal * 10) / 10, leadTimePlanDias, brechaDias: Math.round((promedioReal - leadTimePlanDias) * 10) / 10 };
+}
+app.get('/admin/forecast/plan-produccion', requireAdmin, async (req, res) => {
+  const canal = String(req.query.canal || '');
+  if (!FORECAST_PROY_CANALES.includes(canal)) return res.status(400).json({ error: 'Canal inválido.' });
+  const estilo = costosStr(req.query.estilo, 60);
+  if (!estilo) return res.status(400).json({ error: 'Falta el estilo — el plan de producción es por estilo, no agregado.' });
+  const mesObjetivo = /^\d{4}-\d{2}$/.test(String(req.query.mes)) ? String(req.query.mes) : opShiftMonth(forecastMesActualStr(), -1);
+  try {
+    const d = forecastDataLoad();
+    const req1 = await forecastRequerimientoNeto(canal, estilo, mesObjetivo, d);
+    if (!req1.ok) return res.json({ ok: false, canal, estilo, mesObjetivo, reason: req1.reason, mesesDisponibles: req1.mesesDisponibles });
+    const [regla54, brecha] = await Promise.all([forecastRegla54(canal, estilo, mesObjetivo, d), Promise.resolve(forecastBrechaOcupacion(estilo, d))]);
+    const factibilidad = forecastFactibilidad(req1.loteRedondeado, mesObjetivo, d);
+    const costoPetPorLitro = forecastParamVigente('costoPetPorLitro', null, d, null);
+    res.json({ ok: true, ...req1, regla54, factibilidad, brechaOcupacion: brecha, costoPetPorLitro });
+  } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
 });
 
 // ─── HOME · Resumen (4 cuadros con datos reales) ────────────────────────────
