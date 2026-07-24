@@ -5271,6 +5271,23 @@ async function pyxisLogin(){
 }
 // yyyy-m-d SIN zero-pad (así lo manda el dashboard: 2026-7-24).
 function pyxisFechaHoy(){ const d = new Date(); return d.getUTCFullYear() + '-' + (d.getUTCMonth() + 1) + '-' + d.getUTCDate(); }
+// BiPyxis es una SPA Angular: la URL base de la API y la ruta de login están COMPILADAS
+// en el bundle main.*.js (sobreviven a la minificación como literales de string).
+// Minamos el JS para descubrir el contrato real (host de API + rutas de auth/datos).
+function pyxisMineBundle(js){
+  const urls = [...new Set([...js.matchAll(/https?:\/\/[a-z0-9.\-]+(?::\d+)?(?:\/[A-Za-z0-9_\-./]*)?/gi)].map(m => m[0]))]
+    .filter(u => !/\.(png|jpe?g|svg|gif|ico|woff2?|ttf|eot|css|map)(\?|$)/i.test(u))
+    .filter(u => !/(w3\.org|googleapis|gstatic|schema\.org|angular\.(io|dev)|npmjs|github|jquery|bootstrap|cloudflare|jsdelivr|unpkg|fontawesome|sentry\.io|localhost)/i.test(u))
+    .slice(0, 60);
+  // Rutas de auth/login/token (literales de string cortos con esas palabras).
+  const auth = [...new Set([...js.matchAll(/["'`]([A-Za-z0-9_\-./]{0,60}(?:login|logout|auth|authenticate|token|refresh|signin|sesion|session|usuario|user)[A-Za-z0-9_\-./]{0,60})["'`]/gi)].map(m => m[1]))]
+    .filter(s => s.length >= 3 && s.length < 90 && !/\s/.test(s) && /[/a-z]/i.test(s)).slice(0, 50);
+  // Cualquier literal que parezca ruta de API (contiene "/api" o empieza con path).
+  const apiPaths = [...new Set([...js.matchAll(/["'`](\/?(?:api|v\d)\/[A-Za-z0-9_\-./{}:]{1,70})["'`]/gi)].map(m => m[1]))].slice(0, 60);
+  // Endpoints vistos en la captura (ownpower / rangos por fecha).
+  const captura = [...new Set([...js.matchAll(/["'`]([A-Za-z0-9_\-./?=&{}:]{0,50}(?:ownpower|ini=|\bend=|dashboard|venta|sale|cliente|comprador|customer)[A-Za-z0-9_\-./?=&{}:]{0,50})["'`]/gi)].map(m => m[1]))].filter(s => s.length < 90).slice(0, 50);
+  return { urls, auth, apiPaths, captura };
+}
 // Diagnóstico: descubre el contrato real del ERP desde Railway. (1) estructura de /login
 // (SPA? scripts? cookies?), (2) prueba los endpoints de login candidatos con las
 // credenciales reales, (3) si alguno funciona, prueba endpoints de datos candidatos
@@ -5297,6 +5314,25 @@ async function pyxisDiag(){
     tienePassword: /type=["']?password/i.test(f),
     inputs: [...f.matchAll(/<input\b[^>]*>/gi)].map(im => ({ name: (/\bname=["']([^"']+)["']/i.exec(im[0]) || [, ''])[1], type: ((/\btype=["']([^"']+)["']/i.exec(im[0]) || [, 'text'])[1]).toLowerCase() })).filter(x => x.name),
   }; });
+  // 1b. Minar los bundles Angular para descubrir el host de API + rutas reales.
+  rep.bundle = { fetched: [], urls: [], auth: [], apiPaths: [], captura: [] };
+  try {
+    const srcs = (rep.loginPage && rep.loginPage.scripts || []).filter(s => /\.js(\?|$)/i.test(s) && !/\[/.test(s));
+    const abs = srcs.map(s => (/^https?:\/\//i.test(s) ? s : base + (s.startsWith('/') ? s : '/' + s)));
+    const mined = { urls: new Set(), auth: new Set(), apiPaths: new Set(), captura: new Set() };
+    await Promise.all(abs.map(async (u) => {
+      try {
+        const r = await pyxisFetch(u, { method: 'GET', headers: { Accept: '*/*' } }, {});
+        let t = ''; try { t = await r.text(); } catch {}
+        rep.bundle.fetched.push({ url: u.replace(base, ''), status: r.status, len: t.length });
+        if (r.status === 200 && t.length > 100) { const m = pyxisMineBundle(t); m.urls.forEach(x => mined.urls.add(x)); m.auth.forEach(x => mined.auth.add(x)); m.apiPaths.forEach(x => mined.apiPaths.add(x)); m.captura.forEach(x => mined.captura.add(x)); }
+      } catch (e) { rep.bundle.fetched.push({ url: u.replace(base, ''), status: 0, error: String(e.message).slice(0, 50) }); }
+    }));
+    rep.bundle.urls = [...mined.urls].slice(0, 60);
+    rep.bundle.auth = [...mined.auth].slice(0, 50);
+    rep.bundle.apiPaths = [...mined.apiPaths].slice(0, 60);
+    rep.bundle.captura = [...mined.captura].slice(0, 50);
+  } catch (e) { rep.bundle.error = String(e.message).slice(0, 120); }
   // 2. Probar endpoints de login (secuencial, corta en el primero que funciona).
   if (email && password) {
     for (const p of PYXIS_LOGIN_CANDIDATES) {
