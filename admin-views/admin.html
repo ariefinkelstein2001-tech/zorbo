@@ -11433,7 +11433,8 @@ function prodWire(){
         <div class="est-note" style="margin-top:.4rem"><b>Familias (por monto):</b><div class="mun-wrap" style="margin-top:.3rem"><table class="mun-table"><thead><tr><th>familia</th><th>filas</th><th>monto</th></tr></thead><tbody>${famRows}</tbody></table></div></div>
         <div class="est-note" style="margin-top:.4rem"><b>🍺 Muestra de filas Kairos (mirá el valor de <code>familia</code>):</b><div class="mun-wrap" style="margin-top:.3rem"><table class="mun-table"><thead><tr><th>familia</th><th>producto</th><th>marca</th><th>local</th><th>total</th><th>cant</th></tr></thead><tbody>${kRows}</tbody></table></div></div>
         <div class="est-note" style="margin-top:.4rem"><b>Productos Kairos:</b> ${(d.productosKairos||[]).map(escapeHtml).join(' · ')||'—'}</div>
-        <div class="est-note" style="margin-top:.3rem;color:#666">Pegame la tabla de familias y la muestra Kairos — con eso aíslo las cervezas y armo la sección + resumen.</div>`;
+        <div class="est-note" style="margin-top:.4rem"><b>🥃 Productos "Con Alcohol" (${d.conAlcoholCount||0} distintos, top por monto):</b><textarea readonly style="width:100%;height:220px;font-family:ui-monospace,monospace;font-size:.62rem;margin-top:.2rem" onclick="this.select()">${escapeHtml((d.conAlcoholProductos||[]).map(p=>p.producto+'  |  '+clp(p.total)+'  |  '+p.cant+'u').join('\n'))}</textarea></div>
+        <div class="est-note" style="margin-top:.3rem;color:#666">Pegame el cuadro "Con Alcohol" — con esos productos armo el clasificador cerveza vs destilado y construyo la sección + resumen.</div>`;
     }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
   };
   // config: mapas por estilo (E)

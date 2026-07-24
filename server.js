@@ -5507,7 +5507,11 @@ app.post('/admin/pyxis/ventas-analisis', requireAdmin, async (req, res) => {
     const marcas = [...new Set(rows.map(r => r.nombreMarca).filter(Boolean))].sort();
     const locales = [...new Set(rows.map(r => r.nombreLocal).filter(Boolean))].sort();
     const productosKairos = [...new Set(rows.filter(r => /kairos/i.test(r.nombreProducto || '')).map(r => r.nombreProducto))].sort();
-    res.json({ grupo, totalRows: rows.length, familias, kairosSample: kairos, productosKairos, marcasCount: marcas.length, marcas: marcas.slice(0, 60), localesCount: locales.length, sampleRow: rows[0] || null });
+    // Productos distintos dentro de "Con Alcohol" (para armar el clasificador de cervezas).
+    const ca = {};
+    for (const r of rows) { if (!/con\s*alcohol/i.test(String(r.familia || ''))) continue; const p = r.nombreProducto || '(sin)'; const o = ca[p] || (ca[p] = { total: 0, cant: 0 }); o.total += total3(r); o.cant += cant3(r); }
+    const conAlcoholProductos = Object.entries(ca).map(([producto, o]) => ({ producto, total: Math.round(o.total), cant: o.cant })).sort((a, b) => b.total - a.total).slice(0, 300);
+    res.json({ grupo, totalRows: rows.length, familias, kairosSample: kairos, productosKairos, conAlcoholCount: Object.keys(ca).length, conAlcoholProductos, marcasCount: marcas.length, marcas: marcas.slice(0, 60), localesCount: locales.length, sampleRow: rows[0] || null });
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 app.post('/admin/pyxis/ventas-estructura', requireAdmin, async (req, res) => {
