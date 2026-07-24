@@ -5535,6 +5535,127 @@ app.post('/admin/pyxis/ventas-estructura', requireAdmin, async (req, res) => {
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Pyxis · Ventas HORECA de cervezas (Kairos vs competencia)
+// /ventas/{grupo} = array plano {familia, nombreProducto, nombreMarca, nombreLocal,
+//   p1..p3 ($ por mes), q1..q3 (unidades por mes)}. Filtramos "Con Alcohol",
+//   clasificamos cuáles son CERVEZA (editable, por nombre) y separamos Kairos
+//   (marcas propias) de la competencia. Todos los $ son REALES de Pyxis; la
+//   clasificación cerveza/no-cerveza es por nombre, transparente y editable.
+// ─────────────────────────────────────────────────────────────────────────────
+const PYXIS_CERV_FILE = join(PROMPTS_EFFECTIVE_DIR, 'pyxis-cervezas.json');
+const PYXIS_CERV_DEFAULT = {
+  kairosBrands: ['kairos', 'firulais', 'banny', 'badass'],
+  beerBrands: ['stella', 'corona', 'cusque', 'austral', 'heineken', 'quilmes', 'kross', 'asahi', 'sapporo', 'kunstmann', 'torobayo', 'osagui', 'lanus', 'pacifico'],
+  strongKw: ['schop', 'schopp', 'chopp', 'chelada', 'michelada', '\\bcerveza\\b', 'lager', 'pilsen', 'garza', 'media pinta', 'beer taste', 'cerveza invitada', 'coleccion artistas', 'colección artistas'],
+  weakKw: ['\\bpils\\b', 'golden ale', 'stout', 'neipa', 'weizen', 'red ale', 'pale ale', '\\bipa\\b'],
+  exclude: ['sour', 'pisco', 'mojito', 'margarita', '\\bgin\\b', 'tonic', 'spritz', 'sangria', 'sangrona', 'negroni', 'martini', 'martin', 'whisky', 'whiskey', 'vodka', '\\bron\\b', 'tequila', 'fernet', 'aperol', 'ramaz', 'piscol', 'don julio', 'johnnie', 'jack daniels', 'macallan', 'jager', 'tanqueray', 'grey goose', 'hendrick', 'st germain', 'amaretto', 'rumchata', 'carajillo', 'clericot', 'vaina', 'tom collins', 'moscow', 'paloma', 'mezcal', '\\bsake\\b', 'daiquiri', 'daikiri', 'caipir', 'cosmopol', 'chilcano', 'algarrobina', 'borgo'],
+  overrides: {},   // { "Nombre exacto del producto": "kairos" | "otra" | "no" }
+};
+function pyxisCervCfgLoad(){ try { if (existsSync(PYXIS_CERV_FILE)) return { ...PYXIS_CERV_DEFAULT, ...JSON.parse(readFileSync(PYXIS_CERV_FILE, 'utf-8')) }; } catch (e) { console.warn('pyxis cerv cfg:', e.message); } return { ...PYXIS_CERV_DEFAULT, overrides: {} }; }
+function pyxisCervCfgSave(o){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(PYXIS_CERV_FILE, JSON.stringify(o, null, 2)); }
+// Clasifica un producto de "Con Alcohol": 'kairos' (marca propia), 'otra' (competencia)
+// o null (no es cerveza). Overrides por nombre exacto tienen prioridad.
+function pyxisClasificarCerveza(nombre, cfg){
+  const n = String(nombre || '').toLowerCase().trim();
+  const ov = cfg.overrides && cfg.overrides[String(nombre || '').trim()];
+  if (ov === 'no') return null; if (ov === 'kairos') return 'kairos'; if (ov === 'otra') return 'otra';
+  const any = arr => (arr || []).some(rx => { try { return new RegExp(rx).test(n); } catch { return n.includes(String(rx).toLowerCase()); } });
+  const isKairos = any(cfg.kairosBrands);
+  const strongBeer = isKairos || any(cfg.beerBrands) || any(cfg.strongKw);
+  const excl = any(cfg.exclude);
+  if (excl && !strongBeer) return null;
+  if (strongBeer) return isKairos ? 'kairos' : 'otra';
+  if (any(cfg.weakKw) && !excl) return 'otra';
+  return null;
+}
+// Caché del array de ventas (15 MB, ~4 s en bajar): se refresca cada 30 min o con force.
+const PYXIS_VENTAS_TTL_MS = 30 * 60 * 1000;
+let pyxisVentasCache = { grupo: null, rows: null, at: 0 };
+async function pyxisVentasRows(grupo, force){
+  const now = Date.now();
+  if (!force && pyxisVentasCache.rows && pyxisVentasCache.grupo === grupo && (now - pyxisVentasCache.at) < PYXIS_VENTAS_TTL_MS) return pyxisVentasCache.rows;
+  const v = await pyxisApiJson('/ventas/' + grupo);
+  const rows = Array.isArray(v.body && v.body.ventas) ? v.body.ventas : (Array.isArray(v.body) ? v.body : []);
+  pyxisVentasCache = { grupo, rows, at: now };
+  return rows;
+}
+const PYXIS_MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+// Los 3 períodos p1/p2/p3 son los últimos 3 meses (p3 = mes actual).
+function pyxisMesesLabels(){ const d = new Date(); const out = []; for (let i = 2; i >= 0; i--) { const dd = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - i, 1)); out.push(PYXIS_MESES[dd.getUTCMonth()] + ' ' + dd.getUTCFullYear()); } return out; }
+async function pyxisCervezasResumen(grupo, force){
+  const rows = await pyxisVentasRows(grupo, force);
+  const cfg = pyxisCervCfgLoad();
+  const num = x => { const n = Number(x); return Number.isFinite(n) ? n : 0; };
+  const prod = new Map();      // nombre → { tipo, m:[3], q:[3], total, cant, locales:Map }
+  const localTot = new Map();  // local → { kairos, otras }
+  const sinClas = new Map();   // productos "Con Alcohol" no clasificados como cerveza
+  for (const r of rows) {
+    if (!/con\s*alcohol/i.test(String(r.familia || ''))) continue;
+    const nombre = String(r.nombreProducto || '').trim(); if (!nombre) continue;
+    const m = [num(r.p1), num(r.p2), num(r.p3)]; const q = [num(r.q1), num(r.q2), num(r.q3)];
+    const tot = m[0] + m[1] + m[2], can = q[0] + q[1] + q[2];
+    const tipo = pyxisClasificarCerveza(nombre, cfg);
+    if (!tipo) { const s = sinClas.get(nombre) || { total: 0 }; s.total += tot; sinClas.set(nombre, s); continue; }
+    let p = prod.get(nombre);
+    if (!p) { p = { nombre, tipo, m: [0, 0, 0], q: [0, 0, 0], total: 0, cant: 0, locales: new Map() }; prod.set(nombre, p); }
+    for (let i = 0; i < 3; i++) { p.m[i] += m[i]; p.q[i] += q[i]; } p.total += tot; p.cant += can;
+    const loc = String(r.nombreLocal || '—'); p.locales.set(loc, (p.locales.get(loc) || 0) + tot);
+    const lt = localTot.get(loc) || { kairos: 0, otras: 0 }; lt[tipo === 'kairos' ? 'kairos' : 'otras'] += tot; localTot.set(loc, lt);
+  }
+  const arr = [...prod.values()].map(p => ({ nombre: p.nombre, tipo: p.tipo, m: p.m.map(Math.round), q: p.q, total: Math.round(p.total), cant: p.cant, topLocales: [...p.locales.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([l, v]) => ({ local: l, total: Math.round(v) })) }));
+  const kairos = arr.filter(p => p.tipo === 'kairos').sort((a, b) => b.total - a.total);
+  const otras = arr.filter(p => p.tipo === 'otra').sort((a, b) => b.total - a.total);
+  const sum = a => a.reduce((s, p) => s + p.total, 0), sumC = a => a.reduce((s, p) => s + p.cant, 0);
+  const kTot = sum(kairos), oTot = sum(otras), cTot = kTot + oTot;
+  const localesTop = [...localTot.entries()].map(([local, v]) => ({ local, kairos: Math.round(v.kairos), otras: Math.round(v.otras), total: Math.round(v.kairos + v.otras) })).sort((a, b) => b.kairos - a.kairos);
+  return {
+    grupo, meses: pyxisMesesLabels(), generadoEn: new Date().toISOString(),
+    totales: { kairos: kTot, otras: oTot, cervezas: cTot, shareKairos: cTot ? Math.round(kTot / cTot * 1000) / 10 : 0, kairosCant: sumC(kairos), otrasCant: sumC(otras), nKairos: kairos.length, nOtras: otras.length },
+    kairos, otras, localesTop: localesTop.slice(0, 15),
+    sinClasificar: [...sinClas.entries()].map(([nombre, v]) => ({ nombre, total: Math.round(v.total) })).sort((a, b) => b.total - a.total).slice(0, 50),
+  };
+}
+app.get('/admin/pyxis/cervezas', requireAdmin, async (req, res) => {
+  try { const grupo = String(req.query.grupo || 2).replace(/[^0-9]/g, '') || '2'; res.json(await pyxisCervezasResumen(grupo, req.query.force === '1')); }
+  catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
+app.get('/admin/pyxis/cervezas/config', requireAdmin, (_req, res) => res.json(pyxisCervCfgLoad()));
+app.put('/admin/pyxis/cervezas/config', requireAdmin, (req, res) => {
+  const cur = pyxisCervCfgLoad(); const b = req.body || {};
+  if (!cur.overrides) cur.overrides = {};
+  if (b.overrides && typeof b.overrides === 'object') for (const [k, v] of Object.entries(b.overrides)) { if (v == null || v === '') delete cur.overrides[k]; else if (['kairos', 'otra', 'no'].includes(v)) cur.overrides[String(k).slice(0, 120)] = v; }
+  for (const key of ['kairosBrands', 'beerBrands', 'strongKw', 'weakKw', 'exclude']) if (Array.isArray(b[key])) cur[key] = b[key].map(s => String(s).slice(0, 60)).slice(0, 160);
+  pyxisCervCfgSave(cur); res.json(cur);
+});
+const PYXIS_CERV_RESUMEN_FILE = join(PROMPTS_EFFECTIVE_DIR, 'pyxis-cervezas-resumen.json');
+function pyxisCervResumenLoad(){ try { if (existsSync(PYXIS_CERV_RESUMEN_FILE)) return JSON.parse(readFileSync(PYXIS_CERV_RESUMEN_FILE, 'utf-8')); } catch (e) { console.warn('pyxis cerv resumen:', e.message); } return null; }
+function pyxisCervResumenSave(o){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(PYXIS_CERV_RESUMEN_FILE, JSON.stringify(o, null, 2)); }
+app.get('/admin/pyxis/cervezas/resumen', requireAdmin, (_req, res) => res.json(pyxisCervResumenLoad() || { texto: null, generadoEn: null }));
+app.post('/admin/pyxis/cervezas/resumen/generar', requireAdmin, async (req, res) => {
+  try {
+    const grupo = String((req.body && req.body.grupo) || 2).replace(/[^0-9]/g, '') || '2';
+    const d = await pyxisCervezasResumen(grupo, false);
+    const fmt = n => '$' + Math.round(Number(n) || 0).toLocaleString('es-CL');
+    const top = a => (a.slice(0, 10).map(p => `  · ${p.nombre}: ${fmt(p.total)} (${p.cant} u)`).join('\n') || '  (sin datos)');
+    const datos = [
+      `Período (últimos 3 meses): ${d.meses.join(', ')}. Grupo HORECA ${grupo}.`,
+      `TOTAL cervezas: ${fmt(d.totales.cervezas)}.`,
+      `Kairos (marcas propias): ${fmt(d.totales.kairos)} = ${d.totales.shareKairos}% del total, ${d.totales.kairosCant} unidades, ${d.totales.nKairos} productos.`,
+      `Otras cervezas (competencia): ${fmt(d.totales.otras)} = ${Math.round((100 - d.totales.shareKairos) * 10) / 10}%, ${d.totales.otrasCant} unidades, ${d.totales.nOtras} productos.`,
+      ``, `Top cervezas Kairos:`, top(d.kairos),
+      ``, `Top cervezas competencia:`, top(d.otras),
+      ``, `Locales por venta Kairos (Kairos $ / otras $):`,
+      (d.localesTop.slice(0, 12).map(l => `  · ${l.local}: Kairos ${fmt(l.kairos)} / otras ${fmt(l.otras)}`).join('\n') || '  (sin datos)'),
+    ].join('\n');
+    const sys = 'Sos analista comercial de Kairos (cervecería artesanal). Analizás las ventas de cervezas en los locales HORECA de Grupo Mil Sabores. Escribe en español chileno neutro (tuteo), claro y accionable, en 2 o 3 párrafos breves. Cubre: cómo venden las cervezas Kairos vs la competencia (participación), qué productos Kairos lideran, en qué locales pegan más y dónde hay oportunidad (locales donde la competencia domina y Kairos casi no vende). REGLA ABSOLUTA: usá ÚNICAMENTE los números que te paso abajo; NO inventes ni estimes NINGÚN número ni causa; si falta un dato, omitilo.';
+    const msg = await client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 900, system: sys, messages: [{ role: 'user', content: 'Cifras reales (de Pyxis):\n' + datos }] });
+    const texto = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim();
+    const out = { texto, generadoEn: new Date().toISOString(), grupo, meses: d.meses };
+    pyxisCervResumenSave(out); res.json(out);
+  } catch (e) { res.status(500).json({ error: 'No se pudo generar el resumen: ' + String(e.message || e).slice(0, 200) }); }
+});
+
 // Crear lote (cocción). Ocupa el tanque destino recién al cerrar la cocción.
 app.post('/admin/produccion/lote', requireAdmin, (req, res) => {
   const b = req.body || {}; const d = prodLoad();
