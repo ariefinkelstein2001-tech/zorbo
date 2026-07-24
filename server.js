@@ -5711,6 +5711,15 @@ app.post('/admin/pyxis/documentos-diag', requireAdmin, async (req, res) => {
     };
     out.probes.push(await hit(`/documentos/${grupo}?local=${local}&page=1&pick=15&ini=${ini}&end=${end}`));
     for (const p of [`/documentos/${grupo}/locales`, `/documentos/${grupo}/data-filters`, `/documentos/${grupo}/filters`, `/locales/${grupo}`, `/documentos/${grupo}`]) out.probes.push(await hit(p));
+    // Parseo del array de documentos: encontrar la clave y un documento de ejemplo.
+    try {
+      const j = await pyxisApiJson(`/documentos/${grupo}?local=${local}&page=1&pick=15&ini=${ini}&end=${end}`);
+      const b = j.body || {};
+      out.bodyKeys = Object.keys(b);
+      let docsKey = null, docs = null;
+      for (const [k, v] of Object.entries(b)) { if (k === 'premises') continue; if (Array.isArray(v) && v.length && typeof v[0] === 'object') { docsKey = k; docs = v; break; } }
+      out.lista = { docsKey, count: docs ? docs.length : 0, sampleDoc: docs ? docs[0] : null, camposDoc: docs && docs[0] ? Object.keys(docs[0]) : [], pagination: b.paginationData || null, premisesCount: Array.isArray(b.premises) ? b.premises.length : 0 };
+    } catch (e) { out.lista = { error: String(e.message).slice(0, 100) }; }
     res.json(out);
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
