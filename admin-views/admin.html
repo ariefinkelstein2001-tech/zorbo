@@ -383,6 +383,7 @@ body{ padding-left:var(--ks-side); }
 }
 .adm-status.ok{color:var(--green);background:var(--green-dim);border:1px solid rgba(92,201,143,.25)}
 .adm-status.err{color:var(--red);background:var(--red-dim);border:1px solid rgba(224,101,79,.25)}
+.adm-status.warn{color:var(--gold-deep,#a05f00);background:var(--gold-dim,#fff3d6);border:1px solid rgba(245,166,35,.3)}
 .adm-status.loading{color:var(--muted);background:var(--surface3)}
 .adm-status.hidden{display:none}
 
@@ -1878,6 +1879,8 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 @media(max-width:900px){.fc-manual-grid{grid-template-columns:1fr}}
 .fc-manual-grid .mun-table{min-width:0}
 .fc-total-row td{font-weight:800;border-top:2px solid var(--border,#e5e5e5)}
+.fc-proy-head{display:flex;align-items:center;gap:.9rem;flex-wrap:wrap}
+.fc-proy-r2{font-size:.78rem;color:var(--muted,#666);font-weight:600}
 .fc-op-open{background:var(--gold-dim,rgba(245,166,35,.06))}
 .fc-op-edit-row td{background:var(--surface2,#fafafa)}
 /* Gestión de Personas */
@@ -10164,6 +10167,18 @@ function fcOperacionalRender(){
     fcParamBoot();
     return;
   }
+  if(fcOpModule==='proyeccion'){
+    body.innerHTML=crumb+'<div id="fcProyRoot"></div>';
+    document.querySelector('#fcBody [data-fcopback]').onclick=()=>{ fcOpModule=null; fcOperacionalRender(); };
+    fcProyOpRender();
+    return;
+  }
+  if(fcOpModule==='precision'){
+    body.innerHTML=crumb+'<div id="fcPrecRoot"></div>';
+    document.querySelector('#fcBody [data-fcopback]').onclick=()=>{ fcOpModule=null; fcOperacionalRender(); };
+    fcPrecRender();
+    return;
+  }
   body.innerHTML=crumb+adminSinInfo('En construcción · '+mod.label, mod.desc, 'Este submódulo se arma en las próximas fases del modelo de proyección de inventario, producción y flota de barriles — todavía no hay datos que mostrar.');
   body.querySelector('[data-fcopback]').onclick=()=>{ fcOpModule=null; fcOperacionalRender(); };
 }
@@ -10403,6 +10418,118 @@ function fcParamRenderNormalizacion(body){
   };
   body.querySelectorAll('[data-fpsindel]').forEach(b=>b.onclick=async()=>{ await fetch('/admin/forecast/data/sinonimo/'+encodeURIComponent(b.dataset.fpsindel),{method:'DELETE'}); await fcParamRefresh(); });
   body.querySelectorAll('[data-fplotedel]').forEach(b=>b.onclick=async()=>{ await fetch('/admin/forecast/data/lote-estilo/'+encodeURIComponent(b.dataset.fplotedel),{method:'DELETE'}); await fcParamRefresh(); });
+}
+
+// ── Forecast Operacional · Proyección (Fase 2, capas 1–3) ──
+// Nombres con sufijo "Op" para no chocar con fcProy*/fcProyMonth/fcProyData del
+// Forecast FINANCIERO ("Proyectado"), que es un módulo completamente distinto.
+let fcProyOpState={canal:null, estilo:'', horizonte:6};
+const FC_CONF_BADGE={
+  dato_real:{cls:'ok',txt:'✓ Dato real'},
+  estacionalidad_prestada:{cls:'warn',txt:'⚠ Estacionalidad prestada'},
+  tendencia_no_confiable:{cls:'warn',txt:'⚠ Tendencia no confiable (R² bajo)'},
+};
+async function fcProyOpRender(){
+  const root=document.getElementById('fcProyRoot'); if(!root) return;
+  root.innerHTML='<div class="adm-loading">Cargando…</div>';
+  let canales=[];
+  try{ canales=(await (await fetch('/admin/forecast/canales')).json()).canales||[]; }catch(e){}
+  if(!fcProyOpState.canal) fcProyOpState.canal=canales[0]||'cd_kairos';
+  root.innerHTML=`
+    <div class="fc-toolbar">
+      <div class="fc-toolbar-l"><span>Canal</span><select id="fpoCanal">${canales.map(c=>`<option value="${c}" ${c===fcProyOpState.canal?'selected':''}>${escapeHtml(FC_PARAM_CANAL_LBL[c]||c)}</option>`).join('')}</select></div>
+      <div class="fc-toolbar-l"><span>Estilo</span><input type="text" id="fpoEstilo" placeholder="Todos los estilos" value="${escapeAttr(fcProyOpState.estilo)}"></div>
+      <div class="fc-toolbar-l"><span>Horizonte</span><select id="fpoHorizonte">${[3,6,9,12].map(h=>`<option value="${h}" ${h===fcProyOpState.horizonte?'selected':''}>${h} meses</option>`).join('')}</select></div>
+      <button class="adm-btn adm-btn-gold" id="fpoGo" type="button">Proyectar</button>
+    </div>
+    <div id="fpoBody"></div>`;
+  document.getElementById('fpoGo').onclick=()=>{
+    fcProyOpState.canal=document.getElementById('fpoCanal').value;
+    fcProyOpState.estilo=document.getElementById('fpoEstilo').value.trim();
+    fcProyOpState.horizonte=Number(document.getElementById('fpoHorizonte').value);
+    fcProyOpRenderData();
+  };
+  fcProyOpRenderData();
+}
+async function fcProyOpRenderData(){
+  const body=document.getElementById('fpoBody'); if(!body) return;
+  body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  const qs=new URLSearchParams({canal:fcProyOpState.canal, horizonte:fcProyOpState.horizonte});
+  if(fcProyOpState.estilo) qs.set('estilo', fcProyOpState.estilo);
+  let d;
+  try{ d=await (await fetch('/admin/forecast/proyeccion?'+qs)).json(); if(d.error) throw new Error(d.error); }
+  catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+  if(!d.ok){
+    const motivos={
+      serie_corta: `Serie corta: solo ${d.mesesDisponibles} de los 24 meses limpios que hacen falta para calcular estacionalidad propia.`,
+      sin_analogo: `Serie corta (${d.mesesDisponibles} meses) y no hay un análogo declarado para prestarle la estacionalidad — declara uno en Parámetros.`,
+      analogo_sin_datos: `Serie corta y el análogo declarado tampoco tiene suficientes datos.`,
+    };
+    const erroresBox=(d.mesesConError&&d.mesesConError.length)?`<div class="fc-note" style="margin-top:.6rem">⚠️ ${d.mesesConError.length} meses sin poder calcularse: ${d.mesesConError.slice(0,3).map(e=>escapeHtml(e.mes+' ('+e.error+')')).join(' · ')}${d.mesesConError.length>3?' · …':''}</div>`:'';
+    body.innerHTML=`<div class="dist-empty">📉 <b>Sin proyección</b><br>${escapeHtml(motivos[d.reason]||d.reason||'Sin datos suficientes.')}</div>${erroresBox}`;
+    return;
+  }
+  const badge=FC_CONF_BADGE[d.confiabilidad]||{cls:'',txt:d.confiabilidad};
+  const analogoNote=d.analogoUsado?` de ${escapeHtml(FC_PARAM_CANAL_LBL[d.analogoUsado.canal]||d.analogoUsado.canal)}${d.analogoUsado.estilo?' · '+escapeHtml(d.analogoUsado.estilo):''}`:'';
+  const aperturaNote=d.aperturaExcluida?`<div class="fc-note" style="margin-top:.5rem">ℹ️ Excluido de tendencia/estacionalidad: pedido de apertura en ${escapeHtml(d.aperturaExcluida)}.</div>`:'';
+  const rows=d.puntos.map(p=>`<tr><td>${escapeHtml(estMonthLabel(p.mes))}</td><td class="dist-num"><b>${p.central.toLocaleString('es-CL')} L</b></td><td class="dist-num" style="color:var(--muted,#888)">${p.bandaBaja.toLocaleString('es-CL')} – ${p.bandaAlta.toLocaleString('es-CL')} L</td></tr>`).join('');
+  body.innerHTML=`
+    <div class="fc-proy-head">
+      <span class="adm-status ${badge.cls}">${badge.txt}${analogoNote}</span>
+      <span class="fc-proy-r2">R² tendencia: ${d.r2}</span>
+      <span class="fc-proy-r2">${d.mesesUsados} meses de historia</span>
+    </div>
+    ${aperturaNote}
+    <div class="mun-wrap" style="margin-top:.8rem"><table class="mun-table"><thead><tr><th>Mes</th><th style="text-align:right">Proyección central</th><th style="text-align:right">Banda de incertidumbre</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="fc-note" style="margin-top:.6rem">La banda sale de la variabilidad real de la serie (no es un ±% arbitrario) y crece con el horizonte.</div>`;
+}
+
+// ── Forecast Operacional · Precisión del modelo (backtesting MAPE/sesgo) ──
+let fcPrecState={canal:null, estilo:'', meses:6};
+async function fcPrecRender(){
+  const root=document.getElementById('fcPrecRoot'); if(!root) return;
+  root.innerHTML='<div class="adm-loading">Cargando…</div>';
+  let canales=[];
+  try{ canales=(await (await fetch('/admin/forecast/canales')).json()).canales||[]; }catch(e){}
+  if(!fcPrecState.canal) fcPrecState.canal=canales[0]||'cd_kairos';
+  root.innerHTML=`
+    <div class="fc-toolbar">
+      <div class="fc-toolbar-l"><span>Canal</span><select id="fpcCanal">${canales.map(c=>`<option value="${c}" ${c===fcPrecState.canal?'selected':''}>${escapeHtml(FC_PARAM_CANAL_LBL[c]||c)}</option>`).join('')}</select></div>
+      <div class="fc-toolbar-l"><span>Estilo</span><input type="text" id="fpcEstilo" placeholder="Todos los estilos" value="${escapeAttr(fcPrecState.estilo)}"></div>
+      <div class="fc-toolbar-l"><span>Meses a testear</span><select id="fpcMeses">${[3,6,9,12].map(m=>`<option value="${m}" ${m===fcPrecState.meses?'selected':''}>${m}</option>`).join('')}</select></div>
+      <button class="adm-btn adm-btn-gold" id="fpcGo" type="button">Calcular</button>
+    </div>
+    <div id="fpcBody"></div>`;
+  document.getElementById('fpcGo').onclick=()=>{
+    fcPrecState.canal=document.getElementById('fpcCanal').value;
+    fcPrecState.estilo=document.getElementById('fpcEstilo').value.trim();
+    fcPrecState.meses=Number(document.getElementById('fpcMeses').value);
+    fcPrecRenderData();
+  };
+  fcPrecRenderData();
+}
+async function fcPrecRenderData(){
+  const body=document.getElementById('fpcBody'); if(!body) return;
+  body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  const qs=new URLSearchParams({canal:fcPrecState.canal, meses:fcPrecState.meses});
+  if(fcPrecState.estilo) qs.set('estilo', fcPrecState.estilo);
+  let d;
+  try{ d=await (await fetch('/admin/forecast/precision?'+qs)).json(); if(d.error) throw new Error(d.error); }
+  catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+  if(!d.ok){
+    body.innerHTML=`<div class="dist-empty">📊 <b>Sin datos para medir precisión</b><br>Hacen falta ${d.mesesNecesarios} meses limpios de historia (24 de entrenamiento + los de prueba) y hoy hay ${d.mesesDisponibles}.</div>`;
+    return;
+  }
+  const sesgoWarn=Math.abs(d.sesgo)>=10;
+  const rows=d.pares.map(p=>`<tr><td>${escapeHtml(estMonthLabel(p.mes))}</td><td class="dist-num">${p.real.toLocaleString('es-CL')} L</td><td class="dist-num">${p.pronostico.toLocaleString('es-CL')} L</td><td class="dist-num ${p.pronostico>p.real?'fc-changed':''}">${(p.pronostico>=p.real?'+':'')+(p.pronostico-p.real).toLocaleString('es-CL')} L</td></tr>`).join('');
+  body.innerHTML=`
+    <div class="cg-resumen">
+      <div class="cg-card"><div class="cg-card-l">MAPE</div><div class="cg-card-v">${d.mape}%</div><div class="cg-card-n">error absoluto promedio</div></div>
+      <div class="cg-card"><div class="cg-card-l">Sesgo</div><div class="cg-card-v">${d.sesgo>=0?'+':''}${d.sesgo}%</div><div class="cg-card-n">${sesgoWarn?'⚠ consistente — revisar supuestos':'dentro de lo esperable'}</div></div>
+      <div class="cg-card"><div class="cg-card-l">Meses medidos</div><div class="cg-card-v">${d.n}</div><div class="cg-card-n">backtesting walk-forward</div></div>
+    </div>
+    ${sesgoWarn?`<div class="fc-note" style="margin-top:.6rem">⚠️ Un sesgo de ${d.sesgo}% sostenido en el tiempo es un supuesto del modelo mal calibrado, no ruido — conviene revisar los parámetros antes de confiar en la proyección.</div>`:''}
+    <div class="mun-wrap" style="margin-top:.8rem"><table class="mun-table"><thead><tr><th>Mes</th><th style="text-align:right">Real</th><th style="text-align:right">Pronóstico</th><th style="text-align:right">Diferencia</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 // ── (A) Proyectado ──

@@ -4239,7 +4239,7 @@ const FORECAST_LOTE_ESTILO_SEED = {
   'Kenny Bell': 'Ámbar', 'Obertura': 'Stout', 'Hoyo en Uno': 'Hoppy Lager', 'CDA': 'Colección de Artista',
 };
 function forecastDataDefaults(){
-  return { sinonimos: {}, loteEstilo: { ...FORECAST_LOTE_ESTILO_SEED }, driverExterno: [], traspasos500: [], eventos: [], capacidadMaquila: [], capacidad: [], parametros: [] };
+  return { sinonimos: {}, loteEstilo: { ...FORECAST_LOTE_ESTILO_SEED }, driverExterno: [], traspasos500: [], eventos: [], capacidadMaquila: [], capacidad: [], parametros: [], analogos: [] };
 }
 function forecastDataLoad(){
   const d = forecastDataDefaults();
@@ -4249,7 +4249,7 @@ function forecastDataLoad(){
       if (p && typeof p === 'object') {
         if (p.sinonimos && typeof p.sinonimos === 'object') d.sinonimos = p.sinonimos;
         if (p.loteEstilo && typeof p.loteEstilo === 'object') d.loteEstilo = { ...d.loteEstilo, ...p.loteEstilo };
-        for (const k of ['driverExterno', 'traspasos500', 'eventos', 'capacidadMaquila', 'capacidad', 'parametros']) {
+        for (const k of ['driverExterno', 'traspasos500', 'eventos', 'capacidadMaquila', 'capacidad', 'parametros', 'analogos']) {
           if (Array.isArray(p[k])) d[k] = p[k];
         }
       }
@@ -4345,7 +4345,7 @@ app.get('/admin/forecast/data', requireAdmin, (req, res) => {
   const parametrosVigentes = paramClaves.map(clave => forecastVigente(d.parametros, p => p.clave === clave)).filter(Boolean);
   res.json({ ...d, capacidadVigente, parametrosVigentes });
 });
-const FORECAST_LISTS = ['driverExterno', 'traspasos500', 'eventos', 'capacidadMaquila', 'capacidad', 'parametros'];
+const FORECAST_LISTS = ['driverExterno', 'traspasos500', 'eventos', 'capacidadMaquila', 'capacidad', 'parametros', 'analogos'];
 app.post('/admin/forecast/data/:list', requireAdmin, (req, res) => {
   const list = req.params.list;
   if (!FORECAST_LISTS.includes(list)) return res.status(400).json({ error: 'Lista inválida.' });
@@ -4372,6 +4372,11 @@ app.post('/admin/forecast/data/:list', requireAdmin, (req, res) => {
   } else if (list === 'parametros') {
     if (!costosStr(b.clave) || !fecha.test(b.vigenteDesde)) return res.status(400).json({ error: 'Falta la clave o la fecha de vigencia (YYYY-MM-DD).' });
     entry.clave = costosStr(b.clave, 60); entry.valor = Number(b.valor); entry.vigenteDesde = b.vigenteDesde; entry.nota = costosStr(b.nota, 200);
+  } else if (list === 'analogos') {
+    if (!costosStr(b.canal) || !costosStr(b.analogoCanal)) return res.status(400).json({ error: 'Falta el canal o el análogo.' });
+    entry.canal = costosStr(b.canal, 40); entry.estilo = costosStr(b.estilo, 60) || null;
+    entry.analogoCanal = costosStr(b.analogoCanal, 40); entry.analogoEstilo = costosStr(b.analogoEstilo, 60) || null;
+    entry.nota = costosStr(b.nota, 200);
   }
   const d = forecastDataLoad(); d[list].push(entry); forecastDataSave(d);
   res.json({ ok: true, entry });
@@ -4400,6 +4405,234 @@ app.delete('/admin/forecast/data/:list/:id', requireAdmin, (req, res) => {
   if (!FORECAST_LISTS.includes(list)) return res.status(400).json({ error: 'Lista inválida.' });
   const d = forecastDataLoad(); d[list] = d[list].filter(e => e.id !== req.params.id); forecastDataSave(d);
   res.json({ ok: true });
+});
+
+// ─── Forecast Operacional · Fase 2: motor de pronóstico (capas 1–3) ────────
+// "Prompt maestro", sección 4: descomposición de serie, driver externo, cascada
+// a estilo. Verificado con datos sintéticos antes de conectarlo a datos reales
+// (promedio móvil, índice estacional, R² y detección de pedido de apertura dan
+// los valores esperados). Nunca rellena huecos con promedios ni proyecta con
+// <24 meses de estacionalidad propia — ver reglas 5.1/5.2 del documento.
+function forecastMedian(arr){
+  const s = arr.slice().sort((a, b) => a - b); const n = s.length;
+  if (!n) return 0;
+  return n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
+}
+// Regla 5.1: excluye el pedido de apertura de tendencia/estacionalidad si el
+// primer mes con venta es >3x la mediana de los 3 meses siguientes.
+function forecastDetectarApertura(serie){
+  const first = serie.findIndex(p => p.litros > 0);
+  if (first < 0 || first + 3 >= serie.length) return -1;
+  const next3 = serie.slice(first + 1, first + 4).map(p => p.litros);
+  const med = forecastMedian(next3);
+  return (med > 0 && serie[first].litros > med * 3) ? first : -1;
+}
+function forecastPromedioMovil12(serie, excluirIdx){
+  const out = new Array(serie.length).fill(null);
+  for (let i = 11; i < serie.length; i++){
+    let sum = 0, n = 0;
+    for (let j = i - 11; j <= i; j++){ if (j === excluirIdx) continue; sum += serie[j].litros; n++; }
+    out[i] = n ? sum / n : null;
+  }
+  return out;
+}
+function forecastIndiceEstacional(serie, pm, excluirIdx){
+  const porMes = {};
+  for (let i = 0; i < serie.length; i++){
+    if (i === excluirIdx || pm[i] == null || pm[i] === 0) continue;
+    const mesNum = Number(serie[i].mes.slice(5, 7));
+    (porMes[mesNum] = porMes[mesNum] || []).push(serie[i].litros / pm[i]);
+  }
+  const idx = {};
+  for (let m = 1; m <= 12; m++){ const arr = porMes[m] || []; idx[m] = arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null; }
+  const vals = Object.values(idx).filter(v => v != null);
+  const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 1;
+  for (const m of Object.keys(idx)) if (idx[m] != null) idx[m] = idx[m] / avg;
+  return idx;
+}
+function forecastRegresionLineal(ys, excluirSet){
+  const pts = []; ys.forEach((y, i) => { if (y != null && !excluirSet.has(i)) pts.push([i, y]); });
+  const n = pts.length;
+  if (n < 2) return { pendiente: 0, intercepto: pts[0] ? pts[0][1] : 0, r2: 0 };
+  const sumX = pts.reduce((a, p) => a + p[0], 0), sumY = pts.reduce((a, p) => a + p[1], 0);
+  const meanX = sumX / n, meanY = sumY / n;
+  let num = 0, den = 0;
+  pts.forEach(([x, y]) => { num += (x - meanX) * (y - meanY); den += (x - meanX) ** 2; });
+  const pendiente = den ? num / den : 0, intercepto = meanY - pendiente * meanX;
+  let ssRes = 0, ssTot = 0;
+  pts.forEach(([x, y]) => { const pred = intercepto + pendiente * x; ssRes += (y - pred) ** 2; ssTot += (y - meanY) ** 2; });
+  const r2 = ssTot ? 1 - ssRes / ssTot : 0;
+  return { pendiente, intercepto, r2 };
+}
+function forecastStdDev(arr){
+  if (arr.length < 2) return 0;
+  const m = arr.reduce((a, b) => a + b, 0) / arr.length;
+  return Math.sqrt(arr.reduce((a, v) => a + (v - m) ** 2, 0) / (arr.length - 1));
+}
+// Capa 1 — mínimo 24 meses limpios para estacionalidad PROPIA (nunca se calcula
+// con menos; ver forecastResolverEstacionalidad para el préstamo de análogo).
+function forecastDecompose(serie){
+  if (serie.length < 24) return { ok: false, reason: 'serie_corta', mesesDisponibles: serie.length };
+  const aperturaIdx = forecastDetectarApertura(serie);
+  const pm = forecastPromedioMovil12(serie, aperturaIdx);
+  const indiceEstacional = forecastIndiceEstacional(serie, pm, aperturaIdx);
+  const excluirSet = new Set(aperturaIdx >= 0 ? [aperturaIdx] : []);
+  const tendencia = forecastRegresionLineal(pm, excluirSet);
+  const residuos = pm.map((v, i) => (v != null && !excluirSet.has(i)) ? v - (tendencia.intercepto + tendencia.pendiente * i) : null).filter(v => v != null);
+  return {
+    ok: true, mesesUsados: serie.length, aperturaExcluida: aperturaIdx >= 0 ? serie[aperturaIdx].mes : null,
+    promedioMovil: pm, indiceEstacional, tendencia, desviacionResiduos: forecastStdDev(residuos),
+  };
+}
+// N meses de litros (fecha→canal→estilo ya normalizado) hasta hastaMes inclusive,
+// agregados por mes. estilo=null agrega TODOS los estilos del canal.
+async function forecastSerieMensual(canal, estilo, hastaMes, nMeses, data){
+  const d = data || forecastDataLoad();
+  const out = []; const mesesConError = [];
+  const [y0, m0] = hastaMes.split('-').map(Number);
+  for (let i = nMeses - 1; i >= 0; i--){
+    const dt = new Date(y0, m0 - 1 - i, 1);
+    const mes = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+    const { rows, error } = await forecastVentasDelMes(mes, d);
+    if (error) { mesesConError.push({ mes, error }); out.push({ mes, litros: null }); continue; }
+    const filtradas = rows.filter(r => r.canal === canal && (estilo == null || r.estilo === estilo));
+    out.push({ mes, litros: filtradas.reduce((a, r) => a + r.litros, 0) });
+  }
+  return { serie: out, mesesConError };
+}
+// Regla 5.2: serie corta (<24m) toma prestada la estacionalidad de un análogo
+// DECLARADO (nunca el promedio de la empresa) — si no hay análogo declarado,
+// falla ruidosamente en vez de inventar un patrón.
+async function forecastResolverEstacionalidad(canal, estilo, hastaMes, data, profundidad){
+  const d = data || forecastDataLoad();
+  const { serie, mesesConError } = await forecastSerieMensual(canal, estilo, hastaMes, 30, d);
+  const serieLimpia = serie.filter(p => p.litros != null);
+  const dec = forecastDecompose(serieLimpia);
+  if (dec.ok) return { ...dec, fuente: 'propia', canal, estilo, serie, mesesConError };
+  if ((profundidad || 0) > 1) return { ok: false, reason: 'analogo_circular', mesesDisponibles: serieLimpia.length };
+  const analogo = (d.analogos || []).find(a => a.canal === canal && (a.estilo || null) === (estilo || null));
+  if (!analogo) return { ok: false, reason: 'sin_analogo', mesesDisponibles: serieLimpia.length, canal, estilo, serie, mesesConError };
+  const prestada = await forecastResolverEstacionalidad(analogo.analogoCanal, analogo.analogoEstilo || null, hastaMes, d, (profundidad || 0) + 1);
+  if (!prestada.ok) return { ok: false, reason: 'analogo_sin_datos', mesesDisponibles: serieLimpia.length, analogoIntentado: analogo, canal, estilo, serie, mesesConError };
+  return { ok: true, fuente: 'analogo', analogoUsado: { canal: analogo.analogoCanal, estilo: analogo.analogoEstilo || null }, indiceEstacional: prestada.indiceEstacional, tendencia: forecastRegresionLineal(forecastPromedioMovil12(serieLimpia, forecastDetectarApertura(serieLimpia)), new Set()), mesesUsados: serieLimpia.length, desviacionResiduos: prestada.desviacionResiduos, canal, estilo, serie, mesesConError };
+}
+// Capa 2 — participación de Kairos en Grupo Mil Sabores (driver externo, dato
+// manual), suavizada 3m; alerta si el último mes se desvía >2 desv. estándar.
+async function forecastDriverExterno(hastaMes, data){
+  const d = data || forecastDataLoad();
+  const { serie } = await forecastSerieMensual('cd_kairos', null, hastaMes, 24, d);
+  const driverPorMes = {}; (d.driverExterno || []).forEach(e => { driverPorMes[e.mes] = e.litrosMilSabores; });
+  const puntos = serie.filter(p => p.litros != null && driverPorMes[p.mes] > 0).map(p => ({ mes: p.mes, ratio: p.litros / driverPorMes[p.mes] }));
+  if (puntos.length < 3) return { ok: false, reason: 'sin_datos_suficientes', mesesConDriver: puntos.length };
+  const suavizado = puntos.map((p, i) => { const w = puntos.slice(Math.max(0, i - 2), i + 1); return w.reduce((a, x) => a + x.ratio, 0) / w.length; });
+  const ratios = puntos.map(p => p.ratio);
+  const std = forecastStdDev(ratios);
+  const ultimo = ratios[ratios.length - 1], ultimoSuavizado = suavizado[suavizado.length - 2] ?? suavizado[suavizado.length - 1];
+  const desviado = std > 0 && Math.abs(ultimo - ultimoSuavizado) > 2 * std;
+  return { ok: true, puntos, suavizado, desviacionEstandar: Math.round(std * 1000) / 1000, ultimoRatio: Math.round(ultimo * 1000) / 1000, alertaDesviacion: desviado };
+}
+// Capa 3 — mix por estilo dentro de un canal, calculado AL VUELO (nunca
+// persistido). Umbral 8% de participación anual + 18 meses de dato para que un
+// estilo tenga estacionalidad propia; si no, usa el patrón estacional del canal.
+async function forecastMixEstiloCanal(canal, hastaMes, data){
+  const d = data || forecastDataLoad();
+  const { serie: serieMeses } = await forecastSerieMensual(canal, null, hastaMes, 12, d);
+  const totalCanal = serieMeses.filter(p => p.litros != null).reduce((a, p) => a + p.litros, 0);
+  // Recompone por estilo pidiendo cada mes de nuevo (los hechos no traen desglose
+  // por estilo pre-agregado a nivel de forecastSerieMensual cuando estilo=null).
+  const porEstilo = {};
+  const [y0, m0] = hastaMes.split('-').map(Number);
+  for (let i = 11; i >= 0; i--){
+    const dt = new Date(y0, m0 - 1 - i, 1);
+    const mes = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+    const { rows, error } = await forecastVentasDelMes(mes, d);
+    if (error) continue;
+    rows.filter(r => r.canal === canal).forEach(r => { porEstilo[r.estilo] = (porEstilo[r.estilo] || 0) + r.litros; });
+  }
+  const mix = Object.entries(porEstilo).map(([estilo, litros]) => ({ estilo, litros, pct: totalCanal ? Math.round((litros / totalCanal) * 1000) / 10 : 0 })).sort((a, b) => b.litros - a.litros);
+  return { canal, totalCanal, mix };
+}
+// Backtesting walk-forward: para cada mes de prueba, entrena SOLO con lo
+// anterior a ese mes (ventana expansiva, mínimo 24), pronostica y compara
+// contra el real. MAPE/sesgo — sesgo consistente en el tiempo delata un
+// supuesto malo, no ruido (ver sección 9 del documento).
+async function forecastBacktestSerie(canal, estilo, hastaMes, nMesesTest, data){
+  const d = data || forecastDataLoad();
+  const total = await forecastSerieMensual(canal, estilo, hastaMes, 24 + nMesesTest, d);
+  const serieCompleta = total.serie;
+  if (serieCompleta.filter(p => p.litros != null).length < 24 + nMesesTest) {
+    return { ok: false, reason: 'historia_insuficiente', mesesDisponibles: serieCompleta.filter(p => p.litros != null).length, mesesNecesarios: 24 + nMesesTest };
+  }
+  const pares = [];
+  for (let k = nMesesTest; k >= 1; k--){
+    const idxCorte = serieCompleta.length - k; // primer mes NO visto por el modelo
+    const entreno = serieCompleta.slice(0, idxCorte).filter(p => p.litros != null);
+    if (entreno.length < 24) continue;
+    const dec = forecastDecompose(entreno);
+    if (!dec.ok) continue;
+    const mesObjetivo = serieCompleta[idxCorte];
+    if (mesObjetivo.litros == null) continue;
+    const mesNum = Number(mesObjetivo.mes.slice(5, 7));
+    const idxPred = entreno.length; // siguiente punto en la serie de entrenamiento
+    const tendenciaVal = dec.tendencia.intercepto + dec.tendencia.pendiente * idxPred;
+    const idxEst = dec.indiceEstacional[mesNum] != null ? dec.indiceEstacional[mesNum] : 1;
+    const pronostico = Math.max(0, tendenciaVal * idxEst);
+    pares.push({ mes: mesObjetivo.mes, real: mesObjetivo.litros, pronostico: Math.round(pronostico) });
+  }
+  if (!pares.length) return { ok: false, reason: 'sin_pares_validos', mesesDisponibles: serieCompleta.filter(p => p.litros != null).length };
+  const validos = pares.filter(p => p.real > 0);
+  const mape = validos.length ? validos.reduce((a, p) => a + Math.abs((p.pronostico - p.real) / p.real), 0) / validos.length : null;
+  const sesgo = validos.length ? validos.reduce((a, p) => a + (p.pronostico - p.real) / p.real, 0) / validos.length : null;
+  return { ok: true, pares, mape: mape != null ? Math.round(mape * 1000) / 10 : null, sesgo: sesgo != null ? Math.round(sesgo * 1000) / 10 : null, n: validos.length };
+}
+function forecastMesActualStr(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+const FORECAST_PROY_CANALES = ['cd_kairos', 'ventas_cruzada', 'garden', 'badass', 'antofagasta'];
+app.get('/admin/forecast/canales', requireAdmin, (req, res) => { res.json({ canales: FORECAST_PROY_CANALES }); });
+app.get('/admin/forecast/proyeccion', requireAdmin, async (req, res) => {
+  const canal = String(req.query.canal || '');
+  if (!FORECAST_PROY_CANALES.includes(canal)) return res.status(400).json({ error: 'Canal inválido.' });
+  const estilo = req.query.estilo ? costosStr(req.query.estilo, 60) : null;
+  const horizonte = Math.min(12, Math.max(1, parseInt(req.query.horizonte, 10) || 6));
+  const hastaMes = /^\d{4}-\d{2}$/.test(String(req.query.hasta)) ? String(req.query.hasta) : forecastMesActualStr();
+  try {
+    const d = forecastDataLoad();
+    const res1 = await forecastResolverEstacionalidad(canal, estilo, hastaMes, d, 0);
+    if (!res1.ok) return res.json({ ok: false, canal, estilo, reason: res1.reason, mesesDisponibles: res1.mesesDisponibles, serie: res1.serie || [], mesesConError: res1.mesesConError || [], analogoIntentado: res1.analogoIntentado || null });
+    const puntos = [];
+    const [y0, m0] = hastaMes.split('-').map(Number);
+    const nBase = res1.mesesUsados;
+    for (let h = 1; h <= horizonte; h++){
+      const dt = new Date(y0, m0 - 1 + h, 1);
+      const mes = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+      const mesNum = dt.getMonth() + 1;
+      const idx = nBase - 1 + h;
+      const tendenciaVal = res1.tendencia.intercepto + res1.tendencia.pendiente * idx;
+      const idxEst = res1.indiceEstacional[mesNum] != null ? res1.indiceEstacional[mesNum] : 1;
+      const central = Math.max(0, tendenciaVal * idxEst);
+      const banda = 1.28 * (res1.desviacionResiduos || 0) * Math.sqrt(h);
+      puntos.push({ mes, central: Math.round(central), bandaBaja: Math.round(Math.max(0, central - banda)), bandaAlta: Math.round(central + banda) });
+    }
+    let confiabilidad = 'dato_real';
+    if (res1.fuente === 'analogo') confiabilidad = 'estacionalidad_prestada';
+    else if (res1.tendencia.r2 < 0.3) confiabilidad = 'tendencia_no_confiable';
+    res.json({ ok: true, canal, estilo, fuente: res1.fuente, analogoUsado: res1.analogoUsado || null, confiabilidad, r2: Math.round(res1.tendencia.r2 * 1000) / 1000, aperturaExcluida: res1.aperturaExcluida || null, mesesUsados: res1.mesesUsados, mesesConError: res1.mesesConError, puntos });
+  } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+});
+app.get('/admin/forecast/mix-estilo', requireAdmin, async (req, res) => {
+  const canal = String(req.query.canal || '');
+  if (!FORECAST_PROY_CANALES.includes(canal)) return res.status(400).json({ error: 'Canal inválido.' });
+  const hastaMes = /^\d{4}-\d{2}$/.test(String(req.query.hasta)) ? String(req.query.hasta) : forecastMesActualStr();
+  try { res.json(await forecastMixEstiloCanal(canal, hastaMes, forecastDataLoad())); }
+  catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+});
+app.get('/admin/forecast/precision', requireAdmin, async (req, res) => {
+  const canal = String(req.query.canal || '');
+  if (!FORECAST_PROY_CANALES.includes(canal)) return res.status(400).json({ error: 'Canal inválido.' });
+  const estilo = req.query.estilo ? costosStr(req.query.estilo, 60) : null;
+  const hastaMes = /^\d{4}-\d{2}$/.test(String(req.query.hasta)) ? String(req.query.hasta) : forecastMesActualStr();
+  const nMesesTest = Math.min(12, Math.max(3, parseInt(req.query.meses, 10) || 6));
+  try { res.json(await forecastBacktestSerie(canal, estilo, hastaMes, nMesesTest, forecastDataLoad())); }
+  catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
 });
 
 // ─── HOME · Resumen (4 cuadros con datos reales) ────────────────────────────
