@@ -10218,6 +10218,7 @@ const FC_PARAM_TABS=[
   { id:'parametros',     label:'Parámetros del modelo' },
   { id:'manual',         label:'Registro manual' },
   { id:'normalizacion',  label:'Normalización de nombres' },
+  { id:'analogos',       label:'Análogos' },
 ];
 async function fcParamBoot(){
   const root=document.getElementById('fcParamRoot'); root.innerHTML='<div class="adm-loading">Cargando…</div>';
@@ -10247,7 +10248,8 @@ function fcParamRenderBody(){
   if(fcParamTab==='capacidad') return fcParamRenderCapacidad(body);
   if(fcParamTab==='parametros') return fcParamRenderParametros(body);
   if(fcParamTab==='manual') return fcParamRenderManual(body);
-  return fcParamRenderNormalizacion(body);
+  if(fcParamTab==='normalizacion') return fcParamRenderNormalizacion(body);
+  return fcParamRenderAnalogos(body);
 }
 const FC_PARAM_CANAL_LBL={ cd_kairos:'CD Kairos', garden:'Garden Vespucio', antofagasta:'Antofagasta', badass:'Badass', eventos:'Eventos/marketing', ventas_cruzada:'Ventas Cruzada (500 Sabores)' };
 async function fcParamRenderRecon(body){
@@ -10472,6 +10474,37 @@ function fcParamRenderNormalizacion(body){
   };
   body.querySelectorAll('[data-fpsindel]').forEach(b=>b.onclick=async()=>{ await fetch('/admin/forecast/data/sinonimo/'+encodeURIComponent(b.dataset.fpsindel),{method:'DELETE'}); await fcParamRefresh(); });
   body.querySelectorAll('[data-fplotedel]').forEach(b=>b.onclick=async()=>{ await fetch('/admin/forecast/data/lote-estilo/'+encodeURIComponent(b.dataset.fplotedel),{method:'DELETE'}); await fcParamRefresh(); });
+}
+function fcParamRenderAnalogos(body){
+  const d=fcParamData;
+  const canalOpts=Object.entries(FC_PARAM_CANAL_LBL).map(([k,v])=>`<option value="${k}">${escapeHtml(v)}</option>`).join('');
+  const rows=(d.analogos||[]).map(a=>`<tr>
+      <td>${escapeHtml(FC_PARAM_CANAL_LBL[a.canal]||a.canal)}${a.estilo?' · '+escapeHtml(a.estilo):' · todos los estilos'}</td>
+      <td>→ ${escapeHtml(FC_PARAM_CANAL_LBL[a.analogoCanal]||a.analogoCanal)}${a.analogoEstilo?' · '+escapeHtml(a.analogoEstilo):' · todos los estilos'}</td>
+      <td><button class="pv-del" data-fpdel="analogos|${a.id}">✕</button></td>
+    </tr>`).join('');
+  body.innerHTML=`
+    <div class="fc-note">Regla 5.2: una serie con menos de 24 meses limpios de historia nunca calcula su propia estacionalidad — toma prestada la de un análogo que declares acá (nunca el promedio de la empresa). Si no hay análogo declarado, Proyección y Plan de producción muestran "Sin datos" en vez de inventar un patrón.</div>
+    <div class="cg-form">
+      <div class="cg-form-title">Declarar análogo</div>
+      <div class="cg-form-grid">
+        <label class="cg-field"><span>Canal con serie corta</span><select id="faCanal">${canalOpts}</select></label>
+        <label class="cg-field"><span>Estilo (opcional, vacío = todos)</span><input type="text" id="faEstilo" placeholder="Ej: Golden"></label>
+        <label class="cg-field"><span>Prestar estacionalidad de</span><select id="faAnalogoCanal">${canalOpts}</select></label>
+        <label class="cg-field"><span>Estilo del análogo (opcional)</span><input type="text" id="faAnalogoEstilo" placeholder="Ej: Golden"></label>
+        <label class="cg-field"><span>Nota (opcional)</span><input type="text" id="faNota" placeholder="Ej: misma zona geográfica"></label>
+        <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="faAdd" type="button">+ Declarar</button></div>
+      </div>
+      <div class="cg-err" id="faErr"></div>
+    </div>
+    <div class="mun-wrap" style="margin-top:.8rem"><table class="mun-table"><thead><tr><th>Serie corta</th><th>Presta estacionalidad de</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="3" style="text-align:center;color:#999;padding:.7rem">Sin análogos declarados todavía</td></tr>'}</tbody></table></div>`;
+  document.getElementById('faAdd').onclick=async()=>{
+    const err=document.getElementById('faErr'); err.textContent='';
+    const payload={ canal:document.getElementById('faCanal').value, estilo:document.getElementById('faEstilo').value.trim(), analogoCanal:document.getElementById('faAnalogoCanal').value, analogoEstilo:document.getElementById('faAnalogoEstilo').value.trim(), nota:document.getElementById('faNota').value };
+    try{ const r=await fetch('/admin/forecast/data/analogos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const rd=await r.json(); if(!r.ok) throw new Error(rd.error||'Error'); await fcParamRefresh(); }
+    catch(e){ err.textContent=String(e.message||e); }
+  };
+  body.querySelectorAll('[data-fpdel]').forEach(b=>b.onclick=()=>fcParamDelEntry(b.dataset.fpdel));
 }
 
 // ── Forecast Operacional · Proyección (Fase 2, capas 1–3) ──
