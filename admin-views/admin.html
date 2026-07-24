@@ -11242,6 +11242,7 @@ function prodRenderConfig(){
     <div class="prod-erp-status" id="pyxisEstado">Cargando estado…</div>
     <div class="cg-form-grid" style="margin-top:.5rem">
       <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="pyxisDiag" type="button">🔎 Diagnosticar Pyxis</button></div>
+      <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-ghost" id="pyxisEstr" type="button">📊 Estructura de ventas (grupo 2)</button></div>
     </div>
     <div id="pyxisDiagBox"></div>
     <div class="est-note" style="margin-top:.4rem;color:#666">Cargá <code>PYXIS_EMAIL</code>, <code>PYXIS_PASSWORD</code> y <code>PYXIS_API_BASE</code> en Railway y apretá <b>Diagnosticar</b>. El diagnóstico prueba el login real contra los endpoints más probables y, si entra, prueba los endpoints de datos (los de tu captura: <code>ownpower</code> y <code>2?ini=&end=</code>) — con lo que devuelva escribo el adaptador que baja los compradores.</div></div>`;
@@ -11400,6 +11401,24 @@ function prodWire(){
       const dpTxt=dp.length?('<div style="margin-top:.6rem"><b style="font-size:.8rem">⭐ Endpoints de datos (ya logueado)'+(d.dataWinner?(' · ganador: <code>'+escapeHtml(d.dataWinner)+'</code>'):'')+':</b>'+dp.map(x=>{ const ok=x.isJson&&x.status>=200&&x.status<300&&x.len>60; return `<div style="margin-top:.3rem;${ok?'background:#e3f6ea;padding:.3rem;border-radius:6px':''}"><code>${escapeHtml(x.url)}</code> · ${x.status||(x.error||'—')} · ${x.isJson?'JSON':'no-json'} · ${x.len||0} bytes${ok?`<textarea readonly style="width:100%;height:90px;font-family:ui-monospace,monospace;font-size:.66rem;margin-top:.2rem" onclick="this.select()">${escapeHtml(x.snippet||'')}</textarea>`:''}</div>`; }).join('')+'</div>'):'';
       const guia=d.winner? '<div class="est-note" style="margin-top:.4rem;color:#666">Login OK ✓. Copiame los cuadros verdes (⭐ endpoints de datos) — con ese JSON escribo el sync de compradores. Si ninguno trae JSON, pegame de tu captura la <b>URL completa</b> de un pedido de datos (el <code>ownpower</code> o el <code>2?ini=&end=</code>) y su respuesta.</div>' : '<div class="est-note" style="margin-top:.4rem;color:#c0392b">Ningún endpoint de login entró. Si ya cargaste PYXIS_EMAIL/PYXIS_PASSWORD, pegame de tu captura la <b>URL del POST de login</b> + el <b>Request Payload</b> (nombres de campos) y seteo <code>PYXIS_LOGIN_PATH</code>.</div>';
       box.innerHTML=pageTxt+bundleTxt+forms+lpTbl+owTxt+dpTxt+guia;
+    }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
+  };
+  if(g('pyxisEstr')) g('pyxisEstr').onclick=async()=>{
+    const box=g('pyxisDiagBox'); box.innerHTML='<div class="prod-erp-status">📊 Bajando /api/ventas/2 (15 MB) y mapeando la estructura… (~10s)</div>';
+    try{
+      const r=await fetch('/admin/pyxis/ventas-estructura',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grupo:2})}); const d=await prodSafeJson(r); if(!r.ok||d.error) throw new Error(d.error||'Error');
+      const V=d.ventas||{}, F=d.filters||{};
+      const ta=(t)=>`<textarea readonly style="width:100%;height:150px;font-family:ui-monospace,monospace;font-size:.64rem;margin-top:.2rem" onclick="this.select()">${escapeHtml(t||'')}</textarea>`;
+      box.innerHTML=`<div class="est-note" style="margin-top:.6rem">
+        <b>/ventas/2</b> · status ${V.status||(V.error||'—')} · ${V.len?Math.round(V.len/1024)+' KB':''}</div>
+        ${V.sketch?('<div style="margin-top:.4rem"><b style="font-size:.75rem">🗺 Esquema del árbol:</b>'+ta(JSON.stringify(V.sketch,null,1))+'</div>'):''}
+        ${V.cervezas?('<div style="margin-top:.4rem"><b style="font-size:.75rem">🍺 Nodo Cervezas (real):</b>'+ta(V.cervezas)+'</div>'):''}
+        ${V.error?('<div class="est-note" style="color:#c0392b">⚠ ventas: '+escapeHtml(V.error)+'</div>'):''}
+        <div class="est-note" style="margin-top:.5rem"><b>/ventas/2/data-filters</b> · status ${F.status||(F.error||'—')} · ${F.len?Math.round(F.len/1024)+' KB':''}</div>
+        ${F.sketch?('<div style="margin-top:.4rem"><b style="font-size:.75rem">🗺 Esquema de filtros:</b>'+ta(JSON.stringify(F.sketch,null,1))+'</div>'):''}
+        ${F.raw?('<div style="margin-top:.4rem"><b style="font-size:.75rem">Filtros (crudo):</b>'+ta(F.raw)+'</div>'):''}
+        ${F.error?('<div class="est-note" style="color:#c0392b">⚠ filtros: '+escapeHtml(F.error)+'</div>'):''}
+        <div class="est-note" style="margin-top:.4rem;color:#666">Pegame el 🗺 esquema y el 🍺 nodo Cervezas — con eso escribo el adaptador de cervezas y el resumen.</div>`;
     }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
   };
   // config: mapas por estilo (E)

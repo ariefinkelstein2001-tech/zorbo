@@ -5439,6 +5439,72 @@ app.post('/admin/pyxis/diag', requireAdmin, async (_req, res) => {
   try { res.json(await pyxisDiag()); }
   catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
+// ── API real de Pyxis (contrato confirmado por captura) ──────────────────────
+//   GET /api/ventas/{grupoId}              → árbol Detalle de Ventas (familia→sub→art)
+//   GET /api/ventas/{grupoId}/data-filters → opciones Sector/Local/Marca
+// Auth: Bearer <JWT del login>. Token cacheado hasta su expiración.
+let pyxisTokCache = { token: null, exp: 0, jar: null };
+async function pyxisAuth(){
+  const now = Math.floor(Date.now() / 1000);
+  if (pyxisTokCache.token && pyxisTokCache.exp - 60 > now) return pyxisTokCache;
+  const login = await pyxisLogin();
+  if (!login.ok || !login.token) throw new Error(login.error || 'Login a Pyxis falló.');
+  let exp = now + 3600;
+  try { const p = JSON.parse(Buffer.from(login.token.split('.')[1], 'base64').toString('utf8')); if (p.exp) exp = p.exp; } catch {}
+  pyxisTokCache = { token: login.token, exp, jar: login.jar };
+  return pyxisTokCache;
+}
+async function pyxisApiGet(path){
+  const { api, web } = pyxisCreds();
+  const a = await pyxisAuth();
+  return pyxisFetch(api + path, { method: 'GET', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'Referer': web + '/', 'Origin': web } }, { ...a.jar }, a.token);
+}
+// GET JSON de la API (desenvuelve el envelope {statusCode, body}).
+async function pyxisApiJson(path){
+  const r = await pyxisApiGet(path);
+  let t = ''; try { t = await r.text(); } catch {}
+  let j = null; try { j = JSON.parse(t); } catch (e) { const err = new Error('Respuesta no-JSON de ' + path + ' (' + r.status + ')'); err.status = r.status; throw err; }
+  return { status: r.status, len: t.length, body: (j && j.body !== undefined) ? j.body : j, raw: t };
+}
+// Esquema compacto de un JSON grande (para mapear campos sin volcar 15 MB).
+function pyxisSketch(v, depth){
+  depth = depth == null ? 5 : depth;
+  if (v === null) return 'null';
+  if (Array.isArray(v)) return { __array: v.length, of: (v.length && depth > 0) ? pyxisSketch(v[0], depth - 1) : '?' };
+  if (typeof v === 'object') { const o = {}; for (const k of Object.keys(v).slice(0, 40)) o[k] = depth > 0 ? pyxisSketch(v[k], depth - 1) : typeof v[k]; return o; }
+  if (typeof v === 'string') return 'str: ' + v.slice(0, 32);
+  return typeof v;
+}
+// Busca (en profundidad) el primer nodo cuyo nombre/clave matchee rx (ej. /cerveza/i).
+function pyxisFindNode(v, rx, depth){
+  depth = depth == null ? 8 : depth; if (depth < 0 || v == null) return null;
+  if (Array.isArray(v)) { for (const x of v) { const r = pyxisFindNode(x, rx, depth - 1); if (r) return r; } return null; }
+  if (typeof v === 'object') {
+    for (const nk of ['nombre', 'name', 'descripcion', 'familia', 'subfamilia', 'label', 'titulo', 'glosa']) if (typeof v[nk] === 'string' && rx.test(v[nk])) return v;
+    for (const k of Object.keys(v)) { if (rx.test(k)) return v[k]; const r = pyxisFindNode(v[k], rx, depth - 1); if (r) return r; }
+  }
+  return null;
+}
+app.post('/admin/pyxis/ventas-estructura', requireAdmin, async (req, res) => {
+  try {
+    const grupo = String((req.body && req.body.grupo) || 2).replace(/[^0-9]/g, '') || '2';
+    const out = { grupo };
+    // Árbol de ventas (grande).
+    try {
+      const v = await pyxisApiJson('/ventas/' + grupo);
+      out.ventas = { status: v.status, len: v.len, sketch: pyxisSketch(v.body, 5) };
+      const cerv = pyxisFindNode(v.body, /cerveza/i);
+      const cs = cerv ? JSON.stringify(cerv) : '';
+      out.ventas.cervezas = cerv ? (cs.length < 22000 ? cs : cs.slice(0, 9000) + '…‹truncado›') : '‹no se encontró un nodo "Cerveza"›';
+    } catch (e) { out.ventas = { error: String(e.message).slice(0, 160) }; }
+    // Filtros (Sector/Local/Marca).
+    try {
+      const f = await pyxisApiJson('/ventas/' + grupo + '/data-filters');
+      out.filters = { status: f.status, len: f.len, sketch: pyxisSketch(f.body, 4), raw: (f.raw || '').slice(0, 4500) };
+    } catch (e) { out.filters = { error: String(e.message).slice(0, 160) }; }
+    res.json(out);
+  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
 
 // Crear lote (cocción). Ocupa el tanque destino recién al cerrar la cocción.
 app.post('/admin/produccion/lote', requireAdmin, (req, res) => {
