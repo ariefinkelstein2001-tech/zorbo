@@ -11243,6 +11243,7 @@ function prodRenderConfig(){
     <div class="cg-form-grid" style="margin-top:.5rem">
       <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="pyxisDiag" type="button">🔎 Diagnosticar Pyxis</button></div>
       <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-ghost" id="pyxisEstr" type="button">📊 Estructura de ventas (grupo 2)</button></div>
+      <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-ghost" id="pyxisAnal" type="button">🍺 Analizar cervezas (grupo 2)</button></div>
     </div>
     <div id="pyxisDiagBox"></div>
     <div class="est-note" style="margin-top:.4rem;color:#666">Cargá <code>PYXIS_EMAIL</code>, <code>PYXIS_PASSWORD</code> y <code>PYXIS_API_BASE</code> en Railway y apretá <b>Diagnosticar</b>. El diagnóstico prueba el login real contra los endpoints más probables y, si entra, prueba los endpoints de datos (los de tu captura: <code>ownpower</code> y <code>2?ini=&end=</code>) — con lo que devuelva escribo el adaptador que baja los compradores.</div></div>`;
@@ -11419,6 +11420,20 @@ function prodWire(){
         ${F.raw?('<div style="margin-top:.4rem"><b style="font-size:.75rem">Filtros (crudo):</b>'+ta(F.raw)+'</div>'):''}
         ${F.error?('<div class="est-note" style="color:#c0392b">⚠ filtros: '+escapeHtml(F.error)+'</div>'):''}
         <div class="est-note" style="margin-top:.4rem;color:#666">Pegame el 🗺 esquema y el 🍺 nodo Cervezas — con eso escribo el adaptador de cervezas y el resumen.</div>`;
+    }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
+  };
+  if(g('pyxisAnal')) g('pyxisAnal').onclick=async()=>{
+    const box=g('pyxisDiagBox'); box.innerHTML='<div class="prod-erp-status">🍺 Bajando y analizando ventas… (~10s)</div>';
+    try{
+      const r=await fetch('/admin/pyxis/ventas-analisis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grupo:2})}); const d=await prodSafeJson(r); if(!r.ok||d.error) throw new Error(d.error||'Error');
+      const clp=n=>'$'+(Number(n)||0).toLocaleString('es-CL');
+      const famRows=(d.familias||[]).map(f=>`<tr><td>${escapeHtml(f.nombre)}</td><td class="dist-num">${f.filas}</td><td class="dist-num">${clp(f.monto)}</td></tr>`).join('');
+      const kRows=(d.kairosSample||[]).map(k=>`<tr><td><code>${escapeHtml(k.familia||'')}</code></td><td>${escapeHtml(k.producto||'')}</td><td>${escapeHtml(k.marca||'')}</td><td>${escapeHtml(k.local||'')}</td><td class="dist-num">${clp(k.total)}</td><td class="dist-num">${k.cant}</td></tr>`).join('');
+      box.innerHTML=`<div class="est-note" style="margin-top:.6rem"><b>${d.totalRows} filas</b> · ${d.marcasCount} marcas · ${d.localesCount} locales · ${(d.productosKairos||[]).length} productos Kairos</div>
+        <div class="est-note" style="margin-top:.4rem"><b>Familias (por monto):</b><div class="mun-wrap" style="margin-top:.3rem"><table class="mun-table"><thead><tr><th>familia</th><th>filas</th><th>monto</th></tr></thead><tbody>${famRows}</tbody></table></div></div>
+        <div class="est-note" style="margin-top:.4rem"><b>🍺 Muestra de filas Kairos (mirá el valor de <code>familia</code>):</b><div class="mun-wrap" style="margin-top:.3rem"><table class="mun-table"><thead><tr><th>familia</th><th>producto</th><th>marca</th><th>local</th><th>total</th><th>cant</th></tr></thead><tbody>${kRows}</tbody></table></div></div>
+        <div class="est-note" style="margin-top:.4rem"><b>Productos Kairos:</b> ${(d.productosKairos||[]).map(escapeHtml).join(' · ')||'—'}</div>
+        <div class="est-note" style="margin-top:.3rem;color:#666">Pegame la tabla de familias y la muestra Kairos — con eso aíslo las cervezas y armo la sección + resumen.</div>`;
     }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
   };
   // config: mapas por estilo (E)

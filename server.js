@@ -5485,6 +5485,31 @@ function pyxisFindNode(v, rx, depth){
   }
   return null;
 }
+// Análisis: baja /ventas/{grupo} y devuelve familias distintas (con conteo y $), una
+// muestra de las filas de Kairos y la lista de marcas — para mapear cómo aislar las
+// cervezas sin inventar categorías.
+app.post('/admin/pyxis/ventas-analisis', requireAdmin, async (req, res) => {
+  try {
+    const grupo = String((req.body && req.body.grupo) || 2).replace(/[^0-9]/g, '') || '2';
+    const v = await pyxisApiJson('/ventas/' + grupo);
+    const rows = Array.isArray(v.body && v.body.ventas) ? v.body.ventas : (Array.isArray(v.body) ? v.body : []);
+    const num = x => { const n = Number(x); return Number.isFinite(n) ? n : 0; };
+    const total3 = r => num(r.p1) + num(r.p2) + num(r.p3);
+    const cant3 = r => num(r.q1) + num(r.q2) + num(r.q3);
+    // Familias distintas con conteo de filas y monto total.
+    const fam = {};
+    for (const r of rows) { const f = (r.familia == null ? '(sin)' : String(r.familia)); const o = fam[f] || (fam[f] = { filas: 0, monto: 0 }); o.filas++; o.monto += total3(r); }
+    const familias = Object.entries(fam).map(([nombre, o]) => ({ nombre, filas: o.filas, monto: Math.round(o.monto) })).sort((a, b) => b.monto - a.monto);
+    // Muestra de filas de Kairos.
+    const kairos = rows.filter(r => /kairos/i.test(r.nombreProducto || '')).slice(0, 20)
+      .map(r => ({ familia: r.familia, producto: r.nombreProducto, marca: r.nombreMarca, local: r.nombreLocal, total: Math.round(total3(r)), cant: cant3(r) }));
+    // Marcas y locales distintos.
+    const marcas = [...new Set(rows.map(r => r.nombreMarca).filter(Boolean))].sort();
+    const locales = [...new Set(rows.map(r => r.nombreLocal).filter(Boolean))].sort();
+    const productosKairos = [...new Set(rows.filter(r => /kairos/i.test(r.nombreProducto || '')).map(r => r.nombreProducto))].sort();
+    res.json({ grupo, totalRows: rows.length, familias, kairosSample: kairos, productosKairos, marcasCount: marcas.length, marcas: marcas.slice(0, 60), localesCount: locales.length, sampleRow: rows[0] || null });
+  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
 app.post('/admin/pyxis/ventas-estructura', requireAdmin, async (req, res) => {
   try {
     const grupo = String((req.body && req.body.grupo) || 2).replace(/[^0-9]/g, '') || '2';
