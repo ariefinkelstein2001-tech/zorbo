@@ -1879,6 +1879,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 @media(max-width:900px){.fc-manual-grid{grid-template-columns:1fr}}
 .fc-manual-grid .mun-table{min-width:0}
 .fc-total-row td{font-weight:800;border-top:2px solid var(--border,#e5e5e5)}
+.fc-row-empty td{opacity:.45;font-style:italic}
 .fc-proy-head{display:flex;align-items:center;gap:.9rem;flex-wrap:wrap}
 .fc-proy-r2{font-size:.78rem;color:var(--muted,#666);font-weight:600}
 .fc-op-open{background:var(--gold-dim,rgba(245,166,35,.06))}
@@ -10138,6 +10139,7 @@ function forecastLoadTab(){
 // "En construcción" hasta que se implemente su fase correspondiente.
 let fcOpModule=null;
 const FC_OP_MODULES=[
+  { id:'financiero',  icon:'💰', label:'Financiero',            desc:'P&L mensual de la unidad cerveza cargado desde el histórico validado — ingreso, costo, gastos, margen y resultado, sin Gestión de personas.' },
   { id:'proyeccion',  icon:'📈', label:'Proyección',            desc:'Demanda proyectada por canal, estilo y formato, con badge de confiabilidad y banda de incertidumbre en series cortas.' },
   { id:'plan',        icon:'🗓️', label:'Plan de producción',     desc:'Calendario de cocciones, ocupación de fermentadores en línea de tiempo y la decisión maquila vs. propio a costo marginal.' },
   { id:'inventario',  icon:'❄️', label:'Inventario y cámara',    desc:'Stock proyectado por bodega/estilo/formato, ocupación de cámara de frío por instalación y riesgo de vencimiento por lote.' },
@@ -10165,6 +10167,12 @@ function fcOperacionalRender(){
     body.innerHTML=crumb+'<div id="fcParamRoot"></div>';
     document.querySelector('#fcBody [data-fcopback]').onclick=()=>{ fcOpModule=null; fcOperacionalRender(); };
     fcParamBoot();
+    return;
+  }
+  if(fcOpModule==='financiero'){
+    body.innerHTML=crumb+'<div id="fcFinRoot"></div>';
+    document.querySelector('#fcBody [data-fcopback]').onclick=()=>{ fcOpModule=null; fcOperacionalRender(); };
+    fcFinRender();
     return;
   }
   if(fcOpModule==='proyeccion'){
@@ -10617,6 +10625,49 @@ async function fcPrecRenderData(){
     </div>
     ${sesgoWarn?`<div class="fc-note" style="margin-top:.6rem">⚠️ Un sesgo de ${d.sesgo}% sostenido en el tiempo es un supuesto del modelo mal calibrado, no ruido — conviene revisar los parámetros antes de confiar en la proyección.</div>`:''}
     <div class="mun-wrap" style="margin-top:.8rem"><table class="mun-table"><thead><tr><th>Mes</th><th style="text-align:right">Real</th><th style="text-align:right">Pronóstico</th><th style="text-align:right">Diferencia</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+// ── Forecast Operacional · Financiero, unidad cerveza (sección 7 del documento) ──
+let fcFinState={year:'2025'};
+const fcMoney=(n)=>'$'+Math.round(n).toLocaleString('es-CL');
+async function fcFinRender(){
+  const root=document.getElementById('fcFinRoot'); if(!root) return;
+  root.innerHTML=`
+    <div class="fc-toolbar">
+      <div class="fc-toolbar-l"><span>Año</span><select id="ffnYear">${['2025','2026'].map(y=>`<option value="${y}" ${y===fcFinState.year?'selected':''}>${y}</option>`).join('')}</select></div>
+      <button class="adm-btn adm-btn-gold" id="ffnGo" type="button">Ver</button>
+    </div>
+    <div class="fc-note">Esta vista es el P&L de la <b>unidad cerveza</b> (productora/comercializadora) — no es el P&L del grupo completo, que vive en otras hojas y nunca se carga acá (mezclarlos ya dio una pérdida de $2.800M inexistente). Cargado desde la planilla histórica validada, sección 7.1.</div>
+    <div id="ffnBody"></div>`;
+  document.getElementById('ffnGo').onclick=()=>{ fcFinState.year=document.getElementById('ffnYear').value; fcFinRenderData(); };
+  fcFinRenderData();
+}
+async function fcFinRenderData(){
+  const body=document.getElementById('ffnBody'); if(!body) return;
+  body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  let d;
+  try{ d=await (await fetch('/admin/forecast/financiero?year='+encodeURIComponent(fcFinState.year))).json(); if(d.error) throw new Error(d.error); }
+  catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+  if(!d.ok){ body.innerHTML=`<div class="dist-empty">💰 <b>Sin histórico financiero cargado para ${escapeHtml(fcFinState.year)}</b><br>Cargar la planilla limpia de ese año (hoja P&L_Cerveza) en Parámetros.</div>`; return; }
+  const rows=d.porMes.map(m=>`<tr class="${m.tieneDatos?'':'fc-row-empty'}">
+    <td>${escapeHtml(estMonthLabel(m.mes))}</td>
+    <td class="dist-num">${fcMoney(m.ingreso)}</td>
+    <td class="dist-num">${fcMoney(m.costo)}</td>
+    <td class="dist-num">${fcMoney(m.gasto_operativo)}</td>
+    <td class="dist-num">${fcMoney(m.gav)}</td>
+    <td class="dist-num" style="font-weight:700;color:${m.resultado>=0?'var(--good,#1a7f37)':'var(--bad,#c0392b)'}">${fcMoney(m.resultado)}</td>
+  </tr>`).join('');
+  body.innerHTML=`
+    <div class="cg-resumen">
+      <div class="cg-card"><div class="cg-card-l">Ingreso</div><div class="cg-card-v">${fcMoney(d.totales.ingreso)}</div><div class="cg-card-n">${d.year}, unidad cerveza</div></div>
+      <div class="cg-card"><div class="cg-card-l">Margen bruto</div><div class="cg-card-v">${d.margenBrutoPct}%</div><div class="cg-card-n">ingreso − costo</div></div>
+      <div class="cg-card"><div class="cg-card-l">Margen operativo</div><div class="cg-card-v">${d.margenOperativoPct}%</div><div class="cg-card-n">sin Gestión de personas</div></div>
+      <div class="cg-card"><div class="cg-card-l">Resultado</div><div class="cg-card-v" style="color:${d.totales.resultado>=0?'var(--good,#1a7f37)':'var(--bad,#c0392b)'}">${fcMoney(d.totales.resultado)}</div><div class="cg-card-n">ingreso − costo − gastos op. − GAV</div></div>
+    </div>
+    <div class="adm-status warn" style="margin-top:.7rem">⚠️ Gestión de personas no está incluida — falta cargar la nómina mensual para cerrar el EBITDA real (sección 7.1).</div>
+    <div class="mun-wrap" style="margin-top:.8rem"><table class="mun-table"><thead><tr><th>Mes</th><th style="text-align:right">Ingreso</th><th style="text-align:right">Costo</th><th style="text-align:right">Gastos operativos</th><th style="text-align:right">GAV</th><th style="text-align:right">Resultado</th></tr></thead><tbody>${rows}
+      <tr class="fc-total-row"><td>TOTAL</td><td class="dist-num">${fcMoney(d.totales.ingreso)}</td><td class="dist-num">${fcMoney(d.totales.costo)}</td><td class="dist-num">${fcMoney(d.totales.gasto_operativo)}</td><td class="dist-num">${fcMoney(d.totales.gav)}</td><td class="dist-num" style="font-weight:700">${fcMoney(d.totales.resultado)}</td></tr>
+    </tbody></table></div>`;
 }
 
 // ── Forecast Operacional · Plan de producción (Fase 3, capas 4-5) ──
