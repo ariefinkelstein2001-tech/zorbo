@@ -5570,7 +5570,7 @@ function pyxisClasificarCerveza(nombre, cfg){
   return null;
 }
 // Caché del array de ventas (15 MB, ~4 s en bajar): se refresca cada 30 min o con force.
-const PYXIS_VENTAS_TTL_MS = 30 * 60 * 1000;
+const PYXIS_VENTAS_TTL_MS = 60 * 1000; // 1 min: cambiar filtros es instantáneo; el auto-refresh baja data fresca
 let pyxisVentasCache = { grupo: null, rows: null, at: 0 };
 async function pyxisVentasRows(grupo, force){
   const now = Date.now();
@@ -5583,24 +5583,34 @@ async function pyxisVentasRows(grupo, force){
 const PYXIS_MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 // Los 3 períodos p1/p2/p3 son los últimos 3 meses (p3 = mes actual).
 function pyxisMesesLabels(){ const d = new Date(); const out = []; for (let i = 2; i >= 0; i--) { const dd = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - i, 1)); out.push(PYXIS_MESES[dd.getUTCMonth()] + ' ' + dd.getUTCFullYear()); } return out; }
-async function pyxisCervezasResumen(grupo, force){
-  const rows = await pyxisVentasRows(grupo, force);
+async function pyxisCervezasResumen(grupo, opts){
+  opts = opts || {};
+  const rows = await pyxisVentasRows(grupo, opts.force);
   const cfg = pyxisCervCfgLoad();
   const num = x => { const n = Number(x); return Number.isFinite(n) ? n : 0; };
+  const norm = s => String(s == null ? '' : s).trim();
+  const fS = norm(opts.sector), fL = norm(opts.local), fM = norm(opts.marca);
   const prod = new Map();      // nombre → { tipo, m:[3], q:[3], total, cant, locales:Map }
   const localTot = new Map();  // local → { kairos, otras }
   const sinClas = new Map();   // productos "Con Alcohol" no clasificados como cerveza
+  const optS = new Set(), optL = new Set(), optM = new Set(); // opciones de filtro (de filas cerveza)
   for (const r of rows) {
     if (!/con\s*alcohol/i.test(String(r.familia || ''))) continue;
-    const nombre = String(r.nombreProducto || '').trim(); if (!nombre) continue;
+    const nombre = norm(r.nombreProducto); if (!nombre) continue;
+    const tipo = pyxisClasificarCerveza(nombre, cfg);
+    // Opciones de filtro: de TODAS las filas cerveza (para poder cambiar la selección).
+    if (tipo) { if (r.nombreSector) optS.add(norm(r.nombreSector)); if (r.nombreLocal) optL.add(norm(r.nombreLocal)); if (r.nombreMarca) optM.add(norm(r.nombreMarca)); }
+    // Filtro por dimensión (Sector / Local / Marca) para la agregación.
+    if (fS && norm(r.nombreSector) !== fS) continue;
+    if (fL && norm(r.nombreLocal) !== fL) continue;
+    if (fM && norm(r.nombreMarca) !== fM) continue;
     const m = [num(r.p1), num(r.p2), num(r.p3)]; const q = [num(r.q1), num(r.q2), num(r.q3)];
     const tot = m[0] + m[1] + m[2], can = q[0] + q[1] + q[2];
-    const tipo = pyxisClasificarCerveza(nombre, cfg);
     if (!tipo) { const s = sinClas.get(nombre) || { total: 0 }; s.total += tot; sinClas.set(nombre, s); continue; }
     let p = prod.get(nombre);
     if (!p) { p = { nombre, tipo, m: [0, 0, 0], q: [0, 0, 0], total: 0, cant: 0, locales: new Map() }; prod.set(nombre, p); }
     for (let i = 0; i < 3; i++) { p.m[i] += m[i]; p.q[i] += q[i]; } p.total += tot; p.cant += can;
-    const loc = String(r.nombreLocal || '—'); p.locales.set(loc, (p.locales.get(loc) || 0) + tot);
+    const loc = norm(r.nombreLocal) || '—'; p.locales.set(loc, (p.locales.get(loc) || 0) + tot);
     const lt = localTot.get(loc) || { kairos: 0, otras: 0 }; lt[tipo === 'kairos' ? 'kairos' : 'otras'] += tot; localTot.set(loc, lt);
   }
   const arr = [...prod.values()].map(p => ({ nombre: p.nombre, tipo: p.tipo, m: p.m.map(Math.round), q: p.q, total: Math.round(p.total), cant: p.cant, topLocales: [...p.locales.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([l, v]) => ({ local: l, total: Math.round(v) })) }));
@@ -5611,13 +5621,16 @@ async function pyxisCervezasResumen(grupo, force){
   const localesTop = [...localTot.entries()].map(([local, v]) => ({ local, kairos: Math.round(v.kairos), otras: Math.round(v.otras), total: Math.round(v.kairos + v.otras) })).sort((a, b) => b.kairos - a.kairos);
   return {
     grupo, meses: pyxisMesesLabels(), generadoEn: new Date().toISOString(),
+    filtros: { sector: fS, local: fL, marca: fM },
+    opciones: { sectores: [...optS].sort(), locales: [...optL].sort(), marcas: [...optM].sort() },
     totales: { kairos: kTot, otras: oTot, cervezas: cTot, shareKairos: cTot ? Math.round(kTot / cTot * 1000) / 10 : 0, kairosCant: sumC(kairos), otrasCant: sumC(otras), nKairos: kairos.length, nOtras: otras.length },
     kairos, otras, localesTop: localesTop.slice(0, 15),
     sinClasificar: [...sinClas.entries()].map(([nombre, v]) => ({ nombre, total: Math.round(v.total) })).sort((a, b) => b.total - a.total).slice(0, 50),
   };
 }
+function pyxisCervOpts(req){ const g = req.query || req.body || {}; return { sector: g.sector, local: g.local, marca: g.marca }; }
 app.get('/admin/pyxis/cervezas', requireAdmin, async (req, res) => {
-  try { const grupo = String(req.query.grupo || 2).replace(/[^0-9]/g, '') || '2'; res.json(await pyxisCervezasResumen(grupo, req.query.force === '1')); }
+  try { const grupo = String(req.query.grupo || 2).replace(/[^0-9]/g, '') || '2'; res.json(await pyxisCervezasResumen(grupo, { ...pyxisCervOpts(req), force: req.query.force === '1' })); }
   catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 app.get('/admin/pyxis/cervezas/config', requireAdmin, (_req, res) => res.json(pyxisCervCfgLoad()));
@@ -5635,11 +5648,13 @@ app.get('/admin/pyxis/cervezas/resumen', requireAdmin, (_req, res) => res.json(p
 app.post('/admin/pyxis/cervezas/resumen/generar', requireAdmin, async (req, res) => {
   try {
     const grupo = String((req.body && req.body.grupo) || 2).replace(/[^0-9]/g, '') || '2';
-    const d = await pyxisCervezasResumen(grupo, false);
+    const b = req.body || {};
+    const d = await pyxisCervezasResumen(grupo, { sector: b.sector, local: b.local, marca: b.marca });
     const fmt = n => '$' + Math.round(Number(n) || 0).toLocaleString('es-CL');
     const top = a => (a.slice(0, 10).map(p => `  · ${p.nombre}: ${fmt(p.total)} (${p.cant} u)`).join('\n') || '  (sin datos)');
+    const filtroTxt = [d.filtros.sector && ('sector ' + d.filtros.sector), d.filtros.local && ('local ' + d.filtros.local), d.filtros.marca && ('marca ' + d.filtros.marca)].filter(Boolean).join(', ');
     const datos = [
-      `Período (últimos 3 meses): ${d.meses.join(', ')}. Grupo HORECA ${grupo}.`,
+      `Período (últimos 3 meses): ${d.meses.join(', ')}. Grupo HORECA ${grupo}.${filtroTxt ? ' FILTRO ACTIVO: ' + filtroTxt + '.' : ''}`,
       `TOTAL cervezas: ${fmt(d.totales.cervezas)}.`,
       `Kairos (marcas propias): ${fmt(d.totales.kairos)} = ${d.totales.shareKairos}% del total, ${d.totales.kairosCant} unidades, ${d.totales.nKairos} productos.`,
       `Otras cervezas (competencia): ${fmt(d.totales.otras)} = ${Math.round((100 - d.totales.shareKairos) * 10) / 10}%, ${d.totales.otrasCant} unidades, ${d.totales.nOtras} productos.`,
