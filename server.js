@@ -5723,6 +5723,93 @@ app.post('/admin/pyxis/documentos-diag', requireAdmin, async (req, res) => {
     res.json(out);
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
+// tipoDte (SII): 33 Factura, 34 Factura exenta, 61 Nota de crédito, 56 Nota de débito.
+function pyxisTipoDte(t){ const m = { 33: 'Factura', 34: 'Factura exenta', 39: 'Boleta', 46: 'Factura de compra', 52: 'Guía de despacho', 56: 'Nota de débito', 61: 'Nota de crédito' }; return m[t] || ('DTE ' + t); }
+// Lista de documentos (facturas de compra) de un local, filtrable a Bebidas/Licores.
+async function pyxisDocumentosLista(grupo, q){
+  q = q || {}; const r0 = pyxisMesRango();
+  const local = String(q.local || '').replace(/[^0-9]/g, '');
+  const ini = String(q.ini || r0.ini).replace(/[^0-9\-]/g, ''); const end = String(q.end || r0.end).replace(/[^0-9\-]/g, '');
+  const page = Math.max(1, parseInt(q.page) || 1); const pick = Math.min(100, Math.max(1, parseInt(q.pick) || 15));
+  const src = String(q.src || '').trim().slice(0, 60);
+  const dz = s => String(s).replace(/-0(\d)/g, '-$1'); // 2026-07-01 → 2026-7-1 (formato Pyxis)
+  let path = '/documentos/' + grupo + '?local=' + local + '&page=' + page + '&pick=' + pick + '&ini=' + dz(ini) + '&end=' + dz(end);
+  if (src) path += '&src=' + encodeURIComponent(src);
+  const j = await pyxisApiJson(path); const b = j.body || {};
+  const locales = (b.premises || []).map(p => ({ id: p.id, nombre: p.nombreLocal })).sort((a, c) => String(a.nombre).localeCompare(String(c.nombre)));
+  let data = (b.paginationData && b.paginationData.data) || [];
+  const fam = String(q.familia || 'bl');
+  if (fam === 'bl') data = data.filter(d => /bebida|licor/i.test(String(d.nombreCuenta || '')));
+  else if (fam && fam !== 'todos') data = data.filter(d => new RegExp(fam, 'i').test(String(d.nombreCuenta || '')));
+  const docs = data.map(d => ({ folio: d.folio, proveedor: d.nombreProveedor, rut: d.rutProveedor, fecha: d.fechaFactura, tipo: pyxisTipoDte(d.tipoDte), tipoDte: d.tipoDte, familia: d.nombreCuenta, categoria: d.nombreCategoria, total: d.total, usuario: String(d.userIdte || '').trim() }));
+  const pg = b.paginationData || {};
+  return { grupo, local, ini, end, src, familia: fam, locales, docs, pagination: { total: pg.total, totalPages: pg.totalPages, currentPage: pg.currentPage, pick: pg.pick, remains: pg.remains } };
+}
+app.get('/admin/pyxis/documentos', requireAdmin, async (req, res) => {
+  try { const grupo = String(req.query.grupo || 2).replace(/[^0-9]/g, '') || '2'; res.json(await pyxisDocumentosLista(grupo, req.query)); }
+  catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
+// Baja el PDF de la factura desde Pyxis (con el Bearer). Devuelve un Buffer.
+async function pyxisFacturaPdf(grupo, local, folio, rut){
+  const { api, web } = pyxisCreds(); const a = await pyxisAuth();
+  const url = api + '/documentos/pdf/grupo/' + grupo + '/local/' + local + '/folio/' + folio + '/rut/' + encodeURIComponent(rut);
+  const r = await pyxisFetch(url, { method: 'GET', headers: { 'Accept': 'application/pdf', 'Referer': web + '/', 'Origin': web } }, { ...a.jar }, a.token);
+  if (r.status !== 200) throw new Error('La factura respondió ' + r.status + '.');
+  return Buffer.from(await r.arrayBuffer());
+}
+// Analiza una factura: baja el PDF, se lo pasa a Claude para extraer las líneas, y
+// calcula el precio con IVA + ILA por producto. Cachea por folio (no re-analiza).
+const PYXIS_FACT_FILE = join(PROMPTS_EFFECTIVE_DIR, 'pyxis-facturas.json');
+function pyxisFactLoad(){ try { if (existsSync(PYXIS_FACT_FILE)) return JSON.parse(readFileSync(PYXIS_FACT_FILE, 'utf-8')); } catch (e) { console.warn('pyxis fact:', e.message); } return {}; }
+function pyxisFactSave(o){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(PYXIS_FACT_FILE, JSON.stringify(o, null, 2)); }
+function pyxisFactLineaImp(l){ const tipo = pyxisTipoBebida(l.descripcion); const ila = PYXIS_ILA[tipo] != null ? PYXIS_ILA[tipo] : 0; return { ...l, tipo, ilaPct: Math.round(ila * 1000) / 10, impPct: Math.round((PYXIS_IVA + ila) * 1000) / 10, precioConImp: pyxisPrecioConImp(l.precioUnit, tipo) }; }
+async function pyxisFacturaAnalizar(grupo, local, folio, rut, force){
+  const cache = pyxisFactLoad(); const key = grupo + '_' + local + '_' + folio + '_' + rut;
+  if (!force && cache[key]) return cache[key];
+  const pdf = await pyxisFacturaPdf(grupo, local, folio, rut);
+  const sys = 'Sos un extractor de datos de facturas chilenas (SII). Te paso una factura de COMPRA en PDF. Devolvé SOLO un JSON válido, sin texto ni markdown alrededor, con esta forma exacta: {"proveedor":"","rut":"","folio":0,"fecha":"YYYY-MM-DD","neto":0,"iva":0,"total":0,"lineas":[{"codigo":"","descripcion":"","cantidad":0,"precioUnit":0,"descuento":0,"valor":0}]}. Reglas: montos ENTEROS en pesos chilenos, sin puntos ni símbolos; precioUnit y valor son los que figuran en la factura (SIN IVA ni ILA); extraé TODAS las líneas de detalle en orden; si un campo no aparece, poné 0 o cadena vacía. No inventes valores: transcribí exactamente lo que dice el PDF.';
+  const msg = await client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, system: sys, messages: [{ role: 'user', content: [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdf.toString('base64') } }, { type: 'text', text: 'Extraé esta factura al JSON pedido.' }] }] });
+  const txt = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim();
+  let data; try { data = JSON.parse(txt.replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch (e) { throw new Error('No pude leer la factura (la IA no devolvió JSON válido).'); }
+  const lineas = (data.lineas || []).map(pyxisFactLineaImp);
+  const out = { grupo, local, folio: data.folio || Number(folio) || folio, rut: data.rut || rut, proveedor: data.proveedor || '', fecha: data.fecha || '', neto: data.neto || 0, iva: data.iva || 0, total: data.total || 0, lineas, analizadoEn: new Date().toISOString() };
+  cache[key] = out; pyxisFactSave(cache);
+  return out;
+}
+app.post('/admin/pyxis/documentos/factura', requireAdmin, async (req, res) => {
+  try {
+    const b = req.body || {}; const grupo = String(b.grupo || 2).replace(/[^0-9]/g, '') || '2';
+    const local = String(b.local || '').replace(/[^0-9]/g, ''); const folio = String(b.folio || '').replace(/[^0-9]/g, ''); const rut = String(b.rut || '').replace(/[^0-9kK.\-]/g, '');
+    if (!local || !folio || !rut) return res.status(400).json({ error: 'Faltan local, folio o RUT.' });
+    res.json(await pyxisFacturaAnalizar(grupo, local, folio, rut, !!b.force));
+  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
+// Precio de referencia: analiza las facturas visibles y agrega por producto el precio
+// de compra (sin imp) y el precio con IVA + ILA — para fijar precio de venta.
+app.post('/admin/pyxis/documentos/referencia', requireAdmin, async (req, res) => {
+  try {
+    const b = req.body || {}; const grupo = String(b.grupo || 2).replace(/[^0-9]/g, '') || '2';
+    const lista = await pyxisDocumentosLista(grupo, b);
+    const facturas = lista.docs.filter(d => d.tipoDte === 33 || d.tipoDte === 34).slice(0, 20); // solo facturas, cap 20
+    const prod = new Map(); const errores = [];
+    for (const d of facturas) {
+      try {
+        const f = await pyxisFacturaAnalizar(grupo, lista.local, String(d.folio), d.rut, false);
+        for (const l of f.lineas) {
+          if (l.tipo === 'ninguno') continue; // solo bebidas/licores/cervezas/vinos
+          const kk = String(l.descripcion || '').trim().toLowerCase(); if (!kk) continue;
+          let p = prod.get(kk);
+          if (!p) { p = { descripcion: l.descripcion, tipo: l.tipo, impPct: l.impPct, precios: [], preciosImp: [], veces: 0, unidades: 0, proveedores: new Set() }; prod.set(kk, p); }
+          if (l.precioUnit > 0) { p.precios.push(l.precioUnit); p.preciosImp.push(l.precioConImp); }
+          p.veces++; p.unidades += Number(l.cantidad) || 0; if (f.proveedor) p.proveedores.add(f.proveedor);
+        }
+      } catch (e) { errores.push({ folio: d.folio, error: String(e.message).slice(0, 80) }); }
+    }
+    const prom = a => a.length ? Math.round(a.reduce((s, x) => s + x, 0) / a.length) : 0;
+    const items = [...prod.values()].map(p => ({ descripcion: p.descripcion, tipo: p.tipo, impPct: p.impPct, veces: p.veces, unidades: p.unidades, proveedores: [...p.proveedores].slice(0, 3), precioMin: p.precios.length ? Math.min(...p.precios) : 0, precioMax: p.precios.length ? Math.max(...p.precios) : 0, precioProm: prom(p.precios), precioConImpProm: prom(p.preciosImp) })).sort((a, c) => c.precioConImpProm - a.precioConImpProm);
+    res.json({ grupo, local: lista.local, ini: lista.ini, end: lista.end, facturasAnalizadas: facturas.length, items, errores });
+  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
 
 // Crear lote (cocción). Ocupa el tanque destino recién al cerrar la cocción.
 app.post('/admin/produccion/lote', requireAdmin, (req, res) => {

@@ -2858,6 +2858,17 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
       <div id="horecaBody"><div class="adm-loading">Cargando ventas de Pyxis…</div></div>
     </div>
 
+    <!-- Documentos (Pyxis): facturas de compra de bebidas/licores · precio de referencia -->
+    <div class="adm-panel" id="pyxisdocsView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Documentos · Compras HORECA</div>
+          <div class="adm-panel-meta">facturas de compra de bebidas/licores de los locales (Pyxis) · precio de referencia con IVA + ILA para fijar tu precio de venta</div>
+        </div>
+      </div>
+      <div id="pyxisdocsBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
     <!-- Forecast: EERR proyectado · presupuestos por % · simulación anual -->
     <div class="adm-panel" id="forecastView" style="display:none">
       <div class="adm-panel-head">
@@ -3345,6 +3356,7 @@ const BASE_SECCIONES = [
   { id:'puntos',     kind:'puntos',   label:'Puntos de venta', cat:'comercial', desc:'mapa de locales donde estás · venta por punto' },
   { id:'topclientes',kind:'topclientes',label:'Top clientes',  cat:'comercial', desc:'quién compra más cada producto · histórico Shopify' },
   { id:'horeca',     kind:'horeca',   label:'Ventas HORECA (Pyxis)', cat:'comercial', desc:'ventas de cervezas en locales HORECA · Kairos vs competencia · datos reales de Pyxis' },
+  { id:'pyxisdocs',  kind:'pyxisdocs',label:'Documentos (Pyxis)', cat:'comercial', desc:'facturas de compra de bebidas/licores por local · precio de referencia con IVA + ILA' },
   { id:'distribuidora', kind:'distribuidora', label:'Distribuidora', cat:'distribucion', desc:'proveedores · costos · márgenes · órdenes de compra · comercialización' },
   { id:'rutas',     kind:'rutas',    label:'Rutas',           cat:'distribucion', desc:'mapa · día y horario de despacho' },
   { id:'mantenimiento', kind:'mantenimiento', label:'Gestión, trazabilidad y mantenimiento', cat:'distribucion', desc:'máquinas dispensadoras · barriles despachados · mantención y limpieza' },
@@ -3781,6 +3793,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'horeca') {
     showView('horeca');
     await loadHoreca();
+  } else if (sec.kind === 'pyxisdocs') {
+    showView('pyxisdocs');
+    await loadPyxisDocs();
   } else if (sec.kind === 'chats') {
     showView('chats');
     await loadConversations();
@@ -3824,6 +3839,7 @@ function showView(kind){
   document.getElementById('topclientesView').style.display= kind === 'topclientes'? '' : 'none';
   document.getElementById('horecaView').style.display     = kind === 'horeca'     ? '' : 'none';
   if (kind !== 'horeca' && typeof horecaTimer !== 'undefined' && horecaTimer) { clearTimeout(horecaTimer); horecaTimer = null; }
+  document.getElementById('pyxisdocsView').style.display  = kind === 'pyxisdocs'  ? '' : 'none';
   document.getElementById('chatsView').style.display      = kind === 'chats'      ? '' : 'none';
   document.getElementById('analyticsView').style.display  = kind === 'analytics'  ? '' : 'none';
   document.getElementById('mundialView').style.display    = kind === 'mundial'    ? '' : 'none';
@@ -10165,6 +10181,88 @@ async function horecaReclasificar(nombre,valor){
   catch(e){ alert('⚠ '+String(e.message||e)); }
 }
 document.getElementById('horecaRefresh').onclick=()=>loadHoreca(true);
+
+// ─── Documentos (Pyxis): facturas de compra · precio de referencia ─────────
+let pyxisDocsData=null, pyxisFactCache={}, pyxisRefData=null;
+function pyxisDocsMesIni(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-01'; }
+function pyxisDocsHoy(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+let pyxisDocsF={local:'',ini:pyxisDocsMesIni(),end:pyxisDocsHoy(),src:'',familia:'bl'};
+async function loadPyxisDocs(){
+  const body=document.getElementById('pyxisdocsBody');
+  if(!pyxisDocsData) body.innerHTML='<div class="adm-loading">Cargando locales de Pyxis…</div>';
+  try{
+    const q=new URLSearchParams({grupo:'2',ini:pyxisDocsF.ini,end:pyxisDocsF.end,familia:pyxisDocsF.familia});
+    if(pyxisDocsF.local)q.set('local',pyxisDocsF.local); if(pyxisDocsF.src)q.set('src',pyxisDocsF.src);
+    const r=await fetch('/admin/pyxis/documentos?'+q.toString()); const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||'Error');
+    pyxisDocsData=d; renderPyxisDocs();
+  }catch(e){ body.innerHTML='<div class="est-note" style="color:#c0392b;margin:1rem">⚠ '+escapeHtml(String(e.message||e))+'<br><span style="color:#666">Revisá que Pyxis esté conectado (Producción → Configuración → Integración ERP · Pyxis).</span></div>'; }
+}
+function renderPyxisDocs(){
+  const d=pyxisDocsData; if(!d) return;
+  const locOpts=['<option value="">— Elegí un local —</option>'].concat((d.locales||[]).map(l=>`<option value="${l.id}" ${String(l.id)===String(pyxisDocsF.local)?'selected':''}>${escapeHtml(l.nombre)}</option>`)).join('');
+  const famOpts=[['bl','Bebidas + Licores'],['todos','Todas las familias'],['bebida','Solo Bebidas'],['licor','Solo Licores']].map(([v,t])=>`<option value="${v}" ${pyxisDocsF.familia===v?'selected':''}>${t}</option>`).join('');
+  const filtros=`<div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;background:#f7f8fa;border:1px solid #eef0f3;border-radius:12px;padding:.7rem .9rem;margin-bottom:1rem">
+    <label class="cg-field"><span>Desde</span><input type="date" id="pdIni" class="costeo-svc" value="${pyxisDocsF.ini}"></label>
+    <label class="cg-field"><span>Hasta</span><input type="date" id="pdEnd" class="costeo-svc" value="${pyxisDocsF.end}"></label>
+    <label class="cg-field" style="min-width:180px;flex:1"><span>Local</span><select id="pdLocal" class="costeo-svc">${locOpts}</select></label>
+    <label class="cg-field" style="min-width:150px"><span>Familia</span><select id="pdFam" class="costeo-svc">${famOpts}</select></label>
+    <label class="cg-field" style="min-width:150px;flex:1"><span>Buscar (proveedor / razón social)</span><input id="pdSrc" class="costeo-svc" value="${escapeAttr(pyxisDocsF.src)}" placeholder="ej. andina, vinoteca…"></label>
+    <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="pdBuscar" type="button">Buscar</button></div>
+  </div>`;
+  const clp=hClp;
+  if(!pyxisDocsF.local){ document.getElementById('pyxisdocsBody').innerHTML=filtros+'<div class="est-note" style="color:#7a8290">Elegí un <b>local</b> y apretá Buscar para ver sus facturas de compra.</div>'; wirePyxisDocs(); return; }
+  const rows=(d.docs||[]).map(x=>`<tr>
+    <td>${escapeHtml((x.fecha||'').slice(0,10))}</td>
+    <td class="dist-num">${x.folio}</td>
+    <td>${escapeHtml(x.proveedor||'')}<div style="font-size:.68rem;color:#9098a3">${escapeHtml(x.rut||'')}</div></td>
+    <td><span class="adm-cat-chip">${escapeHtml(x.tipo||'')}</span></td>
+    <td>${escapeHtml(x.familia||'')}</td>
+    <td class="dist-num" style="font-weight:700">${clp(x.total)}</td>
+    <td><button class="adm-btn adm-btn-ghost" data-fact="${x.folio}" data-rut="${escapeAttr(x.rut||'')}" type="button" style="font-size:.72rem">📄 Ver factura</button></td>
+  </tr><tr class="pd-fact-row" id="pdFact${x.folio}" style="display:none"><td colspan="7"></td></tr>`).join('');
+  const tabla=(d.docs&&d.docs.length)?`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Fecha</th><th>Folio</th><th>Proveedor</th><th>Tipo</th><th>Familia</th><th>Total</th><th>Factura</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="est-note" style="color:#7a8290">No hay documentos de bebidas/licores para ese local y rango. Probá otro rango o quitá la búsqueda.</div>';
+  const ref=`<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin:1rem 0 .5rem"><div class="cg-form-title" style="margin:0">💰 Precio de referencia (compra + IVA + ILA)</div><button class="adm-btn adm-btn-gold" id="pdRef" type="button" style="font-size:.75rem">Analizar facturas visibles</button></div><div id="pdRefBox">${pyxisRefBoxHtml()}</div>`;
+  document.getElementById('pyxisdocsBody').innerHTML=filtros+`<div class="est-note" style="margin-bottom:.6rem">${(d.docs||[]).length} documento(s) · ${escapeHtml(d.ini)} → ${escapeHtml(d.end)}. Cada factura muestra el precio de compra (sin imp.) y el <b>precio con IVA + ILA</b> — tu referencia para el precio de venta.</div>`+tabla+ref;
+  wirePyxisDocs();
+}
+function pyxisRefBoxHtml(){
+  const r=pyxisRefData; if(!r) return '<div class="est-note" style="color:#7a8290">Apretá "Analizar facturas visibles" — leo cada factura (PDF) con IA, saco los productos y calculo el precio con IVA + ILA de cada uno (ron 31%, whisky/gin/pisco/vodka 31%, cerveza/vino 20,5%).</div>';
+  if(!r.items||!r.items.length) return '<div class="est-note" style="color:#7a8290">No se encontraron bebidas/licores en las facturas analizadas.</div>';
+  const clp=hClp;
+  const rows=r.items.map(i=>`<tr><td>${escapeHtml(i.descripcion)}</td><td><span class="adm-cat-chip">${escapeHtml(i.tipo)}</span> <span style="font-size:.66rem;color:#9098a3">+${i.impPct}%</span></td><td class="dist-num">${clp(i.precioProm)}${i.precioMin!==i.precioMax?('<div style="font-size:.66rem;color:#9098a3">'+clp(i.precioMin)+'–'+clp(i.precioMax)+'</div>'):''}</td><td class="dist-num" style="font-weight:800;color:#1f8a70">${clp(i.precioConImpProm)}</td><td class="dist-num">${i.veces}</td></tr>`).join('');
+  return `<div class="est-note" style="margin-bottom:.4rem">${r.facturasAnalizadas} factura(s) analizada(s)${r.errores&&r.errores.length?(' · '+r.errores.length+' con error'):''}. <b>Precio con imp.</b> = precio compra × (1 + 19% IVA + ILA).</div><div class="mun-wrap"><table class="mun-table"><thead><tr><th>Producto</th><th>Tipo</th><th>Precio compra (sin imp.)</th><th>Precio con IVA+ILA</th><th>Veces</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function wirePyxisDocs(){
+  const g=id=>document.getElementById(id);
+  if(g('pdBuscar')) g('pdBuscar').onclick=()=>{ pyxisDocsF.ini=g('pdIni').value||pyxisDocsF.ini; pyxisDocsF.end=g('pdEnd').value||pyxisDocsF.end; pyxisDocsF.local=g('pdLocal').value; pyxisDocsF.familia=g('pdFam').value; pyxisDocsF.src=g('pdSrc').value.trim(); pyxisRefData=null; loadPyxisDocs(); };
+  if(g('pdSrc')) g('pdSrc').onkeydown=(e)=>{ if(e.key==='Enter') g('pdBuscar').click(); };
+  document.querySelectorAll('[data-fact]').forEach(b=>b.onclick=()=>pyxisVerFactura(b.dataset.fact,b.dataset.rut,b));
+  if(g('pdRef')) g('pdRef').onclick=pyxisAnalizarRef;
+}
+async function pyxisVerFactura(folio,rut,btn){
+  const row=document.getElementById('pdFact'+folio); if(!row) return; const cell=row.firstElementChild;
+  if(row.style.display!=='none'){ row.style.display='none'; return; }
+  row.style.display=''; cell.innerHTML='<div class="adm-loading" style="padding:.6rem">📄 Leyendo la factura con IA…</div>';
+  try{
+    let f=pyxisFactCache[folio];
+    if(!f){ const r=await fetch('/admin/pyxis/documentos/factura',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grupo:2,local:pyxisDocsF.local,folio,rut})}); f=await r.json(); if(!r.ok||f.error) throw new Error(f.error||'Error'); pyxisFactCache[folio]=f; }
+    const clp=hClp;
+    const lr=(f.lineas||[]).map(l=>`<tr><td>${escapeHtml(l.codigo||'')}</td><td>${escapeHtml(l.descripcion||'')}</td><td class="dist-num">${l.cantidad||0}</td><td class="dist-num">${clp(l.precioUnit)}</td><td>${l.tipo&&l.tipo!=='ninguno'?('<span class="adm-cat-chip">'+escapeHtml(l.tipo)+'</span> <span style="font-size:.66rem;color:#9098a3">+'+l.impPct+'%</span>'):'<span style="color:#c9ced6">—</span>'}</td><td class="dist-num" style="font-weight:800;color:#1f8a70">${l.tipo&&l.tipo!=='ninguno'?clp(l.precioConImp):'—'}</td></tr>`).join('');
+    cell.innerHTML=`<div style="padding:.5rem .3rem"><div style="font-size:.8rem;color:#7a8290;margin-bottom:.3rem"><b>${escapeHtml(f.proveedor||'')}</b> · folio ${escapeHtml(String(f.folio))} · ${escapeHtml((f.fecha||'').slice(0,10))} · Neto ${clp(f.neto)} · IVA ${clp(f.iva)} · Total ${clp(f.total)}</div>
+      <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Cód.</th><th>Descripción</th><th>Cant.</th><th>P. compra (sin imp.)</th><th>Tipo</th><th>Precio c/IVA+ILA</th></tr></thead><tbody>${lr}</tbody></table></div>
+      <div style="font-size:.68rem;color:#9098a3;margin-top:.3rem">Precio con impuestos = precio de compra × (1 + 19% IVA + ILA según tipo). Leído del PDF por IA — verificá si algo no calza.</div></div>`;
+  }catch(e){ cell.innerHTML='<div class="est-note" style="color:#c0392b;padding:.6rem">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
+}
+async function pyxisAnalizarRef(){
+  const btn=document.getElementById('pdRef'); if(btn){ btn.disabled=true; btn.textContent='Analizando facturas…'; }
+  const box=document.getElementById('pdRefBox'); if(box) box.innerHTML='<div class="adm-loading">Leyendo las facturas con IA y calculando precios… (puede tardar)</div>';
+  try{
+    const r=await fetch('/admin/pyxis/documentos/referencia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grupo:2,local:pyxisDocsF.local,ini:pyxisDocsF.ini,end:pyxisDocsF.end,src:pyxisDocsF.src,familia:pyxisDocsF.familia})});
+    const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||'Error'); pyxisRefData=d;
+  }catch(e){ pyxisRefData={items:[],facturasAnalizadas:0,errores:[{error:String(e.message||e)}]}; }
+  if(btn){ btn.disabled=false; btn.textContent='Analizar facturas visibles'; }
+  const box2=document.getElementById('pdRefBox'); if(box2) box2.innerHTML=pyxisRefBoxHtml();
+}
 
 // ─── Forecast: EERR proyectado · presupuestos · simulación anual ───────────
 let fcTab='proy';
