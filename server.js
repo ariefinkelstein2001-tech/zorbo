@@ -5291,7 +5291,39 @@ function pyxisMineBundle(js){
   const apiPaths = [...new Set([...js.matchAll(/["'`](\/?(?:api|v\d)\/[A-Za-z0-9_\-./{}:]{1,70})["'`]/gi)].map(m => m[1]))].slice(0, 60);
   // Endpoints vistos en la captura (ownpower / rangos por fecha).
   const captura = [...new Set([...js.matchAll(/["'`]([A-Za-z0-9_\-./?=&{}:]{0,50}(?:ownpower|ini=|\bend=|dashboard|venta|sale|cliente|comprador|customer)[A-Za-z0-9_\-./?=&{}:]{0,50})["'`]/gi)].map(m => m[1]))].filter(s => s.length < 90).slice(0, 50);
-  return { urls, auth, apiPaths, captura };
+  // Contexto crudo alrededor de "ini=" y "ownpower": ahí queda literal cómo se CONSTRUYE
+  // la URL de la llamada (ej. "venta/detalle/"+e+"?ini="+t). Es la pista definitiva.
+  const iniCtx = pyxisMineCtx(js, 'ini=', 170, 40);
+  // Fragmentos de path candidatos: literales tipo "algo/" (prefijos de recurso REST).
+  const pathLits = [...new Set([...js.matchAll(/["'`]([a-z][a-z0-9\-]{1,28}(?:\/[a-z0-9\-]{1,28}){0,3}\/?)["'`]/gi)].map(m => m[1]))]
+    .filter(s => /[a-z]/.test(s) && !/^(https?|www|assets|true|false|null|utf|application|json|text|image|charset|bearer|content|type)/i.test(s)).slice(0, 120);
+  return { urls, auth, apiPaths, captura, iniCtx, pathLits };
+}
+// Extrae hasta 12 recortes de `js` alrededor de `needle` (para ver cómo se arma una URL).
+function pyxisMineCtx(js, needle, before, after){
+  const out = new Set(); let count = 0, from = 0;
+  while (count < 12) {
+    const i = js.indexOf(needle, from); if (i < 0) break;
+    out.add(js.slice(Math.max(0, i - (before || 160)), Math.min(js.length, i + needle.length + (after || 40))).replace(/\s+/g, ' ').trim());
+    from = i + needle.length; count++;
+  }
+  return [...out].slice(0, 10);
+}
+// De los contextos "ini=" saca prefijos de path candidatos: los literales de string que
+// aparecen justo antes de la concatenación (ej. de `"venta/detalle/"+e+"?ini="` saca
+// "venta/detalle/"). Devuelve prefijos únicos para probar {prefijo}{grupoId}?ini=&end=.
+function pyxisPrefijosDeCtx(iniCtx){
+  const pref = new Set();
+  for (const ctx of (iniCtx || [])) {
+    // todos los literales de string del recorte
+    for (const m of ctx.matchAll(/["'`]([A-Za-z0-9_\-./]{1,40})["'`]/g)) {
+      let s = m[1];
+      if (/^https?:/i.test(s)) { const mm = /\/api\/(.+)$/i.exec(s); if (mm) s = mm[1]; else continue; }
+      s = s.replace(/^\/+/, '');
+      if (/[a-z]/i.test(s) && /\/$|[a-z\-]$/i.test(s) && !/ini=|end=|^\?|application|json|bearer|utf/i.test(s) && s.length >= 2 && s.length <= 40) pref.add(s.endsWith('/') ? s : s + '/');
+    }
+  }
+  return [...pref].slice(0, 20);
 }
 // Diagnóstico: descubre el contrato real del ERP desde Railway. (1) estructura de /login
 // (SPA? scripts? cookies?), (2) prueba los endpoints de login candidatos con las
@@ -5321,23 +5353,28 @@ async function pyxisDiag(){
     inputs: [...f.matchAll(/<input\b[^>]*>/gi)].map(im => ({ name: (/\bname=["']([^"']+)["']/i.exec(im[0]) || [, ''])[1], type: ((/\btype=["']([^"']+)["']/i.exec(im[0]) || [, 'text'])[1]).toLowerCase() })).filter(x => x.name),
   }; });
   // 1b. Minar los bundles Angular para descubrir el host de API + rutas reales.
-  rep.bundle = { fetched: [], urls: [], auth: [], apiPaths: [], captura: [] };
+  rep.bundle = { fetched: [], urls: [], auth: [], apiPaths: [], captura: [], iniCtx: [], pathLits: [] };
+  let ctxPrefijos = [];
   try {
     const srcs = (rep.loginPage && rep.loginPage.scripts || []).filter(s => /\.js(\?|$)/i.test(s) && !/\[/.test(s));
     const abs = srcs.map(s => (/^https?:\/\//i.test(s) ? s : base + (s.startsWith('/') ? s : '/' + s)));
-    const mined = { urls: new Set(), auth: new Set(), apiPaths: new Set(), captura: new Set() };
+    const mined = { urls: new Set(), auth: new Set(), apiPaths: new Set(), captura: new Set(), iniCtx: new Set(), pathLits: new Set() };
     await Promise.all(abs.map(async (u) => {
       try {
         const r = await pyxisFetch(u, { method: 'GET', headers: { Accept: '*/*' } }, {});
         let t = ''; try { t = await r.text(); } catch {}
         rep.bundle.fetched.push({ url: u.replace(base, ''), status: r.status, len: t.length });
-        if (r.status === 200 && t.length > 100) { const m = pyxisMineBundle(t); m.urls.forEach(x => mined.urls.add(x)); m.auth.forEach(x => mined.auth.add(x)); m.apiPaths.forEach(x => mined.apiPaths.add(x)); m.captura.forEach(x => mined.captura.add(x)); }
+        if (r.status === 200 && t.length > 100) { const m = pyxisMineBundle(t); for (const k of ['urls', 'auth', 'apiPaths', 'captura', 'iniCtx', 'pathLits']) (m[k] || []).forEach(x => mined[k].add(x)); }
       } catch (e) { rep.bundle.fetched.push({ url: u.replace(base, ''), status: 0, error: String(e.message).slice(0, 50) }); }
     }));
     rep.bundle.urls = [...mined.urls].slice(0, 60);
     rep.bundle.auth = [...mined.auth].slice(0, 50);
     rep.bundle.apiPaths = [...mined.apiPaths].slice(0, 60);
     rep.bundle.captura = [...mined.captura].slice(0, 50);
+    rep.bundle.iniCtx = [...mined.iniCtx].slice(0, 12);
+    rep.bundle.pathLits = [...mined.pathLits].slice(0, 120);
+    ctxPrefijos = pyxisPrefijosDeCtx(rep.bundle.iniCtx);
+    rep.bundle.ctxPrefijos = ctxPrefijos;
   } catch (e) { rep.bundle.error = String(e.message).slice(0, 120); }
   // 2. Probar endpoints de login (contra el host de API, secuencial, corta al 1° OK).
   if (email && password) {
@@ -5380,9 +5417,11 @@ async function pyxisDiag(){
           });
           rep.ownpower = { bodyKeys: Object.keys(b), cmf: b.cmf ? Object.keys(b.cmf) : null, grupos };
         } catch (e) { rep.ownpower = { parseError: String(e.message).slice(0, 100) }; }
-        // Endpoint de ventas: probar {prefijo}/{grupoId} con el rango de fechas.
-        const ids = (grupos.length ? grupos.map(g => g.id) : [1, 2]).filter(x => x != null).slice(0, 3);
-        const resources = ['', 'dashboard/', 'home/', 'resumen/', 'general/', 'ventas/', 'venta/', 'sales/', 'sale/', 'sales-widget/', 'widget/', 'grupo/'];
+        // Endpoint de ventas (Detalle de Ventas): probar {prefijo}/{grupoId}?ini=&end=.
+        // Prefijos: fijos + los derivados del contexto "ini=" del bundle (pista definitiva).
+        const ids = (grupos.length ? grupos.map(g => g.id) : [1, 2]).filter(x => x != null).slice(0, 2);
+        const fijos = ['', 'dashboard/', 'ventas/', 'venta/', 'venta/detalle/', 'detalle-ventas/', 'detalle-venta/', 'detalleventa/', 'sales/', 'grupo/', 'grupo/detalle-ventas/', 'reporte/detalle-ventas/', 'venta/grupo/', 'ventas/grupo/', 'ranking-sector/', 'ranking/'];
+        const resources = [...new Set([...fijos, ...ctxPrefijos])];
         const urls = new Set();
         for (const id of ids) for (const rsc of resources) urls.add('/' + rsc + id + q);
         const results = await Promise.all([...urls].map(u => hit(u)));
