@@ -5685,10 +5685,10 @@ const PYXIS_IVA = 0.19;
 const PYXIS_ILA = { cerveza: 0.205, vino: 0.205, destilado: 0.31, analcoholico: 0.10, ninguno: 0 };
 function pyxisTipoBebida(desc){
   const n = String(desc || '').toLowerCase();
-  if (/\b(ron|whisky|whiskey|gin|vodka|pisco|tequila|aguardiente|licor|cognac|brandy|bacardi|absolut|jack\s*daniel|johnnie|chivas|jager|fernet|aperol|amaretto|grappa|singani|mezcal|cointreau|baileys|campari|vermut|vermouth|destilad)\b/.test(n)) return 'destilado';
-  if (/\b(vino|carmen|cabernet|merlot|sauvignon|syrah|carmenere|chardonnay|espumante|champ|malbec|pinot|moscato|rose|sangiovese|tempranillo)\b/.test(n)) return 'vino';
-  if (/\b(cerveza|lager|ipa|schop|pilsen|stout|\bale\b|kunstmann|heineken|corona|stella|cusque|austral|quilmes|kross|becker|escudo|cristal|royal)\b/.test(n)) return 'cerveza';
-  if (/\b(bebida|gaseosa|jugo|agua|energetica|nectar|coca|sprite|fanta|schweppes|red\s*bull|monster)\b/.test(n)) return 'analcoholico';
+  if (/(ron\b|whisk|\bgin\b|ginebra|vodka|vodk\b|pisco\b|tequil|tequi\b|aguardiente|licor|cognac|coñac|brandy|bacardi|absolut|jack\s*daniel|johnnie|chivas|jager|fernet|aperol|amaretto|grappa|singani|mezcal|cointreau|baileys|campari|vermut|vermouth|destilad|havana|flor\s*de\s*caña|barcel|capel|mistral|alto\s*del\s*carmen|tanqueray|beefeater|jose\s*cuervo|don\s*julio)/.test(n)) return 'destilado';
+  if (/(vino|carmen|cabernet|merlot|sauvignon|syrah|carmenere|chardonnay|espumante|champ|malbec|pinot|moscato|\brose\b|sangiovese|tempranillo|reserva|gran\s*reserva|toro\s*de\s*piedra|casillero|santa\s*rita|concha\s*y\s*toro|requingua)/.test(n)) return 'vino';
+  if (/(cerveza|lager|\bipa\b|schop|pilsen|stout|\bale\b|kunstmann|heineken|corona|stella|cusque|austral|quilmes|kross|becker|escudo|cristal|royal|sapporo|asahi|paulaner|erdinger)/.test(n)) return 'cerveza';
+  if (/(bebida|gaseosa|jugo|agua\b|energetica|nectar|coca|sprite|fanta|schweppes|red\s*bull|monster|pepsi|canada\s*dry)/.test(n)) return 'analcoholico';
   return 'ninguno';
 }
 function pyxisPrecioConImp(precioSinImp, tipo){ const ila = PYXIS_ILA[tipo] != null ? PYXIS_ILA[tipo] : 0; return Math.round(Number(precioSinImp || 0) * (1 + PYXIS_IVA + ila) * 100) / 100; }
@@ -5730,7 +5730,7 @@ async function pyxisDocumentosLista(grupo, q){
   q = q || {}; const r0 = pyxisMesRango();
   const local = String(q.local || '').replace(/[^0-9]/g, '');
   const ini = String(q.ini || r0.ini).replace(/[^0-9\-]/g, ''); const end = String(q.end || r0.end).replace(/[^0-9\-]/g, '');
-  const page = Math.max(1, parseInt(q.page) || 1); const pick = Math.min(100, Math.max(1, parseInt(q.pick) || 15));
+  const page = Math.max(1, parseInt(q.page) || 1); const pick = Math.min(300, Math.max(1, parseInt(q.pick) || 100));
   const src = String(q.src || '').trim().slice(0, 60);
   const dz = s => String(s).replace(/-0(\d)/g, '-$1'); // 2026-07-01 → 2026-7-1 (formato Pyxis)
   let path = '/documentos/' + grupo + '?local=' + local + '&page=' + page + '&pick=' + pick + '&ini=' + dz(ini) + '&end=' + dz(end);
@@ -5762,26 +5762,42 @@ async function pyxisFacturaPdf(grupo, local, folio, rut){
 const PYXIS_FACT_FILE = join(PROMPTS_EFFECTIVE_DIR, 'pyxis-facturas.json');
 function pyxisFactLoad(){ try { if (existsSync(PYXIS_FACT_FILE)) return JSON.parse(readFileSync(PYXIS_FACT_FILE, 'utf-8')); } catch (e) { console.warn('pyxis fact:', e.message); } return {}; }
 function pyxisFactSave(o){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(PYXIS_FACT_FILE, JSON.stringify(o, null, 2)); }
-function pyxisFactLineaImp(l){ const tipo = pyxisTipoBebida(l.descripcion); const ila = PYXIS_ILA[tipo] != null ? PYXIS_ILA[tipo] : 0; return { ...l, tipo, ilaPct: Math.round(ila * 1000) / 10, impPct: Math.round((PYXIS_IVA + ila) * 1000) / 10, precioConImp: pyxisPrecioConImp(l.precioUnit, tipo) }; }
-async function pyxisFacturaAnalizar(grupo, local, folio, rut, force){
+// Determina el tipo de bebida por el nombre; si no matchea, usa la familia del
+// documento (Licores→destilado, Vinos→vino, Cerveza→cerveza, Bebidas→analcohólico).
+function pyxisFactLineaImp(l, familiaDoc){
+  let tipo = pyxisTipoBebida(l.descripcion);
+  if (tipo === 'ninguno') { const f = String(familiaDoc || '').toLowerCase();
+    if (/licor|destil/.test(f)) tipo = 'destilado';
+    else if (/vino/.test(f)) tipo = 'vino';
+    else if (/cerveza/.test(f)) tipo = 'cerveza';
+    else if (/bebida/.test(f)) tipo = 'analcoholico';
+  }
+  const ila = PYXIS_ILA[tipo] != null ? PYXIS_ILA[tipo] : 0;
+  return { ...l, tipo, ilaPct: Math.round(ila * 1000) / 10, impPct: Math.round((PYXIS_IVA + ila) * 1000) / 10, precioConImp: tipo === 'ninguno' ? 0 : pyxisPrecioConImp(l.precioUnit, tipo) };
+}
+// Baja el PDF, se lo pasa a Claude y CACHEA la extracción CRUDA (sin impuestos, para
+// recalcular el ILA si cambia la clasificación). Devuelve {proveedor, fecha, lineas:[…]}.
+async function pyxisFacturaRaw(grupo, local, folio, rut, force){
   const cache = pyxisFactLoad(); const key = grupo + '_' + local + '_' + folio + '_' + rut;
-  if (!force && cache[key]) return cache[key];
+  if (!force && cache[key] && cache[key].lineas) return cache[key];
   const pdf = await pyxisFacturaPdf(grupo, local, folio, rut);
-  const sys = 'Sos un extractor de datos de facturas chilenas (SII). Te paso una factura de COMPRA en PDF. Devolvé SOLO un JSON válido, sin texto ni markdown alrededor, con esta forma exacta: {"proveedor":"","rut":"","folio":0,"fecha":"YYYY-MM-DD","neto":0,"iva":0,"total":0,"lineas":[{"codigo":"","descripcion":"","cantidad":0,"precioUnit":0,"descuento":0,"valor":0}]}. Reglas: montos ENTEROS en pesos chilenos, sin puntos ni símbolos; precioUnit y valor son los que figuran en la factura (SIN IVA ni ILA); extraé TODAS las líneas de detalle en orden; si un campo no aparece, poné 0 o cadena vacía. No inventes valores: transcribí exactamente lo que dice el PDF.';
+  const sys = 'Sos un extractor de datos de facturas chilenas (SII). Te paso una factura de COMPRA en PDF. Devolvé SOLO un JSON válido, sin texto ni markdown alrededor, con esta forma exacta: {"proveedor":"","rut":"","folio":0,"fecha":"YYYY-MM-DD","neto":0,"iva":0,"total":0,"lineas":[{"codigo":"","descripcion":"","cantidad":0,"precioUnit":0,"descuento":0,"valor":0}]}. Reglas: montos ENTEROS en pesos chilenos, sin puntos ni símbolos; precioUnit y valor son los que figuran en la factura (SIN IVA ni ILA); en descripcion transcribí el nombre COMPLETO del producto tal como aparece; extraé TODAS las líneas de detalle en orden; si un campo no aparece, poné 0 o cadena vacía. No inventes valores: transcribí exactamente lo que dice el PDF.';
   const msg = await client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 3000, system: sys, messages: [{ role: 'user', content: [{ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: pdf.toString('base64') } }, { type: 'text', text: 'Extraé esta factura al JSON pedido.' }] }] });
   const txt = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim();
   let data; try { data = JSON.parse(txt.replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch (e) { throw new Error('No pude leer la factura (la IA no devolvió JSON válido).'); }
-  const lineas = (data.lineas || []).map(pyxisFactLineaImp);
-  const out = { grupo, local, folio: data.folio || Number(folio) || folio, rut: data.rut || rut, proveedor: data.proveedor || '', fecha: data.fecha || '', neto: data.neto || 0, iva: data.iva || 0, total: data.total || 0, lineas, analizadoEn: new Date().toISOString() };
+  const out = { grupo, local, folio: data.folio || Number(folio) || folio, rut: data.rut || rut, proveedor: data.proveedor || '', fecha: data.fecha || '', neto: data.neto || 0, iva: data.iva || 0, total: data.total || 0, lineas: (data.lineas || []).map(l => ({ codigo: l.codigo || '', descripcion: l.descripcion || '', cantidad: Number(l.cantidad) || 0, precioUnit: Number(l.precioUnit) || 0, descuento: Number(l.descuento) || 0, valor: Number(l.valor) || 0 })), analizadoEn: new Date().toISOString() };
   cache[key] = out; pyxisFactSave(cache);
   return out;
 }
+// Añade tipo de bebida + precio con IVA+ILA a cada línea (usando la familia del doc).
+function pyxisFacturaConImp(raw, familia){ return { ...raw, familia: familia || '', lineas: (raw.lineas || []).map(l => pyxisFactLineaImp(l, familia)) }; }
 app.post('/admin/pyxis/documentos/factura', requireAdmin, async (req, res) => {
   try {
     const b = req.body || {}; const grupo = String(b.grupo || 2).replace(/[^0-9]/g, '') || '2';
     const local = String(b.local || '').replace(/[^0-9]/g, ''); const folio = String(b.folio || '').replace(/[^0-9]/g, ''); const rut = String(b.rut || '').replace(/[^0-9kK.\-]/g, '');
     if (!local || !folio || !rut) return res.status(400).json({ error: 'Faltan local, folio o RUT.' });
-    res.json(await pyxisFacturaAnalizar(grupo, local, folio, rut, !!b.force));
+    const raw = await pyxisFacturaRaw(grupo, local, folio, rut, !!b.force);
+    res.json(pyxisFacturaConImp(raw, b.familia || ''));
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
 });
 // Precio de referencia: analiza las facturas visibles y agrega por producto el precio
@@ -5794,7 +5810,8 @@ app.post('/admin/pyxis/documentos/referencia', requireAdmin, async (req, res) =>
     const prod = new Map(); const errores = [];
     for (const d of facturas) {
       try {
-        const f = await pyxisFacturaAnalizar(grupo, lista.local, String(d.folio), d.rut, false);
+        const raw = await pyxisFacturaRaw(grupo, lista.local, String(d.folio), d.rut, false);
+        const f = pyxisFacturaConImp(raw, d.familia);
         for (const l of f.lineas) {
           if (l.tipo === 'ninguno') continue; // solo bebidas/licores/cervezas/vinos
           const kk = String(l.descripcion || '').trim().toLowerCase(); if (!kk) continue;

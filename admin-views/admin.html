@@ -10218,7 +10218,7 @@ function renderPyxisDocs(){
     <td><span class="adm-cat-chip">${escapeHtml(x.tipo||'')}</span></td>
     <td>${escapeHtml(x.familia||'')}</td>
     <td class="dist-num" style="font-weight:700">${clp(x.total)}</td>
-    <td><button class="adm-btn adm-btn-ghost" data-fact="${x.folio}" data-rut="${escapeAttr(x.rut||'')}" type="button" style="font-size:.72rem">📄 Ver factura</button></td>
+    <td><button class="adm-btn adm-btn-ghost" data-fact="${x.folio}" data-rut="${escapeAttr(x.rut||'')}" data-fam="${escapeAttr(x.familia||'')}" type="button" style="font-size:.72rem">📄 Ver factura</button></td>
   </tr><tr class="pd-fact-row" id="pdFact${x.folio}" style="display:none"><td colspan="7"></td></tr>`).join('');
   const tabla=(d.docs&&d.docs.length)?`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Fecha</th><th>Folio</th><th>Proveedor</th><th>Tipo</th><th>Familia</th><th>Total</th><th>Factura</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="est-note" style="color:#7a8290">No hay documentos de bebidas/licores para ese local y rango. Probá otro rango o quitá la búsqueda.</div>';
   const ref=`<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin:1rem 0 .5rem"><div class="cg-form-title" style="margin:0">💰 Precio de referencia (compra + IVA + ILA)</div><button class="adm-btn adm-btn-gold" id="pdRef" type="button" style="font-size:.75rem">Analizar facturas visibles</button></div><div id="pdRefBox">${pyxisRefBoxHtml()}</div>`;
@@ -10236,16 +10236,16 @@ function wirePyxisDocs(){
   const g=id=>document.getElementById(id);
   if(g('pdBuscar')) g('pdBuscar').onclick=()=>{ pyxisDocsF.ini=g('pdIni').value||pyxisDocsF.ini; pyxisDocsF.end=g('pdEnd').value||pyxisDocsF.end; pyxisDocsF.local=g('pdLocal').value; pyxisDocsF.familia=g('pdFam').value; pyxisDocsF.src=g('pdSrc').value.trim(); pyxisRefData=null; loadPyxisDocs(); };
   if(g('pdSrc')) g('pdSrc').onkeydown=(e)=>{ if(e.key==='Enter') g('pdBuscar').click(); };
-  document.querySelectorAll('[data-fact]').forEach(b=>b.onclick=()=>pyxisVerFactura(b.dataset.fact,b.dataset.rut,b));
+  document.querySelectorAll('[data-fact]').forEach(b=>b.onclick=()=>pyxisVerFactura(b.dataset.fact,b.dataset.rut,b.dataset.fam));
   if(g('pdRef')) g('pdRef').onclick=pyxisAnalizarRef;
 }
-async function pyxisVerFactura(folio,rut,btn){
+async function pyxisVerFactura(folio,rut,familia){
   const row=document.getElementById('pdFact'+folio); if(!row) return; const cell=row.firstElementChild;
   if(row.style.display!=='none'){ row.style.display='none'; return; }
   row.style.display=''; cell.innerHTML='<div class="adm-loading" style="padding:.6rem">📄 Leyendo la factura con IA…</div>';
   try{
     let f=pyxisFactCache[folio];
-    if(!f){ const r=await fetch('/admin/pyxis/documentos/factura',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grupo:2,local:pyxisDocsF.local,folio,rut})}); f=await r.json(); if(!r.ok||f.error) throw new Error(f.error||'Error'); pyxisFactCache[folio]=f; }
+    if(!f){ const r=await fetch('/admin/pyxis/documentos/factura',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grupo:2,local:pyxisDocsF.local,folio,rut,familia})}); f=await r.json(); if(!r.ok||f.error) throw new Error(f.error||'Error'); pyxisFactCache[folio]=f; }
     const clp=hClp;
     const lr=(f.lineas||[]).map(l=>`<tr><td>${escapeHtml(l.codigo||'')}</td><td>${escapeHtml(l.descripcion||'')}</td><td class="dist-num">${l.cantidad||0}</td><td class="dist-num">${clp(l.precioUnit)}</td><td>${l.tipo&&l.tipo!=='ninguno'?('<span class="adm-cat-chip">'+escapeHtml(l.tipo)+'</span> <span style="font-size:.66rem;color:#9098a3">+'+l.impPct+'%</span>'):'<span style="color:#c9ced6">—</span>'}</td><td class="dist-num" style="font-weight:800;color:#1f8a70">${l.tipo&&l.tipo!=='ninguno'?clp(l.precioConImp):'—'}</td></tr>`).join('');
     cell.innerHTML=`<div style="padding:.5rem .3rem"><div style="font-size:.8rem;color:#7a8290;margin-bottom:.3rem"><b>${escapeHtml(f.proveedor||'')}</b> · folio ${escapeHtml(String(f.folio))} · ${escapeHtml((f.fecha||'').slice(0,10))} · Neto ${clp(f.neto)} · IVA ${clp(f.iva)} · Total ${clp(f.total)}</div>
