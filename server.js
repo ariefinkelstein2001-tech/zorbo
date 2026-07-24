@@ -5671,6 +5671,50 @@ app.post('/admin/pyxis/cervezas/resumen/generar', requireAdmin, async (req, res)
   } catch (e) { res.status(500).json({ error: 'No se pudo generar el resumen: ' + String(e.message || e).slice(0, 200) }); }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Pyxis · Documentos (facturas de compra de los locales HORECA)
+// Sirve para ver a qué precio COMPRAN los locales las bebidas/licores de la
+// competencia (ron, whisky, gin, cerveza…) y tener un precio de referencia.
+// Los precios de la factura vienen SIN IVA ni ILA → calculamos el precio con
+// impuestos: precio × (1 + IVA 0,19 + ILA según tipo de bebida).
+// Endpoint (confirmado por captura):
+//   GET /api/documentos/{grupo}?local=&page=&pick=&src=&ini=&end=
+// ─────────────────────────────────────────────────────────────────────────────
+const PYXIS_IVA = 0.19;
+// ILA (Impuesto a las Bebidas Alcohólicas, Chile) por tipo. Editable si cambia la ley.
+const PYXIS_ILA = { cerveza: 0.205, vino: 0.205, destilado: 0.31, analcoholico: 0.10, ninguno: 0 };
+function pyxisTipoBebida(desc){
+  const n = String(desc || '').toLowerCase();
+  if (/\b(ron|whisky|whiskey|gin|vodka|pisco|tequila|aguardiente|licor|cognac|brandy|bacardi|absolut|jack\s*daniel|johnnie|chivas|jager|fernet|aperol|amaretto|grappa|singani|mezcal|cointreau|baileys|campari|vermut|vermouth|destilad)\b/.test(n)) return 'destilado';
+  if (/\b(vino|carmen|cabernet|merlot|sauvignon|syrah|carmenere|chardonnay|espumante|champ|malbec|pinot|moscato|rose|sangiovese|tempranillo)\b/.test(n)) return 'vino';
+  if (/\b(cerveza|lager|ipa|schop|pilsen|stout|\bale\b|kunstmann|heineken|corona|stella|cusque|austral|quilmes|kross|becker|escudo|cristal|royal)\b/.test(n)) return 'cerveza';
+  if (/\b(bebida|gaseosa|jugo|agua|energetica|nectar|coca|sprite|fanta|schweppes|red\s*bull|monster)\b/.test(n)) return 'analcoholico';
+  return 'ninguno';
+}
+function pyxisPrecioConImp(precioSinImp, tipo){ const ila = PYXIS_ILA[tipo] != null ? PYXIS_ILA[tipo] : 0; return Math.round(Number(precioSinImp || 0) * (1 + PYXIS_IVA + ila) * 100) / 100; }
+// Rango del mes en curso, sin zero-pad (formato de Pyxis: 2026-7-1).
+function pyxisMesRango(){ const d = new Date(); const y = d.getUTCFullYear(), m = d.getUTCMonth() + 1; return { ini: y + '-' + m + '-1', end: y + '-' + m + '-' + d.getUTCDate() }; }
+app.post('/admin/pyxis/documentos-diag', requireAdmin, async (req, res) => {
+  try {
+    const grupo = String((req.body && req.body.grupo) || 2).replace(/[^0-9]/g, '') || '2';
+    const b = req.body || {}; const r0 = pyxisMesRango();
+    const local = String(b.local || '244').replace(/[^0-9]/g, '') || '244';
+    const ini = String(b.ini || r0.ini).replace(/[^0-9\-]/g, ''); const end = String(b.end || r0.end).replace(/[^0-9\-]/g, '');
+    const out = { grupo, local, ini, end, probes: [] };
+    const hit = async (path) => {
+      try {
+        const r = await pyxisApiGet(path); const ct = r.headers.get('content-type') || ''; let t = ''; try { t = await r.text(); } catch {}
+        const isJson = /json/i.test(ct) || /^\s*[[{]/.test(t);
+        let sketch = null; if (isJson) { try { const j = JSON.parse(t); sketch = pyxisSketch(j.body !== undefined ? j.body : j, 5); } catch {} }
+        return { path, status: r.status, ct: ct.slice(0, 40), isJson, len: t.length, sketch, snippet: t.replace(/\s+/g, ' ').slice(0, 1800) };
+      } catch (e) { return { path, error: String(e.message).slice(0, 90) }; }
+    };
+    out.probes.push(await hit(`/documentos/${grupo}?local=${local}&page=1&pick=15&ini=${ini}&end=${end}`));
+    for (const p of [`/documentos/${grupo}/locales`, `/documentos/${grupo}/data-filters`, `/documentos/${grupo}/filters`, `/locales/${grupo}`, `/documentos/${grupo}`]) out.probes.push(await hit(p));
+    res.json(out);
+  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
+
 // Crear lote (cocción). Ocupa el tanque destino recién al cerrar la cocción.
 app.post('/admin/produccion/lote', requireAdmin, (req, res) => {
   const b = req.body || {}; const d = prodLoad();

@@ -11365,6 +11365,7 @@ function prodRenderConfig(){
       <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="pyxisDiag" type="button">🔎 Diagnosticar Pyxis</button></div>
       <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-ghost" id="pyxisEstr" type="button">📊 Estructura de ventas (grupo 2)</button></div>
       <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-ghost" id="pyxisAnal" type="button">🍺 Analizar cervezas (grupo 2)</button></div>
+      <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-ghost" id="pyxisDocDiag" type="button">📄 Diagnosticar Documentos</button></div>
     </div>
     <div id="pyxisDiagBox"></div>
     <div class="est-note" style="margin-top:.4rem;color:#666">Cargá <code>PYXIS_EMAIL</code>, <code>PYXIS_PASSWORD</code> y <code>PYXIS_API_BASE</code> en Railway y apretá <b>Diagnosticar</b>. El diagnóstico prueba el login real contra los endpoints más probables y, si entra, prueba los endpoints de datos (los de tu captura: <code>ownpower</code> y <code>2?ini=&end=</code>) — con lo que devuelva escribo el adaptador que baja los compradores.</div></div>`;
@@ -11556,6 +11557,16 @@ function prodWire(){
         <div class="est-note" style="margin-top:.4rem"><b>Productos Kairos:</b> ${(d.productosKairos||[]).map(escapeHtml).join(' · ')||'—'}</div>
         <div class="est-note" style="margin-top:.4rem"><b>🥃 Productos "Con Alcohol" (${d.conAlcoholCount||0} distintos, top por monto):</b><textarea readonly style="width:100%;height:220px;font-family:ui-monospace,monospace;font-size:.62rem;margin-top:.2rem" onclick="this.select()">${escapeHtml((d.conAlcoholProductos||[]).map(p=>p.producto+'  |  '+clp(p.total)+'  |  '+p.cant+'u').join('\n'))}</textarea></div>
         <div class="est-note" style="margin-top:.3rem;color:#666">Pegame el cuadro "Con Alcohol" — con esos productos armo el clasificador cerveza vs destilado y construyo la sección + resumen.</div>`;
+    }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
+  };
+  if(g('pyxisDocDiag')) g('pyxisDocDiag').onclick=async()=>{
+    const box=g('pyxisDiagBox'); box.innerHTML='<div class="prod-erp-status">📄 Probando el endpoint de Documentos… (~10s)</div>';
+    try{
+      const r=await fetch('/admin/pyxis/documentos-diag',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({grupo:2,local:244})}); const d=await prodSafeJson(r); if(!r.ok||d.error) throw new Error(d.error||'Error');
+      const ta=(t)=>`<textarea readonly style="width:100%;height:130px;font-family:ui-monospace,monospace;font-size:.62rem;margin-top:.2rem" onclick="this.select()">${escapeHtml(t||'')}</textarea>`;
+      const probes=(d.probes||[]).map(p=>{ const ok=p.isJson&&p.status>=200&&p.status<300&&p.len>30; return `<div style="margin-top:.5rem;${ok?'background:#e3f6ea;padding:.35rem;border-radius:6px':''}"><code>${escapeHtml(p.path)}</code> · ${p.status||(p.error||'—')} · ${p.isJson?'JSON':'no-json'} · ${p.len||0} bytes${p.sketch?('<div style="font-size:.7rem;margin-top:.2rem"><b>esquema:</b></div>'+ta(JSON.stringify(p.sketch,null,1))):''}${p.snippet?ta(p.snippet):''}</div>`; }).join('');
+      box.innerHTML=`<div class="est-note" style="margin-top:.6rem"><b>Documentos grupo ${d.grupo}</b> · local ${escapeHtml(String(d.local))} · ${escapeHtml(d.ini)} → ${escapeHtml(d.end)}</div>${probes}
+        <div class="est-note" style="margin-top:.4rem;color:#666">Pegame los cuadros verdes (esquema de la lista de documentos + de dónde salen los locales). Y si podés, la captura de red de <b>clickear el ícono de acción de un documento</b> (la factura): su Request URL y si es JSON o PDF.</div>`;
     }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
   };
   // config: mapas por estilo (E)
