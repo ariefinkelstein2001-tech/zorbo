@@ -1874,6 +1874,10 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .fc-op-crumb .sep{color:var(--dim,#ccc)}
 .fc-op-crumb .back{color:var(--gold-deep,#a05f00);font-weight:700;cursor:pointer;background:none;border:0;font:inherit;padding:0}
 .fc-op-crumb .back:hover{text-decoration:underline}
+.fc-manual-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start}
+@media(max-width:900px){.fc-manual-grid{grid-template-columns:1fr}}
+.fc-manual-grid .mun-table{min-width:0}
+.fc-total-row td{font-weight:800;border-top:2px solid var(--border,#e5e5e5)}
 .fc-op-open{background:var(--gold-dim,rgba(245,166,35,.06))}
 .fc-op-edit-row td{background:var(--surface2,#fafafa)}
 /* Gestión de Personas */
@@ -10153,10 +10157,252 @@ function fcOperacionalRender(){
     return;
   }
   const mod=FC_OP_MODULES.find(m=>m.id===fcOpModule);
-  body.innerHTML=`
-    <div class="fc-op-crumb"><button type="button" class="back" data-fcopback>🏭 Forecast Operacional</button> <span class="sep">›</span> <b>${escapeHtml(mod.label)}</b></div>
-    ${adminSinInfo('En construcción · '+mod.label, mod.desc, 'Este submódulo se arma en las próximas fases del modelo de proyección de inventario, producción y flota de barriles — todavía no hay datos que mostrar.')}`;
+  const crumb=`<div class="fc-op-crumb"><button type="button" class="back" data-fcopback>🏭 Forecast Operacional</button> <span class="sep">›</span> <b>${escapeHtml(mod.label)}</b></div>`;
+  if(fcOpModule==='parametros'){
+    body.innerHTML=crumb+'<div id="fcParamRoot"></div>';
+    document.querySelector('#fcBody [data-fcopback]').onclick=()=>{ fcOpModule=null; fcOperacionalRender(); };
+    fcParamBoot();
+    return;
+  }
+  body.innerHTML=crumb+adminSinInfo('En construcción · '+mod.label, mod.desc, 'Este submódulo se arma en las próximas fases del modelo de proyección de inventario, producción y flota de barriles — todavía no hay datos que mostrar.');
   body.querySelector('[data-fcopback]').onclick=()=>{ fcOpModule=null; fcOperacionalRender(); };
+}
+
+// ── Forecast Operacional · Parámetros (Fase 1: reconciliación de litros +
+// capacidades/parámetros versionados + registro manual + normalización de
+// nombres) — único submódulo con contenido real en este paso; el resto sigue
+// "en construcción" hasta sus fases correspondientes.
+let fcParamTab='recon', fcParamData=null, fcParamReconYear='2025'; // 2025 = único año con cifra de referencia del documento
+const FC_PARAM_TABS=[
+  { id:'recon',          label:'Reconciliación' },
+  { id:'capacidad',      label:'Capacidades' },
+  { id:'parametros',     label:'Parámetros del modelo' },
+  { id:'manual',         label:'Registro manual' },
+  { id:'normalizacion',  label:'Normalización de nombres' },
+];
+async function fcParamBoot(){
+  const root=document.getElementById('fcParamRoot'); root.innerHTML='<div class="adm-loading">Cargando…</div>';
+  try{
+    const d=await (await fetch('/admin/forecast/data')).json();
+    if(d.error) throw new Error(d.error);
+    fcParamData=d;
+  }catch(e){ root.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+  fcParamRenderShell();
+}
+async function fcParamRefresh(){
+  try{ const d=await (await fetch('/admin/forecast/data')).json(); if(!d.error) fcParamData=d; }catch(e){}
+  fcParamRenderBody();
+}
+function fcParamRenderShell(){
+  const root=document.getElementById('fcParamRoot');
+  root.innerHTML=`
+    <div class="prod-tabs">${FC_PARAM_TABS.map(t=>`<button type="button" class="prod-tab ${fcParamTab===t.id?'on':''}" data-fptab="${t.id}">${escapeHtml(t.label)}</button>`).join('')}</div>
+    <div id="fcParamBody"></div>`;
+  root.querySelectorAll('[data-fptab]').forEach(b=>b.onclick=()=>{ fcParamTab=b.dataset.fptab; fcParamRenderShell(); });
+  fcParamRenderBody();
+}
+function fcParamRenderBody(){
+  const body=document.getElementById('fcParamBody');
+  if(!body) return;
+  if(fcParamTab==='recon') return fcParamRenderRecon(body);
+  if(fcParamTab==='capacidad') return fcParamRenderCapacidad(body);
+  if(fcParamTab==='parametros') return fcParamRenderParametros(body);
+  if(fcParamTab==='manual') return fcParamRenderManual(body);
+  return fcParamRenderNormalizacion(body);
+}
+const FC_PARAM_CANAL_LBL={ cd_kairos:'CD Kairos', garden:'Garden Vespucio', antofagasta:'Antofagasta', badass:'Badass', eventos:'Eventos/marketing', ventas_cruzada:'Ventas Cruzada (500 Sabores)' };
+async function fcParamRenderRecon(body){
+  body.innerHTML='<div class="adm-loading">Cargando…</div>';
+  let d;
+  try{
+    d=await (await fetch('/admin/forecast/reconciliacion?year='+fcParamReconYear)).json();
+    if(d.error) throw new Error(d.error);
+  }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+  const years=['2023','2024','2025','2026'];
+  const rows=d.filas.map(f=>{
+    const tieneRef=f.referencia!=null;
+    const ok=tieneRef && Math.abs(f.delta) <= Math.max(50, Math.round(f.referencia*0.02));
+    const badge = !tieneRef ? '<span class="adm-status">Sin referencia</span>' : (ok?'<span class="adm-status ok">✓ Cuadra</span>':'<span class="adm-status err">✗ No cuadra</span>');
+    return `<tr><td>${escapeHtml(FC_PARAM_CANAL_LBL[f.canal]||f.canal)}</td><td class="dist-num">${f.computado.toLocaleString('es-CL')} L</td><td class="dist-num">${tieneRef?f.referencia.toLocaleString('es-CL')+' L':'—'}</td><td class="dist-num">${tieneRef?(f.delta>=0?'+':'')+f.delta.toLocaleString('es-CL')+' L':'—'}</td><td>${badge}</td></tr>`;
+  }).join('');
+  const erroresBox = d.mesesConError.length ? `<div class="fc-note" style="margin-top:.8rem">⚠️ ${d.mesesConError.length} de 12 meses no se pudieron calcular — no se rellenó con promedios, quedan afuera de la suma: ${d.mesesConError.slice(0,3).map(e=>escapeHtml(e.mes+' ('+e.error+')')).join(' · ')}${d.mesesConError.length>3?' · …':''}</div>` : '';
+  body.innerHTML=`
+    <div class="fc-toolbar"><div class="fc-toolbar-l"><span>Año</span><select id="fcpReconYear">${years.map(y=>`<option value="${y}" ${y===fcParamReconYear?'selected':''}>${y}</option>`).join('')}</select></div></div>
+    <div class="fc-note">Valida que los litros que el sistema suma por canal calcen con el histórico conocido${d.tieneReferencia?' de '+fcParamReconYear:''}${d.tieneReferencia?'':' — '+fcParamReconYear+' todavía no tiene cifra de referencia cargada, así que solo se muestra lo computado'}. Tolerancia: 2% o 50L, lo que sea mayor.</div>
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Canal</th><th style="text-align:right">Computado</th><th style="text-align:right">Referencia</th><th style="text-align:right">Diferencia</th><th>Estado</th></tr></thead><tbody>${rows}
+      <tr class="fc-total-row"><td>Total</td><td class="dist-num">${d.totalComputado.toLocaleString('es-CL')} L</td><td class="dist-num">${d.totalReferencia!=null?d.totalReferencia.toLocaleString('es-CL')+' L':'—'}</td><td></td><td></td></tr>
+    </tbody></table></div>
+    ${erroresBox}`;
+  document.getElementById('fcpReconYear').onchange=(e)=>{ fcParamReconYear=e.target.value; fcParamRenderRecon(body); };
+}
+function fcParamRenderCapacidad(body){
+  const d=fcParamData;
+  const rows=(d.capacidad||[]).slice().sort((a,b)=>b.vigenteDesde.localeCompare(a.vigenteDesde)).map(c=>`<tr><td>${escapeHtml(c.tipo)}</td><td>${escapeHtml(c.sede||'—')}</td><td class="dist-num">${Number(c.valor).toLocaleString('es-CL')} ${escapeHtml(c.unidad)}</td><td>${escapeHtml(c.vigenteDesde)}</td><td style="font-size:.72rem;color:var(--muted,#666)">${escapeHtml(c.creadoPor)}</td><td><button class="pv-del" data-fpdel="capacidad|${c.id}">✕</button></td></tr>`).join('');
+  body.innerHTML=`
+    <div class="fc-note">Capacidades versionadas por fecha de vigencia — nunca se sobreescribe una anterior, se agrega una nueva y esa pasa a regir desde su fecha. Fermentación ya está cargada en Producción (no se duplica acá); cámara de frío y envasado por turno/día quedan "Sin datos" hasta que se agreguen.</div>
+    <div class="cg-form">
+      <div class="cg-form-title">Agregar capacidad</div>
+      <div class="cg-form-grid">
+        <label class="cg-field"><span>Tipo</span><select id="fpCapTipo"><option value="camara_frio">Cámara de frío</option><option value="envasado">Envasado (L/turno)</option><option value="fermentacion">Fermentación</option><option value="otro">Otro</option></select></label>
+        <label class="cg-field"><span>Sede/instalación</span><input type="text" id="fpCapSede" placeholder="Ej: Vespucio, Pedro"></label>
+        <label class="cg-field"><span>Valor</span><input type="text" inputmode="decimal" id="fpCapValor" placeholder="0"></label>
+        <label class="cg-field"><span>Unidad</span><input type="text" id="fpCapUnidad" value="L"></label>
+        <label class="cg-field"><span>Vigente desde</span><input type="date" id="fpCapDesde"></label>
+        <label class="cg-field"><span>Nota (opcional)</span><input type="text" id="fpCapNota"></label>
+        <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fpCapAdd" type="button">+ Agregar</button></div>
+      </div>
+      <div class="cg-err" id="fpCapErr"></div>
+    </div>
+    <div class="mun-wrap" style="margin-top:.8rem"><table class="mun-table"><thead><tr><th>Tipo</th><th>Sede</th><th style="text-align:right">Valor</th><th>Vigente desde</th><th>Quién</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:.7rem">Sin datos todavía</td></tr>'}</tbody></table></div>`;
+  document.getElementById('fpCapAdd').onclick=async()=>{
+    const err=document.getElementById('fpCapErr'); err.textContent='';
+    const payload={ tipo:document.getElementById('fpCapTipo').value, sede:document.getElementById('fpCapSede').value, valor:cNum(document.getElementById('fpCapValor').value), unidad:document.getElementById('fpCapUnidad').value, vigenteDesde:document.getElementById('fpCapDesde').value, nota:document.getElementById('fpCapNota').value };
+    if(!payload.vigenteDesde){ err.textContent='Falta la fecha de vigencia.'; return; }
+    try{ const r=await fetch('/admin/forecast/data/capacidad',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const rd=await r.json(); if(!r.ok) throw new Error(rd.error||'Error'); await fcParamRefresh(); }
+    catch(e){ err.textContent=String(e.message||e); }
+  };
+  body.querySelectorAll('[data-fpdel]').forEach(b=>b.onclick=()=>fcParamDelEntry(b.dataset.fpdel));
+}
+function fcParamRenderParametros(body){
+  const d=fcParamData;
+  const rows=(d.parametros||[]).slice().sort((a,b)=>b.vigenteDesde.localeCompare(a.vigenteDesde)).map(p=>`<tr><td>${escapeHtml(p.clave)}</td><td class="dist-num">${p.valor}</td><td>${escapeHtml(p.vigenteDesde)}</td><td style="font-size:.72rem;color:var(--muted,#666)">${escapeHtml(p.creadoPor)}</td><td>${escapeHtml(p.nota||'')}</td><td><button class="pv-del" data-fpdel="parametros|${p.id}">✕</button></td></tr>`).join('');
+  body.innerHTML=`
+    <div class="fc-note">Supuestos del modelo, editables acá — nunca escondidos en el código. Ej: nivel de servicio objetivo, z (nivel de servicio → factor de stock de seguridad), factor de cobertura de flota de barriles.</div>
+    <div class="cg-form">
+      <div class="cg-form-title">Agregar parámetro</div>
+      <div class="cg-form-grid">
+        <label class="cg-field"><span>Clave</span><input type="text" id="fpParClave" placeholder="Ej: nivelServicioObjetivo"></label>
+        <label class="cg-field"><span>Valor</span><input type="text" inputmode="decimal" id="fpParValor" placeholder="0"></label>
+        <label class="cg-field"><span>Vigente desde</span><input type="date" id="fpParDesde"></label>
+        <label class="cg-field"><span>Nota (opcional)</span><input type="text" id="fpParNota"></label>
+        <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fpParAdd" type="button">+ Agregar</button></div>
+      </div>
+      <div class="cg-err" id="fpParErr"></div>
+    </div>
+    <div class="mun-wrap" style="margin-top:.8rem"><table class="mun-table"><thead><tr><th>Clave</th><th style="text-align:right">Valor</th><th>Vigente desde</th><th>Quién</th><th>Nota</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:.7rem">Sin parámetros todavía</td></tr>'}</tbody></table></div>`;
+  document.getElementById('fpParAdd').onclick=async()=>{
+    const err=document.getElementById('fpParErr'); err.textContent='';
+    const payload={ clave:document.getElementById('fpParClave').value, valor:cNum(document.getElementById('fpParValor').value), vigenteDesde:document.getElementById('fpParDesde').value, nota:document.getElementById('fpParNota').value };
+    if(!payload.clave||!payload.vigenteDesde){ err.textContent='Falta la clave o la fecha de vigencia.'; return; }
+    try{ const r=await fetch('/admin/forecast/data/parametros',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const rd=await r.json(); if(!r.ok) throw new Error(rd.error||'Error'); await fcParamRefresh(); }
+    catch(e){ err.textContent=String(e.message||e); }
+  };
+  body.querySelectorAll('[data-fpdel]').forEach(b=>b.onclick=()=>fcParamDelEntry(b.dataset.fpdel));
+}
+function fcParamRenderManual(body){
+  const d=fcParamData;
+  const driverRows=(d.driverExterno||[]).slice().sort((a,b)=>b.mes.localeCompare(a.mes)).map(x=>`<tr><td>${escapeHtml(x.mes)}</td><td class="dist-num">${Number(x.litrosMilSabores).toLocaleString('es-CL')} L</td><td><button class="pv-del" data-fpdel="driverExterno|${x.id}">✕</button></td></tr>`).join('');
+  const trasRows=(d.traspasos500||[]).slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(x=>`<tr><td>${escapeHtml(x.fecha)}</td><td>${escapeHtml(x.estilo)}</td><td class="dist-num">${Number(x.litros).toLocaleString('es-CL')} L</td><td><button class="pv-del" data-fpdel="traspasos500|${x.id}">✕</button></td></tr>`).join('');
+  const evRows=(d.eventos||[]).slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(x=>`<tr><td>${escapeHtml(x.fecha)}</td><td>${escapeHtml(x.estilo)}</td><td class="dist-num">${Number(x.litros).toLocaleString('es-CL')} L</td><td style="font-size:.72rem">${escapeHtml(x.motivo||'')}</td><td><button class="pv-del" data-fpdel="eventos|${x.id}">✕</button></td></tr>`).join('');
+  const maqRows=(d.capacidadMaquila||[]).slice().sort((a,b)=>b.mes.localeCompare(a.mes)).map(x=>`<tr><td>${escapeHtml(x.mes)}</td><td>${escapeHtml(x.sede)}</td><td class="dist-num">${Number(x.litrosReservados).toLocaleString('es-CL')} L</td><td><button class="pv-del" data-fpdel="capacidadMaquila|${x.id}">✕</button></td></tr>`).join('');
+  body.innerHTML=`
+    <div class="fc-note">Registro manual mínimo del documento — lo que no llega estructurado por Shopify ni Gestión Cervecera.</div>
+    <div class="fc-manual-grid">
+      <div class="cg-form">
+        <div class="cg-form-title">Venta mensual Grupo Mil Sabores (driver externo)</div>
+        <div class="cg-form-grid">
+          <label class="cg-field"><span>Mes</span><input type="month" id="fpDrvMes"></label>
+          <label class="cg-field"><span>Litros</span><input type="text" inputmode="decimal" id="fpDrvLitros" placeholder="0"></label>
+          <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fpDrvAdd" type="button">+ Agregar</button></div>
+        </div>
+        <div class="cg-err" id="fpDrvErr"></div>
+        <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table"><thead><tr><th>Mes</th><th style="text-align:right">Litros</th><th></th></tr></thead><tbody>${driverRows||'<tr><td colspan="3" style="text-align:center;color:#999;padding:.6rem">Sin datos</td></tr>'}</tbody></table></div>
+      </div>
+      <div class="cg-form">
+        <div class="cg-form-title">Traspasos a 500 Sabores</div>
+        <div class="cg-form-grid">
+          <label class="cg-field"><span>Fecha</span><input type="date" id="fpTrsFecha"></label>
+          <label class="cg-field"><span>Estilo</span><input type="text" id="fpTrsEstilo"></label>
+          <label class="cg-field"><span>Litros</span><input type="text" inputmode="decimal" id="fpTrsLitros" placeholder="0"></label>
+          <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fpTrsAdd" type="button">+ Agregar</button></div>
+        </div>
+        <div class="cg-err" id="fpTrsErr"></div>
+        <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table"><thead><tr><th>Fecha</th><th>Estilo</th><th style="text-align:right">Litros</th><th></th></tr></thead><tbody>${trasRows||'<tr><td colspan="4" style="text-align:center;color:#999;padding:.6rem">Sin datos — esto ya llega por Shopify (Ventas Cruzada), úsalo solo como respaldo manual</td></tr>'}</tbody></table></div>
+      </div>
+      <div class="cg-form">
+        <div class="cg-form-title">Consumo eventos / marketing</div>
+        <div class="cg-form-grid">
+          <label class="cg-field"><span>Fecha</span><input type="date" id="fpEvFecha"></label>
+          <label class="cg-field"><span>Estilo</span><input type="text" id="fpEvEstilo"></label>
+          <label class="cg-field"><span>Litros</span><input type="text" inputmode="decimal" id="fpEvLitros" placeholder="0"></label>
+          <label class="cg-field"><span>Motivo</span><input type="text" id="fpEvMotivo" placeholder="Ej: feria, activación"></label>
+          <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fpEvAdd" type="button">+ Agregar</button></div>
+        </div>
+        <div class="cg-err" id="fpEvErr"></div>
+        <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table"><thead><tr><th>Fecha</th><th>Estilo</th><th style="text-align:right">Litros</th><th>Motivo</th><th></th></tr></thead><tbody>${evRows||'<tr><td colspan="5" style="text-align:center;color:#999;padding:.6rem">Sin datos</td></tr>'}</tbody></table></div>
+      </div>
+      <div class="cg-form">
+        <div class="cg-form-title">Capacidad reservada en maquila por mes</div>
+        <div class="cg-form-grid">
+          <label class="cg-field"><span>Mes</span><input type="month" id="fpMaqMes"></label>
+          <label class="cg-field"><span>Sede</span><input type="text" id="fpMaqSede" placeholder="Ej: Lampa"></label>
+          <label class="cg-field"><span>Litros reservados</span><input type="text" inputmode="decimal" id="fpMaqLitros" placeholder="0"></label>
+          <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fpMaqAdd" type="button">+ Agregar</button></div>
+        </div>
+        <div class="cg-err" id="fpMaqErr"></div>
+        <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table"><thead><tr><th>Mes</th><th>Sede</th><th style="text-align:right">Litros</th><th></th></tr></thead><tbody>${maqRows||'<tr><td colspan="4" style="text-align:center;color:#999;padding:.6rem">Sin datos</td></tr>'}</tbody></table></div>
+      </div>
+    </div>`;
+  document.getElementById('fpDrvAdd').onclick=()=>fcParamManualAdd('driverExterno',{mes:document.getElementById('fpDrvMes').value,litrosMilSabores:cNum(document.getElementById('fpDrvLitros').value)},'fpDrvErr',b=>!b.mes?'Falta el mes.':null);
+  document.getElementById('fpTrsAdd').onclick=()=>fcParamManualAdd('traspasos500',{fecha:document.getElementById('fpTrsFecha').value,estilo:document.getElementById('fpTrsEstilo').value,litros:cNum(document.getElementById('fpTrsLitros').value)},'fpTrsErr',b=>!b.fecha?'Falta la fecha.':null);
+  document.getElementById('fpEvAdd').onclick=()=>fcParamManualAdd('eventos',{fecha:document.getElementById('fpEvFecha').value,estilo:document.getElementById('fpEvEstilo').value,litros:cNum(document.getElementById('fpEvLitros').value),motivo:document.getElementById('fpEvMotivo').value},'fpEvErr',b=>!b.fecha?'Falta la fecha.':null);
+  document.getElementById('fpMaqAdd').onclick=()=>fcParamManualAdd('capacidadMaquila',{mes:document.getElementById('fpMaqMes').value,sede:document.getElementById('fpMaqSede').value,litrosReservados:cNum(document.getElementById('fpMaqLitros').value)},'fpMaqErr',b=>!b.mes?'Falta el mes.':null);
+  body.querySelectorAll('[data-fpdel]').forEach(b=>b.onclick=()=>fcParamDelEntry(b.dataset.fpdel));
+}
+async function fcParamManualAdd(list,payload,errId,validate){
+  const err=document.getElementById(errId); err.textContent='';
+  const msg=validate(payload); if(msg){ err.textContent=msg; return; }
+  try{ const r=await fetch('/admin/forecast/data/'+list,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const rd=await r.json(); if(!r.ok) throw new Error(rd.error||'Error'); await fcParamRefresh(); }
+  catch(e){ err.textContent=String(e.message||e); }
+}
+async function fcParamDelEntry(key){
+  const [list,id]=key.split('|');
+  try{ await fetch('/admin/forecast/data/'+list+'/'+id,{method:'DELETE'}); await fcParamRefresh(); }catch(e){}
+}
+function fcParamRenderNormalizacion(body){
+  const d=fcParamData;
+  const sinRows=Object.entries(d.sinonimos||{}).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(v)}</td><td><button class="pv-del" data-fpsindel="${escapeAttr(k)}">✕</button></td></tr>`).join('');
+  const loteRows=Object.entries(d.loteEstilo||{}).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(v)}</td><td><button class="pv-del" data-fplotedel="${escapeAttr(k)}">✕</button></td></tr>`).join('');
+  body.innerHTML=`
+    <div class="fc-note">Nada de esto vive hardcodeado en el código — se normaliza al ingerir, no se compara texto literal (ej. "APA" vs "APA " vs "RED ALE").</div>
+    <div class="fc-manual-grid">
+      <div class="cg-form">
+        <div class="cg-form-title">Sinónimos de nombre → nombre canónico</div>
+        <div class="cg-form-grid">
+          <label class="cg-field"><span>Nombre tal como llega</span><input type="text" id="fpSinDesde" placeholder="Ej: RED ALE"></label>
+          <label class="cg-field"><span>Nombre canónico</span><input type="text" id="fpSinHacia" placeholder="Ej: Red"></label>
+          <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fpSinAdd" type="button">+ Agregar</button></div>
+        </div>
+        <div class="cg-err" id="fpSinErr"></div>
+        <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table"><thead><tr><th>Llega como</th><th>Se normaliza a</th><th></th></tr></thead><tbody>${sinRows||'<tr><td colspan="3" style="text-align:center;color:#999;padding:.6rem">Sin sinónimos todavía</td></tr>'}</tbody></table></div>
+      </div>
+      <div class="cg-form">
+        <div class="cg-form-title">Lote (batch) → estilo comercial</div>
+        <div class="cg-form-grid">
+          <label class="cg-field"><span>Nombre del lote</span><input type="text" id="fpLoteDesde" placeholder="Ej: Osagui"></label>
+          <label class="cg-field"><span>Estilo comercial</span><input type="text" id="fpLoteHacia" placeholder="Ej: Japanese Lager"></label>
+          <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="fpLoteAdd" type="button">+ Agregar</button></div>
+        </div>
+        <div class="cg-err" id="fpLoteErr"></div>
+        <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table"><thead><tr><th>Lote</th><th>Estilo comercial</th><th></th></tr></thead><tbody>${loteRows}</tbody></table></div>
+      </div>
+    </div>`;
+  document.getElementById('fpSinAdd').onclick=async()=>{
+    const err=document.getElementById('fpSinErr'); err.textContent='';
+    const desde=document.getElementById('fpSinDesde').value, hacia=document.getElementById('fpSinHacia').value;
+    if(!desde||!hacia){ err.textContent='Completa ambos campos.'; return; }
+    try{ const r=await fetch('/admin/forecast/data/sinonimo',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({desde,hacia})}); if(!r.ok) throw new Error((await r.json()).error||'Error'); await fcParamRefresh(); }
+    catch(e){ err.textContent=String(e.message||e); }
+  };
+  document.getElementById('fpLoteAdd').onclick=async()=>{
+    const err=document.getElementById('fpLoteErr'); err.textContent='';
+    const lote=document.getElementById('fpLoteDesde').value, estilo=document.getElementById('fpLoteHacia').value;
+    if(!lote||!estilo){ err.textContent='Completa ambos campos.'; return; }
+    try{ const r=await fetch('/admin/forecast/data/lote-estilo',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({lote,estilo})}); if(!r.ok) throw new Error((await r.json()).error||'Error'); await fcParamRefresh(); }
+    catch(e){ err.textContent=String(e.message||e); }
+  };
+  body.querySelectorAll('[data-fpsindel]').forEach(b=>b.onclick=async()=>{ await fetch('/admin/forecast/data/sinonimo/'+encodeURIComponent(b.dataset.fpsindel),{method:'DELETE'}); await fcParamRefresh(); });
+  body.querySelectorAll('[data-fplotedel]').forEach(b=>b.onclick=async()=>{ await fetch('/admin/forecast/data/lote-estilo/'+encodeURIComponent(b.dataset.fplotedel),{method:'DELETE'}); await fcParamRefresh(); });
 }
 
 // ── (A) Proyectado ──

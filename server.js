@@ -4224,6 +4224,184 @@ app.post('/admin/forecast/operacional/estilo', requireAdmin, (req, res) => {
   res.json({ ok: true, estilo: { estilo, ...data.estilos[estilo] } });
 });
 
+// ─── Forecast Operacional · Fase 1: ingesta y modelo de datos ──────────────
+// "Prompt maestro — proyección de inventario, producción y flota de barriles":
+// la base guarda HECHOS (fecha/canal/estilo/formato/litros), nunca porcentajes
+// ni mezclas persistidas — el mix se calcula al vuelo cuando haga falta.
+// No se conecta un "connector" nuevo: Shopify ya está integrado vía
+// estadoResolve() (mismo motor de Ingreso por Venta) y Gestión Cervecera vía
+// el sync de Producción — acá se AGREGAN y NORMALIZAN esos datos ya reales.
+const FORECAST_OP_FILE = join(PROMPTS_EFFECTIVE_DIR, 'forecast-data.json');
+// Tabla lote→estilo comercial confirmada en el reporte de Paso 0 (antes vivía
+// implícita/mezclada en OPERACIONAL_ESTILOS_SEED) — acá queda editable, no hardcodeada.
+const FORECAST_LOTE_ESTILO_SEED = {
+  'Osagui': 'Japanese Lager', 'Acholada': 'Andes Lager', 'Ritual de la Banana': 'Weizen',
+  'Kenny Bell': 'Ámbar', 'Obertura': 'Stout', 'Hoyo en Uno': 'Hoppy Lager', 'CDA': 'Colección de Artista',
+};
+function forecastDataDefaults(){
+  return { sinonimos: {}, loteEstilo: { ...FORECAST_LOTE_ESTILO_SEED }, driverExterno: [], traspasos500: [], eventos: [], capacidadMaquila: [], capacidad: [], parametros: [] };
+}
+function forecastDataLoad(){
+  const d = forecastDataDefaults();
+  try {
+    if (existsSync(FORECAST_OP_FILE)) {
+      const p = JSON.parse(readFileSync(FORECAST_OP_FILE, 'utf-8'));
+      if (p && typeof p === 'object') {
+        if (p.sinonimos && typeof p.sinonimos === 'object') d.sinonimos = p.sinonimos;
+        if (p.loteEstilo && typeof p.loteEstilo === 'object') d.loteEstilo = { ...d.loteEstilo, ...p.loteEstilo };
+        for (const k of ['driverExterno', 'traspasos500', 'eventos', 'capacidadMaquila', 'capacidad', 'parametros']) {
+          if (Array.isArray(p[k])) d[k] = p[k];
+        }
+      }
+    }
+  } catch (e) { console.warn('forecast-data load:', e.message); }
+  return d;
+}
+function forecastDataSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(FORECAST_OP_FILE, JSON.stringify(d, null, 2)); }
+// Normaliza un nombre de estilo al ingerir: sinónimos declarados (case-insensitive)
+// primero, después mapeo lote→estilo comercial. Si no hay match, se devuelve tal
+// cual (nunca se inventa un estilo) — sirve para ver en el diagnóstico qué nombres
+// todavía no están mapeados.
+function forecastNormalizeEstilo(raw, d){
+  const data = d || forecastDataLoad();
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  const sinKey = Object.keys(data.sinonimos).find(k => k.toLowerCase() === s.toLowerCase());
+  if (sinKey) return data.sinonimos[sinKey];
+  const loteKey = Object.keys(data.loteEstilo).find(k => k.toLowerCase() === s.toLowerCase());
+  if (loteKey) return data.loteEstilo[loteKey];
+  return s;
+}
+// Resuelve el valor vigente de un parámetro/capacidad versionado a una fecha dada
+// (por defecto hoy): la entrada con vigenteDesde <= fecha más reciente. Nunca
+// sobreescribe en el archivo — el historial completo queda siempre disponible.
+function forecastVigente(lista, filtro, fechaRef){
+  const ref = fechaRef || new Date().toISOString().slice(0, 10);
+  const candidatas = (lista || []).filter(e => filtro(e) && e.vigenteDesde <= ref).sort((a, b) => b.vigenteDesde.localeCompare(a.vigenteDesde));
+  return candidatas[0] || null;
+}
+// Filas de ventas (HECHOS: fecha/canal/estilo/litros) de un mes, reusando
+// estadoResolve (mismo Shopify ya integrado en Ingreso por Venta) — sin volver
+// a pedir nada a Shopify por separado. Canales con litros medidos hoy: CD Kairos,
+// Ventas Cruzada (500 Sabores), Garden Vespucio, Badass, Antofagasta (manual).
+async function forecastVentasDelMes(month, data){
+  const d = data || forecastDataLoad();
+  const rows = [];
+  let est;
+  try { est = await estadoResolve(month, null); } catch (e) { return { rows, error: String(e.message || e).slice(0, 200) }; }
+  if (!est.shopifyOk) return { rows, error: est.shopifyError || 'Shopify no disponible para este mes.' };
+  const add = (fecha, canal, estilo, litros) => {
+    const lt = Number(litros) || 0; if (!fecha || !lt || !estilo || estilo === 'sin mapear') return;
+    rows.push({ fecha, canal, estilo: forecastNormalizeEstilo(estilo, d), litros: lt });
+  };
+  (est.ingresos.cd_kairos.pedidos || []).forEach(p => (p.detalle || []).forEach(l => add(p.fecha, 'cd_kairos', l.estilo, l.litros)));
+  (est.ingresos.ventas_cruzada.pedidos || []).forEach(p => (p.detalle || []).forEach(l => add(p.fecha, 'ventas_cruzada', l.estilo, l.litros)));
+  (est.ingresos.hospitality.garden.pedidos || []).forEach(p => (p.lineas || []).forEach(l => add(p.fecha, 'garden', l.estilo, l.litros)));
+  (est.ingresos.hospitality.badass.pedidos || []).forEach(p => (p.lineas || []).forEach(l => add(p.fecha, 'badass', l.estilo, l.litros)));
+  // Antofagasta: tabla manual del mes (per.antofagasta), sin fecha por línea —
+  // se ancla al día 1 del mes, es lo más honesto que se puede hacer sin fecha real.
+  (est.periodo.antofagasta || []).forEach(r => add(month + '-01', 'antofagasta', r.estilo, r.litros));
+  return { rows, error: null };
+}
+// Cifras de referencia 2025 tal como las trae el documento (para la validación de
+// reconciliación de Fase 1) — NO son un cálculo del sistema, son el ancla externa
+// contra la que se compara lo que el sistema efectivamente suma.
+const FORECAST_RECON_REF = {
+  '2025': { cd_kairos: 96267, garden: 97334, antofagasta: 28084, badass: 11753, eventos: 4072, total: 237510 },
+};
+app.get('/admin/forecast/reconciliacion', requireAdmin, async (req, res) => {
+  const year = /^\d{4}$/.test(String(req.query.year)) ? String(req.query.year) : '2025';
+  try {
+    const d = forecastDataLoad();
+    const meses = Array.from({ length: 12 }, (_, i) => year + '-' + String(i + 1).padStart(2, '0'));
+    const porCanal = { cd_kairos: 0, ventas_cruzada: 0, garden: 0, badass: 0, antofagasta: 0 };
+    const mesesConError = [];
+    for (const m of meses) {
+      const { rows, error } = await forecastVentasDelMes(m, d);
+      if (error) { mesesConError.push({ mes: m, error }); continue; }
+      for (const r of rows) if (porCanal[r.canal] != null) porCanal[r.canal] += r.litros;
+    }
+    const eventosLitros = (d.eventos || []).filter(e => String(e.fecha || '').slice(0, 4) === year).reduce((a, e) => a + (Number(e.litros) || 0), 0);
+    const computado = { ...porCanal, eventos: eventosLitros };
+    const ref = FORECAST_RECON_REF[year] || null;
+    const canalesRef = ['cd_kairos', 'garden', 'antofagasta', 'badass', 'eventos'];
+    const filas = [...canalesRef, 'ventas_cruzada'].map(canal => ({
+      canal, computado: Math.round(computado[canal] || 0),
+      referencia: ref && ref[canal] != null ? ref[canal] : null,
+      delta: (ref && ref[canal] != null) ? Math.round(computado[canal] || 0) - ref[canal] : null,
+    }));
+    const totalComputado = canalesRef.reduce((a, c) => a + (computado[c] || 0), 0);
+    res.json({ year, filas, totalComputado: Math.round(totalComputado), totalReferencia: ref ? ref.total : null, mesesConError, tieneReferencia: !!ref });
+  } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+});
+app.get('/admin/forecast/data', requireAdmin, (req, res) => {
+  const d = forecastDataLoad();
+  // Además del historial completo, resuelve qué valor está VIGENTE hoy para cada
+  // combinación tipo+sede de capacidad y cada clave de parámetro — así el frontend
+  // no repite la lógica de "el más reciente con vigenteDesde <= hoy".
+  const capClaves = [...new Set((d.capacidad || []).map(c => c.tipo + '|' + (c.sede || '')))];
+  const capacidadVigente = capClaves.map(k => { const [tipo, sede] = k.split('|'); return forecastVigente(d.capacidad, c => c.tipo === tipo && (c.sede || '') === sede); }).filter(Boolean);
+  const paramClaves = [...new Set((d.parametros || []).map(p => p.clave))];
+  const parametrosVigentes = paramClaves.map(clave => forecastVigente(d.parametros, p => p.clave === clave)).filter(Boolean);
+  res.json({ ...d, capacidadVigente, parametrosVigentes });
+});
+const FORECAST_LISTS = ['driverExterno', 'traspasos500', 'eventos', 'capacidadMaquila', 'capacidad', 'parametros'];
+app.post('/admin/forecast/data/:list', requireAdmin, (req, res) => {
+  const list = req.params.list;
+  if (!FORECAST_LISTS.includes(list)) return res.status(400).json({ error: 'Lista inválida.' });
+  const b = req.body || {};
+  const sess = adminSessionFor(req);
+  const quien = (sess && (sess.nombre || sess.apodo || sess.username)) || 'admin';
+  const entry = { id: randomBytes(6).toString('hex'), creadoPor: quien, creadoEn: new Date().toISOString() };
+  const fecha = /^\d{4}-\d{2}-\d{2}$/, mes = /^\d{4}-\d{2}$/;
+  if (list === 'driverExterno') {
+    if (!mes.test(b.mes)) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
+    entry.mes = b.mes; entry.litrosMilSabores = Math.max(0, Number(b.litrosMilSabores) || 0); entry.nota = costosStr(b.nota, 200);
+  } else if (list === 'traspasos500' || list === 'eventos') {
+    if (!fecha.test(b.fecha)) return res.status(400).json({ error: 'Falta la fecha (YYYY-MM-DD).' });
+    entry.fecha = b.fecha; entry.estilo = costosStr(b.estilo, 60); entry.formato = prodFormatoOk(b.formato);
+    entry.litros = Math.max(0, Number(b.litros) || 0);
+    if (list === 'eventos') entry.motivo = costosStr(b.motivo || b.nota, 200); else entry.nota = costosStr(b.nota, 200);
+  } else if (list === 'capacidadMaquila') {
+    if (!mes.test(b.mes)) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
+    entry.mes = b.mes; entry.sede = costosStr(b.sede, 40); entry.litrosReservados = Math.max(0, Number(b.litrosReservados) || 0); entry.nota = costosStr(b.nota, 200);
+  } else if (list === 'capacidad') {
+    if (!costosStr(b.tipo) || !fecha.test(b.vigenteDesde)) return res.status(400).json({ error: 'Falta el tipo o la fecha de vigencia (YYYY-MM-DD).' });
+    entry.tipo = costosStr(b.tipo, 40); entry.sede = costosStr(b.sede, 40); entry.valor = Math.max(0, Number(b.valor) || 0);
+    entry.unidad = costosStr(b.unidad || 'L', 10); entry.vigenteDesde = b.vigenteDesde; entry.nota = costosStr(b.nota, 200);
+  } else if (list === 'parametros') {
+    if (!costosStr(b.clave) || !fecha.test(b.vigenteDesde)) return res.status(400).json({ error: 'Falta la clave o la fecha de vigencia (YYYY-MM-DD).' });
+    entry.clave = costosStr(b.clave, 60); entry.valor = Number(b.valor); entry.vigenteDesde = b.vigenteDesde; entry.nota = costosStr(b.nota, 200);
+  }
+  const d = forecastDataLoad(); d[list].push(entry); forecastDataSave(d);
+  res.json({ ok: true, entry });
+});
+// Nota de orden: las rutas específicas de sinónimo/lote-estilo van ANTES del
+// DELETE genérico :list/:id — si no, el genérico las intercepta primero (Express
+// matchea por orden de registro) y nunca llegan a ejecutarse.
+app.put('/admin/forecast/data/sinonimo', requireAdmin, (req, res) => {
+  const b = req.body || {}; const desde = costosStr(b.desde, 60), hacia = costosStr(b.hacia, 60);
+  if (!desde || !hacia) return res.status(400).json({ error: 'Falta el nombre de origen o de destino.' });
+  const d = forecastDataLoad(); d.sinonimos[desde] = hacia; forecastDataSave(d); res.json({ ok: true });
+});
+app.delete('/admin/forecast/data/sinonimo/:desde', requireAdmin, (req, res) => {
+  const d = forecastDataLoad(); delete d.sinonimos[decodeURIComponent(req.params.desde)]; forecastDataSave(d); res.json({ ok: true });
+});
+app.put('/admin/forecast/data/lote-estilo', requireAdmin, (req, res) => {
+  const b = req.body || {}; const lote = costosStr(b.lote, 60), estilo = costosStr(b.estilo, 60);
+  if (!lote || !estilo) return res.status(400).json({ error: 'Falta el lote o el estilo comercial.' });
+  const d = forecastDataLoad(); d.loteEstilo[lote] = estilo; forecastDataSave(d); res.json({ ok: true });
+});
+app.delete('/admin/forecast/data/lote-estilo/:lote', requireAdmin, (req, res) => {
+  const d = forecastDataLoad(); delete d.loteEstilo[decodeURIComponent(req.params.lote)]; forecastDataSave(d); res.json({ ok: true });
+});
+app.delete('/admin/forecast/data/:list/:id', requireAdmin, (req, res) => {
+  const list = req.params.list;
+  if (!FORECAST_LISTS.includes(list)) return res.status(400).json({ error: 'Lista inválida.' });
+  const d = forecastDataLoad(); d[list] = d[list].filter(e => e.id !== req.params.id); forecastDataSave(d);
+  res.json({ ok: true });
+});
+
 // ─── HOME · Resumen (4 cuadros con datos reales) ────────────────────────────
 // TODO: restringir por rol si se requiere — hoy visible para todos los usuarios
 // autenticados del panel (se pidió así explícitamente).
