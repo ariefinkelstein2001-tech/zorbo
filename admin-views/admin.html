@@ -9069,6 +9069,9 @@ function renderEstado(){
       <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Estilo</th><th style="text-align:right">$/lt</th><th style="text-align:right">Despacho</th><th style="text-align:right">Litros</th><th style="text-align:right">%</th><th style="text-align:right">Valor</th></tr></thead><tbody>${rows}</tbody></table></div>
       ${editable?`<div class="est-anto-edit"><div class="est-sub">Litros manuales de Antofagasta (por estilo):</div><div class="mun-wrap">${estLineRows(estadoDraft.antofagasta,[{k:'estilo',label:'Estilo',w:'160px'},{k:'litros',label:'Litros',num:true,w:'90px'}],'antofagasta')}</div></div>`:''}</div>`;
   };
+  const shopHint = a.shopifyLimitado
+    ? `<div style="background:#fff4e0;border:1px solid #f5c26b;border-radius:10px;padding:.7rem 1rem;margin:.6rem 0;color:#8a5a00;font-size:.86rem"><b>⚠ $0 por el límite de 60 días de Shopify — no es que no hubo ventas.</b><br>Con el permiso actual (<code>read_orders</code>), Shopify solo entrega los pedidos de los <b>últimos ~60 días</b>; los meses más viejos vuelven vacíos. Para ver un mes histórico como este hace falta el permiso <code>read_all_orders</code> y re-autorizar la app (Shopify → agregar el scope → volver a instalar). El <b>mes en curso</b> sí muestra los datos.</div>`
+    : (a.shopifyOk===false ? `<div style="background:#fdecea;border:1px solid #e6a6a0;border-radius:10px;padding:.7rem 1rem;margin:.6rem 0;color:#a12a1e;font-size:.86rem"><b>⚠ Shopify no respondió ahora mismo.</b> ${escapeHtml(a.shopifyError||'')}</div>` : '');
   const ci=a.ingresos.cd_kairos, vi=a.ingresos.ventas_cruzada, hi=a.ingresos.hospitality;
   const chanCard=(id,label,sub,val,pct)=>`<div class="est-chan"><div class="est-chan-l">${label}</div><div class="est-chan-sub">${sub}</div><div class="est-chan-v" id="${id}">${eM(val)}</div><div class="est-chan-pct" id="${id}Pct">${pct}%</div></div>`;
   body.innerHTML=`
@@ -9081,6 +9084,7 @@ function renderEstado(){
       ${chanCard('estRetail','③ Retail','Walmart',c.retail,c.pctRetail)}
       ${chanCard('estHospitality','④ Hospitality','Garden Vespucio · Garden Antofa · Badass',c.hospitality,c.pctHospitality)}
     </div>
+    ${shopHint}
     ${alertBox}
     <div class="est-precios">
       <span class="est-sub">Precios de transferencia ($/lt):</span>

@@ -872,7 +872,11 @@ const SHOPIFY_API_VERSION = '2026-04';
 // Solo scopes Admin van por OAuth. Los unauthenticated_* (Storefront API) son
 // config a nivel de app (Dev Dashboard → Alcances opcionales) y se aplican
 // automáticamente al crear el storefront_access_token.
-const SHOPIFY_SCOPES = 'read_products,write_products,read_inventory,read_locations,read_customers,write_customers,read_orders';
+// read_all_orders: sin él, Shopify solo entrega los pedidos de los últimos 60 días
+// (los meses viejos vuelven vacíos). Es un scope protegido: en apps custom se habilita
+// en la config de la app; hay que RE-AUTORIZAR (/shopify/install) para que el token
+// nuevo lo incluya.
+const SHOPIFY_SCOPES = 'read_products,write_products,read_inventory,read_locations,read_customers,write_customers,read_orders,read_all_orders';
 const SHOPIFY_SHOP_REGEX = /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i;
 
 function verifyShopifyHmac(query, secret) {
@@ -3219,10 +3223,15 @@ async function estadoResolve(month, rango){
     walmart: { total: retail, n: walmartPedidos.length, pedidos: walmartPedidos, porProveedor: walmartPorProv, proveedores: wmProvKeys },
   };
   const totalIngresos = cdNeto + cruzTotal + hospitalityTotal + shWeb + retail;
+  // ¿El mes cae fuera de la ventana de 60 días de Shopify? Con solo read_orders,
+  // los pedidos > 60 días vuelven vacíos (sin error) → total 0 aunque sí hubo ventas.
+  const finMes = new Date((cdMonthRange(month).to) + 'T23:59:59Z').getTime();
+  const fueraVentana60 = (Date.now() - finMes) > 60 * 86400000;
+  const shopifyLimitado = shOk && totalIngresos === 0 && fueraVentana60;
   return {
     month, precios, periodo: per, ingresos, totalIngresos, porDia,
     rango: r, mesCompleto: (r.from === cdMonthRange(month).from && r.to === cdMonthRange(month).to),
-    shopifyOk: shOk, shopifyError: sh.error || null,
+    shopifyOk: shOk, shopifyError: sh.error || null, shopifyLimitado, fueraVentana60,
     alertas: { codigosNuevos: shOk ? sh.codigosNuevos : [], sinMapear: shOk ? sh.sinMapear : [], sinCodigo: shOk ? sh.sinCodigo : 0 },
     excelRef: CD_EXCEL_REF[month] || null,
   };
