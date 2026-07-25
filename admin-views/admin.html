@@ -490,7 +490,25 @@ body.chat-collapsed .adm-chat-reopen{display:inline-flex}
 .asst-m.a table{border-collapse:collapse;margin:.3rem 0;font-size:.8rem}.asst-m.a th,.asst-m.a td{border:1px solid #dfe4ec;padding:.2rem .45rem}
 .asst-dl{display:inline-block;margin-top:.35rem;font-size:.74rem;color:#0b2a5e;background:#eef3fb;border:1px solid #d9e3f2;border-radius:8px;padding:.15rem .5rem;cursor:pointer}
 .asst-typing{color:#9098a3;font-size:.8rem}
-@media(max-width:820px){.asst-dock{bottom:8px;width:calc(100vw - 16px)}}
+.asst-hl,.asst-hr{display:flex;align-items:center;gap:.35rem}
+.asst-chatsel{max-width:150px;font-size:.72rem;border:1px solid #d9e3f2;border-radius:8px;padding:.15rem .3rem;background:#fff;color:#0b2a5e}
+.asst-mini{border:1px solid #d9e3f2;background:#fff;color:#0b2a5e;border-radius:8px;min-width:26px;height:26px;cursor:pointer;font-size:.78rem;padding:0 .3rem}
+.asst-mini:hover{background:#eef3fb}
+.asst-modes{display:inline-flex;border:1px solid #d9e3f2;border-radius:8px;overflow:hidden}
+.asst-mode{border:0;background:#fff;color:#7a8290;font-size:.72rem;font-weight:800;padding:.2rem .55rem;cursor:pointer}
+.asst-mode.on{background:#0b2a5e;color:#fff}
+.asst-foot{display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.4rem .8rem;border-top:1px solid #eef0f3;background:#fafbfd}
+.asst-solicitar{border:1px solid #f0c98b;background:#fff7ea;color:#8a5a00;border-radius:9px;padding:.28rem .6rem;font-size:.76rem;font-weight:800;cursor:pointer}
+.asst-solicitar:hover{background:#fdefd6}
+.asst-areatag{font-size:.72rem;color:#7a8290;font-weight:700}
+.asst-modal{position:fixed;inset:0;z-index:80;background:rgba(11,20,35,.5);display:flex;align-items:center;justify-content:center;padding:1rem}
+.asst-modal-box{background:#fff;border-radius:14px;max-width:560px;width:100%;max-height:82vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);font-family:var(--sans)}
+.asst-modal-h{padding:.8rem 1rem;font-weight:800;color:#0b2a5e;border-bottom:1px solid #eef0f3}
+.asst-modal-b{padding:1rem;display:flex;flex-direction:column;gap:.6rem}
+.asst-modal-actions{display:flex;justify-content:flex-end;gap:.5rem}
+.asst-mini-note{font-size:.76rem;color:#7a8290;margin:0}
+.asst-sol{border:1px solid #eef0f3;border-radius:10px;padding:.5rem .6rem;background:#fff}
+@media(max-width:820px){.asst-dock{bottom:8px;width:calc(100vw - 16px)}.asst-chatsel{max-width:100px}}
 body.role-costeo .asst-dock{display:none}
 body.chat-collapsed.admin-home .adm-chat-reopen,body.chat-collapsed.estado-active .adm-chat-reopen,body.chat-collapsed.role-costeo .adm-chat-reopen{display:none}
 @media(max-width:1080px){.adm-chat-reopen{display:none!important}}
@@ -3349,14 +3367,23 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
   <span class="adm-chat-fab-dot"></span>
 </button>
 
-<!-- Asistente interno por área (Motor A): dock abajo de todo, estilo Zorbo. -->
+<!-- Asistente interno por área: workspace de chats privados (sandbox), abajo de todo. -->
 <div class="asst-dock" id="asstDock" aria-live="polite">
   <div class="asst-panel" id="asstPanel" style="display:none">
     <div class="asst-panel-head">
-      <span id="asstAreaTag">🤖 Asistente</span>
-      <button type="button" class="asst-x" id="asstClear" title="Limpiar">✕</button>
+      <div class="asst-hl">
+        <select id="asstChatSel" class="asst-chatsel" title="Tus chats"></select>
+        <button type="button" class="asst-mini" id="asstNew" title="Nuevo chat">＋</button>
+        <button type="button" class="asst-mini" id="asstDel" title="Borrar este chat">🗑</button>
+      </div>
+      <div class="asst-hr">
+        <div class="asst-modes" id="asstModes"><button type="button" class="asst-mode on" data-mode="normal">Normal</button><button type="button" class="asst-mode" data-mode="code">Code</button></div>
+        <button type="button" class="asst-mini" id="asstSolBtn" title="Solicitudes al general">📥<span id="asstSolN"></span></button>
+        <button type="button" class="asst-x" id="asstMin" title="Minimizar">▾</button>
+      </div>
     </div>
     <div class="asst-msgs" id="asstMsgs"></div>
+    <div class="asst-foot"><button type="button" class="asst-solicitar" id="asstSolicitar">📤 Solicitar al general</button><span class="asst-areatag" id="asstAreaTag">🤖 Asistente</span></div>
   </div>
   <form class="asst-bar" id="asstBar">
     <span class="asst-ico">🤖</span>
@@ -3364,6 +3391,7 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
     <button type="submit" class="asst-send" id="asstSend" aria-label="Enviar">➤</button>
   </form>
 </div>
+<div class="asst-modal" id="asstModal" style="display:none"><div class="asst-modal-box" id="asstModalBox"></div></div>
 
 <div class="adm-toast" id="toast">
   <span class="adm-toast-ico" id="toastIco">✓</span>
@@ -10226,11 +10254,12 @@ async function horecaReclasificar(nombre,valor){
 }
 document.getElementById('horecaRefresh').onclick=()=>loadHoreca(true);
 
-// ─── Asistente interno por área (Motor A) ──────────────────────────────────
-let asstHistory=[], asstBusy=false;
+// ─── Asistente por área: workspace de chats privados (sandbox) ──────────────
+let asstBusy=false, asstChatId=null, asstMode='normal', asstChats=[], asstLast='';
 const ASST_LABELS={marketing:'Marketing',comercial:'Comercial',distribucion:'Distribución',operacion:'Operación',produccion:'Producción',finanzas:'Finanzas',personas:'Personas',herramientas:'Herramientas'};
 function asstAreaInfo(){ const a=(typeof activeCategory!=='undefined'&&activeCategory)?activeCategory:null; return {area:a,label:a?ASST_LABELS[a]:null}; }
-function asstUpdateArea(){ const {label}=asstAreaInfo(); const inp=document.getElementById('asstIn'); const tag=document.getElementById('asstAreaTag'); if(inp) inp.placeholder=label?('Preguntale al asistente de '+label+'…'):'Preguntale al asistente…'; if(tag) tag.textContent='🤖 Asistente'+(label?(' · '+label):''); }
+function asstRefreshUi(){ const {label}=asstAreaInfo(); const tag=document.getElementById('asstAreaTag'); if(tag) tag.textContent='🤖 '+(label||'Asistente')+(asstMode==='code'?' · Code':''); const inp=document.getElementById('asstIn'); if(inp) inp.placeholder=asstMode==='code'?('Code'+(label?(' · '+label):'')+': describí el cambio…'):(label?('Preguntale al asistente de '+label+'…'):'Preguntale al asistente…'); document.querySelectorAll('#asstModes .asst-mode').forEach(b=>b.classList.toggle('on',b.dataset.mode===asstMode)); }
+function asstUpdateArea(){ asstRefreshUi(); }
 function asstEsc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function asstInline(s){ s=asstEsc(s); s=s.replace(/`([^`]+)`/g,'<code>$1</code>'); s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>'); s=s.replace(/(^|[^*])\*([^*]+)\*/g,'$1<em>$2</em>'); return s; }
 function asstMd(md){
@@ -10248,27 +10277,81 @@ function asstMd(md){
   return h;
 }
 function asstAddMsg(role,html){ const box=document.getElementById('asstMsgs'); const d=document.createElement('div'); d.className='asst-m '+(role==='user'?'u':'a'); d.innerHTML=html; box.appendChild(d); box.scrollTop=box.scrollHeight; return d; }
+function asstAddAssistant(text){ const d=asstAddMsg('assistant',asstMd(text)); const s=document.createElement('span'); s.className='asst-dl'; s.textContent='⬇ descargar'; s.onclick=()=>asstDownload(text); d.appendChild(s); return d; }
 function asstDownload(md){ const b=new Blob([md],{type:'text/markdown'}); const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download='asistente-'+Date.now()+'.md'; a.click(); setTimeout(()=>URL.revokeObjectURL(u),2000); }
+function asstRenderChatSel(){ const sel=document.getElementById('asstChatSel'); if(!sel) return; sel.innerHTML='<option value="">— chat sin guardar —</option>'+asstChats.map(c=>`<option value="${c.id}" ${c.id===asstChatId?'selected':''}>${asstEsc((c.titulo||'Chat').slice(0,38))}${c.mode==='code'?' · code':''}</option>`).join(''); }
+async function asstLoadChats(){ try{ const r=await fetch('/admin/asistente/chats'); const d=await r.json(); asstChats=d.chats||[]; asstRenderChatSel(); }catch{} }
+async function asstOpenChat(id){ asstChatId=id||null; document.getElementById('asstMsgs').innerHTML=''; asstRenderChatSel(); document.getElementById('asstPanel').style.display=''; if(!id) return; try{ const r=await fetch('/admin/asistente/chats/'+id); const c=await r.json(); if(c&&c.messages){ asstMode=c.mode||'normal'; asstRefreshUi(); for(const m of c.messages){ if(m.role==='user') asstAddMsg('user',asstEsc(m.content)); else asstAddAssistant(m.content); } if(c.messages.length){ const la=[...c.messages].reverse().find(m=>m.role==='assistant'); asstLast=la?la.content:''; } } }catch{} }
+async function asstNewChat(){ const {area}=asstAreaInfo(); try{ const r=await fetch('/admin/asistente/chats',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({area,mode:asstMode})}); const c=await r.json(); await asstLoadChats(); asstChatId=c.id; asstLast=''; document.getElementById('asstMsgs').innerHTML=''; asstRenderChatSel(); document.getElementById('asstPanel').style.display=''; document.getElementById('asstIn').focus(); }catch{} }
+async function asstDelChat(){ if(!asstChatId){ document.getElementById('asstMsgs').innerHTML=''; return; } if(!confirm('¿Borrar este chat?')) return; try{ await fetch('/admin/asistente/chats/'+asstChatId,{method:'DELETE'}); asstChatId=null; asstLast=''; document.getElementById('asstMsgs').innerHTML=''; await asstLoadChats(); }catch{} }
 async function asstSend(){
   if(asstBusy) return; const inp=document.getElementById('asstIn'); const text=(inp.value||'').trim(); if(!text) return;
   inp.value=''; asstBusy=true; document.getElementById('asstSend').disabled=true;
   document.getElementById('asstPanel').style.display=''; asstAddMsg('user',asstEsc(text));
   const {area}=asstAreaInfo(); const bubble=asstAddMsg('assistant','<span class="asst-typing">escribiendo…</span>'); let full='';
   try{
-    const r=await fetch('/admin/asistente',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,area,seccion:(typeof activeSeccion!=='undefined'?activeSeccion:''),history:asstHistory.slice(-8)})});
+    const r=await fetch('/admin/asistente',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,chatId:asstChatId,area,mode:asstMode,seccion:(typeof activeSeccion!=='undefined'?activeSeccion:'')})});
     if(!r.ok||!r.body){ const e=await r.json().catch(()=>({})); throw new Error(e.error||('HTTP '+r.status)); }
     const rd=r.body.getReader(), dec=new TextDecoder(); let buf='';
     while(true){ const {value,done}=await rd.read(); if(done) break; buf+=dec.decode(value,{stream:true}); const parts=buf.split('\n\n'); buf=parts.pop();
-      for(const p of parts){ const mm=/^data: (.*)$/m.exec(p); if(!mm) continue; const pl=mm[1]; if(pl==='[DONE]') continue; let j; try{j=JSON.parse(pl);}catch{continue;} if(j.delta){ full+=j.delta; bubble.innerHTML=asstMd(full); const bx=document.getElementById('asstMsgs'); bx.scrollTop=bx.scrollHeight; } else if(j.error&&!full){ full='⚠ '+j.error; } }
+      for(const p of parts){ const mm=/^data: (.*)$/m.exec(p); if(!mm) continue; const pl=mm[1]; if(pl==='[DONE]') continue; let j; try{j=JSON.parse(pl);}catch{continue;} if(j.start&&j.chatId){ asstChatId=j.chatId; } else if(j.delta){ full+=j.delta; bubble.innerHTML=asstMd(full); const bx=document.getElementById('asstMsgs'); bx.scrollTop=bx.scrollHeight; } else if(j.error&&!full){ full='⚠ '+j.error; } }
     }
     if(!full) full='(sin respuesta)';
-    bubble.innerHTML=asstMd(full)+'<span class="asst-dl" data-dl>⬇ descargar</span>';
-    const dl=bubble.querySelector('[data-dl]'); if(dl) dl.onclick=()=>asstDownload(full);
-    asstHistory.push({role:'user',content:text},{role:'assistant',content:full});
+    bubble.innerHTML=asstMd(full); const s=document.createElement('span'); s.className='asst-dl'; s.textContent='⬇ descargar'; s.onclick=()=>asstDownload(full); bubble.appendChild(s);
+    asstLast=full; asstLoadChats();
   }catch(e){ bubble.innerHTML='<span style="color:#c0392b">⚠ '+asstEsc(String(e.message||e))+'</span>'; }
   asstBusy=false; document.getElementById('asstSend').disabled=false; inp.focus();
 }
-(function asstInit(){ const bar=document.getElementById('asstBar'); if(!bar) return; bar.addEventListener('submit',e=>{e.preventDefault();asstSend();}); const c=document.getElementById('asstClear'); if(c) c.onclick=()=>{asstHistory=[];document.getElementById('asstMsgs').innerHTML='';document.getElementById('asstPanel').style.display='none';}; asstUpdateArea(); })();
+function asstModal(html){ const m=document.getElementById('asstModal'), box=document.getElementById('asstModalBox'); box.innerHTML=html; m.style.display='flex'; }
+function asstModalClose(){ document.getElementById('asstModal').style.display='none'; }
+function asstSolicitar(){
+  const {area,label}=asstAreaInfo(); const last=asstLast||''; let tit=''; const m=/SOLICITUD:\s*(.+)/i.exec(last); if(m) tit=m[1].trim().slice(0,120);
+  asstModal(`<div class="asst-modal-h">📤 Solicitar al general${label?(' · '+asstEsc(label)):''}</div>
+    <div class="asst-modal-b">
+      <p class="asst-mini-note">Esto NO cambia nada del general todavía — le llega a un admin para aprobar. Contá qué querés sumar/cambiar.</p>
+      <label class="cg-field"><span>Título</span><input id="asstSolTit" class="costeo-svc" value="${asstEsc(tit)}" placeholder="ej. Agregar gráfico de X al dashboard"></label>
+      <label class="cg-field"><span>Detalle</span><textarea id="asstSolDet" class="costeo-svc" style="min-height:120px">${asstEsc(last.slice(0,4000))}</textarea></label>
+      <div class="asst-modal-actions"><button class="adm-btn adm-btn-ghost" id="asstSolCancel" type="button">Cancelar</button><button class="adm-btn adm-btn-gold" id="asstSolSend" type="button">Enviar solicitud</button></div>
+      <div class="cg-err" id="asstSolErr"></div>
+    </div>`);
+  document.getElementById('asstSolCancel').onclick=asstModalClose;
+  document.getElementById('asstSolSend').onclick=async()=>{
+    const titv=document.getElementById('asstSolTit').value.trim(), detv=document.getElementById('asstSolDet').value.trim(), err=document.getElementById('asstSolErr');
+    if(!titv){ err.textContent='⚠ Ponele un título.'; return; }
+    try{ const r=await fetch('/admin/asistente/solicitudes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({area,titulo:titv,detalle:detv,chatId:asstChatId})}); const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||'Error'); asstModalClose(); asstLoadSolCount(); }
+    catch(e){ err.textContent='⚠ '+String(e.message||e); }
+  };
+}
+async function asstVerSolicitudes(){
+  try{ const r=await fetch('/admin/asistente/solicitudes'); const d=await r.json();
+    const col=s=>({pendiente:'#c17a10',aprobada:'#2e9c5a',rechazada:'#c0392b'}[s]||'#666');
+    const rows=(d.solicitudes||[]).map(s=>`<div class="asst-sol" style="border-left:3px solid ${col(s.estado)}">
+      <div style="display:flex;justify-content:space-between;gap:.5rem"><b>${asstEsc(s.titulo)}</b><span style="color:${col(s.estado)};font-weight:800;font-size:.72rem;text-transform:uppercase">${s.estado}</span></div>
+      <div style="font-size:.72rem;color:#7a8290">${asstEsc(s.area||'—')} · ${asstEsc(s.autor||'')} · ${asstEsc((s.createdAt||'').slice(0,10))}</div>
+      ${s.detalle?`<div style="font-size:.8rem;margin-top:.3rem;white-space:pre-wrap;max-height:120px;overflow:auto">${asstEsc(s.detalle)}</div>`:''}
+      ${s.nota?`<div style="font-size:.72rem;color:#555;margin-top:.2rem">Nota: ${asstEsc(s.nota)}</div>`:''}
+      ${(d.admin&&s.estado==='pendiente')?`<div class="asst-modal-actions" style="margin-top:.4rem"><button class="adm-btn adm-btn-ghost" data-sol-rej="${s.id}" type="button">Rechazar</button><button class="adm-btn adm-btn-gold" data-sol-app="${s.id}" type="button">Aprobar</button></div>`:''}
+    </div>`).join('')||'<p class="asst-mini-note">No hay solicitudes.</p>';
+    asstModal(`<div class="asst-modal-h">📥 Solicitudes al general ${d.admin?'· sos admin':''}</div><div class="asst-modal-b">${rows}<div class="asst-modal-actions"><button class="adm-btn adm-btn-ghost" id="asstSolClose2" type="button">Cerrar</button></div></div>`);
+    document.getElementById('asstSolClose2').onclick=asstModalClose;
+    document.querySelectorAll('[data-sol-app]').forEach(b=>b.onclick=()=>asstResolver(b.dataset.solApp,'aprobada'));
+    document.querySelectorAll('[data-sol-rej]').forEach(b=>b.onclick=()=>asstResolver(b.dataset.solRej,'rechazada'));
+  }catch(e){ alert('⚠ '+String(e.message||e)); }
+}
+async function asstResolver(id,estado){ const nota=estado==='rechazada'?(prompt('Motivo (opcional):')||''):''; try{ await fetch('/admin/asistente/solicitudes/'+id,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({estado,nota})}); asstVerSolicitudes(); asstLoadSolCount(); }catch(e){ alert(String(e.message||e)); } }
+async function asstLoadSolCount(){ try{ const r=await fetch('/admin/asistente/solicitudes'); const d=await r.json(); const n=document.getElementById('asstSolN'); if(n) n.textContent=d.pendientes?(' '+d.pendientes):''; }catch{} }
+(function asstInit(){ const bar=document.getElementById('asstBar'); if(!bar) return; const g=id=>document.getElementById(id);
+  bar.addEventListener('submit',e=>{e.preventDefault();asstSend();});
+  if(g('asstNew')) g('asstNew').onclick=asstNewChat;
+  if(g('asstDel')) g('asstDel').onclick=asstDelChat;
+  if(g('asstMin')) g('asstMin').onclick=()=>{ g('asstPanel').style.display='none'; };
+  if(g('asstChatSel')) g('asstChatSel').onchange=()=>asstOpenChat(g('asstChatSel').value);
+  if(g('asstSolicitar')) g('asstSolicitar').onclick=asstSolicitar;
+  if(g('asstSolBtn')) g('asstSolBtn').onclick=asstVerSolicitudes;
+  document.querySelectorAll('#asstModes .asst-mode').forEach(b=>b.onclick=()=>{ asstMode=b.dataset.mode; asstRefreshUi(); });
+  const modal=g('asstModal'); if(modal) modal.onclick=e=>{ if(e.target===modal) asstModalClose(); };
+  asstRefreshUi(); asstLoadChats(); asstLoadSolCount();
+})();
 
 // ─── Documentos (Pyxis): facturas de compra · precio de referencia ─────────
 let pyxisDocsData=null, pyxisFactCache={}, pyxisRefData=null;

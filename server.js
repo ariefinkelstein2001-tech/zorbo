@@ -10499,40 +10499,93 @@ async function asistenteContexto(area){
   } catch (e) { /* snapshot best-effort */ }
   return lineas.join('\n');
 }
+// Almacenamiento: chats persistentes por usuario (sandbox privado) + solicitudes.
+const ASST_CHATS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'asistente-chats.json');
+function asstChatsLoad(){ try { if (existsSync(ASST_CHATS_FILE)) return JSON.parse(readFileSync(ASST_CHATS_FILE, 'utf-8')); } catch (e) { console.warn('asst chats:', e.message); } return {}; }
+function asstChatsSave(o){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(ASST_CHATS_FILE, JSON.stringify(o, null, 2)); }
+function asstUserKey(req){ const s = adminSessionFor(req); return String((s && (s.teamId || s.username)) || 'anon'); }
+function asstIsAdmin(req){ const s = adminSessionFor(req); return !!(s && s.role === 'admin'); }
+const asstNewId = (p) => p + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const ASST_SOL_FILE = join(PROMPTS_EFFECTIVE_DIR, 'asistente-solicitudes.json');
+function asstSolLoad(){ try { if (existsSync(ASST_SOL_FILE)) return JSON.parse(readFileSync(ASST_SOL_FILE, 'utf-8')); } catch (e) { console.warn('asst sol:', e.message); } return []; }
+function asstSolSave(a){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(ASST_SOL_FILE, JSON.stringify(a, null, 2)); }
 app.post('/admin/asistente', requireAdmin, async (req, res) => {
   const b = req.body || {};
-  const message = String(b.message || '').slice(0, 6000).trim();
-  const area = ADMIN_AREAS[b.area] ? b.area : null;
-  const seccion = String(b.seccion || '').slice(0, 60);
-  const historia = Array.isArray(b.history) ? b.history.slice(-8).filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string') : [];
-  const sess = adminSessionFor(req); const nombre = (sess && (sess.nombre || sess.apodo || sess.username)) || '';
+  const message = String(b.message || '').slice(0, 8000).trim();
   if (!message) return res.status(400).json({ error: 'Mensaje vacío.' });
-  const a = area ? ADMIN_AREAS[area] : null;
-  const ctx = area ? await asistenteContexto(area) : '';
+  const mode = b.mode === 'code' ? 'code' : 'normal';
+  const seccion = String(b.seccion || '').slice(0, 60);
+  const sess = adminSessionFor(req); const nombre = (sess && (sess.nombre || sess.apodo || sess.username)) || '';
+  const uk = asstUserKey(req);
+  const all = asstChatsLoad(); const mine = all[uk] || (all[uk] = []);
+  let chat = b.chatId ? mine.find(c => c.id === b.chatId) : null;
+  const area = (chat && ADMIN_AREAS[chat.area]) ? chat.area : (ADMIN_AREAS[b.area] ? b.area : null);
+  if (!chat) { chat = { id: asstNewId('chat'), area, mode, titulo: message.slice(0, 48), messages: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; mine.unshift(chat); }
+  chat.mode = mode; if (area) chat.area = area;
+  const a = chat.area ? ADMIN_AREAS[chat.area] : null;
+  const ctx = chat.area ? await asistenteContexto(chat.area) : '';
+  const sysMode = mode === 'code'
+    ? 'MODO CODE: ayudás a diseñar y planificar cambios en la sección/área (código, vistas, cálculos). Explicá con precisión qué cambiarías y mostrá cómo quedaría (podés escribir el código propuesto en bloques). IMPORTANTE: NO aplicás nada al sistema — este chat es un sandbox privado. Cuando el cambio esté listo para llevarlo al "general", decile al usuario que apriete "Solicitar al general", y al final de tu mensaje agregá una línea que empiece con "SOLICITUD:" con un resumen de 1 frase de lo que pediría.'
+    : 'MODO NORMAL: asesorás y generás entregables (resúmenes, textos, tablas, borradores). No editás el sistema.';
   const sys = [
-    'Sos el asistente interno de K-BROS, el panel de administración de Kairos (cervecería artesanal chilena; marcas Kairos Brewing, Firulais, Banny). Ayudás al equipo a trabajar en su área: respondés preguntas, explicás, y generás entregables (resúmenes, textos, listas, tablas, borradores de documentos).',
-    'Escribí en español chileno neutro (tuteo), claro y directo. Podés usar markdown (títulos, listas, tablas). Si te piden "un archivo" o "un documento", entregá el contenido completo en markdown listo para copiar/descargar.',
-    a ? `El usuario está trabajando en el área "${a.label}": ${a.desc}` + (seccion ? ` (sección actual: ${seccion}).` : '.') : 'El usuario está en la vista general del panel.',
+    'Sos el asistente interno de K-BROS, el panel de administración de Kairos (cervecería artesanal chilena; marcas Kairos Brewing, Firulais, Banny). Cada jefe de área tiene su propio chat privado (sandbox): lo que se conversa acá NO toca el "general" (la app compartida con todo lo ya creado). Para pasar algo al general, el usuario aprieta "Solicitar al general" y queda pendiente de tu aprobación.',
+    'Escribí en español chileno neutro (tuteo), claro y directo. Podés usar markdown (títulos, listas, tablas, bloques de código). Si te piden un archivo/documento, entregá el contenido completo listo para copiar/descargar.',
+    a ? `Área: "${a.label}" — ${a.desc}` + (seccion ? ` (sección actual: ${seccion}).` : '.') : 'Vista general del panel.',
     ctx ? ('Datos reales del área ahora mismo (usá SOLO estos, no inventes cifras):\n' + ctx) : '',
-    'REGLA: NO inventes números, precios ni datos que no te hayan pasado. Si no tenés un dato, decílo y explicá cómo obtenerlo en el panel. No prometas realizar cambios en el sistema ni en el código: por ahora solo asesorás y generás contenido; los cambios los hace el equipo desde el panel.',
     nombre ? `Le hablás a ${nombre}.` : '',
+    'REGLA: NO inventes números ni datos que no te hayan pasado. Si falta un dato, decílo.',
+    sysMode,
   ].filter(Boolean).join('\n\n');
-  const apiMessages = [...historia.map(m => ({ role: m.role, content: String(m.content).slice(0, 6000) })), { role: 'user', content: message }];
-  res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  res.write(`data: ${JSON.stringify({ start: true })}\n\n`);
+  const historia = chat.messages.slice(-10).map(m => ({ role: m.role, content: String(m.content).slice(0, 6000) }));
+  const apiMessages = [...historia, { role: 'user', content: message }];
+  res.setHeader('Content-Type', 'text/event-stream'); res.setHeader('Cache-Control', 'no-cache'); res.setHeader('Connection', 'keep-alive');
+  res.write(`data: ${JSON.stringify({ start: true, chatId: chat.id, area: chat.area, mode })}\n\n`);
+  let full = '';
   try {
-    const stream = client.messages.stream({ model: 'claude-sonnet-4-6', max_tokens: 2000, system: sys, messages: apiMessages });
-    for await (const chunk of stream) {
-      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') res.write(`data: ${JSON.stringify({ delta: chunk.delta.text })}\n\n`);
-    }
+    const stream = client.messages.stream({ model: 'claude-sonnet-4-6', max_tokens: 2400, system: sys, messages: apiMessages });
+    for await (const chunk of stream) { if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') { full += chunk.delta.text; res.write(`data: ${JSON.stringify({ delta: chunk.delta.text })}\n\n`); } }
     res.write('data: [DONE]\n\n');
-  } catch (err) {
-    console.error('asistente error:', err.message);
-    res.write(`data: ${JSON.stringify({ error: 'No pude responder ahora: ' + String(err.message || err).slice(0, 120) })}\n\n`);
-  }
+  } catch (err) { console.error('asistente error:', err.message); res.write(`data: ${JSON.stringify({ error: 'No pude responder ahora: ' + String(err.message || err).slice(0, 120) })}\n\n`); }
   res.end();
+  try { chat.messages.push({ role: 'user', content: message, ts: new Date().toISOString() }); if (full) chat.messages.push({ role: 'assistant', content: full, ts: new Date().toISOString() }); if (chat.messages.length > 200) chat.messages = chat.messages.slice(-200); if (chat.titulo === 'Nuevo chat' || !chat.titulo) chat.titulo = message.slice(0, 48); chat.updatedAt = new Date().toISOString(); asstChatsSave(all); } catch (e) { /* no romper */ }
+});
+// Chats persistentes (privados por usuario).
+app.get('/admin/asistente/chats', requireAdmin, (req, res) => {
+  const mine = asstChatsLoad()[asstUserKey(req)] || [];
+  res.json({ chats: mine.map(c => ({ id: c.id, area: c.area, mode: c.mode, titulo: c.titulo, n: (c.messages || []).length, updatedAt: c.updatedAt })).sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))) });
+});
+app.post('/admin/asistente/chats', requireAdmin, (req, res) => {
+  const all = asstChatsLoad(); const uk = asstUserKey(req); const mine = all[uk] || (all[uk] = []);
+  const area = ADMIN_AREAS[(req.body || {}).area] ? req.body.area : null;
+  const chat = { id: asstNewId('chat'), area, mode: (req.body || {}).mode === 'code' ? 'code' : 'normal', titulo: 'Nuevo chat', messages: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  mine.unshift(chat); asstChatsSave(all); res.json(chat);
+});
+app.get('/admin/asistente/chats/:id', requireAdmin, (req, res) => {
+  const c = (asstChatsLoad()[asstUserKey(req)] || []).find(x => x.id === req.params.id);
+  if (!c) return res.status(404).json({ error: 'No encontrado.' }); res.json(c);
+});
+app.delete('/admin/asistente/chats/:id', requireAdmin, (req, res) => {
+  const all = asstChatsLoad(); const mine = all[asstUserKey(req)] || []; const i = mine.findIndex(x => x.id === req.params.id);
+  if (i < 0) return res.status(404).json({ error: 'No encontrado.' }); mine.splice(i, 1); asstChatsSave(all); res.json({ ok: true });
+});
+// Solicitudes al "general" (piden aprobación del admin).
+app.post('/admin/asistente/solicitudes', requireAdmin, (req, res) => {
+  const b = req.body || {}; const titulo = String(b.titulo || '').slice(0, 140).trim(); const detalle = String(b.detalle || '').slice(0, 8000).trim();
+  if (!titulo) return res.status(400).json({ error: 'Ponele un título a la solicitud.' });
+  const sess = adminSessionFor(req); const autor = (sess && (sess.nombre || sess.apodo || sess.username)) || 'alguien';
+  const list = asstSolLoad(); const sol = { id: asstNewId('sol'), area: ADMIN_AREAS[b.area] ? b.area : null, titulo, detalle, autor, autorKey: asstUserKey(req), chatId: String(b.chatId || ''), estado: 'pendiente', createdAt: new Date().toISOString(), resueltoEn: null, resueltoPor: null, nota: '' };
+  list.unshift(sol); asstSolSave(list); res.json(sol);
+});
+app.get('/admin/asistente/solicitudes', requireAdmin, (req, res) => {
+  const list = asstSolLoad(); const admin = asstIsAdmin(req); const uk = asstUserKey(req);
+  res.json({ admin, solicitudes: (admin ? list : list.filter(s => s.autorKey === uk)), pendientes: list.filter(s => s.estado === 'pendiente').length });
+});
+app.put('/admin/asistente/solicitudes/:id', requireAdmin, (req, res) => {
+  if (!asstIsAdmin(req)) return res.status(403).json({ error: 'Solo un admin aprueba o rechaza solicitudes.' });
+  const list = asstSolLoad(); const s = list.find(x => x.id === req.params.id); if (!s) return res.status(404).json({ error: 'No encontrada.' });
+  const b = req.body || {}; if (['aprobada', 'rechazada', 'pendiente'].includes(b.estado)) s.estado = b.estado;
+  s.nota = String(b.nota || '').slice(0, 500); const sess = adminSessionFor(req); s.resueltoPor = (sess && (sess.nombre || sess.username)) || 'admin'; s.resueltoEn = new Date().toISOString();
+  asstSolSave(list); res.json(s);
 });
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
