@@ -10464,6 +10464,77 @@ app.post('/admin/customers/:id/note', requireAdmin, (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Asistente del admin por ÁREA (Motor A). Chat propio del panel (distinto al bot
+// público /chat): sabe en qué área está el usuario y responde/ genera entregables
+// con el contexto de esa área. Streaming SSE. Solo lectura por ahora (no edita).
+// ─────────────────────────────────────────────────────────────────────────────
+const ADMIN_AREAS = {
+  marketing:   { label: 'Marketing', desc: 'Analítica, conversaciones del bot Zorbot, campañas de ads, contenido y tono de las marcas (Kairos Brewing, Firulais, Banny), página web y tutoriales.' },
+  comercial:   { label: 'Comercial', desc: 'Catálogo de productos (Shopify), puntos de venta, top clientes, y ventas HORECA de Pyxis (cervezas Kairos vs competencia, documentos/facturas de compra de bebidas/licores con precio de referencia).' },
+  distribucion:{ label: 'Distribución', desc: 'Distribuidora (proveedores, costos, márgenes, órdenes de compra), rutas de despacho, trazabilidad y mantenimiento de máquinas/barriles.' },
+  operacion:   { label: 'Operación', desc: 'Costeo de insumos/recetas/platos y precios; OEE, calidad, catas e inventario.' },
+  produccion:  { label: 'Producción', desc: 'Centro de producción: tanques, cocción, recetas, envasado, limpiezas, paradas; integración con el ERP Gestión Cervecera.' },
+  finanzas:    { label: 'Finanzas', desc: 'Ingreso por venta (4 canales, automático de Shopify), costos, gastos, Estado de Resultado (margen bruto, EBITDA), notas de crédito y objetivos.' },
+  personas:    { label: 'Personas', desc: 'Nómina de trabajadores, costo empresa por mes y boletas de honorarios.' },
+  herramientas:{ label: 'Herramientas', desc: 'Forecast (EERR proyectado, presupuestos, simulación anual) y cuentas del equipo.' },
+};
+// Snapshot compacto de datos reales del área actual, para que el asistente responda
+// con cifras de verdad. Best-effort: si algo falla, se omite (nunca inventa).
+async function asistenteContexto(area){
+  const fmt = n => '$' + Math.round(Number(n) || 0).toLocaleString('es-CL');
+  const lineas = [];
+  try {
+    if (area === 'finanzas') {
+      const m = finCurMonth();
+      const p = await pnlCompute(m, null).catch(() => null);
+      if (p) lineas.push(`Estado de Resultado ${estadoMonthLabel(m)}: ingresos ${fmt(p.ingresos.total)}, margen bruto ${p.ratios.margenBruto}%, EBITDA ${fmt(p.ebitda)} (${p.ratios.ebitda}%), gasto personal ${p.ratios.gastoPersonal}%.` + (p.shopifyLimitado ? ' [Ojo: Shopify solo entrega los últimos ~60 días; meses viejos pueden salir en $0.]' : ''));
+    } else if (area === 'comercial') {
+      const cred = pyxisCredsSafe();
+      if (cred.emailSet && cred.passwordSet) {
+        const c = await pyxisCervezasResumen('2', {}).catch(() => null);
+        if (c) lineas.push(`Ventas HORECA cervezas (${(c.meses || []).join(', ')}): total ${fmt(c.totales.cervezas)}, Kairos ${fmt(c.totales.kairos)} (${c.totales.shareKairos}% del total), competencia ${fmt(c.totales.otras)}.`);
+      }
+    }
+  } catch (e) { /* snapshot best-effort */ }
+  return lineas.join('\n');
+}
+app.post('/admin/asistente', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const message = String(b.message || '').slice(0, 6000).trim();
+  const area = ADMIN_AREAS[b.area] ? b.area : null;
+  const seccion = String(b.seccion || '').slice(0, 60);
+  const historia = Array.isArray(b.history) ? b.history.slice(-8).filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string') : [];
+  const sess = adminSessionFor(req); const nombre = (sess && (sess.nombre || sess.apodo || sess.username)) || '';
+  if (!message) return res.status(400).json({ error: 'Mensaje vacío.' });
+  const a = area ? ADMIN_AREAS[area] : null;
+  const ctx = area ? await asistenteContexto(area) : '';
+  const sys = [
+    'Sos el asistente interno de K-BROS, el panel de administración de Kairos (cervecería artesanal chilena; marcas Kairos Brewing, Firulais, Banny). Ayudás al equipo a trabajar en su área: respondés preguntas, explicás, y generás entregables (resúmenes, textos, listas, tablas, borradores de documentos).',
+    'Escribí en español chileno neutro (tuteo), claro y directo. Podés usar markdown (títulos, listas, tablas). Si te piden "un archivo" o "un documento", entregá el contenido completo en markdown listo para copiar/descargar.',
+    a ? `El usuario está trabajando en el área "${a.label}": ${a.desc}` + (seccion ? ` (sección actual: ${seccion}).` : '.') : 'El usuario está en la vista general del panel.',
+    ctx ? ('Datos reales del área ahora mismo (usá SOLO estos, no inventes cifras):\n' + ctx) : '',
+    'REGLA: NO inventes números, precios ni datos que no te hayan pasado. Si no tenés un dato, decílo y explicá cómo obtenerlo en el panel. No prometas realizar cambios en el sistema ni en el código: por ahora solo asesorás y generás contenido; los cambios los hace el equipo desde el panel.',
+    nombre ? `Le hablás a ${nombre}.` : '',
+  ].filter(Boolean).join('\n\n');
+  const apiMessages = [...historia.map(m => ({ role: m.role, content: String(m.content).slice(0, 6000) })), { role: 'user', content: message }];
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.write(`data: ${JSON.stringify({ start: true })}\n\n`);
+  try {
+    const stream = client.messages.stream({ model: 'claude-sonnet-4-6', max_tokens: 2000, system: sys, messages: apiMessages });
+    for await (const chunk of stream) {
+      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') res.write(`data: ${JSON.stringify({ delta: chunk.delta.text })}\n\n`);
+    }
+    res.write('data: [DONE]\n\n');
+  } catch (err) {
+    console.error('asistente error:', err.message);
+    res.write(`data: ${JSON.stringify({ error: 'No pude responder ahora: ' + String(err.message || err).slice(0, 120) })}\n\n`);
+  }
+  res.end();
+});
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 initLogs();
