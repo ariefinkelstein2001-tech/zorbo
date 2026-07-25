@@ -10537,7 +10537,18 @@ app.post('/admin/asistente', requireAdmin, async (req, res) => {
     sysMode,
   ].filter(Boolean).join('\n\n');
   const historia = chat.messages.slice(-10).map(m => ({ role: m.role, content: String(m.content).slice(0, 6000) }));
-  const apiMessages = [...historia, { role: 'user', content: message }];
+  // Adjuntos (imágenes / PDF / texto). Van solo en este turno (no se guardan en el chat).
+  const atts = Array.isArray(b.attachments) ? b.attachments.slice(0, 6) : [];
+  const userContent = [];
+  for (const at of atts) {
+    const mt = String(at.media_type || ''); const data = at.data ? String(at.data) : '';
+    if (/^image\/(png|jpe?g|webp|gif)$/i.test(mt) && data) userContent.push({ type: 'image', source: { type: 'base64', media_type: mt.toLowerCase(), data } });
+    else if (mt === 'application/pdf' && data) userContent.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data } });
+    else if (at.text) userContent.push({ type: 'text', text: 'Archivo adjunto "' + String(at.name || '').slice(0, 80) + '":\n' + String(at.text).slice(0, 24000) });
+  }
+  userContent.push({ type: 'text', text: message });
+  const apiMessages = [...historia, { role: 'user', content: userContent.length > 1 ? userContent : message }];
+  const attNota = atts.length ? (' (adjuntó ' + atts.length + ' archivo' + (atts.length > 1 ? 's' : '') + ')') : '';
   res.setHeader('Content-Type', 'text/event-stream'); res.setHeader('Cache-Control', 'no-cache'); res.setHeader('Connection', 'keep-alive');
   res.write(`data: ${JSON.stringify({ start: true, chatId: chat.id, area: chat.area, mode })}\n\n`);
   let full = '';
@@ -10547,7 +10558,7 @@ app.post('/admin/asistente', requireAdmin, async (req, res) => {
     res.write('data: [DONE]\n\n');
   } catch (err) { console.error('asistente error:', err.message); res.write(`data: ${JSON.stringify({ error: 'No pude responder ahora: ' + String(err.message || err).slice(0, 120) })}\n\n`); }
   res.end();
-  try { chat.messages.push({ role: 'user', content: message, ts: new Date().toISOString() }); if (full) chat.messages.push({ role: 'assistant', content: full, ts: new Date().toISOString() }); if (chat.messages.length > 200) chat.messages = chat.messages.slice(-200); if (chat.titulo === 'Nuevo chat' || !chat.titulo) chat.titulo = message.slice(0, 48); chat.updatedAt = new Date().toISOString(); asstChatsSave(all); } catch (e) { /* no romper */ }
+  try { chat.messages.push({ role: 'user', content: message + attNota, ts: new Date().toISOString() }); if (full) chat.messages.push({ role: 'assistant', content: full, ts: new Date().toISOString() }); if (chat.messages.length > 200) chat.messages = chat.messages.slice(-200); if (chat.titulo === 'Nuevo chat' || !chat.titulo) chat.titulo = message.slice(0, 48); chat.updatedAt = new Date().toISOString(); asstChatsSave(all); } catch (e) { /* no romper */ }
 });
 // Chats persistentes (privados por usuario).
 app.get('/admin/asistente/chats', requireAdmin, (req, res) => {

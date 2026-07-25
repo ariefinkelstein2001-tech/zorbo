@@ -474,6 +474,11 @@ body.chat-collapsed .adm-chat-reopen{display:inline-flex}
 .asst-dock{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:60;width:min(680px,calc(100vw - 32px));font-family:var(--sans)}
 .asst-bar{display:flex;align-items:center;gap:.5rem;background:#0b2a5e;border:1px solid #1c4590;border-radius:14px;padding:.5rem .6rem;box-shadow:0 12px 34px rgba(11,42,94,.34)}
 .asst-ico{font-size:1.05rem;line-height:1}
+.asst-clip{flex:none;cursor:pointer;font-size:1.05rem;color:#9db4dd;padding:0 .15rem}
+.asst-clip:hover{color:#fff}
+.asst-chips{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.4rem;padding:0 .2rem}
+.asst-chip{display:inline-flex;align-items:center;gap:.3rem;background:#123a7a;color:#dceafe;border:1px solid #1c4590;border-radius:8px;padding:.15rem .45rem;font-size:.72rem}
+.asst-chip button{border:0;background:transparent;color:#9db4dd;cursor:pointer;font-size:.8rem;padding:0}
 .asst-in{flex:1;background:transparent;border:0;outline:0;color:#fff;font-size:.9rem;font-family:var(--sans)}
 .asst-in::placeholder{color:#9db4dd}
 .asst-send{flex:none;width:34px;height:34px;border:0;border-radius:10px;background:linear-gradient(135deg,var(--gold,#f5a623),var(--gold-deep,#d98c00));color:#1a1408;font-weight:800;cursor:pointer}
@@ -3385,8 +3390,9 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
     <div class="asst-msgs" id="asstMsgs"></div>
     <div class="asst-foot"><button type="button" class="asst-solicitar" id="asstSolicitar">📤 Solicitar al general</button><span class="asst-areatag" id="asstAreaTag">🤖 Asistente</span></div>
   </div>
+  <div class="asst-chips" id="asstChips" style="display:none"></div>
   <form class="asst-bar" id="asstBar">
-    <span class="asst-ico">🤖</span>
+    <label class="asst-clip" title="Adjuntar archivo (imagen, PDF, texto)"><input type="file" id="asstFile" multiple accept="image/*,application/pdf,.txt,.csv,.md,.json" style="display:none">📎</label>
     <input id="asstIn" class="asst-in" autocomplete="off" placeholder="Preguntale al asistente de tu área…">
     <button type="submit" class="asst-send" id="asstSend" aria-label="Enviar">➤</button>
   </form>
@@ -10255,7 +10261,7 @@ async function horecaReclasificar(nombre,valor){
 document.getElementById('horecaRefresh').onclick=()=>loadHoreca(true);
 
 // ─── Asistente por área: workspace de chats privados (sandbox) ──────────────
-let asstBusy=false, asstChatId=null, asstMode='normal', asstChats=[], asstLast='';
+let asstBusy=false, asstChatId=null, asstMode='normal', asstChats=[], asstLast='', asstAtts=[];
 const ASST_LABELS={marketing:'Marketing',comercial:'Comercial',distribucion:'Distribución',operacion:'Operación',produccion:'Producción',finanzas:'Finanzas',personas:'Personas',herramientas:'Herramientas'};
 function asstAreaInfo(){ const a=(typeof activeCategory!=='undefined'&&activeCategory)?activeCategory:null; return {area:a,label:a?ASST_LABELS[a]:null}; }
 function asstRefreshUi(){ const {label}=asstAreaInfo(); const tag=document.getElementById('asstAreaTag'); if(tag) tag.textContent='🤖 '+(label||'Asistente')+(asstMode==='code'?' · Code':''); const inp=document.getElementById('asstIn'); if(inp) inp.placeholder=asstMode==='code'?('Code'+(label?(' · '+label):'')+': describí el cambio…'):(label?('Preguntale al asistente de '+label+'…'):'Preguntale al asistente…'); document.querySelectorAll('#asstModes .asst-mode').forEach(b=>b.classList.toggle('on',b.dataset.mode===asstMode)); }
@@ -10284,13 +10290,17 @@ async function asstLoadChats(){ try{ const r=await fetch('/admin/asistente/chats
 async function asstOpenChat(id){ asstChatId=id||null; document.getElementById('asstMsgs').innerHTML=''; asstRenderChatSel(); document.getElementById('asstPanel').style.display=''; if(!id) return; try{ const r=await fetch('/admin/asistente/chats/'+id); const c=await r.json(); if(c&&c.messages){ asstMode=c.mode||'normal'; asstRefreshUi(); for(const m of c.messages){ if(m.role==='user') asstAddMsg('user',asstEsc(m.content)); else asstAddAssistant(m.content); } if(c.messages.length){ const la=[...c.messages].reverse().find(m=>m.role==='assistant'); asstLast=la?la.content:''; } } }catch{} }
 async function asstNewChat(){ const {area}=asstAreaInfo(); try{ const r=await fetch('/admin/asistente/chats',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({area,mode:asstMode})}); const c=await r.json(); await asstLoadChats(); asstChatId=c.id; asstLast=''; document.getElementById('asstMsgs').innerHTML=''; asstRenderChatSel(); document.getElementById('asstPanel').style.display=''; document.getElementById('asstIn').focus(); }catch{} }
 async function asstDelChat(){ if(!asstChatId){ document.getElementById('asstMsgs').innerHTML=''; return; } if(!confirm('¿Borrar este chat?')) return; try{ await fetch('/admin/asistente/chats/'+asstChatId,{method:'DELETE'}); asstChatId=null; asstLast=''; document.getElementById('asstMsgs').innerHTML=''; await asstLoadChats(); }catch{} }
+function asstRenderChips(){ const box=document.getElementById('asstChips'); if(!box) return; if(!asstAtts.length){ box.style.display='none'; box.innerHTML=''; return; } box.style.display='flex'; box.innerHTML=asstAtts.map((a,i)=>`<span class="asst-chip">${a.media_type&&a.media_type.startsWith('image')?'🖼':(a.media_type==='application/pdf'?'📄':'📎')} ${asstEsc((a.name||'archivo').slice(0,22))}<button type="button" data-att-x="${i}" title="Quitar">✕</button></span>`).join(''); box.querySelectorAll('[data-att-x]').forEach(b=>b.onclick=()=>{ asstAtts.splice(+b.dataset.attX,1); asstRenderChips(); }); }
+function asstReadFile(file){ return new Promise((resolve)=>{ const fr=new FileReader(); const isImg=/^image\//.test(file.type), isPdf=file.type==='application/pdf'; if(isImg||isPdf){ fr.onload=()=>{ const s=String(fr.result||''); const data=s.slice(s.indexOf(',')+1); resolve({name:file.name,media_type:file.type,data}); }; fr.readAsDataURL(file); } else { fr.onload=()=>resolve({name:file.name,media_type:file.type||'text/plain',text:String(fr.result||'')}); fr.readAsText(file); } }); }
+async function asstAddFiles(files){ for(const f of files){ if(asstAtts.length>=6){ alert('Máx 6 archivos por mensaje.'); break; } if(f.size>10*1024*1024){ alert('"'+f.name+'" pesa más de 10MB.'); continue; } asstAtts.push(await asstReadFile(f)); } asstRenderChips(); }
 async function asstSend(){
-  if(asstBusy) return; const inp=document.getElementById('asstIn'); const text=(inp.value||'').trim(); if(!text) return;
+  if(asstBusy) return; const inp=document.getElementById('asstIn'); const text=(inp.value||'').trim(); if(!text&&!asstAtts.length) return;
+  const msg=text||'(archivo adjunto)'; const atts=asstAtts.slice(); asstAtts=[]; asstRenderChips();
   inp.value=''; asstBusy=true; document.getElementById('asstSend').disabled=true;
-  document.getElementById('asstPanel').style.display=''; asstAddMsg('user',asstEsc(text));
+  document.getElementById('asstPanel').style.display=''; asstAddMsg('user',asstEsc(text)+(atts.length?('<div style="font-size:.7rem;opacity:.8;margin-top:.2rem">📎 '+atts.length+' archivo'+(atts.length>1?'s':'')+'</div>'):''));
   const {area}=asstAreaInfo(); const bubble=asstAddMsg('assistant','<span class="asst-typing">escribiendo…</span>'); let full='';
   try{
-    const r=await fetch('/admin/asistente',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,chatId:asstChatId,area,mode:asstMode,seccion:(typeof activeSeccion!=='undefined'?activeSeccion:'')})});
+    const r=await fetch('/admin/asistente',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,chatId:asstChatId,area,mode:asstMode,seccion:(typeof activeSeccion!=='undefined'?activeSeccion:''),attachments:atts})});
     if(!r.ok||!r.body){ const e=await r.json().catch(()=>({})); throw new Error(e.error||('HTTP '+r.status)); }
     const rd=r.body.getReader(), dec=new TextDecoder(); let buf='';
     while(true){ const {value,done}=await rd.read(); if(done) break; buf+=dec.decode(value,{stream:true}); const parts=buf.split('\n\n'); buf=parts.pop();
@@ -10350,6 +10360,7 @@ async function asstLoadSolCount(){ try{ const r=await fetch('/admin/asistente/so
   if(g('asstSolBtn')) g('asstSolBtn').onclick=asstVerSolicitudes;
   document.querySelectorAll('#asstModes .asst-mode').forEach(b=>b.onclick=()=>{ asstMode=b.dataset.mode; asstRefreshUi(); });
   const modal=g('asstModal'); if(modal) modal.onclick=e=>{ if(e.target===modal) asstModalClose(); };
+  if(g('asstFile')) g('asstFile').onchange=e=>{ asstAddFiles(Array.from(e.target.files||[])); e.target.value=''; };
   asstRefreshUi(); asstLoadChats(); asstLoadSolCount();
 })();
 
