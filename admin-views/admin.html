@@ -11957,8 +11957,8 @@ function invRenderGcStock(d){
     {v:'TOTAL'},{v:''},{v:invN(t.latasUnid),r:1},{v:invL(t.latasLitros),r:1},{v:'',r:1},{v:'',r:1},{v:invN(t.latasUnid),r:1},{v:invL(t.latasLitros),r:1}])});
   const latTbl=`<div class="prod-sec-h" style="margin-top:.9rem">🥫 Latas / envasado por producto <span>${lat.length}</span></div>`+invTreeTable(latHead,lRows,9);
 
-  // ── Barriles por depósito (separado, como pediste) ──
-  let depTbl='';
+  // ── Barriles en depósitos (va JUSTO debajo de "Barriles por producto") ──
+  let barDepTbl='';
   const dep=(d.depositos||[]);
   if(dep.length){
     const depHead=`<thead><tr><th class="l"></th><th class="l">Depósito</th><th>Cant. Barriles</th><th class="l">Producto</th><th>Barriles</th></tr></thead>`;
@@ -11970,11 +11970,28 @@ function invRenderGcStock(d){
         dRows.push({id:'d'+(did++),parent:pid,level:1,kids:false,cells:invCells([{v:''},{v:''},{v:escapeHtml(p.producto)},{v:invN(p.barriles),r:1}])});
       }
     }
-    dRows.push({id:'dtot',level:0,kids:false,cls:' gcs-tot',cells:invCells([{v:'TOTAL'},{v:invN(t.depBarriles),r:1},{v:''},{v:''}])});
-    depTbl=`<div class="prod-sec-h" style="margin-top:.9rem">🏬 Barriles en depósitos <span>${dep.length}</span></div>`+invTreeTable(depHead,dRows,5);
+    dRows.push({id:'dtot',level:0,kids:false,cls:' gcs-tot',cells:invCells([{v:'TOTAL'},{v:invN(t.depBarriles),r:1},{v:''},{v:invL(t.barrilesStockLitros)+' L',r:1}])});
+    barDepTbl=`<div class="prod-sec-h" style="margin-top:.7rem">🏬 Barriles en depósitos <span>${dep.length}</span></div>`+invTreeTable(depHead,dRows,5);
   }
 
-  box.innerHTML=INV_GCS_CSS+resumen+barTbl+latTbl+depTbl+`<div class="cal-form-s" style="margin-top:.5rem">Igual que en Gestión Cervecera (/Producto/Stock). Tocá <b>+</b> para desplegar tamaños de barril / cajas y el detalle. "Disponibles" = lo que hay hoy menos lo reservado por pedidos. Actualizado ${d.generadoEn?prodDT(d.generadoEn):'—'}.</div>`;
+  // ── Latas / envases en depósitos (va JUSTO debajo de "Latas por producto") ──
+  let latDepTbl='';
+  const depL=(d.depositosLatas||[]);
+  if(depL.length){
+    const depLHead=`<thead><tr><th class="l"></th><th class="l">Depósito</th><th class="l">Envase / producto</th><th>Cantidad</th><th>Litros</th></tr></thead>`;
+    const dLRows=[]; let dlid=0;
+    for(const D of depL){
+      const pid='e'+(dlid++);
+      dLRows.push({id:pid,level:0,kids:(D.items||[]).length>0,cells:invCells([{v:escapeHtml(D.deposito),b:1},{v:''},{v:invN(D.cantidad),r:1,b:1},{v:invL(D.litros),r:1,b:1}])});
+      for(const it of (D.items||[])){
+        dLRows.push({id:'e'+(dlid++),parent:pid,level:1,kids:false,cells:invCells([{v:''},{v:''},{v:escapeHtml(it.producto)},{v:invN(it.cantidad),r:1},{v:invL(it.litros),r:1}])});
+      }
+    }
+    dLRows.push({id:'etot',level:0,kids:false,cls:' gcs-tot',cells:invCells([{v:'TOTAL'},{v:''},{v:invN(t.depLatasCantidad),r:1},{v:invL(t.depLatasLitros),r:1}])});
+    latDepTbl=`<div class="prod-sec-h" style="margin-top:.7rem">🏬 Latas / envases en depósitos <span>${depL.length}</span></div>`+invTreeTable(depLHead,dLRows,5);
+  }
+
+  box.innerHTML=INV_GCS_CSS+resumen+barTbl+barDepTbl+latTbl+latDepTbl+`<div class="cal-form-s" style="margin-top:.5rem">Igual que en Gestión Cervecera (/Producto/Stock). Tocá <b>+</b> para desplegar tamaños de barril / cajas y el detalle. "Disponibles" = lo que hay hoy menos lo reservado por pedidos. Actualizado ${d.generadoEn?prodDT(d.generadoEn):'—'}.</div>`;
   // Expandir/colapsar (delegación de eventos; al colapsar, cierra descendientes).
   box.querySelectorAll('.gcs-tbl').forEach(tbl=>{
     tbl.addEventListener('click',e=>{

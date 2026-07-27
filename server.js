@@ -5443,9 +5443,11 @@ const erpNumUS = (s) => { const n = parseFloat(String(s || '').replace(/[^\d.\-]
 const erpNumEU = (s) => { const n = parseFloat(String(s || '').replace(/[^\d.,\-]/g, '').replace(/\./g, '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
 // Celdas <td> de una fila (texto limpio, sin tags).
 const erpTds = (rowInner) => [...String(rowInner || '').matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(m => erpTxt(m[1]));
-// Extrae el <tbody>/contenido de la 1ª tabla cuyo HTML matchea `firma`.
+// Extrae el <tbody>/contenido de la 1ª tabla cuyo HTML matchea `firma`
+// (RegExp o función predicado sobre el HTML interno de la tabla).
 function erpTablaPorFirma(html, firma){
-  for (const m of String(html || '').matchAll(/<table\b[^>]*>([\s\S]*?)<\/table>/gi)) if (firma.test(m[1])) return m[1];
+  const test = (typeof firma === 'function') ? firma : (h => firma.test(h));
+  for (const m of String(html || '').matchAll(/<table\b[^>]*>([\s\S]*?)<\/table>/gi)) if (test(m[1])) return m[1];
   return '';
 }
 const erpB = (s) => ({ barriles: Math.round(erpNumUS(s && s.b)), litros: erpNumUS(s && s.l) });
@@ -5501,9 +5503,9 @@ async function erpStock(){
       }
     }
   }
-  // ── Barriles por depósito (data-idep="dep…" / data-ideps = producto) ──
+  // ── Barriles por depósito (data-idep="dep…" · encabezado con "Barriles", sin "Envase") ──
   const depositos = []; {
-    const tbl = erpTablaPorFirma(html, /\bdata-idep=["']dep\b/i);
+    const tbl = erpTablaPorFirma(html, h => /\bdata-idep=["']dep\b/i.test(h) && /Barriles/i.test(h) && !/Envase/i.test(h));
     let dep = null;
     for (const m of tbl.matchAll(/<tr\b([^>]*)>([\s\S]*?)<\/tr>/gi)) {
       const open = m[1] || '', td = erpTds(m[2]);
@@ -5512,13 +5514,31 @@ async function erpStock(){
       else if (/\bdata-idep=/.test(open)) { dep = { deposito: td[1] || '', barriles: Math.round(erpNumUS(td[2])), productos: [] }; if (dep.deposito) depositos.push(dep); }
     }
   }
+  // ── Latas/envases por depósito (data-idep="dep…" · encabezado con "Envase") ──
+  // Columnas: Depósito[1] Envase[2] Caja[3] Cant.Caja[4] Lote[5] Cantidad[6] Litros[7] FechaVenc[8].
+  const depositosLatas = []; {
+    const tbl = erpTablaPorFirma(html, h => /\bdata-idep=["']dep\b/i.test(h) && /Envase/i.test(h));
+    let dep = null;
+    for (const m of tbl.matchAll(/<tr\b([^>]*)>([\s\S]*?)<\/tr>/gi)) {
+      const open = m[1] || '', td = erpTds(m[2]);
+      if (/\bdata-idepss=/.test(open)) continue; // niveles profundos (cajas/lotes): no los mostramos
+      if (/\bdata-ideps=/.test(open)) { // envase/producto dentro del depósito
+        const desc = [td[2], td[3], td[5]].find(x => x && x.trim()) || (td[1] || '');
+        if (dep) dep.items.push({ producto: desc, cantidad: Math.round(erpNumEU(td[6])), litros: erpNumEU(td[7]) });
+      } else if (/\bdata-idep=/.test(open)) {
+        dep = { deposito: td[1] || '', cantidad: Math.round(erpNumEU(td[6])), litros: erpNumEU(td[7]), items: [] };
+        if (dep.deposito) depositosLatas.push(dep);
+      }
+    }
+  }
   const sum = (arr, f) => arr.reduce((a, x) => a + (f(x) || 0), 0);
-  return { ok: true, barriles, latas, depositos,
+  return { ok: true, barriles, latas, depositos, depositosLatas,
     totales: {
       barrilesUnid: sum(barriles, b => b.disponible.barriles), barrilesLitros: sum(barriles, b => b.disponible.litros),
       barrilesStockLitros: sum(barriles, b => b.enStock.litros),
       latasUnid: sum(latas, l => l.disponible.cantidad), latasLitros: sum(latas, l => l.disponible.litros),
       depBarriles: sum(depositos, d => d.barriles),
+      depLatasCantidad: sum(depositosLatas, d => d.cantidad), depLatasLitros: sum(depositosLatas, d => d.litros),
     }, generadoEn: new Date().toISOString() };
 }
 app.get('/admin/produccion/erp/stock', requireAdmin, async (_req, res) => {
