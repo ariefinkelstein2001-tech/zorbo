@@ -1722,8 +1722,6 @@ body.drawer-open{overflow:hidden}
 .ci-money:before{content:'$';position:absolute;left:.55rem;top:50%;transform:translateY(-50%);color:var(--muted,#666);font-size:.8rem;pointer-events:none}
 .ci-money input{padding-left:1.3rem!important}
 .dist-field .ci-money{display:block}
-.ci-unit-hint{font-weight:700;color:var(--gold-deep,#a05f00);text-transform:none;letter-spacing:0}
-.ci-cant-unit{font-size:.72rem;font-weight:700;padding:.05rem .3rem;border-radius:6px;border:1px solid var(--gold-bd,#e5c98a);background:var(--surface,#fff);color:var(--gold-deep,#a05f00)}
 .dist-pill{display:inline-block;font-size:.64rem;font-weight:800;padding:.2rem .55rem;border-radius:999px;letter-spacing:.04em}
 .dist-pill.pend{background:#fff3d6;color:#a05f00}
 .dist-pill.recib{background:#e3f6ea;color:#1f7a44}
@@ -8294,26 +8292,28 @@ function ciConvFactor(from, to){ if(!from||!to||from===to) return 1; return (CI_
 // Cantidad de una línea de receta expresada en la unidad base del insumo/RB
 // (ej: si se cargó "100" en mililitro y el insumo está en litro, devuelve 0.1).
 function lineCantEnBase(l){ return (Number(l.cantidad)||0) * ciConvFactor(l.cantUnidad||l.unidad, l.unidad); }
-// Muestra en vivo la unidad del insumo/RB elegido junto al campo de cantidad. Si
-// tiene una unidad emparentada (litro/ml, kilo/gramo) deja elegir en cuál cargar
-// la cantidad — el costo se recalcula proporcional a la unidad base del insumo.
-function ciWireUnitHint(ingId, hintId){
-  const inp=document.getElementById(ingId); const hint=document.getElementById(hintId);
-  if(!inp||!hint) return;
+// Selector de Unidad, siempre visible, junto al campo de cantidad. Al elegir
+// el insumo/RB se completa solo con su unidad base y, si tiene una pareja
+// (litro/ml, kilo/gramo), se puede cambiar a esa para cargar la cantidad como
+// venga más cómodo — el costo se recalcula proporcional a la unidad base.
+function ciWireUnitHint(ingId, selId){
+  const inp=document.getElementById(ingId); const sel=document.getElementById(selId);
+  if(!inp||!sel) return;
   const upd=()=>{
     const val=inp.value.replace(/ \(RB\)$/,'');
     const g=(costeoData.ingredientes||[]).find(x=>x.nombre===val);
-    if(!g){ hint.innerHTML=''; return; }
+    if(!g){ sel.innerHTML='<option value="">—</option>'; sel.disabled=true; return; }
     const pair=CI_UNIT_PAIR[g.unidad];
-    hint.innerHTML = pair
-      ? `<select class="ci-cant-unit"><option value="${g.unidad}">${g.unidad}</option><option value="${pair}">${pair}</option></select>`
-      : '('+g.unidad+')';
+    sel.innerHTML = pair
+      ? `<option value="${g.unidad}">${g.unidad}</option><option value="${pair}">${pair}</option>`
+      : `<option value="${g.unidad}">${g.unidad}</option>`;
+    sel.disabled = false;
   };
   inp.addEventListener('input', upd);
   upd();
 }
 // Unidad elegida para la cantidad que se está por agregar (o la base si no hay selector).
-function ciPickedUnit(hintId, fallback){ const h=document.getElementById(hintId); const sel=h&&h.querySelector('.ci-cant-unit'); return sel?sel.value:fallback; }
+function ciPickedUnit(selId, fallback){ const s=document.getElementById(selId); return (s && s.value) ? s.value : fallback; }
 // Opciones de ILA (impuesto adicional a bebidas alcohólicas) para insumos de barra.
 const C_ILA_OPTS = [0, 10, 18, 20.5, 31.5];
 const C_ILA = (cur) => { const c=Number(cur)||0; const opts=C_ILA_OPTS.includes(c)?C_ILA_OPTS:[c,...C_ILA_OPTS]; return opts.map(v=>`<option value="${v}" ${c===v?'selected':''}>${String(v).replace('.',',')}%</option>`).join(''); };
@@ -8589,7 +8589,8 @@ function renderCosteoRecetas(){
       </div>
       <div class="oc-line">
         <div class="dist-field" style="flex:2"><label>Insumo o receta</label><input id="rbIng" list="cIngList" placeholder="Escribe para buscar…"></div>
-        <div class="dist-field"><label>Cantidad <span class="ci-unit-hint" id="rbCantU"></span></label><input id="rbCant" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="dist-field"><label>Cantidad</label><input id="rbCant" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="dist-field"><label>Unidad</label><select id="rbCantUnidad" disabled><option value="">—</option></select></div>
         <button class="adm-btn adm-btn-ghost" id="rbAddLine" type="button">+ Agregar</button>
       </div>
       <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table" style="min-width:0">
@@ -8613,7 +8614,7 @@ function renderCosteoRecetas(){
     <div class="tc-search"><input type="text" id="rbSearchInp" placeholder="Buscar receta base…" value="${escapeAttr(rbSearch)}"></div>
     <div class="oc-list">${list || '<div class="dist-empty">No hay recetas que coincidan.</div>'}</div>`;
   document.getElementById('rbAddLine').onclick=rbAddLine;
-  ciWireUnitHint('rbIng','rbCantU');
+  ciWireUnitHint('rbIng','rbCantUnidad');
   { const x=document.getElementById('rbXlBtn'); if(x) x.onclick=()=>costeoExportXlsx('recetas'); }
   document.getElementById('rbSave').onclick=rbSave;
   // Actualiza la vista previa SIN re-renderizar (para no perder el foco al tipear)
@@ -8642,7 +8643,7 @@ function rbAddLine(){
   const cant=cNum(document.getElementById('rbCant').value);
   if(!g){ alert('Elige un insumo o receta de la lista.'); return; }
   if(rbEditing && g.type==='rb' && g.id===rbEditing.id){ alert('Una receta no puede usarse a sí misma.'); return; }
-  const cantUnidad=ciPickedUnit('rbCantU', g.unidad);
+  const cantUnidad=ciPickedUnit('rbCantUnidad', g.unidad);
   rbDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant, cantUnidad, rendAplica:g.rendimiento!=null, rendInsumo:g.rendimiento||null, base100:g.base100||null, rend:null });
   document.getElementById('rbIng').value=''; document.getElementById('rbCant').value='';
   renderCosteoRecetasKeep();
@@ -8734,7 +8735,8 @@ function renderCosteoPlatos(){
       </div>
       <div class="oc-line">
         <div class="dist-field" style="flex:2"><label>Insumo o receta base</label><input id="plIng" list="cIngList" placeholder="Escribe para buscar…"></div>
-        <div class="dist-field"><label>Gramaje / cantidad <span class="ci-unit-hint" id="plCantU"></span></label><input id="plCant" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="dist-field"><label>Gramaje / cantidad</label><input id="plCant" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="dist-field"><label>Unidad</label><select id="plCantUnidad" disabled><option value="">—</option></select></div>
         <button class="adm-btn adm-btn-ghost" id="plAddLine" type="button">+ Agregar</button>
       </div>
       <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table" style="min-width:0">
@@ -8765,7 +8767,7 @@ function renderCosteoPlatos(){
     </div>
     ${groups || '<div class="dist-empty">No hay platos que coincidan.</div>'}`;
   document.getElementById('plAddLine').onclick=platoAddLine;
-  ciWireUnitHint('plIng','plCantU');
+  ciWireUnitHint('plIng','plCantUnidad');
   { const x=document.getElementById('plXlBtn'); if(x) x.onclick=()=>costeoExportXlsx('platos'); }
   document.getElementById('plSave').onclick=platoSave;
   const upd=()=>{ const ct=platoDraftCosto(); const m=cNum(document.getElementById('plMargen').value)||30; const iv=document.getElementById('plIva').checked; const c=platoChain(ct,m,iv);
@@ -8797,7 +8799,7 @@ function platoAddLine(){
   const g=(costeoData.ingredientes||[]).find(x=>x.nombre===val);
   const cant=cNum(document.getElementById('plCant').value);
   if(!g){ alert('Elige un insumo o receta base de la lista.'); return; }
-  const cantUnidad=ciPickedUnit('plCantU', g.unidad);
+  const cantUnidad=ciPickedUnit('plCantUnidad', g.unidad);
   platoDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant, cantUnidad, rendAplica:g.rendimiento!=null, rendInsumo:g.rendimiento||null, base100:g.base100||null, rend:null });
   document.getElementById('plIng').value=''; document.getElementById('plCant').value='';
   renderCosteoPlatosKeep();
