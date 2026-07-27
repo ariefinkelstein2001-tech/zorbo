@@ -3596,8 +3596,10 @@ app.post('/admin/costos/proveedor', requireAdmin, (req, res) => {
   res.json({ ok: true, proveedor: prov });
 });
 // POST entrada (costo/gasto).
-app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
-  const b = req.body || {};
+// Lógica compartida de creación de una entrada de Costos/Gastos — usada por
+// POST /admin/costos/entrada y por el vínculo Inventario → Finanzas (CAPEX,
+// confirmado desde un Activo Fijo). Devuelve {error,status} o {entrada,espejos}.
+function costosCrearEntradaDesdeBody(b){
   const proveedor = costosStr(b.proveedor, 120);
   const categoria = costosStr(b.categoria, 40);
   const fecha = costosStr(b.fecha, 20);
@@ -3608,15 +3610,15 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
   // Default a CD KAIROS por compatibilidad con clientes viejos, pero el
   // frontend actual siempre lo manda explícito.
   const centroDistribucion = CD_IDS.includes(costosStr(b.centroDistribucion, 30)) ? costosStr(b.centroDistribucion, 30) : CD_DEFAULT;
-  if (!proveedor) return res.status(400).json({ error: 'Elegí un proveedor.' });
+  if (!proveedor) return { error: 'Elegí un proveedor.' };
   const catDef = COSTOS_CATEGORIAS.find(c => c.id === categoria);
-  if (!catDef) return res.status(400).json({ error: 'Elige una categoría válida.' });
+  if (!catDef) return { error: 'Elige una categoría válida.' };
   // Subcategoría (2 niveles). Si la categoría tiene subcategorías, se exige elegir una.
   const { subcategoria, subnivel } = costosSubValidar(categoria, costosStr(b.subcategoria, 40), costosStr(b.subnivel, 40));
-  if (COSTOS_SUBCATEGORIAS[categoria] && !subcategoria) return res.status(400).json({ error: 'Elige una subcategoría.' });
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return res.status(400).json({ error: 'Elegí la fecha del documento.' });
-  if (!valor) return res.status(400).json({ error: 'Ingresá el valor.' });
-  if (!COSTOS_MARCA_VALORES.includes(marca)) return res.status(400).json({ error: 'Elegí a qué marca corresponde.' });
+  if (COSTOS_SUBCATEGORIAS[categoria] && !subcategoria) return { error: 'Elige una subcategoría.' };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return { error: 'Elegí la fecha del documento.' };
+  if (!valor) return { error: 'Ingresá el valor.' };
+  if (!COSTOS_MARCA_VALORES.includes(marca)) return { error: 'Elegí a qué marca corresponde.' };
   // "Algunas": reparto explícito por marca, con % de esa factura para cada una.
   let marcaDetalle = null;
   if (marca === 'algunas') {
@@ -3630,15 +3632,15 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
       if (!Number.isFinite(pct) || pct <= 0 || pct > 100) continue;
       seen.add(m); marcaDetalle.push({ marca: m, pct: Math.round(pct * 10) / 10 });
     }
-    if (!marcaDetalle.length) return res.status(400).json({ error: 'Elegí al menos una marca y su porcentaje.' });
+    if (!marcaDetalle.length) return { error: 'Elegí al menos una marca y su porcentaje.' };
     const suma = marcaDetalle.reduce((s, it) => s + it.pct, 0);
-    if (suma > 100.01) return res.status(400).json({ error: 'La suma de los porcentajes por marca no puede superar 100%.' });
+    if (suma > 100.01) return { error: 'La suma de los porcentajes por marca no puede superar 100%.' };
   }
   // "Porcentaje del total": solo aplica a Gastos (facturas compartidas con el restaurante).
   let pctTotal = null;
   if (catDef.tipo === 'gasto' && b.pctTotal != null && b.pctTotal !== '') {
     const p = Number(b.pctTotal);
-    if (!Number.isFinite(p) || p <= 0 || p > 100) return res.status(400).json({ error: 'El porcentaje del total debe ser entre 1 y 100.' });
+    if (!Number.isFinite(p) || p <= 0 || p > 100) return { error: 'El porcentaje del total debe ser entre 1 y 100.' };
     pctTotal = Math.round(p * 10) / 10;
   }
   // Con qué otras CD se comparte la factura (solo tiene sentido si hay
@@ -3661,17 +3663,20 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
   const adj = b.adjunto;
   if (adj && adj.dataBase64) {
     const ext = UPLOAD_TYPES[String(adj.contentType).toLowerCase()];
-    if (!ext) return res.status(415).json({ error: 'Archivo no permitido. Subí PDF o imagen (png/jpg/webp).' });
-    let buf; try { buf = Buffer.from(adj.dataBase64, 'base64'); } catch { return res.status(400).json({ error: 'Archivo inválido.' }); }
-    if (!buf.length) return res.status(400).json({ error: 'Archivo vacío.' });
-    if (buf.length > MAX_UPLOAD_BYTES) return res.status(413).json({ error: 'Máximo 8 MB por archivo.' });
+    if (!ext) return { error: 'Archivo no permitido. Subí PDF o imagen (png/jpg/webp).' };
+    let buf; try { buf = Buffer.from(adj.dataBase64, 'base64'); } catch { return { error: 'Archivo inválido.' }; }
+    if (!buf.length) return { error: 'Archivo vacío.' };
+    if (buf.length > MAX_UPLOAD_BYTES) return { error: 'Máximo 8 MB por archivo.' };
     try { const safeName = randomUUID() + '.' + ext; writeFileSync(join(UPLOADS_DIR, safeName), buf); adjunto = { url: '/uploads/' + safeName, name: costosStr(adj.filename, 200) || ('documento.' + ext) }; }
-    catch (e) { return res.status(500).json({ error: 'Error guardando archivo: ' + e.message }); }
+    catch (e) { return { error: 'Error guardando archivo: ' + e.message }; }
   }
   const data = costosLoad();
   // Si el proveedor no está creado, lo crea al vuelo (viene de "crear nuevo").
   if (!data.proveedores.some(p => p.nombre === proveedor)) data.proveedores.push({ id: costosNewId('prov'), nombre: proveedor });
-  const entrada = { id: costosNewId('cg'), proveedor, categoria, subcategoria, subnivel, fecha, folio, valor, adjunto, marca, marcaDetalle, pctTotal, centrosCosto, centroDistribucion, origenId: null };
+  // activoFijoId: trazabilidad opcional hacia el Activo Fijo de Inventario que
+  // originó este CAPEX (vínculo Inventario ↔ Finanzas, §4.3 del doc).
+  const activoFijoId = costosStr(b.activoFijoId, 40) || null;
+  const entrada = { id: costosNewId('cg'), proveedor, categoria, subcategoria, subnivel, fecha, folio, valor, adjunto, marca, marcaDetalle, pctTotal, centrosCosto, centroDistribucion, origenId: null, activoFijoId };
   data.entradas.push(entrada);
   // Cruce automático: el mismo documento se comparte con otra(s) CD, así que
   // el porcentaje que NO es de esta CD se registra solo, como su propia
@@ -3692,7 +3697,12 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
     }
   }
   costosSave(data);
-  res.json({ ok: true, entrada, espejos });
+  return { entrada, espejos };
+}
+app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
+  const r = costosCrearEntradaDesdeBody(req.body || {});
+  if (r.error) return res.status(400).json(r);
+  res.json({ ok: true, entrada: r.entrada, espejos: r.espejos });
 });
 // PUT: reclasifica la subcategoría/subnivel de un registro existente (edición no destructiva).
 app.put('/admin/costos/entrada/:id/subcategoria', requireAdmin, (req, res) => {
@@ -4763,7 +4773,67 @@ const PROD_SEDES = [
   { id: 'lampa', nombre: 'CD Lampa', modo: 'Maquila', tipo: 'cerveceria' },
   { id: 'franklin', nombre: 'CD Franklin', modo: 'Maquila', tipo: 'destileria' },
 ];
-const PROD_INV_CATS = ['lata', 'tapa', 'etiqueta'];
+// ═══════════════════════════════════════════════════════════════════════════
+// Inventario — 4 categorías (Productos Terminados / Materias Primas e Insumos /
+// Envases y Activos Retornables / Activos Fijos y Equipamiento), según la
+// especificación autoritativa del módulo. Cat. 1 es integración de solo
+// lectura (erpStock()); cat. 2-4 son carga manual en K-BROS.
+// ═══════════════════════════════════════════════════════════════════════════
+// Cat. 2 — Materias Primas e Insumos. Mantiene los ids viejos (lata/tapa/
+// etiqueta) para no perder ningún ítem cargado antes de esta expansión.
+const PROD_INV_CATS = ['malta', 'lupulo', 'levadura', 'alcohol', 'ingrediente', 'lata', 'tapa', 'etiqueta', 'caja', 'packaging', 'barril_pet', 'co2_gas'];
+// Cat. 3 — Envases y Activos Retornables: tipos de unidad.
+const PROD_RETORNABLE_TIPOS = ['Barril inox 20L', 'Barril inox 30L', 'Cilindro CO2', 'Pallet retornable', 'Caja retornable', 'Otro'];
+const PROD_CO2_CAPACIDADES = [6, 9, 12, 20]; // kg
+// Cat. 4 — Activos Fijos: subtipos + sub-componentes de la ficha compuesta
+// "máquina schoppera" (§6 del complemento).
+const PROD_ACTIVO_SUBTIPOS = [
+  { id: 'instalacion', label: 'Instalaciones y Plantas' },
+  { id: 'equipamiento', label: 'Equipamiento Operacional' },
+];
+const PROD_REFRIG_TIPOS = ['Refrigerador', 'Enfriador', 'Cámara de frío'];
+const PROD_DISPENSADO_TIPOS = ['Cobra', 'Beer Wall', 'Tubería'];
+const PROD_PINCHADOR_TIPOS = ['G', 'D', 'A'];
+const PROD_TAP_HANDLE_TIPOS = ['Tradicional', 'Oreja Conejo Normal 30cm', 'Oreja Conejo 20cm', 'Lukr', 'Irlandés', 'Otro'];
+// Estados — configurables desde la interfaz (mismo patrón que cd.competencias
+// en Calidad): esta es solo la SEMILLA inicial, el equipo puede agregar/
+// renombrar/ocultar sin tocar código. Cada estado pertenece a una familia
+// semántica para el color (nunca solo color: badge con texto + ícono).
+const PROD_ESTADO_FAMILIAS = [
+  { id: 'disponible', label: 'Disponible / OK', color: '#1f7a4d' },
+  { id: 'en_uso', label: 'En uso / circulando / en cliente', color: '#2563a8' },
+  { id: 'en_proceso', label: 'En proceso', color: '#b06a00' },
+  { id: 'problema', label: 'Problema', color: '#c0392b' },
+];
+const PROD_ESTADOS_RETORNABLES_SEED = [
+  { label: 'Limpio disponible', familia: 'disponible' },
+  { label: 'En llenado', familia: 'en_proceso' },
+  { label: 'Lleno en bodega', familia: 'disponible' },
+  { label: 'Despachado / En cliente', familia: 'en_uso' },
+  { label: 'Vacío en cliente', familia: 'en_uso' },
+  { label: 'Pendiente de retiro', familia: 'en_proceso' },
+  { label: 'En tránsito', familia: 'en_proceso' },
+  { label: 'Sucio', familia: 'problema' },
+  { label: 'En lavado', familia: 'en_proceso' },
+  { label: 'En sanitización', familia: 'en_proceso' },
+  { label: 'En mantención', familia: 'en_proceso' },
+  { label: 'Extraviado', familia: 'problema' },
+  { label: 'Dado de baja', familia: 'problema' },
+];
+const PROD_ESTADOS_ACTIVOS_FIJOS_SEED = [
+  { label: 'Disponible', familia: 'disponible' },
+  { label: 'En bodega', familia: 'disponible' },
+  { label: 'Asignado', familia: 'en_uso' },
+  { label: 'En instalación', familia: 'en_proceso' },
+  { label: 'Instalado / Operativo', familia: 'en_uso' },
+  { label: 'En cliente', familia: 'en_uso' },
+  { label: 'En restaurante propio', familia: 'en_uso' },
+  { label: 'En mantención', familia: 'en_proceso' },
+  { label: 'En reparación', familia: 'problema' },
+  { label: 'Fuera de servicio', familia: 'problema' },
+  { label: 'Extraviado', familia: 'problema' },
+  { label: 'Dado de baja', familia: 'problema' },
+];
 // Paleta oficial de color de cerveza (30 tonos, de pálido a casi negro — escala
 // tipo SRM). El color de un lote/tanque de cervecería SIEMPRE debe ser uno de
 // estos. Aproximación visual del cartel de referencia — ajustable acá si algún
@@ -4840,7 +4910,11 @@ function prodMigrarSedesTanques(d){
   return changed;
 }
 function prodInventarioDefaults(){
-  return { barriles: { sucios: 0, limpios: 0, actualizado: null, origen: 'manual' }, insumos: [] };
+  return {
+    insumos: [], retornables: [], activosFijos: [],
+    estadosRetornables: PROD_ESTADOS_RETORNABLES_SEED.map(s => ({ id: prodNewId('estr'), ...s })),
+    estadosActivosFijos: PROD_ESTADOS_ACTIVOS_FIJOS_SEED.map(s => ({ id: prodNewId('estaf'), ...s })),
+  };
 }
 const prodStr = (v, m = 200) => String(v == null ? '' : v).trim().slice(0, m);
 const prodNum = (v) => { const n = Number(String(v == null ? '' : v).replace(/[^\d.-]/g, '')); return Number.isFinite(n) ? n : 0; };
@@ -4856,7 +4930,19 @@ function prodLoad(){
       if (Array.isArray(p.limpiezas)) d.limpiezas = p.limpiezas;
       if (Array.isArray(p.paradas)) d.paradas = p.paradas;
       if (Array.isArray(p.recetas)) d.recetas = p.recetas;
-      if (p.inventario && typeof p.inventario === 'object') d.inventario = { ...prodInventarioDefaults(), ...p.inventario, barriles: { ...prodInventarioDefaults().barriles, ...(p.inventario.barriles || {}) } };
+      if (p.inventario && typeof p.inventario === 'object') {
+        const def = prodInventarioDefaults();
+        // El conteo manual "barriles sucios/limpios" queda reemplazado por el
+        // control real con estados de "retornables" — no se migra (eran solo
+        // 2 números agregados, sin identidad de unidad, nada que preservar).
+        d.inventario = {
+          insumos: Array.isArray(p.inventario.insumos) ? p.inventario.insumos : def.insumos,
+          retornables: Array.isArray(p.inventario.retornables) ? p.inventario.retornables : def.retornables,
+          activosFijos: Array.isArray(p.inventario.activosFijos) ? p.inventario.activosFijos : def.activosFijos,
+          estadosRetornables: (Array.isArray(p.inventario.estadosRetornables) && p.inventario.estadosRetornables.length) ? p.inventario.estadosRetornables : def.estadosRetornables,
+          estadosActivosFijos: (Array.isArray(p.inventario.estadosActivosFijos) && p.inventario.estadosActivosFijos.length) ? p.inventario.estadosActivosFijos : def.estadosActivosFijos,
+        };
+      }
     }
   } catch (e) { console.warn('produccion load:', e.message); }
   prodMigrarSedesTanques(d);
@@ -4961,16 +5047,41 @@ function prodDecorate(d){
     return { ...t, sede: sede.id, tipo: sede.tipo, estado: t.loteActualId ? 'ocupado' : (t.sucio ? 'sucio' : 'vacio'), lote: li };
   });
   const lotes = d.lotes.map(l => { const base = prodVolumenBase(l); const env = prodLitrosEnvasados(l); return { ...l, diasOcup: prodDiasOcup(l), volumenBaseL: base, litrosEnvasados: env, litrosRestantes: Math.max(0, base - env), rendEnvasado: prodRendEnvasado(l, cfg), leadTimeDias: (l.fechaEnvasado && l.fechaCoccion) ? Math.max(0, Math.round((new Date(l.fechaEnvasado) - new Date(l.fechaCoccion)) / DAY)) : null }; });
-  return { config: prodConfigSafe(cfg), tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, recetas: d.recetas || [], inventario: prodDecorarInventario(d.inventario), meta: { etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT, formatos: PROD_FORMATOS, sedes: PROD_SEDES, invCategorias: PROD_INV_CATS, coloresCerveza: PROD_COLORES_CERVEZA, coloresDestilado: PROD_COLORES_DESTILADO } };
+  return { config: prodConfigSafe(cfg), tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, recetas: d.recetas || [], inventario: prodDecorarInventario(d.inventario), meta: {
+    etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT, formatos: PROD_FORMATOS, sedes: PROD_SEDES,
+    invCategorias: PROD_INV_CATS, coloresCerveza: PROD_COLORES_CERVEZA, coloresDestilado: PROD_COLORES_DESTILADO,
+    retornableTipos: PROD_RETORNABLE_TIPOS, co2Capacidades: PROD_CO2_CAPACIDADES, activoSubtipos: PROD_ACTIVO_SUBTIPOS,
+    refrigTipos: PROD_REFRIG_TIPOS, dispensadoTipos: PROD_DISPENSADO_TIPOS, pinchadorTipos: PROD_PINCHADOR_TIPOS, tapHandleTipos: PROD_TAP_HANDLE_TIPOS,
+    estadoFamilias: PROD_ESTADO_FAMILIAS,
+  } };
 }
-// Suma valorTotal (cantidad × costo unitario) por ítem y totales por categoría.
+// Decora las 4 categorías: valorTotal de insumos, etiqueta+familia de estado
+// resuelta por ítem (retornables/activos fijos), y el resumen de equipamiento
+// por cliente/punto de venta (§4.2 — "cuánto tengo prestado y dónde").
 function prodDecorarInventario(inv){
   const base = inv || prodInventarioDefaults();
   const insumos = (base.insumos || []).map(x => ({ ...x, valorTotal: Math.round(prodNum(x.cantidad) * prodNum(x.costoUnitario) * 100) / 100 }));
   const totalesPorCategoria = {};
   for (const cat of PROD_INV_CATS) totalesPorCategoria[cat] = Math.round(insumos.filter(x => x.categoria === cat).reduce((a, x) => a + x.valorTotal, 0) * 100) / 100;
   const valorTotalInsumos = Math.round(insumos.reduce((a, x) => a + x.valorTotal, 0) * 100) / 100;
-  return { barriles: base.barriles || prodInventarioDefaults().barriles, insumos, totalesPorCategoria, valorTotalInsumos };
+  const estRetById = Object.fromEntries((base.estadosRetornables || []).map(e => [e.id, e]));
+  const estAfById = Object.fromEntries((base.estadosActivosFijos || []).map(e => [e.id, e]));
+  const retornables = (base.retornables || []).map(x => ({ ...x, estadoInfo: estRetById[x.estado] || null }));
+  const activosFijos = (base.activosFijos || []).map(x => ({ ...x, estadoInfo: estAfById[x.estado] || null }));
+  // Resumen de equipamiento por cliente: solo subtipo "equipamiento" con
+  // responsable/cliente cargado (instalaciones propias no cuentan acá).
+  const porCliente = {};
+  for (const a of activosFijos) {
+    if (a.subtipo !== 'equipamiento' || !a.responsable) continue;
+    const k = a.responsable;
+    (porCliente[k] = porCliente[k] || { cliente: k, ubicacion: a.ubicacion || '', items: [] }).items.push({ id: a.id, nombre: a.nombre, estado: (a.estadoInfo && a.estadoInfo.label) || a.estado || '' });
+  }
+  const resumenPorCliente = Object.values(porCliente).sort((x, y) => y.items.length - x.items.length);
+  return {
+    insumos, totalesPorCategoria, valorTotalInsumos, retornables, activosFijos, resumenPorCliente,
+    estadosRetornables: base.estadosRetornables || [], estadosActivosFijos: base.estadosActivosFijos || [],
+    contadores: { insumos: insumos.length, retornables: retornables.length, activosFijos: activosFijos.length },
+  };
 }
 // Config para el front: la clave del ERP nunca se envía, solo si está configurada.
 function prodConfigSafe(cfg){ const c = { ...cfg }; c.erpUsuarioSet = !!(cfg.erpUsuario || process.env.GC_USUARIO); c.erpClaveSet = !!(cfg.erpClave || process.env.GC_CLAVE); c.erpApiKeySet = !!(cfg.erpApiKey || process.env.GESTION_CERVECERA_API_KEY); c.erpUsuario = cfg.erpUsuario || ''; delete c.erpClave; delete c.erpApiKey; return c; }
@@ -6305,19 +6416,22 @@ app.put('/admin/produccion/parada/:id', requireAdmin, (req, res) => {
   prodSave(d); res.json({ ok: true, parada: it });
 });
 app.delete('/admin/produccion/parada/:id', requireAdmin, (req, res) => { const d = prodLoad(); const n = d.paradas.length; d.paradas = d.paradas.filter(x => x.id !== req.params.id); if (d.paradas.length === n) return res.status(404).json({ error: 'No encontrada.' }); prodSave(d); res.json({ ok: true }); });
-// ── Inventario de producción: barriles (sucios/limpios) + insumos de envasado
-// (latas, tapas, etiquetas por diseño) con cantidad y valor monetario. Los
-// barriles hoy se cuentan a mano — queda pendiente la lectura en vivo desde
-// Gestión Cervecera (ERP), que aún no expone esa data.
-app.put('/admin/produccion/inventario/barriles', requireAdmin, (req, res) => {
-  const b = req.body || {}; const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
-  d.inventario.barriles = { sucios: Math.max(0, Math.round(prodNum(b.sucios))), limpios: Math.max(0, Math.round(prodNum(b.limpios))), actualizado: new Date().toISOString(), origen: 'manual' };
-  prodSave(d); res.json({ ok: true, barriles: d.inventario.barriles });
-});
+// ── Inventario — 4 categorías ──────────────────────────────────────────────
+// Cat. 1 (Productos Terminados) no tiene endpoints propios: es de solo
+// lectura vía erpStock() (GET /admin/produccion/erp/stock), ya existente —
+// un formulario manual competiría con esa fuente real.
+const prodDateOpt = (v) => { const s = prodStr(v, 20); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ''; };
+// Cat. 2 — Materias Primas e Insumos (registro manual). Extiende el modelo
+// viejo (categoria/nombre/cantidad/costoUnitario) con los campos del §8.
 app.post('/admin/produccion/inventario/insumo', requireAdmin, (req, res) => {
   const b = req.body || {}; const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
   const nombre = prodStr(b.nombre, 80); if (!nombre) return res.status(400).json({ error: 'Falta el nombre/diseño.' });
-  const it = { id: prodNewId('ins'), categoria: PROD_INV_CATS.includes(prodStr(b.categoria)) ? prodStr(b.categoria) : 'lata', nombre, cantidad: Math.max(0, Math.round(prodNum(b.cantidad))), costoUnitario: Math.max(0, prodNum(b.costoUnitario)) };
+  const it = {
+    id: prodNewId('ins'), categoria: PROD_INV_CATS.includes(prodStr(b.categoria)) ? prodStr(b.categoria) : 'lata', nombre,
+    cantidad: Math.max(0, Math.round(prodNum(b.cantidad))), costoUnitario: Math.max(0, prodNum(b.costoUnitario)),
+    codigo: prodStr(b.codigo, 40), unidadMedida: prodStr(b.unidadMedida, 20), stockMinimo: Math.max(0, Math.round(prodNum(b.stockMinimo))),
+    lote: prodStr(b.lote, 40), proveedor: prodStr(b.proveedor, 120), fechaRecepcion: prodDateOpt(b.fechaRecepcion), fechaVencimiento: prodDateOpt(b.fechaVencimiento), ubicacion: prodStr(b.ubicacion, 80),
+  };
   d.inventario.insumos.push(it); prodSave(d); res.json({ ok: true, insumo: it });
 });
 app.put('/admin/produccion/inventario/insumo/:id', requireAdmin, (req, res) => {
@@ -6328,6 +6442,14 @@ app.put('/admin/produccion/inventario/insumo/:id', requireAdmin, (req, res) => {
   if (b.nombre != null) it.nombre = prodStr(b.nombre, 80);
   if (b.cantidad != null) it.cantidad = Math.max(0, Math.round(prodNum(b.cantidad)));
   if (b.costoUnitario != null) it.costoUnitario = Math.max(0, prodNum(b.costoUnitario));
+  if (b.codigo != null) it.codigo = prodStr(b.codigo, 40);
+  if (b.unidadMedida != null) it.unidadMedida = prodStr(b.unidadMedida, 20);
+  if (b.stockMinimo != null) it.stockMinimo = Math.max(0, Math.round(prodNum(b.stockMinimo)));
+  if (b.lote != null) it.lote = prodStr(b.lote, 40);
+  if (b.proveedor != null) it.proveedor = prodStr(b.proveedor, 120);
+  if (b.fechaRecepcion != null) it.fechaRecepcion = prodDateOpt(b.fechaRecepcion);
+  if (b.fechaVencimiento != null) it.fechaVencimiento = prodDateOpt(b.fechaVencimiento);
+  if (b.ubicacion != null) it.ubicacion = prodStr(b.ubicacion, 80);
   prodSave(d); res.json({ ok: true, insumo: it });
 });
 app.delete('/admin/produccion/inventario/insumo/:id', requireAdmin, (req, res) => {
@@ -6335,6 +6457,169 @@ app.delete('/admin/produccion/inventario/insumo/:id', requireAdmin, (req, res) =
   const n = d.inventario.insumos.length; d.inventario.insumos = d.inventario.insumos.filter(x => x.id !== req.params.id);
   if (d.inventario.insumos.length === n) return res.status(404).json({ error: 'No encontrado.' });
   prodSave(d); res.json({ ok: true });
+});
+// Estados configurables — genérico para retornables y activos fijos, mismo
+// patrón que cd.competencias en Calidad: agregar/renombrar/ocultar sin tocar
+// código. `activo:false` los oculta de los selectores nuevos sin perder el
+// historial de ítems que ya los usan; DELETE se bloquea si están en uso.
+function prodEstadoCrud(app, path, listKey, itemsKey){
+  app.post('/admin/produccion/inventario/' + path, requireAdmin, (req, res) => {
+    const b = req.body || {}; const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+    const label = prodStr(b.label, 60); if (!label) return res.status(400).json({ error: 'Ingresá el nombre del estado.' });
+    const familia = PROD_ESTADO_FAMILIAS.some(f => f.id === b.familia) ? b.familia : 'disponible';
+    const est = { id: prodNewId('est'), label, familia, activo: true };
+    d.inventario[listKey].push(est); prodSave(d); res.json({ ok: true, estado: est });
+  });
+  app.put('/admin/produccion/inventario/' + path + '/:id', requireAdmin, (req, res) => {
+    const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+    const est = d.inventario[listKey].find(x => x.id === req.params.id); if (!est) return res.status(404).json({ error: 'No encontrado.' });
+    const b = req.body || {};
+    if (b.label != null) { const l = prodStr(b.label, 60); if (l) est.label = l; }
+    if (b.familia != null && PROD_ESTADO_FAMILIAS.some(f => f.id === b.familia)) est.familia = b.familia;
+    if (b.activo != null) est.activo = !!b.activo;
+    prodSave(d); res.json({ ok: true, estado: est });
+  });
+  app.delete('/admin/produccion/inventario/' + path + '/:id', requireAdmin, (req, res) => {
+    const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+    const enUso = (d.inventario[itemsKey] || []).some(x => x.estado === req.params.id);
+    if (enUso) return res.status(400).json({ error: 'Este estado está en uso — ocúltalo (editar → desactivar) en vez de borrarlo.' });
+    const n = d.inventario[listKey].length; d.inventario[listKey] = d.inventario[listKey].filter(x => x.id !== req.params.id);
+    if (d.inventario[listKey].length === n) return res.status(404).json({ error: 'No encontrado.' });
+    prodSave(d); res.json({ ok: true });
+  });
+}
+prodEstadoCrud(app, 'estado-retornable', 'estadosRetornables', 'retornables');
+prodEstadoCrud(app, 'estado-activo-fijo', 'estadosActivosFijos', 'activosFijos');
+// Cat. 3 — Envases y Activos Retornables (control con estados por unidad,
+// reemplaza el viejo conteo manual "barriles sucios/limpios").
+function prodRetornableClean(b, base, estados){
+  const r = base || {};
+  if (b.tipo != null) { const t = prodStr(b.tipo, 40); if (PROD_RETORNABLE_TIPOS.includes(t)) r.tipo = t; }
+  if (!r.tipo) r.tipo = PROD_RETORNABLE_TIPOS[0];
+  if (b.identificador != null) r.identificador = prodStr(b.identificador, 60);
+  if (b.codigoInterno != null) r.codigoInterno = prodStr(b.codigoInterno, 40);
+  if (b.capacidad != null) r.capacidad = prodStr(b.capacidad, 20);
+  if (b.estado != null) { const e = prodStr(b.estado, 40); if (estados.some(x => x.id === e)) r.estado = e; }
+  if (!r.estado || !estados.some(x => x.id === r.estado)) r.estado = (estados[0] && estados[0].id) || '';
+  if (b.ubicacion != null) r.ubicacion = prodStr(b.ubicacion, 80);
+  if (b.responsable != null) r.responsable = prodStr(b.responsable, 80);
+  if (b.fechaUltimoMovimiento != null) r.fechaUltimoMovimiento = prodDateOpt(b.fechaUltimoMovimiento);
+  if (b.fechaEstimadaRetorno != null) r.fechaEstimadaRetorno = prodDateOpt(b.fechaEstimadaRetorno);
+  return r;
+}
+app.post('/admin/produccion/inventario/retornable', requireAdmin, (req, res) => {
+  const b = req.body || {}; const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  const identificador = prodStr(b.identificador, 60); if (!identificador) return res.status(400).json({ error: 'Ingresá un identificador para la unidad.' });
+  const it = prodRetornableClean(b, { id: prodNewId('ret') }, d.inventario.estadosRetornables || []);
+  d.inventario.retornables.push(it); prodSave(d); res.json({ ok: true, retornable: it });
+});
+app.put('/admin/produccion/inventario/retornable/:id', requireAdmin, (req, res) => {
+  const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  const it = d.inventario.retornables.find(x => x.id === req.params.id); if (!it) return res.status(404).json({ error: 'No encontrada.' });
+  prodRetornableClean(req.body || {}, it, d.inventario.estadosRetornables || []);
+  prodSave(d); res.json({ ok: true, retornable: it });
+});
+app.delete('/admin/produccion/inventario/retornable/:id', requireAdmin, (req, res) => {
+  const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  const n = d.inventario.retornables.length; d.inventario.retornables = d.inventario.retornables.filter(x => x.id !== req.params.id);
+  if (d.inventario.retornables.length === n) return res.status(404).json({ error: 'No encontrada.' });
+  prodSave(d); res.json({ ok: true });
+});
+// Cat. 4 — Activos Fijos y Equipamiento (registro manual). Subtipo
+// Instalaciones/Plantas vs Equipamiento; una máquina schoppera es un activo
+// compuesto con sub-componentes condicionales (§6 del complemento).
+function prodActivoFijoClean(b, base, estados){
+  const r = base || {};
+  if (b.subtipo != null) { const s = prodStr(b.subtipo, 20); if (PROD_ACTIVO_SUBTIPOS.some(x => x.id === s)) r.subtipo = s; }
+  if (!r.subtipo) r.subtipo = 'equipamiento';
+  if (b.nombre != null) r.nombre = prodStr(b.nombre, 120);
+  if (b.codigoInterno != null) r.codigoInterno = prodStr(b.codigoInterno, 40);
+  if (b.numeroSerie != null) r.numeroSerie = prodStr(b.numeroSerie, 60);
+  if (b.marca != null) r.marca = prodStr(b.marca, 60);
+  if (b.modelo != null) r.modelo = prodStr(b.modelo, 60);
+  if (b.fechaCompra != null) r.fechaCompra = prodDateOpt(b.fechaCompra);
+  if (b.costoAdquisicion != null) r.costoAdquisicion = Math.max(0, prodNum(b.costoAdquisicion));
+  if (b.estado != null) { const e = prodStr(b.estado, 40); if (estados.some(x => x.id === e)) r.estado = e; }
+  if (!r.estado || !estados.some(x => x.id === r.estado)) r.estado = (estados[0] && estados[0].id) || '';
+  if (b.ubicacion != null) r.ubicacion = prodStr(b.ubicacion, 80);
+  if (b.responsable != null) r.responsable = prodStr(b.responsable, 80);
+  if (b.fechaUltimaMantencion != null) r.fechaUltimaMantencion = prodDateOpt(b.fechaUltimaMantencion);
+  if (b.proximaMantencion != null) r.proximaMantencion = prodDateOpt(b.proximaMantencion);
+  // Instalaciones y Plantas: capacidad productiva + leasing operativo a terceros.
+  if (r.subtipo === 'instalacion') {
+    if (b.capacidadProductivaLmes != null) r.capacidadProductivaLmes = Math.max(0, prodNum(b.capacidadProductivaLmes));
+    if (b.enLeasingATerceros != null) r.enLeasingATerceros = !!b.enLeasingATerceros;
+    if (b.arrendatario != null) r.arrendatario = prodStr(b.arrendatario, 120);
+  } else { delete r.capacidadProductivaLmes; delete r.enLeasingATerceros; delete r.arrendatario; }
+  // Ficha compuesta de máquina schoppera (solo Equipamiento).
+  if (r.subtipo === 'equipamiento' && b.esSchoppera != null) r.esSchoppera = !!b.esSchoppera;
+  if (r.subtipo === 'equipamiento' && r.esSchoppera) {
+    const s = (typeof b.schoppera === 'object' && b.schoppera) || {};
+    const prev = r.schoppera || {};
+    const exclusividadPct = s.exclusividadPct != null ? Math.min(100, Math.max(75, Math.round(prodNum(s.exclusividadPct)))) : prev.exclusividadPct;
+    const refrigTipo = PROD_REFRIG_TIPOS.includes(s.refrigeracion && s.refrigeracion.tipo) ? s.refrigeracion.tipo : (prev.refrigeracion && prev.refrigeracion.tipo);
+    const refrigeracion = refrigTipo ? {
+      tipo: refrigTipo,
+      ...(refrigTipo === 'Refrigerador' ? {
+        marca: prodStr((s.refrigeracion && s.refrigeracion.marca) != null ? s.refrigeracion.marca : (prev.refrigeracion && prev.refrigeracion.marca), 60),
+        diseno: prodStr((s.refrigeracion && s.refrigeracion.diseno) != null ? s.refrigeracion.diseno : (prev.refrigeracion && prev.refrigeracion.diseno), 60),
+        tamano: prodStr((s.refrigeracion && s.refrigeracion.tamano) != null ? s.refrigeracion.tamano : (prev.refrigeracion && prev.refrigeracion.tamano), 40),
+        capacidadBarriles: Math.max(0, Math.round(prodNum((s.refrigeracion && s.refrigeracion.capacidadBarriles) != null ? s.refrigeracion.capacidadBarriles : (prev.refrigeracion && prev.refrigeracion.capacidadBarriles)))),
+      } : {}),
+    } : null;
+    const dispTipo = PROD_DISPENSADO_TIPOS.includes(s.dispensado && s.dispensado.tipo) ? s.dispensado.tipo : (prev.dispensado && prev.dispensado.tipo);
+    const dispensado = dispTipo ? { tipo: dispTipo, salidas: Math.min(20, Math.max(1, Math.round(prodNum((s.dispensado && s.dispensado.salidas) != null ? s.dispensado.salidas : (prev.dispensado && prev.dispensado.salidas) || 1)))) } : null;
+    const pinchTipo = PROD_PINCHADOR_TIPOS.includes(s.pinchadores && s.pinchadores.tipo) ? s.pinchadores.tipo : (prev.pinchadores && prev.pinchadores.tipo);
+    const pinchadores = pinchTipo ? { tipo: pinchTipo } : null;
+    const co2Cap = PROD_CO2_CAPACIDADES.includes(Number(s.co2Tanque && s.co2Tanque.capacidadKg)) ? Number(s.co2Tanque.capacidadKg) : (prev.co2Tanque && prev.co2Tanque.capacidadKg);
+    const co2RetVinc = (s.co2Tanque && s.co2Tanque.retornableVinculadoId != null) ? prodStr(s.co2Tanque.retornableVinculadoId, 40) : (prev.co2Tanque && prev.co2Tanque.retornableVinculadoId);
+    const co2Tanque = co2Cap ? { capacidadKg: co2Cap, retornableVinculadoId: co2RetVinc || null } : null;
+    const thTipo = PROD_TAP_HANDLE_TIPOS.includes(s.tapHandles && s.tapHandles.tipo) ? s.tapHandles.tipo : (prev.tapHandles && prev.tapHandles.tipo);
+    const tapHandles = thTipo ? { tipo: thTipo, cantidad: Math.max(0, Math.round(prodNum((s.tapHandles && s.tapHandles.cantidad) != null ? s.tapHandles.cantidad : (prev.tapHandles && prev.tapHandles.cantidad)))) } : null;
+    r.schoppera = { exclusividadPct: exclusividadPct || null, refrigeracion, dispensado, pinchadores, co2Tanque, tapHandles };
+  } else if (r.subtipo !== 'equipamiento' || !r.esSchoppera) { r.esSchoppera = !!r.esSchoppera; if (!r.esSchoppera) delete r.schoppera; }
+  return r;
+}
+app.post('/admin/produccion/inventario/activo-fijo', requireAdmin, (req, res) => {
+  const b = req.body || {}; const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  const nombre = prodStr(b.nombre, 120); if (!nombre) return res.status(400).json({ error: 'Ingresá el nombre del activo.' });
+  const it = prodActivoFijoClean(b, { id: prodNewId('af'), nombre, capexEntradaId: null }, d.inventario.estadosActivosFijos || []);
+  it.nombre = nombre;
+  d.inventario.activosFijos.push(it); prodSave(d); res.json({ ok: true, activoFijo: it });
+});
+app.put('/admin/produccion/inventario/activo-fijo/:id', requireAdmin, (req, res) => {
+  const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  const it = d.inventario.activosFijos.find(x => x.id === req.params.id); if (!it) return res.status(404).json({ error: 'No encontrado.' });
+  prodActivoFijoClean(req.body || {}, it, d.inventario.estadosActivosFijos || []);
+  prodSave(d); res.json({ ok: true, activoFijo: it });
+});
+app.delete('/admin/produccion/inventario/activo-fijo/:id', requireAdmin, (req, res) => {
+  const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  const it = d.inventario.activosFijos.find(x => x.id === req.params.id); if (!it) return res.status(404).json({ error: 'No encontrado.' });
+  // Desvincula (no borra) el registro CAPEX en Finanzas — el desembolso ya
+  // ocurrió y queda como historial financiero aunque el activo se dé de baja.
+  if (it.capexEntradaId) {
+    const cg = costosLoad(); const e = cg.entradas.find(x => x.id === it.capexEntradaId);
+    if (e) { e.activoFijoId = null; costosSave(cg); }
+  }
+  d.inventario.activosFijos = d.inventario.activosFijos.filter(x => x.id !== req.params.id);
+  prodSave(d); res.json({ ok: true });
+});
+// Vínculo Inventario → Finanzas (§4.3): SUGIERE crear el CAPEX pre-llenado;
+// solo se crea cuando el usuario confirma este POST explícito (nunca automático).
+app.post('/admin/produccion/inventario/activo-fijo/:id/crear-capex', requireAdmin, (req, res) => {
+  const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  const it = d.inventario.activosFijos.find(x => x.id === req.params.id); if (!it) return res.status(404).json({ error: 'Activo no encontrado.' });
+  if (it.capexEntradaId) return res.status(400).json({ error: 'Este activo ya tiene un registro CAPEX vinculado.' });
+  const b = req.body || {};
+  const r = costosCrearEntradaDesdeBody({
+    proveedor: b.proveedor, categoria: 'activos_fijos', fecha: b.fecha, folio: b.folio || it.codigoInterno || '', valor: b.valor != null ? b.valor : it.costoAdquisicion,
+    marca: b.marca || 'todas', centroDistribucion: b.centroDistribucion || CD_DEFAULT, adjunto: b.adjunto || null, activoFijoId: it.id,
+  });
+  if (r.error) return res.status(400).json(r);
+  it.capexEntradaId = r.entrada.id;
+  prodSave(d);
+  res.json({ ok: true, activoFijo: it, entrada: r.entrada });
 });
 // ── Recetas teóricas (D) ── ERP (scraping/sync) + complemento local. La receta
 // define litros esperados por formato y tiempos estándar por etapa → base de la
