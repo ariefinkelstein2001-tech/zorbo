@@ -5527,20 +5527,22 @@ async function erpStock(){
       }
     }
   }
-  // ── Latas/envases por depósito (encabezado "Depósito" + "Envase" + "Fecha Venc"). ──
-  // Usa otros atributos de fila (no data-idep), así que tomamos las filas de NIVEL 0
-  // (depósito: no-collapse) de forma robusta: nombre + últimos dos números = Cantidad, Litros.
-  // El drill-down interno se agrega cuando confirmemos el HTML crudo por el diagnóstico.
+  // ── Latas/envases por depósito → envase/producto → caja → lote (drill-down completo). ──
+  // Columnas (confirmadas por muestra): Depósito[1] Envase[2] Caja[3] Cant.Caja[4] Lote[5]
+  // Cantidad[6] Litros[7] FechaVenc[8]. Se clasifica por en qué columna cae el texto:
+  // depósito=[1] · envase/producto=[2] · caja=[3] · lote=[5].
   const depositosLatas = []; {
     const tbl = erpTablaPorFirma(html, h => /Dep[a-zñ&#;xX0-9]*sito/i.test(h) && /Envase/i.test(h) && /Fecha\s*Venc/i.test(h));
-    for (const m of tbl.matchAll(/<tr\b([^>]*)>([\s\S]*?)<\/tr>/gi)) {
-      const open = m[1] || ''; if (!/<td\b/i.test(m[2])) continue;
-      if (/\bclass=["'][^"']*collapse/i.test(open)) continue; // solo el nivel raíz (depósito)
-      const td = erpTds(m[2]);
-      const nombre = (td.find(x => x && /[a-zñ]/i.test(x) && !/^\d/.test(x)) || '').trim();
-      const nums = td.filter(x => x && /\d/.test(x) && !/[a-zñ]/i.test(x));
-      if (!nombre || nums.length < 2) continue;
-      depositosLatas.push({ deposito: nombre, cantidad: Math.round(erpNumEU(nums[nums.length - 2])), litros: erpNumEU(nums[nums.length - 1]), items: [] });
+    let dep = null, env = null, caja = null;
+    for (const m of tbl.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+      if (!/<td\b/i.test(m[1])) continue;
+      const td = erpTds(m[1]);
+      const cant = Math.round(erpNumEU(td[6])), litros = erpNumEU(td[7]);
+      const dName = (td[1] || '').trim(), eName = (td[2] || '').trim(), cName = (td[3] || '').trim(), lName = (td[5] || '').trim();
+      if (dName) { if (/^total$/i.test(dName)) continue; dep = { deposito: dName, cantidad: cant, litros, items: [] }; depositosLatas.push(dep); env = null; caja = null; }
+      else if (eName && dep) { env = { producto: eName, cantidad: cant, litros, cajas: [] }; dep.items.push(env); caja = null; }
+      else if (cName && env) { caja = { caja: cName, cantidad: cant, litros, lotes: [] }; env.cajas.push(caja); }
+      else if (lName && caja) { caja.lotes.push({ lote: lName.replace(/^#/, ''), fechaVenc: td[8] || '', cantidad: cant, litros }); }
     }
   }
   const sum = (arr, f) => arr.reduce((a, x) => a + (f(x) || 0), 0);
