@@ -7711,6 +7711,22 @@
         "unidad": "unidad",
         "rendimiento": null,
         "volumen": null
+      },
+      {
+        "id": "07c89e9d-3354-410b-8e9b-3a3b0bff154f",
+        "descripcion": "PAN",
+        "precioNeto": 2090,
+        "unidad": "kilogramo",
+        "rendimiento": null,
+        "volumen": null
+      },
+      {
+        "id": "b3b6c47b-ddb6-45b8-ba25-53a91c72a4d6",
+        "descripcion": "DEMIGLAS",
+        "precioNeto": 6596,
+        "unidad": "kilogramo",
+        "rendimiento": null,
+        "volumen": null
       }
     ],
     "recetasBase": [
@@ -7973,6 +7989,11 @@
             "refType": "insumo",
             "refId": "817fe761-3eeb-4788-8d87-a35c5a0ac2bd",
             "cantidad": 0.1
+          },
+          {
+            "refType": "insumo",
+            "refId": "07c89e9d-3354-410b-8e9b-3a3b0bff154f",
+            "cantidad": 1
           }
         ]
       },
@@ -8135,29 +8156,6 @@
             "refType": "rb",
             "refId": "3401a18f-9b76-4de4-a199-5a2da5bab764",
             "cantidad": 0.06
-          }
-        ]
-      },
-      {
-        "id": "1f5aa1e4-f07d-44a3-b4ff-868b9eec2114",
-        "nombre": "RB SALSA MARACUYA",
-        "unidad": "kilogramo",
-        "produccion": 4,
-        "lineas": [
-          {
-            "refType": "insumo",
-            "refId": "44d4d465-dec3-4937-b7c8-050897c031c1",
-            "cantidad": 2.5
-          },
-          {
-            "refType": "insumo",
-            "refId": "ab0eb31c-e512-4fe7-bfc2-12a8401c078b",
-            "cantidad": 2.1
-          },
-          {
-            "refType": "insumo",
-            "refId": "93d4c768-ef5a-4ce0-96da-60ae4d2bdb77",
-            "cantidad": 0.15
           }
         ]
       },
@@ -8433,7 +8431,7 @@
           {
             "refType": "insumo",
             "refId": "02bae5ed-e91c-4431-a409-9af53efee6d2",
-            "cantidad": 0.01
+            "cantidad": 0.1
           },
           {
             "refType": "insumo",
@@ -8448,12 +8446,22 @@
           {
             "refType": "rb",
             "refId": "bc2d2707-1252-4134-b86f-3c34be8749f9",
-            "cantidad": 0.1
+            "cantidad": 0.05
           },
           {
             "refType": "rb",
             "refId": "1c9d8125-25fd-449a-9028-178710558e12",
             "cantidad": 0.02
+          },
+          {
+            "refType": "insumo",
+            "refId": "82cb5153-836e-4b54-a1dc-2de03c67f292",
+            "cantidad": 10
+          },
+          {
+            "refType": "insumo",
+            "refId": "6ab70a33-bcf3-4811-9883-2ffb46e16ba3",
+            "cantidad": 0.2
           }
         ]
       },
@@ -9087,6 +9095,11 @@
             "refType": "insumo",
             "refId": "cf96c0b3-e08d-4c7f-9bf4-5d6d1953f4fe",
             "cantidad": 0.005
+          },
+          {
+            "refType": "insumo",
+            "refId": "b3b6c47b-ddb6-45b8-ba25-53a91c72a4d6",
+            "cantidad": 0.1
           }
         ]
       },
@@ -23816,6 +23829,15 @@
         "rendimiento": null,
         "volumen": 1,
         "ila": 0
+      },
+      {
+        "id": "26bfae8a-2aca-4a88-8f0e-92d33d75c1e3",
+        "descripcion": "AGUA",
+        "precioNeto": 0,
+        "unidad": "litro",
+        "rendimiento": null,
+        "volumen": 1,
+        "ila": 0
       }
     ],
     "recetasBase": [
@@ -23829,6 +23851,11 @@
             "refType": "insumo",
             "refId": "032f0c8d-aef4-404a-85f8-25f72fb08470",
             "cantidad": 25
+          },
+          {
+            "refType": "insumo",
+            "refId": "26bfae8a-2aca-4a88-8f0e-92d33d75c1e3",
+            "cantidad": 15
           }
         ]
       },
@@ -23847,6 +23874,11 @@
             "refType": "insumo",
             "refId": "6f6eed98-0754-477a-b829-e09cc0c16b90",
             "cantidad": 0.3
+          },
+          {
+            "refType": "insumo",
+            "refId": "26bfae8a-2aca-4a88-8f0e-92d33d75c1e3",
+            "cantidad": 3.5
           }
         ]
       },
@@ -23865,6 +23897,11 @@
             "refType": "insumo",
             "refId": "032f0c8d-aef4-404a-85f8-25f72fb08470",
             "cantidad": 12
+          },
+          {
+            "refType": "insumo",
+            "refId": "26bfae8a-2aca-4a88-8f0e-92d33d75c1e3",
+            "cantidad": 6
           }
         ]
       },
@@ -23896,6 +23933,11 @@
             "refType": "insumo",
             "refId": "032f0c8d-aef4-404a-85f8-25f72fb08470",
             "cantidad": 6
+          },
+          {
+            "refType": "insumo",
+            "refId": "26bfae8a-2aca-4a88-8f0e-92d33d75c1e3",
+            "cantidad": 5
           }
         ]
       },
@@ -23919,6 +23961,11 @@
             "refType": "insumo",
             "refId": "b571dc63-a68f-41a5-96ee-c4abb888ee9d",
             "cantidad": 3
+          },
+          {
+            "refType": "insumo",
+            "refId": "26bfae8a-2aca-4a88-8f0e-92d33d75c1e3",
+            "cantidad": 2.5
           }
         ]
       },
@@ -24021,6 +24068,11 @@
             "refType": "insumo",
             "refId": "1e1cf9b2-80df-453b-8364-2ff93776627c",
             "cantidad": 0.05
+          },
+          {
+            "refType": "insumo",
+            "refId": "26bfae8a-2aca-4a88-8f0e-92d33d75c1e3",
+            "cantidad": 1.6
           }
         ]
       },
@@ -24067,6 +24119,11 @@
             "refType": "insumo",
             "refId": "1e1cf9b2-80df-453b-8364-2ff93776627c",
             "cantidad": 0.3
+          },
+          {
+            "refType": "insumo",
+            "refId": "26bfae8a-2aca-4a88-8f0e-92d33d75c1e3",
+            "cantidad": 7
           }
         ]
       },
@@ -24175,6 +24232,11 @@
             "refType": "insumo",
             "refId": "348ddd57-1266-4ee8-a39c-f47216e7aca5",
             "cantidad": 0.1
+          },
+          {
+            "refType": "insumo",
+            "refId": "26bfae8a-2aca-4a88-8f0e-92d33d75c1e3",
+            "cantidad": 3.5
           }
         ]
       },
@@ -24187,6 +24249,11 @@
           {
             "refType": "insumo",
             "refId": "6f6eed98-0754-477a-b829-e09cc0c16b90",
+            "cantidad": 0.3
+          },
+          {
+            "refType": "insumo",
+            "refId": "26bfae8a-2aca-4a88-8f0e-92d33d75c1e3",
             "cantidad": 0.3
           }
         ]
@@ -24224,6 +24291,11 @@
             "refType": "insumo",
             "refId": "032f0c8d-aef4-404a-85f8-25f72fb08470",
             "cantidad": 4
+          },
+          {
+            "refType": "insumo",
+            "refId": "26bfae8a-2aca-4a88-8f0e-92d33d75c1e3",
+            "cantidad": 2.8
           }
         ]
       },
