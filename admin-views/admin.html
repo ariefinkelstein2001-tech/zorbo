@@ -1880,6 +1880,12 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .cg-field-btn .adm-btn{width:100%}
 .cg-err{display:none;margin-top:.6rem;color:var(--red,#d33);font-size:.82rem;font-weight:600}
 .cg-err.show{display:block}
+.cg-ok{display:none;margin-top:.6rem;color:#1f7a44;font-size:.82rem;font-weight:600}
+.cg-ok:not(:empty){display:block}
+.cg-cd-bar{display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap;background:var(--gold-dim,#fff3d6);border-color:var(--gold,#f5a623)}
+.cg-cd-bar .cg-field{min-width:220px}
+.cg-cd-hint{font-size:.82rem;color:var(--gold-deep,#a05f00);padding-bottom:.55rem}
+.cg-centros-hint{font-size:.72rem;color:var(--muted,#666);margin-top:.2rem}
 .cg-resumen{display:flex;gap:.7rem;flex-wrap:wrap;margin-bottom:1rem}
 .cg-card{flex:1;min-width:150px;border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.7rem .85rem;background:var(--surface,#fff);box-shadow:var(--shadow-sm)}
 .cg-card-total{border-color:var(--gold-bd,#f1c97b);background:var(--gold-dim,rgba(245,166,35,.08))}
@@ -2877,6 +2883,7 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
           <div class="adm-panel-meta" id="pnlMeta">ingresos por venta − costos y gastos del mes</div>
         </div>
         <div class="adm-actions">
+          <select id="pnlCd" class="costeo-svc"></select>
           <select id="pnlMes" class="costeo-svc"></select>
           <button class="adm-btn adm-btn-gold" id="pnlExcel" type="button">⬇ Descargar Excel</button>
           <button class="adm-btn adm-btn-ghost" id="pnlReload" type="button">Recargar</button>
@@ -9427,16 +9434,18 @@ function estDrill(which){
 
 // ─── Costos y Gastos (mismo backend, dos fichas separadas) ──────────────────
 const COSTOS_MARCAS_LBL={kairos:'Kairos',banny:'Banny',firulais:'Firulais'};
-// Centros de costo con los que se puede compartir una factura de Gasto (misma
-// factura, un proveedor, repartida entre locales). Solo trazabilidad — el %
-// que cuenta para Zorbo ya lo da "Porcentaje del total", esto no reparte nada.
-const COSTOS_CENTROS_LBL={garden_santiago:'Kairos Beer Garden Santiago',badass_parque_arauco:'Kairos Badass Parque Arauco',kairos_brewing:'Kairos Brewing'};
-const COSTOS_CENTROS_IDS=Object.keys(COSTOS_CENTROS_LBL);
+// Centros de Distribución (CD): cada uno tiene su propia administración
+// financiera. Hasta ahora todo lo cargado corresponde a CD KAIROS; las demás
+// se arman desde acá — es la misma lista que "¿con quién compartes la
+// factura?" (ahí se excluye el CD elegido como principal del documento).
+const CD_LBL={cd_kairos:'CD KAIROS',garden_vespucio:'CD Kairos Garden Vespucio',garden_antofagasta:'CD Kairos Garden Antofagasta',badass:'CD Kairos Badass'};
+const CD_IDS=Object.keys(CD_LBL);
+const CD_DEFAULT='cd_kairos';
 const COSTOS_TIPO_CFG={
   costo:{ bodyId:'costosBody', mesId:'costosMes', reloadId:'costosReload', pctTotal:false, vacio:'Todavía no hay costos registrados', nombre:'costo' },
   gasto:{ bodyId:'gastosBody', mesId:'gastosMes', reloadId:'gastosReload', pctTotal:true,  vacio:'Todavía no hay gastos registrados', nombre:'gasto' },
 };
-function cgBlankForm(){ return { proveedor:'', categoria:'', subcategoria:'', subnivel:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'', centrosCosto:[] }; }
+function cgBlankForm(){ return { centroDistribucion:CD_DEFAULT, proveedor:'', categoria:'', subcategoria:'', subnivel:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'', centrosCosto:[] }; }
 // Después de "Agregar" solo se limpia "Este documento" (fecha/folio/valor/%/
 // adjunto) — proveedor/categoría/subcategoría/marca quedan tal cual, para
 // cargar varios documentos seguidos del mismo proveedor sin re-elegirlos cada
@@ -9455,7 +9464,8 @@ async function loadCostos(tipo){
   const body=document.getElementById(cfg.bodyId); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   try{
     const mes=document.getElementById(cfg.mesId).value||'';
-    const r=await fetch('/admin/costos?tipo='+tipo+(mes?'&mes='+mes:'')); const d=await r.json();
+    const cdSel=costosForm[tipo].centroDistribucion||CD_DEFAULT;
+    const r=await fetch('/admin/costos?tipo='+tipo+'&cd='+cdSel+(mes?'&mes='+mes:'')); const d=await r.json();
     if(d.error) throw new Error(d.error);
     costosData[tipo]=d;
     // poblar el selector de meses (conserva selección)
@@ -9532,7 +9542,11 @@ function renderCostos(tipo){
       catCell=`<span class="cg-tag">${escapeHtml(catLbl)}</span>`;
     }
     const pctNote=(cfg.pctTotal && e.pctTotal!=null && e.pctTotal<100)?`<div class="cg-pct-note">${e.pctTotal}% Zorbo = ${eM(Math.round((Number(e.valor)||0)*e.pctTotal/100))}</div>`:'';
-    const centrosNote=(cfg.pctTotal && Array.isArray(e.centrosCosto) && e.centrosCosto.length)?`<div class="cg-pct-note">Compartido con: ${e.centrosCosto.map(c=>escapeHtml(COSTOS_CENTROS_LBL[c]||c)).join(', ')}</div>`:'';
+    const centrosNote=(cfg.pctTotal && Array.isArray(e.centrosCosto) && e.centrosCosto.length)?`<div class="cg-pct-note">Compartido con: ${e.centrosCosto.map(c=>escapeHtml(CD_LBL[c]||c)).join(', ')}</div>`:'';
+    // Filas que llegaron solas por el cruce automático de otra CD (origenId
+    // apunta al documento original) — se marcan para no confundirlas con una
+    // carga manual.
+    const origenNote=e.origenId?`<div class="cg-pct-note">🔗 registrado automático desde otra CD</div>`:'';
     return `
     <tr>
       <td>${escapeHtml(e.fecha)}</td>
@@ -9540,11 +9554,16 @@ function renderCostos(tipo){
       <td>${catCell}</td>
       <td>${escapeHtml(cgMarcaLabel(e))}</td>
       <td>${escapeHtml(e.folio||'—')}</td>
-      <td class="dist-num">${eM(e.valor)}${pctNote}${centrosNote}</td>
+      <td class="dist-num">${eM(e.valor)}${pctNote}${centrosNote}${origenNote}</td>
       <td>${e.adjunto&&e.adjunto.url?`<a class="cg-doc-link" href="${escapeAttr(e.adjunto.url)}" target="_blank" title="${escapeAttr(e.adjunto.name||'documento')}">📎 ver</a>`:'<span style="color:#ccc">—</span>'}</td>
       <td><button class="pv-del" data-cgdel="${e.id}" data-cgtipo="${tipo}" title="Eliminar">✕</button></td>
     </tr>`;}).join('');
+  const cdOpts=CD_IDS.map(c=>`<option value="${c}" ${f.centroDistribucion===c?'selected':''}>${escapeHtml(CD_LBL[c])}</option>`).join('');
   body.innerHTML=`
+    <div class="cg-form cg-cd-bar">
+      <label class="cg-field"><span>Centro de Distribución</span><select id="${cgId(tipo,'CD')}">${cdOpts}</select></label>
+      <div class="cg-cd-hint">Estás viendo y cargando ${cfg.nombre}s de <b>${escapeHtml(CD_LBL[f.centroDistribucion])}</b> — cada CD tiene su propia administración financiera.</div>
+    </div>
     <div class="cg-form">
       <div class="cg-form-title">Registrar ${cfg.nombre}</div>
       <div class="cg-form-grid">
@@ -9561,14 +9580,22 @@ function renderCostos(tipo){
         <label class="cg-field"><span>Folio / N° documento</span><input type="text" id="${cgId(tipo,'Folio')}" value="${escapeAttr(f.folio)}" placeholder="Ej: 46211"></label>
         <label class="cg-field"><span>Valor ($)</span><input type="text" inputmode="numeric" id="${cgId(tipo,'Valor')}" value="${escapeAttr(f.valor)}" placeholder="0"></label>
         ${cfg.pctTotal?`<label class="cg-field"><span>Porcentaje del total (opcional)</span><input type="number" min="1" max="100" step="0.1" id="${cgId(tipo,'PctTotal')}" value="${escapeAttr(f.pctTotal)}" placeholder="Ej: 60 si la factura es compartida"></label>`:''}
-        ${cfg.pctTotal?`<div class="cg-field cg-marca-detalle cg-centros-wrap" id="${cgId(tipo,'CentrosWrap')}" style="${f.pctTotal?'':'display:none'}">
-          <span>¿Con quién compartes la factura?</span>
-          <div class="cg-centros-chk">${COSTOS_CENTROS_IDS.map(c=>`<label><input type="checkbox" data-cgcentro="${c}" ${f.centrosCosto.includes(c)?'checked':''}> ${escapeHtml(COSTOS_CENTROS_LBL[c])}</label>`).join('')}</div>
-        </div>`:''}
+        ${cfg.pctTotal?(()=>{
+          const otrosCd=CD_IDS.filter(c=>c!==f.centroDistribucion);
+          const restante=f.pctTotal?Math.round((100-Number(f.pctTotal))*10)/10:null;
+          const porCada=(restante!=null&&f.centrosCosto.length)?Math.round(restante/f.centrosCosto.length*10)/10:null;
+          const hint=porCada!=null?`El ${restante}% restante se registra solo, automáticamente, en los libros de cada CD marcada (${porCada}% cada una si marcás más de una) — no hace falta cargar el documento de nuevo ahí.`:'';
+          return `<div class="cg-field cg-marca-detalle cg-centros-wrap" id="${cgId(tipo,'CentrosWrap')}" style="${f.pctTotal?'':'display:none'}">
+          <span>¿Con qué otra CD compartes la factura?</span>
+          <div class="cg-centros-chk">${otrosCd.map(c=>`<label><input type="checkbox" data-cgcentro="${c}" ${f.centrosCosto.includes(c)?'checked':''}> ${escapeHtml(CD_LBL[c])}</label>`).join('')}</div>
+          ${hint?`<div class="cg-centros-hint">${hint}</div>`:''}
+        </div>`;
+        })():''}
         <label class="cg-field"><span>Documento (PDF / imagen)</span><input type="file" id="${cgId(tipo,'File')}" accept="application/pdf,image/png,image/jpeg,image/webp,image/gif"><small class="cg-file-name" id="${cgId(tipo,'FileName')}">${f.adjunto?escapeHtml(f.adjunto.filename):'opcional · máx 8 MB'}</small></label>
         <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="${cgId(tipo,'Add')}" type="button">+ Agregar</button></div>
       </div>
       <div class="cg-err" id="${cgId(tipo,'Err')}"></div>
+      <div class="cg-ok" id="${cgId(tipo,'Ok')}"></div>
     </div>
     <div class="cg-resumen">${resumenCards}<div class="cg-card cg-card-total"><div class="cg-card-l">Total</div><div class="cg-card-v">${eM(rs.total)}</div><div class="cg-card-n">${(a.entradas||[]).length} doc${(a.entradas||[]).length===1?'':'s'}</div></div></div>
     ${filterBar}
@@ -9577,6 +9604,10 @@ function renderCostos(tipo){
 }
 function wireCostos(tipo){
   const cfg=COSTOS_TIPO_CFG[tipo]; const f=costosForm[tipo];
+  // Cambiar de CD recarga toda la lista (cada CD tiene sus propios libros) y
+  // reordena "compartir con" (ya no puede incluir la CD recién elegida).
+  const cdSel=document.getElementById(cgId(tipo,'CD'));
+  if(cdSel) cdSel.onchange=async()=>{ f.centroDistribucion=cdSel.value; f.centrosCosto=[]; await loadCostos(tipo); };
   const prov=document.getElementById(cgId(tipo,'Prov')), cat=document.getElementById(cgId(tipo,'Cat')), marca=document.getElementById(cgId(tipo,'Marca'));
   const fecha=document.getElementById(cgId(tipo,'Fecha')), folio=document.getElementById(cgId(tipo,'Folio')), valor=document.getElementById(cgId(tipo,'Valor'));
   prov.onchange=async()=>{
@@ -9643,7 +9674,8 @@ function costosShowErr(tipo,msg){ const e=document.getElementById(cgId(tipo,'Err
 async function costosAgregar(tipo){
   const cfg=COSTOS_TIPO_CFG[tipo]; const f=costosForm[tipo];
   const e=document.getElementById(cgId(tipo,'Err')); if(e){ e.textContent=''; e.classList.remove('show'); }
-  const payload={ proveedor:f.proveedor, categoria:f.categoria, subcategoria:f.subcategoria, subnivel:f.subnivel, fecha:f.fecha, folio:f.folio, valor:cNum(f.valor), adjunto:f.adjunto||null, marca:f.marca };
+  const ok=document.getElementById(cgId(tipo,'Ok')); if(ok) ok.textContent='';
+  const payload={ centroDistribucion:f.centroDistribucion||CD_DEFAULT, proveedor:f.proveedor, categoria:f.categoria, subcategoria:f.subcategoria, subnivel:f.subnivel, fecha:f.fecha, folio:f.folio, valor:cNum(f.valor), adjunto:f.adjunto||null, marca:f.marca };
   if(f.marca==='algunas') payload.marcaDetalle=['kairos','banny','firulais'].filter(m=>f.marcaSel[m]).map(m=>({marca:m,pct:Number(f.marcaPct[m])||0}));
   if(cfg.pctTotal && f.pctTotal){ payload.pctTotal=Number(f.pctTotal); if(f.centrosCosto.length) payload.centrosCosto=f.centrosCosto.slice(); }
   if(!payload.proveedor||payload.proveedor==='__nuevo__') return costosShowErr(tipo,'Elige un proveedor.');
@@ -9658,6 +9690,14 @@ async function costosAgregar(tipo){
     if(!r.ok) throw new Error(d.error||'Error');
     cgResetSection2(tipo);
     await loadCostos(tipo);
+    // loadCostos → renderCostos reemplaza todo el HTML del formulario, así que
+    // el elemento "ok" de más arriba ya quedó desconectado del documento —
+    // hay que volver a buscarlo recién ahora para que el mensaje se vea.
+    const okAfter=document.getElementById(cgId(tipo,'Ok'));
+    if(okAfter && Array.isArray(d.espejos) && d.espejos.length){
+      const detalle=d.espejos.map(x=>`${escapeHtml(CD_LBL[x.centroDistribucion]||x.centroDistribucion)} (${x.pctTotal}%)`).join(', ');
+      okAfter.textContent='✓ También se registró automáticamente en: '+detalle;
+    }
   }catch(err){ costosShowErr(tipo,String(err.message||err)); }
 }
 async function costosEliminar(tipo,id){
@@ -9959,7 +9999,7 @@ let pnlData=null;
 let pnlProyectado=false; // toggle Real / Proyectado (simulación de solo lectura)
 async function loadPnl(){
   const body=document.getElementById('pnlBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
-  const sel=document.getElementById('pnlMes');
+  const sel=document.getElementById('pnlMes'); const cdSel=document.getElementById('pnlCd');
   try{
     if(!sel.options.length){
       let periodos=[]; try{ periodos=((await (await fetch('/admin/estado/periodos')).json()).periodos)||[]; }catch{}
@@ -9969,8 +10009,9 @@ async function loadPnl(){
       sel.innerHTML=months.map(m=>`<option value="${m}">${escapeHtml(estMonthLabel(m))}</option>`).join('');
       sel.value=(typeof estadoMonth==='string'&&estadoMonth)||months[0];
     }
-    const mes=sel.value;
-    const r=await fetch('/admin/pnl?month='+mes+(pnlProyectado?'&proyectar=1':'')); pnlData=await r.json();
+    if(!cdSel.options.length) cdSel.innerHTML=CD_IDS.map(c=>`<option value="${c}">${escapeHtml(CD_LBL[c])}</option>`).join('');
+    const mes=sel.value, cd=cdSel.value||CD_DEFAULT;
+    const r=await fetch('/admin/pnl?month='+mes+'&cd='+cd+(pnlProyectado?'&proyectar=1':'')); pnlData=await r.json();
     if(pnlData.error) throw new Error(pnlData.error);
     renderPnl();
   }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
@@ -9978,7 +10019,7 @@ async function loadPnl(){
 function renderPnl(){
   const a=pnlData, body=document.getElementById('pnlBody');
   const proy=!!a.proyectado;
-  document.getElementById('pnlMeta').textContent=(a.shopifyOk?'Shopify OK':'⚠️ Shopify no disponible')+' · '+estMonthLabel(a.month)+' · ingresos por venta − costos y gastos'+(proy?` · PROYECTADO según ${escapeHtml(a.mesReplicadoLabel||'')}`:'');
+  document.getElementById('pnlMeta').textContent=(a.shopifyOk?'Shopify OK':'⚠️ Shopify no disponible')+' · '+estMonthLabel(a.month)+' · '+(CD_LBL[a.cd]||a.cd)+' · ingresos por venta − costos y gastos'+(proy?` · PROYECTADO según ${escapeHtml(a.mesReplicadoLabel||'')}`:'');
   const ing=a.ingresos, co=a.costos, rt=a.ratios, dc=a.docs||{};
   const obj=a.objetivos||{};
   const pct=v=>`<span class="pnl-pct">${v}%</span>`;
@@ -10002,6 +10043,24 @@ function renderPnl(){
   </div>`;
   const comentario=(obj.comentario||'').trim();
   const comentarioHtml=comentario?`<details class="pnl-coment"><summary>Ver comentario de Finanzas</summary><div class="pnl-coment-body">${escapeHtml(comentario).replace(/\n/g,'<br>')}</div></details>`:'';
+  // Fuera de CD KAIROS: el ingreso (Shopify) todavía no está separado por CD —
+  // mostrar margen/EBITDA mezclaría el ingreso de TODA la empresa contra los
+  // costos/gastos de una sola CD, un número falso. Se muestra solo el
+  // desglose de costos/gastos de esa CD, con un aviso explícito.
+  if(a.ingresosSegmentados===false){
+    const cdLbl=escapeHtml(CD_LBL[a.cd]||a.cd);
+    body.innerHTML=`
+      <div class="adm-status warn" style="margin-bottom:.8rem">⚠️ El ingreso por venta todavía no está separado por Centro de Distribución — esta vista muestra solo los <b>costos y gastos</b> cargados para <b>${cdLbl}</b>. El margen y el EBITDA de esta CD llegan en una fase futura, cuando el ingreso también se segmente.</div>
+      <div class="mun-wrap"><table class="mun-table pnl-table"><tbody>
+        ${line('Costo directo', co.costoDirecto, {neg:true, doc:dc.costo_directo||0})}
+        ${line('Costo indirecto', co.costoIndirecto, {neg:true, doc:dc.costo_indirecto||0})}
+        ${line('Gastos operativos', co.gastosOper, {neg:true, doc:dc.gastos_operativos||0})}
+        ${line('Gastos de administración y venta', co.gastosAdmin, {neg:true, doc:dc.gastos_admin_venta||0})}
+        ${line('Marketing y publicidad', co.gastosMarketing, {neg:true, doc:dc.marketing_publicidad||0})}
+      </tbody></table></div>
+      <div class="pnl-activos"><span>Activos fijos <span style="font-size:.78rem;color:var(--dim,#999)">inversión, no afecta el resultado operativo</span></span><b>${eM(co.activos)}</b> <span class="pnl-doc">${dc.activos_fijos||0} doc${(dc.activos_fijos||0)===1?'':'s'}</span></div>`;
+    return;
+  }
   body.innerHTML=`
     <div class="pnl-topbar">${toggle}${proy?`<span class="pnl-proj-note">Simulación: los gastos estructurales replican el total de <b>${escapeHtml(a.mesReplicadoLabel||'')}</b>. No modifica datos guardados.</span>`:''}</div>
     <div class="est-top">
@@ -10051,6 +10110,7 @@ async function pnlGuardarObjetivos(){
 }
 document.getElementById('pnlReload').onclick=loadPnl;
 document.getElementById('pnlMes').onchange=loadPnl;
+document.getElementById('pnlCd').onchange=loadPnl;
 document.getElementById('pnlExcel').onclick=()=>{ const m=document.getElementById('pnlMes').value; if(m) window.open('/admin/pnl/export.xlsx?month='+m,'_blank'); };
 
 // ─── Inicio del área FINANZAS (plantilla reutilizable): resumen IA + 3 cuadros ───

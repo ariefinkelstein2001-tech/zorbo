@@ -3407,17 +3407,21 @@ const COSTOS_TIPOS = ['costo', 'gasto'];
 // varias, con % de reparto) y así medir desempeño por marca a futuro.
 const COSTOS_MARCAS = ['kairos', 'banny', 'firulais'];
 const COSTOS_MARCA_VALORES = [...COSTOS_MARCAS, 'todas', 'algunas'];
-// Centros de costo con los que se puede compartir una factura de Gasto (ej. un
-// proveedor emite una sola factura que se reparte entre distintos locales). Es
-// puramente informativo/trazable: el % que efectivamente cuenta para Zorbo ya
-// lo da "pctTotal" (costosValorEfectivo); esto solo registra CON QUIÉN se
-// comparte el resto, no vuelve a repartir el monto.
-const COSTOS_CENTROS_COSTO = [
-  { id: 'garden_santiago', label: 'Kairos Beer Garden Santiago' },
-  { id: 'badass_parque_arauco', label: 'Kairos Badass Parque Arauco' },
-  { id: 'kairos_brewing', label: 'Kairos Brewing' },
+// Centros de Distribución (CD): cada uno tiene su propia administración
+// financiera — Costos, Gastos, Estado de Resultado, Notas de crédito y
+// Gestión de personas van a vivir separados por CD. Hasta ahora TODO lo
+// cargado en Finanzas corresponde a CD KAIROS (única CD con libros armados);
+// las demás se arman desde acá en adelante (costosLoad migra las entradas
+// viejas). También es la lista de "¿con quién compartes la factura?" en
+// Gastos — ahí se excluye el CD ya elegido como principal del documento.
+const CD_LIST = [
+  { id: 'cd_kairos', label: 'CD KAIROS' },
+  { id: 'garden_vespucio', label: 'CD Kairos Garden Vespucio' },
+  { id: 'garden_antofagasta', label: 'CD Kairos Garden Antofagasta' },
+  { id: 'badass', label: 'CD Kairos Badass' },
 ];
-const COSTOS_CENTRO_COSTO_IDS = COSTOS_CENTROS_COSTO.map(c => c.id);
+const CD_IDS = CD_LIST.map(c => c.id);
+const CD_DEFAULT = 'cd_kairos';
 // Proveedores iniciales (semilla). Se pueden agregar más desde el panel.
 const COSTOS_PROVEEDORES_SEED = [
   'Embotelladora Andina', 'Navarro y Cía. SpA', 'Navarro y Cía. SpA (Insumo de Oasis)', 'Ariscorp SpA',
@@ -3441,6 +3445,12 @@ function costosLoad(){
     data.proveedores = COSTOS_PROVEEDORES_SEED.filter(n => { const k = n.toLowerCase().replace(/\s+/g, ' ').trim(); if (seen.has(k)) return false; seen.add(k); return true; })
       .map(nombre => ({ id: costosNewId('prov'), nombre }));
   }
+  // Migración: toda entrada cargada antes de que existiera el concepto de
+  // Centro de Distribución no trae centroDistribucion — corresponde a CD KAIROS
+  // (la única CD con administración financiera armada hasta este punto).
+  let migrado = false;
+  for (const e of data.entradas) { if (!e.centroDistribucion) { e.centroDistribucion = CD_DEFAULT; migrado = true; } }
+  if (migrado) costosSave(data);
   return data;
 }
 function costosSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTOS_FILE, JSON.stringify(d, null, 2)); }
@@ -3530,7 +3540,10 @@ app.get('/admin/costos', requireAdmin, (req, res) => {
   const data = costosLoad();
   const mes = /^\d{4}-\d{2}$/.test(String(req.query.mes)) ? String(req.query.mes) : null;
   const tipo = COSTOS_TIPOS.includes(String(req.query.tipo)) ? String(req.query.tipo) : null;
-  let entradas = data.entradas.slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  const cd = CD_IDS.includes(String(req.query.cd)) ? String(req.query.cd) : CD_DEFAULT;
+  // Cada CD tiene sus propios libros — filtra siempre por CD (default CD KAIROS,
+  // igual que se veía antes de que existiera este campo).
+  let entradas = data.entradas.filter(e => (e.centroDistribucion || CD_DEFAULT) === cd).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
   if (tipo) entradas = entradas.filter(e => COSTOS_CAT_TIPO[e.categoria] === tipo);
   const entradasDelTipo = entradas;
   if (mes) entradas = entradas.filter(e => costosMes(e.fecha) === mes);
@@ -3539,6 +3552,7 @@ app.get('/admin/costos', requireAdmin, (req, res) => {
     categorias: tipo ? COSTOS_CATEGORIAS.filter(c => c.tipo === tipo) : COSTOS_CATEGORIAS,
     subcategorias: COSTOS_SUBCATEGORIAS,
     marcas: COSTOS_MARCAS,
+    cds: CD_LIST, cd,
     proveedores: data.proveedores.slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
     // subEfectiva/subLabel: incluyen el default "General" para Operativos sin subcategoría (no destructivo).
     entradas: entradas.map(e => { const sub = costosSubEfectiva(e); return { ...e, marca: e.marca || 'todas', subEfectiva: sub, subLabel: costosSubLabel(e.categoria, sub, e.subnivel) }; }),
@@ -3567,6 +3581,10 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
   const folio = costosStr(b.folio, 60);
   const valor = costosNum(b.valor);
   const marca = costosStr(b.marca, 20);
+  // Centro de Distribución dueño de este documento (Sección 0 del formulario).
+  // Default a CD KAIROS por compatibilidad con clientes viejos, pero el
+  // frontend actual siempre lo manda explícito.
+  const centroDistribucion = CD_IDS.includes(costosStr(b.centroDistribucion, 30)) ? costosStr(b.centroDistribucion, 30) : CD_DEFAULT;
   if (!proveedor) return res.status(400).json({ error: 'Elegí un proveedor.' });
   const catDef = COSTOS_CATEGORIAS.find(c => c.id === categoria);
   if (!catDef) return res.status(400).json({ error: 'Elige una categoría válida.' });
@@ -3600,16 +3618,17 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
     if (!Number.isFinite(p) || p <= 0 || p > 100) return res.status(400).json({ error: 'El porcentaje del total debe ser entre 1 y 100.' });
     pctTotal = Math.round(p * 10) / 10;
   }
-  // Con quién se comparte la factura (solo tiene sentido si hay pctTotal): lista
-  // de centros de costo, sin duplicados. Opcional incluso con pctTotal seteado —
-  // no todos van a querer registrar el detalle.
+  // Con qué otras CD se comparte la factura (solo tiene sentido si hay
+  // pctTotal): lista de CD, sin duplicados y sin la CD principal del
+  // documento (no te compartís la factura a vos mismo). Opcional incluso con
+  // pctTotal seteado — no todos van a querer registrar el detalle.
   let centrosCosto = null;
   if (pctTotal != null && Array.isArray(b.centrosCosto)) {
     const seen = new Set();
     centrosCosto = [];
     for (const raw of b.centrosCosto) {
       const idc = costosStr(raw, 30);
-      if (!COSTOS_CENTRO_COSTO_IDS.includes(idc) || seen.has(idc)) continue;
+      if (!CD_IDS.includes(idc) || idc === centroDistribucion || seen.has(idc)) continue;
       seen.add(idc); centrosCosto.push(idc);
     }
     if (!centrosCosto.length) centrosCosto = null;
@@ -3629,9 +3648,28 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
   const data = costosLoad();
   // Si el proveedor no está creado, lo crea al vuelo (viene de "crear nuevo").
   if (!data.proveedores.some(p => p.nombre === proveedor)) data.proveedores.push({ id: costosNewId('prov'), nombre: proveedor });
-  const entrada = { id: costosNewId('cg'), proveedor, categoria, subcategoria, subnivel, fecha, folio, valor, adjunto, marca, marcaDetalle, pctTotal, centrosCosto };
-  data.entradas.push(entrada); costosSave(data);
-  res.json({ ok: true, entrada });
+  const entrada = { id: costosNewId('cg'), proveedor, categoria, subcategoria, subnivel, fecha, folio, valor, adjunto, marca, marcaDetalle, pctTotal, centrosCosto, centroDistribucion, origenId: null };
+  data.entradas.push(entrada);
+  // Cruce automático: el mismo documento se comparte con otra(s) CD, así que
+  // el porcentaje que NO es de esta CD se registra solo, como su propia
+  // entrada, en los libros de cada CD marcada — para que aparezca solo en su
+  // Estado de Resultado sin tener que cargar el documento de nuevo ahí. Si se
+  // marca más de una CD, el resto se reparte por igual entre todas (no hay
+  // % individual por CD en el formulario — ver hint en pantalla).
+  const espejos = [];
+  if (centrosCosto && centrosCosto.length) {
+    const restante = Math.round((100 - pctTotal) * 10) / 10;
+    const porCd = Math.round((restante / centrosCosto.length) * 10) / 10;
+    for (const cdTarget of centrosCosto) {
+      const espejo = {
+        id: costosNewId('cg'), proveedor, categoria, subcategoria, subnivel, fecha, folio, valor, adjunto,
+        marca, marcaDetalle, pctTotal: porCd, centrosCosto: null, centroDistribucion: cdTarget, origenId: entrada.id,
+      };
+      data.entradas.push(espejo); espejos.push(espejo);
+    }
+  }
+  costosSave(data);
+  res.json({ ok: true, entrada, espejos });
 });
 // PUT: reclasifica la subcategoría/subnivel de un registro existente (edición no destructiva).
 app.put('/admin/costos/entrada/:id/subcategoria', requireAdmin, (req, res) => {
@@ -3649,13 +3687,25 @@ app.put('/admin/costos/entrada/:id/subcategoria', requireAdmin, (req, res) => {
 app.delete('/admin/costos/entrada/:id', requireAdmin, (req, res) => {
   const id = String(req.params.id); const data = costosLoad();
   const removed = data.entradas.find(e => e.id === id);
-  const n = data.entradas.length; data.entradas = data.entradas.filter(e => e.id !== id);
-  if (data.entradas.length === n) return res.status(404).json({ error: 'No se encontró la entrada.' });
-  // Borrar el adjunto del disco (solo dentro de /uploads/ — anti path traversal).
-  if (removed && removed.adjunto && removed.adjunto.url && removed.adjunto.url.startsWith('/uploads/')) {
-    try { const p = join(UPLOADS_DIR, removed.adjunto.url.replace('/uploads/', '')); if (existsSync(p)) unlinkSync(p); } catch {}
+  if (!removed) return res.status(404).json({ error: 'No se encontró la entrada.' });
+  // Cascada: si esta entrada generó espejos automáticos en otra(s) CD (por
+  // compartir factura), se borran también — si no, quedaría un monto en los
+  // libros de esa CD sin respaldo (la factura original ya no existe).
+  const espejos = data.entradas.filter(e => e.origenId === id);
+  const idsABorrar = new Set([id, ...espejos.map(e => e.id)]);
+  const eliminadas = data.entradas.filter(e => idsABorrar.has(e.id));
+  data.entradas = data.entradas.filter(e => !idsABorrar.has(e.id));
+  // Borrar el adjunto del disco (solo dentro de /uploads/ — anti path traversal),
+  // pero solo si ninguna entrada que quede sigue apuntando al mismo archivo
+  // (el espejo comparte la URL del original: es el mismo documento físico).
+  for (const e of eliminadas) {
+    const url = e.adjunto && e.adjunto.url;
+    if (!url || !url.startsWith('/uploads/')) continue;
+    const enUso = data.entradas.some(x => x.adjunto && x.adjunto.url === url);
+    if (enUso) continue;
+    try { const p = join(UPLOADS_DIR, url.replace('/uploads/', '')); if (existsSync(p)) unlinkSync(p); } catch {}
   }
-  costosSave(data); res.json({ ok: true });
+  costosSave(data); res.json({ ok: true, espejosEliminados: espejos.length });
 });
 
 // ─── ESTADO DE RESULTADO (P&L) = Ingresos por venta − Costos y Gastos ────────
@@ -3667,12 +3717,19 @@ app.delete('/admin/costos/entrada/:id', requireAdmin, (req, res) => {
 function costosEnRango(entradas, from, to){
   return entradas.filter(e => { const f = costosStr(e.fecha, 20); return f && f >= from && f <= to; });
 }
-async function pnlCompute(month, rango){
+// cdSel: qué Centro de Distribución mirar (default CD KAIROS, igual que se
+// veía antes de que existiera este campo). Los ingresos (Shopify) todavía NO
+// están segmentados por CD — solo Costos/Gastos — así que fuera de CD KAIROS
+// se devuelve el mismo total de ingresos con ingresosSegmentados:false para
+// que el frontend avise que ese número no es exclusivo de esa CD.
+async function pnlCompute(month, rango, cdSel){
   const est = await estadoResolve(month, rango);
-  const cd = costosLoad();
+  const cgData = costosLoad();
+  const cdFiltro = CD_IDS.includes(cdSel) ? cdSel : CD_DEFAULT;
+  const entradasCd = cgData.entradas.filter(e => (e.centroDistribucion || CD_DEFAULT) === cdFiltro);
   const entradas = (rango && rango.from && rango.to)
-    ? costosEnRango(cd.entradas, rango.from, rango.to)
-    : cd.entradas.filter(e => costosMes(e.fecha) === month);
+    ? costosEnRango(entradasCd, rango.from, rango.to)
+    : entradasCd.filter(e => costosMes(e.fecha) === month);
   const rs = costosResumen(entradas);
   // Ajustes que corrigen/complementan el EERR: boletas de honorarios (suman a su categoría),
   // notas de crédito (restan ingresos / suman costos-gastos), y costo empresa por mes.
@@ -3690,7 +3747,7 @@ async function pnlCompute(month, rango){
   const ratio = (v) => ingresos ? Math.round((v / ingresos) * 1000) / 10 : 0;
   const i = est.ingresos;
   return {
-    month, shopifyOk: est.shopifyOk,
+    month, shopifyOk: est.shopifyOk, cd: cdFiltro, ingresosSegmentados: cdFiltro === CD_DEFAULT,
     ingresos: { total: ingresos, canales: {
       horeca: i.cd_kairos.neto + i.ventas_cruzada.total,
       online: i.ventas_web.cobrado,
@@ -3859,7 +3916,8 @@ app.get('/admin/pnl', requireAdmin, async (req, res) => {
   const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
   if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
   try {
-    const data = await pnlCompute(month, estadoRangeFromReq(req));
+    const data = await pnlCompute(month, estadoRangeFromReq(req), String(req.query.cd || ''));
+    data.cds = CD_LIST;
     data.objetivos = objetivosLoad();
     // Proyección (solo lectura): replica el gasto TOTAL del mes anterior ya cerrado en las
     // 4 líneas estructurales y recalcula el EBITDA. No toca los datos guardados.
