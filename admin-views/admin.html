@@ -1723,6 +1723,7 @@ body.drawer-open{overflow:hidden}
 .ci-money input{padding-left:1.3rem!important}
 .dist-field .ci-money{display:block}
 .ci-kilohint{font-size:.66rem;font-weight:400;color:var(--muted,#888);white-space:nowrap}
+.ci-unit-hint{font-weight:700;color:var(--gold-deep,#a05f00);text-transform:none;letter-spacing:0}
 .dist-pill{display:inline-block;font-size:.64rem;font-weight:800;padding:.2rem .55rem;border-radius:999px;letter-spacing:.04em}
 .dist-pill.pend{background:#fff3d6;color:#a05f00}
 .dist-pill.recib{background:#e3f6ea;color:#1f7a44}
@@ -8294,6 +8295,15 @@ function ciKiloHintText(unidad, real){
   if(unidad==='mililitro') return '≈ '+cMoney(Math.round((Number(real)||0)*1000))+'/L';
   return '';
 }
+// Muestra en vivo la unidad del insumo/RB elegido junto al campo de cantidad
+// (para no confundir gramos con kilos, ml con litros, etc. al cargar una receta).
+function ciWireUnitHint(ingId, hintId){
+  const inp=document.getElementById(ingId); const hint=document.getElementById(hintId);
+  if(!inp||!hint) return;
+  const upd=()=>{ const val=inp.value.replace(/ \(RB\)$/,''); const g=(costeoData.ingredientes||[]).find(x=>x.nombre===val); hint.textContent=g?('('+g.unidad+')'):''; };
+  inp.addEventListener('input', upd);
+  upd();
+}
 // Opciones de ILA (impuesto adicional a bebidas alcohólicas) para insumos de barra.
 const C_ILA_OPTS = [0, 10, 18, 20.5, 31.5];
 const C_ILA = (cur) => { const c=Number(cur)||0; const opts=C_ILA_OPTS.includes(c)?C_ILA_OPTS:[c,...C_ILA_OPTS]; return opts.map(v=>`<option value="${v}" ${c===v?'selected':''}>${String(v).replace('.',',')}%</option>`).join(''); };
@@ -8412,8 +8422,8 @@ function renderCosteoInsumos(){
       <td class="dist-num"><select class="ci-inp dist-num" data-f="ila" style="width:72px">${C_ILA(i.ila)}</select></td>
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:78px" data-f="despacho" value="${i.despacho||''}" placeholder="0"></td>
       <td class="dist-num" data-netoila>${cMoney((Number(i.precioNeto)||0)*(1+(Number(i.ila)||0)/100)+(Number(i.despacho)||0))}</td>
-      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:70px" data-f="volumen" value="${i.volumen||''}" placeholder="1"></td>
-      <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b></td>
+      <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:55px" data-f="volumen" value="${i.volumen||''}" placeholder="1"> <select class="ci-inp" data-f="volUnidad" style="width:48px;font-size:.68rem;padding:.2rem"><option value="litro" ${i.unidad!=='mililitro'?'selected':''}>L</option><option value="mililitro" ${i.unidad==='mililitro'?'selected':''}>ml</option></select></td>
+      <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b><div class="ci-kilohint" data-kilohint>${ciKiloHintText(i.unidad,i.precioReal)}</div></td>
       <td><button class="pv-del" data-idel="${i.id}">✕</button> <span class="dist-status" data-ist></span></td>
     </tr>` : `
     <tr data-iid="${i.id}">
@@ -8453,7 +8463,7 @@ function renderCosteoInsumos(){
         <div class="dist-field"><label>Precio neto (botella)</label><span class="ci-money"><input id="niPrecio" type="text" inputmode="decimal" placeholder="0"></span></div>
         <div class="dist-field"><label>ILA</label><select id="niIla">${C_ILA(0)}</select></div>
         <div class="dist-field"><label>Despacho (neto, sin ILA)</label><input id="niDesp" type="text" inputmode="decimal" placeholder="0"></div>
-        <div class="dist-field"><label>Volumen botella (L)</label><input id="niVol" type="text" inputmode="decimal" placeholder="ej: 0,75"></div>
+        <div class="dist-field"><label>Volumen botella</label><div style="display:flex;gap:.4rem"><input id="niVol" type="text" inputmode="decimal" placeholder="ej: 0,75 o 100" style="flex:1"><select id="niVolUnidad" style="width:66px"><option value="litro">L</option><option value="mililitro">ml</option></select></div></div>
       </div>` : `
       <div class="dist-sec-title">Nuevo insumo</div>
       <div class="dist-form-grid" style="margin-top:.7rem">
@@ -8464,9 +8474,9 @@ function renderCosteoInsumos(){
         <div class="dist-field"><label>% Rendimiento (0-1, opcional)</label><input id="niRend" type="text" inputmode="decimal" placeholder="ej: 0,6"></div>
       </div>`;
   const thead = barra
-    ? `<tr><th>Descripción</th><th style="text-align:right">Precio neto</th><th style="text-align:right">ILA</th><th style="text-align:right">Despacho</th><th style="text-align:right">Neto + ILA + Desp.</th><th style="text-align:right">Volumen bot.</th><th style="text-align:right">Precio 1L</th><th></th></tr>`
+    ? `<tr><th>Descripción</th><th style="text-align:right">Precio neto</th><th style="text-align:right">ILA</th><th style="text-align:right">Despacho</th><th style="text-align:right">Neto + ILA + Desp.</th><th style="text-align:right">Volumen</th><th style="text-align:right">Precio</th><th></th></tr>`
     : `<tr><th>Descripción</th><th style="text-align:right">Precio neto</th><th style="text-align:right">Formato</th><th>Unidad</th><th style="text-align:right">% Rend.</th><th style="text-align:right">Precio real</th><th></th></tr>`;
-  const countTxt = barra ? 'precio 1L = (neto + ILA + despacho) ÷ volumen de botella · sin IVA (el IVA va a nivel de trago)' : 'precio real = (neto ÷ formato) ÷ rendimiento';
+  const countTxt = barra ? 'precio = (neto + ILA + despacho) ÷ volumen de botella (litro o ml) · sin IVA (el IVA va a nivel de trago)' : 'precio real = (neto ÷ formato) ÷ rendimiento';
   document.getElementById('costeoBody').innerHTML = `
     <div class="dist-form" style="margin-bottom:1rem">
       ${form}
@@ -8496,7 +8506,7 @@ async function addInsumo(){
   if(!desc){ st.className='dist-status err'; st.textContent='Falta la descripción.'; return; }
   st.className='dist-status'; st.textContent='…';
   const payload = isBarra()
-    ? { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), ila:cNum(document.getElementById('niIla').value), despacho:cNum(document.getElementById('niDesp').value), volumen:cNum(document.getElementById('niVol').value), unidad:'litro' }
+    ? { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), ila:cNum(document.getElementById('niIla').value), despacho:cNum(document.getElementById('niDesp').value), volumen:cNum(document.getElementById('niVol').value), unidad:document.getElementById('niVolUnidad').value }
     : { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), formato:cNum(document.getElementById('niFormato').value), unidad:document.getElementById('niUnidad').value, rendimiento:cNum(document.getElementById('niRend').value) };
   try{
     const r=await fetch(cRest('/admin/costeo/insumos'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
@@ -8509,10 +8519,11 @@ async function saveInsumo(id){
   const g=(f)=>{const el=tr.querySelector(`[data-f="${f}"]`);return el?el.value:undefined;};
   const st=tr.querySelector('[data-ist]'); st.className='dist-status'; st.textContent='…';
   const barra=isBarra(); const pn=cNum(g('precioNeto')); const ins=costeoData.insumos.find(x=>x.id===id);
-  let real, payload, netoIla, ila;
+  let real, payload, netoIla, ila, volU;
   if(barra){
     ila=cNum(g('ila')); const desp=cNum(g('despacho')); const vol=cNum(g('volumen')); netoIla=pn*(1+ila/100)+desp; real=(vol>0)?Math.round(netoIla/vol):Math.round(netoIla);
-    payload={descripcion:g('descripcion'),precioNeto:pn,ila:ila,despacho:desp,volumen:vol,unidad:(ins?ins.unidad:'litro')};
+    volU=g('volUnidad')||(ins?ins.unidad:'litro');
+    payload={descripcion:g('descripcion'),precioNeto:pn,ila:ila,despacho:desp,volumen:vol,unidad:volU};
   } else {
     const rd=cNum(g('rendimiento')); const fmt=cNum(g('formato')); const base=(fmt>0)?pn/fmt:pn; real=(rd>0&&rd<=1)?Math.round(base/rd):Math.round(base);
     payload={descripcion:g('descripcion'),precioNeto:pn,formato:fmt,unidad:g('unidad'),rendimiento:rd};
@@ -8521,9 +8532,10 @@ async function saveInsumo(id){
     const r=await fetch(cRest(`/admin/costeo/insumos/${id}`),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
     tr.querySelector('[data-real]').textContent=cMoney(real);
-    if(barra){ const ni=tr.querySelector('[data-netoila]'); if(ni) ni.textContent=cMoney(netoIla); }
-    else { const kh=tr.querySelector('[data-kilohint]'); if(kh) kh.textContent=ciKiloHintText(g('unidad'), real); }
-    if(ins){ins.precioNeto=pn;ins.descripcion=g('descripcion');ins.precioReal=real; if(barra){ins.volumen=cNum(g('volumen'))||null;ins.ila=ila;ins.despacho=cNum(g('despacho'))||0;} else {const rd=cNum(g('rendimiento'));ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');const fmt=cNum(g('formato'));ins.formato=(fmt>0)?fmt:null;}}
+    const kh=tr.querySelector('[data-kilohint]');
+    if(barra){ const ni=tr.querySelector('[data-netoila]'); if(ni) ni.textContent=cMoney(netoIla); if(kh) kh.textContent=ciKiloHintText(volU, real); }
+    else if(kh) kh.textContent=ciKiloHintText(g('unidad'), real);
+    if(ins){ins.precioNeto=pn;ins.descripcion=g('descripcion');ins.precioReal=real; if(barra){ins.volumen=cNum(g('volumen'))||null;ins.ila=ila;ins.despacho=cNum(g('despacho'))||0;ins.unidad=volU;} else {const rd=cNum(g('rendimiento'));ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');const fmt=cNum(g('formato'));ins.formato=(fmt>0)?fmt:null;}}
     st.className='dist-status ok'; st.textContent='✓'; setTimeout(()=>{st.textContent='';},1400);
   }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
 }
@@ -8568,7 +8580,7 @@ function renderCosteoRecetas(){
       </div>
       <div class="oc-line">
         <div class="dist-field" style="flex:2"><label>Insumo o receta</label><input id="rbIng" list="cIngList" placeholder="Escribe para buscar…"></div>
-        <div class="dist-field"><label>Cantidad</label><input id="rbCant" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="dist-field"><label>Cantidad <span class="ci-unit-hint" id="rbCantU"></span></label><input id="rbCant" type="text" inputmode="decimal" placeholder="0"></div>
         <button class="adm-btn adm-btn-ghost" id="rbAddLine" type="button">+ Agregar</button>
       </div>
       <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table" style="min-width:0">
@@ -8592,6 +8604,7 @@ function renderCosteoRecetas(){
     <div class="tc-search"><input type="text" id="rbSearchInp" placeholder="Buscar receta base…" value="${escapeAttr(rbSearch)}"></div>
     <div class="oc-list">${list || '<div class="dist-empty">No hay recetas que coincidan.</div>'}</div>`;
   document.getElementById('rbAddLine').onclick=rbAddLine;
+  ciWireUnitHint('rbIng','rbCantU');
   { const x=document.getElementById('rbXlBtn'); if(x) x.onclick=()=>costeoExportXlsx('recetas'); }
   document.getElementById('rbSave').onclick=rbSave;
   // Actualiza la vista previa SIN re-renderizar (para no perder el foco al tipear)
@@ -8711,7 +8724,7 @@ function renderCosteoPlatos(){
       </div>
       <div class="oc-line">
         <div class="dist-field" style="flex:2"><label>Insumo o receta base</label><input id="plIng" list="cIngList" placeholder="Escribe para buscar…"></div>
-        <div class="dist-field"><label>Gramaje / cantidad</label><input id="plCant" type="text" inputmode="decimal" placeholder="0"></div>
+        <div class="dist-field"><label>Gramaje / cantidad <span class="ci-unit-hint" id="plCantU"></span></label><input id="plCant" type="text" inputmode="decimal" placeholder="0"></div>
         <button class="adm-btn adm-btn-ghost" id="plAddLine" type="button">+ Agregar</button>
       </div>
       <div class="mun-wrap" style="margin-top:.6rem"><table class="mun-table" style="min-width:0">
@@ -8742,6 +8755,7 @@ function renderCosteoPlatos(){
     </div>
     ${groups || '<div class="dist-empty">No hay platos que coincidan.</div>'}`;
   document.getElementById('plAddLine').onclick=platoAddLine;
+  ciWireUnitHint('plIng','plCantU');
   { const x=document.getElementById('plXlBtn'); if(x) x.onclick=()=>costeoExportXlsx('platos'); }
   document.getElementById('plSave').onclick=platoSave;
   const upd=()=>{ const ct=platoDraftCosto(); const m=cNum(document.getElementById('plMargen').value)||30; const iv=document.getElementById('plIva').checked; const c=platoChain(ct,m,iv);
