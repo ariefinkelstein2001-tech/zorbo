@@ -5089,7 +5089,12 @@ function erpTablasResumen(html){
     const ths = [...body.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/gi)].map(t => erpTxt(t[1])).filter(Boolean).slice(0, 14);
     const dataRows = [...body.matchAll(/<tr\b[\s\S]*?<\/tr>/gi)].map(r => r[0]).filter(r => /<td\b/i.test(r));
     const sample = dataRows.slice(0, 2).map(r => r.replace(/<[^>]+>/g, ' | ').replace(/\|(\s*\|)+/g, '|').replace(/\s{2,}/g, ' ').trim().slice(0, 300));
-    return { i, id, cls: cls.slice(0, 60), headers: ths, nFilas: dataRows.length, muestra: sample };
+    // Para las tablas de barriles / latas: volcar el HTML crudo (con tags/clases/atributos)
+    // de las primeras filas, para distinguir fila-resumen de sub-fila de detalle.
+    const hj = ths.join(' ').toLowerCase();
+    const esStock = /barril|envase|caja/.test(hj) && /producto|disponible/.test(hj);
+    const raw = esStock ? dataRows.slice(0, 12).join('\n').replace(/[ \t]{2,}/g, ' ').replace(/\n{2,}/g, '\n').trim().slice(0, 6000) : '';
+    return { i, id, cls: cls.slice(0, 60), headers: ths, nFilas: dataRows.length, muestra: sample, raw };
   }).slice(0, 12);
   return { tabs, tablas };
 }
