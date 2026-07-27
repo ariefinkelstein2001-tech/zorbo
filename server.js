@@ -4646,6 +4646,7 @@ const NOMINA_BOLETA_CAT_IDS = NOMINA_BOLETA_CATS.map(c => c.id);
 function nominaBoletaNorm(b, id){
   return {
     id: id || costosNewId('bol'), rut: costosStr(b.rut, 20), nombre: costosStr(b.nombre, 120),
+    folio: costosStr(b.folio, 40),
     fecha: costosStr(b.fecha, 20), monto: costosNum(b.monto),
     categoria: NOMINA_BOLETA_CAT_IDS.includes(costosStr(b.categoria, 40)) ? costosStr(b.categoria, 40) : '',
   };

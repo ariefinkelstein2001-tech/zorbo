@@ -9835,7 +9835,7 @@ finRangeWire('gastos', ()=>loadCostos('gasto'));
 // ─── Gestión de Personas (nómina) ───────────────────────────────────────────
 let nominaData=null, nominaEditId=null, nominaForm={rut:'',nombre:'',ingreso:'',cargo:'',jornada:'42',contrato:'Indefinido',centroCosto:'BEER GARDEN KAIROS',afp:'',salud:''};
 let nominaCostoMes=''; // mes seleccionado para el costo empresa (por mes)
-let nominaBoletaForm={rut:'',nombre:'',fecha:'',monto:'',categoria:''};
+let nominaBoletaForm={rut:'',nombre:'',folio:'',fecha:'',monto:'',categoria:''};
 function nomMesesOpts(sel){ const d=new Date(); let o=''; for(let i=0;i<18;i++){ const dt=new Date(d.getFullYear(),d.getMonth()-i,1); const m=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'); o+=`<option value="${m}" ${m===sel?'selected':''}>${escapeHtml(estMonthLabel(m))}</option>`; } return o; }
 async function loadNomina(){
   const body=document.getElementById('nominaBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
@@ -9856,7 +9856,7 @@ function renderNomina(){
   const bf=nominaBoletaForm; const bcats=a.boletaCats||[];
   const bcatOpts=['<option value="">— Categoría —</option>',...bcats.map(c=>`<option value="${c.id}" ${c.id===bf.categoria?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
   const bcatLbl=id=>(bcats.find(c=>c.id===id)||{}).label||id;
-  const bolRows=(a.boletas||[]).slice().sort((x,y)=>String(y.fecha).localeCompare(String(x.fecha))).map(b=>`<tr><td>${escapeHtml(b.fecha)}</td><td>${escapeHtml(b.rut||'—')}</td><td>${escapeHtml(b.nombre)}</td><td><span class="cg-tag">${escapeHtml(bcatLbl(b.categoria))}</span></td><td class="dist-num">${eM(b.monto)}</td><td><button class="pv-del" data-boldel="${b.id}" title="Eliminar">✕</button></td></tr>`).join('');
+  const bolRows=(a.boletas||[]).slice().sort((x,y)=>String(y.fecha).localeCompare(String(x.fecha))).map(b=>`<tr><td>${escapeHtml(b.fecha)}</td><td>${escapeHtml(b.rut||'—')}</td><td>${escapeHtml(b.nombre)}</td><td>${escapeHtml(b.folio||'—')}</td><td><span class="cg-tag">${escapeHtml(bcatLbl(b.categoria))}</span></td><td class="dist-num">${eM(b.monto)}</td><td><button class="pv-del" data-boldel="${b.id}" title="Eliminar">✕</button></td></tr>`).join('');
   const rows=(a.personas||[]).map(p=>{
     if(p.id===nominaEditId){
       const inp=(k,ph)=>`<input class="nom-edit-inp" data-ef="${k}" value="${escapeAttr(p[k]||'')}" placeholder="${ph||''}">`;
@@ -9906,6 +9906,7 @@ function renderNomina(){
       <div class="cg-form-grid">
         <label class="cg-field"><span>RUT</span><input type="text" id="bhRut" value="${escapeAttr(bf.rut)}" placeholder="12.345.678-9"></label>
         <label class="cg-field"><span>Nombre completo</span><input type="text" id="bhNombre" value="${escapeAttr(bf.nombre)}" placeholder="Apellidos Nombres"></label>
+        <label class="cg-field"><span>Folio (N° boleta)</span><input type="text" id="bhFolio" value="${escapeAttr(bf.folio)}" placeholder="Ej: 123"></label>
         <label class="cg-field"><span>Fecha</span><input type="date" id="bhFecha" value="${escapeAttr(bf.fecha)}"></label>
         <label class="cg-field"><span>Monto ($)</span><input type="text" inputmode="numeric" id="bhMonto" value="${escapeAttr(bf.monto)}" placeholder="0"></label>
         <label class="cg-field"><span>Categoría (Estado de Resultado)</span><select id="bhCat">${bcatOpts}</select></label>
@@ -9914,7 +9915,7 @@ function renderNomina(){
       <div class="cg-err" id="bhErr"></div>
       <div class="est-note" style="margin-top:.4rem">Cada boleta suma como <b>costo empresa</b> en la categoría elegida del Estado de Resultado, en el mes de su fecha.</div>
     </div>
-    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>RUT</th><th>Nombre</th><th>Categoría</th><th style="text-align:right">Monto</th><th></th></tr></thead><tbody>${bolRows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:.8rem">Sin boletas de honorarios todavía.</td></tr>'}</tbody></table></div>`;
+    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>RUT</th><th>Nombre</th><th>Folio</th><th>Categoría</th><th style="text-align:right">Monto</th><th></th></tr></thead><tbody>${bolRows||'<tr><td colspan="7" style="text-align:center;color:#999;padding:.8rem">Sin boletas de honorarios todavía.</td></tr>'}</tbody></table></div>`;
   wireNomina();
 }
 function wireNomina(){
@@ -9928,7 +9929,7 @@ function wireNomina(){
     catch(e){ g('nomCostoHint').textContent='⚠ '+String(e.message||e); }
   };
   // Boletas de honorarios
-  const bbind={bhRut:'rut',bhNombre:'nombre',bhFecha:'fecha',bhMonto:'monto',bhCat:'categoria'};
+  const bbind={bhRut:'rut',bhNombre:'nombre',bhFolio:'folio',bhFecha:'fecha',bhMonto:'monto',bhCat:'categoria'};
   Object.entries(bbind).forEach(([id,k])=>{ const el=g(id); if(el){ const ev=el.tagName==='SELECT'||el.type==='date'?'onchange':'oninput'; el[ev]=()=>nominaBoletaForm[k]=el.value; } });
   const bhAdd=g('bhAdd'); if(bhAdd) bhAdd.onclick=nominaBoletaAgregar;
   document.querySelectorAll('[data-boldel]').forEach(b=>b.onclick=()=>nominaBoletaEliminar(b.dataset.boldel));
@@ -9965,10 +9966,10 @@ async function nominaEliminar(id){
 async function nominaBoletaAgregar(){
   const err=document.getElementById('bhErr'); if(err){ err.textContent=''; err.classList.remove('show'); }
   const f=nominaBoletaForm;
-  const payload={ rut:f.rut, nombre:f.nombre, fecha:f.fecha, monto:cNum(f.monto), categoria:f.categoria };
+  const payload={ rut:f.rut, nombre:f.nombre, folio:f.folio, fecha:f.fecha, monto:cNum(f.monto), categoria:f.categoria };
   if(!(payload.nombre||'').trim()){ if(err){err.textContent='⚠ Ingresa el nombre completo.';err.classList.add('show');} return; }
   if(!payload.categoria){ if(err){err.textContent='⚠ Elige la categoría del Estado de Resultado.';err.classList.add('show');} return; }
-  try{ const r=await fetch('/admin/nomina/boleta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); nominaBoletaForm={rut:'',nombre:'',fecha:'',monto:'',categoria:''}; await loadNomina(); }
+  try{ const r=await fetch('/admin/nomina/boleta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); nominaBoletaForm={rut:'',nombre:'',folio:'',fecha:'',monto:'',categoria:''}; await loadNomina(); }
   catch(e){ if(err){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); } }
 }
 async function nominaBoletaEliminar(id){
