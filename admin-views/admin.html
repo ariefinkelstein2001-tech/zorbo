@@ -1722,7 +1722,6 @@ body.drawer-open{overflow:hidden}
 .ci-money:before{content:'$';position:absolute;left:.55rem;top:50%;transform:translateY(-50%);color:var(--muted,#666);font-size:.8rem;pointer-events:none}
 .ci-money input{padding-left:1.3rem!important}
 .dist-field .ci-money{display:block}
-.ci-kilohint{font-size:.66rem;font-weight:400;color:var(--muted,#888);white-space:nowrap}
 .ci-unit-hint{font-weight:700;color:var(--gold-deep,#a05f00);text-transform:none;letter-spacing:0}
 .ci-cant-unit{font-size:.72rem;font-weight:700;padding:.05rem .3rem;border-radius:6px;border:1px solid var(--gold-bd,#e5c98a);background:var(--surface,#fff);color:var(--gold-deep,#a05f00)}
 .dist-pill{display:inline-block;font-size:.64rem;font-weight:800;padding:.2rem .55rem;border-radius:999px;letter-spacing:.04em}
@@ -8242,12 +8241,14 @@ const cMoney = (n) => '$' + Math.round(Number(n)||0).toLocaleString('es-CL');
 const cNum = (v) => { const n = parseFloat(String(v==null?'':v).trim().replace(',', '.')); return Number.isFinite(n) ? n : 0; };
 const cRest = (url) => url + (url.includes('?') ? '&' : '?') + 'rest=' + costeoRest + '&svc=' + costeoSvc;
 const C_UNITS = (cur) => ['litro','mililitro','kilogramo','gramo','unidad'].map(u=>`<option value="${u}" ${cur===u?'selected':''}>${u}</option>`).join('');
-// Nota de conversión automática: si el insumo se carga en gramo/mililitro, muestra el
-// equivalente por kilo/litro (solo informativo, no cambia el precio real guardado).
-function ciKiloHintText(unidad, real){
-  if(unidad==='gramo') return '≈ '+cMoney(Math.round((Number(real)||0)*1000))+'/kg';
-  if(unidad==='mililitro') return '≈ '+cMoney(Math.round((Number(real)||0)*1000))+'/L';
-  return '';
+// Texto de "Precio real" a mostrar: si el insumo se carga en gramo/mililitro,
+// se muestra directo el equivalente por kilo/litro (no interesa el precio por
+// gramo suelto). El precio real interno (por gramo/ml) es el que se sigue
+// usando para calcular el costo de las recetas — esto es solo de display.
+function ciPrecioRealText(unidad, rawPerUnit, roundedPerUnit){
+  if(unidad==='gramo') return cMoney(Math.round((Number(rawPerUnit)||0)*1000))+'/kg';
+  if(unidad==='mililitro') return cMoney(Math.round((Number(rawPerUnit)||0)*1000))+'/L';
+  return cMoney(roundedPerUnit);
 }
 // Precio real SIN redondear (para el hint de kilo/litro, que si no arrastra el
 // error de redondeo del precio por gramo/ml y muestra un equivalente impreciso).
@@ -8410,7 +8411,7 @@ function renderCosteoInsumos(){
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:78px" data-f="despacho" value="${i.despacho||''}" placeholder="0"></td>
       <td class="dist-num" data-netoila>${cMoney((Number(i.precioNeto)||0)*(1+(Number(i.ila)||0)/100)+(Number(i.despacho)||0))}</td>
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:55px" data-f="volumen" value="${i.volumen||''}" placeholder="1"> <select class="ci-inp" data-f="volUnidad" style="width:48px;font-size:.68rem;padding:.2rem"><option value="litro" ${i.unidad!=='mililitro'?'selected':''}>L</option><option value="mililitro" ${i.unidad==='mililitro'?'selected':''}>ml</option></select></td>
-      <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b><div class="ci-kilohint" data-kilohint>${ciKiloHintText(i.unidad,ciRawPerUnit(i,true))}</div></td>
+      <td class="dist-num"><b data-real>${ciPrecioRealText(i.unidad,ciRawPerUnit(i,true),i.precioReal)}</b></td>
       <td><button class="pv-del" data-idel="${i.id}">✕</button> <span class="dist-status" data-ist></span></td>
     </tr>` : `
     <tr data-iid="${i.id}">
@@ -8419,7 +8420,7 @@ function renderCosteoInsumos(){
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:60px" data-f="formato" value="${i.formato||''}" placeholder="1"></td>
       <td><select class="ci-inp" data-f="unidad">${C_UNITS(i.unidad)}</select></td>
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:70px" data-f="rendimiento" value="${i.rendimiento||''}" placeholder="—"></td>
-      <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b><div class="ci-kilohint" data-kilohint>${ciKiloHintText(i.unidad,ciRawPerUnit(i,false))}</div></td>
+      <td class="dist-num"><b data-real>${ciPrecioRealText(i.unidad,ciRawPerUnit(i,false),i.precioReal)}</b></td>
       <td><button class="pv-del" data-idel="${i.id}">✕</button> <span class="dist-status" data-ist></span></td>
     </tr>`).join('');
   const cols = barra ? 8 : 7;
@@ -8519,10 +8520,8 @@ async function saveInsumo(id){
   try{
     const r=await fetch(cRest(`/admin/costeo/insumos/${id}`),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
-    tr.querySelector('[data-real]').textContent=cMoney(real);
-    const kh=tr.querySelector('[data-kilohint]');
-    if(barra){ const ni=tr.querySelector('[data-netoila]'); if(ni) ni.textContent=cMoney(netoIla); if(kh) kh.textContent=ciKiloHintText(volU, rawReal); }
-    else if(kh) kh.textContent=ciKiloHintText(g('unidad'), rawReal);
+    tr.querySelector('[data-real]').textContent=ciPrecioRealText(barra?volU:g('unidad'), rawReal, real);
+    if(barra){ const ni=tr.querySelector('[data-netoila]'); if(ni) ni.textContent=cMoney(netoIla); }
     if(ins){ins.precioNeto=pn;ins.descripcion=g('descripcion');ins.precioReal=real; if(barra){ins.volumen=cNum(g('volumen'))||null;ins.ila=ila;ins.despacho=cNum(g('despacho'))||0;ins.unidad=volU;} else {const rd=cNum(g('rendimiento'));ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');const fmt=cNum(g('formato'));ins.formato=(fmt>0)?fmt:null;}}
     st.className='dist-status ok'; st.textContent='✓'; setTimeout(()=>{st.textContent='';},1400);
   }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
