@@ -3653,8 +3653,9 @@ async function pnlCompute(month, rango){
   // notas de crédito (restan ingresos / suman costos-gastos), y costo empresa por mes.
   const bol = nominaBoletasDelMes(month);
   const nc = notasCreditoDelMes(month);
+  const anul = anulacionesDelMes(month);
   const catTot = (id) => ((rs.porCategoria[id] || { total: 0 }).total) + (bol[id] || 0) + (nc.costo[id] || 0);
-  const ingresos = est.totalIngresos - (nc.ingreso || 0);
+  const ingresos = est.totalIngresos - (nc.ingreso || 0) - (anul.ingreso || 0);
   const costoDirecto = catTot('costo_directo'), costoIndirecto = catTot('costo_indirecto');
   const gastosOper = catTot('gastos_operativos'), gastosAdmin = catTot('gastos_admin_venta');
   const gastosMarketing = catTot('marketing_publicidad'), activos = catTot('activos_fijos');
@@ -3673,7 +3674,7 @@ async function pnlCompute(month, rango){
     } },
     costos: { costoDirecto, costoIndirecto, gastosOper, gastosAdmin, gastosMarketing, gastoPersonal, activos },
     docs: Object.fromEntries(Object.entries(rs.porCategoria).map(([k, v]) => [k, v.n])),
-    ajustes: { ncIngreso: nc.ingreso || 0, ncCosto: nc.costo, boletas: bol }, // notas de crédito + boletas aplicadas
+    ajustes: { ncIngreso: nc.ingreso || 0, ncCosto: nc.costo, boletas: bol, anulaciones: anul.ingreso || 0 }, // NC + boletas + anulaciones de transacción
     margenBruto, ebitda,
     ratios: {
       costoDirecto: ratio(costoDirecto), costoIndirecto: ratio(costoIndirecto),
@@ -3792,6 +3793,43 @@ app.delete('/admin/notas-credito/:id', requireAdmin, (req, res) => {
   if (d.notas.length === nlen) return res.status(404).json({ error: 'No se encontró la nota.' });
   ncSave(d); res.json({ ok: true });
 });
+// ─── Anulaciones de transacción (cuadro aparte de las NC) ───────────────────
+// Registran transacciones anuladas por canal; RESTAN del ingreso del canal en el
+// Estado de Resultado (igual que "anular venta"), pero se guardan por separado.
+const ANUL_FILE = join(PROMPTS_EFFECTIVE_DIR, 'anulaciones.json');
+function anulLoad(){ try { if (existsSync(ANUL_FILE)) { const p = JSON.parse(readFileSync(ANUL_FILE, 'utf-8')); if (Array.isArray(p.anulaciones)) return { anulaciones: p.anulaciones }; } } catch (e) { console.warn('anul load:', e.message); } return { anulaciones: [] }; }
+function anulSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(ANUL_FILE, JSON.stringify(d, null, 2)); }
+function anulNorm(b, id){
+  return {
+    id: id || costosNewId('anul'), transaccion: costosStr(b.transaccion, 60), fecha: costosStr(b.fecha, 20), monto: costosNum(b.monto),
+    canal: NC_CANAL_IDS.includes(costosStr(b.canal, 20)) ? costosStr(b.canal, 20) : '', anulaCompleta: !!b.anulaCompleta, motivo: costosStr(b.motivo, 300),
+  };
+}
+// Efecto de las anulaciones del mes: {ingreso: total a restar, porCanal}.
+function anulacionesDelMes(month){
+  const d = anulLoad(); const out = { ingreso: 0, porCanal: {} };
+  for (const a of (d.anulaciones || [])) { if (costosMes(a.fecha) !== month) continue; const m = Number(a.monto) || 0; out.ingreso += m; if (a.canal) out.porCanal[a.canal] = (out.porCanal[a.canal] || 0) + m; }
+  return out;
+}
+app.get('/admin/anulaciones', requireAdmin, (req, res) => {
+  const mes = /^\d{4}-\d{2}$/.test(String(req.query.mes)) ? String(req.query.mes) : null;
+  const d = anulLoad(); let anulaciones = (d.anulaciones || []).slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  if (mes) anulaciones = anulaciones.filter(a => costosMes(a.fecha) === mes);
+  res.json({ anulaciones, canales: NC_CANALES });
+});
+app.post('/admin/anulaciones', requireAdmin, (req, res) => {
+  const a = anulNorm(req.body || {});
+  if (!a.transaccion) return res.status(400).json({ error: 'Ingresa el N° de transacción.' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(a.fecha)) return res.status(400).json({ error: 'Ingresa la fecha.' });
+  if (!a.monto) return res.status(400).json({ error: 'Ingresa el monto.' });
+  if (!a.canal) return res.status(400).json({ error: 'Elige el canal de venta.' });
+  const d = anulLoad(); d.anulaciones.push(a); anulSave(d); res.json({ ok: true, anulacion: a });
+});
+app.delete('/admin/anulaciones/:id', requireAdmin, (req, res) => {
+  const id = String(req.params.id); const d = anulLoad(); const n = d.anulaciones.length; d.anulaciones = d.anulaciones.filter(a => a.id !== id);
+  if (d.anulaciones.length === n) return res.status(404).json({ error: 'No se encontró la anulación.' });
+  anulSave(d); res.json({ ok: true });
+});
 app.get('/admin/pnl', requireAdmin, async (req, res) => {
   const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
   if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
@@ -3821,7 +3859,7 @@ app.get('/admin/pnl', requireAdmin, async (req, res) => {
 // ══ Inicio del área FINANZAS: 3 cuadros (datos reales) + resumen IA cacheado ══
 function finYearAgo(month){ const [y, mo] = String(month).split('-').map(Number); return (y - 1) + '-' + String(mo).padStart(2, '0'); }
 function finCurMonth(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
-async function finVentaMes(m){ try { const e = await estadoResolve(m); return Math.round((e.totalIngresos || 0) - (notasCreditoDelMes(m).ingreso || 0)); } catch { return null; } }
+async function finVentaMes(m){ try { const e = await estadoResolve(m); return Math.round((e.totalIngresos || 0) - (notasCreditoDelMes(m).ingreso || 0) - (anulacionesDelMes(m).ingreso || 0)); } catch { return null; } }
 // Cuadro 2: ratio Gastos Operativos / Venta + peso de cada subcategoría operativa.
 function finGastosOperativos(month){
   const cd = costosLoad();

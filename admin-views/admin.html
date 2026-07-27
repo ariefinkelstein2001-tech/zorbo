@@ -10073,13 +10073,15 @@ document.getElementById('finhomeMes').onchange=loadFinHome;
 // ─── Notas de crédito (Finanzas): anular ventas por canal o corregir costos/gastos ───
 let ncData=null;
 function ncBlankForm(){ return {tipo:'',folio:'',fecha:'',monto:'',canal:'',categoria:'',referencia:'',anulaCompleta:false,motivo:''}; }
-let ncForm=ncBlankForm();
+function anulBlankForm(){ return {transaccion:'',canal:'',fecha:'',monto:'',anulaCompleta:false,motivo:''}; }
+let ncForm=ncBlankForm(), anulForm=anulBlankForm(), anulData={anulaciones:[]};
 async function loadNotasCredito(){
   const body=document.getElementById('ncBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   const sel=document.getElementById('ncMes');
   try{
     const mes=sel.value||'';
-    const r=await fetch('/admin/notas-credito'+(mes?('?mes='+mes):'')); ncData=await r.json();
+    const [r,ra]=await Promise.all([ fetch('/admin/notas-credito'+(mes?('?mes='+mes):'')), fetch('/admin/anulaciones'+(mes?('?mes='+mes):'')) ]);
+    ncData=await r.json(); anulData=ra.ok?await ra.json():{anulaciones:[]};
     if(ncData.error) throw new Error(ncData.error);
     if(sel.options.length<=1 && (ncData.meses||[]).length){ sel.innerHTML='<option value="">Todos los meses</option>'+ncData.meses.map(m=>`<option value="${m}">${escapeHtml(estMonthLabel(m))}</option>`).join(''); sel.value=mes; }
     renderNotasCredito();
@@ -10123,9 +10125,52 @@ function renderNotasCredito(){
       <div class="cg-err" id="ncErr"></div>
       <div class="est-note" style="margin-top:.4rem">Ajusta el <b>Estado de Resultado</b> del mes de su fecha: las de venta <b>restan</b> del ingreso del canal; las de costo/gasto <b>suman</b> a su categoría.</div>
     </div>
-    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>Folio</th><th>Tipo</th><th>Detalle</th><th style="text-align:right">Ajuste</th><th>Motivo</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:#999;padding:.8rem">Sin notas de crédito todavía.</td></tr>'}</tbody></table></div>`;
-  ncWire();
+    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>Folio</th><th>Tipo</th><th>Detalle</th><th style="text-align:right">Ajuste</th><th>Motivo</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:#999;padding:.8rem">Sin notas de crédito todavía.</td></tr>'}</tbody></table></div>
+    ${renderAnulaciones()}`;
+  ncWire(); anulWire();
 }
+function renderAnulaciones(){
+  const a=anulData, f=anulForm; const canales=(ncData&&ncData.canales)||[];
+  const canalLbl=id=>(canales.find(c=>c.id===id)||{}).label||id;
+  const canalOpts=['<option value="">— Canal —</option>',...canales.map(c=>`<option value="${c.id}" ${c.id===f.canal?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
+  const rows=(a.anulaciones||[]).map(x=>{
+    const alcance=x.anulaCompleta?' · <b>completa</b>':' · parcial';
+    return `<tr><td>${escapeHtml(x.fecha)}</td><td><b>${escapeHtml(x.transaccion||'—')}</b></td><td>${escapeHtml(canalLbl(x.canal))}${alcance}</td><td class="dist-num pnl-neg">−${eM(x.monto)}</td><td>${escapeHtml(x.motivo||'—')}</td><td><button class="pv-del" data-anuldel="${x.id}" title="Eliminar">✕</button></td></tr>`;
+  }).join('');
+  return `<div style="margin-top:1.6rem;border-top:2px dashed #e6eaf2;padding-top:1.2rem">
+    <div class="cg-form">
+      <div class="cg-form-title">Registrar anulación de transacción</div>
+      <div class="cg-form-grid">
+        <label class="cg-field"><span>N° de transacción</span><input type="text" id="anTrans" value="${escapeAttr(f.transaccion)}" placeholder="Ej: TRX-00987"></label>
+        <label class="cg-field"><span>Canal de venta</span><select id="anCanal">${canalOpts}</select></label>
+        <label class="cg-field cg-field-check"><input type="checkbox" id="anAnula" ${f.anulaCompleta?'checked':''}> <span>Anula la transacción completa (si no, es parcial)</span></label>
+        <label class="cg-field"><span>Fecha</span><input type="date" id="anFecha" value="${escapeAttr(f.fecha)}"></label>
+        <label class="cg-field"><span>Monto ($)</span><input type="text" inputmode="numeric" id="anMonto" value="${escapeAttr(f.monto)}" placeholder="0"></label>
+        <label class="cg-field"><span>Motivo</span><input type="text" id="anMotivo" value="${escapeAttr(f.motivo)}" placeholder="Ej: transacción duplicada · error de cobro"></label>
+        <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="anAdd" type="button">+ Agregar</button></div>
+      </div>
+      <div class="cg-err" id="anErr"></div>
+      <div class="est-note" style="margin-top:.4rem"><b>Resta</b> del ingreso del canal en el <b>Estado de Resultado</b> del mes de su fecha (aparte de las notas de crédito).</div>
+    </div>
+    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>N° transacción</th><th>Canal</th><th style="text-align:right">Ajuste</th><th>Motivo</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:.8rem">Sin anulaciones todavía.</td></tr>'}</tbody></table></div>
+  </div>`;
+}
+function anulWire(){
+  const g=id=>document.getElementById(id); const f=anulForm;
+  const bind=(el,k,ev)=>{ const e=g(el); if(e) e[ev||'oninput']=()=>{ f[k]=e.type==='checkbox'?e.checked:e.value; }; };
+  bind('anTrans','transaccion'); bind('anCanal','canal','onchange'); bind('anAnula','anulaCompleta','onchange');
+  bind('anFecha','fecha','onchange'); bind('anMonto','monto'); bind('anMotivo','motivo');
+  const add=g('anAdd'); if(add) add.onclick=anulAgregar;
+  document.querySelectorAll('[data-anuldel]').forEach(b=>b.onclick=()=>anulEliminar(b.dataset.anuldel));
+}
+async function anulAgregar(){
+  const f=anulForm; const err=document.getElementById('anErr'); if(err){ err.textContent=''; err.classList.remove('show'); }
+  if(!(f.transaccion||'').trim()){ if(err){ err.textContent='⚠ Ingresa el N° de transacción.'; err.classList.add('show'); } return; }
+  const payload={ transaccion:f.transaccion, canal:f.canal, fecha:f.fecha, monto:cNum(f.monto), anulaCompleta:f.anulaCompleta, motivo:f.motivo };
+  try{ const r=await fetch('/admin/anulaciones',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); anulForm=anulBlankForm(); await loadNotasCredito(); }
+  catch(e){ if(err){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); } }
+}
+async function anulEliminar(id){ if(!confirm('¿Eliminar esta anulación?')) return; try{ const r=await fetch('/admin/anulaciones/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadNotasCredito(); }catch(e){ alert(String(e.message||e)); } }
 function ncWire(){
   const g=id=>document.getElementById(id); const f=ncForm;
   const bind=(el,k,ev)=>{ const e=g(el); if(e) e[ev||'oninput']=()=>{ f[k]=e.type==='checkbox'?e.checked:e.value; }; };
