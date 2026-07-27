@@ -5391,10 +5391,19 @@ const erpNumUS = (s) => { const n = parseFloat(String(s || '').replace(/[^\d.\-]
 const erpNumEU = (s) => { const n = parseFloat(String(s || '').replace(/[^\d.,\-]/g, '').replace(/\./g, '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
 // Celdas <td> de una fila (texto limpio, sin tags).
 const erpTds = (rowInner) => [...String(rowInner || '').matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(m => erpTxt(m[1]));
+// Extrae el <tbody>/contenido de la 1ª tabla cuyo HTML matchea `firma`.
+function erpTablaPorFirma(html, firma){
+  for (const m of String(html || '').matchAll(/<table\b[^>]*>([\s\S]*?)<\/table>/gi)) if (firma.test(m[1])) return m[1];
+  return '';
+}
+const erpB = (s) => ({ barriles: Math.round(erpNumUS(s && s.b)), litros: erpNumUS(s && s.l) });
 // Stock desde Gestión Cervecera: la página /Producto/Stock viene renderizada en el
-// servidor. Parseamos directo el HTML: la tabla de barriles (fila-resumen por producto
-// = <tr data-idp="ID"> numérico) y la de latas/envasado (<tr data-idep="envs ...">).
-// Las sub-filas de detalle (class="collapse", data-idps/idpss/ideps) se ignoran.
+// servidor. Reproducimos la MISMA jerarquía que muestra GC:
+//  · Barriles por producto → tamaño de barril → barril individual (código/lote/ubicación)
+//  · Latas/envasado por producto → tipo de caja → lote (fecha de vencimiento)
+//  · Barriles por depósito → producto
+// Cada nivel trae {enStock, pedidos, disponible} con Cant. Barriles/Cajas + Litros.
+// Barriles = formato US ("480.00"); latas = europeo ("1.711,787" = 1711.787).
 async function erpStock(){
   const cfg = prodLoad().config; const { base } = erpCreds(cfg);
   const login = await erpLogin(cfg);
@@ -5403,37 +5412,62 @@ async function erpStock(){
   try { const r = await erpGet(base + '/Producto/Stock', login.jar, base); html = await r.text(); }
   catch (e) { return { ok: false, error: 'No pude leer /Producto/Stock: ' + String(e.message).slice(0, 120) }; }
   if (/id=["']frmLogin["']|\/Home\/Login/i.test(html)) return { ok: false, error: 'La sesión del ERP no tomó al leer el stock.' };
-  const barriles = [], latas = [];
-  for (const m of html.matchAll(/<tr\b([^>]*)>([\s\S]*?)<\/tr>/gi)) {
-    const open = m[1] || '', inner = m[2] || '';
-    // Barriles: fila-resumen por producto. data-idp="123" (numérico), NO data-idps/idpss.
-    const mb = /\bdata-idp=["'](\d+)["']/.exec(open);
-    if (mb) {
-      const td = erpTds(inner); const producto = (td[1] || '').trim();
-      if (producto && !/^\d/.test(producto)) barriles.push({
-        idProducto: mb[1], producto,
-        enStock: { barriles: Math.round(erpNumUS(td[3])), litros: erpNumUS(td[7]) },
-        pedidos: { barriles: Math.round(erpNumUS(td[9])), litros: erpNumUS(td[10]) },
-        disponible: { barriles: Math.round(erpNumUS(td[11])), litros: erpNumUS(td[12]) },
-      });
-      continue;
-    }
-    // Latas/envasado: fila-resumen por producto. data-idep="envs 123 + Lata (473 ml)".
-    if (/\bdata-idep=["']envs\b/i.test(open)) {
-      const td = erpTds(inner); const producto = (td[1] || '').trim();
-      if (producto) latas.push({
-        producto, envase: (td[2] || '').trim(),
-        enStock: { cantidad: Math.round(erpNumEU(td[7])), litros: erpNumEU(td[8]) },
-        pedidos: { cajas: Math.round(erpNumEU(td[9])), cantidad: Math.round(erpNumEU(td[10])), litros: erpNumEU(td[11]) },
-        disponible: { cajas: Math.round(erpNumEU(td[12])), cantidad: Math.round(erpNumEU(td[13])), litros: erpNumEU(td[14]) },
-      });
+
+  // ── Barriles por producto (tabla con filas data-idp / data-idps / data-idpss) ──
+  const barriles = []; {
+    const tbl = erpTablaPorFirma(html, /\bdata-idp=["']\d+["']/);
+    let prod = null, size = null;
+    for (const m of tbl.matchAll(/<tr\b([^>]*)>([\s\S]*?)<\/tr>/gi)) {
+      const open = m[1] || '', td = erpTds(m[2]);
+      const trio = (b, l) => ({ barriles: Math.round(erpNumUS(td[b])), litros: erpNumUS(td[l]) });
+      if (/\bdata-idpss=/.test(open)) { // barril individual
+        if (size) size.detalle.push({ codigo: (td[4] || '').replace(/^#/, ''), lote: td[5] || '', fecha: td[6] || '', litros: erpNumUS(td[7]), ubicacion: td[8] || '' });
+      } else if (/\bdata-idps=/.test(open)) { // tamaño de barril
+        size = { tamano: td[2] || '', enStock: trio(3, 7), pedidos: trio(9, 10), disponible: trio(11, 12), detalle: [] };
+        if (prod) prod.tamanos.push(size);
+      } else if (/\bdata-idp=/.test(open)) { // producto
+        prod = { producto: td[1] || '', enStock: trio(3, 7), pedidos: trio(9, 10), disponible: trio(11, 12), tamanos: [] };
+        if (prod.producto) barriles.push(prod); size = null;
+      }
     }
   }
-  const totBarrLitros = barriles.reduce((a, b) => a + (b.disponible.litros || 0), 0);
-  const totBarrUnid = barriles.reduce((a, b) => a + (b.disponible.barriles || 0), 0);
-  const totLataLitros = latas.reduce((a, b) => a + (b.disponible.litros || 0), 0);
-  const totLataUnid = latas.reduce((a, b) => a + (b.disponible.cantidad || 0), 0);
-  return { ok: true, barriles, latas, totales: { barrilesLitros: totBarrLitros, barrilesUnid: totBarrUnid, latasLitros: totLataLitros, latasUnid: totLataUnid }, generadoEn: new Date().toISOString() };
+  // ── Latas / envasado por producto (data-idep="envs…" / data-ideps / data-idepss) ──
+  const latas = []; {
+    const tbl = erpTablaPorFirma(html, /\bdata-idep=["']envs\b/i);
+    let prod = null, caja = null;
+    for (const m of tbl.matchAll(/<tr\b([^>]*)>([\s\S]*?)<\/tr>/gi)) {
+      const open = m[1] || '', td = erpTds(m[2]);
+      const trio = (c, q, l) => ({ cajas: Math.round(erpNumEU(td[c])), cantidad: Math.round(erpNumEU(td[q])), litros: erpNumEU(td[l]) });
+      if (/\bdata-idepss=/.test(open)) { // lote
+        if (caja) caja.detalle.push({ lote: (td[4] || '').replace(/^#/, ''), fechaVenc: td[5] || '', cantidad: Math.round(erpNumEU(td[7])), litros: erpNumEU(td[8]) });
+      } else if (/\bdata-ideps=/.test(open)) { // tipo de caja
+        caja = { tipo: td[3] || '', enStock: trio(6, 7, 8), pedidos: trio(9, 10, 11), disponible: trio(12, 13, 14), detalle: [] };
+        if (prod) prod.cajas.push(caja);
+      } else if (/\bdata-idep=/.test(open)) { // producto + envase
+        prod = { producto: td[1] || '', envase: td[2] || '', enStock: trio(6, 7, 8), pedidos: trio(9, 10, 11), disponible: trio(12, 13, 14), cajas: [] };
+        if (prod.producto) latas.push(prod); caja = null;
+      }
+    }
+  }
+  // ── Barriles por depósito (data-idep="dep…" / data-ideps = producto) ──
+  const depositos = []; {
+    const tbl = erpTablaPorFirma(html, /\bdata-idep=["']dep\b/i);
+    let dep = null;
+    for (const m of tbl.matchAll(/<tr\b([^>]*)>([\s\S]*?)<\/tr>/gi)) {
+      const open = m[1] || '', td = erpTds(m[2]);
+      if (/\bdata-idepss=/.test(open)) continue; // niveles profundos: no los mostramos
+      if (/\bdata-ideps=/.test(open)) { if (dep) dep.productos.push({ producto: td[3] || '', barriles: Math.round(erpNumUS(td[4])) }); }
+      else if (/\bdata-idep=/.test(open)) { dep = { deposito: td[1] || '', barriles: Math.round(erpNumUS(td[2])), productos: [] }; if (dep.deposito) depositos.push(dep); }
+    }
+  }
+  const sum = (arr, f) => arr.reduce((a, x) => a + (f(x) || 0), 0);
+  return { ok: true, barriles, latas, depositos,
+    totales: {
+      barrilesUnid: sum(barriles, b => b.disponible.barriles), barrilesLitros: sum(barriles, b => b.disponible.litros),
+      barrilesStockLitros: sum(barriles, b => b.enStock.litros),
+      latasUnid: sum(latas, l => l.disponible.cantidad), latasLitros: sum(latas, l => l.disponible.litros),
+      depBarriles: sum(depositos, d => d.barriles),
+    }, generadoEn: new Date().toISOString() };
 }
 app.get('/admin/produccion/erp/stock', requireAdmin, async (_req, res) => {
   try { res.json(await erpStock()); } catch (e) { res.status(500).json({ ok: false, error: String(e.message || e).slice(0, 160) }); }
