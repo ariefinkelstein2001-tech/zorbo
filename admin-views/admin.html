@@ -1724,6 +1724,7 @@ body.drawer-open{overflow:hidden}
 .dist-field .ci-money{display:block}
 .ci-kilohint{font-size:.66rem;font-weight:400;color:var(--muted,#888);white-space:nowrap}
 .ci-unit-hint{font-weight:700;color:var(--gold-deep,#a05f00);text-transform:none;letter-spacing:0}
+.ci-cant-unit{font-size:.72rem;font-weight:700;padding:.05rem .3rem;border-radius:6px;border:1px solid var(--gold-bd,#e5c98a);background:var(--surface,#fff);color:var(--gold-deep,#a05f00)}
 .dist-pill{display:inline-block;font-size:.64rem;font-weight:800;padding:.2rem .55rem;border-radius:999px;letter-spacing:.04em}
 .dist-pill.pend{background:#fff3d6;color:#a05f00}
 .dist-pill.recib{background:#e3f6ea;color:#1f7a44}
@@ -8295,15 +8296,35 @@ function ciKiloHintText(unidad, real){
   if(unidad==='mililitro') return '≈ '+cMoney(Math.round((Number(real)||0)*1000))+'/L';
   return '';
 }
-// Muestra en vivo la unidad del insumo/RB elegido junto al campo de cantidad
-// (para no confundir gramos con kilos, ml con litros, etc. al cargar una receta).
+// Conversión proporcional entre unidades emparentadas (litro/mililitro,
+// kilogramo/gramo). Permite cargar una línea de receta en una unidad distinta
+// a la unidad base del insumo/RB referenciado, sin perder precisión de precio.
+const CI_UNIT_PAIR = { litro:'mililitro', mililitro:'litro', kilogramo:'gramo', gramo:'kilogramo' };
+const CI_UNIT_FACTOR = { mililitro:{litro:0.001}, litro:{mililitro:1000}, gramo:{kilogramo:0.001}, kilogramo:{gramo:1000} };
+function ciConvFactor(from, to){ if(!from||!to||from===to) return 1; return (CI_UNIT_FACTOR[from]&&CI_UNIT_FACTOR[from][to])||1; }
+// Cantidad de una línea de receta expresada en la unidad base del insumo/RB
+// (ej: si se cargó "100" en mililitro y el insumo está en litro, devuelve 0.1).
+function lineCantEnBase(l){ return (Number(l.cantidad)||0) * ciConvFactor(l.cantUnidad||l.unidad, l.unidad); }
+// Muestra en vivo la unidad del insumo/RB elegido junto al campo de cantidad. Si
+// tiene una unidad emparentada (litro/ml, kilo/gramo) deja elegir en cuál cargar
+// la cantidad — el costo se recalcula proporcional a la unidad base del insumo.
 function ciWireUnitHint(ingId, hintId){
   const inp=document.getElementById(ingId); const hint=document.getElementById(hintId);
   if(!inp||!hint) return;
-  const upd=()=>{ const val=inp.value.replace(/ \(RB\)$/,''); const g=(costeoData.ingredientes||[]).find(x=>x.nombre===val); hint.textContent=g?('('+g.unidad+')'):''; };
+  const upd=()=>{
+    const val=inp.value.replace(/ \(RB\)$/,'');
+    const g=(costeoData.ingredientes||[]).find(x=>x.nombre===val);
+    if(!g){ hint.innerHTML=''; return; }
+    const pair=CI_UNIT_PAIR[g.unidad];
+    hint.innerHTML = pair
+      ? `<select class="ci-cant-unit"><option value="${g.unidad}">${g.unidad}</option><option value="${pair}">${pair}</option></select>`
+      : '('+g.unidad+')';
+  };
   inp.addEventListener('input', upd);
   upd();
 }
+// Unidad elegida para la cantidad que se está por agregar (o la base si no hay selector).
+function ciPickedUnit(hintId, fallback){ const h=document.getElementById(hintId); const sel=h&&h.querySelector('.ci-cant-unit'); return sel?sel.value:fallback; }
 // Opciones de ILA (impuesto adicional a bebidas alcohólicas) para insumos de barra.
 const C_ILA_OPTS = [0, 10, 18, 20.5, 31.5];
 const C_ILA = (cur) => { const c=Number(cur)||0; const opts=C_ILA_OPTS.includes(c)?C_ILA_OPTS:[c,...C_ILA_OPTS]; return opts.map(v=>`<option value="${v}" ${c===v?'selected':''}>${String(v).replace('.',',')}%</option>`).join(''); };
@@ -8551,14 +8572,14 @@ function costeoIngDatalist(){
   return '<datalist id="cIngList">' + (costeoData.ingredientes||[]).map(g=>`<option data-gid="${g.id}" data-gt="${g.type}" data-gu="${g.unidad}" data-gp="${g.precio}" value="${escapeAttr(g.nombre)}${g.type==='rb'?' (RB)':''}">`).join('') + '</datalist>';
 }
 function renderCosteoRecetas(){
-  const draftCosto = rbDraft.reduce((s,l)=>s+(Number(l.cantidad)||0)*lineEffPrecio(l),0);
+  const draftCosto = rbDraft.reduce((s,l)=>s+lineCantEnBase(l)*lineEffPrecio(l),0);
   const prod = document.getElementById('rbProd') ? cNum(document.getElementById('rbProd').value) : (rbEditing?rbEditing.produccion:0);
   const drows = rbDraft.length ? rbDraft.map((l,idx)=>{ const ep=lineEffPrecio(l); return `
-    <tr><td>${escapeHtml(l.nombre)}${l.refType==='rb'?' <span class="mun-bk">RB</span>':''}</td><td>${l.unidad||''}</td>
+    <tr><td>${escapeHtml(l.nombre)}${l.refType==='rb'?' <span class="mun-bk">RB</span>':''}</td><td>${l.cantUnidad||l.unidad||''}</td>
     <td class="dist-num">${lineRendCell(l,idx,'rb')}</td>
     <td class="dist-num">${cMoney(ep)}</td>
     <td class="dist-num"><input type="text" inputmode="decimal" class="dist-input-sm dist-num" data-rbqty="${idx}" value="${l.cantidad}" style="width:80px"></td>
-    <td class="dist-num">${cMoney((Number(l.cantidad)||0)*ep)}</td>
+    <td class="dist-num">${cMoney(lineCantEnBase(l)*ep)}</td>
     <td><button class="pv-del" data-rbrm="${idx}">✕</button></td></tr>`;}).join('') : `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:.7rem">Agrega insumos o recetas…</td></tr>`;
   const rq = rbSearch.toLowerCase();
   const rbAll = (costeoData.recetasBase||[]).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
@@ -8633,7 +8654,8 @@ function rbAddLine(){
   const cant=cNum(document.getElementById('rbCant').value);
   if(!g){ alert('Elige un insumo o receta de la lista.'); return; }
   if(rbEditing && g.type==='rb' && g.id===rbEditing.id){ alert('Una receta no puede usarse a sí misma.'); return; }
-  rbDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant, rendAplica:g.rendimiento!=null, rendInsumo:g.rendimiento||null, base100:g.base100||null, rend:null });
+  const cantUnidad=ciPickedUnit('rbCantU', g.unidad);
+  rbDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant, cantUnidad, rendAplica:g.rendimiento!=null, rendInsumo:g.rendimiento||null, base100:g.base100||null, rend:null });
   document.getElementById('rbIng').value=''; document.getElementById('rbCant').value='';
   renderCosteoRecetasKeep();
 }
@@ -8642,7 +8664,7 @@ async function rbSave(){
   const nombre=document.getElementById('rbNombre').value.trim();
   if(!nombre){ st.className='dist-status err'; st.textContent='Falta el nombre.'; return; }
   if(!rbDraft.length){ st.className='dist-status err'; st.textContent='Agrega al menos un insumo.'; return; }
-  const payload={ nombre, unidad:document.getElementById('rbUnidad').value, produccion:cNum(document.getElementById('rbProd').value), lineas:rbDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad),rend:l.rend})) };
+  const payload={ nombre, unidad:document.getElementById('rbUnidad').value, produccion:cNum(document.getElementById('rbProd').value), lineas:rbDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad),cantUnidad:l.cantUnidad,rend:l.rend})) };
   st.className='dist-status'; st.textContent='Guardando…';
   try{
     const url=rbEditing?`/admin/costeo/recetas/${rbEditing.id}`:'/admin/costeo/recetas';
@@ -8654,7 +8676,7 @@ async function rbSave(){
 function rbLoadEdit(id){
   const rb=costeoData.recetasBase.find(x=>x.id===id); if(!rb) return;
   rbEditing={ id:rb.id, nombre:rb.nombre, unidad:rb.unidad, produccion:rb.produccion };
-  rbDraft=rb.lineas.map(l=>({ refType:l.refType, refId:l.refId, nombre:l.nombre, unidad:l.unidad, precio:l.precio, cantidad:l.cantidad, rendAplica:l.rendAplica, rendInsumo:l.rendInsumo, base100:l.base100, rend:l.rend }));
+  rbDraft=rb.lineas.map(l=>({ refType:l.refType, refId:l.refId, nombre:l.nombre, unidad:l.unidad, precio:l.precio, cantidad:l.cantidad, cantUnidad:l.cantUnidad||l.unidad, rendAplica:l.rendAplica, rendInsumo:l.rendInsumo, base100:l.base100, rend:l.rend }));
   renderCosteoRecetas(); window.scrollTo({top:0,behavior:'smooth'});
 }
 async function rbDelete(id){
@@ -8676,7 +8698,7 @@ function platoChain(costoTotal, margenPct, aplicaIva=true){
   const pctCosto = precioVenta>0 ? (costoFinal/precioVenta)*100 : 0;
   return { proteccion, iva, costoFinal, precioVenta, precioVentaRedondeado, pctCosto };
 }
-function platoDraftCosto(){ return platoDraft.reduce((s,l)=>s+(Number(l.cantidad)||0)*lineEffPrecio(l),0); }
+function platoDraftCosto(){ return platoDraft.reduce((s,l)=>s+lineCantEnBase(l)*lineEffPrecio(l),0); }
 function renderCosteoPlatos(){
   const cats = costeoData.categorias||[];
   const draftCosto = platoDraftCosto();
@@ -8685,11 +8707,11 @@ function renderCosteoPlatos(){
   const curIva = document.getElementById('plIva') ? document.getElementById('plIva').checked : (platoEditing ? (platoEditing.iva!==false) : !isBarra());
   const ch = platoChain(draftCosto, curMargen||30, curIva);
   const drows = platoDraft.length ? platoDraft.map((l,idx)=>{ const ep=lineEffPrecio(l); return `
-    <tr><td>${escapeHtml(l.nombre)}${l.refType==='rb'?' <span class="mun-bk">RB</span>':''}</td><td>${l.unidad||''}</td>
+    <tr><td>${escapeHtml(l.nombre)}${l.refType==='rb'?' <span class="mun-bk">RB</span>':''}</td><td>${l.cantUnidad||l.unidad||''}</td>
     <td class="dist-num">${lineRendCell(l,idx,'pl')}</td>
     <td class="dist-num">${cMoney(ep)}</td>
     <td class="dist-num"><input type="text" inputmode="decimal" class="dist-input-sm dist-num" data-plqty="${idx}" value="${l.cantidad}" style="width:80px"></td>
-    <td class="dist-num">${cMoney((Number(l.cantidad)||0)*ep)}</td>
+    <td class="dist-num">${cMoney(lineCantEnBase(l)*ep)}</td>
     <td><button class="pv-del" data-plrm="${idx}">✕</button></td></tr>`;}).join('') : `<tr><td colspan="7" style="text-align:center;color:#aaa;padding:.7rem">Agrega insumos o recetas base…</td></tr>`;
   // Lista agrupada por categoría
   const q = platoSearch.toLowerCase();
@@ -8787,7 +8809,8 @@ function platoAddLine(){
   const g=(costeoData.ingredientes||[]).find(x=>x.nombre===val);
   const cant=cNum(document.getElementById('plCant').value);
   if(!g){ alert('Elige un insumo o receta base de la lista.'); return; }
-  platoDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant, rendAplica:g.rendimiento!=null, rendInsumo:g.rendimiento||null, base100:g.base100||null, rend:null });
+  const cantUnidad=ciPickedUnit('plCantU', g.unidad);
+  platoDraft.push({ refType:g.type, refId:g.id, nombre:g.nombre, unidad:g.unidad, precio:g.precio, cantidad:cant, cantUnidad, rendAplica:g.rendimiento!=null, rendInsumo:g.rendimiento||null, base100:g.base100||null, rend:null });
   document.getElementById('plIng').value=''; document.getElementById('plCant').value='';
   renderCosteoPlatosKeep();
 }
@@ -8795,7 +8818,7 @@ async function platoSave(){
   const st=document.getElementById('plSt');
   const nombre=document.getElementById('plNombre').value.trim();
   if(!nombre){ st.className='dist-status err'; st.textContent='Falta el nombre.'; return; }
-  const payload={ nombre, categoria:document.getElementById('plCat').value, margenPct:cNum(document.getElementById('plMargen').value)||30, iva:document.getElementById('plIva').checked, lineas:platoDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad),rend:l.rend})) };
+  const payload={ nombre, categoria:document.getElementById('plCat').value, margenPct:cNum(document.getElementById('plMargen').value)||30, iva:document.getElementById('plIva').checked, lineas:platoDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad),cantUnidad:l.cantUnidad,rend:l.rend})) };
   st.className='dist-status'; st.textContent='Guardando…';
   try{
     const url=platoEditing?`/admin/costeo/platos/${platoEditing.id}`:'/admin/costeo/platos';
@@ -8807,7 +8830,7 @@ async function platoSave(){
 function platoLoadEdit(id){
   const p=(costeoData.platos||[]).find(x=>x.id===id); if(!p) return;
   platoEditing={ id:p.id, nombre:p.nombre, categoria:p.categoria, margenPct:p.margenPct, iva:p.ivaAplica };
-  platoDraft=p.lineas.map(l=>({ refType:l.refType, refId:l.refId, nombre:l.nombre, unidad:l.unidad, precio:l.precio, cantidad:l.cantidad, rendAplica:l.rendAplica, rendInsumo:l.rendInsumo, base100:l.base100, rend:l.rend }));
+  platoDraft=p.lineas.map(l=>({ refType:l.refType, refId:l.refId, nombre:l.nombre, unidad:l.unidad, precio:l.precio, cantidad:l.cantidad, cantUnidad:l.cantUnidad||l.unidad, rendAplica:l.rendAplica, rendInsumo:l.rendInsumo, base100:l.base100, rend:l.rend }));
   renderCosteoPlatos(); window.scrollTo({top:0,behavior:'smooth'});
 }
 async function platoDelete(id){

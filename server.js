@@ -9352,12 +9352,19 @@ function resolveCosteo(d){
     if (refType === 'rb') { const r = rbById.get(refId); return r ? rbUnit(r, stack) : 0; }
     return 0;
   };
+  // Conversión proporcional cuando la cantidad de una línea se cargó en una unidad
+  // distinta a la unidad base del insumo/RB referenciado (ej: 100 ml de un insumo
+  // guardado en litro, o 50 g de un insumo guardado en kilogramo).
+  const refUnidad = (refType, refId) => refType === 'insumo' ? (insById.get(refId) && insById.get(refId).unidad) : (rbById.get(refId) && rbById.get(refId).unidad);
+  const CI_UNIT_FACTOR = { mililitro: { litro: 0.001 }, litro: { mililitro: 1000 }, gramo: { kilogramo: 0.001 }, kilogramo: { gramo: 1000 } };
+  const ciConvFactor = (from, to) => (!from || !to || from === to) ? 1 : ((CI_UNIT_FACTOR[from] && CI_UNIT_FACTOR[from][to]) || 1);
+  const cantEnBase = (l) => (Number(l.cantidad) || 0) * ciConvFactor(l.cantUnidad, refUnidad(l.refType, l.refId));
   function rbUnit(rb, stack){
     if (rbMemo.has(rb.id)) return rbMemo.get(rb.id);
     if (stack.includes(rb.id)) return 0;
     const s = [...stack, rb.id];
     let costo = 0;
-    for (const l of (rb.lineas || [])) costo += (Number(l.cantidad) || 0) * priceOf(l.refType, l.refId, s, l.rend);
+    for (const l of (rb.lineas || [])) costo += cantEnBase(l) * priceOf(l.refType, l.refId, s, l.rend);
     const pu = rb.produccion > 0 ? Math.round(costo / rb.produccion) : 0;
     rbMemo.set(rb.id, pu);
     rb._costoTotal = Math.round(costo); rb._precioUnidad = pu;
@@ -9378,7 +9385,8 @@ function resolveCosteo(d){
     const precio = priceOf(l.refType, l.refId, [], l.rend);
     return {
       refType: l.refType, refId: l.refId, nombre: ing ? (ing.descripcion || ing.nombre) : '(eliminado)',
-      unidad: ing ? ing.unidad : '', precio, cantidad: l.cantidad, costo: Math.round((Number(l.cantidad) || 0) * precio),
+      unidad: ing ? ing.unidad : '', precio, cantidad: l.cantidad, cantUnidad: l.cantUnidad || (ing ? ing.unidad : ''),
+      costo: Math.round(cantEnBase(l) * precio),
       rendAplica, rendInsumo: rendAplica ? ins.rendimiento : null, rend, base100: (ins && rendAplica) ? insumoPrecioReal(ins, 1) : null,
     };
   };
@@ -9461,6 +9469,9 @@ function normalizeRBLineas(raw){
     // Override de rendimiento por línea (0<r<=1). Solo se guarda si viene válido.
     const rend = Number(l.rend);
     if (rend > 0 && rend <= 1) out.rend = rend;
+    // Unidad en la que se tipeó la cantidad (puede diferir de la unidad base del
+    // insumo/RB referenciado, ej: cargar 100 ml de un insumo guardado en litro).
+    if (l.cantUnidad) out.cantUnidad = costeoUnit(l.cantUnidad);
     return out;
   }).filter(l => l.refId);
 }
@@ -9719,9 +9730,14 @@ function rbSheetRows(doc){
       { v: 'Costo x unidad', s: S.sec }, { v: r.precioUnidad, t: 'n', s: S.secMoney },
     ]);
     rows.push([{ v: 'Insumo/RB', s: S.header }, { v: 'Unidad', s: S.header }, { v: 'Precio', s: S.header }, { v: 'Cantidad', s: S.header }, { v: 'Costo', s: S.header }]);
-    (r.lineas || []).forEach(l => rows.push([
-      { v: l.nombre }, { v: l.unidad || '' }, { v: l.precio, t: 'n', s: S.money }, { v: l.cantidad, t: 'n' }, { v: l.costo, t: 'n', s: S.money },
-    ]));
+    (r.lineas || []).forEach(l => {
+      const cantU = l.cantUnidad && l.cantUnidad !== l.unidad ? l.cantUnidad : null;
+      rows.push([
+        { v: l.nombre }, { v: l.unidad || '' }, { v: l.precio, t: 'n', s: S.money },
+        cantU ? { v: `${l.cantidad} ${cantU}` } : { v: l.cantidad, t: 'n' },
+        { v: l.costo, t: 'n', s: S.money },
+      ]);
+    });
     rows.push([{ v: '' }, { v: '' }, { v: '' }, { v: 'Costo total', s: S.header }, { v: r.costoTotal, t: 'n', s: S.money }]);
     rows.push([]);
   });
