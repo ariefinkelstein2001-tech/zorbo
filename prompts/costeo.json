@@ -22357,60 +22357,6 @@
         "ila": 0
       },
       {
-        "id": "a8c922b1-97fe-4de6-bad5-700338b77f57",
-        "descripcion": "KAIROS APA",
-        "precioNeto": 662,
-        "unidad": "litro",
-        "rendimiento": null,
-        "volumen": 1,
-        "ila": 0
-      },
-      {
-        "id": "990bc3ef-81ca-4387-9ee9-79f69e357702",
-        "descripcion": "KAIROS GOLDEN",
-        "precioNeto": 662,
-        "unidad": "litro",
-        "rendimiento": null,
-        "volumen": 1,
-        "ila": 0
-      },
-      {
-        "id": "b50a15bc-7ee6-4c51-9c37-0ceb87b2d8c4",
-        "descripcion": "KAIROS NEIPA",
-        "precioNeto": 662,
-        "unidad": "litro",
-        "rendimiento": null,
-        "volumen": 1,
-        "ila": 0
-      },
-      {
-        "id": "25efce8a-872d-4432-ba2c-3bf53b3ac69a",
-        "descripcion": "KAIROS PILS",
-        "precioNeto": 662,
-        "unidad": "litro",
-        "rendimiento": null,
-        "volumen": 1,
-        "ila": 0
-      },
-      {
-        "id": "167a03d5-dcf3-4636-943b-778cf64a63f7",
-        "descripcion": "KAIROS RED",
-        "precioNeto": 662,
-        "unidad": "litro",
-        "rendimiento": null,
-        "volumen": 1,
-        "ila": 0
-      },
-      {
-        "id": "e7190ab2-33dc-4a59-91db-19b6b3a1e3cd",
-        "descripcion": "KAIROS WEIZEN",
-        "precioNeto": 662,
-        "unidad": "litro",
-        "rendimiento": null,
-        "volumen": 1,
-        "ila": 0
-      },
-      {
         "id": "ae38f7e3-6ec1-4817-8fab-44e8cfce20ba",
         "descripcion": "KOMBUCHA ELIXIR",
         "precioNeto": 2167,
@@ -23858,6 +23804,16 @@
         "rendimiento": null,
         "volumen": 1,
         "ila": 0
+      },
+      {
+        "id": "75a7a14f-7a35-40be-b73b-15542d591343",
+        "descripcion": "CERVEZA KAIROS",
+        "precioNeto": 1312,
+        "unidad": "litro",
+        "rendimiento": null,
+        "volumen": 1,
+        "ila": 20.5,
+        "despacho": 868
       }
     ],
     "recetasBase": [
@@ -24402,7 +24358,7 @@
           },
           {
             "refType": "insumo",
-            "refId": "b50a15bc-7ee6-4c51-9c37-0ceb87b2d8c4",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
             "cantidad": 0.045
           },
           {
@@ -24637,7 +24593,7 @@
           },
           {
             "refType": "insumo",
-            "refId": "e7190ab2-33dc-4a59-91db-19b6b3a1e3cd",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
             "cantidad": 0.39
           },
           {
@@ -24662,7 +24618,7 @@
           },
           {
             "refType": "insumo",
-            "refId": "25efce8a-872d-4432-ba2c-3bf53b3ac69a",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
             "cantidad": 0.48
           },
           {
@@ -24687,7 +24643,7 @@
           },
           {
             "refType": "insumo",
-            "refId": "25efce8a-872d-4432-ba2c-3bf53b3ac69a",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
             "cantidad": 0.48
           },
           {
@@ -25392,7 +25348,7 @@
           },
           {
             "refType": "insumo",
-            "refId": "b50a15bc-7ee6-4c51-9c37-0ceb87b2d8c4",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
             "cantidad": 0.045
           }
         ],
@@ -25467,7 +25423,7 @@
           },
           {
             "refType": "insumo",
-            "refId": "b50a15bc-7ee6-4c51-9c37-0ceb87b2d8c4",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
             "cantidad": 0.03
           }
         ],
