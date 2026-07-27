@@ -23840,6 +23840,24 @@
         "rendimiento": null,
         "volumen": 1,
         "ila": 0
+      },
+      {
+        "id": "afdd867f-d8ce-4aa1-bebd-b878c4a81f07",
+        "descripcion": "CERVEZA MANGO CON PETAZETAS",
+        "precioNeto": 2158,
+        "unidad": "litro",
+        "rendimiento": null,
+        "volumen": 1,
+        "ila": 0
+      },
+      {
+        "id": "cf0e5d07-cf03-4fd2-9736-ed5627e4d47a",
+        "descripcion": "CERVEZA ALERTA ROJA",
+        "precioNeto": 1958,
+        "unidad": "litro",
+        "rendimiento": null,
+        "volumen": 1,
+        "ila": 0
       }
     ],
     "recetasBase": [
@@ -24741,6 +24759,11 @@
             "refType": "insumo",
             "refId": "716864b5-7cb7-481d-baca-2c9a3444ff0d",
             "cantidad": 0.03
+          },
+          {
+            "refType": "insumo",
+            "refId": "afdd867f-d8ce-4aa1-bebd-b878c4a81f07",
+            "cantidad": 0.25
           }
         ],
         "precioReal": null,
@@ -24780,6 +24803,11 @@
           {
             "refType": "insumo",
             "refId": "e05854df-6b8c-4440-9a38-88381f8f047d",
+            "cantidad": 0.15
+          },
+          {
+            "refType": "insumo",
+            "refId": "cf0e5d07-cf03-4fd2-9736-ed5627e4d47a",
             "cantidad": 0.15
           }
         ],
