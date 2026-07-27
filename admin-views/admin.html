@@ -1723,6 +1723,11 @@ body.drawer-open{overflow:hidden}
 .ci-money:before{content:'$';position:absolute;left:.55rem;top:50%;transform:translateY(-50%);color:var(--muted,#666);font-size:.8rem;pointer-events:none}
 .ci-money input{padding-left:1.3rem!important}
 .dist-field .ci-money{display:block}
+.ci-ing-wrap{position:relative}
+.ci-suggest-box{display:none;position:absolute;top:100%;left:0;right:0;z-index:40;margin-top:.25rem;background:var(--surface,#fff);border:1px solid var(--line,#ddd);border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,.14);max-height:280px;overflow-y:auto}
+.ci-suggest-item{padding:.5rem .8rem;font-size:.85rem;cursor:pointer;border-bottom:1px solid var(--line,#f2f2f2)}
+.ci-suggest-item:last-child{border-bottom:none}
+.ci-suggest-item:hover,.ci-suggest-item.active{background:var(--gold-dim,#fdf1dc)}
 .dist-pill{display:inline-block;font-size:.64rem;font-weight:800;padding:.2rem .55rem;border-radius:999px;letter-spacing:.04em}
 .dist-pill.pend{background:#fff3d6;color:#a05f00}
 .dist-pill.recib{background:#e3f6ea;color:#1f7a44}
@@ -8647,8 +8652,40 @@ async function delInsumo(id){
 
 // ── Recetas base (Nivel 2) ──
 let rbEditing = null, rbDraft = [];
-function costeoIngDatalist(){
-  return '<datalist id="cIngList">' + (costeoData.ingredientes||[]).map(g=>`<option data-gid="${g.id}" data-gt="${g.type}" data-gu="${g.unidad}" data-gp="${g.precio}" value="${escapeAttr(g.nombre)}${g.type==='rb'?' (RB)':''}">`).join('') + '</datalist>';
+// Buscador de insumo/RB propio (reemplaza el <datalist> nativo, que con 300+
+// insumos no filtraba bien en varios navegadores y mostraba la lista entera).
+// Filtra por substring sin acentos ni mayúsculas, con selección por click o
+// teclado (↑↓ + Enter).
+function ciWireIngSearch(inpId, boxId){
+  const inp=document.getElementById(inpId); const box=document.getElementById(boxId);
+  if(!inp||!box) return;
+  const norm=(s)=>String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  let items=[], activeIdx=-1, skipNext=false;
+  const close=()=>{ box.innerHTML=''; box.style.display='none'; items=[]; activeIdx=-1; };
+  const render=()=>{
+    if(!items.length){ close(); return; }
+    box.innerHTML = items.map((g,i)=>`<div class="ci-suggest-item${i===activeIdx?' active':''}" data-idx="${i}">${escapeHtml(g.nombre)}${g.type==='rb'?' <span class="mun-bk">RB</span>':''}</div>`).join('');
+    box.style.display='block';
+  };
+  // skipNext evita que, al elegir una sugerencia, el evento "input" sintético
+  // (disparado para que el selector de Unidad se actualice) vuelva a abrir la lista.
+  const pick=(g)=>{ skipNext=true; inp.value = g.nombre + (g.type==='rb'?' (RB)':''); close(); inp.dispatchEvent(new Event('input')); };
+  inp.addEventListener('input', ()=>{
+    if(skipNext){ skipNext=false; return; }
+    const q=norm(inp.value);
+    if(!q){ close(); return; }
+    items=(costeoData.ingredientes||[]).filter(g=>norm(g.nombre).includes(q)).slice(0,40);
+    activeIdx=-1; render();
+  });
+  inp.addEventListener('keydown', (e)=>{
+    if(box.style.display!=='block') return;
+    if(e.key==='ArrowDown'){ e.preventDefault(); activeIdx=Math.min(activeIdx+1, items.length-1); render(); }
+    else if(e.key==='ArrowUp'){ e.preventDefault(); activeIdx=Math.max(activeIdx-1,0); render(); }
+    else if(e.key==='Enter'){ if(activeIdx>=0){ e.preventDefault(); pick(items[activeIdx]); } }
+    else if(e.key==='Escape'){ close(); }
+  });
+  box.addEventListener('mousedown', (e)=>{ const el=e.target.closest('[data-idx]'); if(el) pick(items[+el.dataset.idx]); });
+  inp.addEventListener('blur', ()=>{ setTimeout(close, 150); });
 }
 function renderCosteoRecetas(){
   const draftCosto = rbDraft.reduce((s,l)=>s+lineCantEnBase(l)*lineEffPrecio(l),0);
@@ -8669,7 +8706,7 @@ function renderCosteoRecetas(){
       <div class="oc-items">${rb.lineas.map(l=>`${l.cantidad}× ${escapeHtml(l.nombre)}`).join(' · ')}</div>
       <div class="oc-card-foot"><span></span><span><button class="dist-portal-link" data-rbedit="${rb.id}">Editar</button> <button class="dist-portal-link del" data-rbdel="${rb.id}">Eliminar</button></span></div>
     </div>`).join('') || '<div class="dist-empty">No hay recetas base todavía.</div>';
-  document.getElementById('costeoBody').innerHTML = costeoIngDatalist() + `
+  document.getElementById('costeoBody').innerHTML = `
     <div class="dist-form">
       <div class="dist-sec-title">${rbEditing?'Editar receta base':'Nueva receta base'}</div>
       <div class="dist-sec-sub">Agrega insumos o incluso otras recetas. El costo y el precio por unidad se calculan solos.</div>
@@ -8679,7 +8716,7 @@ function renderCosteoRecetas(){
         <div class="dist-field"><label>Unidad de la receta</label><select id="rbUnidad">${C_UNITS(rbEditing?rbEditing.unidad:'litro')}</select></div>
       </div>
       <div class="oc-line">
-        <div class="dist-field" style="flex:2"><label>Insumo o receta</label><input id="rbIng" list="cIngList" placeholder="Escribe para buscar…"></div>
+        <div class="dist-field" style="flex:2"><label>Insumo o receta</label><div class="ci-ing-wrap"><input id="rbIng" autocomplete="off" placeholder="Escribe para buscar…"><div id="rbIngSuggest" class="ci-suggest-box"></div></div></div>
         <div class="dist-field"><label>Cantidad</label><input id="rbCant" type="text" inputmode="decimal" placeholder="0"></div>
         <div class="dist-field"><label>Unidad</label><select id="rbCantUnidad" disabled><option value="">—</option></select></div>
         <button class="adm-btn adm-btn-ghost" id="rbAddLine" type="button">+ Agregar</button>
@@ -8706,6 +8743,7 @@ function renderCosteoRecetas(){
     <div class="oc-list">${list || '<div class="dist-empty">No hay recetas que coincidan.</div>'}</div>`;
   document.getElementById('rbAddLine').onclick=rbAddLine;
   ciWireUnitHint('rbIng','rbCantUnidad');
+  ciWireIngSearch('rbIng','rbIngSuggest');
   { const x=document.getElementById('rbXlBtn'); if(x) x.onclick=()=>costeoExportXlsx('recetas'); }
   document.getElementById('rbSave').onclick=rbSave;
   // Actualiza la vista previa SIN re-renderizar (para no perder el foco al tipear)
@@ -8812,7 +8850,7 @@ function renderCosteoPlatos(){
         <tbody>${rows}</tbody></table></div>`;
   }).join('');
   const catOptions = cats.map(c=>`<option value="${escapeAttr(c)}" ${(platoEditing?platoEditing.categoria:'')===c?'selected':''}>${escapeHtml(c)}</option>`).join('');
-  document.getElementById('costeoBody').innerHTML = costeoIngDatalist() + `
+  document.getElementById('costeoBody').innerHTML = `
     <div class="dist-form">
       <div class="dist-sec-title">${platoEditing?'Editar plato':'Nuevo plato'}</div>
       <div class="dist-sec-sub">Agrega insumos y/o recetas base con su gramaje.</div>
@@ -8822,7 +8860,7 @@ function renderCosteoPlatos(){
         <div class="dist-field"><label>IVA</label><label class="pl-iva"><input type="checkbox" id="plIva" ${curIva?'checked':''}> Incluir IVA 19%</label></div>
       </div>
       <div class="oc-line">
-        <div class="dist-field" style="flex:2"><label>Insumo o receta base</label><input id="plIng" list="cIngList" placeholder="Escribe para buscar…"></div>
+        <div class="dist-field" style="flex:2"><label>Insumo o receta base</label><div class="ci-ing-wrap"><input id="plIng" autocomplete="off" placeholder="Escribe para buscar…"><div id="plIngSuggest" class="ci-suggest-box"></div></div></div>
         <div class="dist-field"><label>Gramaje / cantidad</label><input id="plCant" type="text" inputmode="decimal" placeholder="0"></div>
         <div class="dist-field"><label>Unidad</label><select id="plCantUnidad" disabled><option value="">—</option></select></div>
         <button class="adm-btn adm-btn-ghost" id="plAddLine" type="button">+ Agregar</button>
@@ -8854,6 +8892,7 @@ function renderCosteoPlatos(){
     ${groups || '<div class="dist-empty">No hay platos que coincidan.</div>'}`;
   document.getElementById('plAddLine').onclick=platoAddLine;
   ciWireUnitHint('plIng','plCantUnidad');
+  ciWireIngSearch('plIng','plIngSuggest');
   { const x=document.getElementById('plXlBtn'); if(x) x.onclick=()=>costeoExportXlsx('platos'); }
   document.getElementById('plSave').onclick=platoSave;
   const upd=()=>{ const ct=platoDraftCosto(); const iv=document.getElementById('plIva').checked; const c=platoChain(ct,30,iv);
