@@ -11924,7 +11924,7 @@ function invRenderGcStock(d){
     }
   }
   bRows.push({id:'btot',level:0,kids:false,cls:' gcs-tot',cells:invCells([
-    {v:'TOTAL'},{v:''},{v:invN(t.barrilesUnid),r:1},{v:invL(t.barrilesStockLitros),r:1},{v:'',r:1},{v:'',r:1},{v:invN(t.barrilesUnid),r:1},{v:invL(t.barrilesLitros),r:1}])});
+    {v:'TOTAL'},{v:''},{v:invN(t.barrilesStockUnid),r:1},{v:invL(t.barrilesStockLitros),r:1},{v:'',r:1},{v:'',r:1},{v:invN(t.barrilesUnid),r:1},{v:invL(t.barrilesLitros),r:1}])});
   const barTbl=`<div class="prod-sec-h" style="margin-top:.4rem">🛢 Barriles por producto <span>${bar.length}</span></div>`+invTreeTable(barHead,bRows,9);
 
   // ── Latas / envasado por producto → caja → lote. Compacto: envase/caja/lote
@@ -11954,7 +11954,7 @@ function invRenderGcStock(d){
     }
   }
   lRows.push({id:'ltot',level:0,kids:false,cls:' gcs-tot',cells:invCells([
-    {v:'TOTAL'},{v:''},{v:invN(t.latasUnid),r:1},{v:invL(t.latasLitros),r:1},{v:'',r:1},{v:'',r:1},{v:invN(t.latasUnid),r:1},{v:invL(t.latasLitros),r:1}])});
+    {v:'TOTAL'},{v:''},{v:invN(t.latasStockUnid),r:1},{v:invL(t.latasStockLitros),r:1},{v:'',r:1},{v:'',r:1},{v:invN(t.latasUnid),r:1},{v:invL(t.latasLitros),r:1}])});
   const latTbl=`<div class="prod-sec-h" style="margin-top:.9rem">🥫 Latas / envasado por producto <span>${lat.length}</span></div>`+invTreeTable(latHead,lRows,9);
 
   // ── Barriles en depósitos → producto → tamaño → barril (drill-down completo, como GC) ──

@@ -5548,8 +5548,10 @@ async function erpStock(){
   const sum = (arr, f) => arr.reduce((a, x) => a + (f(x) || 0), 0);
   return { ok: true, barriles, latas, depositos, depositosLatas,
     totales: {
+      // En Stock (stock físico) vs Disponible (en stock − reservado por pedidos).
+      barrilesStockUnid: sum(barriles, b => b.enStock.barriles), barrilesStockLitros: sum(barriles, b => b.enStock.litros),
       barrilesUnid: sum(barriles, b => b.disponible.barriles), barrilesLitros: sum(barriles, b => b.disponible.litros),
-      barrilesStockLitros: sum(barriles, b => b.enStock.litros),
+      latasStockUnid: sum(latas, l => l.enStock.cantidad), latasStockLitros: sum(latas, l => l.enStock.litros),
       latasUnid: sum(latas, l => l.disponible.cantidad), latasLitros: sum(latas, l => l.disponible.litros),
       depBarriles: sum(depositos, d => d.barriles),
       depLatasCantidad: sum(depositosLatas, d => d.cantidad), depLatasLitros: sum(depositosLatas, d => d.litros),
