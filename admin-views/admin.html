@@ -12008,7 +12008,7 @@ function invRenderGcStock(d){
     latDepTbl=`<div class="prod-sec-h" style="margin-top:.7rem">🏬 Latas / envases en depósitos <span>${depL.length}</span></div>`+invTreeTable(depLHead,dLRows,7);
   }
 
-  box.innerHTML=INV_GCS_CSS+resumen+barTbl+barDepTbl+latTbl+latDepTbl+`<div class="cal-form-s" style="margin-top:.5rem">Igual que en Gestión Cervecera (/Producto/Stock). Tocá <b>+</b> para desplegar tamaños de barril / cajas y el detalle. "Disponibles" = lo que hay hoy menos lo reservado por pedidos. Actualizado ${d.generadoEn?prodDT(d.generadoEn):'—'}.</div>`;
+  box.innerHTML=INV_GCS_CSS+resumen+barTbl+barDepTbl+latTbl+latDepTbl+`<div class="cal-form-s" style="margin-top:.5rem">Igual que en Gestión Cervecera (/Producto/Stock). Tocá <b>+</b> para desplegar tamaños de barril / cajas y el detalle. "Disponibles" = lo que hay hoy menos lo reservado por pedidos.<br><b>📸 Foto tomada ${d.generadoEn?prodDT(d.generadoEn):'—'}</b> — el stock en GC es en vivo (los barriles se mueven), así que si querés el valor exacto de este instante tocá <b>🔄 Sincronizar</b>.</div>`;
   // Expandir/colapsar (delegación de eventos; al colapsar, cierra descendientes).
   box.querySelectorAll('.gcs-tbl').forEach(tbl=>{
     tbl.addEventListener('click',e=>{
@@ -12028,7 +12028,7 @@ function invTreeToggle(tbl,id,open){
 let invGcStockData=null, invGcStockAt=0;
 async function invLoadGcStock(force){
   const box=document.getElementById('invGcStock'); if(!box) return;
-  const fresh = invGcStockData && (Date.now()-invGcStockAt < 10*60*1000);
+  const fresh = invGcStockData && (Date.now()-invGcStockAt < 45*1000);
   if(!force && fresh){ invRenderGcStock(invGcStockData); return; }
   box.innerHTML='<div class="adm-loading">Entrando a Gestión Cervecera y trayendo el stock…</div>';
   try{ const r=await fetch('/admin/produccion/erp/stock'); const d=await prodSafeJson(r); if(!r.ok&&!d) throw new Error('Error'); invGcStockData=d; invGcStockAt=Date.now(); invRenderGcStock(d); }
