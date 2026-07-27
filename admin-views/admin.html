@@ -11618,13 +11618,18 @@ const PROD_INV_CAT_LBL={lata:'Latas',tapa:'Tapas de lata',etiqueta:'Etiquetas po
 function prodRenderInventarios(){
   const inv=prodData.inventario||{barriles:{sucios:0,limpios:0,actualizado:null},insumos:[],totalesPorCategoria:{},valorTotalInsumos:0};
   const b=inv.barriles||{};
-  const barrilesBox=`<div class="cg-form"><div class="cg-form-title">🛢 Barriles (registro cervecero) <span class="adm-cat-chip" style="margin-left:.5rem">⏳ pendiente integración ERP · Gestión Cervecera</span></div>
+  const gcBox=`<div class="cg-form"><div class="cg-form-title" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
+      <span>📦 Stock desde Gestión Cervecera — barriles, latas y depósitos</span>
+      <button class="adm-btn adm-btn-gold" id="invGcSync" type="button" style="font-size:.78rem">🔄 Sincronizar</button></div>
+    <div id="invGcStock"><div class="cal-form-s">Apretá <b>Sincronizar</b> para traer el stock (embarrilado, envasado y depósitos) desde Gestión Cervecera.</div></div>
+  </div>`;
+  const barrilesBox=`<div class="cg-form"><div class="cg-form-title">🛢 Barriles (conteo manual)</div>
     <div class="cg-form-grid">
       <label class="cg-field"><span>Sucios</span><input id="invBSuc" inputmode="numeric" value="${cNum(b.sucios)}"></label>
       <label class="cg-field"><span>Limpios</span><input id="invBLim" inputmode="numeric" value="${cNum(b.limpios)}"></label>
       <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="invBSave" type="button">Guardar conteo</button></div>
     </div>
-    <div class="cal-form-s" style="margin-top:.5rem">Conteo manual mientras se conecta la lectura automática desde Gestión Cervecera (Arie está integrando esa parte). Última actualización: ${b.actualizado?prodDT(b.actualizado):'—'}.</div>
+    <div class="cal-form-s" style="margin-top:.5rem">Conteo manual de barriles sucios/limpios. El stock automático (embarrilado/envasado) está en el cuadro de arriba. Última actualización: ${b.actualizado?prodDT(b.actualizado):'—'}.</div>
   </div>`;
   const cats=(prodData.meta&&prodData.meta.invCategorias&&prodData.meta.invCategorias.length)?prodData.meta.invCategorias:['lata','tapa','etiqueta'];
   const form=`<div class="cg-form"><div class="cg-form-title">➕ Agregar ítem de inventario</div><div class="cg-form-grid">
@@ -11641,7 +11646,27 @@ function prodRenderInventarios(){
       <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Nombre / diseño</th><th style="text-align:right">Cantidad</th><th style="text-align:right">Costo unit.</th><th style="text-align:right">Valor total</th><th></th></tr></thead><tbody>${trs||'<tr><td colspan="5" style="text-align:center;color:#999;padding:.7rem">Sin ítems registrados</td></tr>'}</tbody></table></div>`;
   };
   const tablas=cats.map(tableFor).join('');
-  return barrilesBox+form+tablas+`<div class="prod-sec-h" style="margin-top:1rem">Valor total del inventario de insumos <span>${fmtMoney(inv.valorTotalInsumos)}</span></div>`;
+  return gcBox+barrilesBox+form+tablas+`<div class="prod-sec-h" style="margin-top:1rem">Valor total del inventario de insumos <span>${fmtMoney(inv.valorTotalInsumos)}</span></div>`;
+}
+function invStockTabla(titulo, items){
+  const list=(items||[]).slice().sort((a,b)=>String(a.tipo+a.nombre).localeCompare(String(b.tipo+b.nombre)));
+  const rows=list.map(x=>`<tr><td>${escapeHtml(x.nombre)}${x.marca?(' <span style="color:#9098a3;font-size:.72rem">'+escapeHtml(x.marca)+'</span>'):''}</td><td>${escapeHtml(x.tipo||'')}</td><td class="dist-num${(x.stockMinimo!=null&&x.stock<x.stockMinimo)?' pnl-neg':''}">${(x.stock||0).toLocaleString('es-CL')}</td><td class="dist-num" style="color:#9098a3">${x.stockMinimo!=null?x.stockMinimo.toLocaleString('es-CL'):'—'}</td></tr>`).join('');
+  return `<div class="prod-sec-h" style="margin-top:.6rem">${titulo} <span>${list.length} ítem(s)</span></div>
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Ítem</th><th>Tipo</th><th style="text-align:right">Stock</th><th style="text-align:right">Mín</th></tr></thead><tbody>${rows||'<tr><td colspan="4" style="text-align:center;color:#999;padding:.6rem">Sin ítems</td></tr>'}</tbody></table></div>`;
+}
+function invRenderGcStock(d){
+  const box=document.getElementById('invGcStock'); if(!box) return;
+  if(!d.ok){ box.innerHTML='<div class="cg-err show">⚠ '+escapeHtml(d.error||'No se pudo conectar a Gestión Cervecera.')+'</div>'; return; }
+  const dep=(d.depositos||[]).map(x=>`<tr><td><b>${escapeHtml(x.nombre)}</b> <span style="color:#9098a3;font-size:.72rem">${escapeHtml(x.codigo||'')}</span></td><td>${escapeHtml(x.tipo||'')}${x.frio?' ❄️':''}</td><td style="font-size:.78rem;color:#7a8290">${escapeHtml(x.direccion||'')}</td></tr>`).join('');
+  box.innerHTML=invStockTabla('🛢 Embarrilado (barriles)', d.embarrilado)
+    + invStockTabla('🥫 Envasado (latas y botellas)', d.envasado)
+    + `<div class="prod-sec-h" style="margin-top:.6rem">🏬 Depósitos <span>${(d.depositos||[]).length}</span></div><div class="mun-wrap"><table class="mun-table"><thead><tr><th>Depósito</th><th>Tipo</th><th>Dirección</th></tr></thead><tbody>${dep||'<tr><td colspan="3" style="text-align:center;color:#999;padding:.6rem">Sin depósitos</td></tr>'}</tbody></table></div>`
+    + `<div class="cal-form-s" style="margin-top:.4rem">Actualizado ${d.generadoEn?prodDT(d.generadoEn):'—'} · desde Gestión Cervecera. El stock en 0 es el valor real que hay hoy en el ERP.</div>`;
+}
+async function invLoadGcStock(){
+  const box=document.getElementById('invGcStock'); if(box) box.innerHTML='<div class="adm-loading">Entrando a Gestión Cervecera y trayendo el stock…</div>';
+  try{ const r=await fetch('/admin/produccion/erp/stock'); const d=await prodSafeJson(r); if(!r.ok&&!d) throw new Error('Error'); invRenderGcStock(d); }
+  catch(e){ if(box) box.innerHTML='<div class="cg-err show">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
 }
 // ── Limpiezas ──
 function prodRenderLimpiezas(){
@@ -11783,6 +11808,7 @@ function prodWire(){
     catch(e){ if(err) err.textContent='⚠ '+String(e.message||e); }
   };
   document.querySelectorAll('[data-inv-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar el ítem?')) prodDelete('inventario/insumo',b.dataset.invDel); });
+  if(g('invGcSync')) g('invGcSync').onclick=invLoadGcStock;
   // limpiezas
   if(g('lmAdd')) g('lmAdd').onclick=async()=>{ await prodPost('limpieza',{tipo:g('lmTipo').value,centroTrabajo:g('lmCentro').value,ref:g('lmRef').value,inicio:prodLocal(g('lmIni').value),fin:prodLocal(g('lmFin').value)}); };
   document.querySelectorAll('[data-limp-del]').forEach(b=>b.onclick=()=>prodDelete('limpieza',b.dataset.limpDel));

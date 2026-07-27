@@ -5242,6 +5242,26 @@ app.post('/admin/produccion/erp/sync', requireAdmin, async (req, res) => {
   const r = await erpRunSync('manual');
   res.json(r);
 });
+// Stock desde Gestión Cervecera: embarrilado (barriles) + envasado (latas/botellas)
+// + depósitos. Endpoints confirmados por captura de red (página /Producto/Stock).
+async function erpStock(){
+  const cfg = prodLoad().config; const { base } = erpCreds(cfg);
+  const login = await erpLogin(cfg);
+  if (!login.ok) return { ok: false, error: login.error + (login.stage ? ' [' + login.stage + ']' : '') };
+  const post = async (path) => {
+    try {
+      const r = await erpFetch(base + path, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Referer': base + '/Producto/Stock', 'Origin': base }, body: '' }, login.jar);
+      const t = await r.text(); try { return JSON.parse(t); } catch { return null; }
+    } catch { return null; }
+  };
+  const [emb, env, dep] = await Promise.all([post('/Lote/GetInsumosEmbarrilado'), post('/Envasado/GetInsumosEnvasado'), post('/Barril/GetAllDepositos')]);
+  const normIns = (arr) => (Array.isArray(arr) ? arr : []).filter(x => x && x.activo !== false).map(x => ({ id: x.id, nombre: String(x.nombre || ''), marca: String(x.marca || ''), tipo: String(x.tipo || ''), idTipoMP: x.idTipoMP, stock: Number(x.stock) || 0, stockMinimo: x.stockMinimo != null ? Number(x.stockMinimo) : null }));
+  const depositos = (((dep && dep.data) || (Array.isArray(dep) ? dep : [])) || []).map(d => ({ id: d.id, nombre: String(d.nombre || ''), codigo: String(d.codigo || ''), tipo: String(d.nombreTipoDeposito || ''), frio: !!d.tieneFrio, direccion: String(d.direccionCompleta || '').trim() }));
+  return { ok: true, embarrilado: normIns(emb), envasado: normIns(env), depositos, generadoEn: new Date().toISOString() };
+}
+app.get('/admin/produccion/erp/stock', requireAdmin, async (_req, res) => {
+  try { res.json(await erpStock()); } catch (e) { res.status(500).json({ ok: false, error: String(e.message || e).slice(0, 160) }); }
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pyxis / BiPyxis (ERP gastronómico de Grupo Mil Sabores) — integración
