@@ -2007,6 +2007,38 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .prod-color-sw.on{border-color:#111;box-shadow:0 0 0 2px #fff,0 0 0 3px #111}
 .prod-tk-cip{margin-top:.4rem;font-size:.74rem;padding:.35rem .5rem}
 .prod-erp-status{font-size:.8rem;color:var(--muted,#555);font-weight:600;margin-top:.3rem}
+/* Inventario — 4 categorías: tarjetas selectoras, notas de origen, badges de
+   estado por familia semántica, editor de estados, ficha compuesta, modal CAPEX. */
+.inv-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.8rem;margin-bottom:1rem}
+.inv-card{position:relative;text-align:left;display:flex;flex-direction:column;gap:.3rem;background:var(--surface,#fff);border:1.5px solid var(--line,#e5e5e5);border-radius:14px;padding:.9rem 1rem 1rem;cursor:pointer;font-family:var(--sans);color:var(--text,#111)}
+.inv-card:hover{border-color:var(--gold,#f5a623)}
+.inv-card.on{border-color:var(--gold,#f5a623);background:var(--gold-dim,#fff3d6);box-shadow:0 0 0 1px var(--gold,#f5a623)}
+.inv-card-ico{font-size:1.5rem;line-height:1}
+.inv-card-nm{font-family:var(--display,inherit);font-weight:700;font-size:.92rem;line-height:1.25}
+.inv-card-src{font-size:.7rem;color:var(--muted,#666)}
+.inv-card-n{font-size:.72rem;font-weight:700;color:var(--gold-deep,#a05f00)}
+.inv-card-help{position:absolute;top:.6rem;right:.6rem;width:22px;height:22px;border-radius:50%;border:1px solid var(--line,#e5e5e5);background:var(--surface2,#fafafa);color:var(--muted,#666);font-weight:800;font-size:.72rem;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.inv-card-help:hover,.inv-card-help:focus-visible{border-color:var(--gold,#f5a623);color:var(--gold-deep,#a05f00)}
+.inv-src-note{font-size:.8rem;color:var(--muted,#555);background:var(--surface2,#fafafa);border-left:3px solid var(--gold,#f5a623);border-radius:8px;padding:.55rem .75rem;margin:.5rem 0;line-height:1.55}
+.inv-badge{display:inline-flex;align-items:center;gap:.28rem;font-size:.7rem;font-weight:700;padding:.16rem .55rem;border-radius:20px;white-space:nowrap}
+.inv-badge-disponible{background:#e6f6ec;color:#1f7a4d}
+.inv-badge-en_uso{background:#e6f0fb;color:#2563a8}
+.inv-badge-en_proceso{background:#fff3d6;color:#a05f00}
+.inv-badge-problema{background:#fbe7e5;color:#c0392b}
+.inv-badge-x{background:var(--surface2,#f2f2f2);color:var(--muted,#888)}
+.inv-badge-tag{background:var(--surface2,#f2f2f2);color:var(--muted,#666)}
+.inv-est-editor{background:var(--surface2,#fafafa);border:1px solid var(--line,#e5e5e5);border-radius:10px;padding:.6rem .7rem;margin-bottom:.7rem;display:flex;flex-direction:column;gap:.4rem}
+.inv-est-row{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap}
+.inv-est-row.off{opacity:.5}
+.inv-est-row input[type=text],.inv-est-row input:not([type]){flex:1 1 160px;min-width:120px}
+.inv-est-toggle{display:flex;align-items:center;gap:.3rem;font-size:.72rem;color:var(--muted,#666)}
+.inv-schop{background:var(--surface2,#fafafa);border:1px dashed var(--line,#dcdcdc);border-radius:10px;padding:.7rem .8rem;margin-top:.7rem}
+.inv-cliente-row{padding:.5rem 0;border-bottom:1px solid var(--line,#eee)}
+.inv-cliente-row:last-child{border-bottom:0}
+.inv-cliente-items{font-size:.76rem;color:var(--muted,#666);margin-top:.15rem}
+.inv-modal-bg{position:fixed;inset:0;background:rgba(20,20,20,.45);display:flex;align-items:center;justify-content:center;z-index:80;padding:1rem}
+.inv-modal{background:var(--surface,#fff);border-radius:16px;padding:1.2rem 1.3rem;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+@media(max-width:640px){.inv-cards{grid-template-columns:1fr 1fr}}
 .prod-detail{margin-top:1rem}
 .prod-lote{border:1px solid var(--line,#e5e5e5);border-radius:12px;padding:.9rem 1rem;margin-bottom:.9rem;background:var(--surface,#fff)}
 .prod-lote-h{display:flex;justify-content:space-between;align-items:flex-start;gap:.6rem}
@@ -3443,7 +3475,7 @@ const BASE_SECCIONES = [
   // PROD_TAB_DEFS para que el dispatcher solo tenga que hacer prodTab=sec.id.
   { id:'oee',        kind:'opcalidad', label:'OEE',        cat:'operacion', desc:'disponibilidad · rendimiento · calidad · paretos de paradas y cocción' },
   { id:'calidad',    kind:'opcalidad', label:'Calidad',    cat:'operacion', desc:'certificaciones y catas · retroalimentación · memorias' },
-  { id:'inventarios',kind:'opcalidad', label:'Inventario', cat:'operacion', desc:'barriles · insumos · valor total' },
+  { id:'inventarios',kind:'opcalidad', label:'Inventario', cat:'operacion', desc:'Productos terminados · insumos · retornables · activos fijos' },
   // Inicio del área Finanzas (plantilla reutilizable). nav:false → no es item del sidebar;
   // se abre al hacer clic en el grupo "FINANZAS" del panel lateral.
   { id:'finanzas-home', kind:'finhome', label:'Inicio Finanzas', cat:'finanzas', nav:false, desc:'resumen del área con IA + cuadros' },
@@ -11820,40 +11852,273 @@ async function prodCalGuardarRegistro(){
   const d=await prodCalReq('registro','POST',payload);
   if(d){ prodCal.pdfs=[]; prodCalRender(); }
 }
-// ── Inventarios (barriles + insumos de envasado) ──
-const PROD_INV_CAT_LBL={lata:'Latas',tapa:'Tapas de lata',etiqueta:'Etiquetas por diseño'};
+// ── Inventarios — 4 categorías (Productos Terminados · Materias Primas e
+// Insumos · Envases y Activos Retornables · Activos Fijos y Equipamiento) ──
+const PROD_INV_CAT_LBL={malta:'Malta',lupulo:'Lúpulo',levadura:'Levadura',alcohol:'Alcohol',ingrediente:'Otros ingredientes',lata:'Latas',tapa:'Tapas de lata',etiqueta:'Etiquetas por diseño',caja:'Cajas',packaging:'Material de packaging',barril_pet:'Barriles PET (un solo uso)',co2_gas:'Gas CO2'};
+const INV_CARDS=[
+  {id:'terminados',ico:'🍺',nombre:'Productos Terminados',fuente:'Automático desde Gestión Cervecera',
+    desc:'Productos que ya están terminados y disponibles para vender.',
+    ejemplos:'Ejemplos: cerveza, gin, Ready To Drink, botellas, latas o barriles con producto terminado.'},
+  {id:'insumos',ico:'🌾',nombre:'Materias Primas e Insumos',fuente:'Registro manual',
+    desc:'Todo lo que necesitas para fabricar, producir, envasar o preparar tus productos.',
+    ejemplos:'Ejemplos: malta, lúpulo, levadura, ingredientes, etiquetas, botellas, latas, tapas y cajas.'},
+  {id:'retornables',ico:'🛢',nombre:'Envases y Activos Retornables',fuente:'Registro manual',
+    desc:'Elementos reutilizables que pueden salir de la empresa, pero deben regresar porque siguen siendo propiedad de la compañía.',
+    ejemplos:'Ejemplos: barriles, kegs, cilindros de CO2, pallets o cajas retornables.',
+    extra:'Ejemplo: Si tienes un barril lleno de cerveza, la cerveza se controla como Producto Terminado, mientras que el barril físico se controla aquí.'},
+  {id:'activosFijos',ico:'🔧',nombre:'Activos Fijos y Equipamiento Operacional',fuente:'Registro manual',
+    desc:'Equipos o bienes que utilizas para operar el negocio y que tienen una vida útil prolongada.',
+    ejemplos:'Ejemplos: schopperas, máquinas dispensadoras, refrigeradores, equipos de frío, bombas y herramientas.'},
+];
+let invView='terminados', invInsumoCat='', invRetEditId=null, invAfEditId=null, invAfSchopperaChk=false;
+let invEstEditorOpen={estadosRetornables:false,estadosActivosFijos:false};
+let invCapexConfirm=null; // {activoFijoId,proveedor,fecha,valor,folio} — abre el modal de confirmación CAPEX
+function invTipCard(c){
+  const extra=c.extra?`<div style="margin-top:.4rem;padding-top:.4rem;border-top:1px solid rgba(255,255,255,.18)">${escapeHtml(c.extra)}</div>`:'';
+  return `<b>¿Qué va aquí?</b><br>${escapeHtml(c.desc)}<br>${escapeHtml(c.ejemplos)}${extra}`;
+}
+function invCardSelector(){
+  const inv=prodData.inventario||{};
+  const cont=c=>c.id==='terminados'?null:((inv.contadores||{})[c.id]);
+  const cards=INV_CARDS.map(c=>{
+    const n=cont(c);
+    return `<button type="button" class="inv-card adm-has-tip ${invView===c.id?'on':''}" data-inv-view="${c.id}" aria-describedby="invTip_${c.id}">
+      <span class="inv-card-ico">${c.ico}</span>
+      <span class="inv-card-nm">${escapeHtml(c.nombre)}</span>
+      <span class="inv-card-src">${c.fuente==='Registro manual'?'✍️':'🔄'} ${escapeHtml(c.fuente)}</span>
+      ${n!=null?`<span class="inv-card-n">${n} ítem(s)</span>`:''}
+      <span role="tooltip" id="invTip_${c.id}" class="adm-tip" style="max-width:280px">${invTipCard(c)}</span>
+      <span class="inv-card-help" data-inv-help="${c.id}" tabindex="0" role="button" aria-label="¿Qué va aquí?">?</span>
+    </button>`;
+  }).join('');
+  return `<div class="inv-cards">${cards}</div><div id="invHelpPanel"></div>`;
+}
+function invEstadoBadge(info){
+  if(!info) return '<span class="inv-badge inv-badge-x">—</span>';
+  const fam=(prodData.meta&&prodData.meta.estadoFamilias||[]).find(f=>f.id===info.familia)||{};
+  const ico={disponible:'✓',en_uso:'↻',en_proceso:'⋯',problema:'⚠'}[info.familia]||'•';
+  return `<span class="inv-badge inv-badge-${info.familia||'x'}" style="${fam.color?('--inv-c:'+fam.color):''}">${ico} ${escapeHtml(info.label||'')}</span>`;
+}
 function prodRenderInventarios(){
-  const inv=prodData.inventario||{barriles:{sucios:0,limpios:0,actualizado:null},insumos:[],totalesPorCategoria:{},valorTotalInsumos:0};
-  const b=inv.barriles||{};
-  const gcBox=`<div class="cg-form"><div class="cg-form-title" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
-      <span>🍺 Stock de chelas desde Gestión Cervecera — barriles, latas y depósitos</span>
+  const V={terminados:invViewTerminados,insumos:invViewInsumos,retornables:invViewRetornables,activosFijos:invViewActivosFijos};
+  return invCardSelector()+'<div class="inv-view">'+(V[invView]||invViewTerminados)()+'</div>';
+}
+// ── Cat. 1 · Productos Terminados (solo lectura, integración GC) ──
+function invViewTerminados(){
+  return `<div class="cg-form"><div class="cg-form-title" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
+      <span>🍺 Stock desde Gestión Cervecera — barriles, latas y depósitos</span>
       <button class="adm-btn adm-btn-gold" id="invGcSync" type="button" style="font-size:.78rem">🔄 Sincronizar</button></div>
+    <div class="inv-src-note">Lectura automática, solo lectura — total <b>agregado por producto</b> (no por depósito individual, salvo donde Gestión Cervecera lo entrega). No se carga a mano acá: un formulario manual competiría con esta fuente y quedaría desactualizado.</div>
     <div id="invGcStock"><div class="adm-loading">Cargando stock desde Gestión Cervecera…</div></div>
   </div>`;
-  const barrilesBox=`<div class="cg-form"><div class="cg-form-title">🛢 Barriles (conteo manual)</div>
-    <div class="cg-form-grid">
-      <label class="cg-field"><span>Sucios</span><input id="invBSuc" inputmode="numeric" value="${cNum(b.sucios)}"></label>
-      <label class="cg-field"><span>Limpios</span><input id="invBLim" inputmode="numeric" value="${cNum(b.limpios)}"></label>
-      <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="invBSave" type="button">Guardar conteo</button></div>
+}
+// ── Editor de estados (compartido: retornables y activos fijos) — mismo
+// patrón que cd.competencias en Calidad: agregar/renombrar/ocultar sin código.
+function invEstadoEditorPanel(estados, seg){
+  const fams=(prodData.meta&&prodData.meta.estadoFamilias)||[];
+  const famOpts=sel=>fams.map(f=>`<option value="${f.id}" ${f.id===sel?'selected':''}>${escapeHtml(f.label)}</option>`).join('');
+  const rows=(estados||[]).map(e=>`<div class="inv-est-row${e.activo===false?' off':''}">
+      <input data-est-label="${e.id}" data-est-seg="${seg}" value="${escapeAttr(e.label)}">
+      <select data-est-familia="${e.id}" data-est-seg="${seg}">${famOpts(e.familia)}</select>
+      <label class="inv-est-toggle"><input type="checkbox" data-est-activo="${e.id}" data-est-seg="${seg}" ${e.activo!==false?'checked':''}> activo</label>
+      <button class="pv-del" data-est-del="${e.id}" data-est-seg="${seg}" title="Borrar (bloqueado si está en uso)">✕</button>
+    </div>`).join('');
+  return `<div class="inv-est-editor">
+    <div class="inv-est-row inv-est-new">
+      <input id="invEstNewLabel_${seg}" placeholder="Nuevo estado…">
+      <select id="invEstNewFamilia_${seg}">${famOpts()}</select>
+      <button class="adm-btn adm-btn-ghost" data-est-add="${seg}" type="button" style="font-size:.72rem">+ Agregar</button>
     </div>
-    <div class="cal-form-s" style="margin-top:.5rem">Conteo manual de barriles sucios/limpios. El stock real de chelas (barriles y latas por producto) está en el cuadro de arriba. Última actualización: ${b.actualizado?prodDT(b.actualizado):'—'}.</div>
+    ${rows}
   </div>`;
-  const cats=(prodData.meta&&prodData.meta.invCategorias&&prodData.meta.invCategorias.length)?prodData.meta.invCategorias:['lata','tapa','etiqueta'];
-  const form=`<div class="cg-form"><div class="cg-form-title">➕ Agregar ítem de inventario</div><div class="cg-form-grid">
+}
+// ── Cat. 2 · Materias Primas e Insumos ──
+function invViewInsumos(){
+  const inv=prodData.inventario||{};
+  const cats=(prodData.meta&&prodData.meta.invCategorias&&prodData.meta.invCategorias.length)?prodData.meta.invCategorias:Object.keys(PROD_INV_CAT_LBL);
+  const form=`<div class="cg-form"><div class="cg-form-title">➕ Agregar insumo</div><div class="cg-form-grid">
     <label class="cg-field"><span>Categoría</span><select id="invCat">${cats.map(c=>`<option value="${escapeAttr(c)}">${escapeHtml(PROD_INV_CAT_LBL[c]||c)}</option>`).join('')}</select></label>
-    <label class="cg-field"><span>Nombre / diseño</span><input id="invNombre" placeholder="Ej: Lata 473cc / Etiqueta Samba"></label>
-    <label class="cg-field"><span>Cantidad</span><input id="invCant" inputmode="numeric" placeholder="0"></label>
+    <label class="cg-field"><span>Insumo</span><input id="invNombre" placeholder="Ej: Lata 473cc / Etiqueta Samba"></label>
+    <label class="cg-field"><span>Código / SKU</span><input id="invCodigo"></label>
+    <label class="cg-field"><span>Unidad de medida</span><input id="invUnidad" placeholder="kg / L / un"></label>
+    <label class="cg-field"><span>Stock</span><input id="invCant" inputmode="numeric" placeholder="0"></label>
+    <label class="cg-field"><span>Stock mínimo</span><input id="invStockMin" inputmode="numeric" placeholder="0"></label>
     <label class="cg-field"><span>Costo unitario ($)</span><input id="invCosto" inputmode="numeric" placeholder="0"></label>
+    <label class="cg-field"><span>Lote</span><input id="invLote"></label>
+    <label class="cg-field"><span>Proveedor</span><input id="invProveedor"></label>
+    <label class="cg-field"><span>Fecha recepción</span><input type="date" id="invFRecep"></label>
+    <label class="cg-field"><span>Fecha vencimiento</span><input type="date" id="invFVenc"></label>
+    <label class="cg-field"><span>Ubicación</span><input id="invUbic"></label>
     <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="invAdd" type="button">+ Agregar</button></div>
   </div><div class="cg-err" id="invErr"></div></div>`;
-  const tableFor=cat=>{
-    const rows=(inv.insumos||[]).filter(x=>x.categoria===cat);
-    const trs=rows.map(x=>`<tr><td>${escapeHtml(x.nombre)}</td><td class="dist-num">${cNum(x.cantidad).toLocaleString('es-CL')}</td><td class="dist-num">${fmtMoney(x.costoUnitario)}</td><td class="dist-num">${fmtMoney(x.valorTotal)}</td><td><button class="pv-del" data-inv-del="${x.id}">✕</button></td></tr>`).join('');
-    return `<div class="prod-sec-h">${escapeHtml(PROD_INV_CAT_LBL[cat]||cat)} <span>${rows.length} ítem(s) · ${fmtMoney((inv.totalesPorCategoria||{})[cat]||0)}</span></div>
-      <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Nombre / diseño</th><th style="text-align:right">Cantidad</th><th style="text-align:right">Costo unit.</th><th style="text-align:right">Valor total</th><th></th></tr></thead><tbody>${trs||'<tr><td colspan="5" style="text-align:center;color:#999;padding:.7rem">Sin ítems registrados</td></tr>'}</tbody></table></div>`;
-  };
-  const tablas=cats.map(tableFor).join('');
-  return gcBox+barrilesBox+form+tablas+`<div class="prod-sec-h" style="margin-top:1rem">Valor total del inventario de insumos <span>${fmtMoney(inv.valorTotalInsumos)}</span></div>`;
+  const filtOpts=`<option value="">Todas las categorías</option>`+cats.map(c=>`<option value="${escapeAttr(c)}" ${invInsumoCat===c?'selected':''}>${escapeHtml(PROD_INV_CAT_LBL[c]||c)}</option>`).join('');
+  const rows=(inv.insumos||[]).filter(x=>!invInsumoCat||x.categoria===invInsumoCat);
+  const trs=rows.map(x=>`<tr><td>${escapeHtml(x.nombre)}</td><td>${escapeHtml(PROD_INV_CAT_LBL[x.categoria]||x.categoria)}</td><td>${escapeHtml(x.codigo||'—')}</td>
+    <td class="dist-num">${cNum(x.cantidad).toLocaleString('es-CL')}${x.unidadMedida?(' '+escapeHtml(x.unidadMedida)):''}${x.stockMinimo?(x.cantidad<=x.stockMinimo?' <span style="color:#c0392b">⚠ bajo mínimo</span>':''):''}</td>
+    <td class="dist-num">${fmtMoney(x.costoUnitario)}</td><td class="dist-num">${fmtMoney(x.valorTotal)}</td>
+    <td>${x.fechaVencimiento||'—'}</td><td><button class="pv-del" data-inv-del="${x.id}">✕</button></td></tr>`).join('');
+  const table=`<div class="prod-sec-h" style="margin-top:1rem">Insumos <span>${rows.length} ítem(s)</span>
+      <select id="invCatFiltro" style="margin-left:auto;font-size:.78rem">${filtOpts}</select></div>
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Insumo</th><th>Categoría</th><th>Código</th><th style="text-align:right">Stock</th><th style="text-align:right">Costo unit.</th><th style="text-align:right">Valor total</th><th>Vence</th><th></th></tr></thead><tbody>${trs||'<tr><td colspan="8" style="text-align:center;color:#999;padding:.7rem">Sin insumos registrados</td></tr>'}</tbody></table></div>
+    <div class="prod-sec-h" style="margin-top:.6rem">Valor total de insumos <span>${fmtMoney(inv.valorTotalInsumos)}</span></div>`;
+  return form+table;
+}
+// ── Cat. 3 · Envases y Activos Retornables ──
+function invViewRetornables(){
+  const inv=prodData.inventario||{};
+  const estados=inv.estadosRetornables||[];
+  const tipos=(prodData.meta&&prodData.meta.retornableTipos)||[];
+  const editing=invRetEditId?(inv.retornables||[]).find(x=>x.id===invRetEditId):null;
+  const f=editing||{};
+  const estOpts=estados.filter(e=>e.activo!==false||f.estado===e.id).map(e=>`<option value="${e.id}" ${f.estado===e.id?'selected':''}>${escapeHtml(e.label)}</option>`).join('');
+  const tipoOpts=tipos.map(t=>`<option value="${escapeAttr(t)}" ${f.tipo===t?'selected':''}>${escapeHtml(t)}</option>`).join('');
+  const form=`<div class="cg-form"><div class="cg-form-title">${editing?'✎ Editar unidad':'➕ Agregar unidad retornable'}</div>
+    <div class="inv-src-note">⚠ El envase físico se controla acá; su <b>contenido</b> (ej. la cerveza dentro del barril) se controla en <b>Productos Terminados</b> — no sumes los litros dos veces. Lo mismo con el CO2: el cilindro es el activo retornable, el gas es un insumo (y su reposición es OPEX en Finanzas, no Inventario).</div>
+    <div class="cg-form-grid">
+      <label class="cg-field"><span>Tipo</span><select id="invRetTipo">${tipoOpts}</select></label>
+      <label class="cg-field"><span>Identificador</span><input id="invRetId" value="${escapeAttr(f.identificador||'')}" placeholder="Ej: Barril #045"></label>
+      <label class="cg-field"><span>Código interno</span><input id="invRetCod" value="${escapeAttr(f.codigoInterno||'')}"></label>
+      <label class="cg-field"><span>Capacidad</span><input id="invRetCap" value="${escapeAttr(f.capacidad||'')}" placeholder="Ej: 20L / 9kg"></label>
+      <label class="cg-field"><span>Estado</span><select id="invRetEstado">${estOpts}</select></label>
+      <label class="cg-field"><span>Ubicación actual</span><input id="invRetUbic" value="${escapeAttr(f.ubicacion||'')}"></label>
+      <label class="cg-field"><span>Responsable / Cliente</span><input id="invRetResp" value="${escapeAttr(f.responsable||'')}"></label>
+      <label class="cg-field"><span>Fecha último movimiento</span><input type="date" id="invRetFum" value="${f.fechaUltimoMovimiento||''}"></label>
+      <label class="cg-field"><span>Fecha estimada de retorno</span><input type="date" id="invRetFer" value="${f.fechaEstimadaRetorno||''}"></label>
+      <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="invRetSave" type="button">${editing?'💾 Guardar cambios':'+ Agregar'}</button>${editing?' <button class="adm-btn adm-btn-ghost" id="invRetCancel" type="button">Cancelar</button>':''}</div>
+    </div><div class="cg-err" id="invRetErr"></div></div>`;
+  const rows=(inv.retornables||[]).map(x=>`<tr><td>${escapeHtml(x.tipo)}</td><td>${escapeHtml(x.identificador)}</td><td>${invEstadoBadge(x.estadoInfo)}</td>
+    <td>${escapeHtml(x.ubicacion||'—')}</td><td>${escapeHtml(x.responsable||'—')}</td><td>${x.fechaEstimadaRetorno||'—'}</td>
+    <td><button class="adm-btn adm-btn-ghost" data-ret-edit="${x.id}" style="font-size:.7rem;padding:.2rem .5rem">✎</button> <button class="pv-del" data-ret-del="${x.id}">✕</button></td></tr>`).join('');
+  const table=`<div class="prod-sec-h" style="margin-top:1rem">Unidades registradas <span>${(inv.retornables||[]).length}</span>
+      <button class="adm-btn adm-btn-ghost" id="invRetEstToggle" type="button" style="margin-left:auto;font-size:.72rem">⚙ Estados</button></div>
+    ${invEstEditorOpen.estadosRetornables?invEstadoEditorPanel(estados,'estado-retornable'):''}
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Tipo</th><th>Identificador</th><th>Estado</th><th>Ubicación</th><th>Responsable</th><th>Retorno est.</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:#999;padding:.7rem">Sin unidades registradas</td></tr>'}</tbody></table></div>`;
+  return form+table;
+}
+// ── Cat. 4 · Activos Fijos y Equipamiento (subtipos + ficha compuesta schoppera) ──
+function invAfBlankDraft(){
+  return { subtipo:'equipamiento', nombre:'', codigoInterno:'', numeroSerie:'', marca:'', modelo:'', fechaCompra:'', costoAdquisicion:'', estado:'', ubicacion:'', responsable:'', fechaUltimaMantencion:'', proximaMantencion:'',
+    capacidadProductivaLmes:'', enLeasingATerceros:false, arrendatario:'',
+    esSchoppera:false, exclusividadPct:'', refrigTipo:'', refrigMarca:'', refrigDiseno:'', refrigTamano:'', refrigCapBarriles:'',
+    dispTipo:'', dispSalidas:'', pinchTipo:'', co2CapKg:'', co2RetVinc:'', tapTipo:'', tapCantidad:'', proveedor:'' };
+}
+let invAfDraft=invAfBlankDraft();
+function invAfCapture(){
+  const g=id=>document.getElementById(id); const val=(id,d)=>{ const el=g(id); return el?el.value:d; }; const chk=id=>{ const el=g(id); return el?el.checked:false; };
+  const d=invAfDraft;
+  d.subtipo=val('invAfSubtipo',d.subtipo); d.nombre=val('invAfNombre',d.nombre); d.codigoInterno=val('invAfCod',d.codigoInterno); d.numeroSerie=val('invAfSerie',d.numeroSerie);
+  d.marca=val('invAfMarca',d.marca); d.modelo=val('invAfModelo',d.modelo); d.fechaCompra=val('invAfFechaCompra',d.fechaCompra);
+  d.costoAdquisicion=val('invAfCosto',d.costoAdquisicion); d.estado=val('invAfEstado',d.estado);
+  d.ubicacion=val('invAfUbic',d.ubicacion); d.responsable=val('invAfResp',d.responsable);
+  d.fechaUltimaMantencion=val('invAfFum',d.fechaUltimaMantencion); d.proximaMantencion=val('invAfFpm',d.proximaMantencion);
+  d.capacidadProductivaLmes=val('invAfCapL',d.capacidadProductivaLmes); d.enLeasingATerceros=chk('invAfLeasing'); d.arrendatario=val('invAfArrend',d.arrendatario);
+  d.esSchoppera=chk('invAfSchoppera'); d.exclusividadPct=val('invAfExcl',d.exclusividadPct);
+  d.refrigTipo=val('invAfRefrigTipo',d.refrigTipo); d.refrigMarca=val('invAfRefrigMarca',d.refrigMarca); d.refrigDiseno=val('invAfRefrigDiseno',d.refrigDiseno); d.refrigTamano=val('invAfRefrigTamano',d.refrigTamano); d.refrigCapBarriles=val('invAfRefrigCapB',d.refrigCapBarriles);
+  d.dispTipo=val('invAfDispTipo',d.dispTipo); d.dispSalidas=val('invAfDispSalidas',d.dispSalidas);
+  d.pinchTipo=val('invAfPinchTipo',d.pinchTipo);
+  d.co2CapKg=val('invAfCo2Cap',d.co2CapKg); d.co2RetVinc=val('invAfCo2Vinc',d.co2RetVinc);
+  d.tapTipo=val('invAfTapTipo',d.tapTipo); d.tapCantidad=val('invAfTapCant',d.tapCantidad);
+  d.proveedor=val('invAfProveedor',d.proveedor);
+}
+function invAfCargarEnDraft(a){
+  const s=a.schoppera||{}; const rf=s.refrigeracion||{}, dp=s.dispensado||{}, pn=s.pinchadores||{}, c2=s.co2Tanque||{}, th=s.tapHandles||{};
+  invAfDraft={ subtipo:a.subtipo||'equipamiento', nombre:a.nombre||'', codigoInterno:a.codigoInterno||'', numeroSerie:a.numeroSerie||'', marca:a.marca||'', modelo:a.modelo||'',
+    fechaCompra:a.fechaCompra||'', costoAdquisicion:a.costoAdquisicion||'', estado:a.estado||'', ubicacion:a.ubicacion||'', responsable:a.responsable||'',
+    fechaUltimaMantencion:a.fechaUltimaMantencion||'', proximaMantencion:a.proximaMantencion||'',
+    capacidadProductivaLmes:a.capacidadProductivaLmes||'', enLeasingATerceros:!!a.enLeasingATerceros, arrendatario:a.arrendatario||'',
+    esSchoppera:!!a.esSchoppera, exclusividadPct:s.exclusividadPct||'', refrigTipo:rf.tipo||'', refrigMarca:rf.marca||'', refrigDiseno:rf.diseno||'', refrigTamano:rf.tamano||'', refrigCapBarriles:rf.capacidadBarriles||'',
+    dispTipo:dp.tipo||'', dispSalidas:dp.salidas||'', pinchTipo:pn.tipo||'', co2CapKg:c2.capacidadKg||'', co2RetVinc:c2.retornableVinculadoId||'', tapTipo:th.tipo||'', tapCantidad:th.cantidad||'', proveedor:'' };
+}
+function invViewActivosFijos(){
+  const inv=prodData.inventario||{}; const meta=prodData.meta||{};
+  const f=invAfDraft;
+  const estados=inv.estadosActivosFijos||[];
+  const estOpts=estados.filter(e=>e.activo!==false||f.estado===e.id).map(e=>`<option value="${e.id}" ${f.estado===e.id?'selected':''}>${escapeHtml(e.label)}</option>`).join('');
+  const subOpts=(meta.activoSubtipos||[]).map(s=>`<option value="${s.id}" ${f.subtipo===s.id?'selected':''}>${escapeHtml(s.label)}</option>`).join('');
+  const cilindros=(inv.retornables||[]).filter(r=>r.tipo==='Cilindro CO2');
+  const instalacionFields=f.subtipo==='instalacion'?`
+      <label class="cg-field"><span>Capacidad productiva (L/mes)</span><input id="invAfCapL" inputmode="numeric" value="${escapeAttr(f.capacidadProductivaLmes)}"></label>
+      <label class="cg-field" style="flex-direction:row;align-items:center;gap:.5rem"><input type="checkbox" id="invAfLeasing" data-af-toggle="1" ${f.enLeasingATerceros?'checked':''} style="width:16px;height:16px"><span>En leasing operativo a terceros</span></label>
+      ${f.enLeasingATerceros?`<label class="cg-field"><span>Arrendatario</span><input id="invAfArrend" value="${escapeAttr(f.arrendatario)}" placeholder="Ej: Oasis SpA (Antofagasta)"></label>`:''}`:'';
+  const schopperaToggle=f.subtipo==='equipamiento'?`<label class="cg-field cal-full" style="flex-direction:row;align-items:center;gap:.5rem"><input type="checkbox" id="invAfSchoppera" data-af-toggle="1" ${f.esSchoppera?'checked':''} style="width:16px;height:16px"><span>Es una máquina schoppera (dispensador compuesto — captura de volumen y exclusividad, ~5x rotación por punto de venta)</span></label>`:'';
+  const refrigExtra=f.refrigTipo==='Refrigerador'?`
+        <label class="cg-field"><span>Marca refrigerador</span><input id="invAfRefrigMarca" value="${escapeAttr(f.refrigMarca)}"></label>
+        <label class="cg-field"><span>Diseño</span><input id="invAfRefrigDiseno" value="${escapeAttr(f.refrigDiseno)}"></label>
+        <label class="cg-field"><span>Tamaño</span><input id="invAfRefrigTamano" value="${escapeAttr(f.refrigTamano)}"></label>
+        <label class="cg-field"><span>Capacidad aprox. (barriles)</span><input id="invAfRefrigCapB" inputmode="numeric" value="${escapeAttr(f.refrigCapBarriles)}"></label>`:'';
+  const schopperaFields=(f.subtipo==='equipamiento'&&f.esSchoppera)?`
+    <div class="inv-schop">
+      <div class="cg-form-title" style="font-size:.85rem">🔧 Sub-componentes de la máquina</div>
+      <div class="cg-form-grid">
+        <label class="cg-field"><span>Exclusividad Kairos (%)</span><input id="invAfExcl" inputmode="numeric" value="${escapeAttr(f.exclusividadPct)}" placeholder="75–100"></label>
+        <label class="cg-field"><span>Refrigeración</span><select id="invAfRefrigTipo" data-af-toggle="1"><option value="">— sin definir —</option>${(meta.refrigTipos||[]).map(t=>`<option value="${t}" ${f.refrigTipo===t?'selected':''}>${t}</option>`).join('')}</select></label>
+        ${refrigExtra}
+        <label class="cg-field"><span>Tipo de dispensado</span><select id="invAfDispTipo"><option value="">— sin definir —</option>${(meta.dispensadoTipos||[]).map(t=>`<option value="${t}" ${f.dispTipo===t?'selected':''}>${t}</option>`).join('')}</select></label>
+        <label class="cg-field"><span>N° de salidas</span><input id="invAfDispSalidas" inputmode="numeric" value="${escapeAttr(f.dispSalidas)}" placeholder="1–8+"></label>
+        <label class="cg-field"><span>Pinchador de barril</span><select id="invAfPinchTipo"><option value="">— sin definir —</option>${(meta.pinchadorTipos||[]).map(t=>`<option value="${t}" ${f.pinchTipo===t?'selected':''}>Tipo ${t}</option>`).join('')}</select></label>
+        <label class="cg-field"><span>Tanque de CO2 (capacidad)</span><select id="invAfCo2Cap"><option value="">— sin definir —</option>${(meta.co2Capacidades||[]).map(k=>`<option value="${k}" ${String(f.co2CapKg)===String(k)?'selected':''}>${k} kg</option>`).join('')}</select></label>
+        <label class="cg-field"><span>Cilindro vinculado (no duplicar)</span><select id="invAfCo2Vinc"><option value="">— sin vincular —</option>${cilindros.map(c=>`<option value="${c.id}" ${f.co2RetVinc===c.id?'selected':''}>${escapeHtml(c.identificador)}</option>`).join('')}</select></label>
+        <label class="cg-field"><span>Tap Handles — tipo</span><select id="invAfTapTipo"><option value="">— sin definir —</option>${(meta.tapHandleTipos||[]).map(t=>`<option value="${t}" ${f.tapTipo===t?'selected':''}>${t}</option>`).join('')}</select></label>
+        <label class="cg-field"><span>Tap Handles — cantidad</span><input id="invAfTapCant" inputmode="numeric" value="${escapeAttr(f.tapCantidad)}"></label>
+      </div>
+    </div>`:'';
+  const form=`<div class="cg-form"><div class="cg-form-title">${invAfEditId?'✎ Editar activo fijo':'➕ Agregar activo fijo'}</div>
+    <div class="cg-form-grid">
+      <label class="cg-field"><span>Subtipo</span><select id="invAfSubtipo" data-af-toggle="1">${subOpts}</select></label>
+      <label class="cg-field"><span>Nombre del activo</span><input id="invAfNombre" value="${escapeAttr(f.nombre)}" placeholder="Ej: Schoppera Local Providencia"></label>
+      <label class="cg-field"><span>Código interno</span><input id="invAfCod" value="${escapeAttr(f.codigoInterno)}"></label>
+      <label class="cg-field"><span>Número de serie</span><input id="invAfSerie" value="${escapeAttr(f.numeroSerie)}"></label>
+      <label class="cg-field"><span>Marca</span><input id="invAfMarca" value="${escapeAttr(f.marca)}"></label>
+      <label class="cg-field"><span>Modelo</span><input id="invAfModelo" value="${escapeAttr(f.modelo)}"></label>
+      <label class="cg-field"><span>Fecha compra</span><input type="date" id="invAfFechaCompra" value="${f.fechaCompra}"></label>
+      <label class="cg-field"><span>Costo de adquisición ($)</span><input id="invAfCosto" inputmode="numeric" value="${escapeAttr(f.costoAdquisicion)}" placeholder="Ej: 2000000"></label>
+      <label class="cg-field"><span>Estado</span><select id="invAfEstado">${estOpts}</select></label>
+      <label class="cg-field"><span>Ubicación</span><input id="invAfUbic" value="${escapeAttr(f.ubicacion)}"></label>
+      <label class="cg-field"><span>Responsable / Cliente</span><input id="invAfResp" value="${escapeAttr(f.responsable)}" placeholder="Punto de venta / cliente si aplica"></label>
+      <label class="cg-field"><span>Fecha última mantención</span><input type="date" id="invAfFum" value="${f.fechaUltimaMantencion}"></label>
+      <label class="cg-field"><span>Próxima mantención</span><input type="date" id="invAfFpm" value="${f.proximaMantencion}"></label>
+      <label class="cg-field"><span>Proveedor (para CAPEX)</span><input id="invAfProveedor" value="${escapeAttr(f.proveedor)}" placeholder="Para sugerir el registro en Finanzas"></label>
+      ${instalacionFields}
+      ${schopperaToggle}
+    </div>
+    ${schopperaFields}
+    <div class="cal-btn-row" style="margin-top:.6rem"><button class="adm-btn adm-btn-gold" id="invAfSave" type="button">${invAfEditId?'💾 Guardar cambios':'+ Agregar'}</button>${invAfEditId?' <button class="adm-btn adm-btn-ghost" id="invAfCancel" type="button">Cancelar</button>':''}</div>
+    <div class="cg-err" id="invAfErr"></div></div>`;
+  const rows=(inv.activosFijos||[]).map(x=>`<tr><td>${escapeHtml(x.nombre)}${x.esSchoppera?' <span class="inv-badge inv-badge-tag">🔧 schoppera</span>':''}</td>
+    <td>${escapeHtml((meta.activoSubtipos||[]).find(s=>s.id===x.subtipo)?.label||x.subtipo||'—')}</td>
+    <td>${invEstadoBadge(x.estadoInfo)}</td><td>${escapeHtml(x.ubicacion||'—')}</td><td>${escapeHtml(x.responsable||'—')}</td>
+    <td class="dist-num">${fmtMoney(x.costoAdquisicion)}</td>
+    <td>${x.capexEntradaId?'<span class="inv-badge inv-badge-disponible">✓ CAPEX vinculado</span>':(cNum(x.costoAdquisicion)>0?`<button class="adm-btn adm-btn-ghost" data-af-capex="${x.id}" style="font-size:.68rem;padding:.2rem .5rem">Sugerir CAPEX</button>`:'—')}</td>
+    <td><button class="adm-btn adm-btn-ghost" data-af-edit="${x.id}" style="font-size:.7rem;padding:.2rem .5rem">✎</button> <button class="pv-del" data-af-del="${x.id}">✕</button></td></tr>`).join('');
+  const table=`<div class="prod-sec-h" style="margin-top:1rem">Activos fijos registrados <span>${(inv.activosFijos||[]).length}</span>
+      <button class="adm-btn adm-btn-ghost" id="invAfEstToggle" type="button" style="margin-left:auto;font-size:.72rem">⚙ Estados</button></div>
+    ${invEstEditorOpen.estadosActivosFijos?invEstadoEditorPanel(estados,'estado-activo-fijo'):''}
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Nombre</th><th>Subtipo</th><th>Estado</th><th>Ubicación</th><th>Responsable</th><th style="text-align:right">Costo</th><th>CAPEX</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="8" style="text-align:center;color:#999;padding:.7rem">Sin activos fijos registrados</td></tr>'}</tbody></table></div>`;
+  const porCliente=inv.resumenPorCliente||[];
+  const resumen=porCliente.length?`<div class="cg-form" style="margin-top:1rem"><div class="cg-form-title">📍 Equipamiento por cliente / punto de venta</div>
+      <div class="inv-src-note">Cuánto equipamiento propio está prestado y dónde — clave si se cierra la relación con un local.</div>
+      ${porCliente.map(c=>`<div class="inv-cliente-row"><b>${escapeHtml(c.cliente)}</b>${c.ubicacion?(' · '+escapeHtml(c.ubicacion)):''} <span class="inv-badge inv-badge-en_uso">${c.items.length} equipo(s)</span>
+        <div class="inv-cliente-items">${c.items.map(i=>escapeHtml(i.nombre)+' ('+escapeHtml(i.estado||'—')+')').join(' · ')}</div></div>`).join('')}
+    </div>`:'';
+  return form+table+resumen+invCapexModal();
+}
+// Modal de confirmación del vínculo Inventario → Finanzas (CAPEX). Nunca se
+// crea automático: el usuario ve los datos pre-llenados y confirma o cancela.
+function invCapexModal(){
+  if(!invCapexConfirm) return '';
+  const c=invCapexConfirm;
+  return `<div class="inv-modal-bg" id="invCapexBg"><div class="inv-modal">
+    <div class="cg-form-title">💸 ¿Registrar la compra en Finanzas?</div>
+    <div class="inv-src-note">Este activo fijo se compró vía CAPEX. Confirmá los datos para crear el registro en <b>Finanzas › Gastos › CAPEX y Activos Fijos</b> — no se crea nada sin tu confirmación.</div>
+    <div class="cg-form-grid">
+      <label class="cg-field"><span>Proveedor</span><input id="invCapexProv" value="${escapeAttr(c.proveedor)}"></label>
+      <label class="cg-field"><span>Fecha</span><input type="date" id="invCapexFecha" value="${c.fecha}"></label>
+      <label class="cg-field"><span>Valor ($)</span><input id="invCapexValor" inputmode="numeric" value="${c.valor}"></label>
+      <label class="cg-field"><span>Folio / documento</span><input id="invCapexFolio" value="${escapeAttr(c.folio)}"></label>
+    </div>
+    <div class="cg-err" id="invCapexErr"></div>
+    <div class="cal-btn-row" style="margin-top:.6rem"><button class="adm-btn adm-btn-gold" id="invCapexConfirmBtn" type="button">Confirmar y crear</button> <button class="adm-btn adm-btn-ghost" id="invCapexCancelBtn" type="button">Ahora no</button></div>
+  </div></div>`;
 }
 const invL=n=>(Number(n)||0).toLocaleString('es-CL',{maximumFractionDigits:1});
 const invN=n=>(Number(n)||0).toLocaleString('es-CL');
@@ -11890,7 +12155,13 @@ function invTreeTable(headHtml, rows, cols){
 function invCells(arr){ return arr.map(c=>`<td class="${c.r?'r':''}${c.disp?' gcs-disp':''}${c.b?'':''}">${c.b?'<b>':''}${c.v==null?'':c.v}${c.b?'</b>':''}</td>`).join(''); }
 function invRenderGcStock(d){
   const box=document.getElementById('invGcStock'); if(!box) return;
-  if(!d.ok){ box.innerHTML='<div class="cg-err show">⚠ '+escapeHtml(d.error||'No se pudo conectar a Gestión Cervecera.')+'</div>'; return; }
+  if(!d.ok){
+    const sinConfig=/\[config\]/.test(d.error||'');
+    box.innerHTML=sinConfig
+      ? '<div class="inv-src-note">📭 Lectura automática — pendiente de integración con Gestión Cervecera. Cargá las credenciales del ERP en Producción → Config para activarla.</div>'
+      : '<div class="cg-err show">⚠ '+escapeHtml(d.error||'No se pudo conectar a Gestión Cervecera.')+'</div>';
+    return;
+  }
   const t=d.totales||{};
   const resumen=`<div class="prod-erp-status" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.6rem">
     <span style="background:#fff3d6;padding:.35rem .6rem;border-radius:8px;font-weight:700">🛢 ${invN(t.barrilesUnid)} barriles · ${invL(t.barrilesLitros)} L disponibles</span>
@@ -12016,6 +12287,123 @@ async function invLoadGcStock(force){
   box.innerHTML='<div class="adm-loading">Entrando a Gestión Cervecera y trayendo el stock…</div>';
   try{ const r=await fetch('/admin/produccion/erp/stock'); const d=await prodSafeJson(r); if(!r.ok&&!d) throw new Error('Error'); invGcStockData=d; invGcStockAt=Date.now(); invRenderGcStock(d); }
   catch(e){ if(box) box.innerHTML='<div class="cg-err show">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
+}
+// ── Wiring del módulo de Inventarios (4 categorías) ──
+function prodWireInventario(g){
+  // Selector de 4 tarjetas.
+  document.querySelectorAll('[data-inv-view]').forEach(b=>b.onclick=(ev)=>{ if(ev.target.closest('[data-inv-help]')) return; invView=b.dataset.invView; renderProduccion(); });
+  // Ícono "?" persistente (tap/click) — panel debajo de las tarjetas, alternativa al hover/foco.
+  document.querySelectorAll('[data-inv-help]').forEach(h=>{
+    const open=()=>{ const c=INV_CARDS.find(x=>x.id===h.dataset.invHelp); const p=g('invHelpPanel'); if(p&&c) p.innerHTML=`<div class="adm-help-panel">${invTipCard(c)}</div>`; };
+    h.onclick=(ev)=>{ ev.stopPropagation(); open(); };
+    h.onkeydown=(ev)=>{ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); ev.stopPropagation(); open(); } };
+  });
+  if(invView==='terminados'){
+    if(g('invGcSync')) g('invGcSync').onclick=()=>invLoadGcStock(true);
+    if(g('invGcStock')) invLoadGcStock();
+  }
+  if(invView==='insumos'){
+    if(g('invAdd')) g('invAdd').onclick=async()=>{
+      const err=g('invErr'); if(err) err.textContent='';
+      const nombre=g('invNombre').value.trim(); if(!nombre){ if(err) err.textContent='⚠ Ingresa el nombre/diseño.'; return; }
+      const body={categoria:g('invCat').value,nombre,cantidad:cNum(g('invCant').value),costoUnitario:cNum(g('invCosto').value),
+        codigo:g('invCodigo').value,unidadMedida:g('invUnidad').value,stockMinimo:cNum(g('invStockMin').value),
+        lote:g('invLote').value,proveedor:g('invProveedor').value,fechaRecepcion:g('invFRecep').value,fechaVencimiento:g('invFVenc').value,ubicacion:g('invUbic').value};
+      try{ const r=await fetch('/admin/produccion/inventario/insumo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+      catch(e){ if(err) err.textContent='⚠ '+String(e.message||e); }
+    };
+    document.querySelectorAll('[data-inv-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar el ítem?')) prodDelete('inventario/insumo',b.dataset.invDel); });
+    if(g('invCatFiltro')) g('invCatFiltro').onchange=()=>{ invInsumoCat=g('invCatFiltro').value; renderProduccion(); };
+  }
+  if(invView==='retornables'){
+    if(g('invRetSave')) g('invRetSave').onclick=async()=>{
+      const err=g('invRetErr'); if(err) err.textContent='';
+      const identificador=g('invRetId').value.trim(); if(!identificador){ if(err) err.textContent='⚠ Ingresá un identificador.'; return; }
+      const body={tipo:g('invRetTipo').value,identificador,codigoInterno:g('invRetCod').value,capacidad:g('invRetCap').value,estado:g('invRetEstado').value,
+        ubicacion:g('invRetUbic').value,responsable:g('invRetResp').value,fechaUltimoMovimiento:g('invRetFum').value,fechaEstimadaRetorno:g('invRetFer').value};
+      try{
+        const url=invRetEditId?('/admin/produccion/inventario/retornable/'+invRetEditId):'/admin/produccion/inventario/retornable';
+        const r=await fetch(url,{method:invRetEditId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error');
+        invRetEditId=null; await loadProduccion();
+      }catch(e){ if(err) err.textContent='⚠ '+String(e.message||e); }
+    };
+    if(g('invRetCancel')) g('invRetCancel').onclick=()=>{ invRetEditId=null; renderProduccion(); };
+    document.querySelectorAll('[data-ret-edit]').forEach(b=>b.onclick=()=>{ invRetEditId=b.dataset.retEdit; renderProduccion(); });
+    document.querySelectorAll('[data-ret-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar esta unidad?')) prodDelete('inventario/retornable',b.dataset.retDel); });
+    if(g('invRetEstToggle')) g('invRetEstToggle').onclick=()=>{ invEstEditorOpen.estadosRetornables=!invEstEditorOpen.estadosRetornables; renderProduccion(); };
+    prodWireInvEstados(g);
+  }
+  if(invView==='activosFijos'){
+    document.querySelectorAll('[data-af-toggle]').forEach(el=>el.onchange=()=>{ invAfCapture(); renderProduccion(); });
+    if(g('invAfSave')) g('invAfSave').onclick=()=>invAfSave();
+    if(g('invAfCancel')) g('invAfCancel').onclick=()=>{ invAfEditId=null; invAfDraft=invAfBlankDraft(); renderProduccion(); };
+    document.querySelectorAll('[data-af-edit]').forEach(b=>b.onclick=()=>{
+      const a=(prodData.inventario.activosFijos||[]).find(x=>x.id===b.dataset.afEdit); if(!a) return;
+      invAfEditId=a.id; invAfCargarEnDraft(a); renderProduccion();
+    });
+    document.querySelectorAll('[data-af-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar este activo fijo? El registro CAPEX en Finanzas no se borra.')) prodDelete('inventario/activo-fijo',b.dataset.afDel); });
+    document.querySelectorAll('[data-af-capex]').forEach(b=>b.onclick=()=>{
+      const a=(prodData.inventario.activosFijos||[]).find(x=>x.id===b.dataset.afCapex); if(!a) return;
+      invCapexConfirm={ activoFijoId:a.id, proveedor:'', fecha:a.fechaCompra||new Date().toISOString().slice(0,10), valor:cNum(a.costoAdquisicion), folio:a.codigoInterno||'' };
+      renderProduccion();
+    });
+    if(g('invAfEstToggle')) g('invAfEstToggle').onclick=()=>{ invEstEditorOpen.estadosActivosFijos=!invEstEditorOpen.estadosActivosFijos; renderProduccion(); };
+    prodWireInvEstados(g);
+    // Modal CAPEX.
+    if(g('invCapexCancelBtn')) g('invCapexCancelBtn').onclick=()=>{ invCapexConfirm=null; renderProduccion(); };
+    if(g('invCapexBg')) g('invCapexBg').onclick=(ev)=>{ if(ev.target.id==='invCapexBg'){ invCapexConfirm=null; renderProduccion(); } };
+    if(g('invCapexConfirmBtn')) g('invCapexConfirmBtn').onclick=async()=>{
+      const err=g('invCapexErr'); if(err) err.textContent='';
+      const proveedor=g('invCapexProv').value.trim(); if(!proveedor){ if(err) err.textContent='⚠ Elegí un proveedor.'; return; }
+      const body={proveedor,fecha:g('invCapexFecha').value,valor:cNum(g('invCapexValor').value),folio:g('invCapexFolio').value};
+      try{
+        const r=await fetch('/admin/produccion/inventario/activo-fijo/'+invCapexConfirm.activoFijoId+'/crear-capex',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error');
+        invCapexConfirm=null; await loadProduccion();
+      }catch(e){ if(err) err.textContent='⚠ '+String(e.message||e); }
+    };
+  }
+}
+// Estados configurables (retornables/activos fijos) — agregar/renombrar/ocultar/borrar.
+function prodWireInvEstados(g){
+  document.querySelectorAll('[data-est-add]').forEach(b=>b.onclick=async()=>{
+    const seg=b.dataset.estAdd; const label=g('invEstNewLabel_'+seg).value.trim(); if(!label) return;
+    const familia=g('invEstNewFamilia_'+seg).value;
+    await prodPost('inventario/'+seg,{label,familia});
+  });
+  document.querySelectorAll('[data-est-label]').forEach(el=>el.onchange=()=>{ prodPut('inventario/'+el.dataset.estSeg,el.dataset.estLabel,{label:el.value}); });
+  document.querySelectorAll('[data-est-familia]').forEach(el=>el.onchange=()=>{ prodPut('inventario/'+el.dataset.estSeg,el.dataset.estFamilia,{familia:el.value}); });
+  document.querySelectorAll('[data-est-activo]').forEach(el=>el.onchange=()=>{ prodPut('inventario/'+el.dataset.estSeg,el.dataset.estActivo,{activo:el.checked}); });
+  document.querySelectorAll('[data-est-del]').forEach(b=>b.onclick=()=>{ if(confirm('Borrar este estado? Se bloquea si está en uso.')) prodDelete('inventario/'+b.dataset.estSeg,b.dataset.estDel); });
+}
+async function invAfSave(){
+  invAfCapture(); const f=invAfDraft; const err=document.getElementById('invAfErr'); if(err) err.textContent='';
+  if(!f.nombre.trim()){ if(err) err.textContent='⚠ Ingresá el nombre del activo.'; return; }
+  const body={ subtipo:f.subtipo, nombre:f.nombre, codigoInterno:f.codigoInterno, numeroSerie:f.numeroSerie, marca:f.marca, modelo:f.modelo,
+    fechaCompra:f.fechaCompra, costoAdquisicion:cNum(f.costoAdquisicion), estado:f.estado, ubicacion:f.ubicacion, responsable:f.responsable,
+    fechaUltimaMantencion:f.fechaUltimaMantencion, proximaMantencion:f.proximaMantencion };
+  if(f.subtipo==='instalacion'){ body.capacidadProductivaLmes=cNum(f.capacidadProductivaLmes); body.enLeasingATerceros=f.enLeasingATerceros; body.arrendatario=f.arrendatario; }
+  body.esSchoppera=f.subtipo==='equipamiento'&&f.esSchoppera;
+  if(body.esSchoppera){
+    body.schoppera={
+      exclusividadPct:f.exclusividadPct?cNum(f.exclusividadPct):null,
+      refrigeracion:f.refrigTipo?{tipo:f.refrigTipo,marca:f.refrigMarca,diseno:f.refrigDiseno,tamano:f.refrigTamano,capacidadBarriles:cNum(f.refrigCapBarriles)}:null,
+      dispensado:f.dispTipo?{tipo:f.dispTipo,salidas:cNum(f.dispSalidas)||1}:null,
+      pinchadores:f.pinchTipo?{tipo:f.pinchTipo}:null,
+      co2Tanque:f.co2CapKg?{capacidadKg:cNum(f.co2CapKg),retornableVinculadoId:f.co2RetVinc||null}:null,
+      tapHandles:f.tapTipo?{tipo:f.tapTipo,cantidad:cNum(f.tapCantidad)}:null,
+    };
+  }
+  try{
+    const url=invAfEditId?('/admin/produccion/inventario/activo-fijo/'+invAfEditId):'/admin/produccion/inventario/activo-fijo';
+    const r=await fetch(url,{method:invAfEditId?'PUT':'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error');
+    const wasNew=!invAfEditId; const savedId=(d.activoFijo&&d.activoFijo.id)||invAfEditId; const proveedor=f.proveedor, fechaCompra=f.fechaCompra, costoAdq=cNum(f.costoAdquisicion), folio=f.codigoInterno;
+    invAfEditId=null; invAfDraft=invAfBlankDraft();
+    await loadProduccion();
+    if(wasNew && costoAdq>0){ invCapexConfirm={ activoFijoId:savedId, proveedor, fecha:fechaCompra||new Date().toISOString().slice(0,10), valor:costoAdq, folio:folio||'' }; renderProduccion(); }
+  }catch(e){ if(err) err.textContent='⚠ '+String(e.message||e); }
 }
 // ── Limpiezas ──
 function prodRenderLimpiezas(){
@@ -12144,21 +12532,8 @@ function prodWire(){
   prodWireRecetas(g);
   // OEE dashboard (Fase 2)
   prodWireOee();
-  // inventarios
-  if(g('invBSave')) g('invBSave').onclick=async()=>{
-    try{ const r=await fetch('/admin/produccion/inventario/barriles',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({sucios:cNum(g('invBSuc').value),limpios:cNum(g('invBLim').value)})}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
-    catch(e){ alert(String(e.message||e)); }
-  };
-  if(g('invAdd')) g('invAdd').onclick=async()=>{
-    const err=g('invErr'); if(err) err.textContent='';
-    const nombre=g('invNombre').value.trim(); if(!nombre){ if(err) err.textContent='⚠ Ingresa el nombre/diseño.'; return; }
-    const body={categoria:g('invCat').value,nombre,cantidad:cNum(g('invCant').value),costoUnitario:cNum(g('invCosto').value)};
-    try{ const r=await fetch('/admin/produccion/inventario/insumo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
-    catch(e){ if(err) err.textContent='⚠ '+String(e.message||e); }
-  };
-  document.querySelectorAll('[data-inv-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar el ítem?')) prodDelete('inventario/insumo',b.dataset.invDel); });
-  if(g('invGcSync')) g('invGcSync').onclick=()=>invLoadGcStock(true);
-  if(g('invGcStock')) invLoadGcStock(); // sync automática al abrir Inventario (usa cache si es reciente)
+  // inventarios — 4 categorías
+  prodWireInventario(g);
   // limpiezas
   if(g('lmAdd')) g('lmAdd').onclick=async()=>{ await prodPost('limpieza',{tipo:g('lmTipo').value,centroTrabajo:g('lmCentro').value,ref:g('lmRef').value,inicio:prodLocal(g('lmIni').value),fin:prodLocal(g('lmFin').value)}); };
   document.querySelectorAll('[data-limp-del]').forEach(b=>b.onclick=()=>prodDelete('limpieza',b.dataset.limpDel));
@@ -12413,6 +12788,10 @@ async function prodPost(kind,body){
 }
 async function prodDelete(kind,id){
   try{ const r=await fetch('/admin/produccion/'+kind+'/'+encodeURIComponent(id),{method:'DELETE'}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+  catch(e){ alert(String(e.message||e)); }
+}
+async function prodPut(kind,id,body){
+  try{ const r=await fetch('/admin/produccion/'+kind+'/'+encodeURIComponent(id),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
   catch(e){ alert(String(e.message||e)); }
 }
 async function prodGuardarConfig(){
