@@ -4950,7 +4950,7 @@ async function erpLoginDiag(cfg){
     rep.login.loginReal = { ok: login.ok, error: login.error || null, stage: login.stage || null };
     if (login.ok && login.jar) {
       rep.rutasAuth = [];
-      const dp = ['/Lote', '/Receta', '/Lotes', '/Recetas', '/Home/Lote', '/Home/Receta'];
+      const dp = ['/Lote', '/Receta', '/Lotes', '/Recetas', '/Home/Lote', '/Home/Receta', '/Insumo', '/Insumos', '/Inventario', '/Bodega', '/Stock', '/MateriaPrima', '/Producto', '/Existencia'];
       rep.muestras = {};
       await Promise.all(dp.map(async (p) => {
         try {
@@ -4964,7 +4964,9 @@ async function erpLoginDiag(cfg){
       // Probar los endpoints de datos reales (POST /{Controlador}/GetActivos|GetAll,
       // body vacío, con la cookie de sesión). Dumpea el JSON para mapear los campos.
       rep.dataProbe = [];
-      const dataEps = ['/Lote/GetActivos', '/Lote/GetAll', '/Receta/GetActivos', '/Receta/GetAll', '/Receta/GetActivas', '/Batch/GetActivos', '/Recipe/GetAll'];
+      const dataEps = ['/Lote/GetActivos', '/Lote/GetAll', '/Receta/GetActivos', '/Receta/GetAll', '/Receta/GetActivas', '/Batch/GetActivos', '/Recipe/GetAll',
+        // Stock / inventario (candidatos): la que devuelva JSON es la del stock.
+        '/Insumo/GetAll', '/Insumo/GetActivos', '/Insumos/GetAll', '/Inventario/GetAll', '/Inventario/GetActivos', '/Bodega/GetAll', '/Bodega/GetActivos', '/Stock/GetAll', '/Stock/GetActivos', '/MateriaPrima/GetAll', '/MateriasPrimas/GetAll', '/Producto/GetAll', '/ProductoTerminado/GetAll', '/Existencia/GetAll', '/Existencias/GetAll', '/Almacen/GetAll'];
       await Promise.all(dataEps.map(async (ep) => {
         try {
           const r = await erpFetch(base + ep, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Referer': base + '/Lote', 'Origin': base }, body: '' }, login.jar);
