@@ -1870,6 +1870,8 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .cg-form{background:var(--surface,#fff);border:1px solid var(--line,#e5e5e5);border-radius:14px;padding:1rem 1.1rem;margin-bottom:1rem}
 .cg-form-title{font-family:var(--display,inherit);font-weight:700;font-size:1rem;margin-bottom:.8rem;color:var(--text,#111)}
 .cg-form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.7rem;align-items:end}
+.cg-form-sep{display:flex;align-items:center;gap:.6rem;margin:.9rem 0 .7rem;font-size:.68rem;font-weight:700;color:var(--muted,#666);letter-spacing:.04em;text-transform:uppercase}
+.cg-form-sep::before,.cg-form-sep::after{content:'';flex:1;height:1px;background:var(--line,#e5e5e5)}
 .cg-field{display:flex;flex-direction:column;gap:.28rem}
 .cg-field>span{font-size:.72rem;font-weight:700;color:var(--muted,#666);letter-spacing:.02em}
 .cg-field select,.cg-field input{padding:.55rem .6rem;border:1px solid var(--line,#e5e5e5);border-radius:9px;background:var(--surface,#fff);color:var(--text,#111);font:inherit;font-size:.9rem}
@@ -9435,6 +9437,14 @@ const COSTOS_TIPO_CFG={
   gasto:{ bodyId:'gastosBody', mesId:'gastosMes', reloadId:'gastosReload', pctTotal:true,  vacio:'Todavía no hay gastos registrados', nombre:'gasto' },
 };
 function cgBlankForm(){ return { proveedor:'', categoria:'', subcategoria:'', subnivel:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'', centrosCosto:[] }; }
+// Después de "Agregar" solo se limpia "Este documento" (fecha/folio/valor/%/
+// adjunto) — proveedor/categoría/subcategoría/marca quedan tal cual, para
+// cargar varios documentos seguidos del mismo proveedor sin re-elegirlos cada
+// vez (el caso real: una factura por mes del mismo proveedor y categoría).
+function cgResetSection2(tipo){
+  const f=costosForm[tipo];
+  f.fecha=''; f.folio=''; f.valor=''; f.pctTotal=''; f.centrosCosto=[]; f.adjunto=null;
+}
 // Filtros de la tabla (por categoría padre y por subcategoría). Por tipo.
 let costosFiltro={costo:{cat:'',sub:''},gasto:{cat:'',sub:''}};
 let costosData={costo:null,gasto:null};
@@ -9544,6 +9554,9 @@ function renderCostos(tipo){
         ${subnivelForm?`<label class="cg-field"><span>Tipo de ${escapeHtml(subDefForm.label)}</span><select id="${cgId(tipo,'Subnivel')}">${subnivelFormOpts}</select></label>`:''}
         <label class="cg-field"><span>Marca</span><select id="${cgId(tipo,'Marca')}">${marcaOpts}</select></label>
         ${marcaDetalleHtml}
+      </div>
+      <div class="cg-form-sep"><span>Este documento</span></div>
+      <div class="cg-form-grid">
         <label class="cg-field"><span>Fecha del documento</span><input type="date" id="${cgId(tipo,'Fecha')}" value="${escapeAttr(f.fecha)}"></label>
         <label class="cg-field"><span>Folio / N° documento</span><input type="text" id="${cgId(tipo,'Folio')}" value="${escapeAttr(f.folio)}" placeholder="Ej: 46211"></label>
         <label class="cg-field"><span>Valor ($)</span><input type="text" inputmode="numeric" id="${cgId(tipo,'Valor')}" value="${escapeAttr(f.valor)}" placeholder="0"></label>
@@ -9643,7 +9656,7 @@ async function costosAgregar(tipo){
   try{
     const r=await fetch('/admin/costos/entrada',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json();
     if(!r.ok) throw new Error(d.error||'Error');
-    costosForm[tipo]=cgBlankForm();
+    cgResetSection2(tipo);
     await loadCostos(tipo);
   }catch(err){ costosShowErr(tipo,String(err.message||err)); }
 }
