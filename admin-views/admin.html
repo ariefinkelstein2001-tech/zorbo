@@ -1652,6 +1652,11 @@ body.drawer-open{overflow:hidden}
 .mun-table tbody tr:hover{background:rgba(245,166,35,.07)}
 .mun-table td.mun-pick{font-weight:700;color:var(--text,#111)}
 .mun-table td.mun-empty{color:#bbb;font-weight:400}
+/* Encabezado ordenable (patrón reutilizable, ver sortableTableHeader/-Apply/-WireHeaders) */
+.tbl-sort{cursor:pointer;user-select:none}
+.tbl-sort:hover{color:var(--gold-deep,#a05f00);background:rgba(245,166,35,.1)}
+.tbl-sort:focus-visible{outline:2px solid var(--gold,#f5a623);outline-offset:-2px}
+.tbl-sort.on{color:var(--gold-deep,#a05f00)}
 .mun-meta-cell{font-family:var(--mono);font-size:.7rem;color:var(--muted,#888);white-space:nowrap}
 .mun-note{max-width:260px;white-space:pre-wrap;color:var(--muted,#555);font-size:.76rem}
 .mun-empty-state{padding:2.4rem 1rem;text-align:center;color:var(--muted,#777);line-height:1.6}
@@ -9600,6 +9605,51 @@ function estDrill(which){
   box.querySelector('[data-drillclose]').onclick=()=>{ box.innerHTML=''; };
 }
 
+// ─── Tabla ordenable (patrón reutilizable — cualquier tabla admin puede
+// engancharse: Ingreso por Venta, Inventario, etc.) ──────────────────────────
+// state: {col, dir} propio de cada tabla (una instancia por tabla/tipo).
+// keyFns: {columna: fila=>valorDeOrden}. numCols: Set de columnas que ordenan
+// como número (el resto ordena alfanumérico natural, insensible a mayúsculas
+// y tildes vía Intl — así "10" > "9" y "Ábaco" cae junto a "Abaco").
+// Ciclo por clic/Enter/Espacio: sin ordenar → ascendente → descendente → sin
+// ordenar (vuelve al orden original que trae el array, ej. fecha desc).
+function sortableTableHeader(label, col, state, extraAttrs){
+  const active = state && state.col===col;
+  const dirLbl = active ? (state.dir==='asc'?'ascendente':'descendente') : null;
+  const arrow = active ? (state.dir==='asc'?' ▲':' ▼') : '';
+  return `<th class="tbl-sort${active?' on':''}" data-sortcol="${col}" tabindex="0" role="button" aria-sort="${dirLbl?(state.dir==='asc'?'ascending':'descending'):'none'}" title="Ordenar por ${escapeAttr(label)}"${extraAttrs||''}>${escapeHtml(label)}${arrow}</th>`;
+}
+function sortableApply(rows, state, keyFns, numCols){
+  if(!state || !state.col || !state.dir) return rows;
+  const keyFn = keyFns[state.col]; if(!keyFn) return rows;
+  const isNum = numCols && numCols.has(state.col);
+  const sorted = rows.slice().sort((a,b)=>{
+    const ka=keyFn(a), kb=keyFn(b);
+    const cmp = isNum ? ((Number(ka)||0)-(Number(kb)||0)) : String(ka==null?'':ka).localeCompare(String(kb==null?'':kb),'es',{numeric:true,sensitivity:'base'});
+    return state.dir==='asc'?cmp:-cmp;
+  });
+  return sorted;
+}
+function sortableWireHeaders(container, state, onChange){
+  if(!container) return;
+  container.querySelectorAll('.tbl-sort').forEach(th=>{
+    const col=th.dataset.sortcol;
+    const cycle=(viaKeyboard)=>{
+      if(state.col!==col){ state.col=col; state.dir='asc'; }
+      else if(state.dir==='asc'){ state.dir='desc'; }
+      else { state.col=null; state.dir=null; }
+      onChange();
+      // onChange() re-renderiza (reemplaza el <thead>), lo que destruye el
+      // nodo enfocado — sin esto, un segundo Enter/Espacio no llega a nadie
+      // porque el foco cae al <body>. `container` sigue siendo el mismo nodo
+      // persistente (solo cambió su innerHTML), así que re-ubicamos el
+      // encabezado de esta misma columna y le devolvemos el foco.
+      if(viaKeyboard){ const again=container.querySelector(`.tbl-sort[data-sortcol="${col}"]`); if(again) again.focus(); }
+    };
+    th.onclick=()=>cycle(false);
+    th.onkeydown=(ev)=>{ if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); cycle(true); } };
+  });
+}
 // ─── Costos y Gastos (mismo backend, dos fichas separadas) ──────────────────
 const COSTOS_MARCAS_LBL={kairos:'Kairos',banny:'Banny',firulais:'Firulais'};
 // Centros de Distribución (CD): cada uno tiene su propia administración
@@ -9624,6 +9674,10 @@ function cgResetSection2(tipo){
 }
 // Filtros de la tabla (por categoría padre y por subcategoría). Por tipo.
 let costosFiltro={costo:{cat:'',sub:''},gasto:{cat:'',sub:''}};
+// Orden de la tabla (ver sortableTableHeader/-Apply/-WireHeaders). Independiente
+// del filtro: el filtro decide qué filas se muestran, el orden decide en qué
+// secuencia — ninguno pisa al otro.
+let costosSort={costo:{col:null,dir:null},gasto:{col:null,dir:null}};
 let costosData={costo:null,gasto:null};
 let costosForm={costo:cgBlankForm(),gasto:cgBlankForm()};
 function cgId(tipo,name){ return 'cg'+name+'_'+tipo; }
@@ -9693,8 +9747,14 @@ function renderCostos(tipo){
   const subFilterSubs=SUBMAP[flt.cat]||null;
   const subFilterOpts=subFilterSubs?['<option value="">Todas las subcategorías</option>',...subFilterSubs.map(s=>`<option value="${s.id}" ${s.id===flt.sub?'selected':''}>${escapeHtml(s.label)}</option>`)].join(''):'';
   const filterBar=`<div class="cg-filters"><span class="cg-filters-l">📅 ${escapeHtml(finRangeLabel(cfg.prefix))}</span><span style="color:#c9ccd1">·</span><span class="cg-filters-l">Filtrar</span><select id="${cgId(tipo,'FCat')}">${catFilterOpts}</select>${subFilterSubs?`<select id="${cgId(tipo,'FSub')}">${subFilterOpts}</select>`:''}${(flt.cat||flt.sub)?`<button class="cg-filter-clear" id="${cgId(tipo,'FClear')}" type="button">✕ limpiar</button>`:''}<span class="cg-filters-n">${visibles.length} de ${(a.entradas||[]).length}</span></div>`;
-  const rows=visibles.map(e=>{
-    const catLbl=((a.categorias||[]).find(c=>c.id===e.categoria)||{}).label || e.categoria;
+  // Orden (independiente del filtro de arriba): se aplica DESPUÉS de filtrar,
+  // así el contador y el set de filas nunca cambian por ordenar.
+  const catLabelOf=(e)=>((a.categorias||[]).find(c=>c.id===e.categoria)||{}).label || e.categoria;
+  const sortKeyFns={ fecha:e=>e.fecha, proveedor:e=>e.proveedor, categoria:catLabelOf, marca:e=>cgMarcaLabel(e), folio:e=>e.folio, valor:e=>Number(e.valor)||0 };
+  const sortState=costosSort[tipo];
+  const ordenadas=sortableApply(visibles, sortState, sortKeyFns, new Set(['valor']));
+  const rows=ordenadas.map(e=>{
+    const catLbl=catLabelOf(e);
     const subsRow=SUBMAP[e.categoria]||null;
     let catCell;
     if(subsRow){ // categoría con subcategorías → chip padre + selector(es) para reclasificar (editable)
@@ -9768,11 +9828,13 @@ function renderCostos(tipo){
     </div>
     <div class="cg-resumen">${resumenCards}<div class="cg-card cg-card-total"><div class="cg-card-l">Total</div><div class="cg-card-v">${eM(rs.total)}</div><div class="cg-card-n">${(a.entradas||[]).length} doc${(a.entradas||[]).length===1?'':'s'}</div></div></div>
     ${filterBar}
-    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>Proveedor</th><th>Categoría</th><th>Marca</th><th>Folio</th><th style="text-align:right">Valor</th><th>Doc</th><th></th></tr></thead><tbody>${rows||`<tr><td colspan="8" style="text-align:center;color:#999;padding:.8rem">${(flt.cat||flt.sub)?'Sin registros para el filtro elegido.':cfg.vacio}</td></tr>`}</tbody></table></div>`;
+    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr>${sortableTableHeader('Fecha','fecha',sortState)}${sortableTableHeader('Proveedor','proveedor',sortState)}${sortableTableHeader('Categoría','categoria',sortState)}${sortableTableHeader('Marca','marca',sortState)}${sortableTableHeader('Folio','folio',sortState)}${sortableTableHeader('Valor','valor',sortState,' style="text-align:right"')}<th>Doc</th><th></th></tr></thead><tbody>${rows||`<tr><td colspan="8" style="text-align:center;color:#999;padding:.8rem">${(flt.cat||flt.sub)?'Sin registros para el filtro elegido.':cfg.vacio}</td></tr>`}</tbody></table></div>`;
   wireCostos(tipo);
 }
 function wireCostos(tipo){
   const cfg=COSTOS_TIPO_CFG[tipo]; const f=costosForm[tipo];
+  // Encabezados ordenables de la tabla (independiente del filtro de arriba).
+  sortableWireHeaders(document.getElementById(cfg.bodyId), costosSort[tipo], ()=>renderCostos(tipo));
   // Cambiar de CD recarga toda la lista (cada CD tiene sus propios libros) y
   // reordena "compartir con" (ya no puede incluir la CD recién elegida).
   const cdSel=document.getElementById(cgId(tipo,'CD'));
