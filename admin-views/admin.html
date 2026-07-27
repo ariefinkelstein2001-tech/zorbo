@@ -8667,16 +8667,18 @@ function ciWireIngSearch(inpId, boxId){
     box.innerHTML = items.map((g,i)=>`<div class="ci-suggest-item${i===activeIdx?' active':''}" data-idx="${i}">${escapeHtml(g.nombre)}${g.type==='rb'?' <span class="mun-bk">RB</span>':''}</div>`).join('');
     box.style.display='block';
   };
+  // Sin texto escrito muestra la lista completa (para poder recorrerla entera);
+  // con texto, filtra por coincidencia.
+  const search=()=>{
+    const q=norm(inp.value);
+    items = q ? (costeoData.ingredientes||[]).filter(g=>norm(g.nombre).includes(q)).slice(0,60) : (costeoData.ingredientes||[]).slice();
+    activeIdx=-1; render();
+  };
   // skipNext evita que, al elegir una sugerencia, el evento "input" sintético
   // (disparado para que el selector de Unidad se actualice) vuelva a abrir la lista.
   const pick=(g)=>{ skipNext=true; inp.value = g.nombre + (g.type==='rb'?' (RB)':''); close(); inp.dispatchEvent(new Event('input')); };
-  inp.addEventListener('input', ()=>{
-    if(skipNext){ skipNext=false; return; }
-    const q=norm(inp.value);
-    if(!q){ close(); return; }
-    items=(costeoData.ingredientes||[]).filter(g=>norm(g.nombre).includes(q)).slice(0,40);
-    activeIdx=-1; render();
-  });
+  inp.addEventListener('input', ()=>{ if(skipNext){ skipNext=false; return; } search(); });
+  inp.addEventListener('focus', ()=>{ if(box.style.display!=='block') search(); });
   inp.addEventListener('keydown', (e)=>{
     if(box.style.display!=='block') return;
     if(e.key==='ArrowDown'){ e.preventDefault(); activeIdx=Math.min(activeIdx+1, items.length-1); render(); }
