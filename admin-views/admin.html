@@ -11898,10 +11898,14 @@ function prodWire(){
       const muestras=d.muestras||{}, scripts=d.scripts||{};
       const muTxt=Object.entries(muestras).map(([k,v])=>`<div style="margin-top:.5rem"><b style="font-size:.78rem">Muestra HTML de ${escapeHtml(k)}:</b><textarea readonly style="width:100%;height:90px;font-family:ui-monospace,monospace;font-size:.68rem;margin-top:.2rem" onclick="this.select()">${escapeHtml(v)}</textarea></div>`).join('')
         +Object.entries(scripts).map(([k,v])=>`<div style="margin-top:.5rem"><b style="font-size:.78rem">⭐ Scripts/AJAX de ${escapeHtml(k)} (copiame ESTE — trae la URL de datos):</b><textarea readonly style="width:100%;height:150px;font-family:ui-monospace,monospace;font-size:.68rem;margin-top:.2rem" onclick="this.select()">${escapeHtml(v||'(sin scripts relevantes)')}</textarea></div>`).join('');
+      const st=d.stockTablas||null;
+      const stTxt=st?('<div style="margin-top:.6rem"><b style="font-size:.82rem;color:#7c3aed">🍺 Tablas de /Producto/Stock (para ubicar barriles/latas):</b>'
+        +(st.tabs&&st.tabs.length?`<div style="margin-top:.3rem;font-size:.72rem"><b>Pestañas:</b> ${st.tabs.map(t=>'<code style="background:#f3e8fb;padding:.05rem .3rem;border-radius:4px;margin:.1rem">'+escapeHtml(t)+'</code>').join(' ')}</div>`:'')
+        +(st.tablas||[]).map(t=>`<div style="margin-top:.4rem;background:#faf5ff;padding:.4rem;border-radius:6px;border:1px solid #e9d5ff"><b style="font-size:.72rem">Tabla #${t.i}${t.id?(' · id=<code>'+escapeHtml(t.id)+'</code>'):''}${t.cls?(' · class=<code>'+escapeHtml(t.cls)+'</code>'):''} · ${t.nFilas} filas</b><div style="font-size:.7rem;margin-top:.2rem"><b>Encabezados:</b> ${(t.headers||[]).map(h=>'<code style="background:#fff;padding:.05rem .25rem;border-radius:3px;margin:.08rem;display:inline-block">'+escapeHtml(h)+'</code>').join(' ')||'—'}</div>${(t.muestra||[]).length?`<textarea readonly style="width:100%;height:60px;font-family:ui-monospace,monospace;font-size:.64rem;margin-top:.2rem" onclick="this.select()">${escapeHtml((t.muestra||[]).join('\n'))}</textarea>`:''}</div>`).join('')+'</div>'):'';
       box.innerHTML=`<div class="est-note" style="margin-top:.6rem">
         <b>${loginBadge}</b><br>
         <b>/login</b> · status ${L.status||'—'} · ${L.len||0} bytes · ¿form? ${L.tieneForm?'sí':'no'} · cookies: ${(L.setCookie||[]).map(escapeHtml).join(', ')||'—'}</div>
-        ${authTbl}${dpTxt}${rdTxt}${muTxt}
+        ${authTbl}${dpTxt}${rdTxt}${stTxt}${muTxt}
         <div class="est-note" style="margin-top:.4rem;color:#666">Copiame los cuadros verdes (⭐ endpoints de datos y ⭐ detalle de receta) — con ese JSON traigo la receta completa.</div>`;
     }catch(e){ box.innerHTML='<div class="prod-erp-status">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
   };
