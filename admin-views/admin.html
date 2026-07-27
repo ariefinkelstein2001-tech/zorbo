@@ -8704,10 +8704,9 @@ function platoDraftCosto(){ return platoDraft.reduce((s,l)=>s+lineCantEnBase(l)*
 function renderCosteoPlatos(){
   const cats = costeoData.categorias||[];
   const draftCosto = platoDraftCosto();
-  const curMargen = document.getElementById('plMargen') ? cNum(document.getElementById('plMargen').value) : (platoEditing?platoEditing.margenPct:30);
   // IVA por producto: al editar respeta lo guardado; al crear, comida sí / barra no.
   const curIva = document.getElementById('plIva') ? document.getElementById('plIva').checked : (platoEditing ? (platoEditing.iva!==false) : !isBarra());
-  const ch = platoChain(draftCosto, curMargen||30, curIva);
+  const ch = platoChain(draftCosto, 30, curIva);
   const drows = platoDraft.length ? platoDraft.map((l,idx)=>{ const ep=lineEffPrecio(l); return `
     <tr><td>${escapeHtml(l.nombre)}${l.refType==='rb'?' <span class="mun-bk">RB</span>':''}</td><td>${ciLineUnitCell(l,idx,'pl')}</td>
     <td class="dist-num">${lineRendCell(l,idx,'pl')}</td>
@@ -8726,24 +8725,21 @@ function renderCosteoPlatos(){
       <tr>
         <td><b>${escapeHtml(p.nombre)}</b><div class="pl-items">${p.lineas.map(l=>`${l.cantidad}× ${escapeHtml(l.nombre)}`).join(' · ')||'<i style="color:#999">sin insumos</i>'}</div></td>
         <td class="dist-num">${cMoney(p.costoFinal)}</td>
-        <td class="dist-num"><b class="pl-precio">${cMoney(p.precioVentaRedondeado)}</b></td>
-        <td class="dist-num"><span class="pl-pct ${p.pctCosto>40?'hi':''}">${p.pctCosto}%</span></td>
         <td class="dist-num"><button class="dist-portal-link" data-pledit="${p.id}">Editar</button> <button class="dist-portal-link del" data-pldel="${p.id}">✕</button></td>
       </tr>`).join('');
     return `<div class="pl-cat-title">${escapeHtml(cat)} <span>(${byCat[cat].length})</span></div>
       <div class="mun-wrap"><table class="mun-table">
-        <thead><tr><th>Plato</th><th style="text-align:right">Costo final</th><th style="text-align:right">Precio sugerido</th><th style="text-align:right">% costo</th><th></th></tr></thead>
+        <thead><tr><th>Plato</th><th style="text-align:right">Costo final</th><th></th></tr></thead>
         <tbody>${rows}</tbody></table></div>`;
   }).join('');
   const catOptions = cats.map(c=>`<option value="${escapeAttr(c)}" ${(platoEditing?platoEditing.categoria:'')===c?'selected':''}>${escapeHtml(c)}</option>`).join('');
   document.getElementById('costeoBody').innerHTML = costeoIngDatalist() + `
     <div class="dist-form">
       <div class="dist-sec-title">${platoEditing?'Editar plato':'Nuevo plato'}</div>
-      <div class="dist-sec-sub">Agrega insumos y/o recetas base con su gramaje. El precio de venta sugerido sale de la cadena de costo (protección 10% + IVA 19%) dividida por el margen.</div>
+      <div class="dist-sec-sub">Agrega insumos y/o recetas base con su gramaje.</div>
       <div class="dist-form-grid" style="margin-top:.8rem">
         <div class="dist-field wide"><label>Nombre del plato</label><input id="plNombre" placeholder="Ej: Acevichado 420" value="${platoEditing?escapeAttr(platoEditing.nombre):''}"></div>
         <div class="dist-field"><label>Categoría</label><select id="plCat">${catOptions}</select></div>
-        <div class="dist-field"><label>Margen % (default 30)</label><input id="plMargen" type="text" inputmode="decimal" placeholder="30" value="${platoEditing?platoEditing.margenPct:'30'}"></div>
         <div class="dist-field"><label>IVA</label><label class="pl-iva"><input type="checkbox" id="plIva" ${curIva?'checked':''}> Incluir IVA 19%</label></div>
       </div>
       <div class="oc-line">
@@ -8761,8 +8757,6 @@ function renderCosteoPlatos(){
         <div><span>Protección 10%</span><b id="plPR">${cMoney(ch.proteccion)}</b></div>
         <div><span>IVA 19%</span><b id="plIVA">${cMoney(ch.iva)}</b></div>
         <div class="pl-chain-sep"><span>Costo final</span><b id="plCF">${cMoney(ch.costoFinal)}</b></div>
-        <div class="pl-chain-final"><span>Precio venta sugerido</span><b id="plPV">${cMoney(ch.precioVentaRedondeado)}</b></div>
-        <div><span>% de costo</span><b id="plPC">${Math.round(ch.pctCosto*10)/10}%</b></div>
       </div>
       <div class="dist-form-actions">
         <button class="adm-btn" id="plSave" type="button">${platoEditing?'Guardar cambios':'Crear plato'}</button>
@@ -8783,10 +8777,9 @@ function renderCosteoPlatos(){
   ciWireUnitHint('plIng','plCantUnidad');
   { const x=document.getElementById('plXlBtn'); if(x) x.onclick=()=>costeoExportXlsx('platos'); }
   document.getElementById('plSave').onclick=platoSave;
-  const upd=()=>{ const ct=platoDraftCosto(); const m=cNum(document.getElementById('plMargen').value)||30; const iv=document.getElementById('plIva').checked; const c=platoChain(ct,m,iv);
+  const upd=()=>{ const ct=platoDraftCosto(); const iv=document.getElementById('plIva').checked; const c=platoChain(ct,30,iv);
     const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-    set('plCT',cMoney(ct)); set('plPR',cMoney(c.proteccion)); set('plIVA',cMoney(c.iva)); set('plCF',cMoney(c.costoFinal)); set('plPV',cMoney(c.precioVentaRedondeado)); set('plPC',(Math.round(c.pctCosto*10)/10)+'%'); };
-  document.getElementById('plMargen').oninput=upd;
+    set('plCT',cMoney(ct)); set('plPR',cMoney(c.proteccion)); set('plIVA',cMoney(c.iva)); set('plCF',cMoney(c.costoFinal)); };
   { const x=document.getElementById('plIva'); if(x) x.onchange=upd; }
   const cc=document.getElementById('plCancel'); if(cc) cc.onclick=()=>{ platoEditing=null; platoDraft=[]; renderCosteoPlatos(); };
   document.querySelectorAll('#costeoBody [data-plqty]').forEach(el=>el.onchange=()=>{ platoDraft[+el.dataset.plqty].cantidad=cNum(el.value); renderCosteoPlatosKeep(); });
@@ -8804,9 +8797,9 @@ function renderCosteoPlatos(){
 let platoFormCache={};
 function renderCosteoPlatosKeep(){
   const g=id=>{const e=document.getElementById(id);return e?e.value:undefined;};
-  platoFormCache={ nombre:g('plNombre'), cat:g('plCat'), margen:g('plMargen') };
+  platoFormCache={ nombre:g('plNombre'), cat:g('plCat') };
   renderCosteoPlatos();
-  if(document.getElementById('plNombre')){ if(platoFormCache.nombre!==undefined)document.getElementById('plNombre').value=platoFormCache.nombre; if(platoFormCache.cat!==undefined)document.getElementById('plCat').value=platoFormCache.cat; if(platoFormCache.margen!==undefined)document.getElementById('plMargen').value=platoFormCache.margen; }
+  if(document.getElementById('plNombre')){ if(platoFormCache.nombre!==undefined)document.getElementById('plNombre').value=platoFormCache.nombre; if(platoFormCache.cat!==undefined)document.getElementById('plCat').value=platoFormCache.cat; }
 }
 function platoAddLine(){
   const val=document.getElementById('plIng').value.replace(/ \(RB\)$/,'');
@@ -8822,7 +8815,7 @@ async function platoSave(){
   const st=document.getElementById('plSt');
   const nombre=document.getElementById('plNombre').value.trim();
   if(!nombre){ st.className='dist-status err'; st.textContent='Falta el nombre.'; return; }
-  const payload={ nombre, categoria:document.getElementById('plCat').value, margenPct:cNum(document.getElementById('plMargen').value)||30, iva:document.getElementById('plIva').checked, lineas:platoDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad),cantUnidad:l.cantUnidad,rend:l.rend})) };
+  const payload={ nombre, categoria:document.getElementById('plCat').value, iva:document.getElementById('plIva').checked, lineas:platoDraft.map(l=>({refType:l.refType,refId:l.refId,cantidad:cNum(l.cantidad),cantUnidad:l.cantUnidad,rend:l.rend})) };
   st.className='dist-status'; st.textContent='Guardando…';
   try{
     const url=platoEditing?`/admin/costeo/platos/${platoEditing.id}`:'/admin/costeo/platos';
@@ -8833,7 +8826,7 @@ async function platoSave(){
 }
 function platoLoadEdit(id){
   const p=(costeoData.platos||[]).find(x=>x.id===id); if(!p) return;
-  platoEditing={ id:p.id, nombre:p.nombre, categoria:p.categoria, margenPct:p.margenPct, iva:p.ivaAplica };
+  platoEditing={ id:p.id, nombre:p.nombre, categoria:p.categoria, iva:p.ivaAplica };
   platoDraft=p.lineas.map(l=>({ refType:l.refType, refId:l.refId, nombre:l.nombre, unidad:l.unidad, precio:l.precio, cantidad:l.cantidad, cantUnidad:l.cantUnidad||l.unidad, rendAplica:l.rendAplica, rendInsumo:l.rendInsumo, base100:l.base100, rend:l.rend }));
   renderCosteoPlatos(); window.scrollTo({top:0,behavior:'smooth'});
 }
