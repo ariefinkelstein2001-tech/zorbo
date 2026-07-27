@@ -9631,7 +9631,26 @@ function resolveCosteo(d){
   const refUnidad = (refType, refId) => refType === 'insumo' ? (insById.get(refId) && insById.get(refId).unidad) : (rbById.get(refId) && rbById.get(refId).unidad);
   const CI_UNIT_FACTOR = { mililitro: { litro: 0.001 }, litro: { mililitro: 1000 }, gramo: { kilogramo: 0.001 }, kilogramo: { gramo: 1000 } };
   const ciConvFactor = (from, to) => (!from || !to || from === to) ? 1 : ((CI_UNIT_FACTOR[from] && CI_UNIT_FACTOR[from][to]) || 1);
-  const cantEnBase = (l) => (Number(l.cantidad) || 0) * ciConvFactor(l.cantUnidad, refUnidad(l.refType, l.refId));
+  // Insumos cargados "por unidad" no tienen una conversión fija a peso/volumen —
+  // usan la equivalencia propia del insumo (ej: 1 unidad de ciboulette = 30 g).
+  const cantEnBase = (l) => {
+    const cant = Number(l.cantidad) || 0;
+    const cu = l.cantUnidad; const base = refUnidad(l.refType, l.refId);
+    if (!cu || cu === base) return cant;
+    if (base === 'unidad' && l.refType === 'insumo') {
+      const ins = insById.get(l.refId);
+      if (ins && (cu === 'gramo' || cu === 'kilogramo') && Number(ins.equivGramos) > 0) {
+        const gramos = cu === 'kilogramo' ? cant * 1000 : cant;
+        return gramos / Number(ins.equivGramos);
+      }
+      if (ins && (cu === 'litro' || cu === 'mililitro') && Number(ins.equivMl) > 0) {
+        const ml = cu === 'litro' ? cant * 1000 : cant;
+        return ml / Number(ins.equivMl);
+      }
+      return cant;
+    }
+    return cant * ciConvFactor(cu, base);
+  };
   function rbUnit(rb, stack){
     if (rbMemo.has(rb.id)) return rbMemo.get(rb.id);
     if (stack.includes(rb.id)) return 0;
@@ -9645,7 +9664,7 @@ function resolveCosteo(d){
   }
   d.recetasBase.forEach(rb => rbUnit(rb, []));
   const ingredientes = [
-    ...d.insumos.map(i => ({ type: 'insumo', id: i.id, nombre: i.descripcion, unidad: i.unidad, precio: insReal.get(i.id), rendimiento: costeoRendAplica(i) ? i.rendimiento : null, base100: insumoPrecioReal(i, 1) })),
+    ...d.insumos.map(i => ({ type: 'insumo', id: i.id, nombre: i.descripcion, unidad: i.unidad, precio: insReal.get(i.id), rendimiento: costeoRendAplica(i) ? i.rendimiento : null, base100: insumoPrecioReal(i, 1), equivGramos: i.equivGramos || null, equivMl: i.equivMl || null })),
     ...d.recetasBase.map(r => ({ type: 'rb', id: r.id, nombre: r.nombre, unidad: r.unidad, precio: r._precioUnidad || 0, rendimiento: null, base100: null })),
   ];
   const insumos = d.insumos.map(i => ({ ...i, precioReal: insReal.get(i.id) }));
@@ -9711,7 +9730,9 @@ app.post('/admin/costeo/insumos', requireAdmin, (req, res) => {
   const ila = (Number(b.ila) > 0) ? Number(b.ila) : (volumen ? 0 : null);
   const despacho = (Number(b.despacho) > 0) ? Math.round(Number(b.despacho)) : (volumen ? 0 : null);
   const formato = (Number(b.formato) > 0) ? Number(b.formato) : null;
-  d.insumos.push({ id: randomUUID(), descripcion: desc, precioNeto: Number(b.precioNeto) || 0, unidad: costeoUnit(b.unidad), rendimiento: (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null, formato, volumen, ila, despacho });
+  const equivGramos = (Number(b.equivGramos) > 0) ? Number(b.equivGramos) : null;
+  const equivMl = (Number(b.equivMl) > 0) ? Number(b.equivMl) : null;
+  d.insumos.push({ id: randomUUID(), descripcion: desc, precioNeto: Number(b.precioNeto) || 0, unidad: costeoUnit(b.unidad), rendimiento: (Number(b.rendimiento) > 0 && Number(b.rendimiento) <= 1) ? Number(b.rendimiento) : null, formato, volumen, ila, despacho, equivGramos, equivMl });
   saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 app.put('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
@@ -9726,6 +9747,10 @@ app.put('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {
   if (b.volumen !== undefined) i.volumen = (Number(b.volumen) > 0) ? Number(b.volumen) : null;
   if (b.ila !== undefined) i.ila = (Number(b.ila) > 0) ? Number(b.ila) : 0;
   if (b.despacho !== undefined) i.despacho = (Number(b.despacho) > 0) ? Math.round(Number(b.despacho)) : 0;
+  // Equivalencia de un insumo cargado "por unidad" (ej: 1 unidad de ciboulette = 30 g)
+  // para poder usarlo en recetas por peso o volumen sin perder precisión de costo.
+  if (b.equivGramos !== undefined) i.equivGramos = (Number(b.equivGramos) > 0) ? Number(b.equivGramos) : null;
+  if (b.equivMl !== undefined) i.equivMl = (Number(b.equivMl) > 0) ? Number(b.equivMl) : null;
   saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 app.delete('/admin/costeo/insumos/:id', requireAdmin, (req, res) => {

@@ -8289,25 +8289,53 @@ function ciRawPerUnit(i, barra){
 const CI_UNIT_PAIR = { litro:'mililitro', mililitro:'litro', kilogramo:'gramo', gramo:'kilogramo' };
 const CI_UNIT_FACTOR = { mililitro:{litro:0.001}, litro:{mililitro:1000}, gramo:{kilogramo:0.001}, kilogramo:{gramo:1000} };
 function ciConvFactor(from, to){ if(!from||!to||from===to) return 1; return (CI_UNIT_FACTOR[from]&&CI_UNIT_FACTOR[from][to])||1; }
+// Unidades utilizables para cargar la cantidad de un insumo/RB: la unidad base
+// primero, más las emparentadas (litro/ml, kilo/gramo). Los insumos "por
+// unidad" no tienen una pareja fija — usan su propia equivalencia en gramos
+// y/o ml (cargada en Insumos) si está disponible.
+function ciUnitOptions(base, equivGramos, equivMl){
+  const opts=[base]; const pair=CI_UNIT_PAIR[base];
+  if(pair) opts.push(pair);
+  else if(base==='unidad'){
+    if(Number(equivGramos)>0) opts.push('gramo','kilogramo');
+    if(Number(equivMl)>0) opts.push('litro','mililitro');
+  }
+  return opts;
+}
 // Cantidad de una línea de receta expresada en la unidad base del insumo/RB
 // (ej: si se cargó "100" en mililitro y el insumo está en litro, devuelve 0.1).
-function lineCantEnBase(l){ return (Number(l.cantidad)||0) * ciConvFactor(l.cantUnidad||l.unidad, l.unidad); }
-// Celda de Unidad para una línea YA agregada a la receta/plato: si el insumo/RB
-// tiene una unidad emparentada (litro/ml, kilo/gramo) se puede cambiar ahí
-// mismo (recalcula el costo proporcional); si no, solo se muestra el texto.
+function lineCantEnBase(l){
+  const cant=Number(l.cantidad)||0; const cu=l.cantUnidad||l.unidad; const base=l.unidad;
+  if(!cu||cu===base) return cant;
+  if(base==='unidad'){
+    const ins=(costeoData.insumos||[]).find(x=>x.id===l.refId);
+    if(ins){
+      if((cu==='gramo'||cu==='kilogramo') && Number(ins.equivGramos)>0){ const g=cu==='kilogramo'?cant*1000:cant; return g/Number(ins.equivGramos); }
+      if((cu==='litro'||cu==='mililitro') && Number(ins.equivMl)>0){ const ml=cu==='litro'?cant*1000:cant; return ml/Number(ins.equivMl); }
+    }
+    return cant;
+  }
+  return cant * ciConvFactor(cu, base);
+}
+// Celda de Unidad para una línea YA agregada a la receta/plato: si tiene
+// unidades alternativas disponibles se puede cambiar ahí mismo (recalcula el
+// costo proporcional); si no, solo se muestra el texto.
 function ciLineUnitCell(l, idx, pfx){
-  const base = l.unidad; const pair = CI_UNIT_PAIR[base];
-  if(!pair) return escapeHtml(l.cantUnidad||base||'');
+  const base = l.unidad;
+  let equivGramos=null, equivMl=null;
+  if(base==='unidad'){ const ins=(costeoData.insumos||[]).find(x=>x.id===l.refId); if(ins){ equivGramos=ins.equivGramos; equivMl=ins.equivMl; } }
+  const opts=ciUnitOptions(base, equivGramos, equivMl);
+  if(opts.length<2) return escapeHtml(l.cantUnidad||base||'');
   const cur = l.cantUnidad||base;
   return `<select class="dist-input-sm" data-${pfx}unit="${idx}" style="width:100px">`
-    + `<option value="${base}" ${cur===base?'selected':''}>${base}</option>`
-    + `<option value="${pair}" ${cur===pair?'selected':''}>${pair}</option>`
+    + opts.map(u=>`<option value="${u}" ${cur===u?'selected':''}>${u}</option>`).join('')
     + `</select>`;
 }
 // Selector de Unidad, siempre visible, junto al campo de cantidad. Al elegir
-// el insumo/RB se completa solo con su unidad base y, si tiene una pareja
-// (litro/ml, kilo/gramo), se puede cambiar a esa para cargar la cantidad como
-// venga más cómodo — el costo se recalcula proporcional a la unidad base.
+// el insumo/RB se completa solo con su unidad base y, si tiene alternativas
+// (litro/ml, kilo/gramo, o la equivalencia propia de un insumo "por unidad"),
+// se puede cambiar a esa para cargar la cantidad como venga más cómodo — el
+// costo se recalcula proporcional a la unidad base.
 function ciWireUnitHint(ingId, selId){
   const inp=document.getElementById(ingId); const sel=document.getElementById(selId);
   if(!inp||!sel) return;
@@ -8315,10 +8343,8 @@ function ciWireUnitHint(ingId, selId){
     const val=inp.value.replace(/ \(RB\)$/,'');
     const g=(costeoData.ingredientes||[]).find(x=>x.nombre===val);
     if(!g){ sel.innerHTML='<option value="">—</option>'; sel.disabled=true; return; }
-    const pair=CI_UNIT_PAIR[g.unidad];
-    sel.innerHTML = pair
-      ? `<option value="${g.unidad}">${g.unidad}</option><option value="${pair}">${pair}</option>`
-      : `<option value="${g.unidad}">${g.unidad}</option>`;
+    const opts=ciUnitOptions(g.unidad, g.equivGramos, g.equivMl);
+    sel.innerHTML = opts.map(u=>`<option value="${u}">${u}</option>`).join('');
     sel.disabled = false;
   };
   inp.addEventListener('input', upd);
@@ -8452,7 +8478,12 @@ function renderCosteoInsumos(){
       <td><input class="ci-inp" style="width:100%" data-f="descripcion" value="${escapeAttr(i.descripcion)}"></td>
       <td class="dist-num"><span class="ci-money"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:95px" data-f="precioNeto" value="${i.precioNeto||''}"></span></td>
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:60px" data-f="formato" value="${i.formato||''}" placeholder="1"></td>
-      <td><select class="ci-inp" data-f="unidad">${C_UNITS(i.unidad)}</select></td>
+      <td><select class="ci-inp" data-f="unidad">${C_UNITS(i.unidad)}</select>
+        <div class="ci-equiv" data-equivwrap style="display:${i.unidad==='unidad'?'flex':'none'};gap:.3rem;margin-top:.3rem">
+          <input type="text" inputmode="decimal" class="ci-inp" data-f="equivGramos" value="${i.equivGramos||''}" placeholder="= g" title="Equivale a cuántos gramos (opcional)" style="width:52px;font-size:.68rem;padding:.2rem">
+          <input type="text" inputmode="decimal" class="ci-inp" data-f="equivMl" value="${i.equivMl||''}" placeholder="= ml" title="Equivale a cuántos ml (opcional)" style="width:52px;font-size:.68rem;padding:.2rem">
+        </div>
+      </td>
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:70px" data-f="rendimiento" value="${i.rendimiento||''}" placeholder="—"></td>
       <td class="dist-num"><b data-real>${ciPrecioRealText(i.unidad,ciRawPerUnit(i,false),i.precioReal)}</b></td>
       <td><button class="pv-del" data-idel="${i.id}">✕</button> <span class="dist-status" data-ist></span></td>
@@ -8494,6 +8525,7 @@ function renderCosteoInsumos(){
         <div class="dist-field"><label>Formato (cantidad, opcional)</label><input id="niFormato" type="text" inputmode="decimal" placeholder="ej: 0,5"></div>
         <div class="dist-field"><label>Unidad</label><select id="niUnidad">${C_UNITS('kilogramo')}</select></div>
         <div class="dist-field"><label>% Rendimiento (0-1, opcional)</label><input id="niRend" type="text" inputmode="decimal" placeholder="ej: 0,6"></div>
+        <div class="dist-field" id="niEquivWrap" style="display:none"><label>Equivale a (gramos / ml, opcional)</label><div style="display:flex;gap:.4rem"><input id="niEquivGramos" type="text" inputmode="decimal" placeholder="ej: 30 g"><input id="niEquivMl" type="text" inputmode="decimal" placeholder="ej: 30 ml"></div></div>
       </div>`;
   const thead = barra
     ? `<tr><th>Descripción</th><th style="text-align:right">Precio neto</th><th style="text-align:right">ILA</th><th style="text-align:right">Despacho</th><th style="text-align:right">Neto + ILA + Desp.</th><th style="text-align:right">Volumen</th><th style="text-align:right">Precio</th><th></th></tr>`
@@ -8517,8 +8549,10 @@ function renderCosteoInsumos(){
   const s=document.getElementById('ciSearch');
   s.oninput=()=>{ insumoSearch=s.value; const p=s.selectionStart; renderCosteoInsumos(); const n=document.getElementById('ciSearch'); n.focus(); try{n.setSelectionRange(p,p);}catch{} };
   document.getElementById('niAdd').onclick=addInsumo;
+  { const nu=document.getElementById('niUnidad'); const ew=document.getElementById('niEquivWrap'); if(nu&&ew){ nu.onchange=()=>{ ew.style.display = nu.value==='unidad' ? 'flex' : 'none'; }; ew.style.display = nu.value==='unidad' ? 'flex' : 'none'; } }
   { const x=document.getElementById('ciXlBtn'); if(x) x.onclick=()=>costeoExportXlsx('insumos'); }
   document.querySelectorAll('#costeoBody .ci-inp').forEach(el=>{ const h=()=>saveInsumo(el.closest('tr').dataset.iid); el.onblur=h; if(el.tagName==='SELECT') el.onchange=h; });
+  document.querySelectorAll('#costeoBody select[data-f="unidad"]').forEach(sel=>{ sel.addEventListener('change', ()=>{ const wrap=sel.closest('td').querySelector('[data-equivwrap]'); if(wrap) wrap.style.display = sel.value==='unidad' ? 'flex' : 'none'; }); });
   document.querySelectorAll('#costeoBody [data-idel]').forEach(b=>b.onclick=()=>delInsumo(b.dataset.idel));
   document.querySelectorAll('#costeoBody [data-rbgoto]').forEach(b=>b.onclick=()=>{ costeoSub='recetas'; loadCosteo().then(()=>{ setTimeout(()=>rbLoadEdit(b.dataset.rbgoto),50); }); });
   costeoLockView();
@@ -8529,7 +8563,7 @@ async function addInsumo(){
   st.className='dist-status'; st.textContent='…';
   const payload = isBarra()
     ? { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), ila:cNum(document.getElementById('niIla').value), despacho:cNum(document.getElementById('niDesp').value), volumen:cNum(document.getElementById('niVol').value), unidad:document.getElementById('niVolUnidad').value }
-    : { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), formato:cNum(document.getElementById('niFormato').value), unidad:document.getElementById('niUnidad').value, rendimiento:cNum(document.getElementById('niRend').value) };
+    : { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), formato:cNum(document.getElementById('niFormato').value), unidad:document.getElementById('niUnidad').value, rendimiento:cNum(document.getElementById('niRend').value), equivGramos:cNum(document.getElementById('niEquivGramos').value), equivMl:cNum(document.getElementById('niEquivMl').value) };
   try{
     const r=await fetch(cRest('/admin/costeo/insumos'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
@@ -8549,14 +8583,15 @@ async function saveInsumo(id){
     payload={descripcion:g('descripcion'),precioNeto:pn,ila:ila,despacho:desp,volumen:vol,unidad:volU};
   } else {
     const rd=cNum(g('rendimiento')); const fmt=cNum(g('formato')); const base=(fmt>0)?pn/fmt:pn; rawReal=(rd>0&&rd<=1)?base/rd:base; real=Math.round(rawReal);
-    payload={descripcion:g('descripcion'),precioNeto:pn,formato:fmt,unidad:g('unidad'),rendimiento:rd};
+    const eg=cNum(g('equivGramos')); const eml=cNum(g('equivMl'));
+    payload={descripcion:g('descripcion'),precioNeto:pn,formato:fmt,unidad:g('unidad'),rendimiento:rd,equivGramos:eg,equivMl:eml};
   }
   try{
     const r=await fetch(cRest(`/admin/costeo/insumos/${id}`),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
     tr.querySelector('[data-real]').textContent=ciPrecioRealText(barra?volU:g('unidad'), rawReal, real);
     if(barra){ const ni=tr.querySelector('[data-netoila]'); if(ni) ni.textContent=cMoney(netoIla); }
-    if(ins){ins.precioNeto=pn;ins.descripcion=g('descripcion');ins.precioReal=real; if(barra){ins.volumen=cNum(g('volumen'))||null;ins.ila=ila;ins.despacho=cNum(g('despacho'))||0;ins.unidad=volU;} else {const rd=cNum(g('rendimiento'));ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');const fmt=cNum(g('formato'));ins.formato=(fmt>0)?fmt:null;}}
+    if(ins){ins.precioNeto=pn;ins.descripcion=g('descripcion');ins.precioReal=real; if(barra){ins.volumen=cNum(g('volumen'))||null;ins.ila=ila;ins.despacho=cNum(g('despacho'))||0;ins.unidad=volU;} else {const rd=cNum(g('rendimiento'));ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');const fmt=cNum(g('formato'));ins.formato=(fmt>0)?fmt:null;ins.equivGramos=cNum(g('equivGramos'))||null;ins.equivMl=cNum(g('equivMl'))||null;}}
     st.className='dist-status ok'; st.textContent='✓'; setTimeout(()=>{st.textContent='';},1400);
   }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
 }
