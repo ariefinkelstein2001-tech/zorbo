@@ -117,7 +117,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 
 /* ── LAYOUT ── */
 .adm-shell{
-  display:grid;grid-template-columns:1fr 380px;gap:1.4rem;
+  display:grid;grid-template-columns:1fr;gap:1.4rem;
   padding:1.4rem;max-width:1480px;margin:0 auto;
 }
 @media(max-width:1080px){
@@ -3338,42 +3338,8 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
     </div>
   </div>
 
-  <!-- Mini chat -->
-  <aside class="adm-chat" id="chatAside">
-    <div class="adm-chat-head">
-      <div class="adm-chat-av"><img src="/zorbot-avatar.jpg" alt="Zorbot"></div>
-      <div class="adm-chat-title-col">
-        <div class="adm-chat-title"><span class="live"></span> Zorbot · Preview</div>
-        <div class="adm-chat-sub" id="chatModeLabel">MODO B2C · CATÁLOGO LIVE</div>
-      </div>
-      <div class="adm-chat-mode" role="tablist" aria-label="Modo de chat">
-        <button class="adm-mode on" data-mode="b2c" type="button">B2C</button>
-        <button class="adm-mode" data-mode="b2b" type="button">B2B</button>
-      </div>
-      <button type="button" class="adm-chat-collapse" id="chatCollapse" aria-label="Colapsar Zorbot" title="Colapsar el panel">⟩⟩</button>
-      <button type="button" class="adm-chat-x" id="chatPopupClose" aria-label="Cerrar">✕</button>
-    </div>
-    <div class="adm-chat-body" id="chatBody">
-      <div class="adm-chat-empty">Edita un bloque, guarda los cambios y conversa con Zorbot acá para validar antes de soltarlo a producción.</div>
-    </div>
-    <div class="adm-chat-foot">
-      <textarea class="adm-chat-in" id="chatIn" rows="1" placeholder="Conversa con Zorbot…"></textarea>
-      <button class="adm-chat-clear" id="chatClear" type="button" title="Limpiar conversación">Limpiar</button>
-      <button class="adm-chat-send" id="chatSend" type="button" aria-label="Enviar">
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      </button>
-    </div>
-  </aside>
+  <!-- Zorbot · Preview: removido del admin (a pedido). El asistente K-BROS va abajo. -->
 </main>
-<!-- Reabrir Zorbot cuando el panel está colapsado (solo escritorio; en móvil está el FAB) -->
-<button type="button" class="adm-chat-reopen" id="chatReopen" aria-label="Abrir el panel de Zorbot">💬 Zorbot</button>
-
-<!-- FAB del preview chat (solo móvil): bola flotante con avatar de Zorbot.
-     Tap → abre el preview chat como popup fullscreen. -->
-<button type="button" class="adm-chat-fab" id="chatFab" aria-label="Abrir Zorbot Preview">
-  <img src="/zorbot-avatar.jpg" alt="Zorbot">
-  <span class="adm-chat-fab-dot"></span>
-</button>
 
 <!-- Asistente interno por área: workspace de chats privados (sandbox), abajo de todo. -->
 <div class="asst-dock" id="asstDock" aria-live="polite">
@@ -5781,40 +5747,16 @@ function closeChatPopup(){
   if (f) f.classList.remove('hidden');
   document.body.classList.remove('chat-popup-open');
 }
-document.getElementById('chatFab').addEventListener('click', openChatPopup);
-document.getElementById('chatPopupClose').addEventListener('click', closeChatPopup);
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && document.getElementById('chatAside').classList.contains('popup-open')) {
-    closeChatPopup();
-  }
-});
-
-document.getElementById('chatSend').onclick = chatSend;
-document.getElementById('chatIn').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSend(); }
-});
-document.getElementById('chatIn').addEventListener('input', e => {
-  e.target.style.height = 'auto';
-  e.target.style.height = Math.min(120, e.target.scrollHeight) + 'px';
-});
-document.getElementById('chatClear').onclick = () => {
-  chatSessionId = null;
-  document.getElementById('chatBody').innerHTML =
-    '<div class="adm-chat-empty">Conversación limpia. Prueba un cambio y vuelve a chatear para validar.</div>';
-};
-document.querySelectorAll('.adm-mode').forEach(b => {
-  b.onclick = () => {
-    if (chatStreaming) return;
-    chatMode = b.dataset.mode;
-    chatSessionId = null;
-    // El catálogo cambia entre B2C/B2B — no es necesario reset, ensurePreviewCatalog
-    // lo carga lazy por sección. Solo limpiamos la UI.
-    document.querySelectorAll('.adm-mode').forEach(x => x.classList.toggle('on', x === b));
-    updateChatModeLabel();
-    document.getElementById('chatBody').innerHTML =
-      `<div class="adm-chat-empty">Modo ${chatMode.toUpperCase()} activo · sesión nueva. ${chatMode==='b2b'?'Probando knowledge de mayoristas.':'Probando knowledge B2C (general + 3 marcas).'}</div>`;
-  };
-});
+// Zorbot · Preview removido del admin: el wiring solo corre si el panel existe.
+if (document.getElementById('chatAside')) {
+  const _f=document.getElementById('chatFab'); if(_f) _f.addEventListener('click', openChatPopup);
+  const _pc=document.getElementById('chatPopupClose'); if(_pc) _pc.addEventListener('click', closeChatPopup);
+  document.addEventListener('keydown', (e) => { const a=document.getElementById('chatAside'); if (e.key === 'Escape' && a && a.classList.contains('popup-open')) closeChatPopup(); });
+  const _cs=document.getElementById('chatSend'); if(_cs) _cs.onclick = chatSend;
+  const _ci=document.getElementById('chatIn'); if(_ci){ _ci.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); chatSend(); } }); _ci.addEventListener('input', e => { e.target.style.height='auto'; e.target.style.height=Math.min(120,e.target.scrollHeight)+'px'; }); }
+  const _cc=document.getElementById('chatClear'); if(_cc) _cc.onclick=()=>{ chatSessionId=null; const b=document.getElementById('chatBody'); if(b) b.innerHTML='<div class="adm-chat-empty">Conversación limpia.</div>'; };
+  document.querySelectorAll('.adm-mode').forEach(b => { b.onclick=()=>{ if(chatStreaming) return; chatMode=b.dataset.mode; chatSessionId=null; document.querySelectorAll('.adm-mode').forEach(x=>x.classList.toggle('on',x===b)); updateChatModeLabel(); const bd=document.getElementById('chatBody'); if(bd) bd.innerHTML=`<div class="adm-chat-empty">Modo ${chatMode.toUpperCase()} activo.</div>`; }; });
+}
 
 // ─── Toast ──────────────────────────────────────────────────────────────────
 let toastTmr;
