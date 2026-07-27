@@ -11790,19 +11790,22 @@ const invNd=n=>(Number(n)?invN(n):'');   // número o vacío
 // CSS de las tablas tipo Gestión Cervecera (encabezado agrupado + filas expandibles).
 const INV_GCS_CSS=`<style>
 .gcs-wrap{overflow-x:auto;margin-top:.3rem;border:1px solid var(--line,#e6e8ec);border-radius:10px}
-.gcs-tbl{border-collapse:collapse;width:100%;min-width:720px;font-size:.82rem}
-.gcs-tbl th,.gcs-tbl td{padding:.34rem .55rem;border-bottom:1px solid var(--line,#eef0f3);white-space:nowrap}
-.gcs-tbl thead th{background:var(--soft,#f5f6f8);color:#5a6270;font-weight:700;font-size:.72rem;text-align:right;position:sticky;top:0}
+.gcs-tbl{border-collapse:collapse;width:100%;font-size:.8rem;table-layout:auto}
+.gcs-tbl th,.gcs-tbl td{padding:.32rem .5rem;border-bottom:1px solid var(--line,#eef0f3);white-space:nowrap}
+.gcs-tbl td:nth-child(2){white-space:normal}
+.gcs-tbl thead th{background:var(--soft,#f5f6f8);color:#5a6270;font-weight:700;font-size:.68rem;text-align:right;position:sticky;top:0}
 .gcs-tbl thead th.l{text-align:left}
-.gcs-grp{text-align:center!important;border-left:1px solid #dfe2e7;background:#eef1f5!important}
+.gcs-grp{text-align:right!important;border-left:1px solid #dfe2e7;background:#eef1f5!important}
+.gcs-tbl thead tr:first-child .gcs-grp{text-align:center!important}
 .gcs-tbl td.r{text-align:right;font-variant-numeric:tabular-nums}
 .gcs-l0>td{font-weight:600}
 .gcs-l1>td{background:#fbfcfd}
-.gcs-l2>td{background:#f6f8fa;color:#6b7280;font-size:.78rem}
+.gcs-l2>td{background:#f6f8fa;font-size:.76rem}
+.gcs-sub{color:#8a92a0;font-size:.92em}
 .gcs-hidden{display:none}
-.gcs-tog{border:0;background:#e7ebf0;color:#4a5160;width:1.15rem;height:1.15rem;border-radius:5px;font-weight:800;cursor:pointer;line-height:1;font-size:.8rem;padding:0}
+.gcs-tog{border:0;background:#e7ebf0;color:#4a5160;width:1.1rem;height:1.1rem;border-radius:5px;font-weight:800;cursor:pointer;line-height:1;font-size:.78rem;padding:0}
 .gcs-tog:hover{background:#d4dae2}
-.gcs-exp{width:1.6rem;text-align:center}
+.gcs-exp{width:1.4rem;text-align:center;padding-left:.3rem!important;padding-right:.15rem!important}
 .gcs-tot td{font-weight:800;background:#fff7e6;border-top:2px solid #e9c46a}
 .gcs-disp{color:#1f7a4d}
 </style>`;
@@ -11821,68 +11824,66 @@ function invRenderGcStock(d){
     <span style="background:#fff3d6;padding:.35rem .6rem;border-radius:8px;font-weight:700">🛢 ${invN(t.barrilesUnid)} barriles · ${invL(t.barrilesLitros)} L disponibles</span>
     <span style="background:#e3f0ff;padding:.35rem .6rem;border-radius:8px;font-weight:700">🥫 ${invN(t.latasUnid)} latas · ${invL(t.latasLitros)} L disponibles</span></div>`;
 
-  // ── Barriles por producto → tamaño → barril (como Gestión Cervecera) ──
+  const sub=s=>`<span class="gcs-sub">${s}</span>`; // texto de detalle atenuado
+  // ── Barriles por producto → tamaño → barril. Compacto: el detalle del barril
+  // (código · lote · ubicación) va dentro de la columna "Barril" al expandir. ──
   const barHead=`<thead>
     <tr><th class="l" rowspan="2"></th><th class="l" rowspan="2">Producto</th><th class="l" rowspan="2">Barril</th>
-      <th class="gcs-grp" colspan="6">En Stock</th><th class="gcs-grp" colspan="2">En pedidos pendientes</th><th class="gcs-grp" colspan="2">Disponibles</th></tr>
-    <tr><th class="gcs-grp">Cant. Barriles</th><th>Código</th><th>Lote</th><th>Fecha</th><th>Litros</th><th>Ubicación</th>
-      <th class="gcs-grp">Cant. Barriles</th><th>Litros</th><th class="gcs-grp">Cant. Barriles</th><th>Litros</th></tr></thead>`;
+      <th class="gcs-grp" colspan="2">En Stock</th><th class="gcs-grp" colspan="2">En pedidos</th><th class="gcs-grp" colspan="2">Disponibles</th></tr>
+    <tr><th class="gcs-grp">Cant.</th><th>Litros</th><th class="gcs-grp">Cant.</th><th>Litros</th><th class="gcs-grp">Cant.</th><th>Litros</th></tr></thead>`;
   const bRows=[]; let bid=0;
   const bar=(d.barriles||[]).slice().sort((a,b)=>(b.disponible.litros||0)-(a.disponible.litros||0));
+  const trioB=(o,bold)=>[{v:invNd(o.barriles),r:1,b:bold},{v:invLd(o.litros),r:1,b:bold}];
   for(const p of bar){
     const pid='b'+(bid++);
     bRows.push({id:pid,level:0,kids:p.tamanos.length>0,cells:invCells([
-      {v:escapeHtml(p.producto)},{v:''},{v:invN(p.enStock.barriles),r:1,b:1},{v:''},{v:''},{v:''},{v:invLd(p.enStock.litros),r:1},{v:''},
-      {v:invNd(p.pedidos.barriles),r:1},{v:invLd(p.pedidos.litros),r:1},{v:invN(p.disponible.barriles),r:1,b:1,disp:1},{v:invL(p.disponible.litros),r:1,b:1,disp:1}])});
+      {v:escapeHtml(p.producto)},{v:''},{v:invN(p.enStock.barriles),r:1,b:1},{v:invLd(p.enStock.litros),r:1},
+      ...trioB(p.pedidos),{v:invN(p.disponible.barriles),r:1,b:1,disp:1},{v:invL(p.disponible.litros),r:1,b:1,disp:1}])});
     for(const s of p.tamanos){
       const sid='b'+(bid++);
       bRows.push({id:sid,parent:pid,level:1,kids:s.detalle.length>0,cells:invCells([
-        {v:''},{v:escapeHtml(s.tamano)},{v:invN(s.enStock.barriles),r:1},{v:''},{v:''},{v:''},{v:invLd(s.enStock.litros),r:1},{v:''},
-        {v:invNd(s.pedidos.barriles),r:1},{v:invLd(s.pedidos.litros),r:1},{v:invN(s.disponible.barriles),r:1,disp:1},{v:invL(s.disponible.litros),r:1,disp:1}])});
+        {v:''},{v:escapeHtml(s.tamano)},{v:invN(s.enStock.barriles),r:1},{v:invLd(s.enStock.litros),r:1},
+        ...trioB(s.pedidos),{v:invN(s.disponible.barriles),r:1,disp:1},{v:invL(s.disponible.litros),r:1,disp:1}])});
       for(const bb of s.detalle){
+        const det=[escapeHtml('#'+bb.codigo), bb.lote?escapeHtml(bb.lote):'', bb.ubicacion?escapeHtml(bb.ubicacion):''].filter(Boolean).join(' · ');
         bRows.push({id:'b'+(bid++),parent:sid,level:2,kids:false,cells:invCells([
-          {v:''},{v:''},{v:''},{v:escapeHtml(bb.codigo)},{v:escapeHtml(bb.lote)},{v:escapeHtml(bb.fecha)},{v:invLd(bb.litros),r:1},{v:escapeHtml(bb.ubicacion)},
-          {v:''},{v:''},{v:''},{v:''}])});
+          {v:''},{v:sub(det)},{v:'',r:1},{v:invLd(bb.litros),r:1},{v:'',r:1},{v:'',r:1},{v:'',r:1},{v:'',r:1}])});
       }
     }
   }
   bRows.push({id:'btot',level:0,kids:false,cls:' gcs-tot',cells:invCells([
-    {v:'TOTAL'},{v:''},{v:invN(t.barrilesUnid),r:1},{v:''},{v:''},{v:''},{v:invL(t.barrilesStockLitros),r:1},{v:''},
-    {v:'',r:1},{v:'',r:1},{v:invN(t.barrilesUnid),r:1},{v:invL(t.barrilesLitros),r:1}])});
-  const barTbl=`<div class="prod-sec-h" style="margin-top:.4rem">🛢 Barriles por producto <span>${bar.length}</span></div>`+invTreeTable(barHead,bRows,13);
+    {v:'TOTAL'},{v:''},{v:invN(t.barrilesUnid),r:1},{v:invL(t.barrilesStockLitros),r:1},{v:'',r:1},{v:'',r:1},{v:invN(t.barrilesUnid),r:1},{v:invL(t.barrilesLitros),r:1}])});
+  const barTbl=`<div class="prod-sec-h" style="margin-top:.4rem">🛢 Barriles por producto <span>${bar.length}</span></div>`+invTreeTable(barHead,bRows,9);
 
-  // ── Latas / envasado por producto → caja → lote (como GC) ──
+  // ── Latas / envasado por producto → caja → lote. Compacto: envase/caja/lote
+  // en una sola columna; las cajas se muestran como nota junto a la cantidad. ──
   const latHead=`<thead>
-    <tr><th class="l" rowspan="2"></th><th class="l" rowspan="2">Producto</th><th class="l" rowspan="2">Envase</th><th class="l" rowspan="2">Caja</th><th class="l" rowspan="2">Lote</th><th class="l" rowspan="2">Fecha Venc.</th>
-      <th class="gcs-grp" colspan="3">En Stock</th><th class="gcs-grp" colspan="3">En pedidos pendientes</th><th class="gcs-grp" colspan="3">Disponibles</th></tr>
-    <tr><th class="gcs-grp">Cant. Cajas</th><th>Cantidad</th><th>Litros</th><th class="gcs-grp">Cant. Cajas</th><th>Cantidad</th><th>Litros</th><th class="gcs-grp">Cant. Cajas</th><th>Cantidad</th><th>Litros</th></tr></thead>`;
+    <tr><th class="l" rowspan="2"></th><th class="l" rowspan="2">Producto</th><th class="l" rowspan="2">Envase / caja / lote</th>
+      <th class="gcs-grp" colspan="2">En Stock</th><th class="gcs-grp" colspan="2">En pedidos</th><th class="gcs-grp" colspan="2">Disponibles</th></tr>
+    <tr><th class="gcs-grp">Cantidad</th><th>Litros</th><th class="gcs-grp">Cantidad</th><th>Litros</th><th class="gcs-grp">Cantidad</th><th>Litros</th></tr></thead>`;
   const lRows=[]; let lid=0;
   const lat=(d.latas||[]).slice().sort((a,b)=>(b.disponible.litros||0)-(a.disponible.litros||0));
+  const cajN=c=>c?(' '+sub('('+invN(c)+' caj)')):'';
   for(const p of lat){
     const pid='l'+(lid++);
     lRows.push({id:pid,level:0,kids:p.cajas.length>0,cells:invCells([
-      {v:escapeHtml(p.producto)},{v:escapeHtml(p.envase)},{v:''},{v:''},{v:''},
-      {v:invNd(p.enStock.cajas),r:1},{v:invN(p.enStock.cantidad),r:1,b:1},{v:invLd(p.enStock.litros),r:1},
-      {v:invNd(p.pedidos.cajas),r:1},{v:invNd(p.pedidos.cantidad),r:1},{v:invLd(p.pedidos.litros),r:1},
-      {v:invNd(p.disponible.cajas),r:1},{v:invN(p.disponible.cantidad),r:1,b:1,disp:1},{v:invL(p.disponible.litros),r:1,b:1,disp:1}])});
+      {v:escapeHtml(p.producto)},{v:sub(escapeHtml(p.envase))},{v:invN(p.enStock.cantidad),r:1,b:1},{v:invLd(p.enStock.litros),r:1},
+      {v:invNd(p.pedidos.cantidad),r:1},{v:invLd(p.pedidos.litros),r:1},{v:invN(p.disponible.cantidad)+cajN(p.disponible.cajas),r:1,b:1,disp:1},{v:invL(p.disponible.litros),r:1,b:1,disp:1}])});
     for(const c of p.cajas){
       const cid='l'+(lid++);
       lRows.push({id:cid,parent:pid,level:1,kids:c.detalle.length>0,cells:invCells([
-        {v:''},{v:''},{v:escapeHtml(c.tipo)},{v:''},{v:''},
-        {v:invNd(c.enStock.cajas),r:1},{v:invN(c.enStock.cantidad),r:1},{v:invLd(c.enStock.litros),r:1},
-        {v:invNd(c.pedidos.cajas),r:1},{v:invNd(c.pedidos.cantidad),r:1},{v:invLd(c.pedidos.litros),r:1},
-        {v:invNd(c.disponible.cajas),r:1},{v:invN(c.disponible.cantidad),r:1,disp:1},{v:invL(c.disponible.litros),r:1,disp:1}])});
+        {v:''},{v:escapeHtml(c.tipo)},{v:invN(c.enStock.cantidad),r:1},{v:invLd(c.enStock.litros),r:1},
+        {v:invNd(c.pedidos.cantidad),r:1},{v:invLd(c.pedidos.litros),r:1},{v:invN(c.disponible.cantidad)+cajN(c.disponible.cajas),r:1,disp:1},{v:invL(c.disponible.litros),r:1,disp:1}])});
       for(const lo of c.detalle){
+        const det=[lo.lote?escapeHtml(lo.lote):'', lo.fechaVenc?('vence '+escapeHtml(lo.fechaVenc)):''].filter(Boolean).join(' · ');
         lRows.push({id:'l'+(lid++),parent:cid,level:2,kids:false,cells:invCells([
-          {v:''},{v:''},{v:''},{v:escapeHtml(lo.lote)},{v:escapeHtml(lo.fechaVenc)},
-          {v:''},{v:invN(lo.cantidad),r:1},{v:invLd(lo.litros),r:1},{v:''},{v:''},{v:''},{v:''},{v:''},{v:''}])});
+          {v:''},{v:sub(det)},{v:invN(lo.cantidad),r:1},{v:invLd(lo.litros),r:1},{v:'',r:1},{v:'',r:1},{v:'',r:1},{v:'',r:1}])});
       }
     }
   }
   lRows.push({id:'ltot',level:0,kids:false,cls:' gcs-tot',cells:invCells([
-    {v:'TOTAL'},{v:''},{v:''},{v:''},{v:''},{v:'',r:1},{v:invN(t.latasUnid),r:1},{v:invL(t.latasLitros),r:1},
-    {v:'',r:1},{v:'',r:1},{v:'',r:1},{v:'',r:1},{v:invN(t.latasUnid),r:1},{v:invL(t.latasLitros),r:1}])});
-  const latTbl=`<div class="prod-sec-h" style="margin-top:.9rem">🥫 Latas / envasado por producto <span>${lat.length}</span></div>`+invTreeTable(latHead,lRows,15);
+    {v:'TOTAL'},{v:''},{v:invN(t.latasUnid),r:1},{v:invL(t.latasLitros),r:1},{v:'',r:1},{v:'',r:1},{v:invN(t.latasUnid),r:1},{v:invL(t.latasLitros),r:1}])});
+  const latTbl=`<div class="prod-sec-h" style="margin-top:.9rem">🥫 Latas / envasado por producto <span>${lat.length}</span></div>`+invTreeTable(latHead,lRows,9);
 
   // ── Barriles por depósito (separado, como pediste) ──
   let depTbl='';
