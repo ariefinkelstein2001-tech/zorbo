@@ -4975,14 +4975,14 @@ async function erpLoginDiag(cfg){
     rep.login.loginReal = { ok: login.ok, error: login.error || null, stage: login.stage || null };
     if (login.ok && login.jar) {
       rep.rutasAuth = [];
-      const dp = ['/Lote', '/Receta', '/Lotes', '/Recetas', '/Home/Lote', '/Home/Receta', '/Insumo', '/Insumos', '/Inventario', '/Bodega', '/Stock', '/MateriaPrima', '/Producto', '/Existencia'];
+      const dp = ['/Lote', '/Receta', '/Producto/Stock', '/Lotes', '/Recetas', '/Home/Lote', '/Home/Receta', '/Insumo', '/Insumos', '/Inventario', '/Bodega', '/Stock', '/MateriaPrima', '/Producto', '/Existencia'];
       rep.muestras = {};
       await Promise.all(dp.map(async (p) => {
         try {
           const r = await erpGet(base + p, login.jar, base); const h = await r.text();
           rep.rutasAuth.push({ ruta: p, status: r.status, filas: (h.match(/<tr\b/gi) || []).length, tieneEditLote: /Lote\/Edit\?id=/i.test(h), tieneExportar: /class=["']exportar["']/i.test(h), len: h.length });
           // Muestra de la estructura de la tabla + los scripts que la cargan (ajax).
-          if (r.status === 200 && /<tr\b/i.test(h) && (p === '/Lote' || p === '/Receta')) { rep.muestras[p] = erpTablaMuestra(h); (rep.scripts = rep.scripts || {})[p] = erpScriptDump(h); }
+          if (r.status === 200 && (p === '/Lote' || p === '/Receta' || p === '/Producto/Stock')) { if (/<tr\b/i.test(h)) rep.muestras[p] = erpTablaMuestra(h); (rep.scripts = rep.scripts || {})[p] = erpScriptDump(h); }
         } catch (e) { rep.rutasAuth.push({ ruta: p, status: 0, error: String(e.message).slice(0, 60) }); }
       }));
       rep.rutasAuth.sort((a, b) => a.ruta.localeCompare(b.ruta));
@@ -4990,14 +4990,20 @@ async function erpLoginDiag(cfg){
       // body vacío, con la cookie de sesión). Dumpea el JSON para mapear los campos.
       rep.dataProbe = [];
       const dataEps = ['/Lote/GetActivos', '/Lote/GetAll', '/Receta/GetActivos', '/Receta/GetAll', '/Receta/GetActivas', '/Batch/GetActivos', '/Recipe/GetAll',
-        // Stock confirmado por captura (página /Producto/Stock): barriles + latas.
-        '/Producto/GetInsumosEmbarrilado', '/Producto/GetInsumosEnvasado', '/Producto/GetAllDepositos',
-        // Otros candidatos de stock/inventario.
-        '/Insumo/GetAll', '/Insumo/GetActivos', '/Inventario/GetAll', '/Bodega/GetAll', '/Stock/GetAll', '/Producto/GetAll'];
+        // Materiales de embarrilado/envasado (insumos — NO es el stock de chelas).
+        '/Lote/GetInsumosEmbarrilado', '/Envasado/GetInsumosEnvasado', '/Barril/GetAllDepositos',
+        // Candidatos: stock real de CHELAS/BARRILES por producto (foto GC: Producto, Cant. Barriles, Litros, En Stock, Disponibles).
+        '/Barril/GetStock', '/Barril/GetStockBarriles', '/Barril/GetBarriles', '/Barril/GetAll', '/Barril/GetActivos', '/Barril/GetStockProductos',
+        '/Producto/GetStock', '/Producto/GetStockBarriles', '/Producto/GetStockProductos', '/Producto/GetProductos', '/Producto/GetAll', '/Producto/GetActivos',
+        '/Envasado/GetStock', '/Envasado/GetAll', '/Stock/GetBarriles', '/Stock/GetProductos', '/Stock/GetAll', '/Stock/GetStock',
+        // Otros candidatos de inventario.
+        '/Insumo/GetAll', '/Inventario/GetAll', '/Bodega/GetAll'];
       await Promise.all(dataEps.map(async (ep) => {
         try {
           const ctrl = ep.split('/')[1] || 'Lote'; // Referer plausible según el controlador
-          const r = await erpFetch(base + ep, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Referer': base + '/' + ctrl, 'Origin': base }, body: '' }, login.jar);
+          // Los endpoints de stock (Barril/Producto/Envasado/Stock) se piden desde la página /Producto/Stock.
+          const ref = /^(Barril|Producto|Envasado|Stock|Insumo|Inventario|Bodega)$/i.test(ctrl) ? '/Producto/Stock' : ('/' + ctrl);
+          const r = await erpFetch(base + ep, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Referer': base + ref, 'Origin': base }, body: '' }, login.jar);
           const ct = r.headers.get('content-type') || ''; let t = ''; try { t = await r.text(); } catch {}
           const isJson = /json/i.test(ct) || /^\s*[[{]/.test(t);
           rep.dataProbe.push({ ep, status: r.status, isJson, len: t.length, snippet: t.replace(/\s+/g, ' ').slice(0, 900) });
@@ -5065,8 +5071,8 @@ function erpTablaMuestra(html){
 // para descubrir la URL AJAX que carga las filas de la tabla.
 function erpScriptDump(html){
   const scripts = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
-  const rel = scripts.filter(s => /DataTable|ajax|\.load\(|Listar|Listado|Datos|GetData|Grid|\/Lote|\/Receta|url\s*:/i.test(s));
-  return rel.join('\n/* --- */\n').replace(/[ \t]{2,}/g, ' ').replace(/\n{2,}/g, '\n').trim().slice(0, 4500);
+  const rel = scripts.filter(s => /DataTable|ajax|\.load\(|Listar|Listado|Datos|GetData|Grid|\/Lote|\/Receta|\/Barril|\/Producto|\/Envasado|Stock|Embarril|Envas|Barril|GetStock|\.post\(|\.get\(|url\s*:/i.test(s));
+  return rel.join('\n/* --- */\n').replace(/[ \t]{2,}/g, ' ').replace(/\n{2,}/g, '\n').trim().slice(0, 6500);
 }
 // Login real del ERP (Gestión Cervecera es ASP.NET + jQuery): jsLogin() hace
 // POST /Home/Login con { usuario, password: md5(clave) } y espera JSON {message:'ok'}.
