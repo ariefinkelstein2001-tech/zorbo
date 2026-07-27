@@ -8292,6 +8292,18 @@ function ciConvFactor(from, to){ if(!from||!to||from===to) return 1; return (CI_
 // Cantidad de una línea de receta expresada en la unidad base del insumo/RB
 // (ej: si se cargó "100" en mililitro y el insumo está en litro, devuelve 0.1).
 function lineCantEnBase(l){ return (Number(l.cantidad)||0) * ciConvFactor(l.cantUnidad||l.unidad, l.unidad); }
+// Celda de Unidad para una línea YA agregada a la receta/plato: si el insumo/RB
+// tiene una unidad emparentada (litro/ml, kilo/gramo) se puede cambiar ahí
+// mismo (recalcula el costo proporcional); si no, solo se muestra el texto.
+function ciLineUnitCell(l, idx, pfx){
+  const base = l.unidad; const pair = CI_UNIT_PAIR[base];
+  if(!pair) return escapeHtml(l.cantUnidad||base||'');
+  const cur = l.cantUnidad||base;
+  return `<select class="dist-input-sm" data-${pfx}unit="${idx}" style="width:100px">`
+    + `<option value="${base}" ${cur===base?'selected':''}>${base}</option>`
+    + `<option value="${pair}" ${cur===pair?'selected':''}>${pair}</option>`
+    + `</select>`;
+}
 // Selector de Unidad, siempre visible, junto al campo de cantidad. Al elegir
 // el insumo/RB se completa solo con su unidad base y, si tiene una pareja
 // (litro/ml, kilo/gramo), se puede cambiar a esa para cargar la cantidad como
@@ -8563,7 +8575,7 @@ function renderCosteoRecetas(){
   const draftCosto = rbDraft.reduce((s,l)=>s+lineCantEnBase(l)*lineEffPrecio(l),0);
   const prod = document.getElementById('rbProd') ? cNum(document.getElementById('rbProd').value) : (rbEditing?rbEditing.produccion:0);
   const drows = rbDraft.length ? rbDraft.map((l,idx)=>{ const ep=lineEffPrecio(l); return `
-    <tr><td>${escapeHtml(l.nombre)}${l.refType==='rb'?' <span class="mun-bk">RB</span>':''}</td><td>${l.cantUnidad||l.unidad||''}</td>
+    <tr><td>${escapeHtml(l.nombre)}${l.refType==='rb'?' <span class="mun-bk">RB</span>':''}</td><td>${ciLineUnitCell(l,idx,'rb')}</td>
     <td class="dist-num">${lineRendCell(l,idx,'rb')}</td>
     <td class="dist-num">${cMoney(ep)}</td>
     <td class="dist-num"><input type="text" inputmode="decimal" class="dist-input-sm dist-num" data-rbqty="${idx}" value="${l.cantidad}" style="width:80px"></td>
@@ -8622,6 +8634,7 @@ function renderCosteoRecetas(){
   document.getElementById('rbUnidad').onchange=()=>{ const el=document.getElementById('rbUnidadLbl'); if(el) el.textContent=document.getElementById('rbUnidad').value; };
   const c=document.getElementById('rbCancel'); if(c) c.onclick=()=>{ rbEditing=null; rbDraft=[]; renderCosteoRecetas(); };
   document.querySelectorAll('#costeoBody [data-rbqty]').forEach(el=>el.onchange=()=>{ rbDraft[+el.dataset.rbqty].cantidad=cNum(el.value); renderCosteoRecetasKeep(); });
+  document.querySelectorAll('#costeoBody [data-rbunit]').forEach(el=>el.onchange=()=>{ rbDraft[+el.dataset.rbunit].cantUnidad=el.value; renderCosteoRecetasKeep(); });
   document.querySelectorAll('#costeoBody [data-rbren]').forEach(el=>el.onchange=()=>{ const v=cNum(el.value); rbDraft[+el.dataset.rbren].rend=(v>0&&v<=100)?v/100:null; renderCosteoRecetasKeep(); });
   document.querySelectorAll('#costeoBody [data-rbnm]').forEach(b=>b.onclick=()=>{ rbDraft[+b.dataset.rbnm].rend=1; renderCosteoRecetasKeep(); });
   document.querySelectorAll('#costeoBody [data-rbrm]').forEach(b=>b.onclick=()=>{ rbDraft.splice(+b.dataset.rbrm,1); renderCosteoRecetasKeep(); });
@@ -8696,7 +8709,7 @@ function renderCosteoPlatos(){
   const curIva = document.getElementById('plIva') ? document.getElementById('plIva').checked : (platoEditing ? (platoEditing.iva!==false) : !isBarra());
   const ch = platoChain(draftCosto, curMargen||30, curIva);
   const drows = platoDraft.length ? platoDraft.map((l,idx)=>{ const ep=lineEffPrecio(l); return `
-    <tr><td>${escapeHtml(l.nombre)}${l.refType==='rb'?' <span class="mun-bk">RB</span>':''}</td><td>${l.cantUnidad||l.unidad||''}</td>
+    <tr><td>${escapeHtml(l.nombre)}${l.refType==='rb'?' <span class="mun-bk">RB</span>':''}</td><td>${ciLineUnitCell(l,idx,'pl')}</td>
     <td class="dist-num">${lineRendCell(l,idx,'pl')}</td>
     <td class="dist-num">${cMoney(ep)}</td>
     <td class="dist-num"><input type="text" inputmode="decimal" class="dist-input-sm dist-num" data-plqty="${idx}" value="${l.cantidad}" style="width:80px"></td>
@@ -8777,6 +8790,7 @@ function renderCosteoPlatos(){
   { const x=document.getElementById('plIva'); if(x) x.onchange=upd; }
   const cc=document.getElementById('plCancel'); if(cc) cc.onclick=()=>{ platoEditing=null; platoDraft=[]; renderCosteoPlatos(); };
   document.querySelectorAll('#costeoBody [data-plqty]').forEach(el=>el.onchange=()=>{ platoDraft[+el.dataset.plqty].cantidad=cNum(el.value); renderCosteoPlatosKeep(); });
+  document.querySelectorAll('#costeoBody [data-plunit]').forEach(el=>el.onchange=()=>{ platoDraft[+el.dataset.plunit].cantUnidad=el.value; renderCosteoPlatosKeep(); });
   document.querySelectorAll('#costeoBody [data-plren]').forEach(el=>el.onchange=()=>{ const v=cNum(el.value); platoDraft[+el.dataset.plren].rend=(v>0&&v<=100)?v/100:null; renderCosteoPlatosKeep(); });
   document.querySelectorAll('#costeoBody [data-plnm]').forEach(b=>b.onclick=()=>{ platoDraft[+b.dataset.plnm].rend=1; renderCosteoPlatosKeep(); });
   document.querySelectorAll('#costeoBody [data-plrm]').forEach(b=>b.onclick=()=>{ platoDraft.splice(+b.dataset.plrm,1); renderCosteoPlatosKeep(); });
