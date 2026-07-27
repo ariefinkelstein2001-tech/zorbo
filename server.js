@@ -4965,11 +4965,14 @@ async function erpLoginDiag(cfg){
       // body vacío, con la cookie de sesión). Dumpea el JSON para mapear los campos.
       rep.dataProbe = [];
       const dataEps = ['/Lote/GetActivos', '/Lote/GetAll', '/Receta/GetActivos', '/Receta/GetAll', '/Receta/GetActivas', '/Batch/GetActivos', '/Recipe/GetAll',
-        // Stock / inventario (candidatos): la que devuelva JSON es la del stock.
-        '/Insumo/GetAll', '/Insumo/GetActivos', '/Insumos/GetAll', '/Inventario/GetAll', '/Inventario/GetActivos', '/Bodega/GetAll', '/Bodega/GetActivos', '/Stock/GetAll', '/Stock/GetActivos', '/MateriaPrima/GetAll', '/MateriasPrimas/GetAll', '/Producto/GetAll', '/ProductoTerminado/GetAll', '/Existencia/GetAll', '/Existencias/GetAll', '/Almacen/GetAll'];
+        // Stock confirmado por captura (página /Producto/Stock): barriles + latas.
+        '/Producto/GetInsumosEmbarrilado', '/Producto/GetInsumosEnvasado', '/Producto/GetAllDepositos',
+        // Otros candidatos de stock/inventario.
+        '/Insumo/GetAll', '/Insumo/GetActivos', '/Inventario/GetAll', '/Bodega/GetAll', '/Stock/GetAll', '/Producto/GetAll'];
       await Promise.all(dataEps.map(async (ep) => {
         try {
-          const r = await erpFetch(base + ep, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Referer': base + '/Lote', 'Origin': base }, body: '' }, login.jar);
+          const ctrl = ep.split('/')[1] || 'Lote'; // Referer plausible según el controlador
+          const r = await erpFetch(base + ep, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Referer': base + '/' + ctrl, 'Origin': base }, body: '' }, login.jar);
           const ct = r.headers.get('content-type') || ''; let t = ''; try { t = await r.text(); } catch {}
           const isJson = /json/i.test(ct) || /^\s*[[{]/.test(t);
           rep.dataProbe.push({ ep, status: r.status, isJson, len: t.length, snippet: t.replace(/\s+/g, ' ').slice(0, 900) });
