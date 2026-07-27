@@ -11621,7 +11621,7 @@ function prodRenderInventarios(){
   const gcBox=`<div class="cg-form"><div class="cg-form-title" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
       <span>📦 Stock desde Gestión Cervecera — barriles, latas y depósitos</span>
       <button class="adm-btn adm-btn-gold" id="invGcSync" type="button" style="font-size:.78rem">🔄 Sincronizar</button></div>
-    <div id="invGcStock"><div class="cal-form-s">Apretá <b>Sincronizar</b> para traer el stock (embarrilado, envasado y depósitos) desde Gestión Cervecera.</div></div>
+    <div id="invGcStock"><div class="adm-loading">Cargando stock desde Gestión Cervecera…</div></div>
   </div>`;
   const barrilesBox=`<div class="cg-form"><div class="cg-form-title">🛢 Barriles (conteo manual)</div>
     <div class="cg-form-grid">
@@ -11663,9 +11663,13 @@ function invRenderGcStock(d){
     + `<div class="prod-sec-h" style="margin-top:.6rem">🏬 Depósitos <span>${(d.depositos||[]).length}</span></div><div class="mun-wrap"><table class="mun-table"><thead><tr><th>Depósito</th><th>Tipo</th><th>Dirección</th></tr></thead><tbody>${dep||'<tr><td colspan="3" style="text-align:center;color:#999;padding:.6rem">Sin depósitos</td></tr>'}</tbody></table></div>`
     + `<div class="cal-form-s" style="margin-top:.4rem">Actualizado ${d.generadoEn?prodDT(d.generadoEn):'—'} · desde Gestión Cervecera. El stock en 0 es el valor real que hay hoy en el ERP.</div>`;
 }
-async function invLoadGcStock(){
-  const box=document.getElementById('invGcStock'); if(box) box.innerHTML='<div class="adm-loading">Entrando a Gestión Cervecera y trayendo el stock…</div>';
-  try{ const r=await fetch('/admin/produccion/erp/stock'); const d=await prodSafeJson(r); if(!r.ok&&!d) throw new Error('Error'); invRenderGcStock(d); }
+let invGcStockData=null, invGcStockAt=0;
+async function invLoadGcStock(force){
+  const box=document.getElementById('invGcStock'); if(!box) return;
+  const fresh = invGcStockData && (Date.now()-invGcStockAt < 10*60*1000);
+  if(!force && fresh){ invRenderGcStock(invGcStockData); return; }
+  box.innerHTML='<div class="adm-loading">Entrando a Gestión Cervecera y trayendo el stock…</div>';
+  try{ const r=await fetch('/admin/produccion/erp/stock'); const d=await prodSafeJson(r); if(!r.ok&&!d) throw new Error('Error'); invGcStockData=d; invGcStockAt=Date.now(); invRenderGcStock(d); }
   catch(e){ if(box) box.innerHTML='<div class="cg-err show">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
 }
 // ── Limpiezas ──
@@ -11808,7 +11812,8 @@ function prodWire(){
     catch(e){ if(err) err.textContent='⚠ '+String(e.message||e); }
   };
   document.querySelectorAll('[data-inv-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar el ítem?')) prodDelete('inventario/insumo',b.dataset.invDel); });
-  if(g('invGcSync')) g('invGcSync').onclick=invLoadGcStock;
+  if(g('invGcSync')) g('invGcSync').onclick=()=>invLoadGcStock(true);
+  if(g('invGcStock')) invLoadGcStock(); // sync automática al abrir Inventario (usa cache si es reciente)
   // limpiezas
   if(g('lmAdd')) g('lmAdd').onclick=async()=>{ await prodPost('limpieza',{tipo:g('lmTipo').value,centroTrabajo:g('lmCentro').value,ref:g('lmRef').value,inicio:prodLocal(g('lmIni').value),fin:prodLocal(g('lmFin').value)}); };
   document.querySelectorAll('[data-limp-del]').forEach(b=>b.onclick=()=>prodDelete('limpieza',b.dataset.limpDel));
