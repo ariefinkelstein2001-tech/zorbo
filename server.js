@@ -10503,24 +10503,27 @@ const ADMIN_AREAS = {
   personas:    { label: 'Personas', desc: 'Nómina de trabajadores, costo empresa por mes y boletas de honorarios.' },
   herramientas:{ label: 'Herramientas', desc: 'Forecast (EERR proyectado, presupuestos, simulación anual) y cuentas del equipo.' },
 };
-// Snapshot compacto de datos reales del área actual, para que el asistente responda
-// con cifras de verdad. Best-effort: si algo falla, se omite (nunca inventa).
-async function asistenteContexto(area){
+// Base de conocimiento global de K-BROS (el asistente conoce TODO el sistema, no por
+// secciones). Se arma con las 8 áreas + el negocio + las integraciones.
+const ASST_KBROS_KNOWLEDGE = [
+  'Sos el asistente de K-BROS, el panel interno de administración de Kairos — una empresa chilena de bebidas artesanales. Marcas: Kairos Brewing (cervezas), Firulais (cheladas craft), Banny (destilados / RTD). Conocés TODO el sistema K-BROS y ayudás al equipo con lo que necesite, de cualquier área, sin limitarte a una sección.',
+  'K-BROS (admin en k-bros.cl) tiene 8 áreas:\n' + Object.entries(ADMIN_AREAS).map(([id, a]) => `• ${a.label}: ${a.desc}`).join('\n'),
+  'Integraciones y datos: Shopify (ventas online + catálogo + clientes; el ingreso por venta se arma automático de Shopify por 4 canales: HORECA, Venta Online, Retail/Walmart, Hospitality/Garden-Badass). Pyxis / BiPyxis (ERP gastronómico de Grupo Mil Sabores: data de compras y ventas de los locales HORECA — sirve para comparar Kairos vs la competencia y ver a qué precio compran bebidas/licores). Gestión Cervecera (ERP de producción cervecera: recetas y lotes). Marketplace público: zorbo.cl (con su propio bot Zorbot).',
+  'Impuestos Chile relevantes: IVA 19%; ILA (impuesto a bebidas alcohólicas) 20,5% en cervezas y vinos, 31% en destilados. El precio de referencia de un producto = precio sin impuestos × (1 + IVA + ILA).',
+].join('\n\n');
+// Snapshot compacto de datos reales del negocio (todas las áreas con data fácil), para
+// que el asistente responda con cifras de verdad. Best-effort: si algo falla, se omite.
+async function asistenteContexto(){
   const fmt = n => '$' + Math.round(Number(n) || 0).toLocaleString('es-CL');
   const lineas = [];
   try {
-    if (area === 'finanzas') {
-      const m = finCurMonth();
-      const p = await pnlCompute(m, null).catch(() => null);
-      if (p) lineas.push(`Estado de Resultado ${estadoMonthLabel(m)}: ingresos ${fmt(p.ingresos.total)}, margen bruto ${p.ratios.margenBruto}%, EBITDA ${fmt(p.ebitda)} (${p.ratios.ebitda}%), gasto personal ${p.ratios.gastoPersonal}%.` + (p.shopifyLimitado ? ' [Ojo: Shopify solo entrega los últimos ~60 días; meses viejos pueden salir en $0.]' : ''));
-    } else if (area === 'comercial') {
-      const cred = pyxisCredsSafe();
-      if (cred.emailSet && cred.passwordSet) {
-        const c = await pyxisCervezasResumen('2', {}).catch(() => null);
-        if (c) lineas.push(`Ventas HORECA cervezas (${(c.meses || []).join(', ')}): total ${fmt(c.totales.cervezas)}, Kairos ${fmt(c.totales.kairos)} (${c.totales.shareKairos}% del total), competencia ${fmt(c.totales.otras)}.`);
-      }
-    }
-  } catch (e) { /* snapshot best-effort */ }
+    const m = finCurMonth(); const p = await pnlCompute(m, null).catch(() => null);
+    if (p) lineas.push(`FINANZAS · Estado de Resultado ${estadoMonthLabel(m)}: ingresos ${fmt(p.ingresos.total)}, margen bruto ${p.ratios.margenBruto}%, EBITDA ${fmt(p.ebitda)} (${p.ratios.ebitda}%), gasto de personal ${p.ratios.gastoPersonal}%.` + (p.shopifyLimitado ? ' [Shopify solo entrega los últimos ~60 días; meses viejos salen en $0.]' : ''));
+  } catch (e) { /* best-effort */ }
+  try {
+    const cred = pyxisCredsSafe();
+    if (cred.emailSet && cred.passwordSet) { const c = await pyxisCervezasResumen('2', {}).catch(() => null); if (c) lineas.push(`COMERCIAL · Ventas HORECA cervezas (${(c.meses || []).join(', ')}): total ${fmt(c.totales.cervezas)}, Kairos ${fmt(c.totales.kairos)} (${c.totales.shareKairos}% del total), competencia ${fmt(c.totales.otras)}.`); }
+  } catch (e) { /* best-effort */ }
   return lineas.join('\n');
 }
 // Almacenamiento: chats persistentes por usuario (sandbox privado) + solicitudes.
@@ -10537,28 +10540,21 @@ app.post('/admin/asistente', requireAdmin, async (req, res) => {
   const b = req.body || {};
   const message = String(b.message || '').slice(0, 8000).trim();
   if (!message) return res.status(400).json({ error: 'Mensaje vacío.' });
-  const mode = b.mode === 'code' ? 'code' : 'normal';
   const seccion = String(b.seccion || '').slice(0, 60);
   const sess = adminSessionFor(req); const nombre = (sess && (sess.nombre || sess.apodo || sess.username)) || '';
   const uk = asstUserKey(req);
   const all = asstChatsLoad(); const mine = all[uk] || (all[uk] = []);
   let chat = b.chatId ? mine.find(c => c.id === b.chatId) : null;
-  const area = (chat && ADMIN_AREAS[chat.area]) ? chat.area : (ADMIN_AREAS[b.area] ? b.area : null);
-  if (!chat) { chat = { id: asstNewId('chat'), area, mode, titulo: message.slice(0, 48), messages: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; mine.unshift(chat); }
-  chat.mode = mode; if (area) chat.area = area;
-  const a = chat.area ? ADMIN_AREAS[chat.area] : null;
-  const ctx = chat.area ? await asistenteContexto(chat.area) : '';
-  const sysMode = mode === 'code'
-    ? 'MODO CODE: ayudás a diseñar y planificar cambios en la sección/área (código, vistas, cálculos). Explicá con precisión qué cambiarías y mostrá cómo quedaría (podés escribir el código propuesto en bloques). IMPORTANTE: NO aplicás nada al sistema — este chat es un sandbox privado. Cuando el cambio esté listo para llevarlo al "general", decile al usuario que apriete "Solicitar al general", y al final de tu mensaje agregá una línea que empiece con "SOLICITUD:" con un resumen de 1 frase de lo que pediría.'
-    : 'MODO NORMAL: asesorás y generás entregables (resúmenes, textos, tablas, borradores). No editás el sistema.';
+  if (!chat) { chat = { id: asstNewId('chat'), area: null, mode: 'normal', titulo: message.slice(0, 48), messages: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }; mine.unshift(chat); }
+  const ctx = await asistenteContexto();
+  const ubic = seccion ? `Contexto: ahora mismo el usuario está viendo la sección "${seccion}" del panel (pero podés ayudarlo con cualquier tema de K-BROS, no solo eso).` : '';
   const sys = [
-    'Sos el asistente interno de K-BROS, el panel de administración de Kairos (cervecería artesanal chilena; marcas Kairos Brewing, Firulais, Banny). Cada jefe de área tiene su propio chat privado (sandbox): lo que se conversa acá NO toca el "general" (la app compartida con todo lo ya creado). Para pasar algo al general, el usuario aprieta "Solicitar al general" y queda pendiente de tu aprobación.',
-    'Escribí en español chileno neutro (tuteo), claro y directo. Podés usar markdown (títulos, listas, tablas, bloques de código). Si te piden un archivo/documento, entregá el contenido completo listo para copiar/descargar.',
-    a ? `Área: "${a.label}" — ${a.desc}` + (seccion ? ` (sección actual: ${seccion}).` : '.') : 'Vista general del panel.',
-    ctx ? ('Datos reales del área ahora mismo (usá SOLO estos, no inventes cifras):\n' + ctx) : '',
+    ASST_KBROS_KNOWLEDGE,
+    'Escribí en español chileno neutro (tuteo), claro y directo. Podés usar markdown (títulos, listas, tablas, bloques de código). Si te piden un archivo/documento, entregá el contenido completo listo para copiar/descargar. Respondés preguntas, analizás, y generás entregables (resúmenes, textos, tablas, borradores) de cualquier área.',
+    ubic,
+    ctx ? ('Datos reales del negocio ahora mismo (usá SOLO estos, no inventes cifras):\n' + ctx) : '',
     nombre ? `Le hablás a ${nombre}.` : '',
-    'REGLA: NO inventes números ni datos que no te hayan pasado. Si falta un dato, decílo.',
-    sysMode,
+    'REGLA: NO inventes números ni datos que no te hayan pasado o no estén en el contexto. Si falta un dato, decílo y explicá cómo verlo en el panel. No editás el sistema: asesorás y generás contenido.',
   ].filter(Boolean).join('\n\n');
   const historia = chat.messages.slice(-10).map(m => ({ role: m.role, content: String(m.content).slice(0, 6000) }));
   // Adjuntos (imágenes / PDF / texto). Van solo en este turno (no se guardan en el chat).
@@ -10574,7 +10570,7 @@ app.post('/admin/asistente', requireAdmin, async (req, res) => {
   const apiMessages = [...historia, { role: 'user', content: userContent.length > 1 ? userContent : message }];
   const attNota = atts.length ? (' (adjuntó ' + atts.length + ' archivo' + (atts.length > 1 ? 's' : '') + ')') : '';
   res.setHeader('Content-Type', 'text/event-stream'); res.setHeader('Cache-Control', 'no-cache'); res.setHeader('Connection', 'keep-alive');
-  res.write(`data: ${JSON.stringify({ start: true, chatId: chat.id, area: chat.area, mode })}\n\n`);
+  res.write(`data: ${JSON.stringify({ start: true, chatId: chat.id })}\n\n`);
   let full = '';
   try {
     const stream = client.messages.stream({ model: 'claude-sonnet-4-6', max_tokens: 2400, system: sys, messages: apiMessages });

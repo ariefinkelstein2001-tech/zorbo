@@ -3385,8 +3385,7 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
         <button type="button" class="asst-mini" id="asstDel" title="Borrar este chat">🗑</button>
       </div>
       <div class="asst-hr">
-        <div class="asst-modes" id="asstModes"><button type="button" class="asst-mode on" data-mode="normal">Normal</button><button type="button" class="asst-mode" data-mode="code">Code</button></div>
-        <button type="button" class="asst-mini" id="asstSolBtn" title="Solicitudes al general">📥<span id="asstSolN"></span></button>
+        <button type="button" class="asst-mini" id="asstSolBtn" title="Solicitudes / pedidos de cambio">📥<span id="asstSolN"></span></button>
         <button type="button" class="asst-x" id="asstMin" title="Minimizar">▾</button>
       </div>
     </div>
@@ -10307,10 +10306,10 @@ async function horecaReclasificar(nombre,valor){
 document.getElementById('horecaRefresh').onclick=()=>loadHoreca(true);
 
 // ─── Asistente por área: workspace de chats privados (sandbox) ──────────────
-let asstBusy=false, asstChatId=null, asstMode='normal', asstChats=[], asstLast='', asstAtts=[];
+let asstBusy=false, asstChatId=null, asstChats=[], asstLast='', asstAtts=[];
 const ASST_LABELS={marketing:'Marketing',comercial:'Comercial',distribucion:'Distribución',operacion:'Operación',produccion:'Producción',finanzas:'Finanzas',personas:'Personas',herramientas:'Herramientas'};
 function asstAreaInfo(){ const a=(typeof activeCategory!=='undefined'&&activeCategory)?activeCategory:null; return {area:a,label:a?ASST_LABELS[a]:null}; }
-function asstRefreshUi(){ const {label}=asstAreaInfo(); const tag=document.getElementById('asstAreaTag'); if(tag) tag.textContent='🤖 '+(label||'Asistente')+(asstMode==='code'?' · Code':''); const inp=document.getElementById('asstIn'); if(inp) inp.placeholder=asstMode==='code'?('Code'+(label?(' · '+label):'')+': describí el cambio…'):(label?('Preguntale al asistente de '+label+'…'):'Preguntale al asistente…'); document.querySelectorAll('#asstModes .asst-mode').forEach(b=>b.classList.toggle('on',b.dataset.mode===asstMode)); }
+function asstRefreshUi(){ const tag=document.getElementById('asstAreaTag'); if(tag) tag.textContent='🤖 Asistente K-BROS'; const inp=document.getElementById('asstIn'); if(inp) inp.placeholder='Preguntale lo que sea de K-BROS…'; }
 function asstUpdateArea(){ asstRefreshUi(); }
 function asstEsc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
 function asstInline(s){ s=asstEsc(s); s=s.replace(/`([^`]+)`/g,'<code>$1</code>'); s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>'); s=s.replace(/(^|[^*])\*([^*]+)\*/g,'$1<em>$2</em>'); return s; }
@@ -10333,10 +10332,10 @@ function asstScroll(force){ if(force||asstNearBottom()) requestAnimationFrame(()
 function asstAddMsg(role,html){ const box=document.getElementById('asstMsgs'); const d=document.createElement('div'); d.className='asst-m '+(role==='user'?'u':'a'); d.innerHTML=html; box.appendChild(d); return d; }
 function asstAddAssistant(text){ const d=asstAddMsg('assistant',asstMd(text)); const s=document.createElement('span'); s.className='asst-dl'; s.textContent='⬇ descargar'; s.onclick=()=>asstDownload(text); d.appendChild(s); return d; }
 function asstDownload(md){ const b=new Blob([md],{type:'text/markdown'}); const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download='asistente-'+Date.now()+'.md'; a.click(); setTimeout(()=>URL.revokeObjectURL(u),2000); }
-function asstRenderChatSel(){ const sel=document.getElementById('asstChatSel'); if(!sel) return; sel.innerHTML='<option value="">— chat sin guardar —</option>'+asstChats.map(c=>`<option value="${c.id}" ${c.id===asstChatId?'selected':''}>${asstEsc((c.titulo||'Chat').slice(0,38))}${c.mode==='code'?' · code':''}</option>`).join(''); }
+function asstRenderChatSel(){ const sel=document.getElementById('asstChatSel'); if(!sel) return; sel.innerHTML='<option value="">— chat sin guardar —</option>'+asstChats.map(c=>`<option value="${c.id}" ${c.id===asstChatId?'selected':''}>${asstEsc((c.titulo||'Chat').slice(0,38))}</option>`).join(''); }
 async function asstLoadChats(){ try{ const r=await fetch('/admin/asistente/chats'); const d=await r.json(); asstChats=d.chats||[]; asstRenderChatSel(); }catch{} }
-async function asstOpenChat(id){ asstChatId=id||null; document.getElementById('asstMsgs').innerHTML=''; asstRenderChatSel(); document.getElementById('asstPanel').style.display=''; if(!id) return; try{ const r=await fetch('/admin/asistente/chats/'+id); const c=await r.json(); if(c&&c.messages){ asstMode=c.mode||'normal'; asstRefreshUi(); for(const m of c.messages){ if(m.role==='user') asstAddMsg('user',asstEsc(m.content)); else asstAddAssistant(m.content); } if(c.messages.length){ const la=[...c.messages].reverse().find(m=>m.role==='assistant'); asstLast=la?la.content:''; } asstScroll(true); } }catch{} }
-async function asstNewChat(){ const {area}=asstAreaInfo(); try{ const r=await fetch('/admin/asistente/chats',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({area,mode:asstMode})}); const c=await r.json(); await asstLoadChats(); asstChatId=c.id; asstLast=''; document.getElementById('asstMsgs').innerHTML=''; asstRenderChatSel(); document.getElementById('asstPanel').style.display=''; document.getElementById('asstIn').focus(); }catch{} }
+async function asstOpenChat(id){ asstChatId=id||null; document.getElementById('asstMsgs').innerHTML=''; asstRenderChatSel(); document.getElementById('asstPanel').style.display=''; if(!id) return; try{ const r=await fetch('/admin/asistente/chats/'+id); const c=await r.json(); if(c&&c.messages){ asstRefreshUi(); for(const m of c.messages){ if(m.role==='user') asstAddMsg('user',asstEsc(m.content)); else asstAddAssistant(m.content); } if(c.messages.length){ const la=[...c.messages].reverse().find(m=>m.role==='assistant'); asstLast=la?la.content:''; } asstScroll(true); } }catch{} }
+async function asstNewChat(){ const {area}=asstAreaInfo(); try{ const r=await fetch('/admin/asistente/chats',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({area})}); const c=await r.json(); await asstLoadChats(); asstChatId=c.id; asstLast=''; document.getElementById('asstMsgs').innerHTML=''; asstRenderChatSel(); document.getElementById('asstPanel').style.display=''; document.getElementById('asstIn').focus(); }catch{} }
 async function asstDelChat(){ if(!asstChatId){ document.getElementById('asstMsgs').innerHTML=''; return; } if(!confirm('¿Borrar este chat?')) return; try{ await fetch('/admin/asistente/chats/'+asstChatId,{method:'DELETE'}); asstChatId=null; asstLast=''; document.getElementById('asstMsgs').innerHTML=''; await asstLoadChats(); }catch{} }
 function asstRenderChips(){ const box=document.getElementById('asstChips'); if(!box) return; if(!asstAtts.length){ box.style.display='none'; box.innerHTML=''; return; } box.style.display='flex'; box.innerHTML=asstAtts.map((a,i)=>`<span class="asst-chip">${a.media_type&&a.media_type.startsWith('image')?'🖼':(a.media_type==='application/pdf'?'📄':'📎')} ${asstEsc((a.name||'archivo').slice(0,22))}<button type="button" data-att-x="${i}" title="Quitar">✕</button></span>`).join(''); box.querySelectorAll('[data-att-x]').forEach(b=>b.onclick=()=>{ asstAtts.splice(+b.dataset.attX,1); asstRenderChips(); }); }
 function asstReadFile(file){ return new Promise((resolve)=>{ const fr=new FileReader(); const isImg=/^image\//.test(file.type), isPdf=file.type==='application/pdf'; if(isImg||isPdf){ fr.onload=()=>{ const s=String(fr.result||''); const data=s.slice(s.indexOf(',')+1); resolve({name:file.name,media_type:file.type,data}); }; fr.readAsDataURL(file); } else { fr.onload=()=>resolve({name:file.name,media_type:file.type||'text/plain',text:String(fr.result||'')}); fr.readAsText(file); } }); }
@@ -10348,7 +10347,7 @@ async function asstSend(){
   document.getElementById('asstPanel').style.display=''; asstAddMsg('user',asstEsc(text)+(atts.length?('<div style="font-size:.7rem;opacity:.8;margin-top:.2rem">📎 '+atts.length+' archivo'+(atts.length>1?'s':'')+'</div>'):''));
   const {area}=asstAreaInfo(); const bubble=asstAddMsg('assistant','<span class="asst-typing">escribiendo…</span>'); let full=''; asstScroll(true);
   try{
-    const r=await fetch('/admin/asistente',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,chatId:asstChatId,area,mode:asstMode,seccion:(typeof activeSeccion!=='undefined'?activeSeccion:''),attachments:atts})});
+    const r=await fetch('/admin/asistente',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg,chatId:asstChatId,area,seccion:(typeof activeSeccion!=='undefined'?activeSeccion:''),attachments:atts})});
     if(!r.ok||!r.body){ const e=await r.json().catch(()=>({})); throw new Error(e.error||('HTTP '+r.status)); }
     const rd=r.body.getReader(), dec=new TextDecoder(); let buf='';
     while(true){ const {value,done}=await rd.read(); if(done) break; buf+=dec.decode(value,{stream:true}); const parts=buf.split('\n\n'); buf=parts.pop();
@@ -10406,7 +10405,6 @@ async function asstLoadSolCount(){ try{ const r=await fetch('/admin/asistente/so
   if(g('asstChatSel')) g('asstChatSel').onchange=()=>asstOpenChat(g('asstChatSel').value);
   if(g('asstSolicitar')) g('asstSolicitar').onclick=asstSolicitar;
   if(g('asstSolBtn')) g('asstSolBtn').onclick=asstVerSolicitudes;
-  document.querySelectorAll('#asstModes .asst-mode').forEach(b=>b.onclick=()=>{ asstMode=b.dataset.mode; asstRefreshUi(); });
   const modal=g('asstModal'); if(modal) modal.onclick=e=>{ if(e.target===modal) asstModalClose(); };
   if(g('asstFile')) g('asstFile').onchange=e=>{ asstAddFiles(Array.from(e.target.files||[])); e.target.value=''; };
   asstRefreshUi(); asstLoadChats(); asstLoadSolCount();
