@@ -1722,6 +1722,7 @@ body.drawer-open{overflow:hidden}
 .ci-money:before{content:'$';position:absolute;left:.55rem;top:50%;transform:translateY(-50%);color:var(--muted,#666);font-size:.8rem;pointer-events:none}
 .ci-money input{padding-left:1.3rem!important}
 .dist-field .ci-money{display:block}
+.ci-kilohint{font-size:.66rem;font-weight:400;color:var(--muted,#888);white-space:nowrap}
 .dist-pill{display:inline-block;font-size:.64rem;font-weight:800;padding:.2rem .55rem;border-radius:999px;letter-spacing:.04em}
 .dist-pill.pend{background:#fff3d6;color:#a05f00}
 .dist-pill.recib{background:#e3f6ea;color:#1f7a44}
@@ -8285,7 +8286,14 @@ const cMoney = (n) => '$' + Math.round(Number(n)||0).toLocaleString('es-CL');
 // Acepta coma como separador decimal (ej: "9,5")
 const cNum = (v) => { const n = parseFloat(String(v==null?'':v).trim().replace(',', '.')); return Number.isFinite(n) ? n : 0; };
 const cRest = (url) => url + (url.includes('?') ? '&' : '?') + 'rest=' + costeoRest + '&svc=' + costeoSvc;
-const C_UNITS = (cur) => ['litro','kilogramo','unidad'].map(u=>`<option value="${u}" ${cur===u?'selected':''}>${u}</option>`).join('');
+const C_UNITS = (cur) => ['litro','mililitro','kilogramo','gramo','unidad'].map(u=>`<option value="${u}" ${cur===u?'selected':''}>${u}</option>`).join('');
+// Nota de conversión automática: si el insumo se carga en gramo/mililitro, muestra el
+// equivalente por kilo/litro (solo informativo, no cambia el precio real guardado).
+function ciKiloHintText(unidad, real){
+  if(unidad==='gramo') return '≈ '+cMoney(Math.round((Number(real)||0)*1000))+'/kg';
+  if(unidad==='mililitro') return '≈ '+cMoney(Math.round((Number(real)||0)*1000))+'/L';
+  return '';
+}
 // Opciones de ILA (impuesto adicional a bebidas alcohólicas) para insumos de barra.
 const C_ILA_OPTS = [0, 10, 18, 20.5, 31.5];
 const C_ILA = (cur) => { const c=Number(cur)||0; const opts=C_ILA_OPTS.includes(c)?C_ILA_OPTS:[c,...C_ILA_OPTS]; return opts.map(v=>`<option value="${v}" ${c===v?'selected':''}>${String(v).replace('.',',')}%</option>`).join(''); };
@@ -8414,7 +8422,7 @@ function renderCosteoInsumos(){
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:60px" data-f="formato" value="${i.formato||''}" placeholder="1"></td>
       <td><select class="ci-inp" data-f="unidad">${C_UNITS(i.unidad)}</select></td>
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:70px" data-f="rendimiento" value="${i.rendimiento||''}" placeholder="—"></td>
-      <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b></td>
+      <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b><div class="ci-kilohint" data-kilohint>${ciKiloHintText(i.unidad, i.precioReal)}</div></td>
       <td><button class="pv-del" data-idel="${i.id}">✕</button> <span class="dist-status" data-ist></span></td>
     </tr>`).join('');
   const cols = barra ? 8 : 7;
@@ -8514,6 +8522,7 @@ async function saveInsumo(id){
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
     tr.querySelector('[data-real]').textContent=cMoney(real);
     if(barra){ const ni=tr.querySelector('[data-netoila]'); if(ni) ni.textContent=cMoney(netoIla); }
+    else { const kh=tr.querySelector('[data-kilohint]'); if(kh) kh.textContent=ciKiloHintText(g('unidad'), real); }
     if(ins){ins.precioNeto=pn;ins.descripcion=g('descripcion');ins.precioReal=real; if(barra){ins.volumen=cNum(g('volumen'))||null;ins.ila=ila;ins.despacho=cNum(g('despacho'))||0;} else {const rd=cNum(g('rendimiento'));ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');const fmt=cNum(g('formato'));ins.formato=(fmt>0)?fmt:null;}}
     st.className='dist-status ok'; st.textContent='✓'; setTimeout(()=>{st.textContent='';},1400);
   }catch(e){ st.className='dist-status err'; st.textContent=e.message; }

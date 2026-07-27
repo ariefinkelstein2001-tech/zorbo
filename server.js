@@ -8771,8 +8771,16 @@ Los montos van en pesos chilenos enteros (sin puntos ni símbolos). "accion" deb
 // en cascada al vuelo (los precios derivados no se guardan, se resuelven en GET).
 const COSTEO_FILE = join(PROMPTS_EFFECTIVE_DIR, 'costeo.json');
 const costeoStr = (v, max = 200) => String(v == null ? '' : v).trim().slice(0, max);
-const COSTEO_UNITS = ['litro', 'kilogramo', 'unidad'];
-function costeoUnit(u){ u = String(u || '').toLowerCase(); if (COSTEO_UNITS.includes(u)) return u; return /lit/.test(u) ? 'litro' : /kil/.test(u) ? 'kilogramo' : 'unidad'; }
+const COSTEO_UNITS = ['litro', 'mililitro', 'kilogramo', 'gramo', 'unidad'];
+function costeoUnit(u){
+  u = String(u || '').toLowerCase().trim();
+  if (COSTEO_UNITS.includes(u)) return u;
+  if (/mililitro|^ml$/.test(u)) return 'mililitro';
+  if (/litro/.test(u)) return 'litro';
+  if (/kilogramo|^kgs?$/.test(u)) return 'kilogramo';
+  if (/gramo|^grs?$/.test(u)) return 'gramo';
+  return 'unidad';
+}
 const costeoNorm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
 // Normalización "suelta" para cruzar nombres de la carta contra los platos
 // costeados: además de acentos/mayúsculas, ignora guiones y puntuación (así
