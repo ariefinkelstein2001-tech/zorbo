@@ -2806,17 +2806,21 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
       <div id="prodBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
-    <!-- Operación · OEE · Calidad · Inventario (mismo motor/datos que Producción, solo cambia qué pestañas se ven) -->
+    <!-- Operación · OEE / Calidad / Inventario: tres herramientas hermanas del
+         sidebar, mismo motor/datos que Producción (prodData). El subnav de acá
+         abajo (#opcalidadSubnav) deja saltar entre las tres sin volver al
+         sidebar; título/meta se actualizan solos según cuál esté activa. -->
     <div class="adm-panel" id="opcalidadView" style="display:none">
       <div class="adm-panel-head">
         <div>
-          <div class="adm-panel-title">Operación · OEE · Calidad · Inventario</div>
-          <div class="adm-panel-meta">indicadores de eficiencia · certificaciones y catas · stock</div>
+          <div class="adm-panel-title" id="opcalidadTitle">Operación · OEE</div>
+          <div class="adm-panel-meta" id="opcalidadMeta">disponibilidad · rendimiento · calidad · paretos de paradas y cocción</div>
         </div>
         <div class="adm-actions">
           <button class="adm-btn adm-btn-ghost" id="opcalidadReload" type="button">Recargar</button>
         </div>
       </div>
+      <div class="prod-tabs" id="opcalidadSubnav"></div>
       <div id="opcalidadBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
@@ -3402,7 +3406,14 @@ const BASE_SECCIONES = [
   { id:'rutas',     kind:'rutas',    label:'Rutas',           cat:'distribucion', desc:'mapa · día y horario de despacho' },
   { id:'mantenimiento', kind:'mantenimiento', label:'Gestión, trazabilidad y mantenimiento', cat:'distribucion', desc:'máquinas dispensadoras · barriles despachados · mantención y limpieza' },
   { id:'costeo',    kind:'costeo',   label:'Costeo',          cat:'operacion', desc:'insumos · recetas base · platos · precios de venta' },
-  { id:'opcalidad', kind:'opcalidad',label:'OEE · Calidad · Inventario', cat:'operacion', desc:'indicadores de eficiencia · certificaciones y catas · stock' },
+  // OEE · Calidad · Inventario: tres herramientas hermanas del área Operación
+  // (mismo nivel que Costeo, sin submenú anidado). Comparten motor/datos con
+  // Producción (mismo prodData, un solo GET /admin/produccion) y entre sí no
+  // dependen una de otra — cada id coincide con la clave interna de pestaña en
+  // PROD_TAB_DEFS para que el dispatcher solo tenga que hacer prodTab=sec.id.
+  { id:'oee',        kind:'opcalidad', label:'OEE',        cat:'operacion', desc:'disponibilidad · rendimiento · calidad · paretos de paradas y cocción' },
+  { id:'calidad',    kind:'opcalidad', label:'Calidad',    cat:'operacion', desc:'certificaciones y catas · retroalimentación · memorias' },
+  { id:'inventarios',kind:'opcalidad', label:'Inventario', cat:'operacion', desc:'barriles · insumos · valor total' },
   // Inicio del área Finanzas (plantilla reutilizable). nav:false → no es item del sidebar;
   // se abre al hacer clic en el grupo "FINANZAS" del panel lateral.
   { id:'finanzas-home', kind:'finhome', label:'Inicio Finanzas', cat:'finanzas', nav:false, desc:'resumen del área con IA + cuadros' },
@@ -3639,7 +3650,7 @@ function marcasRenderBody(marca){
     return;
   }
   if (marcasState.canal === 'redes') {
-    body.innerHTML = adminSinInfo('Redes Sociales · ' + marca.label, 'Todavía no hay nada cargado acá.', 'Cuando se defina qué se va a gestionar (publicaciones, calendario, métricas), este acceso se completa sin cambiar dónde se entra.');
+    body.innerHTML = adminSinInfo('Redes Sociales · ' + marca.label, 'Aún no hay información cargada.');
     return;
   }
   if (marcasState.tab === 'general' && marca.generalSub && !marcasState.sub) {
@@ -3855,12 +3866,13 @@ async function selectSeccion(id){
     marcasBoot();
   } else if (sec.kind === 'rutas') {
     showView('rutas');
-    document.getElementById('rutasBody').innerHTML = adminSinInfo('Rutas', 'Todavía no hay nada cargado acá.', 'Mapa, día y horario de despacho — se completa sin cambiar dónde se entra.');
+    document.getElementById('rutasBody').innerHTML = adminSinInfo('Rutas', 'Aún no hay información cargada.');
   } else if (sec.kind === 'mantenimiento') {
     showView('mantenimiento');
     document.getElementById('mantenimientoBody').innerHTML = adminSinInfo('Gestión, trazabilidad y mantenimiento', 'Todavía no hay nada cargado acá.', 'Máquinas dispensadoras, barriles despachados sin regresar, registro de mantención y limpieza, estado de barriles.');
   } else if (sec.kind === 'opcalidad') {
     showView('opcalidad');
+    prodTab = sec.id; // 'oee' | 'calidad' | 'inventarios' — cuál de las tres hermanas se abre
     await loadProduccion('operacion');
   } else {
     showView('md');
@@ -8299,10 +8311,10 @@ function costeoAreaGo(area){
   document.getElementById('costeoProductora').style.display = area === 'productora' ? '' : 'none';
   document.getElementById('costeoComercializacion').style.display = area === 'comercializacion' ? '' : 'none';
   if (area === 'productora' && !document.getElementById('costeoProductora').innerHTML) {
-    document.getElementById('costeoProductora').innerHTML = adminSinInfo('Productora', 'Todavía no hay nada cargado acá.', 'Costeo del área productora — se completa sin cambiar dónde se entra.');
+    document.getElementById('costeoProductora').innerHTML = adminSinInfo('Productora', 'Aún no hay información cargada.');
   }
   if (area === 'comercializacion' && !document.getElementById('costeoComercializacion').innerHTML) {
-    document.getElementById('costeoComercializacion').innerHTML = adminSinInfo('Comercialización y Distribución', 'Todavía no hay nada cargado acá.', 'Costeo del área de comercialización y distribución — se completa sin cambiar dónde se entra.');
+    document.getElementById('costeoComercializacion').innerHTML = adminSinInfo('Comercialización y Distribución', 'Aún no hay información cargada.');
   }
 }
 
@@ -10876,7 +10888,20 @@ function renderProduccion(){
   if(!tabs.some(t=>t[0]===prodTab)) prodTab=tabs[0][0];
   const tabBar=`<div class="prod-tabs">${tabs.map(([k,l])=>`<button class="prod-tab ${k===prodTab?'on':''}" data-ptab="${k}">${l}</button>`).join('')}</div>`;
   const R={tanques:prodRenderTanques,coccion:prodRenderCoccion,recetas:prodRenderRecetas,envasado:prodRenderEnvasado,oee:prodRenderOee,calidad:prodRenderCalidad,inventarios:prodRenderInventarios,limpiezas:prodRenderLimpiezas,paradas:prodRenderParadas,config:prodRenderConfig};
-  body.innerHTML=tabBar+'<div class="prod-content">'+(R[prodTab]||(()=>''))()+'</div>';
+  if(prodScope==='operacion'){
+    // OEE/Calidad/Inventario son entradas propias del sidebar: el subnav vive en
+    // su propio contenedor persistente (#opcalidadSubnav), afuera de lo que se
+    // recarga con cada pestaña, y el título/meta del panel reflejan cuál está
+    // activa (reusan label/desc de SECCIONES, misma fuente que el sidebar).
+    const nav=document.getElementById('opcalidadSubnav'); if(nav) nav.innerHTML=tabBar;
+    const sec=SECCIONES.find(s=>s.id===prodTab);
+    const titleEl=document.getElementById('opcalidadTitle'), metaEl=document.getElementById('opcalidadMeta');
+    if(titleEl) titleEl.textContent='Operación · '+(sec?sec.label:prodTab);
+    if(metaEl) metaEl.textContent=sec?sec.desc:'';
+    body.innerHTML='<div class="prod-content">'+(R[prodTab]||(()=>''))()+'</div>';
+  } else {
+    body.innerHTML=tabBar+'<div class="prod-content">'+(R[prodTab]||(()=>''))()+'</div>';
+  }
   prodWire();
   if(prodTab==='oee') prodLoadOee();
   if(prodTab==='calidad') prodLoadCalidad();
@@ -11716,7 +11741,14 @@ function prodRenderConfig(){
 // ── Wiring ──
 function prodWire(){
   const g=id=>document.getElementById(id);
-  document.querySelectorAll('[data-ptab]').forEach(b=>b.onclick=()=>{ prodTab=b.dataset.ptab; if(prodTab!=='tanques')prodOpenLote=null; renderProduccion(); });
+  document.querySelectorAll('[data-ptab]').forEach(b=>b.onclick=()=>{
+    prodTab=b.dataset.ptab; if(prodTab!=='tanques')prodOpenLote=null;
+    // OEE/Calidad/Inventario son sidebar-items propios: saltar por el subnav
+    // también tiene que actualizar breadcrumb + resaltado del sidebar, si no
+    // quedan mintiendo la ubicación (ksSync lee activeSeccion, no prodTab).
+    if(prodScope==='operacion'){ activeSeccion=prodTab; if(typeof ksSync==='function') ksSync(); }
+    renderProduccion();
+  });
   document.querySelectorAll('.prod-tk-card[data-tank]').forEach(c=>c.onclick=(ev)=>{ if(ev.target.closest('input,button,label,a')) return; const t=(prodData.tanques||[]).find(x=>x.id===c.dataset.tank); if(t&&t.lote){ prodOpenLote=(prodOpenLote===t.lote.id)?null:t.lote.id; renderProduccion(); } });
   document.querySelectorAll('[data-limpiar-tank]').forEach(b=>b.onclick=async()=>{ await prodPost('tanque/'+encodeURIComponent(b.dataset.limpiarTank)+'/limpiar',{}); });
   // etapas
@@ -12021,7 +12053,7 @@ const KS_ICON = {
   general:'⚙️', kairos:'🍺', firulais:'🐶', banny:'🥃', mayorista:'🤝',
   productos:'🏷️', puntos:'📍', topclientes:'⭐',
   distribuidora:'🚚', rutas:'🗺️', mantenimiento:'🔧',
-  costeo:'🧾', opcalidad:'📊', estado:'💰', costos:'💸', gastos:'🧮', nomina:'👥', equipo:'🪪', pnl:'📈', forecast:'🔮',
+  costeo:'🧾', oee:'📊', calidad:'🏅', inventarios:'🗃', estado:'💰', costos:'💸', gastos:'🧮', nomina:'👥', equipo:'🪪', pnl:'📈', forecast:'🔮',
   produccion:'🏭'
 };
 
