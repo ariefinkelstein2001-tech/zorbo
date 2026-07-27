@@ -3095,6 +3095,54 @@ function estadoNormPeriodo(p){
 }
 function estadoLoad(){ try { if (!existsSync(ESTADO_FILE)) return { version: 1, periodos: {} }; const p = JSON.parse(readFileSync(ESTADO_FILE, 'utf-8')); return { version: 1, periodos: (p && p.periodos) || {} }; } catch (e) { console.warn('estado load:', e.message); return { version: 1, periodos: {} }; } }
 function estadoSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(ESTADO_FILE, JSON.stringify(d, null, 2)); }
+// ─────────────────────────────────────────────────────────────────────────────
+// Carga manual histórica de ingresos por Centro de Distribución (2025+).
+// Reemplaza HORECA/Retail/Hospitality de meses ya CERRADOS y auditados a mano,
+// por CD — nunca el global (cada CD tiene su propia entrada, sin mezclarse).
+// La Venta Online NUNCA se carga a mano acá: siempre queda en vivo desde
+// Shopify (ventas_web.cobrado en estadoResolve); "ventaOnlineRef" solo se
+// guarda como referencia de auditoría (el valor con el que se validó la resta
+// al momento de cargar), no se usa para calcular nada.
+// Aprobado por el usuario 2026-07-27: tabla HORECA+Online (Shopify, filtro de
+// código PEDIDOSWALMART) − Venta Online (ERP, card "② Venta Online") = HORECA
+// puro. Hospitalidad = Garden Vespucio + Garden Antofagasta + Badass Parque
+// Arauco (Vespucio = total − Badass − Antofagasta). Retail confirmado en 0.
+// ─────────────────────────────────────────────────────────────────────────────
+const ESTADO_HIST_CD_FILE = join(PROMPTS_EFFECTIVE_DIR, 'estado-historico-cd.json');
+const ESTADO_HIST_CD_2025_SEED = {
+  cd_kairos: {
+    '2025-01': { horeca: 40074343, ventaOnlineRef: 136524, retail: 0, hospitalidadTotal: 8716695, hospitalidadDetalle: { vespucio: 8716695, badass: 0, antofagasta: 0 } },
+    '2025-02': { horeca: 31779614, ventaOnlineRef: 271106, retail: 0, hospitalidadTotal: 8500146, hospitalidadDetalle: { vespucio: 8500146, badass: 0, antofagasta: 0 } },
+    '2025-03': { horeca: 31310733, ventaOnlineRef: 253008, retail: 0, hospitalidadTotal: 6305641, hospitalidadDetalle: { vespucio: 6305641, badass: 0, antofagasta: 0 } },
+    '2025-04': { horeca: 29660531, ventaOnlineRef: 348934, retail: 0, hospitalidadTotal: 5955759, hospitalidadDetalle: { vespucio: 5955759, badass: 0, antofagasta: 0 } },
+    '2025-05': { horeca: 32836749, ventaOnlineRef: 59662, retail: 0, hospitalidadTotal: 6651915, hospitalidadDetalle: { vespucio: 6651915, badass: 0, antofagasta: 0 } },
+    '2025-06': { horeca: 31337245, ventaOnlineRef: 218090, retail: 0, hospitalidadTotal: 13588056, hospitalidadDetalle: { vespucio: 12618243, badass: 969813, antofagasta: 0 } },
+    '2025-07': { horeca: 34769070, ventaOnlineRef: 653286, retail: 0, hospitalidadTotal: 18124084, hospitalidadDetalle: { vespucio: 13801899, badass: 4322185, antofagasta: 0 } },
+    '2025-08': { horeca: 36778921, ventaOnlineRef: 538387, retail: 0, hospitalidadTotal: 18112344, hospitalidadDetalle: { vespucio: 11713964, badass: 1402380, antofagasta: 4996000 } },
+    '2025-09': { horeca: 28935453, ventaOnlineRef: 860056, retail: 0, hospitalidadTotal: 16445188, hospitalidadDetalle: { vespucio: 5829496, badass: 1639992, antofagasta: 8975700 } },
+    '2025-10': { horeca: 36571746, ventaOnlineRef: 3276497, retail: 0, hospitalidadTotal: 20073412, hospitalidadDetalle: { vespucio: 7135330, badass: 2322102, antofagasta: 10615980 } },
+    '2025-11': { horeca: 30496906, ventaOnlineRef: 473963, retail: 0, hospitalidadTotal: 20128208, hospitalidadDetalle: { vespucio: 9951275, badass: 3061083, antofagasta: 7115850 } },
+    '2025-12': { horeca: 41157472, ventaOnlineRef: 2004704, retail: 0, hospitalidadTotal: 20493042, hospitalidadDetalle: { vespucio: 2440677, badass: 2097534, antofagasta: 15954831 } },
+  },
+};
+function estadoHistCdLoad(){
+  let data = { seedCargado: false, cd: {} };
+  try { if (existsSync(ESTADO_HIST_CD_FILE)) { const p = JSON.parse(readFileSync(ESTADO_HIST_CD_FILE, 'utf-8')); data = { seedCargado: !!p.seedCargado, cd: (p && p.cd) || {} }; } }
+  catch (e) { console.warn('estado-historico-cd load:', e.message); }
+  if (!data.seedCargado) {
+    let cambiado = false;
+    for (const [cdId, meses] of Object.entries(ESTADO_HIST_CD_2025_SEED)) {
+      data.cd[cdId] = data.cd[cdId] || {};
+      for (const [mes, v] of Object.entries(meses)) {
+        if (!data.cd[cdId][mes]) { data.cd[cdId][mes] = { ...v, origen: 'manual_historico_2025', cargadoEn: new Date().toISOString() }; cambiado = true; }
+      }
+    }
+    data.seedCargado = true;
+    if (cambiado) estadoHistCdSave(data);
+  }
+  return data;
+}
+function estadoHistCdSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(ESTADO_HIST_CD_FILE, JSON.stringify(d, null, 2)); }
 // Pedidos de Retail (Walmart) hechos en el sistema viejo, ANTES de la
 // automatización con PEDIDOSWALMART. Se inyectan en el bucket Walmart como si
 // vinieran de Shopify (mismo formato de pedido). Los pedidos nuevos ya entran
@@ -3222,7 +3270,29 @@ async function estadoResolve(month, rango){
     retail,
     walmart: { total: retail, n: walmartPedidos.length, pedidos: walmartPedidos, porProveedor: walmartPorProv, proveedores: wmProvKeys },
   };
-  const totalIngresos = cdNeto + cruzTotal + hospitalityTotal + shWeb + retail;
+  // Carga manual histórica por Centro de Distribución (2025+, ver
+  // estadoHistCdLoad): reemplaza HORECA/Retail/Hospitality del mes si hay una
+  // entrada auditada para este CD. Venta Online NUNCA se toca acá — sigue
+  // siempre en vivo desde Shopify (shWeb). Solo aplica al mes calendario
+  // completo (un total mensual agregado no se puede trocear por rango de
+  // fecha personalizado). 2026 y el resto de los meses/CD sin entrada
+  // explícita siguen exactamente como antes.
+  let origenHistorico = null, historicoDetalle = null;
+  const histMes = (estadoHistCdLoad().cd[CD_DEFAULT] || {})[month];
+  const esMesCompletoDefault = r.from === cdMonthRange(month).from && r.to === cdMonthRange(month).to;
+  if (histMes && esMesCompletoDefault) {
+    ingresos.horeca = { total: histMes.horeca, milSabores: 0, otros: histMes.horeca, pedidos: [] };
+    ingresos.hospitality = {
+      garden: { litros: 0, valor: histMes.hospitalidadDetalle.vespucio + histMes.hospitalidadDetalle.antofagasta, tabla: [], pedidos: [] },
+      badass: { litros: 0, valor: histMes.hospitalidadDetalle.badass, tabla: [], pedidos: [] },
+      total: histMes.hospitalidadTotal,
+    };
+    ingresos.retail = histMes.retail;
+    ingresos.walmart = { total: histMes.retail, n: 0, pedidos: [], porProveedor: {}, proveedores: wmProvKeys };
+    origenHistorico = histMes.origen || 'manual_historico_2025';
+    historicoDetalle = histMes.hospitalidadDetalle;
+  }
+  const totalIngresos = ingresos.horeca.total + ingresos.hospitality.total + shWeb + ingresos.retail;
   // ¿El mes cae fuera de la ventana de 60 días de Shopify? Con solo read_orders,
   // los pedidos > 60 días vuelven vacíos (sin error) → total 0 aunque sí hubo ventas.
   const finMes = new Date((cdMonthRange(month).to) + 'T23:59:59Z').getTime();
@@ -3232,6 +3302,7 @@ async function estadoResolve(month, rango){
     month, precios, periodo: per, ingresos, totalIngresos, porDia,
     rango: r, mesCompleto: (r.from === cdMonthRange(month).from && r.to === cdMonthRange(month).to),
     shopifyOk: shOk, shopifyError: sh.error || null, shopifyLimitado, fueraVentana60,
+    origenHistorico, historicoDetalle,
     alertas: { codigosNuevos: shOk ? sh.codigosNuevos : [], sinMapear: shOk ? sh.sinMapear : [], sinCodigo: shOk ? sh.sinCodigo : 0 },
     excelRef: CD_EXCEL_REF[month] || null,
   };
@@ -3316,7 +3387,9 @@ function estadoSheetRows(data, month){
   blank();
   rows.push([SEC('INGRESOS'), SEC(''), SEC(''), SEC(''), SEC(''), SM(data.totalIngresos)]);
   blank();
-  const horeca = i.cd_kairos.neto + i.ventas_cruzada.total, online = i.ventas_web.cobrado, retail = (i.retail != null ? i.retail : 0), hospitality = i.hospitality.total;
+  // i.horeca.total (no cd_kairos.neto + ventas_cruzada.total): es el único que
+  // refleja la carga manual histórica por CD cuando aplica (ver estadoResolve).
+  const horeca = i.horeca.total, online = i.ventas_web.cobrado, retail = (i.retail != null ? i.retail : 0), hospitality = i.hospitality.total;
   const pctOf = (v) => data.totalIngresos ? Math.round(v / data.totalIngresos * 1000) / 10 : 0;
   rows.push([SEC('CANALES'), SEC(''), SEC(''), SEC(''), SEC('%'), SEC('Monto')]);
   rows.push([T('① HORECA (restaurantes/bares)'), T(''), T(''), T(''), PCT(pctOf(horeca)), SM(horeca)]);
@@ -3842,7 +3915,7 @@ async function pnlCompute(month, rango, cdSel){
   return {
     month, shopifyOk: est.shopifyOk, cd: cdFiltro, ingresosSegmentados: cdFiltro === CD_DEFAULT,
     ingresos: { total: ingresos, canales: {
-      horeca: i.cd_kairos.neto + i.ventas_cruzada.total,
+      horeca: i.horeca.total,
       online: i.ventas_web.cobrado,
       retail: (i.retail != null ? i.retail : 0),
       hospitality: i.hospitality.total,

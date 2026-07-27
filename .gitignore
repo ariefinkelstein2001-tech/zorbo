@@ -11,4 +11,6 @@ prompts/forecast.json
 prompts/forecast-data.json
 prompts/operacional.json
 prompts/team.json
+prompts/estado-resultado.json
+prompts/estado-historico-cd.json
 public/uploads/

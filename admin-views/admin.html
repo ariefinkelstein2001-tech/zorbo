@@ -1862,6 +1862,7 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .est-chans{display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem;margin-bottom:1.1rem}
 @media(max-width:900px){.est-chans{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:520px){.est-chans{grid-template-columns:1fr}}
+.est-hist-banner{background:var(--gold-dim,#fff3d6);border:1px solid var(--gold,#f5a623);border-radius:10px;padding:.7rem 1rem;margin:.6rem 0;color:var(--gold-deep,#8a5a00);font-size:.86rem;line-height:1.5}
 .est-chan{border:1px solid var(--line,#e5e5e5);border-left:4px solid var(--gold,#f5a623);border-radius:12px;padding:.8rem 1rem;background:var(--surface,#fff)}
 .est-chan-l{font-family:var(--display,inherit);font-weight:800;font-size:1rem;color:var(--text,#111)}
 .est-chan-sub{font-size:.7rem;color:var(--muted,#999);margin-bottom:.3rem}
@@ -9200,7 +9201,10 @@ async function estadoBoot(){
   const sel=document.getElementById('estadoMonth');
   let periodos=[]; try{ periodos=((await (await fetch('/admin/estado/periodos')).json()).periodos)||[]; }catch{}
   const set=new Set(periodos); const d=new Date();
-  for(let i=0;i<18;i++){ const dt=new Date(d.getFullYear(),d.getMonth()-i,1); set.add(dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')); }
+  // 24 meses (no 18): asegura que los 12 meses de la carga histórica 2025 · CD
+  // KAIROS queden siempre navegables desde el selector, sin depender de que
+  // alguien haya creado el "periodo" a mano.
+  for(let i=0;i<24;i++){ const dt=new Date(d.getFullYear(),d.getMonth()-i,1); set.add(dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')); }
   const months=[...set].sort().reverse();
   sel.innerHTML=months.map(m=>`<option value="${m}">${estMonthLabel(m)}${periodos.includes(m)?'':' ·'}</option>`).join('');
   estadoMonth = estadoMonth || periodos[0] || months[0];
@@ -9274,7 +9278,9 @@ function estCompute(){
   const cdNeto=shCd, cruzTotal=shCruz;
   const retail=a.ingresos.retail!=null?a.ingresos.retail:0; // Walmart 100% auto (Shopify)
   const hospitality=gardenValor+badassValor;
-  const horeca=cdNeto+cruzTotal, online=shWeb;
+  // a.ingresos.horeca.total (no cdNeto+cruzTotal): es el único que refleja la
+  // carga manual histórica por CD cuando aplica (ver estadoResolve, server.js).
+  const horeca=a.ingresos.horeca.total, online=shWeb;
   const total=horeca+online+retail+hospitality;
   const pctOf=v=>total?Math.round(v/total*1000)/10:0;
   return {shCd,shCruz,shWeb,cdNeto,cruzTotal,gardenValor,badassValor,retail,hospitality,horeca,online,total,
@@ -9321,6 +9327,11 @@ function renderEstado(){
       <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Estilo</th><th style="text-align:right">$/lt</th><th style="text-align:right">Despacho</th><th style="text-align:right">Litros</th><th style="text-align:right">%</th><th style="text-align:right">Valor</th></tr></thead><tbody>${rows}</tbody></table></div>
       ${editable?`<div class="est-anto-edit"><div class="est-sub">Litros manuales de Antofagasta (por estilo):</div><div class="mun-wrap">${estLineRows(estadoDraft.antofagasta,[{k:'estilo',label:'Estilo',w:'160px'},{k:'litros',label:'Litros',num:true,w:'90px'}],'antofagasta')}</div></div>`:''}</div>`;
   };
+  // Carga manual histórica por CD (2025+, ver estadoResolve en server.js):
+  // banner visible y auditable — nunca se mezcla en silencio con lo automático.
+  const histBanner = a.origenHistorico
+    ? `<div class="est-hist-banner">📋 <b>Carga manual histórica 2025 · CD KAIROS</b> — HORECA, Retail y Hospitalidad de este mes vienen de una carga manual auditada (no de pedidos de Shopify en vivo). La Venta Online sí sigue 100% en vivo desde Shopify.</div>`
+    : '';
   const shopHint = a.shopifyLimitado
     ? `<div style="background:#fff4e0;border:1px solid #f5c26b;border-radius:10px;padding:.7rem 1rem;margin:.6rem 0;color:#8a5a00;font-size:.86rem"><b>⚠ $0 por el límite de 60 días de Shopify — no es que no hubo ventas.</b><br>Con el permiso actual (<code>read_orders</code>), Shopify solo entrega los pedidos de los <b>últimos ~60 días</b>; los meses más viejos vuelven vacíos. Para ver un mes histórico como este hace falta el permiso <code>read_all_orders</code> y re-autorizar la app (Shopify → agregar el scope → volver a instalar). El <b>mes en curso</b> sí muestra los datos.</div>`
     : (a.shopifyOk===false ? `<div style="background:#fdecea;border:1px solid #e6a6a0;border-radius:10px;padding:.7rem 1rem;margin:.6rem 0;color:#a12a1e;font-size:.86rem"><b>⚠ Shopify no respondió ahora mismo.</b> ${escapeHtml(a.shopifyError||'')}</div>` : '');
@@ -9336,6 +9347,7 @@ function renderEstado(){
       ${chanCard('estRetail','③ Retail','Walmart',c.retail,c.pctRetail)}
       ${chanCard('estHospitality','④ Hospitality','Garden Vespucio · Garden Antofa · Badass',c.hospitality,c.pctHospitality)}
     </div>
+    ${histBanner}
     ${shopHint}
     ${alertBox}
     <div class="est-precios">
@@ -9377,6 +9389,7 @@ function renderEstado(){
         <button class="est-hchan" data-hospchan="badass"><b>Badass</b><span>${eM(hi.badass.valor)} · ${(hi.badass.pedidos||[]).length} pedidos</span></button>
       </div>
       <div id="estHospPanel"></div>
+      ${(a.origenHistorico && a.historicoDetalle)?`<div class="est-auto" style="margin-top:.4rem">Detalle histórico: Garden Vespucio ${eM(a.historicoDetalle.vespucio)} · Garden Antofagasta ${eM(a.historicoDetalle.antofagasta)} · Badass Parque Arauco ${eM(a.historicoDetalle.badass)}</div>`:''}
     </div>`;
   estWire();
   if(a.excelRef) estRecalc();
