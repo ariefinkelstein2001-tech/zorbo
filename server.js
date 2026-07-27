@@ -3248,6 +3248,45 @@ app.get('/admin/estado', requireAdmin, async (req, res) => {
   if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
   try { res.json(await estadoResolve(month, estadoRangeFromReq(req))); } catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 300) }); }
 });
+// ── Reporte: Venta Online (web) mes a mes ──────────────────────────────────
+// Recorre cada mes desde `desde` (YYYY-MM, default 2025-01) hasta el mes actual
+// y toma la MISMA "Venta Online" que la tarjeta de Ingreso por Venta
+// (estadoResolve → ingresos.ventas_web.cobrado). Venta Online ya excluye
+// mayoristas y HORECA (esos van a otros canales). Página HTML lista para leer.
+function reporteMesesDesde(desde){
+  const now = new Date(); const cur = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+  const out = []; let [y, m] = desde.split('-').map(Number);
+  for (let i = 0; i < 120; i++) { const mm = y + '-' + String(m).padStart(2, '0'); out.push(mm); if (mm === cur) break; m++; if (m > 12) { m = 1; y++; } }
+  return out;
+}
+app.get('/admin/reportes/ventas-online', requireAdmin, async (req, res) => {
+  const desde = /^\d{4}-\d{2}$/.test(String(req.query.desde)) ? String(req.query.desde) : '2025-01';
+  const meses = reporteMesesDesde(desde);
+  const filaDe = async (mm) => {
+    try { const e = await estadoResolve(mm); const vw = (e.ingresos && e.ingresos.ventas_web) || {}; return { mes: mm, cobrado: Math.round(Number(vw.cobrado) || 0), n: Number(vw.n) || 0, ok: !!e.shopifyOk }; }
+    catch (err) { return { mes: mm, cobrado: 0, n: 0, ok: false, error: String(err.message || err).slice(0, 100) }; }
+  };
+  // Concurrencia acotada (4 meses a la vez) para no tardar tanto ni saturar Shopify.
+  const filas = new Array(meses.length); let idx = 0;
+  await Promise.all(Array.from({ length: 4 }, async () => { let i; while ((i = idx++) < meses.length) filas[i] = await filaDe(meses[i]); }));
+  if (String(req.query.format) === 'json') return res.json({ desde, filas });
+  const clp = (n) => '$' + (Math.round(Number(n) || 0)).toLocaleString('es-CL');
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const mLbl = (mm) => { const [y, mo] = mm.split('-'); const N = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']; return N[+mo] + ' ' + y; };
+  const totCob = filas.reduce((a, f) => a + f.cobrado, 0), totN = filas.reduce((a, f) => a + f.n, 0);
+  const porAnio = {}; for (const f of filas) { const y = f.mes.slice(0, 4); porAnio[y] = (porAnio[y] || 0) + f.cobrado; }
+  const rows = filas.map(f => `<tr><td>${mLbl(f.mes)}</td><td class="n">${f.n}</td><td class="n">${clp(f.cobrado)}</td><td class="s">${f.error ? ('⚠ ' + esc(f.error)) : (f.ok ? '✓' : '—')}</td></tr>`).join('');
+  const anioRows = Object.entries(porAnio).map(([y, v]) => `<tr><td><b>Total ${y}</b></td><td></td><td class="n"><b>${clp(v)}</b></td><td></td></tr>`).join('');
+  res.set('Content-Type', 'text/html; charset=utf-8').send(`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Venta Online mes a mes</title>
+<style>body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem;color:#1c2230}h1{font-size:1.4rem}.sub{color:#667;margin:.2rem 0 1.2rem}table{border-collapse:collapse;width:100%;font-size:.95rem}th,td{padding:.5rem .7rem;border-bottom:1px solid #eceef2;text-align:left}th{background:#f6f7f9;font-size:.8rem;color:#556}td.n{text-align:right;font-variant-numeric:tabular-nums}td.s{text-align:center;color:#8a92a0}tfoot td{font-weight:800;background:#fff7e6;border-top:2px solid #e9c46a}.note{color:#667;font-size:.8rem;margin-top:1rem;line-height:1.5}.yr td{background:#f3f6ff}</style></head><body>
+<h1>🌐 Venta Online · mes a mes</h1>
+<div class="sub">Desde ${mLbl(desde)} · misma "Venta Online" que la sección Ingreso por Venta (web B2C, ya <b>sin mayoristas</b> ni HORECA).</div>
+<table><thead><tr><th>Mes</th><th style="text-align:right">Pedidos web</th><th style="text-align:right">Venta Online</th><th style="text-align:center">Shopify</th></tr></thead>
+<tbody>${rows}</tbody>
+<tfoot><tr><td>TOTAL</td><td class="n">${totN}</td><td class="n">${clp(totCob)}</td><td></td></tr>${anioRows ? ('<tr class="yr"><td colspan="4" style="padding-top:.6rem"></td></tr>' + anioRows) : ''}</tfoot></table>
+<div class="note">"Venta Online" = pedidos de la página que no son mayoristas, HORECA, Walmart ni transferencias a los restoranes. Es el total cobrado del pedido (con descuentos aplicados). Un "—" o ⚠ en Shopify indica que ese mes no se pudo traer (revisá permisos/ventana de Shopify). Para verlo en JSON agregá <code>?format=json</code> a la URL.</div>
+</body></html>`);
+});
 app.put('/admin/estado/:month', requireAdmin, (req, res) => {
   const month = String(req.params.month); if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: 'Mes inválido.' });
   const all = estadoLoad(); all.periodos[month] = estadoNormPeriodo(req.body || {}); estadoSave(all); res.json({ ok: true });
