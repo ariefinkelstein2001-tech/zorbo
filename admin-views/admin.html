@@ -5721,8 +5721,8 @@ function attachPreviewFeedback(row, bubble){
 }
 
 function updateChatModeLabel(){
-  document.getElementById('chatModeLabel').textContent =
-    chatMode === 'b2b' ? 'MODO B2B · KNOWLEDGE MAYORISTAS' : 'MODO B2C · CATÁLOGO LIVE';
+  const el = document.getElementById('chatModeLabel'); if (!el) return; // Zorbot preview removido
+  el.textContent = chatMode === 'b2b' ? 'MODO B2B · KNOWLEDGE MAYORISTAS' : 'MODO B2C · CATÁLOGO LIVE';
 }
 
 // ─── FAB del preview chat (solo móvil) ─────────────────────────────────────
