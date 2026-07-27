@@ -3455,6 +3455,16 @@ function costosLoad(){
 }
 function costosSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTOS_FILE, JSON.stringify(d, null, 2)); }
 const costosMes = (fecha) => /^\d{4}-\d{2}/.test(String(fecha)) ? String(fecha).slice(0, 7) : '';
+// Clave normalizada (sin puntos/espacios/guiones, minúsculas) para comparar folios/nombres.
+const costosKey = (s) => String(s == null ? '' : s).toLowerCase().replace(/[.\s\-]/g, '').trim();
+// Facturas ya registradas con el MISMO folio y proveedor (posible duplicado). Ignora
+// las entradas creadas por el cruce automático entre CD (origenId) — esas son copias
+// intencionales del mismo documento. Sin folio no se puede detectar, devuelve [].
+function costosDuplicados(entradas, { folio, proveedor, excludeId }){
+  const fk = costosKey(folio); if (!fk) return [];
+  const pk = costosKey(proveedor);
+  return (entradas || []).filter(e => e.id !== excludeId && !e.origenId && costosKey(e.folio) === fk && costosKey(e.proveedor) === pk);
+}
 const COSTOS_CAT_TIPO = Object.fromEntries(COSTOS_CATEGORIAS.map(c => [c.id, c.tipo]));
 // Valor que efectivamente corresponde a Zorbo. En Gastos, si se cargó "Porcentaje
 // del total" (facturas compartidas con el restaurante, ej. arriendo), solo esa
@@ -3560,6 +3570,9 @@ app.get('/admin/costos', requireAdmin, (req, res) => {
   else if (mes) entradas = entradas.filter(e => costosMes(e.fecha) === mes);
   const meses = [...new Set(entradasDelTipo.map(e => costosMes(e.fecha)).filter(Boolean))].sort().reverse();
   const desc = ncDescuentosPorDoc(); const vinc = ncVinculadasPorDoc();
+  // Marca facturas repetidas (mismo folio + proveedor) para señalarlas en el listado.
+  const dupKeys = {}; for (const e of data.entradas) { if (!e.origenId && costosKey(e.folio)) { const k = costosKey(e.folio) + '|' + costosKey(e.proveedor); dupKeys[k] = (dupKeys[k] || 0) + 1; } }
+  const esDup = (e) => !e.origenId && costosKey(e.folio) && dupKeys[costosKey(e.folio) + '|' + costosKey(e.proveedor)] > 1;
   res.json({
     categorias: tipo ? COSTOS_CATEGORIAS.filter(c => c.tipo === tipo) : COSTOS_CATEGORIAS,
     subcategorias: COSTOS_SUBCATEGORIAS,
@@ -3568,7 +3581,7 @@ app.get('/admin/costos', requireAdmin, (req, res) => {
     proveedores: data.proveedores.slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
     // subEfectiva/subLabel: incluyen el default "General" para Operativos sin subcategoría (no destructivo).
     // ncVinculadas/neto: notas de crédito enganchadas a este documento y su valor descontado.
-    entradas: entradas.map(e => { const sub = costosSubEfectiva(e); return { ...e, marca: e.marca || 'todas', subEfectiva: sub, subLabel: costosSubLabel(e.categoria, sub, e.subnivel), ncVinculadas: vinc[e.id] || [], ncDescuento: desc[e.id] || 0, neto: costosNetoEfectivo(e, desc) }; }),
+    entradas: entradas.map(e => { const sub = costosSubEfectiva(e); return { ...e, marca: e.marca || 'todas', subEfectiva: sub, subLabel: costosSubLabel(e.categoria, sub, e.subnivel), ncVinculadas: vinc[e.id] || [], ncDescuento: desc[e.id] || 0, neto: costosNetoEfectivo(e, desc), duplicada: esDup(e) }; }),
     meses, mes, rango,
     resumen: costosResumen(entradas, desc),
   });
@@ -3671,6 +3684,13 @@ function costosCrearEntradaDesdeBody(b){
     catch (e) { return { error: 'Error guardando archivo: ' + e.message }; }
   }
   const data = costosLoad();
+  // Detección de factura duplicada (mismo folio + proveedor). Avisa y deja confirmar
+  // salvo que el cliente mande permitirDuplicado (ya confirmó "registrar igual").
+  if (folio && !b.permitirDuplicado) {
+    const dups = costosDuplicados(data.entradas, { folio, proveedor });
+    if (dups.length) return res.status(409).json({ error: 'Factura duplicada', duplicado: true,
+      existentes: dups.slice(0, 5).map(e => ({ fecha: e.fecha, proveedor: e.proveedor, folio: e.folio, valor: Number(e.valor) || 0, categoria: e.categoria, categoriaLabel: (COSTOS_CATEGORIAS.find(c => c.id === e.categoria) || {}).label || e.categoria, cd: e.centroDistribucion || CD_DEFAULT })) });
+  }
   // Si el proveedor no está creado, lo crea al vuelo (viene de "crear nuevo").
   if (!data.proveedores.some(p => p.nombre === proveedor)) data.proveedores.push({ id: costosNewId('prov'), nombre: proveedor });
   // activoFijoId: trazabilidad opcional hacia el Activo Fijo de Inventario que
@@ -4707,7 +4727,15 @@ app.post('/admin/nomina/boleta', requireAdmin, (req, res) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(b.fecha)) return res.status(400).json({ error: 'Ingresa la fecha de la boleta.' });
   if (!b.monto) return res.status(400).json({ error: 'Ingresa el monto.' });
   if (!b.categoria) return res.status(400).json({ error: 'Elige la categoría del Estado de Resultado.' });
-  const d = nominaLoad(); d.boletas = d.boletas || []; d.boletas.push(b); nominaSave(d); res.json({ ok: true, boleta: b });
+  const d = nominaLoad(); d.boletas = d.boletas || [];
+  // Boleta duplicada: mismo folio + mismo RUT (o nombre si no hay RUT).
+  if (b.folio && !req.body.permitirDuplicado) {
+    const fk = costosKey(b.folio), idk = costosKey(b.rut) || costosKey(b.nombre);
+    const dups = d.boletas.filter(x => costosKey(x.folio) === fk && (costosKey(x.rut) || costosKey(x.nombre)) === idk);
+    if (dups.length) return res.status(409).json({ error: 'Boleta duplicada', duplicado: true,
+      existentes: dups.slice(0, 5).map(x => ({ fecha: x.fecha, nombre: x.nombre, rut: x.rut, folio: x.folio, valor: Number(x.monto) || 0 })) });
+  }
+  d.boletas.push(b); nominaSave(d); res.json({ ok: true, boleta: b });
 });
 app.delete('/admin/nomina/boleta/:id', requireAdmin, (req, res) => {
   const id = String(req.params.id); const d = nominaLoad(); d.boletas = d.boletas || [];

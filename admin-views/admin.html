@@ -9668,7 +9668,7 @@ function renderCostos(tipo){
       <td>${escapeHtml(e.proveedor)}</td>
       <td>${catCell}</td>
       <td>${escapeHtml(cgMarcaLabel(e))}</td>
-      <td>${escapeHtml(e.folio||'—')}</td>
+      <td>${escapeHtml(e.folio||'—')}${e.duplicada?' <span class="cg-tag" style="background:#fdeaea;color:#c0392b" title="Hay otra factura con el mismo folio y proveedor">⚠ duplicada</span>':''}</td>
       <td class="dist-num">${eM(e.valor)}${pctNote}${centrosNote}${origenNote}${ncNote}</td>
       <td>${e.adjunto&&e.adjunto.url?`<a class="cg-doc-link" href="${escapeAttr(e.adjunto.url)}" target="_blank" title="${escapeAttr(e.adjunto.name||'documento')}">📎 ver</a>`:'<span style="color:#ccc">—</span>'}</td>
       <td><button class="pv-del" data-cgdel="${e.id}" data-cgtipo="${tipo}" title="Eliminar">✕</button></td>
@@ -9801,7 +9801,16 @@ async function costosAgregar(tipo){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(payload.fecha)) return costosShowErr(tipo,'Elige la fecha del documento.');
   if(!payload.valor) return costosShowErr(tipo,'Ingresa el valor.');
   try{
-    const r=await fetch('/admin/costos/entrada',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json();
+    let r=await fetch('/admin/costos/entrada',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); let d=await r.json();
+    // Factura duplicada (mismo folio + proveedor): avisar y dejar confirmar.
+    if(r.status===409 && d.duplicado){
+      const ex=(d.existentes||[])[0]||{};
+      const extra=(d.existentes||[]).length>1?`\n(y ${(d.existentes.length-1)} más con ese folio)`:'';
+      const msg=`⚠ POSIBLE FACTURA DUPLICADA\n\nYa hay una factura con folio "${payload.folio}" de ${payload.proveedor}:\n• ${ex.fecha||''} · ${eM(ex.valor)} · ${ex.categoriaLabel||''}${ex.cd?(' · '+(CD_LBL[ex.cd]||ex.cd)):''}${extra}\n\n¿Registrarla igual de todos modos?`;
+      if(!confirm(msg)){ costosShowErr(tipo,'No se registró: ya existe una factura con folio '+payload.folio+' de ese proveedor.'); return; }
+      payload.permitirDuplicado=true;
+      r=await fetch('/admin/costos/entrada',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); d=await r.json();
+    }
     if(!r.ok) throw new Error(d.error||'Error');
     cgResetSection2(tipo);
     await loadCostos(tipo);
@@ -9969,7 +9978,17 @@ async function nominaBoletaAgregar(){
   const payload={ rut:f.rut, nombre:f.nombre, folio:f.folio, fecha:f.fecha, monto:cNum(f.monto), categoria:f.categoria };
   if(!(payload.nombre||'').trim()){ if(err){err.textContent='⚠ Ingresa el nombre completo.';err.classList.add('show');} return; }
   if(!payload.categoria){ if(err){err.textContent='⚠ Elige la categoría del Estado de Resultado.';err.classList.add('show');} return; }
-  try{ const r=await fetch('/admin/nomina/boleta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); nominaBoletaForm={rut:'',nombre:'',folio:'',fecha:'',monto:'',categoria:''}; await loadNomina(); }
+  try{
+    let r=await fetch('/admin/nomina/boleta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); let d=await r.json();
+    if(r.status===409 && d.duplicado){
+      const ex=(d.existentes||[])[0]||{};
+      const msg=`⚠ POSIBLE BOLETA DUPLICADA\n\nYa hay una boleta con folio "${payload.folio}" de ${ex.nombre||payload.nombre}:\n• ${ex.fecha||''} · ${eM(ex.valor)}\n\n¿Registrarla igual de todos modos?`;
+      if(!confirm(msg)){ if(err){err.textContent='⚠ No se registró: ya existe una boleta con folio '+payload.folio+'.';err.classList.add('show');} return; }
+      payload.permitirDuplicado=true;
+      r=await fetch('/admin/nomina/boleta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); d=await r.json();
+    }
+    if(!r.ok) throw new Error(d.error||'Error'); nominaBoletaForm={rut:'',nombre:'',folio:'',fecha:'',monto:'',categoria:''}; await loadNomina();
+  }
   catch(e){ if(err){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); } }
 }
 async function nominaBoletaEliminar(id){
