@@ -3468,13 +3468,21 @@ function costosValorEfectivo(e){
   const p = Math.min(100, Math.max(0, Number(pct) || 0));
   return Math.round(valor * p / 100);
 }
-// Resumen por categoría (montos + cantidad) para un set de entradas.
-function costosResumen(entradas){
+// Valor efectivo de un documento NETO de las notas de crédito vinculadas a él
+// (descuento total o parcial). `desc` = mapa {docId: monto total de NC vinculadas}.
+function costosNetoEfectivo(e, desc){
+  const v = costosValorEfectivo(e);
+  const d = (desc && desc[e.id]) ? Number(desc[e.id]) || 0 : 0;
+  return Math.max(0, v - d);
+}
+// Resumen por categoría (montos + cantidad) para un set de entradas. Si `desc`
+// viene, los montos son NETOS de las NC vinculadas a cada documento.
+function costosResumen(entradas, desc){
   const porCat = {}; COSTOS_CATEGORIAS.forEach(c => porCat[c.id] = { total: 0, n: 0 });
   let total = 0;
   for (const e of entradas) {
     const c = porCat[e.categoria] || (porCat[e.categoria] = { total: 0, n: 0 });
-    const v = costosValorEfectivo(e);
+    const v = desc ? costosNetoEfectivo(e, desc) : costosValorEfectivo(e);
     c.total += v; c.n++; total += v;
   }
   return { porCategoria: porCat, total };
@@ -3551,6 +3559,7 @@ app.get('/admin/costos', requireAdmin, (req, res) => {
   if (rango) entradas = costosEnRango(entradas, rango.from, rango.to);
   else if (mes) entradas = entradas.filter(e => costosMes(e.fecha) === mes);
   const meses = [...new Set(entradasDelTipo.map(e => costosMes(e.fecha)).filter(Boolean))].sort().reverse();
+  const desc = ncDescuentosPorDoc(); const vinc = ncVinculadasPorDoc();
   res.json({
     categorias: tipo ? COSTOS_CATEGORIAS.filter(c => c.tipo === tipo) : COSTOS_CATEGORIAS,
     subcategorias: COSTOS_SUBCATEGORIAS,
@@ -3558,10 +3567,21 @@ app.get('/admin/costos', requireAdmin, (req, res) => {
     cds: CD_LIST, cd,
     proveedores: data.proveedores.slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
     // subEfectiva/subLabel: incluyen el default "General" para Operativos sin subcategoría (no destructivo).
-    entradas: entradas.map(e => { const sub = costosSubEfectiva(e); return { ...e, marca: e.marca || 'todas', subEfectiva: sub, subLabel: costosSubLabel(e.categoria, sub, e.subnivel) }; }),
+    // ncVinculadas/neto: notas de crédito enganchadas a este documento y su valor descontado.
+    entradas: entradas.map(e => { const sub = costosSubEfectiva(e); return { ...e, marca: e.marca || 'todas', subEfectiva: sub, subLabel: costosSubLabel(e.categoria, sub, e.subnivel), ncVinculadas: vinc[e.id] || [], ncDescuento: desc[e.id] || 0, neto: costosNetoEfectivo(e, desc) }; }),
     meses, mes, rango,
-    resumen: costosResumen(entradas),
+    resumen: costosResumen(entradas, desc),
   });
+});
+// Buscador de documentos (costo/gasto) para vincular una nota de crédito. Cruza
+// todos los CD y ambos tipos por folio / proveedor / monto.
+app.get('/admin/costos/buscar', requireAdmin, (req, res) => {
+  const q = costosStr(req.query.q, 60).toLowerCase().trim();
+  const data = costosLoad();
+  let ent = data.entradas.slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  if (q) ent = ent.filter(e => (String(e.folio || '').toLowerCase().includes(q) || String(e.proveedor || '').toLowerCase().includes(q) || String(e.valor || '').includes(q)));
+  const catLbl = (id) => (COSTOS_CATEGORIAS.find(c => c.id === id) || {}).label || id;
+  res.json({ entradas: ent.slice(0, 25).map(e => ({ id: e.id, proveedor: e.proveedor, folio: e.folio, fecha: e.fecha, valor: Number(e.valor) || 0, categoria: e.categoria, categoriaLabel: catLbl(e.categoria), tipo: COSTOS_CAT_TIPO[e.categoria] || 'costo', cd: e.centroDistribucion || CD_DEFAULT })) });
 });
 // POST proveedor nuevo.
 app.post('/admin/costos/proveedor', requireAdmin, (req, res) => {
@@ -3733,7 +3753,8 @@ async function pnlCompute(month, rango, cdSel){
   const entradas = (rango && rango.from && rango.to)
     ? costosEnRango(entradasCd, rango.from, rango.to)
     : entradasCd.filter(e => costosMes(e.fecha) === month);
-  const rs = costosResumen(entradas);
+  // Notas de crédito vinculadas a un documento → descuentan ese documento (neto).
+  const rs = costosResumen(entradas, ncDescuentosPorDoc());
   // Ajustes que corrigen/complementan el EERR: boletas de honorarios (suman a su categoría),
   // notas de crédito (restan ingresos / suman costos-gastos), y costo empresa por mes.
   const bol = nominaBoletasDelMes(month, rango);
@@ -3814,7 +3835,7 @@ function pnlPrevMonth(month){ const [y, m] = String(month).split('-').map(Number
 // Totales de los 4 gastos estructurales de un mes (para proyectar el mes en curso).
 function pnlGastosDeMes(month){
   const cd = costosLoad();
-  const rs = costosResumen(cd.entradas.filter(e => costosMes(e.fecha) === month));
+  const rs = costosResumen(cd.entradas.filter(e => costosMes(e.fecha) === month), ncDescuentosPorDoc());
   const t = id => (rs.porCategoria[id] || { total: 0 }).total;
   return { gastosOper: t('gastos_operativos'), gastosAdmin: t('gastos_admin_venta'), gastosMarketing: t('marketing_publicidad'), gastoPersonal: nominaLoad().costoEmpresa || 0 };
 }
@@ -3843,7 +3864,27 @@ function ncNorm(b, id){
   const tipo = NC_TIPOS.includes(costosStr(b.tipo, 20)) ? costosStr(b.tipo, 20) : '';
   const out = { id: id || costosNewId('nc'), tipo, folio: costosStr(b.folio, 60), fecha: costosStr(b.fecha, 20), monto: costosNum(b.monto), referencia: costosStr(b.referencia, 80), motivo: costosStr(b.motivo, 300), anulaCompleta: !!b.anulaCompleta };
   if (tipo === 'ingreso') out.canal = NC_CANAL_IDS.includes(costosStr(b.canal, 20)) ? costosStr(b.canal, 20) : '';
-  else out.categoria = (COSTOS_CATEGORIAS.find(c => c.id === costosStr(b.categoria, 40)) ? costosStr(b.categoria, 40) : '');
+  else {
+    // Documento (costo/gasto) al que se vincula el descuento (opcional). Si viene,
+    // la categoría se toma del propio documento para que el ajuste caiga donde va.
+    const docId = costosStr(b.docId, 40) || null;
+    let categoria = (COSTOS_CATEGORIAS.find(c => c.id === costosStr(b.categoria, 40)) ? costosStr(b.categoria, 40) : '');
+    if (docId) { const doc = costosLoad().entradas.find(e => e.id === docId); if (doc) categoria = doc.categoria; }
+    out.docId = docId; out.categoria = categoria;
+  }
+  return out;
+}
+// Descuentos por documento: suma de las NC (costo/gasto) vinculadas a cada docId.
+// Se aplican sobre el documento sin importar la fecha de la NC (caen donde el doc).
+function ncDescuentosPorDoc(){
+  const d = ncLoad(); const out = {};
+  for (const n of (d.notas || [])) { if ((n.tipo === 'costo' || n.tipo === 'gasto') && n.docId) out[n.docId] = (out[n.docId] || 0) + (Number(n.monto) || 0); }
+  return out;
+}
+// NC vinculadas por documento (para mostrarlas bajo el documento en el listado).
+function ncVinculadasPorDoc(){
+  const d = ncLoad(); const out = {};
+  for (const n of (d.notas || [])) { if ((n.tipo === 'costo' || n.tipo === 'gasto') && n.docId) (out[n.docId] = out[n.docId] || []).push({ id: n.id, folio: n.folio, fecha: n.fecha, monto: Number(n.monto) || 0, motivo: n.motivo, anulaCompleta: !!n.anulaCompleta }); }
   return out;
 }
 // ¿La fecha (YYYY-MM-DD) cae en el período pedido? Si hay rango exacto (from/to)
@@ -3858,7 +3899,9 @@ function notasCreditoDelMes(month, rango){
   for (const n of (d.notas || [])) {
     if (!finEnPeriodo(n.fecha, month, rango)) continue; const m = Number(n.monto) || 0;
     if (n.tipo === 'ingreso') { out.ingreso += m; if (n.canal) out.porCanal[n.canal] = (out.porCanal[n.canal] || 0) + m; }
-    else if (n.categoria) { out.costo[n.categoria] = (out.costo[n.categoria] || 0) + m; }
+    // Las NC vinculadas a un documento se descuentan del documento (costosResumen con
+    // `desc`), no acá — así no se cuentan dos veces. Solo las sueltas suman a la categoría.
+    else if (n.categoria && !n.docId) { out.costo[n.categoria] = (out.costo[n.categoria] || 0) + m; }
   }
   return out;
 }
@@ -3869,6 +3912,9 @@ app.get('/admin/notas-credito', requireAdmin, (req, res) => {
   const meses = [...new Set((d.notas || []).map(n => costosMes(n.fecha)).filter(Boolean))].sort().reverse();
   if (rango) notas = notas.filter(n => finEnPeriodo(n.fecha, null, rango));
   else if (mes) notas = notas.filter(n => costosMes(n.fecha) === mes);
+  // Adjunta el folio del documento vinculado (para mostrarlo en el listado).
+  const centradas = costosLoad().entradas;
+  notas = notas.map(n => { if (!n.docId) return n; const doc = centradas.find(e => e.id === n.docId); return { ...n, docFolio: doc ? (doc.folio || doc.proveedor || 'documento') : 'documento borrado' }; });
   res.json({ notas, meses, mes, rango, tipos: NC_TIPOS, canales: NC_CANALES, categorias: COSTOS_CATEGORIAS });
 });
 app.post('/admin/notas-credito', requireAdmin, (req, res) => {
@@ -3878,7 +3924,12 @@ app.post('/admin/notas-credito', requireAdmin, (req, res) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(n.fecha)) return res.status(400).json({ error: 'Ingresa la fecha.' });
   if (!n.monto) return res.status(400).json({ error: 'Ingresa el monto.' });
   if (n.tipo === 'ingreso' && !n.canal) return res.status(400).json({ error: 'Elige el canal de venta a anular.' });
-  if ((n.tipo === 'costo' || n.tipo === 'gasto') && !n.categoria) return res.status(400).json({ error: 'Elige la categoría a corregir.' });
+  if (n.tipo === 'ingreso' && n.docId) delete n.docId; // ingresos no se vinculan a documentos de compra
+  if ((n.tipo === 'costo' || n.tipo === 'gasto') && n.docId) {
+    const doc = costosLoad().entradas.find(e => e.id === n.docId);
+    if (!doc) return res.status(400).json({ error: 'El documento a vincular no existe.' });
+  }
+  if ((n.tipo === 'costo' || n.tipo === 'gasto') && !n.categoria) return res.status(400).json({ error: 'Elige la categoría a corregir (o vinculá un documento).' });
   const d = ncLoad(); d.notas.push(n); ncSave(d); res.json({ ok: true, nota: n });
 });
 app.delete('/admin/notas-credito/:id', requireAdmin, (req, res) => {
@@ -3960,8 +4011,9 @@ async function finVentaMes(m){ try { const e = await estadoResolve(m); return Ma
 function finGastosOperativos(month){
   const cd = costosLoad();
   const ops = (cd.entradas || []).filter(e => costosMes(e.fecha) === month && e.categoria === 'gastos_operativos');
+  const desc = ncDescuentosPorDoc();
   const bySub = {}; let total = 0;
-  for (const e of ops) { const v = costosValorEfectivo(e); const sub = costosSubEfectiva(e); total += v; bySub[sub] = (bySub[sub] || 0) + v; }
+  for (const e of ops) { const v = costosNetoEfectivo(e, desc); const sub = costosSubEfectiva(e); total += v; bySub[sub] = (bySub[sub] || 0) + v; }
   const porSub = (COSTOS_SUBCATEGORIAS['gastos_operativos'] || [])
     .map(s => ({ id: s.id, label: s.label, total: bySub[s.id] || 0, pct: total ? Math.round(((bySub[s.id] || 0) / total) * 1000) / 10 : 0 }))
     .filter(x => x.total > 0);

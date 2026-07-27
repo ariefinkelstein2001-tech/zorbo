@@ -1917,6 +1917,17 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .cg-centros-chk{display:flex;flex-wrap:wrap;gap:.5rem 1rem}
 .cg-centros-chk label{display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:400;color:var(--text,#111);cursor:pointer}
 .cg-pct-note{font-size:.68rem;color:var(--muted,#666);font-weight:400;margin-top:.15rem}
+.cg-nc-note{color:#c0392b}
+.nc-doc-wrap{position:relative}
+.nc-doc-chip{display:inline-flex;align-items:center;gap:.4rem;background:#eef4ff;color:#2b5fb0;border:1px solid #cfe0ff;border-radius:8px;padding:.3rem .5rem;font-size:.8rem;font-weight:600;max-width:100%}
+.nc-doc-x{border:0;background:#d7e3fb;color:#2b5fb0;border-radius:5px;cursor:pointer;font-weight:800;line-height:1;padding:.1rem .3rem}
+.nc-doc-x:hover{background:#c2d4f5}
+.nc-doc-results{position:absolute;left:0;right:0;top:100%;z-index:20;background:var(--card,#fff);border:1px solid var(--line,#dfe2e7);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:230px;overflow-y:auto;margin-top:.2rem}
+.nc-doc-results:empty{display:none}
+.nc-doc-item{padding:.4rem .55rem;cursor:pointer;border-bottom:1px solid var(--line,#eef0f3);font-size:.8rem}
+.nc-doc-item:hover{background:var(--soft,#f2f6ff)}
+.nc-doc-meta{color:#8a92a0;font-size:.72rem}
+.nc-doc-empty{padding:.5rem;color:#999;font-size:.78rem}
 .fc-toolbar{display:flex;align-items:center;gap:.8rem;margin-bottom:.8rem;flex-wrap:wrap}
 .fc-toolbar-l{display:flex;align-items:center;gap:.5rem;font-size:.8rem;color:var(--muted,#666);font-weight:600}
 .fc-toolbar-l select{padding:.45rem .6rem;border:1px solid var(--border,#e5e5e5);border-radius:var(--radius-sm,8px);background:var(--surface,#fff);font:inherit}
@@ -9614,6 +9625,10 @@ function renderCostos(tipo){
     // apunta al documento original) — se marcan para no confundirlas con una
     // carga manual.
     const origenNote=e.origenId?`<div class="cg-pct-note">🔗 registrado automático desde otra CD</div>`:'';
+    // Notas de crédito vinculadas a este documento → descuento total/parcial + neto.
+    const ncNote=(Array.isArray(e.ncVinculadas) && e.ncVinculadas.length)
+      ? `<div class="cg-pct-note cg-nc-note">🧾 ${e.ncVinculadas.map(v=>escapeHtml(v.folio||'NC')+' −'+eM(v.monto)).join(' · ')} → neto <b>${eM(e.neto)}</b></div>`
+      : '';
     return `
     <tr>
       <td>${escapeHtml(e.fecha)}</td>
@@ -9621,7 +9636,7 @@ function renderCostos(tipo){
       <td>${catCell}</td>
       <td>${escapeHtml(cgMarcaLabel(e))}</td>
       <td>${escapeHtml(e.folio||'—')}</td>
-      <td class="dist-num">${eM(e.valor)}${pctNote}${centrosNote}${origenNote}</td>
+      <td class="dist-num">${eM(e.valor)}${pctNote}${centrosNote}${origenNote}${ncNote}</td>
       <td>${e.adjunto&&e.adjunto.url?`<a class="cg-doc-link" href="${escapeAttr(e.adjunto.url)}" target="_blank" title="${escapeAttr(e.adjunto.name||'documento')}">📎 ver</a>`:'<span style="color:#ccc">—</span>'}</td>
       <td><button class="pv-del" data-cgdel="${e.id}" data-cgtipo="${tipo}" title="Eliminar">✕</button></td>
     </tr>`;}).join('');
@@ -10249,7 +10264,7 @@ document.getElementById('finhomeMesCal').onchange=loadFinHome;
 
 // ─── Notas de crédito (Finanzas): anular ventas por canal o corregir costos/gastos ───
 let ncData=null;
-function ncBlankForm(){ return {tipo:'',folio:'',fecha:'',monto:'',canal:'',categoria:'',referencia:'',anulaCompleta:false,motivo:''}; }
+function ncBlankForm(){ return {tipo:'',folio:'',fecha:'',monto:'',canal:'',categoria:'',referencia:'',anulaCompleta:false,motivo:'',docId:'',docLabel:'',docBuscar:''}; }
 function anulBlankForm(){ return {transaccion:'',canal:'',fecha:'',monto:'',anulaCompleta:false,motivo:''}; }
 let ncForm=ncBlankForm(), anulForm=anulBlankForm(), anulData={anulaciones:[]};
 async function loadNotasCredito(){
@@ -10272,17 +10287,22 @@ function renderNotasCredito(){
   const catList=(a.categorias||[]).filter(c=>c.tipo===f.tipo);
   const catOpts=['<option value="">— Categoría —</option>',...catList.map(c=>`<option value="${c.id}" ${c.id===f.categoria?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
   const checkAnula = `<label class="cg-field cg-field-check"><input type="checkbox" id="ncAnula" ${f.anulaCompleta?'checked':''}> <span>Anula la compra completa (si no, es parcial)</span></label>`;
+  const docBlock = f.docId
+    ? `<label class="cg-field"><span>Documento vinculado</span><div class="nc-doc-chip">🧾 ${escapeHtml(f.docLabel)} <button type="button" id="ncDocClear" class="nc-doc-x" title="Quitar vínculo">✕</button></div></label>`
+    : `<label class="cg-field nc-doc-wrap"><span>Vincular a documento (opcional)</span><input type="text" id="ncDocSearch" value="${escapeAttr(f.docBuscar||'')}" placeholder="Buscar por folio o proveedor…" autocomplete="off"><div id="ncDocResults" class="nc-doc-results"></div></label>`;
   const condFields = f.tipo==='ingreso'
     ? `<label class="cg-field"><span>Canal de venta a anular</span><select id="ncCanal">${canalOpts}</select></label>
        <label class="cg-field"><span>Referencia (N° pedido)</span><input type="text" id="ncRef" value="${escapeAttr(f.referencia)}" placeholder="Ej: #1234"></label>
        ${checkAnula}`
-    : (f.tipo ? `<label class="cg-field"><span>Categoría a corregir</span><select id="ncCat">${catOpts}</select></label>${checkAnula}` : '');
+    : (f.tipo ? `<label class="cg-field"><span>Categoría a corregir</span><select id="ncCat" ${f.docId?'disabled title="Se toma del documento vinculado"':''}>${catOpts}</select></label>${docBlock}${checkAnula}` : '');
   const rows=(a.notas||[]).map(n=>{
     const alcance = n.anulaCompleta ? ' · <b>completa</b>' : ' · parcial';
+    const vinc = n.docId ? ` · <span class="cg-tag" style="background:#eef4ff;color:#2b5fb0">🧾 ${escapeHtml(n.docFolio||'doc vinculado')}</span>` : '';
     const detalle = n.tipo==='ingreso'
       ? (escapeHtml(canalLbl(n.canal))+(n.referencia?(' · '+escapeHtml(n.referencia)):'')+alcance)
-      : (escapeHtml(catLbl(n.categoria))+alcance);
-    const signo = n.tipo==='ingreso' ? '−' : '+';
+      : (escapeHtml(catLbl(n.categoria))+alcance+vinc);
+    // Vinculada = descuenta el documento (−); suelta de costo/gasto = corrige la categoría (+).
+    const signo = (n.tipo==='ingreso'||n.docId) ? '−' : '+';
     return `<tr><td>${escapeHtml(n.fecha)}</td><td><b>${escapeHtml(n.folio||'—')}</b></td><td><span class="cg-tag ${n.tipo==='ingreso'?'nc-in':'nc-out'}">${ncTipoLabel(n.tipo)}</span></td><td>${detalle}</td><td class="dist-num ${n.tipo==='ingreso'?'pnl-neg':''}">${signo}${eM(n.monto)}</td><td>${escapeHtml(n.motivo||'—')}</td><td><button class="pv-del" data-ncdel="${n.id}" title="Eliminar">✕</button></td></tr>`;
   }).join('');
   body.innerHTML=`
@@ -10298,7 +10318,7 @@ function renderNotasCredito(){
         <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="ncAdd" type="button">+ Agregar</button></div>
       </div>
       <div class="cg-err" id="ncErr"></div>
-      <div class="est-note" style="margin-top:.4rem">Ajusta el <b>Estado de Resultado</b> del mes de su fecha: las de venta <b>restan</b> del ingreso del canal; las de costo/gasto <b>suman</b> a su categoría.</div>
+      <div class="est-note" style="margin-top:.4rem">Ajusta el <b>Estado de Resultado</b>: las de venta <b>restan</b> del ingreso del canal. Las de costo/gasto, si <b>vinculás un documento</b>, lo <b>descuentan</b> (total o parcial) y el ajuste aparece en el listado de Costos/Gastos junto a ese documento; si no vinculás ninguno, <b>suman</b> a la categoría elegida.</div>
     </div>
     <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>Fecha</th><th>Folio</th><th>Tipo</th><th>Detalle</th><th style="text-align:right">Ajuste</th><th>Motivo</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:#999;padding:.8rem">Sin notas de crédito todavía.</td></tr>'}</tbody></table></div>
     ${renderAnulaciones()}`;
@@ -10349,15 +10369,39 @@ async function anulEliminar(id){ if(!confirm('¿Eliminar esta anulación?')) ret
 function ncWire(){
   const g=id=>document.getElementById(id); const f=ncForm;
   const bind=(el,k,ev)=>{ const e=g(el); if(e) e[ev||'oninput']=()=>{ f[k]=e.type==='checkbox'?e.checked:e.value; }; };
-  const tipo=g('ncTipo'); if(tipo) tipo.onchange=()=>{ f.tipo=tipo.value; f.canal=''; f.categoria=''; renderNotasCredito(); };
+  const tipo=g('ncTipo'); if(tipo) tipo.onchange=()=>{ f.tipo=tipo.value; f.canal=''; f.categoria=''; f.docId=''; f.docLabel=''; renderNotasCredito(); };
   bind('ncFolio','folio'); bind('ncCanal','canal','onchange'); bind('ncRef','referencia'); bind('ncCat','categoria','onchange'); bind('ncAnula','anulaCompleta','onchange');
   bind('ncFecha','fecha','onchange'); bind('ncMonto','monto'); bind('ncMotivo','motivo');
+  const ds=g('ncDocSearch'); if(ds){ ds.oninput=()=>{ f.docBuscar=ds.value; ncDocBuscar(ds.value); }; if(f.docBuscar) ncDocBuscar(f.docBuscar); }
+  const dc=g('ncDocClear'); if(dc) dc.onclick=()=>{ f.docId=''; f.docLabel=''; f.docBuscar=''; renderNotasCredito(); };
   const add=g('ncAdd'); if(add) add.onclick=ncAgregar;
   document.querySelectorAll('[data-ncdel]').forEach(b=>b.onclick=()=>ncEliminar(b.dataset.ncdel));
 }
+let ncDocResultados=[], ncDocTmr=null;
+function ncDocBuscar(q){
+  clearTimeout(ncDocTmr);
+  ncDocTmr=setTimeout(async()=>{
+    const box=document.getElementById('ncDocResults'); if(!box) return;
+    try{
+      const r=await fetch('/admin/costos/buscar?q='+encodeURIComponent(q||'')); const d=await r.json();
+      ncDocResultados=d.entradas||[];
+      box.innerHTML=ncDocResultados.length
+        ? ncDocResultados.map(e=>`<div class="nc-doc-item" data-docpick="${escapeAttr(e.id)}"><b>${escapeHtml(e.folio||'(sin folio)')}</b> · ${escapeHtml(e.proveedor)}<br><span class="nc-doc-meta">${escapeHtml(e.fecha)} · ${eM(e.valor)} · ${escapeHtml(e.categoriaLabel)} · ${escapeHtml(e.tipo)}</span></div>`).join('')
+        : '<div class="nc-doc-empty">Sin documentos que coincidan.</div>';
+      box.querySelectorAll('[data-docpick]').forEach(el=>el.onclick=()=>ncDocPick(el.dataset.docpick));
+    }catch(e){ /* silencioso */ }
+  }, 250);
+}
+function ncDocPick(id){
+  const e=ncDocResultados.find(x=>x.id===id); if(!e) return; const f=ncForm;
+  f.docId=e.id; f.categoria=e.categoria; if(e.tipo==='costo'||e.tipo==='gasto') f.tipo=e.tipo;
+  f.docLabel=(e.folio||'(sin folio)')+' · '+e.proveedor+' · '+eM(e.valor)+' · '+e.categoriaLabel;
+  f.docBuscar='';
+  renderNotasCredito();
+}
 async function ncAgregar(){
   const f=ncForm; const err=document.getElementById('ncErr'); if(err){ err.textContent=''; err.classList.remove('show'); }
-  const payload={ tipo:f.tipo, folio:f.folio, fecha:f.fecha, monto:cNum(f.monto), canal:f.canal, categoria:f.categoria, referencia:f.referencia, motivo:f.motivo, anulaCompleta:f.anulaCompleta };
+  const payload={ tipo:f.tipo, folio:f.folio, fecha:f.fecha, monto:cNum(f.monto), canal:f.canal, categoria:f.categoria, referencia:f.referencia, motivo:f.motivo, anulaCompleta:f.anulaCompleta, docId:f.docId||'' };
   if(!(f.folio||'').trim()){ if(err){ err.textContent='⚠ Ingresa el folio de la nota de crédito.'; err.classList.add('show'); } return; }
   try{ const r=await fetch('/admin/notas-credito',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); ncForm=ncBlankForm(); await loadNotasCredito(); }
   catch(e){ if(err){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); } }
