@@ -11667,7 +11667,7 @@ function prodRenderInventarios(){
   const inv=prodData.inventario||{barriles:{sucios:0,limpios:0,actualizado:null},insumos:[],totalesPorCategoria:{},valorTotalInsumos:0};
   const b=inv.barriles||{};
   const gcBox=`<div class="cg-form"><div class="cg-form-title" style="display:flex;justify-content:space-between;align-items:center;gap:.5rem">
-      <span>📦 Stock desde Gestión Cervecera — barriles, latas y depósitos</span>
+      <span>🍺 Stock de chelas desde Gestión Cervecera — barriles y latas por producto</span>
       <button class="adm-btn adm-btn-gold" id="invGcSync" type="button" style="font-size:.78rem">🔄 Sincronizar</button></div>
     <div id="invGcStock"><div class="adm-loading">Cargando stock desde Gestión Cervecera…</div></div>
   </div>`;
@@ -11677,7 +11677,7 @@ function prodRenderInventarios(){
       <label class="cg-field"><span>Limpios</span><input id="invBLim" inputmode="numeric" value="${cNum(b.limpios)}"></label>
       <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="invBSave" type="button">Guardar conteo</button></div>
     </div>
-    <div class="cal-form-s" style="margin-top:.5rem">Conteo manual de barriles sucios/limpios. El stock automático (embarrilado/envasado) está en el cuadro de arriba. Última actualización: ${b.actualizado?prodDT(b.actualizado):'—'}.</div>
+    <div class="cal-form-s" style="margin-top:.5rem">Conteo manual de barriles sucios/limpios. El stock real de chelas (barriles y latas por producto) está en el cuadro de arriba. Última actualización: ${b.actualizado?prodDT(b.actualizado):'—'}.</div>
   </div>`;
   const cats=(prodData.meta&&prodData.meta.invCategorias&&prodData.meta.invCategorias.length)?prodData.meta.invCategorias:['lata','tapa','etiqueta'];
   const form=`<div class="cg-form"><div class="cg-form-title">➕ Agregar ítem de inventario</div><div class="cg-form-grid">
@@ -11696,20 +11696,27 @@ function prodRenderInventarios(){
   const tablas=cats.map(tableFor).join('');
   return gcBox+barrilesBox+form+tablas+`<div class="prod-sec-h" style="margin-top:1rem">Valor total del inventario de insumos <span>${fmtMoney(inv.valorTotalInsumos)}</span></div>`;
 }
-function invStockTabla(titulo, items){
-  const list=(items||[]).slice().sort((a,b)=>String(a.tipo+a.nombre).localeCompare(String(b.tipo+b.nombre)));
-  const rows=list.map(x=>`<tr><td>${escapeHtml(x.nombre)}${x.marca?(' <span style="color:#9098a3;font-size:.72rem">'+escapeHtml(x.marca)+'</span>'):''}</td><td>${escapeHtml(x.tipo||'')}</td><td class="dist-num${(x.stockMinimo!=null&&x.stock<x.stockMinimo)?' pnl-neg':''}">${(x.stock||0).toLocaleString('es-CL')}</td><td class="dist-num" style="color:#9098a3">${x.stockMinimo!=null?x.stockMinimo.toLocaleString('es-CL'):'—'}</td></tr>`).join('');
-  return `<div class="prod-sec-h" style="margin-top:.6rem">${titulo} <span>${list.length} ítem(s)</span></div>
-    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Ítem</th><th>Tipo</th><th style="text-align:right">Stock</th><th style="text-align:right">Mín</th></tr></thead><tbody>${rows||'<tr><td colspan="4" style="text-align:center;color:#999;padding:.6rem">Sin ítems</td></tr>'}</tbody></table></div>`;
-}
+const invL=n=>(Number(n)||0).toLocaleString('es-CL',{maximumFractionDigits:1});
+const invN=n=>(Number(n)||0).toLocaleString('es-CL');
 function invRenderGcStock(d){
   const box=document.getElementById('invGcStock'); if(!box) return;
   if(!d.ok){ box.innerHTML='<div class="cg-err show">⚠ '+escapeHtml(d.error||'No se pudo conectar a Gestión Cervecera.')+'</div>'; return; }
-  const dep=(d.depositos||[]).map(x=>`<tr><td><b>${escapeHtml(x.nombre)}</b> <span style="color:#9098a3;font-size:.72rem">${escapeHtml(x.codigo||'')}</span></td><td>${escapeHtml(x.tipo||'')}${x.frio?' ❄️':''}</td><td style="font-size:.78rem;color:#7a8290">${escapeHtml(x.direccion||'')}</td></tr>`).join('');
-  box.innerHTML=invStockTabla('🛢 Embarrilado (barriles)', d.embarrilado)
-    + invStockTabla('🥫 Envasado (latas y botellas)', d.envasado)
-    + `<div class="prod-sec-h" style="margin-top:.6rem">🏬 Depósitos <span>${(d.depositos||[]).length}</span></div><div class="mun-wrap"><table class="mun-table"><thead><tr><th>Depósito</th><th>Tipo</th><th>Dirección</th></tr></thead><tbody>${dep||'<tr><td colspan="3" style="text-align:center;color:#999;padding:.6rem">Sin depósitos</td></tr>'}</tbody></table></div>`
-    + `<div class="cal-form-s" style="margin-top:.4rem">Actualizado ${d.generadoEn?prodDT(d.generadoEn):'—'} · desde Gestión Cervecera. El stock en 0 es el valor real que hay hoy en el ERP.</div>`;
+  const t=d.totales||{};
+  const resumen=`<div class="prod-erp-status" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.6rem">
+    <span style="background:#fff3d6;padding:.35rem .6rem;border-radius:8px;font-weight:700">🛢 ${invN(t.barrilesUnid)} barriles · ${invL(t.barrilesLitros)} L disponibles</span>
+    <span style="background:#e3f0ff;padding:.35rem .6rem;border-radius:8px;font-weight:700">🥫 ${invN(t.latasUnid)} latas · ${invL(t.latasLitros)} L disponibles</span></div>`;
+  // Barriles por producto (En stock / Pedidos / Disponibles = cant. barriles + litros).
+  const bar=(d.barriles||[]).slice().sort((a,b)=>(b.disponible.litros||0)-(a.disponible.litros||0));
+  const barCell=o=>o&&(o.barriles||o.litros)?`<b>${invN(o.barriles)}</b> <span style="color:#9098a3;font-size:.72rem">bar</span> · ${invL(o.litros)} L`:'<span style="color:#c3c8cf">—</span>';
+  const barRows=bar.map(x=>`<tr><td>${escapeHtml(x.producto)}</td><td class="dist-num">${barCell(x.enStock)}</td><td class="dist-num" style="color:#b06a00">${(x.pedidos&&(x.pedidos.barriles||x.pedidos.litros))?barCell(x.pedidos):'<span style="color:#c3c8cf">—</span>'}</td><td class="dist-num"><b style="color:#1f7a4d">${invN(x.disponible.barriles)}</b> bar · <b>${invL(x.disponible.litros)}</b> L</td></tr>`).join('');
+  const barTbl=`<div class="prod-sec-h" style="margin-top:.4rem">🛢 Barriles por producto <span>${bar.length}</span></div>
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Producto</th><th style="text-align:right">En stock</th><th style="text-align:right">Pedidos</th><th style="text-align:right">Disponibles</th></tr></thead><tbody>${barRows||'<tr><td colspan="4" style="text-align:center;color:#999;padding:.6rem">Sin barriles en stock</td></tr>'}</tbody></table></div>`;
+  // Latas / envasado por producto (cantidad de unidades + litros).
+  const lat=(d.latas||[]).slice().sort((a,b)=>(b.disponible.litros||0)-(a.disponible.litros||0));
+  const latRows=lat.map(x=>`<tr><td>${escapeHtml(x.producto)}${x.envase?(' <span style="color:#9098a3;font-size:.72rem">'+escapeHtml(x.envase)+'</span>'):''}</td><td class="dist-num"><b>${invN(x.enStock.cantidad)}</b> · ${invL(x.enStock.litros)} L</td><td class="dist-num" style="color:#b06a00">${(x.pedidos&&x.pedidos.cantidad)?('<b>'+invN(x.pedidos.cantidad)+'</b> · '+invL(x.pedidos.litros)+' L'):'<span style="color:#c3c8cf">—</span>'}</td><td class="dist-num"><b style="color:#1f7a4d">${invN(x.disponible.cantidad)}</b> · <b>${invL(x.disponible.litros)}</b> L${x.disponible.cajas?(' <span style="color:#9098a3;font-size:.72rem">('+invN(x.disponible.cajas)+' caj)</span>'):''}</td></tr>`).join('');
+  const latTbl=`<div class="prod-sec-h" style="margin-top:.7rem">🥫 Latas / envasado por producto <span>${lat.length}</span></div>
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Producto</th><th style="text-align:right">En stock</th><th style="text-align:right">Pedidos</th><th style="text-align:right">Disponibles</th></tr></thead><tbody>${latRows||'<tr><td colspan="4" style="text-align:center;color:#999;padding:.6rem">Sin latas en stock</td></tr>'}</tbody></table></div>`;
+  box.innerHTML=resumen+barTbl+latTbl+`<div class="cal-form-s" style="margin-top:.4rem">Actualizado ${d.generadoEn?prodDT(d.generadoEn):'—'} · directo de Gestión Cervecera (/Producto/Stock). "Disponibles" = lo que hay hoy menos lo reservado por pedidos.</div>`;
 }
 let invGcStockData=null, invGcStockAt=0;
 async function invLoadGcStock(force){

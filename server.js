@@ -5297,22 +5297,55 @@ app.post('/admin/produccion/erp/sync', requireAdmin, async (req, res) => {
   const r = await erpRunSync('manual');
   res.json(r);
 });
-// Stock desde Gestión Cervecera: embarrilado (barriles) + envasado (latas/botellas)
-// + depósitos. Endpoints confirmados por captura de red (página /Producto/Stock).
+// Números del stock de GC. Barriles usan formato US (punto decimal: "480.00").
+// Latas usan formato europeo (coma decimal, punto de miles: "1.711,787" = 1711.787).
+const erpNumUS = (s) => { const n = parseFloat(String(s || '').replace(/[^\d.\-]/g, '')); return Number.isFinite(n) ? n : 0; };
+const erpNumEU = (s) => { const n = parseFloat(String(s || '').replace(/[^\d.,\-]/g, '').replace(/\./g, '').replace(',', '.')); return Number.isFinite(n) ? n : 0; };
+// Celdas <td> de una fila (texto limpio, sin tags).
+const erpTds = (rowInner) => [...String(rowInner || '').matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(m => erpTxt(m[1]));
+// Stock desde Gestión Cervecera: la página /Producto/Stock viene renderizada en el
+// servidor. Parseamos directo el HTML: la tabla de barriles (fila-resumen por producto
+// = <tr data-idp="ID"> numérico) y la de latas/envasado (<tr data-idep="envs ...">).
+// Las sub-filas de detalle (class="collapse", data-idps/idpss/ideps) se ignoran.
 async function erpStock(){
   const cfg = prodLoad().config; const { base } = erpCreds(cfg);
   const login = await erpLogin(cfg);
   if (!login.ok) return { ok: false, error: login.error + (login.stage ? ' [' + login.stage + ']' : '') };
-  const post = async (path) => {
-    try {
-      const r = await erpFetch(base + path, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json, text/javascript, */*; q=0.01', 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', 'Referer': base + '/Producto/Stock', 'Origin': base }, body: '' }, login.jar);
-      const t = await r.text(); try { return JSON.parse(t); } catch { return null; }
-    } catch { return null; }
-  };
-  const [emb, env, dep] = await Promise.all([post('/Lote/GetInsumosEmbarrilado'), post('/Envasado/GetInsumosEnvasado'), post('/Barril/GetAllDepositos')]);
-  const normIns = (arr) => (Array.isArray(arr) ? arr : []).filter(x => x && x.activo !== false).map(x => ({ id: x.id, nombre: String(x.nombre || ''), marca: String(x.marca || ''), tipo: String(x.tipo || ''), idTipoMP: x.idTipoMP, stock: Number(x.stock) || 0, stockMinimo: x.stockMinimo != null ? Number(x.stockMinimo) : null }));
-  const depositos = (((dep && dep.data) || (Array.isArray(dep) ? dep : [])) || []).map(d => ({ id: d.id, nombre: String(d.nombre || ''), codigo: String(d.codigo || ''), tipo: String(d.nombreTipoDeposito || ''), frio: !!d.tieneFrio, direccion: String(d.direccionCompleta || '').trim() }));
-  return { ok: true, embarrilado: normIns(emb), envasado: normIns(env), depositos, generadoEn: new Date().toISOString() };
+  let html = '';
+  try { const r = await erpGet(base + '/Producto/Stock', login.jar, base); html = await r.text(); }
+  catch (e) { return { ok: false, error: 'No pude leer /Producto/Stock: ' + String(e.message).slice(0, 120) }; }
+  if (/id=["']frmLogin["']|\/Home\/Login/i.test(html)) return { ok: false, error: 'La sesión del ERP no tomó al leer el stock.' };
+  const barriles = [], latas = [];
+  for (const m of html.matchAll(/<tr\b([^>]*)>([\s\S]*?)<\/tr>/gi)) {
+    const open = m[1] || '', inner = m[2] || '';
+    // Barriles: fila-resumen por producto. data-idp="123" (numérico), NO data-idps/idpss.
+    const mb = /\bdata-idp=["'](\d+)["']/.exec(open);
+    if (mb) {
+      const td = erpTds(inner); const producto = (td[1] || '').trim();
+      if (producto && !/^\d/.test(producto)) barriles.push({
+        idProducto: mb[1], producto,
+        enStock: { barriles: Math.round(erpNumUS(td[3])), litros: erpNumUS(td[7]) },
+        pedidos: { barriles: Math.round(erpNumUS(td[9])), litros: erpNumUS(td[10]) },
+        disponible: { barriles: Math.round(erpNumUS(td[11])), litros: erpNumUS(td[12]) },
+      });
+      continue;
+    }
+    // Latas/envasado: fila-resumen por producto. data-idep="envs 123 + Lata (473 ml)".
+    if (/\bdata-idep=["']envs\b/i.test(open)) {
+      const td = erpTds(inner); const producto = (td[1] || '').trim();
+      if (producto) latas.push({
+        producto, envase: (td[2] || '').trim(),
+        enStock: { cantidad: Math.round(erpNumEU(td[7])), litros: erpNumEU(td[8]) },
+        pedidos: { cajas: Math.round(erpNumEU(td[9])), cantidad: Math.round(erpNumEU(td[10])), litros: erpNumEU(td[11]) },
+        disponible: { cajas: Math.round(erpNumEU(td[12])), cantidad: Math.round(erpNumEU(td[13])), litros: erpNumEU(td[14]) },
+      });
+    }
+  }
+  const totBarrLitros = barriles.reduce((a, b) => a + (b.disponible.litros || 0), 0);
+  const totBarrUnid = barriles.reduce((a, b) => a + (b.disponible.barriles || 0), 0);
+  const totLataLitros = latas.reduce((a, b) => a + (b.disponible.litros || 0), 0);
+  const totLataUnid = latas.reduce((a, b) => a + (b.disponible.cantidad || 0), 0);
+  return { ok: true, barriles, latas, totales: { barrilesLitros: totBarrLitros, barrilesUnid: totBarrUnid, latasLitros: totLataLitros, latasUnid: totLataUnid }, generadoEn: new Date().toISOString() };
 }
 app.get('/admin/produccion/erp/stock', requireAdmin, async (_req, res) => {
   try { res.json(await erpStock()); } catch (e) { res.status(500).json({ ok: false, error: String(e.message || e).slice(0, 160) }); }
