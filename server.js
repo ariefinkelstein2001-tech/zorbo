@@ -4983,6 +4983,8 @@ async function erpLoginDiag(cfg){
           rep.rutasAuth.push({ ruta: p, status: r.status, filas: (h.match(/<tr\b/gi) || []).length, tieneEditLote: /Lote\/Edit\?id=/i.test(h), tieneExportar: /class=["']exportar["']/i.test(h), len: h.length });
           // Muestra de la estructura de la tabla + los scripts que la cargan (ajax).
           if (r.status === 200 && (p === '/Lote' || p === '/Receta' || p === '/Producto/Stock')) { if (/<tr\b/i.test(h)) rep.muestras[p] = erpTablaMuestra(h); (rep.scripts = rep.scripts || {})[p] = erpScriptDump(h); }
+          // Resumen de TODAS las tablas de /Producto/Stock (para ubicar la de barriles/latas).
+          if (r.status === 200 && p === '/Producto/Stock') rep.stockTablas = erpTablasResumen(h);
         } catch (e) { rep.rutasAuth.push({ ruta: p, status: 0, error: String(e.message).slice(0, 60) }); }
       }));
       rep.rutasAuth.sort((a, b) => a.ruta.localeCompare(b.ruta));
@@ -5073,6 +5075,23 @@ function erpScriptDump(html){
   const scripts = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi)].map(m => m[1]);
   const rel = scripts.filter(s => /DataTable|ajax|\.load\(|Listar|Listado|Datos|GetData|Grid|\/Lote|\/Receta|\/Barril|\/Producto|\/Envasado|Stock|Embarril|Envas|Barril|GetStock|\.post\(|\.get\(|url\s*:/i.test(s));
   return rel.join('\n/* --- */\n').replace(/[ \t]{2,}/g, ' ').replace(/\n{2,}/g, '\n').trim().slice(0, 6500);
+}
+// Resumen de TODAS las tablas de una página: pestañas (tabs) + por cada <table> sus
+// encabezados <th>, cantidad de filas de datos y 2 filas de ejemplo. Sirve para
+// ubicar cuál tabla trae el stock de barriles/latas por producto.
+function erpTablasResumen(html){
+  const tabs = [...String(html || '').matchAll(/<a\b[^>]*(?:data-toggle=["']tab["']|href=["']#[^"']+["'])[^>]*>([\s\S]*?)<\/a>/gi)]
+    .map(m => erpTxt(m[1])).filter(t => t && t.length < 40).slice(0, 20);
+  const tablas = [...String(html || '').matchAll(/<table\b([^>]*)>([\s\S]*?)<\/table>/gi)].map((m, i) => {
+    const attrs = m[1] || '', body = m[2] || '';
+    const id = (/\bid=["']([^"']+)["']/i.exec(attrs) || [, ''])[1];
+    const cls = (/\bclass=["']([^"']+)["']/i.exec(attrs) || [, ''])[1];
+    const ths = [...body.matchAll(/<th\b[^>]*>([\s\S]*?)<\/th>/gi)].map(t => erpTxt(t[1])).filter(Boolean).slice(0, 14);
+    const dataRows = [...body.matchAll(/<tr\b[\s\S]*?<\/tr>/gi)].map(r => r[0]).filter(r => /<td\b/i.test(r));
+    const sample = dataRows.slice(0, 2).map(r => r.replace(/<[^>]+>/g, ' | ').replace(/\|(\s*\|)+/g, '|').replace(/\s{2,}/g, ' ').trim().slice(0, 300));
+    return { i, id, cls: cls.slice(0, 60), headers: ths, nFilas: dataRows.length, muestra: sample };
+  }).slice(0, 12);
+  return { tabs, tablas };
 }
 // Login real del ERP (Gestión Cervecera es ASP.NET + jQuery): jsLogin() hace
 // POST /Home/Login con { usuario, password: md5(clave) } y espera JSON {message:'ok'}.
