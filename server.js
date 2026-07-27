@@ -5232,7 +5232,7 @@ function erpTablasResumen(html){
     // Para las tablas de barriles / latas: volcar el HTML crudo (con tags/clases/atributos)
     // de las primeras filas, para distinguir fila-resumen de sub-fila de detalle.
     const hj = ths.join(' ').toLowerCase();
-    const esStock = /barril|envase|caja/.test(hj) && /producto|disponible/.test(hj);
+    const esStock = (/barril|envase|caja/.test(hj) && /producto|disponible/.test(hj)) || (/dep[oó&#;x0-9]*sito/.test(hj) && /envase/.test(hj));
     const raw = esStock ? dataRows.slice(0, 12).join('\n').replace(/[ \t]{2,}/g, ' ').replace(/\n{2,}/g, '\n').trim().slice(0, 6000) : '';
     return { i, id, cls: cls.slice(0, 60), headers: ths, nFilas: dataRows.length, muestra: sample, raw };
   }).slice(0, 12);
@@ -5262,7 +5262,12 @@ async function erpLogin(cfg){
   if (/id=["']frmLogin["']|\/Home\/Login|placeholder=["']?Contrase/i.test(chkHtml)) return { ok: false, jar, error: 'Login no tomó (sigue pidiendo credenciales). Revisá usuario/clave.', stage: 'login-check', debug: (pr.status + ' ' + txt.slice(0, 100)) };
   return { ok: true, jar, error: null, loteHtml: chkHtml };
 }
-const erpTxt = (s) => String(s || '').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&aacute;/g, 'á').replace(/&eacute;/g, 'é').replace(/&iacute;/g, 'í').replace(/&oacute;/g, 'ó').replace(/&uacute;/g, 'ú').replace(/&ntilde;/g, 'ñ').replace(/\s+/g, ' ').trim();
+const erpTxt = (s) => String(s || '').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ')
+  // Entidades numéricas (GC usa &#xE1; = á, &#xF3; = ó, etc.) y las nombradas comunes.
+  .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => { try { return String.fromCodePoint(parseInt(h, 16)); } catch { return ''; } })
+  .replace(/&#(\d+);/g, (_, n) => { try { return String.fromCodePoint(parseInt(n, 10)); } catch { return ''; } })
+  .replace(/&aacute;/g, 'á').replace(/&eacute;/g, 'é').replace(/&iacute;/g, 'í').replace(/&oacute;/g, 'ó').replace(/&uacute;/g, 'ú').replace(/&ntilde;/g, 'ñ').replace(/&amp;/g, '&')
+  .replace(/\s+/g, ' ').trim();
 // El ERP usa "." como separador DECIMAL (ej. ABV 4.5, litros 795.664) y "," como
 // miles → sacamos las comas y parseamos con el punto decimal.
 const erpNumCl = (s) => { const t = erpTxt(s).replace(/,/g, '').replace(/[^\d.-]/g, ''); const n = parseFloat(t); return Number.isFinite(n) ? n : 0; };
@@ -5503,32 +5508,39 @@ async function erpStock(){
       }
     }
   }
-  // ── Barriles por depósito (data-idep="dep…" · encabezado con "Barriles", sin "Envase") ──
+  // ── Barriles por depósito → producto → tamaño → barril (drill-down completo, como GC) ──
+  // Filas: depósito=data-idep · producto=data-ideppr · tamaño=data-idepprs · barril=data-idepprss.
+  // Columnas: Depósito[1] Cant.Barriles[2] Producto[3] Barriles[4] Código[5] Lote[6] Litros[7].
   const depositos = []; {
     const tbl = erpTablaPorFirma(html, h => /\bdata-idep=["']dep\b/i.test(h) && /Barriles/i.test(h) && !/Envase/i.test(h));
-    let dep = null;
+    let dep = null, prod = null, size = null;
     for (const m of tbl.matchAll(/<tr\b([^>]*)>([\s\S]*?)<\/tr>/gi)) {
       const open = m[1] || '', td = erpTds(m[2]);
-      if (/\bdata-idepss=/.test(open)) continue; // niveles profundos: no los mostramos
-      if (/\bdata-ideps=/.test(open)) { if (dep) dep.productos.push({ producto: td[3] || '', barriles: Math.round(erpNumUS(td[4])) }); }
-      else if (/\bdata-idep=/.test(open)) { dep = { deposito: td[1] || '', barriles: Math.round(erpNumUS(td[2])), productos: [] }; if (dep.deposito) depositos.push(dep); }
+      if (/\bdata-idepprss=/.test(open)) { // barril individual
+        if (size) size.detalle.push({ codigo: (td[5] || '').replace(/^#/, ''), lote: td[6] || '', litros: erpNumUS(td[7]) });
+      } else if (/\bdata-idepprs=/.test(open)) { // tamaño
+        size = { tamano: td[4] || '', detalle: [] }; if (prod) prod.tamanos.push(size);
+      } else if (/\bdata-ideppr=/.test(open)) { // producto
+        prod = { producto: td[3] || '', barriles: Math.round(erpNumUS(td[4])), tamanos: [] }; if (dep) dep.productos.push(prod); size = null;
+      } else if (/\bdata-idep=/.test(open)) { // depósito
+        dep = { deposito: td[1] || '', barriles: Math.round(erpNumUS(td[2])), productos: [] }; if (dep.deposito) depositos.push(dep); prod = null; size = null;
+      }
     }
   }
-  // ── Latas/envases por depósito (data-idep="dep…" · encabezado con "Envase") ──
-  // Columnas: Depósito[1] Envase[2] Caja[3] Cant.Caja[4] Lote[5] Cantidad[6] Litros[7] FechaVenc[8].
+  // ── Latas/envases por depósito (encabezado "Depósito" + "Envase" + "Fecha Venc"). ──
+  // Usa otros atributos de fila (no data-idep), así que tomamos las filas de NIVEL 0
+  // (depósito: no-collapse) de forma robusta: nombre + últimos dos números = Cantidad, Litros.
+  // El drill-down interno se agrega cuando confirmemos el HTML crudo por el diagnóstico.
   const depositosLatas = []; {
-    const tbl = erpTablaPorFirma(html, h => /\bdata-idep=["']dep\b/i.test(h) && /Envase/i.test(h));
-    let dep = null;
+    const tbl = erpTablaPorFirma(html, h => /Dep[a-zñ&#;xX0-9]*sito/i.test(h) && /Envase/i.test(h) && /Fecha\s*Venc/i.test(h));
     for (const m of tbl.matchAll(/<tr\b([^>]*)>([\s\S]*?)<\/tr>/gi)) {
-      const open = m[1] || '', td = erpTds(m[2]);
-      if (/\bdata-idepss=/.test(open)) continue; // niveles profundos (cajas/lotes): no los mostramos
-      if (/\bdata-ideps=/.test(open)) { // envase/producto dentro del depósito
-        const desc = [td[2], td[3], td[5]].find(x => x && x.trim()) || (td[1] || '');
-        if (dep) dep.items.push({ producto: desc, cantidad: Math.round(erpNumEU(td[6])), litros: erpNumEU(td[7]) });
-      } else if (/\bdata-idep=/.test(open)) {
-        dep = { deposito: td[1] || '', cantidad: Math.round(erpNumEU(td[6])), litros: erpNumEU(td[7]), items: [] };
-        if (dep.deposito) depositosLatas.push(dep);
-      }
+      const open = m[1] || ''; if (!/<td\b/i.test(m[2])) continue;
+      if (/\bclass=["'][^"']*collapse/i.test(open)) continue; // solo el nivel raíz (depósito)
+      const td = erpTds(m[2]);
+      const nombre = (td.find(x => x && /[a-zñ]/i.test(x) && !/^\d/.test(x)) || '').trim();
+      const nums = td.filter(x => x && /\d/.test(x) && !/[a-zñ]/i.test(x));
+      if (!nombre || nums.length < 2) continue;
+      depositosLatas.push({ deposito: nombre, cantidad: Math.round(erpNumEU(nums[nums.length - 2])), litros: erpNumEU(nums[nums.length - 1]), items: [] });
     }
   }
   const sum = (arr, f) => arr.reduce((a, x) => a + (f(x) || 0), 0);
