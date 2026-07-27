@@ -2749,7 +2749,10 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
           <div class="adm-panel-meta">registra cada costo: proveedor · categoría · marca · fecha · folio · valor</div>
         </div>
         <div class="adm-actions">
-          <select id="costosMes" class="costeo-svc"><option value="">Todos los meses</option></select>
+          <label class="est-daterange">Desde <input type="date" id="costosFrom" class="est-date"></label>
+          <label class="est-daterange">Hasta <input type="date" id="costosTo" class="est-date"></label>
+          <button class="adm-btn adm-btn-ghost" id="costosMesAct" type="button">Mes actual</button>
+          <button class="adm-btn adm-btn-ghost" id="costosTodo" type="button">Todo</button>
           <button class="adm-btn adm-btn-ghost" id="costosReload" type="button">Recargar</button>
         </div>
       </div>
@@ -2764,7 +2767,10 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
           <div class="adm-panel-meta">registra cada gasto: proveedor · categoría · marca · % del total (si la factura es compartida) · fecha · folio · valor</div>
         </div>
         <div class="adm-actions">
-          <select id="gastosMes" class="costeo-svc"><option value="">Todos los meses</option></select>
+          <label class="est-daterange">Desde <input type="date" id="gastosFrom" class="est-date"></label>
+          <label class="est-daterange">Hasta <input type="date" id="gastosTo" class="est-date"></label>
+          <button class="adm-btn adm-btn-ghost" id="gastosMesAct" type="button">Mes actual</button>
+          <button class="adm-btn adm-btn-ghost" id="gastosTodo" type="button">Todo</button>
           <button class="adm-btn adm-btn-ghost" id="gastosReload" type="button">Recargar</button>
         </div>
       </div>
@@ -2869,7 +2875,7 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
           <div class="adm-panel-meta">resumen del área — cifras reales del Estado de Resultado y las ventas</div>
         </div>
         <div class="adm-actions">
-          <select id="finhomeMes" class="costeo-svc"></select>
+          <label class="est-daterange">Mes <input type="month" id="finhomeMesCal" class="est-date"></label>
           <button class="adm-btn adm-btn-ghost" id="finhomeReload" type="button">Recargar</button>
         </div>
       </div>
@@ -2884,7 +2890,9 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
         </div>
         <div class="adm-actions">
           <select id="pnlCd" class="costeo-svc"></select>
-          <select id="pnlMes" class="costeo-svc"></select>
+          <label class="est-daterange">Desde <input type="date" id="pnlFrom" class="est-date"></label>
+          <label class="est-daterange">Hasta <input type="date" id="pnlTo" class="est-date"></label>
+          <button class="adm-btn adm-btn-ghost" id="pnlMesAct" type="button">Mes actual</button>
           <button class="adm-btn adm-btn-gold" id="pnlExcel" type="button">⬇ Descargar Excel</button>
           <button class="adm-btn adm-btn-ghost" id="pnlReload" type="button">Recargar</button>
         </div>
@@ -2900,7 +2908,10 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
           <div class="adm-panel-meta">anula ventas por canal (resta ingresos) o corrige costos/gastos (suma) · impacta el Estado de Resultado</div>
         </div>
         <div class="adm-actions">
-          <select id="ncMes" class="costeo-svc"><option value="">Todos los meses</option></select>
+          <label class="est-daterange">Desde <input type="date" id="ncFrom" class="est-date"></label>
+          <label class="est-daterange">Hasta <input type="date" id="ncTo" class="est-date"></label>
+          <button class="adm-btn adm-btn-ghost" id="ncMesAct" type="button">Mes actual</button>
+          <button class="adm-btn adm-btn-ghost" id="ncTodo" type="button">Todo</button>
           <button class="adm-btn adm-btn-ghost" id="ncReload" type="button">Recargar</button>
         </div>
       </div>
@@ -9041,6 +9052,21 @@ function estMonthRange(m){
 function estSetMonthDates(m){ const r=estMonthRange(m); const f=document.getElementById('estadoFrom'), t=document.getElementById('estadoTo'); if(f)f.value=r.from; if(t)t.value=r.to; }
 function estRangeQS(){ const f=document.getElementById('estadoFrom'), t=document.getElementById('estadoTo'); return (f&&t&&f.value&&t.value)?('&from='+f.value+'&to='+t.value):''; }
 const estMonthLabel=(m)=>{ const [y,mo]=m.split('-'); const N=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']; return N[+mo]+' '+y; };
+// ── Rango de fechas reutilizable para Finanzas (Costos, Gastos, Notas de crédito, Estado de Resultado) ──
+function finToday(){ const t=new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
+function finMonthRange(){ const t=new Date(); const mm=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0'); return {from:mm+'-01', to:finToday()}; }
+function finRangeQS(prefix){ const f=document.getElementById(prefix+'From'), t=document.getElementById(prefix+'To'); return (f&&t&&f.value&&t.value)?('from='+encodeURIComponent(f.value)+'&to='+encodeURIComponent(t.value)):''; }
+// Etiqueta legible del rango elegido (o "Todo" si está vacío).
+function finRangeLabel(prefix){ const f=document.getElementById(prefix+'From'), t=document.getElementById(prefix+'To'); if(!f||!t||!f.value||!t.value) return 'Todo el histórico'; const fmt=s=>{const[y,m,d]=s.split('-');return d+'/'+m+'/'+y;}; return fmt(f.value)+' → '+fmt(t.value); }
+// Inicializa Desde/Hasta con el mes actual (si están vacíos) y conecta los eventos + botones.
+function finRangeWire(prefix, onChange){
+  const f=document.getElementById(prefix+'From'), t=document.getElementById(prefix+'To');
+  if(!f||!t) return;
+  if(!f.value && !t.value){ const r=finMonthRange(); f.value=r.from; t.value=r.to; }
+  f.onchange=onChange; t.onchange=onChange;
+  const act=document.getElementById(prefix+'MesAct'); if(act) act.onclick=()=>{ const r=finMonthRange(); f.value=r.from; t.value=r.to; onChange(); };
+  const todo=document.getElementById(prefix+'Todo'); if(todo) todo.onclick=()=>{ f.value=''; t.value=''; onChange(); };
+}
 async function estadoBoot(){
   const sel=document.getElementById('estadoMonth');
   let periodos=[]; try{ periodos=((await (await fetch('/admin/estado/periodos')).json()).periodos)||[]; }catch{}
@@ -9442,8 +9468,8 @@ const CD_LBL={cd_kairos:'CD KAIROS',garden_vespucio:'CD Kairos Garden Vespucio',
 const CD_IDS=Object.keys(CD_LBL);
 const CD_DEFAULT='cd_kairos';
 const COSTOS_TIPO_CFG={
-  costo:{ bodyId:'costosBody', mesId:'costosMes', reloadId:'costosReload', pctTotal:false, vacio:'Todavía no hay costos registrados', nombre:'costo' },
-  gasto:{ bodyId:'gastosBody', mesId:'gastosMes', reloadId:'gastosReload', pctTotal:true,  vacio:'Todavía no hay gastos registrados', nombre:'gasto' },
+  costo:{ bodyId:'costosBody', prefix:'costos', reloadId:'costosReload', pctTotal:false, vacio:'Todavía no hay costos registrados', nombre:'costo' },
+  gasto:{ bodyId:'gastosBody', prefix:'gastos', reloadId:'gastosReload', pctTotal:true,  vacio:'Todavía no hay gastos registrados', nombre:'gasto' },
 };
 function cgBlankForm(){ return { centroDistribucion:CD_DEFAULT, proveedor:'', categoria:'', subcategoria:'', subnivel:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'', centrosCosto:[] }; }
 // Después de "Agregar" solo se limpia "Este documento" (fecha/folio/valor/%/
@@ -9463,14 +9489,11 @@ async function loadCostos(tipo){
   const cfg=COSTOS_TIPO_CFG[tipo];
   const body=document.getElementById(cfg.bodyId); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   try{
-    const mes=document.getElementById(cfg.mesId).value||'';
     const cdSel=costosForm[tipo].centroDistribucion||CD_DEFAULT;
-    const r=await fetch('/admin/costos?tipo='+tipo+'&cd='+cdSel+(mes?'&mes='+mes:'')); const d=await r.json();
+    const qs=finRangeQS(cfg.prefix);
+    const r=await fetch('/admin/costos?tipo='+tipo+'&cd='+cdSel+(qs?'&'+qs:'')); const d=await r.json();
     if(d.error) throw new Error(d.error);
     costosData[tipo]=d;
-    // poblar el selector de meses (conserva selección)
-    const selMes=document.getElementById(cfg.mesId); const cur=selMes.value;
-    selMes.innerHTML='<option value="">Todos los meses</option>'+(d.meses||[]).map(m=>`<option value="${m}" ${m===cur?'selected':''}>${escapeHtml(estMonthLabel(m))}</option>`).join('');
     renderCostos(tipo);
   }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
 }
@@ -9527,7 +9550,7 @@ function renderCostos(tipo){
   const catFilterOpts=['<option value="">Todas las categorías</option>',...(a.categorias||[]).map(c=>`<option value="${c.id}" ${c.id===flt.cat?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
   const subFilterSubs=SUBMAP[flt.cat]||null;
   const subFilterOpts=subFilterSubs?['<option value="">Todas las subcategorías</option>',...subFilterSubs.map(s=>`<option value="${s.id}" ${s.id===flt.sub?'selected':''}>${escapeHtml(s.label)}</option>`)].join(''):'';
-  const filterBar=`<div class="cg-filters"><span class="cg-filters-l">Filtrar</span><select id="${cgId(tipo,'FCat')}">${catFilterOpts}</select>${subFilterSubs?`<select id="${cgId(tipo,'FSub')}">${subFilterOpts}</select>`:''}${(flt.cat||flt.sub)?`<button class="cg-filter-clear" id="${cgId(tipo,'FClear')}" type="button">✕ limpiar</button>`:''}<span class="cg-filters-n">${visibles.length} de ${(a.entradas||[]).length}</span></div>`;
+  const filterBar=`<div class="cg-filters"><span class="cg-filters-l">📅 ${escapeHtml(finRangeLabel(cfg.prefix))}</span><span style="color:#c9ccd1">·</span><span class="cg-filters-l">Filtrar</span><select id="${cgId(tipo,'FCat')}">${catFilterOpts}</select>${subFilterSubs?`<select id="${cgId(tipo,'FSub')}">${subFilterOpts}</select>`:''}${(flt.cat||flt.sub)?`<button class="cg-filter-clear" id="${cgId(tipo,'FClear')}" type="button">✕ limpiar</button>`:''}<span class="cg-filters-n">${visibles.length} de ${(a.entradas||[]).length}</span></div>`;
   const rows=visibles.map(e=>{
     const catLbl=((a.categorias||[]).find(c=>c.id===e.categoria)||{}).label || e.categoria;
     const subsRow=SUBMAP[e.categoria]||null;
@@ -9713,9 +9736,9 @@ async function costosReclasificar(tipo,id){
   catch(e){ alert(String(e.message||e)); }
 }
 document.getElementById('costosReload').onclick=()=>loadCostos('costo');
-document.getElementById('costosMes').onchange=()=>loadCostos('costo');
+finRangeWire('costos', ()=>loadCostos('costo'));
 document.getElementById('gastosReload').onclick=()=>loadCostos('gasto');
-document.getElementById('gastosMes').onchange=()=>loadCostos('gasto');
+finRangeWire('gastos', ()=>loadCostos('gasto'));
 
 // ─── Gestión de Personas (nómina) ───────────────────────────────────────────
 let nominaData=null, nominaEditId=null, nominaForm={rut:'',nombre:'',ingreso:'',cargo:'',jornada:'42',contrato:'Indefinido',centroCosto:'BEER GARDEN KAIROS',afp:'',salud:''};
@@ -9997,21 +10020,17 @@ document.getElementById('pfSave').onclick = async () => {
 // ─── Estado de Resultado (P&L) ──────────────────────────────────────────────
 let pnlData=null;
 let pnlProyectado=false; // toggle Real / Proyectado (simulación de solo lectura)
+// Mes (YYYY-MM) sobre el que se arma el P&L: el mes de la fecha "Desde" del rango.
+function pnlMesActual(){ const f=document.getElementById('pnlFrom'); return (f&&/^\d{4}-\d{2}-\d{2}$/.test(f.value))?f.value.slice(0,7):((typeof estadoMonth==='string'&&estadoMonth)||finMonthRange().from.slice(0,7)); }
 async function loadPnl(){
   const body=document.getElementById('pnlBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
-  const sel=document.getElementById('pnlMes'); const cdSel=document.getElementById('pnlCd');
+  const cdSel=document.getElementById('pnlCd');
   try{
-    if(!sel.options.length){
-      let periodos=[]; try{ periodos=((await (await fetch('/admin/estado/periodos')).json()).periodos)||[]; }catch{}
-      const set=new Set(periodos); const d=new Date();
-      for(let i=0;i<18;i++){ const dt=new Date(d.getFullYear(),d.getMonth()-i,1); set.add(dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')); }
-      const months=[...set].sort().reverse();
-      sel.innerHTML=months.map(m=>`<option value="${m}">${escapeHtml(estMonthLabel(m))}</option>`).join('');
-      sel.value=(typeof estadoMonth==='string'&&estadoMonth)||months[0];
-    }
-    if(!cdSel.options.length) cdSel.innerHTML=CD_IDS.map(c=>`<option value="${c}">${escapeHtml(CD_LBL[c])}</option>`).join('');
-    const mes=sel.value, cd=cdSel.value||CD_DEFAULT;
-    const r=await fetch('/admin/pnl?month='+mes+'&cd='+cd+(pnlProyectado?'&proyectar=1':'')); pnlData=await r.json();
+    if(cdSel && !cdSel.options.length) cdSel.innerHTML=CD_IDS.map(c=>`<option value="${c}">${escapeHtml(CD_LBL[c])}</option>`).join('');
+    const f=document.getElementById('pnlFrom'), t=document.getElementById('pnlTo');
+    if(f&&t&&!f.value&&!t.value){ const r=finMonthRange(); f.value=r.from; t.value=r.to; }
+    const mes=pnlMesActual(); const qs=finRangeQS('pnl'); const cd=(cdSel&&cdSel.value)||CD_DEFAULT;
+    const r=await fetch('/admin/pnl?month='+mes+'&cd='+cd+(qs?'&'+qs:'')+(pnlProyectado?'&proyectar=1':'')); pnlData=await r.json();
     if(pnlData.error) throw new Error(pnlData.error);
     renderPnl();
   }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
@@ -10019,7 +10038,7 @@ async function loadPnl(){
 function renderPnl(){
   const a=pnlData, body=document.getElementById('pnlBody');
   const proy=!!a.proyectado;
-  document.getElementById('pnlMeta').textContent=(a.shopifyOk?'Shopify OK':'⚠️ Shopify no disponible')+' · '+estMonthLabel(a.month)+' · '+(CD_LBL[a.cd]||a.cd)+' · ingresos por venta − costos y gastos'+(proy?` · PROYECTADO según ${escapeHtml(a.mesReplicadoLabel||'')}`:'');
+  document.getElementById('pnlMeta').textContent=(a.shopifyOk?'Shopify OK':'⚠️ Shopify no disponible')+' · '+finRangeLabel('pnl')+' · '+(CD_LBL[a.cd]||a.cd)+' · ingresos por venta − costos y gastos'+(proy?` · PROYECTADO según ${escapeHtml(a.mesReplicadoLabel||'')}`:'');
   const ing=a.ingresos, co=a.costos, rt=a.ratios, dc=a.docs||{};
   const obj=a.objetivos||{};
   const pct=v=>`<span class="pnl-pct">${v}%</span>`;
@@ -10109,24 +10128,18 @@ async function pnlGuardarObjetivos(){
   catch(e){ if(msg){ msg.textContent='⚠ '+String(e.message||e); msg.className='pnl-obj-msg err'; } }
 }
 document.getElementById('pnlReload').onclick=loadPnl;
-document.getElementById('pnlMes').onchange=loadPnl;
+finRangeWire('pnl', loadPnl);
 document.getElementById('pnlCd').onchange=loadPnl;
-document.getElementById('pnlExcel').onclick=()=>{ const m=document.getElementById('pnlMes').value; if(m) window.open('/admin/pnl/export.xlsx?month='+m,'_blank'); };
+document.getElementById('pnlExcel').onclick=()=>{ const m=pnlMesActual(); const qs=finRangeQS('pnl'); const cd=(document.getElementById('pnlCd')||{}).value||''; window.open('/admin/pnl/export.xlsx?month='+m+(cd?'&cd='+cd:'')+(qs?'&'+qs:''),'_blank'); };
 
 // ─── Inicio del área FINANZAS (plantilla reutilizable): resumen IA + 3 cuadros ───
 let finHomeData=null, finResumen=null;
 async function loadFinHome(){
   const body=document.getElementById('finhomeBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
-  const sel=document.getElementById('finhomeMes');
+  const sel=document.getElementById('finhomeMesCal');
   try{
-    if(!sel.options.length){
-      let periodos=[]; try{ periodos=((await (await fetch('/admin/estado/periodos')).json()).periodos)||[]; }catch{}
-      const set=new Set(periodos); const d=new Date();
-      for(let i=0;i<18;i++){ const dt=new Date(d.getFullYear(),d.getMonth()-i,1); set.add(dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')); }
-      const months=[...set].sort().reverse();
-      sel.innerHTML=months.map(m=>`<option value="${m}">${escapeHtml(estMonthLabel(m))}</option>`).join('');
-    }
-    const mes=sel.value;
+    if(sel && !sel.value){ const t=new Date(); sel.value=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0'); }
+    const mes=(sel&&/^\d{4}-\d{2}$/.test(sel.value))?sel.value:'';
     const [homeR,resR]=await Promise.all([
       fetch('/admin/finanzas/home?month='+mes).then(r=>r.json()),
       fetch('/admin/finanzas/resumen').then(r=>r.json()).catch(()=>({texto:null,generadoEn:null})),
@@ -10188,7 +10201,7 @@ async function finGenerarResumen(){
   }
 }
 document.getElementById('finhomeReload').onclick=loadFinHome;
-document.getElementById('finhomeMes').onchange=loadFinHome;
+document.getElementById('finhomeMesCal').onchange=loadFinHome;
 
 // ─── Notas de crédito (Finanzas): anular ventas por canal o corregir costos/gastos ───
 let ncData=null;
@@ -10197,13 +10210,11 @@ function anulBlankForm(){ return {transaccion:'',canal:'',fecha:'',monto:'',anul
 let ncForm=ncBlankForm(), anulForm=anulBlankForm(), anulData={anulaciones:[]};
 async function loadNotasCredito(){
   const body=document.getElementById('ncBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
-  const sel=document.getElementById('ncMes');
   try{
-    const mes=sel.value||'';
-    const [r,ra]=await Promise.all([ fetch('/admin/notas-credito'+(mes?('?mes='+mes):'')), fetch('/admin/anulaciones'+(mes?('?mes='+mes):'')) ]);
+    const qs=finRangeQS('nc'); const q=qs?('?'+qs):'';
+    const [r,ra]=await Promise.all([ fetch('/admin/notas-credito'+q), fetch('/admin/anulaciones'+q) ]);
     ncData=await r.json(); anulData=ra.ok?await ra.json():{anulaciones:[]};
     if(ncData.error) throw new Error(ncData.error);
-    if(sel.options.length<=1 && (ncData.meses||[]).length){ sel.innerHTML='<option value="">Todos los meses</option>'+ncData.meses.map(m=>`<option value="${m}">${escapeHtml(estMonthLabel(m))}</option>`).join(''); sel.value=mes; }
     renderNotasCredito();
   }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
 }
@@ -10309,7 +10320,7 @@ async function ncAgregar(){
 }
 async function ncEliminar(id){ if(!confirm('Eliminar esta nota de crédito?')) return; try{ const r=await fetch('/admin/notas-credito/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadNotasCredito(); }catch(e){ alert(String(e.message||e)); } }
 document.getElementById('ncReload').onclick=loadNotasCredito;
-document.getElementById('ncMes').onchange=loadNotasCredito;
+finRangeWire('nc', loadNotasCredito);
 
 // ─── Ventas HORECA (Pyxis): cervezas Kairos vs competencia ─────────────────
 let horecaData=null, horecaResumen=null, horecaFiltros={sector:'',local:'',marca:''}, horecaTimer=null;

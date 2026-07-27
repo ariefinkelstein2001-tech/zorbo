@@ -3539,6 +3539,7 @@ ${huerfHtml}
 app.get('/admin/costos', requireAdmin, (req, res) => {
   const data = costosLoad();
   const mes = /^\d{4}-\d{2}$/.test(String(req.query.mes)) ? String(req.query.mes) : null;
+  const rango = estadoRangeFromReq(req); // {from,to} YYYY-MM-DD si vienen ambos y válidos
   const tipo = COSTOS_TIPOS.includes(String(req.query.tipo)) ? String(req.query.tipo) : null;
   const cd = CD_IDS.includes(String(req.query.cd)) ? String(req.query.cd) : CD_DEFAULT;
   // Cada CD tiene sus propios libros — filtra siempre por CD (default CD KAIROS,
@@ -3546,7 +3547,9 @@ app.get('/admin/costos', requireAdmin, (req, res) => {
   let entradas = data.entradas.filter(e => (e.centroDistribucion || CD_DEFAULT) === cd).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
   if (tipo) entradas = entradas.filter(e => COSTOS_CAT_TIPO[e.categoria] === tipo);
   const entradasDelTipo = entradas;
-  if (mes) entradas = entradas.filter(e => costosMes(e.fecha) === mes);
+  // Filtro por período: rango exacto (from/to) tiene prioridad; si no, mes calendario.
+  if (rango) entradas = costosEnRango(entradas, rango.from, rango.to);
+  else if (mes) entradas = entradas.filter(e => costosMes(e.fecha) === mes);
   const meses = [...new Set(entradasDelTipo.map(e => costosMes(e.fecha)).filter(Boolean))].sort().reverse();
   res.json({
     categorias: tipo ? COSTOS_CATEGORIAS.filter(c => c.tipo === tipo) : COSTOS_CATEGORIAS,
@@ -3556,7 +3559,7 @@ app.get('/admin/costos', requireAdmin, (req, res) => {
     proveedores: data.proveedores.slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
     // subEfectiva/subLabel: incluyen el default "General" para Operativos sin subcategoría (no destructivo).
     entradas: entradas.map(e => { const sub = costosSubEfectiva(e); return { ...e, marca: e.marca || 'todas', subEfectiva: sub, subLabel: costosSubLabel(e.categoria, sub, e.subnivel) }; }),
-    meses, mes,
+    meses, mes, rango,
     resumen: costosResumen(entradas),
   });
 });
@@ -3733,15 +3736,15 @@ async function pnlCompute(month, rango, cdSel){
   const rs = costosResumen(entradas);
   // Ajustes que corrigen/complementan el EERR: boletas de honorarios (suman a su categoría),
   // notas de crédito (restan ingresos / suman costos-gastos), y costo empresa por mes.
-  const bol = nominaBoletasDelMes(month);
-  const nc = notasCreditoDelMes(month);
-  const anul = anulacionesDelMes(month);
+  const bol = nominaBoletasDelMes(month, rango);
+  const nc = notasCreditoDelMes(month, rango);
+  const anul = anulacionesDelMes(month, rango);
   const catTot = (id) => ((rs.porCategoria[id] || { total: 0 }).total) + (bol[id] || 0) + (nc.costo[id] || 0);
   const ingresos = est.totalIngresos - (nc.ingreso || 0) - (anul.ingreso || 0);
   const costoDirecto = catTot('costo_directo'), costoIndirecto = catTot('costo_indirecto');
   const gastosOper = catTot('gastos_operativos'), gastosAdmin = catTot('gastos_admin_venta');
   const gastosMarketing = catTot('marketing_publicidad'), activos = catTot('activos_fijos');
-  const gastoPersonal = nominaCostoEmpresaMes(month); // costo empresa del mes (Gestión de Personas)
+  const gastoPersonal = nominaCostoEmpresaMes(month, rango); // costo empresa del mes/rango (Gestión de Personas)
   const margenBruto = ingresos - costoDirecto - costoIndirecto;
   const ebitda = margenBruto - gastosOper - gastosAdmin - gastosMarketing - gastoPersonal;
   const ratio = (v) => ingresos ? Math.round((v / ingresos) * 1000) / 10 : 0;
@@ -3843,11 +3846,17 @@ function ncNorm(b, id){
   else out.categoria = (COSTOS_CATEGORIAS.find(c => c.id === costosStr(b.categoria, 40)) ? costosStr(b.categoria, 40) : '');
   return out;
 }
-// Efecto de las NC del mes en el EERR: {ingreso: total a restar, costo:{catId: total a sumar}, porCanal}.
-function notasCreditoDelMes(month){
+// ¿La fecha (YYYY-MM-DD) cae en el período pedido? Si hay rango exacto (from/to)
+// se usa el rango; si no, el mes calendario. Comparación por strings ISO (ordenables).
+function finEnPeriodo(fecha, month, rango){
+  const f = costosStr(fecha, 20); if (!f) return false;
+  return (rango && rango.from && rango.to) ? (f >= rango.from && f <= rango.to) : (costosMes(f) === month);
+}
+// Efecto de las NC del mes/rango en el EERR: {ingreso: total a restar, costo:{catId: total a sumar}, porCanal}.
+function notasCreditoDelMes(month, rango){
   const d = ncLoad(); const out = { ingreso: 0, porCanal: {}, costo: {} };
   for (const n of (d.notas || [])) {
-    if (costosMes(n.fecha) !== month) continue; const m = Number(n.monto) || 0;
+    if (!finEnPeriodo(n.fecha, month, rango)) continue; const m = Number(n.monto) || 0;
     if (n.tipo === 'ingreso') { out.ingreso += m; if (n.canal) out.porCanal[n.canal] = (out.porCanal[n.canal] || 0) + m; }
     else if (n.categoria) { out.costo[n.categoria] = (out.costo[n.categoria] || 0) + m; }
   }
@@ -3855,10 +3864,12 @@ function notasCreditoDelMes(month){
 }
 app.get('/admin/notas-credito', requireAdmin, (req, res) => {
   const mes = /^\d{4}-\d{2}$/.test(String(req.query.mes)) ? String(req.query.mes) : null;
+  const rango = estadoRangeFromReq(req);
   const d = ncLoad(); let notas = (d.notas || []).slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
   const meses = [...new Set((d.notas || []).map(n => costosMes(n.fecha)).filter(Boolean))].sort().reverse();
-  if (mes) notas = notas.filter(n => costosMes(n.fecha) === mes);
-  res.json({ notas, meses, mes, tipos: NC_TIPOS, canales: NC_CANALES, categorias: COSTOS_CATEGORIAS });
+  if (rango) notas = notas.filter(n => finEnPeriodo(n.fecha, null, rango));
+  else if (mes) notas = notas.filter(n => costosMes(n.fecha) === mes);
+  res.json({ notas, meses, mes, rango, tipos: NC_TIPOS, canales: NC_CANALES, categorias: COSTOS_CATEGORIAS });
 });
 app.post('/admin/notas-credito', requireAdmin, (req, res) => {
   const n = ncNorm(req.body || {});
@@ -3887,16 +3898,18 @@ function anulNorm(b, id){
     canal: NC_CANAL_IDS.includes(costosStr(b.canal, 20)) ? costosStr(b.canal, 20) : '', anulaCompleta: !!b.anulaCompleta, motivo: costosStr(b.motivo, 300),
   };
 }
-// Efecto de las anulaciones del mes: {ingreso: total a restar, porCanal}.
-function anulacionesDelMes(month){
+// Efecto de las anulaciones del mes/rango: {ingreso: total a restar, porCanal}.
+function anulacionesDelMes(month, rango){
   const d = anulLoad(); const out = { ingreso: 0, porCanal: {} };
-  for (const a of (d.anulaciones || [])) { if (costosMes(a.fecha) !== month) continue; const m = Number(a.monto) || 0; out.ingreso += m; if (a.canal) out.porCanal[a.canal] = (out.porCanal[a.canal] || 0) + m; }
+  for (const a of (d.anulaciones || [])) { if (!finEnPeriodo(a.fecha, month, rango)) continue; const m = Number(a.monto) || 0; out.ingreso += m; if (a.canal) out.porCanal[a.canal] = (out.porCanal[a.canal] || 0) + m; }
   return out;
 }
 app.get('/admin/anulaciones', requireAdmin, (req, res) => {
   const mes = /^\d{4}-\d{2}$/.test(String(req.query.mes)) ? String(req.query.mes) : null;
+  const rango = estadoRangeFromReq(req);
   const d = anulLoad(); let anulaciones = (d.anulaciones || []).slice().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
-  if (mes) anulaciones = anulaciones.filter(a => costosMes(a.fecha) === mes);
+  if (rango) anulaciones = anulaciones.filter(a => finEnPeriodo(a.fecha, null, rango));
+  else if (mes) anulaciones = anulaciones.filter(a => costosMes(a.fecha) === mes);
   res.json({ anulaciones, canales: NC_CANALES });
 });
 app.post('/admin/anulaciones', requireAdmin, (req, res) => {
@@ -4592,9 +4605,26 @@ function nominaLoad(){
 }
 function nominaSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(NOMINA_FILE, JSON.stringify(d, null, 2)); }
 // Costo empresa del mes: valor específico del mes si existe; si no, el global (legacy).
-function nominaCostoEmpresaMes(month){ const d = nominaLoad(); const m = d.costoEmpresaPorMes || {}; return Number.isFinite(Number(m[month])) ? Math.round(Number(m[month])) : (Number(d.costoEmpresa) || 0); }
-// Boletas de honorarios de un mes, sumadas por categoría del EERR (suman como costo empresa).
-function nominaBoletasDelMes(month){ const d = nominaLoad(); const out = {}; for (const b of (d.boletas || [])) { if (costosMes(b.fecha) !== month) continue; out[b.categoria] = (out[b.categoria] || 0) + (Number(b.monto) || 0); } return out; }
+// Con rango exacto (from/to) se prorratea el costo de cada mes por los días cubiertos.
+function nominaCostoEmpresaMes(month, rango){
+  const d = nominaLoad(); const m = d.costoEmpresaPorMes || {};
+  const valMes = (mm) => Number.isFinite(Number(m[mm])) ? Math.round(Number(m[mm])) : (Number(d.costoEmpresa) || 0);
+  if (!rango || !rango.from || !rango.to) return valMes(month);
+  const [fy, fm, fd] = rango.from.split('-').map(Number), [ty, tm, td] = rango.to.split('-').map(Number);
+  const from = Date.UTC(fy, fm - 1, fd), to = Date.UTC(ty, tm - 1, td);
+  let total = 0, y = fy, mo = fm - 1; // 0-based
+  while (Date.UTC(y, mo, 1) <= to) {
+    const dim = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate();
+    const mStart = Date.UTC(y, mo, 1), mEnd = Date.UTC(y, mo, dim);
+    const s = Math.max(from, mStart), e = Math.min(to, mEnd);
+    const dias = Math.round((e - s) / 86400000) + 1;
+    if (dias > 0) total += valMes(y + '-' + String(mo + 1).padStart(2, '0')) * dias / dim;
+    mo++; if (mo > 11) { mo = 0; y++; }
+  }
+  return Math.round(total);
+}
+// Boletas de honorarios del mes/rango, sumadas por categoría del EERR (suman como costo empresa).
+function nominaBoletasDelMes(month, rango){ const d = nominaLoad(); const out = {}; for (const b of (d.boletas || [])) { if (!finEnPeriodo(b.fecha, month, rango)) continue; out[b.categoria] = (out[b.categoria] || 0) + (Number(b.monto) || 0); } return out; }
 app.get('/admin/nomina', requireAdmin, (req, res) => {
   const d = nominaLoad();
   res.json({ costoEmpresa: d.costoEmpresa, costoEmpresaPorMes: d.costoEmpresaPorMes || {}, personas: d.personas, boletas: d.boletas || [], contratos: NOMINA_CONTRATOS, boletaCats: NOMINA_BOLETA_CATS });
