@@ -1908,6 +1908,8 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .cg-marca-row input[type=number]:disabled{opacity:.4}
 .cg-marca-total{font-size:.72rem;color:var(--muted,#666)}
 .cg-marca-total.warn{color:var(--red,#d33);font-weight:700}
+.cg-centros-chk{display:flex;flex-wrap:wrap;gap:.5rem 1rem}
+.cg-centros-chk label{display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:400;color:var(--text,#111);cursor:pointer}
 .cg-pct-note{font-size:.68rem;color:var(--muted,#666);font-weight:400;margin-top:.15rem}
 .fc-toolbar{display:flex;align-items:center;gap:.8rem;margin-bottom:.8rem;flex-wrap:wrap}
 .fc-toolbar-l{display:flex;align-items:center;gap:.5rem;font-size:.8rem;color:var(--muted,#666);font-weight:600}
@@ -9423,11 +9425,16 @@ function estDrill(which){
 
 // ─── Costos y Gastos (mismo backend, dos fichas separadas) ──────────────────
 const COSTOS_MARCAS_LBL={kairos:'Kairos',banny:'Banny',firulais:'Firulais'};
+// Centros de costo con los que se puede compartir una factura de Gasto (misma
+// factura, un proveedor, repartida entre locales). Solo trazabilidad — el %
+// que cuenta para Zorbo ya lo da "Porcentaje del total", esto no reparte nada.
+const COSTOS_CENTROS_LBL={garden_santiago:'Kairos Beer Garden Santiago',badass_parque_arauco:'Kairos Badass Parque Arauco',kairos_brewing:'Kairos Brewing'};
+const COSTOS_CENTROS_IDS=Object.keys(COSTOS_CENTROS_LBL);
 const COSTOS_TIPO_CFG={
   costo:{ bodyId:'costosBody', mesId:'costosMes', reloadId:'costosReload', pctTotal:false, vacio:'Todavía no hay costos registrados', nombre:'costo' },
   gasto:{ bodyId:'gastosBody', mesId:'gastosMes', reloadId:'gastosReload', pctTotal:true,  vacio:'Todavía no hay gastos registrados', nombre:'gasto' },
 };
-function cgBlankForm(){ return { proveedor:'', categoria:'', subcategoria:'', subnivel:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'' }; }
+function cgBlankForm(){ return { proveedor:'', categoria:'', subcategoria:'', subnivel:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'', centrosCosto:[] }; }
 // Filtros de la tabla (por categoría padre y por subcategoría). Por tipo.
 let costosFiltro={costo:{cat:'',sub:''},gasto:{cat:'',sub:''}};
 let costosData={costo:null,gasto:null};
@@ -9515,6 +9522,7 @@ function renderCostos(tipo){
       catCell=`<span class="cg-tag">${escapeHtml(catLbl)}</span>`;
     }
     const pctNote=(cfg.pctTotal && e.pctTotal!=null && e.pctTotal<100)?`<div class="cg-pct-note">${e.pctTotal}% Zorbo = ${eM(Math.round((Number(e.valor)||0)*e.pctTotal/100))}</div>`:'';
+    const centrosNote=(cfg.pctTotal && Array.isArray(e.centrosCosto) && e.centrosCosto.length)?`<div class="cg-pct-note">Compartido con: ${e.centrosCosto.map(c=>escapeHtml(COSTOS_CENTROS_LBL[c]||c)).join(', ')}</div>`:'';
     return `
     <tr>
       <td>${escapeHtml(e.fecha)}</td>
@@ -9522,7 +9530,7 @@ function renderCostos(tipo){
       <td>${catCell}</td>
       <td>${escapeHtml(cgMarcaLabel(e))}</td>
       <td>${escapeHtml(e.folio||'—')}</td>
-      <td class="dist-num">${eM(e.valor)}${pctNote}</td>
+      <td class="dist-num">${eM(e.valor)}${pctNote}${centrosNote}</td>
       <td>${e.adjunto&&e.adjunto.url?`<a class="cg-doc-link" href="${escapeAttr(e.adjunto.url)}" target="_blank" title="${escapeAttr(e.adjunto.name||'documento')}">📎 ver</a>`:'<span style="color:#ccc">—</span>'}</td>
       <td><button class="pv-del" data-cgdel="${e.id}" data-cgtipo="${tipo}" title="Eliminar">✕</button></td>
     </tr>`;}).join('');
@@ -9540,6 +9548,10 @@ function renderCostos(tipo){
         <label class="cg-field"><span>Folio / N° documento</span><input type="text" id="${cgId(tipo,'Folio')}" value="${escapeAttr(f.folio)}" placeholder="Ej: 46211"></label>
         <label class="cg-field"><span>Valor ($)</span><input type="text" inputmode="numeric" id="${cgId(tipo,'Valor')}" value="${escapeAttr(f.valor)}" placeholder="0"></label>
         ${cfg.pctTotal?`<label class="cg-field"><span>Porcentaje del total (opcional)</span><input type="number" min="1" max="100" step="0.1" id="${cgId(tipo,'PctTotal')}" value="${escapeAttr(f.pctTotal)}" placeholder="Ej: 60 si la factura es compartida"></label>`:''}
+        ${cfg.pctTotal?`<div class="cg-field cg-marca-detalle cg-centros-wrap" id="${cgId(tipo,'CentrosWrap')}" style="${f.pctTotal?'':'display:none'}">
+          <span>¿Con quién compartes la factura?</span>
+          <div class="cg-centros-chk">${COSTOS_CENTROS_IDS.map(c=>`<label><input type="checkbox" data-cgcentro="${c}" ${f.centrosCosto.includes(c)?'checked':''}> ${escapeHtml(COSTOS_CENTROS_LBL[c])}</label>`).join('')}</div>
+        </div>`:''}
         <label class="cg-field"><span>Documento (PDF / imagen)</span><input type="file" id="${cgId(tipo,'File')}" accept="application/pdf,image/png,image/jpeg,image/webp,image/gif"><small class="cg-file-name" id="${cgId(tipo,'FileName')}">${f.adjunto?escapeHtml(f.adjunto.filename):'opcional · máx 8 MB'}</small></label>
         <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="${cgId(tipo,'Add')}" type="button">+ Agregar</button></div>
       </div>
@@ -9585,7 +9597,17 @@ function wireCostos(tipo){
   valor.oninput=()=>f.valor=valor.value;
   if(cfg.pctTotal){
     const pctTotal=document.getElementById(cgId(tipo,'PctTotal'));
-    if(pctTotal) pctTotal.oninput=()=>f.pctTotal=pctTotal.value;
+    const centrosWrap=document.getElementById(cgId(tipo,'CentrosWrap'));
+    // Toggle por display, no re-render: si no, se pierde el foco del input cada
+    // vez que se escribe un dígito del porcentaje.
+    if(pctTotal) pctTotal.oninput=()=>{ f.pctTotal=pctTotal.value; if(centrosWrap) centrosWrap.style.display=f.pctTotal?'':'none'; };
+    document.querySelectorAll('#'+cfg.bodyId+' [data-cgcentro]').forEach(chk=>{
+      chk.onchange=()=>{
+        const cid=chk.dataset.cgcentro;
+        if(chk.checked){ if(!f.centrosCosto.includes(cid)) f.centrosCosto.push(cid); }
+        else f.centrosCosto=f.centrosCosto.filter(x=>x!==cid);
+      };
+    });
   }
   document.querySelectorAll('#'+cfg.bodyId+' [data-cgmarcachk]').forEach(chk=>{
     chk.onchange=()=>{ f.marcaSel[chk.dataset.cgmarcachk]=chk.checked; renderCostos(tipo); };
@@ -9610,7 +9632,7 @@ async function costosAgregar(tipo){
   const e=document.getElementById(cgId(tipo,'Err')); if(e){ e.textContent=''; e.classList.remove('show'); }
   const payload={ proveedor:f.proveedor, categoria:f.categoria, subcategoria:f.subcategoria, subnivel:f.subnivel, fecha:f.fecha, folio:f.folio, valor:cNum(f.valor), adjunto:f.adjunto||null, marca:f.marca };
   if(f.marca==='algunas') payload.marcaDetalle=['kairos','banny','firulais'].filter(m=>f.marcaSel[m]).map(m=>({marca:m,pct:Number(f.marcaPct[m])||0}));
-  if(cfg.pctTotal && f.pctTotal) payload.pctTotal=Number(f.pctTotal);
+  if(cfg.pctTotal && f.pctTotal){ payload.pctTotal=Number(f.pctTotal); if(f.centrosCosto.length) payload.centrosCosto=f.centrosCosto.slice(); }
   if(!payload.proveedor||payload.proveedor==='__nuevo__') return costosShowErr(tipo,'Elige un proveedor.');
   if(!payload.categoria) return costosShowErr(tipo,'Elige una categoría.');
   const subMap=(costosData[tipo]&&costosData[tipo].subcategorias)||{};

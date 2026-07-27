@@ -3407,6 +3407,17 @@ const COSTOS_TIPOS = ['costo', 'gasto'];
 // varias, con % de reparto) y así medir desempeño por marca a futuro.
 const COSTOS_MARCAS = ['kairos', 'banny', 'firulais'];
 const COSTOS_MARCA_VALORES = [...COSTOS_MARCAS, 'todas', 'algunas'];
+// Centros de costo con los que se puede compartir una factura de Gasto (ej. un
+// proveedor emite una sola factura que se reparte entre distintos locales). Es
+// puramente informativo/trazable: el % que efectivamente cuenta para Zorbo ya
+// lo da "pctTotal" (costosValorEfectivo); esto solo registra CON QUIÉN se
+// comparte el resto, no vuelve a repartir el monto.
+const COSTOS_CENTROS_COSTO = [
+  { id: 'garden_santiago', label: 'Kairos Beer Garden Santiago' },
+  { id: 'badass_parque_arauco', label: 'Kairos Badass Parque Arauco' },
+  { id: 'kairos_brewing', label: 'Kairos Brewing' },
+];
+const COSTOS_CENTRO_COSTO_IDS = COSTOS_CENTROS_COSTO.map(c => c.id);
 // Proveedores iniciales (semilla). Se pueden agregar más desde el panel.
 const COSTOS_PROVEEDORES_SEED = [
   'Embotelladora Andina', 'Navarro y Cía. SpA', 'Navarro y Cía. SpA (Insumo de Oasis)', 'Ariscorp SpA',
@@ -3589,6 +3600,20 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
     if (!Number.isFinite(p) || p <= 0 || p > 100) return res.status(400).json({ error: 'El porcentaje del total debe ser entre 1 y 100.' });
     pctTotal = Math.round(p * 10) / 10;
   }
+  // Con quién se comparte la factura (solo tiene sentido si hay pctTotal): lista
+  // de centros de costo, sin duplicados. Opcional incluso con pctTotal seteado —
+  // no todos van a querer registrar el detalle.
+  let centrosCosto = null;
+  if (pctTotal != null && Array.isArray(b.centrosCosto)) {
+    const seen = new Set();
+    centrosCosto = [];
+    for (const raw of b.centrosCosto) {
+      const idc = costosStr(raw, 30);
+      if (!COSTOS_CENTRO_COSTO_IDS.includes(idc) || seen.has(idc)) continue;
+      seen.add(idc); centrosCosto.push(idc);
+    }
+    if (!centrosCosto.length) centrosCosto = null;
+  }
   // Adjunto opcional (factura/documento) en base64 → se guarda en UPLOADS_DIR.
   let adjunto = null;
   const adj = b.adjunto;
@@ -3604,7 +3629,7 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
   const data = costosLoad();
   // Si el proveedor no está creado, lo crea al vuelo (viene de "crear nuevo").
   if (!data.proveedores.some(p => p.nombre === proveedor)) data.proveedores.push({ id: costosNewId('prov'), nombre: proveedor });
-  const entrada = { id: costosNewId('cg'), proveedor, categoria, subcategoria, subnivel, fecha, folio, valor, adjunto, marca, marcaDetalle, pctTotal };
+  const entrada = { id: costosNewId('cg'), proveedor, categoria, subcategoria, subnivel, fecha, folio, valor, adjunto, marca, marcaDetalle, pctTotal, centrosCosto };
   data.entradas.push(entrada); costosSave(data);
   res.json({ ok: true, entrada });
 });
