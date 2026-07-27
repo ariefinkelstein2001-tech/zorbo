@@ -8249,6 +8249,19 @@ function ciKiloHintText(unidad, real){
   if(unidad==='mililitro') return '≈ '+cMoney(Math.round((Number(real)||0)*1000))+'/L';
   return '';
 }
+// Precio real SIN redondear (para el hint de kilo/litro, que si no arrastra el
+// error de redondeo del precio por gramo/ml y muestra un equivalente impreciso).
+function ciRawPerUnit(i, barra){
+  if(barra){
+    const netoIla=(Number(i.precioNeto)||0)*(1+(Number(i.ila)||0)/100)+(Number(i.despacho)||0);
+    const vol=Number(i.volumen);
+    return (vol>0) ? netoIla/vol : netoIla;
+  }
+  const fmt=Number(i.formato); const pn=Number(i.precioNeto)||0;
+  const base=(fmt>0) ? pn/fmt : pn;
+  const rd=Number(i.rendimiento);
+  return (rd>0 && rd<=1) ? base/rd : base;
+}
 // Conversión proporcional entre unidades emparentadas (litro/mililitro,
 // kilogramo/gramo). Permite cargar una línea de receta en una unidad distinta
 // a la unidad base del insumo/RB referenciado, sin perder precisión de precio.
@@ -8397,7 +8410,7 @@ function renderCosteoInsumos(){
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:78px" data-f="despacho" value="${i.despacho||''}" placeholder="0"></td>
       <td class="dist-num" data-netoila>${cMoney((Number(i.precioNeto)||0)*(1+(Number(i.ila)||0)/100)+(Number(i.despacho)||0))}</td>
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:55px" data-f="volumen" value="${i.volumen||''}" placeholder="1"> <select class="ci-inp" data-f="volUnidad" style="width:48px;font-size:.68rem;padding:.2rem"><option value="litro" ${i.unidad!=='mililitro'?'selected':''}>L</option><option value="mililitro" ${i.unidad==='mililitro'?'selected':''}>ml</option></select></td>
-      <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b><div class="ci-kilohint" data-kilohint>${ciKiloHintText(i.unidad,i.precioReal)}</div></td>
+      <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b><div class="ci-kilohint" data-kilohint>${ciKiloHintText(i.unidad,ciRawPerUnit(i,true))}</div></td>
       <td><button class="pv-del" data-idel="${i.id}">✕</button> <span class="dist-status" data-ist></span></td>
     </tr>` : `
     <tr data-iid="${i.id}">
@@ -8406,7 +8419,7 @@ function renderCosteoInsumos(){
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:60px" data-f="formato" value="${i.formato||''}" placeholder="1"></td>
       <td><select class="ci-inp" data-f="unidad">${C_UNITS(i.unidad)}</select></td>
       <td class="dist-num"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:70px" data-f="rendimiento" value="${i.rendimiento||''}" placeholder="—"></td>
-      <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b><div class="ci-kilohint" data-kilohint>${ciKiloHintText(i.unidad, i.precioReal)}</div></td>
+      <td class="dist-num"><b data-real>${cMoney(i.precioReal)}</b><div class="ci-kilohint" data-kilohint>${ciKiloHintText(i.unidad,ciRawPerUnit(i,false))}</div></td>
       <td><button class="pv-del" data-idel="${i.id}">✕</button> <span class="dist-status" data-ist></span></td>
     </tr>`).join('');
   const cols = barra ? 8 : 7;
@@ -8494,12 +8507,13 @@ async function saveInsumo(id){
   const st=tr.querySelector('[data-ist]'); st.className='dist-status'; st.textContent='…';
   const barra=isBarra(); const pn=cNum(g('precioNeto')); const ins=costeoData.insumos.find(x=>x.id===id);
   let real, payload, netoIla, ila, volU;
+  let rawReal;
   if(barra){
-    ila=cNum(g('ila')); const desp=cNum(g('despacho')); const vol=cNum(g('volumen')); netoIla=pn*(1+ila/100)+desp; real=(vol>0)?Math.round(netoIla/vol):Math.round(netoIla);
+    ila=cNum(g('ila')); const desp=cNum(g('despacho')); const vol=cNum(g('volumen')); netoIla=pn*(1+ila/100)+desp; rawReal=(vol>0)?netoIla/vol:netoIla; real=Math.round(rawReal);
     volU=g('volUnidad')||(ins?ins.unidad:'litro');
     payload={descripcion:g('descripcion'),precioNeto:pn,ila:ila,despacho:desp,volumen:vol,unidad:volU};
   } else {
-    const rd=cNum(g('rendimiento')); const fmt=cNum(g('formato')); const base=(fmt>0)?pn/fmt:pn; real=(rd>0&&rd<=1)?Math.round(base/rd):Math.round(base);
+    const rd=cNum(g('rendimiento')); const fmt=cNum(g('formato')); const base=(fmt>0)?pn/fmt:pn; rawReal=(rd>0&&rd<=1)?base/rd:base; real=Math.round(rawReal);
     payload={descripcion:g('descripcion'),precioNeto:pn,formato:fmt,unidad:g('unidad'),rendimiento:rd};
   }
   try{
@@ -8507,8 +8521,8 @@ async function saveInsumo(id){
     if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
     tr.querySelector('[data-real]').textContent=cMoney(real);
     const kh=tr.querySelector('[data-kilohint]');
-    if(barra){ const ni=tr.querySelector('[data-netoila]'); if(ni) ni.textContent=cMoney(netoIla); if(kh) kh.textContent=ciKiloHintText(volU, real); }
-    else if(kh) kh.textContent=ciKiloHintText(g('unidad'), real);
+    if(barra){ const ni=tr.querySelector('[data-netoila]'); if(ni) ni.textContent=cMoney(netoIla); if(kh) kh.textContent=ciKiloHintText(volU, rawReal); }
+    else if(kh) kh.textContent=ciKiloHintText(g('unidad'), rawReal);
     if(ins){ins.precioNeto=pn;ins.descripcion=g('descripcion');ins.precioReal=real; if(barra){ins.volumen=cNum(g('volumen'))||null;ins.ila=ila;ins.despacho=cNum(g('despacho'))||0;ins.unidad=volU;} else {const rd=cNum(g('rendimiento'));ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');const fmt=cNum(g('formato'));ins.formato=(fmt>0)?fmt:null;}}
     st.className='dist-status ok'; st.textContent='✓'; setTimeout(()=>{st.textContent='';},1400);
   }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
