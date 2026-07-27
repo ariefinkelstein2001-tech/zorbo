@@ -7345,14 +7345,6 @@
         "volumen": null
       },
       {
-        "id": "17ce45a2-4aeb-4730-8550-004782e2dcab",
-        "descripcion": "RB TARTARA",
-        "precioNeto": 5505.75,
-        "unidad": "unidad",
-        "rendimiento": null,
-        "volumen": null
-      },
-      {
         "id": "7b2fd4c0-a56d-4e3f-9134-77dab331055c",
         "descripcion": "RB TARE",
         "precioNeto": 1323.35,
@@ -10333,7 +10325,7 @@
           },
           {
             "refType": "rb",
-            "refId": "6d690839-1b62-44fe-9cd5-555fcc801ff5",
+            "refId": "a8262eb4-2d25-4e44-8cde-253a6496e3a5",
             "cantidad": 0.015
           },
           {
@@ -10461,7 +10453,7 @@
           {
             "refType": "rb",
             "refId": "bc9e768a-0af7-4d12-9565-71f3b68f73d3",
-            "cantidad": 0.08
+            "cantidad": 0.12
           },
           {
             "refType": "rb",
@@ -10547,8 +10539,8 @@
             "cantidad": 0.015
           },
           {
-            "refType": "insumo",
-            "refId": "17ce45a2-4aeb-4730-8550-004782e2dcab",
+            "refType": "rb",
+            "refId": "27ca5ff0-ab3a-4b64-b64b-f67d84ae9fba",
             "cantidad": 0.04
           },
           {
@@ -10655,7 +10647,7 @@
           {
             "refType": "rb",
             "refId": "bc9e768a-0af7-4d12-9565-71f3b68f73d3",
-            "cantidad": 0.1
+            "cantidad": 0.08
           },
           {
             "refType": "rb",
@@ -10680,7 +10672,7 @@
           {
             "refType": "insumo",
             "refId": "3251548b-01cb-488f-b426-13189314c0ac",
-            "cantidad": 0.05
+            "cantidad": 0.005
           }
         ],
         "precioReal": 16470
@@ -10708,7 +10700,7 @@
           {
             "refType": "rb",
             "refId": "bc9e768a-0af7-4d12-9565-71f3b68f73d3",
-            "cantidad": 0.15
+            "cantidad": 0.16
           },
           {
             "refType": "rb",
@@ -10889,7 +10881,13 @@
         "nombre": "EDAMAMES",
         "categoria": "Para Empezar",
         "margenPct": 30,
-        "lineas": [],
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "8257bc8e-c044-49a4-b4a2-7d944be20507",
+            "cantidad": 0.5
+          }
+        ],
         "precioReal": null
       },
       {
@@ -11038,42 +11036,12 @@
           {
             "refType": "rb",
             "refId": "50c057f9-4fe8-4a20-898d-8794c99079d8",
-            "cantidad": 0.005
+            "cantidad": 0.015
           },
           {
             "refType": "insumo",
             "refId": "b9c000b7-2096-4b29-b8d0-7710f27701cd",
             "cantidad": 0.15
-          },
-          {
-            "refType": "insumo",
-            "refId": "68c1a123-62a5-49e1-85f8-743133c53e01",
-            "cantidad": 0.055
-          },
-          {
-            "refType": "insumo",
-            "refId": "b5acf483-b82f-419c-a418-71b8ff34259d",
-            "cantidad": 0.03
-          },
-          {
-            "refType": "insumo",
-            "refId": "5ef4f6a5-6b81-4281-bf11-5edc685fc332",
-            "cantidad": 0.03
-          },
-          {
-            "refType": "rb",
-            "refId": "930be790-8b9f-4560-b817-b5f49061223a",
-            "cantidad": 0.04
-          },
-          {
-            "refType": "insumo",
-            "refId": "3d09b50d-3c11-4351-aadf-598be25c231a",
-            "cantidad": 0.1
-          },
-          {
-            "refType": "insumo",
-            "refId": "7a0f9351-f8c9-4bbf-809a-37b78c4e547e",
-            "cantidad": 0.05
           }
         ],
         "precioReal": 18470
@@ -11702,6 +11670,40 @@
             "refType": "insumo",
             "refId": "6cafd003-2dff-4393-a624-33551c9c7527",
             "cantidad": 0.05
+          }
+        ],
+        "precioReal": null
+      },
+      {
+        "id": "ca2bfb12-4ea1-43d1-87d3-f80444b47337",
+        "nombre": "Ensalada de Camarón",
+        "categoria": "Ensaladas",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "68c1a123-62a5-49e1-85f8-743133c53e01",
+            "cantidad": 0.2
+          },
+          {
+            "refType": "insumo",
+            "refId": "b5acf483-b82f-419c-a418-71b8ff34259d",
+            "cantidad": 0.03
+          },
+          {
+            "refType": "insumo",
+            "refId": "5ef4f6a5-6b81-4281-bf11-5edc685fc332",
+            "cantidad": 0.03
+          },
+          {
+            "refType": "rb",
+            "refId": "930be790-8b9f-4560-b817-b5f49061223a",
+            "cantidad": 0.1
+          },
+          {
+            "refType": "insumo",
+            "refId": "7a0f9351-f8c9-4bbf-809a-37b78c4e547e",
+            "cantidad": 0.08
           }
         ],
         "precioReal": null
