@@ -16,4 +16,8 @@ prompts/estado-historico-cd.json
 prompts/sku-config.json
 prompts/sku-listas.json
 prompts/sku-menu.json
+prompts/customer-notes.json
+prompts/pyxis-hospitality.json
+prompts/retail-ventas.json
+prompts/retail-templates.json
 public/uploads/

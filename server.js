@@ -1271,7 +1271,7 @@ const ORDERS_QUERY = `query($cursor: String) {
             quantity
             originalTotalSet { shopMoney { amount } }
             customAttributes { key value }
-            variant { id title price image { url } }
+            variant { id title price sku image { url } }
             product { id title vendor tags }
           } }
         }
@@ -1343,6 +1343,7 @@ async function loadOrders(force = false){
             // variant ACTUAL, así la reposición refleja el precio de hoy.
             variantId: le.node.variant ? stripGid(le.node.variant.id, 'ProductVariant') : null,
             variantTitle: le.node.variant?.title || '',
+            variantSku: le.node.variant?.sku || '',
             unitPrice: parseFloat(le.node.variant?.price || 0),
             image: le.node.variant?.image?.url || null,
           })),
@@ -2262,6 +2263,31 @@ function skuVariantSuffix(label, taken){
   while (taken.has(out)) { out = base + n; n++; }
   taken.add(out);
   return out;
+}
+
+// Litros por UNIDAD DE VENTA de un formato de distribución (Fase 4, Sell
+// In/Out). Solo convierte cuando el volumen es inequívoco a partir de la
+// propia etiqueta (número + L/cc/ml, o cantidad de latas/pack/pallet). Usa
+// el mismo estándar de lata (0.473 L) que YA usa cdLitrosUnidad para litros
+// reales en Estado de Resultado (server.js, módulo CD) — no es un número
+// nuevo inventado acá, es la convención ya vigente en la app. Si el formato
+// no trae con qué convertir (ej. "Unidad", "Merch", o un formato nuevo sin
+// número), devuelve null — nunca un litraje inventado.
+const SKU_LATA_L = 0.473;
+function skuFormatoLitros(label){
+  const t = String(label || '').toLowerCase();
+  const litM = t.match(/(\d+(?:[.,]\d+)?)\s*l(?:itros?)?\b/);
+  if (litM) return parseFloat(litM[1].replace(',', '.'));
+  const ccM = t.match(/(\d+)\s*(?:cm3|cc|ml)\b/);
+  const unitL = ccM ? parseInt(ccM[1], 10) / 1000 : null;
+  const palletM = t.match(/pallet\s*(\d+)\s*cajas?\s*x\s*(\d+)/);
+  if (palletM) return Math.round(parseInt(palletM[1], 10) * parseInt(palletM[2], 10) * (unitL ?? SKU_LATA_L) * 1000) / 1000;
+  const cajaM = t.match(/caja\s*(\d+)\s*latas?/) || t.match(/(\d+)\s*latas?/);
+  if (cajaM) return Math.round(parseInt(cajaM[1], 10) * (unitL ?? SKU_LATA_L) * 1000) / 1000;
+  const packM = t.match(/pack\s*(\d+)/);
+  if (packM) return Math.round(parseInt(packM[1], 10) * (unitL ?? SKU_LATA_L) * 1000) / 1000;
+  if (unitL != null) return unitL;
+  return null;
 }
 
 // ─── SKU de carta (Ruta Menú): platos/tragos de Kairos Garden y Badass ──────
@@ -6745,6 +6771,123 @@ app.post('/admin/pyxis/cervezas/resumen/generar', requireAdmin, async (req, res)
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// FASE 4 · Sell Out Hospitality (Kairos Garden / Kairos Badass), vía Pyxis.
+// La API de Pyxis entrega la misma planilla de ventas por LOCAL con un campo
+// `familia` (categoría) por fila — NO viene pre-separada en Comida/Barra, hay
+// que armarla. Como no hay forma de adivinar sin inventar (los nombres reales
+// de `nombreLocal`/`familia` los define Pyxis, no nosotros), el mapeo queda
+// 100% configurable desde el panel: qué locales son Hospitality y qué familia
+// cuenta como Comida vs Barra. Sin configurar, honestamente "Sin datos" (no
+// hay locales/familias por defecto adivinados).
+// ─────────────────────────────────────────────────────────────────────────────
+const PYXIS_HOSP_FILE = join(PROMPTS_EFFECTIVE_DIR, 'pyxis-hospitality.json');
+function pyxisHospCfgLoad(){
+  try {
+    if (existsSync(PYXIS_HOSP_FILE)) {
+      const p = JSON.parse(readFileSync(PYXIS_HOSP_FILE, 'utf-8'));
+      return {
+        locales: Array.isArray(p.locales) ? p.locales : [],
+        familiaComida: Array.isArray(p.familiaComida) ? p.familiaComida : [],
+        familiaBarra: Array.isArray(p.familiaBarra) ? p.familiaBarra : [],
+      };
+    }
+  } catch (e) { console.warn('pyxis hosp cfg:', e.message); }
+  return { locales: [], familiaComida: [], familiaBarra: [] };
+}
+function pyxisHospCfgSave(o){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(PYXIS_HOSP_FILE, JSON.stringify(o, null, 2)); }
+
+async function pyxisHospitalidadResumen(grupo, opts){
+  opts = opts || {};
+  const rows = await pyxisVentasRows(grupo, opts.force);
+  const cfg = pyxisHospCfgLoad();
+  const num = x => { const n = Number(x); return Number.isFinite(n) ? n : 0; };
+  const norm = s => String(s == null ? '' : s).trim();
+  // Opciones de configuración: TODOS los locales/familias reales que trae
+  // Pyxis para este grupo (para que la config se llene eligiendo de una
+  // lista real, nunca escribiendo a mano un nombre adivinado).
+  const localesDisponibles = [...new Set(rows.map(r => norm(r.nombreLocal)).filter(Boolean))].sort();
+  const familiasDisponibles = [...new Set(rows.map(r => norm(r.familia)).filter(Boolean))].sort();
+
+  if (!cfg.locales.length) {
+    return {
+      available: false,
+      reason: 'Sin datos: no hay locales de Hospitality configurados todavía. Elegí en ⚙️ cuáles de estos locales de Pyxis son Kairos Garden/Badass.',
+      config: cfg, localesDisponibles, familiasDisponibles,
+    };
+  }
+  const localesSet = new Set(cfg.locales.map(norm));
+  const comidaSet = new Set(cfg.familiaComida.map(norm));
+  const barraSet = new Set(cfg.familiaBarra.map(norm));
+
+  const prodByTipo = { comida: new Map(), barra: new Map() }; // nombre → {total, cant, local}
+  const porLocal = new Map(); // local → {comida, barra}
+  const sinClasificar = new Map(); // familia no mapeada → {total, filas}
+  let totalComida = 0, totalBarra = 0, cantComida = 0, cantBarra = 0;
+
+  for (const r of rows) {
+    const local = norm(r.nombreLocal);
+    if (!localesSet.has(local)) continue;
+    const fam = norm(r.familia);
+    const tipo = comidaSet.has(fam) ? 'comida' : (barraSet.has(fam) ? 'barra' : null);
+    const total = num(r.p1) + num(r.p2) + num(r.p3);
+    const cant = num(r.q1) + num(r.q2) + num(r.q3);
+    if (!tipo) {
+      const s = sinClasificar.get(fam) || { total: 0, filas: 0 };
+      s.total += total; s.filas++; sinClasificar.set(fam, s);
+      continue;
+    }
+    const nombre = norm(r.nombreProducto) || '(sin nombre)';
+    const key = nombre;
+    const m = prodByTipo[tipo];
+    const p = m.get(key) || { nombre, total: 0, cant: 0 };
+    p.total += total; p.cant += cant; m.set(key, p);
+    const lt = porLocal.get(local) || { comida: 0, barra: 0 };
+    lt[tipo] += total; porLocal.set(local, lt);
+    if (tipo === 'comida') { totalComida += total; cantComida += cant; }
+    else { totalBarra += total; cantBarra += cant; }
+  }
+
+  const topOf = (m) => [...m.values()].map(p => ({ nombre: p.nombre, total: Math.round(p.total), cant: p.cant }))
+    .sort((a, b) => b.total - a.total).slice(0, 10);
+
+  return {
+    available: true,
+    grupo, meses: pyxisMesesLabels(), generadoEn: new Date().toISOString(),
+    config: cfg, localesDisponibles, familiasDisponibles,
+    totales: { comida: Math.round(totalComida), barra: Math.round(totalBarra), cantComida, cantBarra, total: Math.round(totalComida + totalBarra) },
+    topComida: topOf(prodByTipo.comida), topBarra: topOf(prodByTipo.barra),
+    porLocal: [...porLocal.entries()].map(([local, v]) => ({ local, comida: Math.round(v.comida), barra: Math.round(v.barra) })),
+    sinClasificar: [...sinClasificar.entries()].map(([familia, v]) => ({ familia, total: Math.round(v.total), filas: v.filas })).sort((a, b) => b.total - a.total),
+  };
+}
+app.get('/admin/pyxis/hospitalidad', requireAdmin, async (req, res) => {
+  try { const grupo = String(req.query.grupo || 2).replace(/[^0-9]/g, '') || '2'; res.json(await pyxisHospitalidadResumen(grupo, { force: req.query.force === '1' })); }
+  catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
+app.get('/admin/pyxis/hospitalidad/config', requireAdmin, async (req, res) => {
+  try {
+    const grupo = String(req.query.grupo || 2).replace(/[^0-9]/g, '') || '2';
+    const rows = await pyxisVentasRows(grupo, req.query.force === '1');
+    const norm = s => String(s == null ? '' : s).trim();
+    res.json({
+      config: pyxisHospCfgLoad(),
+      localesDisponibles: [...new Set(rows.map(r => norm(r.nombreLocal)).filter(Boolean))].sort(),
+      familiasDisponibles: [...new Set(rows.map(r => norm(r.familia)).filter(Boolean))].sort(),
+    });
+  } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
+app.put('/admin/pyxis/hospitalidad/config', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const cur = pyxisHospCfgLoad();
+  const arr = (v, max) => Array.isArray(v) ? v.map(s => String(s).trim().slice(0, 120)).filter(Boolean).slice(0, max) : null;
+  const locales = arr(b.locales, 40); if (locales) cur.locales = locales;
+  const familiaComida = arr(b.familiaComida, 20); if (familiaComida) cur.familiaComida = familiaComida;
+  const familiaBarra = arr(b.familiaBarra, 20); if (familiaBarra) cur.familiaBarra = familiaBarra;
+  pyxisHospCfgSave(cur);
+  res.json({ ok: true, config: cur });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Pyxis · Documentos (facturas de compra de los locales HORECA)
 // Sirve para ver a qué precio COMPRAN los locales las bebidas/licores de la
 // competencia (ron, whisky, gin, cerveza…) y tener un precio de referencia.
@@ -8698,6 +8841,451 @@ app.get('/admin/analytics/sales', requireAdmin, async (req, res) => {  const r =
   } catch (e) {
     res.status(500).json({ error: 'Error en analítica de ventas: ' + e.message });
   }
+});
+
+// ─── FASE 4: Sell In (K-BROS → canales) ─────────────────────────────────────
+// SELL IN = lo que K-BROS le vende A los canales (Horeca/Retail/Hospitality).
+// Reutiliza EXACTAMENTE la misma fuente que /admin/analytics/sales (venta
+// mayorista de Shopify vía isMayoristaLine) — no crea un segundo cálculo
+// paralelo. La diferencia es el CORTE: acá se agrupa por productId→skuCode
+// (nunca por nombre de fantasía) y se atribuye canal por cliente/producto.
+const canalDeCliente = (customerId, notes) => {
+  const chans = customerId ? notes[customerId]?.channels : null;
+  return (Array.isArray(chans) && chans.length) ? chans[0] : null;
+};
+const canalDeProductoSellin = (productId, extras) => {
+  const ex = productId ? extras.items[String(productId)] : null;
+  const chans = (Array.isArray(ex?.channels) ? ex.channels : []).filter(c => SELLIN_CANALES.includes(c));
+  return chans.length === 1 ? chans[0] : null;
+};
+// Etiqueta de formato de la línea comprada: matchea el SKU de la variante
+// (subCodigo, Fase 3) contra variantesSku del producto — es matcheo por
+// código, no por texto. Si el producto es previo a Fase 3 (sin variantesSku),
+// usa el nombre de la variante como mejor esfuerzo (nunca inventa litros).
+function sellinFormatoLabel(li, extras){
+  const ex = li.productId ? extras.items[String(li.productId)] : null;
+  const variantesSku = Array.isArray(ex?.variantesSku) ? ex.variantesSku : [];
+  if (li.variantSku) {
+    const m = variantesSku.find(v => v.subCodigo === li.variantSku);
+    if (m) return m.formatoLabel;
+  }
+  if (li.variantTitle) {
+    const parts = String(li.variantTitle).split('·').map(s => s.trim()).filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : li.variantTitle;
+  }
+  return null;
+}
+const SELLIN_MARCAS = ['todas', 'kairos', 'firulais', 'banny'];
+app.get('/admin/sellin', requireAdmin, async (req, res) => {
+  const r = rangeFor(String(req.query.range || '30d'));
+  const marca = SELLIN_MARCAS.includes(String(req.query.marca || 'todas')) ? String(req.query.marca || 'todas') : 'todas';
+  const result = await loadOrders(String(req.query.refresh || '') === '1');
+  if (!result.available) return res.json({ available: false, reason: result.reason, range: r });
+  try {
+    const orders = result.orders.filter(o => {
+      const t = new Date(o.createdAt).getTime();
+      return t >= r.from && t <= r.to;
+    });
+    const extras = loadProductExtras();
+    const customBrands = getCustomBrands();
+    const notes = loadCustomerNotes();
+
+    // Ancla de reconciliación: MISMO total que /admin/analytics/sales para el
+    // mismo rango (todas las marcas, todas las líneas mayoristas) — sirve
+    // para el QA "Sell In debe cuadrar con la fuente mayorista existente".
+    let checkRevenue = 0, checkOrders = 0;
+    for (const o of orders) {
+      const mayoLines = (o.lineItems || []).filter(isMayoristaLine);
+      if (!mayoLines.length) continue;
+      checkOrders++;
+      for (const li of mayoLines) checkRevenue += li.amount;
+    }
+
+    const porCanal = {
+      horeca:      { plata: 0, litros: 0, litrosSinDatoQty: 0, lineas: 0 },
+      retail:      { plata: 0, litros: 0, litrosSinDatoQty: 0, lineas: 0 },
+      hospitality: { plata: 0, litros: 0, litrosSinDatoQty: 0, lineas: 0 },
+      sin_canal:   { plata: 0, litros: 0, litrosSinDatoQty: 0, lineas: 0 },
+    };
+    const byCliente = new Map();  // customerId → { id, name, plata, litros, canal }
+    const byProducto = new Map(); // productId  → { id, skuCode, title, plata, litros, canal, marca }
+    let filtPlata = 0, filtLitros = 0, filtLitrosSinDatoQty = 0, filtUnidades = 0;
+
+    for (const o of orders) {
+      const mayoLines = (o.lineItems || []).filter(isMayoristaLine);
+      if (!mayoLines.length) continue;
+      const custName = [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim()
+        || o.shippingAddress?.company || o.customerEmail || '(cliente sin nombre)';
+      for (const li of mayoLines) {
+        const brandKey = brandFromProduct({ vendor: li.vendor, title: li.title, tags: li.tags }, customBrands);
+        if (marca !== 'todas' && brandKey !== marca) continue;
+
+        const canal = canalDeCliente(o.customerId, notes) || canalDeProductoSellin(li.productId, extras) || 'sin_canal';
+        const label = sellinFormatoLabel(li, extras);
+        const litrosUnidad = label != null ? skuFormatoLitros(label) : null;
+        const litrosLinea = litrosUnidad != null ? Math.round(litrosUnidad * li.qty * 1000) / 1000 : 0;
+        if (litrosUnidad == null) filtLitrosSinDatoQty += li.qty;
+
+        filtPlata += li.amount; filtLitros += litrosLinea; filtUnidades += li.qty;
+
+        const pc = porCanal[canal] || porCanal.sin_canal;
+        pc.plata += li.amount; pc.litros += litrosLinea; pc.lineas++;
+        if (litrosUnidad == null) pc.litrosSinDatoQty += li.qty;
+
+        const cid = o.customerId || ('sin-id:' + custName);
+        if (!byCliente.has(cid)) byCliente.set(cid, { id: o.customerId, name: custName, plata: 0, litros: 0, canal });
+        const bc = byCliente.get(cid);
+        bc.plata += li.amount; bc.litros += litrosLinea;
+
+        const pid = li.productId || ('sin-id:' + li.title);
+        const ex = li.productId ? extras.items[String(li.productId)] : null;
+        if (!byProducto.has(pid)) byProducto.set(pid, {
+          id: li.productId, skuCode: ex?.skuCode || null, title: li.title, plata: 0, litros: 0, canal, marca: brandKey,
+        });
+        const bp = byProducto.get(pid);
+        bp.plata += li.amount; bp.litros += litrosLinea;
+      }
+    }
+
+    for (const k of Object.keys(porCanal)) {
+      porCanal[k].plata = Math.round(porCanal[k].plata);
+      porCanal[k].litros = Math.round(porCanal[k].litros * 1000) / 1000;
+      porCanal[k].available = porCanal[k].lineas > 0;
+    }
+    porCanal.retail.reason = porCanal.retail.available ? null
+      : 'Sin datos: ningún cliente/producto mayorista de Shopify tiene canal Retail asignado en este período. Si Retail se abastece por otra vía (ej. Walmart, no facturado por Shopify), cárgalo en el Importador de Retail (Sell Out).';
+    porCanal.horeca.reason = porCanal.horeca.available ? null : 'Sin datos en este período.';
+    porCanal.hospitality.reason = porCanal.hospitality.available ? null : 'Sin datos en este período.';
+    porCanal.sin_canal.reason = porCanal.sin_canal.available ? 'Ventas mayoristas sin canal asignado al cliente ni al producto — asigná el canal para que salgan de este cajón.' : null;
+
+    const topClientes = [...byCliente.values()]
+      .map(x => ({ ...x, plata: Math.round(x.plata), litros: Math.round(x.litros * 1000) / 1000 }))
+      .sort((a, b) => b.plata - a.plata).slice(0, 10);
+    const topProductos = [...byProducto.values()]
+      .map(x => ({ ...x, plata: Math.round(x.plata), litros: Math.round(x.litros * 1000) / 1000 }))
+      .sort((a, b) => b.plata - a.plata).slice(0, 10);
+
+    res.json({
+      available: true, range: r, marca, marcas: SELLIN_MARCAS,
+      summary: {
+        revenue: Math.round(filtPlata),
+        litros: Math.round(filtLitros * 1000) / 1000,
+        unidades: filtUnidades,
+        litrosSinDatoQty: filtLitrosSinDatoQty,
+        litrosCobertura: filtUnidades > 0 ? Math.round((1 - filtLitrosSinDatoQty / filtUnidades) * 1000) / 1000 : null,
+      },
+      checkTotalMayorista: { revenue: Math.round(checkRevenue), orders: checkOrders },
+      porCanal,
+      topClientes, topProductos,
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Error en Sell In: ' + e.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FASE 4 · Importador flexible de RETAIL (Sell Out)
+// Retail Link no factura por Shopify y el formato del archivo varía por
+// retailer. Flujo: subir CSV → mapear columnas → previsualizar → confirmar.
+// El mapeo se guarda como plantilla reutilizable por retailer. Solo CSV por
+// ahora (XLSX requeriría una librería con vulnerabilidades sin parche
+// conocido — se evaluará más adelante); mientras tanto exportar el Excel del
+// retailer como CSV es un paso trivial. El match producto↔SKU-código es
+// mejor esfuerzo por nombre normalizado; lo que no matchea queda marcado
+// "sin mapear", nunca se descarta en silencio.
+// ─────────────────────────────────────────────────────────────────────────────
+const RETAIL_VENTAS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'retail-ventas.json');
+const RETAIL_TEMPLATES_FILE = join(PROMPTS_EFFECTIVE_DIR, 'retail-templates.json');
+function loadRetailVentas(){
+  try { if (existsSync(RETAIL_VENTAS_FILE)) { const p = JSON.parse(readFileSync(RETAIL_VENTAS_FILE, 'utf-8')); return { version: 1, uploads: Array.isArray(p.uploads) ? p.uploads : [] }; } }
+  catch (e) { console.warn('retail ventas load:', e.message); }
+  return { version: 1, uploads: [] };
+}
+function saveRetailVentas(d){ writeFileSync(RETAIL_VENTAS_FILE, JSON.stringify(d, null, 2)); }
+function loadRetailTemplates(){
+  try { if (existsSync(RETAIL_TEMPLATES_FILE)) { const p = JSON.parse(readFileSync(RETAIL_TEMPLATES_FILE, 'utf-8')); return { version: 1, templates: Array.isArray(p.templates) ? p.templates : [] }; } }
+  catch (e) { console.warn('retail templates load:', e.message); }
+  return { version: 1, templates: [] };
+}
+function saveRetailTemplates(d){ writeFileSync(RETAIL_TEMPLATES_FILE, JSON.stringify(d, null, 2)); }
+
+// Parser CSV nativo (sin dependencias): detecta delimitador (,/;/tab), soporta
+// campos entre comillas con comas/saltos de línea internos y comillas escapadas ("").
+function csvParse(text){
+  const raw = String(text || '').replace(/^﻿/, '');
+  const rowsRaw = [];
+  let cur = [], field = '', inQ = false;
+  let delim = null;
+  const headerLine = raw.slice(0, raw.search(/\r\n|\r|\n/) === -1 ? raw.length : raw.search(/\r\n|\r|\n/));
+  const counts = { ',': (headerLine.match(/,/g) || []).length, ';': (headerLine.match(/;/g) || []).length, '\t': (headerLine.match(/\t/g) || []).length };
+  delim = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+  if (!delim || counts[delim] === 0) delim = ',';
+  for (let i = 0; i < raw.length; i++) {
+    const c = raw[i];
+    if (inQ) {
+      if (c === '"') { if (raw[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += c;
+    } else if (c === '"') inQ = true;
+    else if (c === delim) { cur.push(field.trim()); field = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && raw[i + 1] === '\n') i++;
+      cur.push(field.trim()); field = '';
+      if (cur.length > 1 || cur[0] !== '') rowsRaw.push(cur);
+      cur = [];
+    } else field += c;
+  }
+  if (field !== '' || cur.length) { cur.push(field.trim()); if (cur.length > 1 || cur[0] !== '') rowsRaw.push(cur); }
+  if (!rowsRaw.length) return { headers: [], rows: [], delim };
+  const headers = rowsRaw[0];
+  const rows = rowsRaw.slice(1);
+  return { headers, rows, delim };
+}
+function retailParseNumero(s){
+  let t = String(s == null ? '' : s).trim();
+  if (!t) return null;
+  t = t.replace(/[^\d.,-]/g, '');
+  if (!t) return null;
+  const hasComma = t.includes(','), hasDot = t.includes('.');
+  if (hasComma && hasDot) t = t.lastIndexOf(',') > t.lastIndexOf('.') ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+  else if (hasComma) t = t.replace(',', '.');
+  const n = Number(t);
+  return Number.isFinite(n) ? n : null;
+}
+function retailParseFecha(s){
+  const t = String(s || '').trim();
+  if (!t) return null;
+  let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).toISOString();
+  m = t.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+  if (m) return new Date(Date.UTC(+m[3], +m[2] - 1, +m[1])).toISOString();
+  const d = new Date(t);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+// Índice del catálogo (título normalizado + SKU-código) para matchear filas
+// del archivo de Retail. Usa el catálogo real de Shopify + carta interna —
+// nunca inventa un match, solo lo marca cuando hay coincidencia clara.
+async function retailCatalogIndex(){
+  const all = (await loadProductsCache(false)) || [];
+  const extras = loadProductExtras();
+  const customBrands = getCustomBrands();
+  const byTitle = new Map(), byCode = new Map();
+  for (const p of all) {
+    const ex = extras.items[String(p.id)];
+    if (!ex || !ex.skuCode) continue;
+    const entry = { skuCode: ex.skuCode, marca: brandFromProduct(p, customBrands), title: p.title };
+    byTitle.set(cdNorm(p.title), entry);
+    byCode.set(ex.skuCode.toLowerCase(), entry);
+    for (const v of (Array.isArray(ex.variantesSku) ? ex.variantesSku : [])) {
+      byTitle.set(cdNorm(p.title + ' ' + v.formatoLabel), entry);
+    }
+  }
+  const menu = loadSkuMenu();
+  for (const it of Object.values(menu.items || {})) {
+    if (it.skuCode && it.titulo) byTitle.set(cdNorm(it.titulo), { skuCode: it.skuCode, marca: it.marca || null, title: it.titulo });
+  }
+  return { byTitle, byCode };
+}
+function retailMatchSku(nombreProducto, idx){
+  const n = cdNorm(nombreProducto);
+  if (!n) return null;
+  if (idx.byTitle.has(n)) return idx.byTitle.get(n);
+  const codeGuess = String(nombreProducto || '').trim().toLowerCase();
+  if (idx.byCode.has(codeGuess)) return idx.byCode.get(codeGuess);
+  const candidates = [...idx.byTitle.entries()].filter(([k]) => k && (k.includes(n) || n.includes(k)));
+  return candidates.length === 1 ? candidates[0][1] : null;
+}
+const RETAIL_CAMPOS = ['producto', 'unidades', 'plata', 'fecha', 'local'];
+const retailSlug = (s) => String(s || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+// Sube el CSV y devuelve encabezados + muestra, para mapear columnas antes
+// de confirmar. No persiste nada todavía.
+app.post('/admin/retail/preview', requireAdmin, (req, res) => {
+  const { csvText, retailer } = req.body || {};
+  if (!csvText || typeof csvText !== 'string') return res.status(400).json({ error: 'Falta el archivo (csvText).' });
+  if (csvText.length > 8_000_000) return res.status(413).json({ error: 'Archivo demasiado grande (máx ~8MB en CSV).' });
+  const { headers, rows, delim } = csvParse(csvText);
+  if (!headers.length) return res.status(400).json({ error: 'No se pudo leer el CSV (¿está vacío?).' });
+  const sample = rows.slice(0, 10).map(r => headers.reduce((o, h, i) => { o[h] = r[i] ?? ''; return o; }, {}));
+  const tpl = retailer ? loadRetailTemplates().templates.find(t => t.retailerSlug === retailSlug(retailer)) : null;
+  res.json({ headers, rowCount: rows.length, delim, sample, suggestedMapping: tpl ? tpl.mapping : null });
+});
+
+app.get('/admin/retail/templates', requireAdmin, (req, res) => {
+  res.json({ templates: loadRetailTemplates().templates, campos: RETAIL_CAMPOS });
+});
+
+// Confirma la importación: parsea TODO el archivo con el mapeo elegido,
+// matchea cada fila contra el catálogo (SKU-código) y persiste. Si el
+// retailer ya tiene plantilla y no se manda mapping, la reutiliza.
+app.post('/admin/retail/import', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const retailer = String(b.retailer || '').trim().slice(0, 80);
+  if (!retailer) return res.status(400).json({ error: 'Falta el nombre del retailer.' });
+  if (!b.csvText || typeof b.csvText !== 'string') return res.status(400).json({ error: 'Falta el archivo (csvText).' });
+  const retailerSlug = retailSlug(retailer);
+  const templates = loadRetailTemplates();
+  const existingTpl = templates.templates.find(t => t.retailerSlug === retailerSlug);
+  const mapping = (b.mapping && typeof b.mapping === 'object') ? b.mapping : (existingTpl ? existingTpl.mapping : null);
+  if (!mapping || !mapping.producto || !mapping.unidades || !mapping.plata) {
+    return res.status(400).json({ error: 'Falta mapear al menos producto, unidades y plata.' });
+  }
+  const { headers, rows: rawRows } = csvParse(b.csvText);
+  if (!headers.length) return res.status(400).json({ error: 'No se pudo leer el CSV.' });
+  for (const campo of ['producto', 'unidades', 'plata']) {
+    if (!headers.includes(mapping[campo])) return res.status(400).json({ error: `La columna mapeada para "${campo}" no existe en el archivo.` });
+  }
+  try {
+    const idx = await retailCatalogIndex();
+    const rows = [];
+    let sinMapearCount = 0, plataTotal = 0, unidadesTotal = 0;
+    for (const r of rawRows) {
+      const obj = headers.reduce((o, h, i) => { o[h] = r[i] ?? ''; return o; }, {});
+      const producto = String(obj[mapping.producto] || '').trim();
+      const unidades = retailParseNumero(obj[mapping.unidades]);
+      const plata = retailParseNumero(obj[mapping.plata]);
+      if (!producto && unidades == null && plata == null) continue; // fila vacía
+      const fecha = mapping.fecha ? retailParseFecha(obj[mapping.fecha]) : null;
+      const local = mapping.local ? String(obj[mapping.local] || '').trim() || null : null;
+      const match = retailMatchSku(producto, idx);
+      if (!match) sinMapearCount++;
+      plataTotal += plata || 0; unidadesTotal += unidades || 0;
+      rows.push({
+        producto, unidades: unidades ?? 0, plata: plata ?? 0, fecha, local,
+        skuCode: match ? match.skuCode : null, marca: match ? match.marca : null,
+        matched: !!match,
+      });
+    }
+    const now = new Date().toISOString();
+    const upload = {
+      id: 'ru_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      retailer, retailerSlug, filename: String(b.filename || '').slice(0, 200) || 'archivo.csv',
+      uploadedAt: now, mapping,
+      totals: { filas: rows.length, plata: Math.round(plataTotal), unidades: unidadesTotal, sinMapear: sinMapearCount, matched: rows.length - sinMapearCount },
+      rows,
+    };
+    const store = loadRetailVentas();
+    store.uploads.push(upload);
+    saveRetailVentas(store);
+    if (b.saveTemplate !== false) {
+      if (existingTpl) { existingTpl.mapping = mapping; existingTpl.updatedAt = now; }
+      else templates.templates.push({ id: 'rt_' + Date.now().toString(36), retailer, retailerSlug, mapping, createdAt: now, updatedAt: now });
+      saveRetailTemplates(templates);
+    }
+    res.json({
+      ok: true, uploadId: upload.id, totals: upload.totals,
+      sinMapear: rows.filter(r => !r.matched).map(r => r.producto).filter((v, i, a) => a.indexOf(v) === i).slice(0, 200),
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Error importando: ' + e.message });
+  }
+});
+
+app.get('/admin/retail/uploads', requireAdmin, (req, res) => {
+  const store = loadRetailVentas();
+  res.json({ uploads: store.uploads.map(u => ({ id: u.id, retailer: u.retailer, filename: u.filename, uploadedAt: u.uploadedAt, totals: u.totals })) });
+});
+app.delete('/admin/retail/uploads/:id', requireAdmin, (req, res) => {
+  const store = loadRetailVentas();
+  const before = store.uploads.length;
+  store.uploads = store.uploads.filter(u => u.id !== String(req.params.id));
+  if (store.uploads.length === before) return res.status(404).json({ error: 'Carga no encontrada.' });
+  saveRetailVentas(store);
+  res.json({ ok: true });
+});
+
+// Sell Out de Retail agregado desde TODAS las cargas — usado por /admin/sellout.
+// Si nunca se cargó un archivo, "Sin datos" honesto (nunca $0 inventado).
+function retailSelloutAgregado(range, marca){
+  const store = loadRetailVentas();
+  if (!store.uploads.length) return { available: false, reason: 'Sin datos: todavía no se ha cargado ningún archivo de Retail. Usá el Importador de Retail.' };
+  const byProducto = new Map(); let plata = 0, unidades = 0, sinFecha = 0, filas = 0;
+  for (const u of store.uploads) {
+    for (const row of u.rows) {
+      if (marca && marca !== 'todas' && row.marca !== marca) continue;
+      if (row.fecha) {
+        const t = new Date(row.fecha).getTime();
+        if (!(t >= range.from && t <= range.to)) continue;
+      } else {
+        sinFecha++; // sin fecha en el archivo: se incluye igual (mejor esfuerzo), pero se cuenta aparte para transparencia
+      }
+      filas++; plata += row.plata; unidades += row.unidades;
+      const key = row.skuCode || ('sin-mapear:' + row.producto);
+      const p = byProducto.get(key) || { skuCode: row.skuCode, nombre: row.producto, plata: 0, unidades: 0, matched: row.matched };
+      p.plata += row.plata; p.unidades += row.unidades; byProducto.set(key, p);
+    }
+  }
+  if (!filas) return { available: false, reason: 'Sin datos: no hay filas de Retail dentro de este período/marca.' };
+  const top = [...byProducto.values()].map(p => ({ ...p, plata: Math.round(p.plata) })).sort((a, b) => b.plata - a.plata).slice(0, 10);
+  return { available: true, plata: Math.round(plata), unidades, filas, sinFecha, top };
+}
+
+// ─── FASE 4: Sell Out (canales → consumidor final) ──────────────────────────
+// SELL OUT = lo que los canales le venden AL CONSUMIDOR FINAL. Compone 4
+// fuentes reales, cada una con su propia granularidad — no las mezcla en un
+// número inventado: HORECA y Hospitality vienen de Pyxis (período fijo de los
+// últimos 3 meses que entrega esa API, no el filtro de rango de Shopify);
+// Online y Retail sí respetan el filtro de rango. El filtro de marca aplica
+// a Online y Retail (datos propios, cruzados por SKU-código); HORECA/
+// Hospitality quedan con todas las marcas K-BROS juntas porque el
+// clasificador de Pyxis ya vigente (pyxisCervezasResumen) agrupa Kairos
+// Brewing/Firulais/Banny en un solo balde "kairos" — separarlas requeriría
+// una reclasificación de Pyxis fuera del alcance de esta fase.
+app.get('/admin/sellout', requireAdmin, async (req, res) => {
+  const r = rangeFor(String(req.query.range || '30d'));
+  const marca = SELLIN_MARCAS.includes(String(req.query.marca || 'todas')) ? String(req.query.marca || 'todas') : 'todas';
+  const grupoPyxis = String(req.query.grupo || 2).replace(/[^0-9]/g, '') || '2';
+
+  const onlineResult = await loadOrders(false);
+  let online;
+  if (!onlineResult.available) {
+    online = { available: false, reason: onlineResult.reason };
+  } else {
+    const extras = loadProductExtras();
+    const customBrands = getCustomBrands();
+    const orders = onlineResult.orders.filter(o => { const t = new Date(o.createdAt).getTime(); return t >= r.from && t <= r.to; });
+    const byProducto = new Map();
+    let plata = 0, unidades = 0;
+    for (const o of orders) {
+      for (const li of (o.lineItems || [])) {
+        if (isMayoristaLine(li)) continue;
+        const brandKey = brandFromProduct({ vendor: li.vendor, title: li.title, tags: li.tags }, customBrands);
+        if (marca !== 'todas' && brandKey !== marca) continue;
+        plata += li.amount; unidades += li.qty;
+        const pid = li.productId || ('sin-id:' + li.title);
+        const ex = li.productId ? extras.items[String(li.productId)] : null;
+        const p = byProducto.get(pid) || { id: li.productId, skuCode: ex?.skuCode || null, title: li.title, plata: 0, unidades: 0, marca: brandKey };
+        p.plata += li.amount; p.unidades += li.qty; byProducto.set(pid, p);
+      }
+    }
+    const top = [...byProducto.values()].map(p => ({ ...p, plata: Math.round(p.plata) })).sort((a, b) => b.plata - a.plata).slice(0, 10);
+    online = { available: true, plata: Math.round(plata), unidades, top };
+  }
+
+  let horeca;
+  try {
+    const d = await pyxisCervezasResumen(grupoPyxis, {});
+    horeca = {
+      available: true, periodoPyxis: d.meses,
+      plata: d.totales.kairos, unidades: d.totales.kairosCant,
+      top: d.kairos.slice(0, 10).map(p => ({ nombre: p.nombre, plata: p.total, unidades: p.cant })),
+    };
+  } catch (e) { horeca = { available: false, reason: 'Pyxis no disponible: ' + String(e.message || e).slice(0, 160) }; }
+
+  let hospitality;
+  try {
+    const h = await pyxisHospitalidadResumen(grupoPyxis, {});
+    const topNorm = (arr) => (arr || []).map(p => ({ nombre: p.nombre, plata: p.total, unidades: p.cant }));
+    hospitality = !h.available ? h : {
+      available: true, periodoPyxis: h.meses,
+      comida: { plata: h.totales.comida, unidades: h.totales.cantComida, top: topNorm(h.topComida) },
+      barra:  { plata: h.totales.barra,  unidades: h.totales.cantBarra,  top: topNorm(h.topBarra) },
+      porLocal: h.porLocal, sinClasificar: h.sinClasificar,
+    };
+  } catch (e) { hospitality = { available: false, reason: 'Pyxis no disponible: ' + String(e.message || e).slice(0, 160) }; }
+
+  const retail = retailSelloutAgregado(r, marca);
+
+  res.json({ available: true, range: r, marca, marcas: SELLIN_MARCAS, online, horeca, hospitality, retail });
 });
 
 function monthLabel(m){
@@ -11662,6 +12250,7 @@ app.get('/admin/customers/wholesale', requireAdmin, async (req, res) => {
       lastOrder: lastDate,
       topProduct: topProduct ? topProduct[0] : null,
       hasNote: !!(notes[c.id] && notes[c.id].note),
+      channels: Array.isArray(notes[c.id]?.channels) ? notes[c.id].channels : [],
     };
   });
 
@@ -11731,6 +12320,7 @@ app.get('/admin/customers/:id', requireAdmin, async (req, res) => {
       topProducts, monthlySpend, conversations,
       note: notes[id]?.note || '',
       noteUpdatedAt: notes[id]?.updatedAt || null,
+      channels: Array.isArray(notes[id]?.channels) ? notes[id].channels : [],
     },
   });
 });
@@ -11742,12 +12332,36 @@ app.post('/admin/customers/:id/note', requireAdmin, (req, res) => {
   if (note.length > 10000) return res.status(413).json({ error: 'Nota demasiado larga.' });
   try {
     const data = loadCustomerNotes();
-    if (!note.trim()) delete data[id];
-    else data[id] = { note: note.trim(), updatedAt: new Date().toISOString() };
+    const cur = data[id] || {};
+    const channels = Array.isArray(cur.channels) ? cur.channels : [];
+    if (!note.trim() && !channels.length) delete data[id];
+    else data[id] = { ...cur, note: note.trim(), updatedAt: new Date().toISOString() };
     saveCustomerNotes(data);
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Error guardando nota: ' + e.message });
+  }
+});
+
+// Canal(es) comercial(es) del cliente mayorista (Horeca/Retail/Hospitality) —
+// base de la atribución de Sell In por canal (Fase 4). Mismo criterio que el
+// canal de producto: nunca se infiere, lo asigna una persona desde la ficha
+// del cliente. Reutiliza el mismo store de notas (customer-notes.json) para
+// no crear un archivo nuevo por un solo campo adicional.
+const SELLIN_CANALES = ['horeca', 'retail', 'hospitality'];
+app.put('/admin/customers/:id/channels', requireAdmin, (req, res) => {
+  const id = String(req.params.id).trim();
+  const channels = Array.isArray((req.body || {}).channels) ? req.body.channels : null;
+  if (!channels) return res.status(400).json({ error: 'Falta channels (array).' });
+  const clean = [...new Set(channels.map(c => String(c)))].filter(c => SELLIN_CANALES.includes(c));
+  try {
+    const data = loadCustomerNotes();
+    const cur = data[id] || {};
+    data[id] = { ...cur, channels: clean, updatedAt: new Date().toISOString() };
+    saveCustomerNotes(data);
+    res.json({ ok: true, id, channels: clean });
+  } catch (e) {
+    res.status(500).json({ error: 'Error guardando canal: ' + e.message });
   }
 });
 

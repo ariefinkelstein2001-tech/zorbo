@@ -643,6 +643,48 @@ body.chat-collapsed.admin-home .adm-chat-reopen,body.chat-collapsed.estado-activ
 .sku-search-row{margin-bottom:.9rem}
 .sku-search{max-width:360px}
 
+/* ─── Sell In · Sell Out (Fase 4) ───────────────────────────────────────── */
+.sio-block{margin-top:.9rem}
+.sio-block-head{margin-bottom:.8rem}
+.sio-block-tag{
+  display:inline-block;font-family:var(--sans);font-size:.66rem;font-weight:800;letter-spacing:.14em;
+  text-transform:uppercase;padding:.22rem .6rem;border-radius:99px;background:var(--gold-dim);color:var(--gold-deep);
+  border:1px solid var(--gold-bd);margin-bottom:.35rem;
+}
+.sio-block-tag.out{background:rgba(45,90,160,.10);color:#2d5aa0;border-color:rgba(45,90,160,.28)}
+.sio-block-title{font-family:var(--display);font-size:1.15rem;font-weight:800;color:var(--text);letter-spacing:.005em}
+.sio-block-sub{font-family:var(--sans);font-size:.8rem;color:var(--muted);margin-top:.15rem}
+.sio-divider{height:1px;background:var(--border);margin:1.6rem 0;position:relative}
+.sio-divider::after{
+  content:"⇄";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  background:var(--card,#faf7f0);color:var(--muted);font-size:.85rem;padding:0 .6rem;
+}
+.sio-so-filters{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-top:.6rem}
+.sio-canal-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.7rem;margin:.8rem 0}
+.sio-canal-card{
+  border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:.85rem 1rem;
+}
+.sio-canal-card.empty{color:var(--muted)}
+.sio-canal-k{font-family:var(--sans);font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.sio-canal-v{font-family:var(--display);font-size:1.35rem;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;margin:.2rem 0}
+.sio-canal-sub{font-family:var(--sans);font-size:.74rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.sio-canal-reason{font-family:var(--sans);font-size:.74rem;color:var(--muted);line-height:1.4}
+.sio-toggle{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:.4rem 0 .5rem}
+.sio-toggle button{
+  border:0;background:var(--surface);color:var(--muted);font-family:var(--sans);font-size:.72rem;font-weight:700;
+  padding:.35rem .8rem;cursor:pointer;transition:background .15s,color .15s;
+}
+.sio-toggle button.on{background:var(--gold-dim);color:var(--gold-deep)}
+.sio-top-title{font-family:var(--sans);font-size:.78rem;font-weight:800;color:var(--text);margin:.7rem 0 .2rem}
+.sio-cov{font-family:var(--sans);font-size:.72rem;color:var(--muted);margin-top:.3rem}
+.ri-upload-row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin-bottom:.8rem}
+.ri-map-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.6rem;margin-bottom:.8rem}
+.ri-map-field label{display:block;font-family:var(--sans);font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:.25rem}
+.ri-sinmapear{background:rgba(200,60,40,.08);border:1px solid rgba(200,60,40,.25);border-radius:10px;padding:.6rem .8rem;font-family:var(--sans);font-size:.78rem;color:var(--text);margin-top:.6rem}
+.ri-upload-row-item{display:flex;align-items:center;gap:.7rem;padding:.5rem 0;border-bottom:1px solid var(--border);font-family:var(--sans);font-size:.8rem}
+.ri-upload-row-item:last-child{border-bottom:none}
+@media(max-width:760px){.sio-canal-grid{grid-template-columns:1fr}}
+
 .adm-prod-editor{
   border-top:1px solid var(--gold-bd);padding:1rem 1.1rem 1.1rem;display:flex;flex-direction:column;gap:.65rem;
   background:linear-gradient(180deg,var(--surface2) 0%,#f3f3f3 100%);
@@ -2785,15 +2827,6 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
         <div class="adm-ws-list" id="andcWsList"><div class="adm-loading">Cargando clientes…</div></div>
       </div>
 
-      <div class="adm-section-divider"><span>Top clientes por producto</span></div>
-      <div class="adm-panel">
-        <div class="adm-panel-meta" style="margin-bottom:.6rem">quién más compró un producto en toda la historia de la tienda</div>
-        <div class="tc-search">
-          <input type="text" id="tcInput" placeholder="Escribe un producto… ej: Samba, Golden, Banny">
-          <button class="adm-btn" id="tcBtn" type="button">Buscar</button>
-        </div>
-        <div id="tcBody"><div class="dist-empty">Escribe el nombre de un producto y dale Buscar para ver el ranking de clientes.</div></div>
-      </div>
     </div>
 
     <!-- Drawer ficha de cliente mayorista (Analítica comercial) -->
@@ -3440,6 +3473,102 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
       </div>
     </div>
 
+    <!-- FASE 4: Sell In · Sell Out. Dos bloques separados sin ambigüedad —
+         Sell In = lo que K-BROS le vende A los canales; Sell Out = lo que
+         los canales le venden AL CONSUMIDOR FINAL. Filtro de período común
+         arriba de ambos. -->
+    <div class="adm-panel" id="sellinoutView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Sell In · Sell Out</div>
+          <div class="adm-panel-meta">datos reales · cruzados por SKU-código, nunca por nombre de fantasía</div>
+        </div>
+        <div class="adm-actions">
+          <div class="adm-pillgroup" data-filter="siorange">
+            <button data-v="7d"    type="button">7d</button>
+            <button data-v="30d"   class="on" type="button">30d</button>
+            <button data-v="90d"   type="button">90d</button>
+            <button data-v="year"  type="button">Año</button>
+            <button data-v="all"   type="button">Todo</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SELL IN ── -->
+      <div class="sio-block sio-in">
+        <div class="sio-block-head">
+          <div class="sio-block-tag">SELL IN</div>
+          <div class="sio-block-title">Lo que K-BROS le vende A los canales</div>
+          <div class="sio-block-sub">facturación mayorista a Horeca, Retail y Hospitality · base litros y plata</div>
+        </div>
+        <div class="sku-chan-filters" id="siMarcaFilters">
+          <button class="sku-chan on" data-si-marca="todas" type="button"><span class="ic">🏷️</span>Todas</button>
+          <button class="sku-chan" data-si-marca="kairos" type="button"><span class="ic">🍺</span>Kairos Brewing</button>
+          <button class="sku-chan" data-si-marca="firulais" type="button"><span class="ic">🐶</span>Firulais</button>
+          <button class="sku-chan" data-si-marca="banny" type="button"><span class="ic">🥃</span>Banny</button>
+        </div>
+        <div id="siBody"><div class="adm-loading">Cargando Sell In…</div></div>
+      </div>
+
+      <div class="sio-divider"></div>
+
+      <!-- ── SELL OUT ── -->
+      <div class="sio-block sio-out">
+        <div class="sio-block-head">
+          <div class="sio-block-tag out">SELL OUT</div>
+          <div class="sio-block-title">Lo que los canales le venden AL CONSUMIDOR FINAL</div>
+          <div class="sio-block-sub">Horeca y Hospitality (Pyxis) · Venta Online (Shopify) · Retail (importador) · base unidades y plata</div>
+        </div>
+        <div class="sio-so-filters">
+          <div class="sku-chan-filters" id="soMarcaFilters">
+            <button class="sku-chan on" data-so-marca="todas" type="button"><span class="ic">🏷️</span>Todas</button>
+            <button class="sku-chan" data-so-marca="kairos" type="button"><span class="ic">🍺</span>Kairos Brewing</button>
+            <button class="sku-chan" data-so-marca="firulais" type="button"><span class="ic">🐶</span>Firulais</button>
+            <button class="sku-chan" data-so-marca="banny" type="button"><span class="ic">🥃</span>Banny</button>
+          </div>
+          <select class="adm-select" id="soLocalFilter">
+            <option value="">Todos los locales Hospitality</option>
+          </select>
+        </div>
+        <div id="soBody"><div class="adm-loading">Cargando Sell Out…</div></div>
+
+        <div class="adm-section-divider"><span>Configurar Hospitality (Pyxis)</span></div>
+        <div class="adm-panel">
+          <div class="adm-panel-meta" style="margin-bottom:.6rem">Pyxis no separa Comida/Barra por defecto — elegí qué locales son Kairos Garden/Badass y qué categorías (familia) de Pyxis cuentan como Comida y cuáles como Barra. Sin esto, Hospitality queda "Sin datos" (honesto, no inventado).</div>
+          <div id="hospCfgBody"><div class="adm-loading">Cargando configuración…</div></div>
+        </div>
+
+        <div class="adm-section-divider"><span>Importador de Retail</span></div>
+        <div class="adm-panel" id="riPanel">
+          <div class="adm-panel-meta" style="margin-bottom:.6rem">Retail no se factura por Shopify (ej. Walmart) → subí el archivo del retailer, mapeá sus columnas y confirmá. El mapeo queda guardado como plantilla reutilizable por retailer. Solo CSV por ahora (si el archivo es Excel, exportalo como CSV desde la misma planilla).</div>
+          <div class="ri-upload-row">
+            <input class="adm-input" id="riRetailer" placeholder="Nombre del retailer (ej. Walmart)" style="max-width:260px">
+            <input type="file" id="riFile" accept=".csv,text/csv">
+          </div>
+          <div id="riMapBox" style="display:none">
+            <div class="ri-map-grid" id="riMapGrid"></div>
+            <div id="riPreviewBox"></div>
+            <div class="adm-fb-acts">
+              <button class="adm-btn adm-btn-gold" id="riConfirmBtn" type="button">Confirmar importación</button>
+            </div>
+          </div>
+          <div id="riResultBox"></div>
+          <div class="adm-section-divider"><span>Cargas anteriores</span></div>
+          <div id="riUploadsBox"><div class="adm-loading">Cargando…</div></div>
+        </div>
+
+        <div class="adm-section-divider"><span>Top clientes por producto</span></div>
+        <div class="adm-panel">
+          <div class="adm-panel-meta" style="margin-bottom:.6rem">quién más compró un producto en toda la historia de la tienda</div>
+          <div class="tc-search">
+            <input type="text" id="tcInput" placeholder="Escribe un producto… ej: Samba, Golden, Banny">
+            <button class="adm-btn" id="tcBtn" type="button">Buscar</button>
+          </div>
+          <div id="tcBody"><div class="dist-empty">Escribe el nombre de un producto y dale Buscar para ver el ranking de clientes.</div></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Vista de conversaciones (embudo) -->
     <div class="adm-panel" id="chatsView" style="display:none">
       <div class="adm-panel-head">
@@ -3674,6 +3803,7 @@ const BASE_SECCIONES = [
   { id:'banny',     kind:'md',       label:'Banny',           cat:'marketing', desc:'destilados · RTD', nav:false, parentNav:'marcas' },
   { id:'mayorista', kind:'md',       label:'Mayoristas (B2B)',cat:'marketing', desc:'restaurantes · botillerías · eventos', nav:false, parentNav:'marcas' },
   { id:'productos',  kind:'products', label:'SKU',             cat:'comercial', desc:'catálogo Shopify · código SKU único por producto · notas extra para Zorbot' },
+  { id:'sellinout',  kind:'sellinout',label:'Sell In · Sell Out', cat:'comercial', desc:'lo que K-BROS vende a los canales (Sell In) vs lo que los canales venden al consumidor final (Sell Out) · Horeca, Retail, Hospitality, Venta Online' },
   { id:'puntos',     kind:'puntos',   label:'Puntos de venta', cat:'comercial', desc:'mapa de locales donde estás · venta por punto' },
   // Análisis de Datos: mismo patrón parent+drill-down que "Marcas" (nav:false en los
   // hijos, parentNav apunta al padre). Horeca y Documentos son las mismas secciones de
@@ -4107,6 +4237,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'products') {
     showView('products');
     await loadProductos();
+  } else if (sec.kind === 'sellinout') {
+    showView('sellinout');
+    await loadSellInOut();
   } else if (sec.kind === 'puntos') {
     showView('puntos');
     await loadPuntos();
@@ -4161,6 +4294,7 @@ function showView(kind){
   document.getElementById('homeView').style.display       = kind === 'home'       ? '' : 'none';
   document.getElementById('mdView').style.display         = kind === 'md'         ? '' : 'none';
   document.getElementById('productsView').style.display   = kind === 'products'   ? '' : 'none';
+  document.getElementById('sellinoutView').style.display  = kind === 'sellinout'  ? '' : 'none';
   document.getElementById('puntosView').style.display     = kind === 'puntos'     ? '' : 'none';
   document.getElementById('analisisdatosView').style.display = kind === 'analisisdatos' ? '' : 'none';
   document.getElementById('analiticacomercialView').style.display = kind === 'analiticacomercial' ? '' : 'none';
@@ -7233,6 +7367,14 @@ function renderCustomerAndc(c){
     </div>
 
     <div class="cust-sect">
+      <div class="cust-sect-t">Canal comercial (Sell In)</div>
+      <div class="adm-panel-meta" style="margin-bottom:.5rem">de acá sale a qué canal se atribuye el Sell In de este cliente — nunca se adivina.</div>
+      <div class="sku-chan-filters" id="andcCustChannels">
+        ${SELLIN_CANAL_OPTS.map(ch => `<button class="sku-chan${(c.channels||[]).includes(ch.id)?' on':''}" data-ch="${ch.id}" type="button" style="padding:.45rem .75rem;font-size:.76rem"><span class="ic">${ch.ic}</span>${ch.label}</button>`).join('')}
+      </div>
+    </div>
+
+    <div class="cust-sect">
       <div class="cust-sect-t">Notas internas</div>
       <textarea class="cust-note" id="andcCustNote" rows="4" placeholder="Observaciones del equipo sobre este cliente…">${escapeHtml(c.note||'')}</textarea>
       <div class="cust-note-acts">
@@ -7240,6 +7382,20 @@ function renderCustomerAndc(c){
         <button class="adm-btn adm-btn-gold" id="andcCustNoteSave" type="button">Guardar nota</button>
       </div>
     </div>`;
+
+  document.querySelectorAll('#andcCustChannels .sku-chan').forEach(b => {
+    b.onclick = async () => {
+      b.classList.toggle('on');
+      const channels = [...document.querySelectorAll('#andcCustChannels .sku-chan.on')].map(x => x.dataset.ch);
+      try {
+        const r = await fetch('/admin/customers/' + encodeURIComponent(andcCustCurrentId) + '/channels', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ channels }),
+        });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        showToast('Canal actualizado ✓', 'ok');
+      } catch (e) { showToast('Error guardando canal: ' + e.message, 'err'); b.classList.toggle('on'); }
+    };
+  });
 
   // bind conversaciones → abrir el drawer de chat (reusa openConversation, feature de Marketing)
   document.querySelectorAll('#andcCustBody .cust-conv[data-sid]').forEach(el => {
@@ -9054,6 +9210,346 @@ async function runTopClientes(){
 }
 document.getElementById('tcBtn').onclick = runTopClientes;
 document.getElementById('tcInput').addEventListener('keydown', e => { if (e.key === 'Enter') runTopClientes(); });
+
+// ─── FASE 4: Sell In · Sell Out ──────────────────────────────────────────────
+const SELLIN_CANAL_OPTS = [
+  { id:'horeca', label:'Horeca', ic:'🍽️' },
+  { id:'retail', label:'Retail', ic:'🛒' },
+  { id:'hospitality', label:'Hospitality', ic:'🏡' },
+];
+const SI_CANAL_LBL = { horeca:'Horeca', retail:'Retail', hospitality:'Hospitality', sin_canal:'Sin canal' };
+let sioRange = '30d', siMarca = 'todas', soMarca = 'todas', soLocalSel = '';
+let siTopMode = { clientes:'plata', productos:'plata' };
+let soTopMode = { horeca:'plata', comida:'plata', barra:'plata', online:'plata', retail:'plata' };
+let __soDataCache = null;
+
+function fmtLitros(n){ return (Number(n)||0).toLocaleString('es-CL',{maximumFractionDigits:1}) + ' L'; }
+function fmtUnid(n){ return (Number(n)||0).toLocaleString('es-CL') + ' u'; }
+
+async function loadSellInOut(){
+  loadSellIn();
+  loadSellOut();
+  loadHospCfg();
+  loadRetailUploads();
+}
+
+// ── SELL IN ──
+async function loadSellIn(){
+  const box = document.getElementById('siBody');
+  box.innerHTML = '<div class="adm-loading">Cargando Sell In…</div>';
+  try {
+    const r = await fetch(`/admin/sellin?range=${encodeURIComponent(sioRange)}&marca=${encodeURIComponent(siMarca)}`);
+    const d = await r.json();
+    if (!d.available) { box.innerHTML = `<div class="adm-empty">${escapeHtml(d.reason||'No disponible.')}</div>`; return; }
+    renderSellIn(d);
+  } catch (e) { box.innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`; }
+}
+function sioCanalCard(label, c){
+  if (!c || !c.available) return `<div class="sio-canal-card empty"><div class="sio-canal-k">${escapeHtml(label)}</div><div class="sio-canal-reason">${escapeHtml((c&&c.reason)||'Sin datos.')}</div></div>`;
+  return `<div class="sio-canal-card">
+    <div class="sio-canal-k">${escapeHtml(label)}</div>
+    <div class="sio-canal-v">${fmtMoney(c.plata)}</div>
+    <div class="sio-canal-sub">${fmtLitros(c.litros)}</div>
+  </div>`;
+}
+function renderSellIn(d){
+  const box = document.getElementById('siBody');
+  const s = d.summary || {};
+  const cov = s.litrosCobertura != null ? Math.round(s.litrosCobertura*100) : null;
+  box.innerHTML = `
+    <div class="adm-stats">
+      <div class="adm-stat"><div class="adm-stat-k">RECAUDACIÓN MAYORISTA</div><div class="adm-stat-v">${fmtMoney(s.revenue)}</div><div class="adm-stat-s">${escapeHtml(d.range.label)}</div></div>
+      <div class="adm-stat tone-gold"><div class="adm-stat-k">LITROS DESPACHADOS</div><div class="adm-stat-v">${fmtLitros(s.litros)}</div><div class="adm-stat-s">${cov!=null?('cobertura de conversión: '+cov+'% de las unidades'):''}</div></div>
+      <div class="adm-stat"><div class="adm-stat-k">UNIDADES</div><div class="adm-stat-v">${(s.unidades||0).toLocaleString('es-CL')}</div><div class="adm-stat-s">${s.litrosSinDatoQty?(s.litrosSinDatoQty+' u sin formato para convertir a litros'):''}</div></div>
+    </div>
+    <div class="sio-canal-grid">
+      ${sioCanalCard('Horeca', d.porCanal.horeca)}
+      ${sioCanalCard('Retail', d.porCanal.retail)}
+      ${sioCanalCard('Hospitality', d.porCanal.hospitality)}
+    </div>
+    ${d.porCanal.sin_canal.available ? `<div class="sio-canal-reason" style="margin-bottom:.6rem">⚠️ ${escapeHtml(d.porCanal.sin_canal.reason)} — ${fmtMoney(d.porCanal.sin_canal.plata)} sin canal asignado.</div>` : ''}
+    <div class="sio-top-title">Top 10 clientes</div>
+    <div class="sio-toggle" id="siToggleClientes"><button data-m="plata" class="on" type="button">Plata</button><button data-m="litros" type="button">Litros</button></div>
+    <div id="siTopClientesBox"></div>
+    <div class="sio-top-title">Top 10 productos</div>
+    <div class="sio-toggle" id="siToggleProductos"><button data-m="plata" class="on" type="button">Plata</button><button data-m="litros" type="button">Litros</button></div>
+    <div id="siTopProductosBox"></div>
+  `;
+  const renderClientes = () => {
+    const b = document.getElementById('siTopClientesBox');
+    if (!d.topClientes || !d.topClientes.length) { b.innerHTML = '<div class="adm-empty">Sin datos.</div>'; return; }
+    const mode = siTopMode.clientes;
+    const sorted = d.topClientes.slice().sort((a,b2)=> mode==='plata' ? b2.plata-a.plata : b2.litros-a.litros);
+    b.innerHTML = `<div class="mun-wrap"><table class="mun-table" style="min-width:0">
+      <thead><tr><th>#</th><th>Cliente</th><th>Canal</th><th style="text-align:right">Plata</th><th style="text-align:right">Litros</th></tr></thead>
+      <tbody>${sorted.map((r,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(SI_CANAL_LBL[r.canal]||r.canal||'—')}</td><td class="dist-num">${fmtMoney(r.plata)}</td><td class="dist-num">${fmtLitros(r.litros)}</td></tr>`).join('')}</tbody>
+    </table></div>`;
+  };
+  const renderProductos = () => {
+    const b = document.getElementById('siTopProductosBox');
+    if (!d.topProductos || !d.topProductos.length) { b.innerHTML = '<div class="adm-empty">Sin datos.</div>'; return; }
+    const mode = siTopMode.productos;
+    const sorted = d.topProductos.slice().sort((a,b2)=> mode==='plata' ? b2.plata-a.plata : b2.litros-a.litros);
+    b.innerHTML = `<div class="mun-wrap"><table class="mun-table" style="min-width:0">
+      <thead><tr><th>#</th><th>SKU</th><th>Producto</th><th>Canal</th><th style="text-align:right">Plata</th><th style="text-align:right">Litros</th></tr></thead>
+      <tbody>${sorted.map((r,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(r.skuCode||'—')}</td><td>${escapeHtml(r.title)}</td><td>${escapeHtml(SI_CANAL_LBL[r.canal]||r.canal||'—')}</td><td class="dist-num">${fmtMoney(r.plata)}</td><td class="dist-num">${fmtLitros(r.litros)}</td></tr>`).join('')}</tbody>
+    </table></div>`;
+  };
+  renderClientes(); renderProductos();
+  document.querySelectorAll('#siToggleClientes button').forEach(b => b.onclick = () => {
+    siTopMode.clientes = b.dataset.m;
+    document.querySelectorAll('#siToggleClientes button').forEach(x=>x.classList.toggle('on', x===b));
+    renderClientes();
+  });
+  document.querySelectorAll('#siToggleProductos button').forEach(b => b.onclick = () => {
+    siTopMode.productos = b.dataset.m;
+    document.querySelectorAll('#siToggleProductos button').forEach(x=>x.classList.toggle('on', x===b));
+    renderProductos();
+  });
+}
+
+// ── SELL OUT ──
+async function loadSellOut(){
+  const box = document.getElementById('soBody');
+  box.innerHTML = '<div class="adm-loading">Cargando Sell Out…</div>';
+  try {
+    const r = await fetch(`/admin/sellout?range=${encodeURIComponent(sioRange)}&marca=${encodeURIComponent(soMarca)}`);
+    const d = await r.json();
+    __soDataCache = d;
+    renderSellOut(d);
+  } catch (e) { box.innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`; }
+}
+function soWireToggleTop(toggleId, boxId, rows, modeKey, nameField){
+  const el = document.getElementById(toggleId); if (!el) return;
+  const render = () => {
+    const b = document.getElementById(boxId);
+    if (!rows || !rows.length) { b.innerHTML = '<div class="adm-empty">Sin datos.</div>'; return; }
+    const mode = soTopMode[modeKey];
+    const sorted = rows.slice().sort((a,b2)=> mode==='plata' ? b2.plata-a.plata : b2.unidades-a.unidades);
+    b.innerHTML = `<div class="mun-wrap"><table class="mun-table" style="min-width:0"><thead><tr><th>#</th><th>${nameField.label}</th><th style="text-align:right">Plata</th><th style="text-align:right">Unidades</th></tr></thead><tbody>${sorted.map((r,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(r[nameField.key]||'—')}</td><td class="dist-num">${fmtMoney(r.plata)}</td><td class="dist-num">${(r.unidades||0).toLocaleString('es-CL')}</td></tr>`).join('')}</tbody></table></div>`;
+  };
+  el.querySelectorAll('button').forEach(btn => btn.onclick = () => {
+    soTopMode[modeKey] = btn.dataset.m;
+    el.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===btn));
+    render();
+  });
+  render();
+}
+function renderSellOut(d){
+  const box = document.getElementById('soBody');
+  const h = d.horeca, hos = d.hospitality, on = d.online, re = d.retail;
+  box.innerHTML = `
+    <div class="sio-canal-grid">
+      <div class="sio-canal-card${h.available?'':' empty'}">
+        <div class="sio-canal-k">Horeca (Pyxis)</div>
+        ${h.available ? `<div class="sio-canal-v">${fmtMoney(h.plata)}</div><div class="sio-canal-sub">${fmtUnid(h.unidades)} · período Pyxis: ${escapeHtml((h.periodoPyxis||[]).join(', '))}</div>` : `<div class="sio-canal-reason">${escapeHtml(h.reason||'Sin datos.')}</div>`}
+      </div>
+      <div class="sio-canal-card${on.available?'':' empty'}">
+        <div class="sio-canal-k">Venta Online</div>
+        ${on.available ? `<div class="sio-canal-v">${fmtMoney(on.plata)}</div><div class="sio-canal-sub">${fmtUnid(on.unidades)} · ${escapeHtml(d.range?d.range.label:'')}</div>` : `<div class="sio-canal-reason">${escapeHtml(on.reason||'Sin datos.')}</div>`}
+      </div>
+      <div class="sio-canal-card${re.available?'':' empty'}">
+        <div class="sio-canal-k">Retail (importador)</div>
+        ${re.available ? `<div class="sio-canal-v">${fmtMoney(re.plata)}</div><div class="sio-canal-sub">${fmtUnid(re.unidades)}${re.sinFecha?(' · '+re.sinFecha+' filas sin fecha'):''}</div>` : `<div class="sio-canal-reason">${escapeHtml(re.reason||'Sin datos.')}</div>`}
+      </div>
+    </div>
+
+    <div class="sio-top-title">Hospitality (Pyxis) — Comida vs Barra</div>
+    ${hos.available ? `
+      <div class="sio-canal-grid">
+        <div class="sio-canal-card"><div class="sio-canal-k">Comida</div><div class="sio-canal-v">${fmtMoney(hos.comida.plata)}</div><div class="sio-canal-sub">${fmtUnid(hos.comida.unidades)}</div></div>
+        <div class="sio-canal-card"><div class="sio-canal-k">Barra</div><div class="sio-canal-v">${fmtMoney(hos.barra.plata)}</div><div class="sio-canal-sub">${fmtUnid(hos.barra.unidades)}</div></div>
+      </div>
+      <div class="sio-canal-sub" style="margin-bottom:.5rem">período Pyxis: ${escapeHtml((hos.periodoPyxis||[]).join(', '))}${hos.sinClasificar&&hos.sinClasificar.length?(' · '+hos.sinClasificar.length+' categorías de Pyxis sin mapear a Comida/Barra (ver ⚙️ Configurar Hospitality)'):''}</div>
+      <div id="soHospLocalBox"></div>
+      <div class="sio-top-title" style="margin-top:.8rem">Top Comida</div>
+      <div class="sio-toggle" id="soToggleComida"><button data-m="plata" class="on" type="button">Plata</button><button data-m="unidades" type="button">Unidades</button></div>
+      <div id="soTopComidaBox"></div>
+      <div class="sio-top-title">Top Barra</div>
+      <div class="sio-toggle" id="soToggleBarra"><button data-m="plata" class="on" type="button">Plata</button><button data-m="unidades" type="button">Unidades</button></div>
+      <div id="soTopBarraBox"></div>
+    ` : `<div class="adm-empty">${escapeHtml(hos.reason||'Sin datos.')}</div>`}
+
+    <div class="sio-top-title">Top 10 Venta Online</div>
+    ${on.available ? `<div class="sio-toggle" id="soToggleOnline"><button data-m="plata" class="on" type="button">Plata</button><button data-m="unidades" type="button">Unidades</button></div><div id="soTopOnlineBox"></div>` : `<div class="adm-empty">${escapeHtml(on.reason||'Sin datos.')}</div>`}
+
+    <div class="sio-top-title">Top 10 Horeca (Pyxis)</div>
+    ${h.available ? `<div class="sio-toggle" id="soToggleHoreca"><button data-m="plata" class="on" type="button">Plata</button><button data-m="unidades" type="button">Unidades</button></div><div id="soTopHorecaBox"></div>` : `<div class="adm-empty">${escapeHtml(h.reason||'Sin datos.')}</div>`}
+
+    <div class="sio-top-title">Top 10 Retail</div>
+    ${re.available ? `<div class="sio-toggle" id="soToggleRetail"><button data-m="plata" class="on" type="button">Plata</button><button data-m="unidades" type="button">Unidades</button></div><div id="soTopRetailBox"></div>` : `<div class="adm-empty">${escapeHtml(re.reason||'Sin datos.')}</div>`}
+  `;
+
+  const sel = document.getElementById('soLocalFilter');
+  if (hos.available && hos.porLocal && hos.porLocal.length) {
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Todos los locales Hospitality</option>' + hos.porLocal.map(l=>`<option value="${escapeAttr(l.local)}">${escapeHtml(l.local)}</option>`).join('');
+    sel.value = cur;
+  }
+  if (hos.available) {
+    const filtered = soLocalSel ? hos.porLocal.filter(l=>l.local===soLocalSel) : hos.porLocal;
+    const localBox = document.getElementById('soHospLocalBox');
+    if (localBox) localBox.innerHTML = filtered.length ? `<div class="mun-wrap"><table class="mun-table" style="min-width:0"><thead><tr><th>Local</th><th style="text-align:right">Comida</th><th style="text-align:right">Barra</th></tr></thead><tbody>${filtered.map(l=>`<tr><td>${escapeHtml(l.local)}</td><td class="dist-num">${fmtMoney(l.comida)}</td><td class="dist-num">${fmtMoney(l.barra)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="adm-empty">Sin datos para ese local.</div>';
+    soWireToggleTop('soToggleComida', 'soTopComidaBox', hos.comida.top, 'comida', {key:'nombre',label:'Producto'});
+    soWireToggleTop('soToggleBarra', 'soTopBarraBox', hos.barra.top, 'barra', {key:'nombre',label:'Producto'});
+  }
+  if (on.available) soWireToggleTop('soToggleOnline', 'soTopOnlineBox', on.top, 'online', {key:'title',label:'Producto'});
+  if (h.available) soWireToggleTop('soToggleHoreca', 'soTopHorecaBox', h.top, 'horeca', {key:'nombre',label:'Producto'});
+  if (re.available) soWireToggleTop('soToggleRetail', 'soTopRetailBox', re.top, 'retail', {key:'nombre',label:'Producto'});
+}
+
+// ── Filtros comunes (rango, marca, local) ──
+document.querySelectorAll('.adm-pillgroup[data-filter="siorange"] button').forEach(b => {
+  b.onclick = () => {
+    sioRange = b.dataset.v;
+    document.querySelectorAll('.adm-pillgroup[data-filter="siorange"] button').forEach(x => x.classList.toggle('on', x === b));
+    loadSellIn(); loadSellOut();
+  };
+});
+document.querySelectorAll('#siMarcaFilters .sku-chan').forEach(b => {
+  b.onclick = () => {
+    siMarca = b.dataset.siMarca;
+    document.querySelectorAll('#siMarcaFilters .sku-chan').forEach(x => x.classList.toggle('on', x === b));
+    loadSellIn();
+  };
+});
+document.querySelectorAll('#soMarcaFilters .sku-chan').forEach(b => {
+  b.onclick = () => {
+    soMarca = b.dataset.soMarca;
+    document.querySelectorAll('#soMarcaFilters .sku-chan').forEach(x => x.classList.toggle('on', x === b));
+    loadSellOut();
+  };
+});
+document.getElementById('soLocalFilter').onchange = (e) => { soLocalSel = e.target.value; if (__soDataCache) renderSellOut(__soDataCache); };
+
+// ── Configurar Hospitality (Pyxis) ──
+async function loadHospCfg(){
+  const box = document.getElementById('hospCfgBody');
+  box.innerHTML = '<div class="adm-loading">Cargando configuración…</div>';
+  try {
+    const r = await fetch('/admin/pyxis/hospitalidad/config');
+    const d = await r.json();
+    renderHospCfg(d);
+  } catch (e) { box.innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`; }
+}
+function renderHospCfg(d){
+  const box = document.getElementById('hospCfgBody');
+  const cfg = d.config || { locales:[], familiaComida:[], familiaBarra:[] };
+  const chip = (val, selected, attr) => `<button class="sku-chan${selected?' on':''}" data-${attr}="${escapeAttr(val)}" type="button" style="padding:.45rem .75rem;font-size:.76rem">${escapeHtml(val)}</button>`;
+  box.innerHTML = `
+    <div class="sio-top-title" style="margin-top:0">Locales que son Hospitality (Kairos Garden / Badass)</div>
+    <div class="sku-chan-filters" id="hospLocalesPick">${(d.localesDisponibles||[]).map(l=>chip(l, cfg.locales.includes(l), 'hosploc')).join('') || '<div class="adm-empty">Pyxis todavía no entregó locales.</div>'}</div>
+    <div class="sio-top-title">Categorías de Pyxis que cuentan como Comida</div>
+    <div class="sku-chan-filters" id="hospComidaPick">${(d.familiasDisponibles||[]).map(f=>chip(f, cfg.familiaComida.includes(f), 'hospcom')).join('') || '<div class="adm-empty">Sin categorías detectadas todavía.</div>'}</div>
+    <div class="sio-top-title">Categorías de Pyxis que cuentan como Barra</div>
+    <div class="sku-chan-filters" id="hospBarraPick">${(d.familiasDisponibles||[]).map(f=>chip(f, cfg.familiaBarra.includes(f), 'hospbar')).join('') || '<div class="adm-empty">Sin categorías detectadas todavía.</div>'}</div>
+    <div class="adm-fb-acts" style="margin-top:.7rem"><button class="adm-btn adm-btn-gold" id="hospCfgSave" type="button">Guardar configuración</button></div>
+  `;
+  document.querySelectorAll('#hospLocalesPick .sku-chan').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
+  document.querySelectorAll('#hospComidaPick .sku-chan').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
+  document.querySelectorAll('#hospBarraPick .sku-chan').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
+  document.getElementById('hospCfgSave').onclick = async () => {
+    const locales = [...document.querySelectorAll('#hospLocalesPick .sku-chan.on')].map(b=>b.dataset.hosploc);
+    const familiaComida = [...document.querySelectorAll('#hospComidaPick .sku-chan.on')].map(b=>b.dataset.hospcom);
+    const familiaBarra = [...document.querySelectorAll('#hospBarraPick .sku-chan.on')].map(b=>b.dataset.hospbar);
+    const btn = document.getElementById('hospCfgSave'); btn.disabled = true; const o = btn.textContent; btn.textContent = 'Guardando…';
+    try {
+      const r = await fetch('/admin/pyxis/hospitalidad/config', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ locales, familiaComida, familiaBarra }) });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'HTTP '+r.status);
+      showToast('Configuración guardada ✓', 'ok');
+      loadSellOut();
+    } catch (e) { showToast('Error: ' + e.message, 'err'); }
+    finally { btn.disabled = false; btn.textContent = o; }
+  };
+}
+
+// ── Importador de Retail (CSV) ──
+let riCsvText = '';
+const RI_CAMPOS = [{k:'producto',label:'Producto',req:true},{k:'unidades',label:'Unidades',req:true},{k:'plata',label:'Plata ($)',req:true},{k:'fecha',label:'Fecha',req:false},{k:'local',label:'Local',req:false}];
+document.getElementById('riFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  riCsvText = text;
+  const retailer = document.getElementById('riRetailer').value.trim();
+  document.getElementById('riResultBox').innerHTML = '';
+  document.getElementById('riMapBox').style.display = '';
+  document.getElementById('riMapGrid').innerHTML = '<div class="adm-loading">Leyendo archivo…</div>';
+  try {
+    const r = await fetch('/admin/retail/preview', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ csvText: text, retailer }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'HTTP '+r.status);
+    renderRiMap(d);
+  } catch (e) { document.getElementById('riMapGrid').innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`; }
+});
+function renderRiMap(d){
+  const grid = document.getElementById('riMapGrid');
+  const sug = d.suggestedMapping || {};
+  grid.innerHTML = RI_CAMPOS.map(c => `
+    <div class="ri-map-field">
+      <label>${escapeHtml(c.label)}${c.req?' *':' (opcional)'}</label>
+      <select class="adm-select" data-ri-campo="${c.k}">
+        <option value="">— no mapear —</option>
+        ${d.headers.map(h=>`<option value="${escapeAttr(h)}"${sug[c.k]===h?' selected':''}>${escapeHtml(h)}</option>`).join('')}
+      </select>
+    </div>`).join('');
+  const prevBox = document.getElementById('riPreviewBox');
+  prevBox.innerHTML = `<div class="sio-top-title">Vista previa (${d.rowCount} filas totales, mostrando ${d.sample.length})</div>
+    <div class="mun-wrap"><table class="mun-table" style="min-width:0">
+      <thead><tr>${d.headers.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
+      <tbody>${d.sample.map(row=>`<tr>${d.headers.map(h=>`<td>${escapeHtml(row[h]||'')}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table></div>`;
+}
+document.getElementById('riConfirmBtn').onclick = async () => {
+  const retailer = document.getElementById('riRetailer').value.trim();
+  if (!retailer) { showToast('Falta el nombre del retailer', 'err'); return; }
+  const mapping = {};
+  document.querySelectorAll('#riMapGrid [data-ri-campo]').forEach(sel => { if (sel.value) mapping[sel.dataset.riCampo] = sel.value; });
+  if (!mapping.producto || !mapping.unidades || !mapping.plata) { showToast('Mapeá al menos Producto, Unidades y Plata', 'err'); return; }
+  const btn = document.getElementById('riConfirmBtn'); btn.disabled = true; const o = btn.textContent; btn.textContent = 'Importando…';
+  try {
+    const file = document.getElementById('riFile').files[0];
+    const r = await fetch('/admin/retail/import', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ retailer, filename: file?file.name:'archivo.csv', csvText: riCsvText, mapping, saveTemplate:true }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'HTTP '+r.status);
+    const t = d.totals;
+    document.getElementById('riResultBox').innerHTML = `
+      <div class="adm-empty" style="border-color:var(--gold-bd);background:var(--gold-dim);color:var(--gold-deep)">
+        Importado: ${t.filas} filas · ${fmtMoney(t.plata)} · ${t.unidades.toLocaleString('es-CL')} unidades · ${t.matched} matcheadas · ${t.sinMapear} sin mapear.
+      </div>
+      ${d.sinMapear && d.sinMapear.length ? `<div class="ri-sinmapear"><b>Sin mapear a SKU-código</b> (no se descartan, quedan igual en el total): ${d.sinMapear.map(escapeHtml).join(' · ')}</div>` : ''}
+    `;
+    document.getElementById('riMapBox').style.display = 'none';
+    document.getElementById('riFile').value = '';
+    loadRetailUploads();
+    loadSellOut();
+  } catch (e) { showToast('Error: ' + e.message, 'err'); }
+  finally { btn.disabled = false; btn.textContent = o; }
+};
+async function loadRetailUploads(){
+  const box = document.getElementById('riUploadsBox');
+  box.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const r = await fetch('/admin/retail/uploads');
+    const d = await r.json();
+    if (!d.uploads.length) { box.innerHTML = '<div class="adm-empty">Todavía no se cargó ningún archivo de Retail.</div>'; return; }
+    box.innerHTML = d.uploads.slice().reverse().map(u => `
+      <div class="ri-upload-row-item">
+        <span style="flex:1"><b>${escapeHtml(u.retailer)}</b> · ${escapeHtml(u.filename)} · ${fmtDate(u.uploadedAt)}</span>
+        <span>${fmtMoney(u.totals.plata)} · ${u.totals.filas} filas · ${u.totals.sinMapear} sin mapear</span>
+        <button class="adm-btn adm-btn-ghost" data-ri-del="${escapeAttr(u.id)}" type="button">Eliminar</button>
+      </div>`).join('');
+    box.querySelectorAll('[data-ri-del]').forEach(btn => btn.onclick = async () => {
+      if (!confirm('¿Eliminar esta carga de Retail?')) return;
+      try {
+        const rr = await fetch('/admin/retail/uploads/' + encodeURIComponent(btn.dataset.riDel), { method:'DELETE' });
+        if (!rr.ok) throw new Error('HTTP ' + rr.status);
+        loadRetailUploads(); loadSellOut();
+      } catch (e) { showToast('Error: ' + e.message, 'err'); }
+    });
+  } catch (e) { box.innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`; }
+}
 
 // ─── Costeo de carta (insumos · recetas base) ────────────────────────────────
 let costeoData = null, costeoSub = 'insumos', insumoSearch = '', rbSearch = '', costeoRest = 'garden', costeoSvc = 'comida';
