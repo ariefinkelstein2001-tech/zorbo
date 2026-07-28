@@ -2485,6 +2485,21 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
 .pv-form .dist-field{margin-bottom:.55rem}
 .pv-del{background:transparent;border:none;color:#c66;cursor:pointer;font-size:.85rem;padding:0 .2rem}
 .pv-del:hover{color:#d33}
+.pv-tag-canal{font-size:.6rem;font-weight:800;padding:.12rem .5rem;border-radius:999px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.pv-tag-canal-horeca{background:var(--gold-dim);color:var(--gold-deep)}
+.pv-tag-canal-retail{background:#e3f0fb;color:#1f5f8a}
+.pv-tag-canal-hospitality{background:#efeafa;color:#5e4ea3}
+.pv-topprod{font-family:var(--mono,monospace);font-size:.72rem;font-weight:700;color:var(--gold-deep,#a05f00)}
+.pv-ruta-chip{font-size:.76rem;color:var(--text,#111)}
+.pv-ruta-edit{background:transparent;border:1px solid var(--border,#e5e5e5);border-radius:8px;padding:.15rem .5rem;font-size:.66rem;cursor:pointer;color:var(--muted,#666);margin-left:.4rem;white-space:nowrap}
+.pv-ruta-edit:hover{border-color:var(--gold-bd-h,#f5a623);color:var(--gold-deep,#a05f00)}
+.pv-ruta-row td{background:var(--surface2,#fafafa);padding:.8rem .9rem;border-bottom:1px solid var(--border,#e5e5e5)}
+.pv-ruta-form{display:flex;gap:.9rem;flex-wrap:wrap;align-items:flex-end}
+.pv-ruta-days{display:flex;gap:.3rem;flex-wrap:wrap}
+.pv-ruta-day{border:1px solid var(--border,#e5e5e5);border-radius:8px;padding:.28rem .55rem;font-size:.68rem;cursor:pointer;background:var(--surface,#fff);color:var(--muted,#666);user-select:none}
+.pv-ruta-day.on{background:var(--gold-dim,#fff3d6);color:var(--gold-deep,#a05f00);border-color:var(--gold-bd,#f1c97b)}
+.pv-rutas-link{display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:var(--muted,#666);margin:0 0 1rem;padding:.6rem .85rem;border:1px dashed var(--border,#e5e5e5);border-radius:10px;cursor:pointer;background:var(--surface,#fff);line-height:1.4}
+.pv-rutas-link:hover{border-color:var(--gold-bd-h,#f5a623);color:var(--gold-deep,#a05f00)}
 
 /* ── CENTRO DE ADS ── */
 .ads-budget{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
@@ -4271,7 +4286,10 @@ async function selectSeccion(id){
     marcasBoot();
   } else if (sec.kind === 'rutas') {
     showView('rutas');
-    document.getElementById('rutasBody').innerHTML = adminSinInfo('Rutas', 'Aún no hay información cargada.');
+    document.getElementById('rutasBody').innerHTML = adminSinInfo(
+      'Rutas', 'Aún no hay información cargada.',
+      'Comercial › Puntos de venta ya deja lista la zona y el día de despacho de cada local que se vaya asignando — apenas Rutas tenga mapa y horario, se conecta directo con eso, sin volver a pedir el dato.'
+    );
   } else if (sec.kind === 'mantenimiento') {
     showView('mantenimiento');
     document.getElementById('mantenimientoBody').innerHTML = adminSinInfo('Gestión, trazabilidad y mantenimiento', 'Todavía no hay nada cargado acá.', 'Máquinas dispensadoras, barriles despachados sin regresar, registro de mantención y limpieza, estado de barriles.');
@@ -8673,20 +8691,49 @@ async function loadPuntos(refresh){
   }
 }
 
+// Canal (Horeca/Retail/Hospitality) — mismas etiquetas que Sell In/Out
+// (Fase 4); acá solo se muestra, nunca se recalcula distinto.
+const PV_CANAL_LBL = { horeca:'Horeca', retail:'Retail', hospitality:'Hospitality' };
+function pvCanalBadge(canal){
+  if (!canal) return '<span class="pv-noloc">sin canal</span>';
+  return `<span class="pv-tag-canal pv-tag-canal-${escapeAttr(canal)}">${escapeHtml(PV_CANAL_LBL[canal]||canal)}</span>`;
+}
+function pvRutaCell(p){
+  const has = p.ruta && (p.ruta.zona || (p.ruta.dia && p.ruta.dia.length));
+  const chip = has
+    ? `<span class="pv-ruta-chip">${escapeHtml(p.ruta.zona||'(sin zona)')}${p.ruta.dia && p.ruta.dia.length ? ' · ' + escapeHtml(p.ruta.dia.join(', ')) : ''}</span>`
+    : '<span class="pv-noloc">sin ruta asignada</span>';
+  return `${chip}<button class="pv-ruta-edit" type="button" data-ruta-edit="${escapeAttr(p.rutaKey)}">${has?'✎ editar':'+ asignar'}</button>`;
+}
+let pvSortState = { col:null, dir:null };
+const PV_SORT_KEYS = {
+  name: p => p.name || '',
+  address: p => p.address || '',
+  canal: p => PV_CANAL_LBL[p.canal] || '',
+  total: p => p.total || 0,
+  units: p => p.units || 0,
+  orders: p => p.orders || 0,
+};
 function renderPuntos(d){
   const pts = d.points || [];
   const hasMap = !!window.L;
-  const rows = pts.length ? pts.map((p, i) => `
+  const diasSemana = d.diasSemana || [];
+  const sorted = sortableApply(pts, pvSortState, PV_SORT_KEYS, new Set(['total','units','orders']));
+  const rows = sorted.length ? sorted.map((p, i) => `
     <tr>
       <td><span class="pv-rank">${i+1}</span></td>
       <td>${escapeHtml(p.name)} ${p.manual?'<span class="pv-tag-new">NUEVO</span>':(p.b2b?'<span class="pv-tag-b2b">B2B</span>':'<span class="pv-tag-b2c">B2C</span>')}
         ${p.brands && p.brands.length ? `<div class="mun-meta-cell">${escapeHtml(p.brands.join(' · '))}</div>` : ''}</td>
       <td>${p.address ? escapeHtml(p.address) : '<span class="pv-noloc">sin dirección</span>'}</td>
+      <td>${pvCanalBadge(p.canal)}</td>
+      <td>${p.topProducto ? `<span class="pv-topprod">${escapeHtml(p.topProducto.skuCode||'—')}</span><div class="mun-meta-cell">${escapeHtml(p.topProducto.title)}</div>` : '<span class="pv-noloc">—</span>'}</td>
       <td class="dist-num">${distMoney(p.total)}</td>
       <td class="dist-num">${(p.units||0).toLocaleString('es-CL')}</td>
       <td class="dist-num">${p.orders||0}</td>
+      <td>${pvRutaCell(p)}</td>
       <td>${p.manualId ? `<button class="pv-del" data-punto-del="${p.manualId}" title="Eliminar punto">✕</button>` : ''}</td>
-    </tr>`).join('') : `<tr><td colspan="7" class="pv-noloc" style="padding:1.5rem;text-align:center">Todavía no hay puntos de venta. Agrega el primero con el formulario.</td></tr>`;
+    </tr>
+    <tr class="pv-ruta-row" data-ruta-row="${escapeAttr(p.rutaKey)}" style="display:none"><td colspan="10"></td></tr>`).join('') : `<tr><td colspan="10" class="pv-noloc" style="padding:1.5rem;text-align:center">Todavía no hay puntos de venta. Agrega el primero con el formulario.</td></tr>`;
 
   const ordersNote = d.ordersReason
     ? `<div class="pv-geo">⚠ Ventas no disponibles ahora (${escapeHtml(d.ordersReason)}). Se muestran los puntos cargados a mano.</div>` : '';
@@ -8698,6 +8745,7 @@ function renderPuntos(d){
       <div class="pv-stat"><div class="pv-stat-l">Ubicados en mapa</div><div class="pv-stat-v" id="pvLocated">${d.withCoords}</div></div>
     </div>
     ${ordersNote}
+    <div class="pv-rutas-link" id="pvRutasLink">🚚 Distribución › Rutas — pendiente (todavía sin mapa de despacho). La zona y el día que asignes acá abajo quedan listos para cuando Rutas exista.</div>
     <div class="pv-top">
       ${hasMap ? '<div id="pvMap"></div>' : '<div></div>'}
       <div class="pv-form">
@@ -8718,17 +8766,72 @@ function renderPuntos(d){
       </div>
     </div>
     ${hasMap ? '<div class="pv-geo" id="pvGeo"></div>' : ''}
-    <div class="mun-count">ranking por venta · cada local con cuánto te compra</div>
-    <div class="mun-wrap"><table class="mun-table">
-      <thead><tr><th>#</th><th>Local</th><th>Dirección</th><th style="text-align:right">Venta</th><th style="text-align:right">Unid.</th><th style="text-align:right">Pedidos</th><th></th></tr></thead>
+    <div class="mun-count">cada local con su venta, canal, producto top y ruta de despacho (cuando esté asignada)</div>
+    <div class="mun-wrap"><table class="mun-table" id="pvTable">
+      <thead><tr>
+        <th>#</th>
+        ${sortableTableHeader('Local', 'name', pvSortState)}
+        ${sortableTableHeader('Dirección', 'address', pvSortState)}
+        ${sortableTableHeader('Canal', 'canal', pvSortState)}
+        <th>Top producto</th>
+        ${sortableTableHeader('Venta', 'total', pvSortState, ' style="text-align:right"')}
+        ${sortableTableHeader('Unid.', 'units', pvSortState, ' style="text-align:right"')}
+        ${sortableTableHeader('Pedidos', 'orders', pvSortState, ' style="text-align:right"')}
+        <th>Ruta</th><th></th>
+      </tr></thead>
       <tbody>${rows}</tbody>
     </table></div>`;
 
   if (hasMap) initPuntosMap(pts);
   document.getElementById('pfCreate').onclick = createPuntoVenta;
+  document.getElementById('pvRutasLink').onclick = () => selectSeccion('rutas');
   document.querySelectorAll('#puntosBody [data-punto-del]').forEach(b => {
     b.onclick = () => deletePuntoVenta(b.dataset.puntoDel);
   });
+  sortableWireHeaders(document.getElementById('pvTable'), pvSortState, () => renderPuntos(d));
+  document.querySelectorAll('#puntosBody [data-ruta-edit]').forEach(b => {
+    b.onclick = () => pvOpenRutaEditor(b.dataset.rutaEdit, pts.find(p => p.rutaKey === b.dataset.rutaEdit), diasSemana);
+  });
+}
+
+// Editor inline de ruta (zona + días de despacho) — se abre como fila extra
+// justo debajo del punto. Campo nuevo de Fase 5: no existe fuente real
+// todavía (Rutas está "sin info"), así que se carga a mano y queda guardado
+// para cuando Distribución › Rutas exista.
+function pvOpenRutaEditor(rutaKey, p, diasSemana){
+  const row = document.querySelector(`.pv-ruta-row[data-ruta-row="${CSS.escape(rutaKey)}"]`);
+  if (!row) return;
+  const open = row.style.display !== 'none';
+  document.querySelectorAll('.pv-ruta-row').forEach(r => r.style.display = 'none');
+  if (open) return; // toggle: si ya estaba abierta, la cerramos y listo
+  const cur = (p && p.ruta) || { zona:'', dia:[] };
+  row.querySelector('td').innerHTML = `
+    <div class="pv-ruta-form">
+      <div class="dist-field" style="margin:0"><label>Zona / sector de despacho</label><input id="pvRutaZona" value="${escapeAttr(cur.zona||'')}" placeholder="Ej: Providencia / Ñuñoa"></div>
+      <div class="dist-field" style="margin:0">
+        <label>Día(s) de despacho</label>
+        <div class="pv-ruta-days">${diasSemana.map(d => `<span class="pv-ruta-day${(cur.dia||[]).includes(d)?' on':''}" data-day="${escapeAttr(d)}">${escapeHtml(d.slice(0,3))}</span>`).join('')}</div>
+      </div>
+      <button class="adm-btn adm-btn-gold" id="pvRutaSave" type="button">Guardar</button>
+      <button class="adm-btn adm-btn-ghost" id="pvRutaCancel" type="button">Cancelar</button>
+      <span class="dist-status" id="pvRutaStatus"></span>
+    </div>`;
+  row.style.display = '';
+  row.querySelectorAll('.pv-ruta-day').forEach(chip => chip.onclick = () => chip.classList.toggle('on'));
+  row.querySelector('#pvRutaCancel').onclick = () => { row.style.display = 'none'; };
+  row.querySelector('#pvRutaSave').onclick = async () => {
+    const zona = row.querySelector('#pvRutaZona').value.trim();
+    const dia = [...row.querySelectorAll('.pv-ruta-day.on')].map(c => c.dataset.day);
+    const st = row.querySelector('#pvRutaStatus');
+    st.textContent = 'Guardando…';
+    try {
+      const r = await fetch('/admin/puntos-venta/' + encodeURIComponent(rutaKey) + '/ruta', {
+        method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ zona, dia }),
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      await loadPuntos();
+    } catch (e) { st.className='dist-status err'; st.textContent = 'Error: ' + e.message; }
+  };
 }
 
 async function createPuntoVenta(){

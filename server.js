@@ -10037,10 +10037,40 @@ app.get('/admin/distribuidora/products', requireAdmin, async (req, res) => {
 
 // ─── Puntos de venta (Comercialización) ─────────────────────────────────────
 // Locales donde están los productos de Zorbo, agregados por cliente, con la
-// venta de cada uno. Sale de las órdenes de Shopify (dirección de despacho).
+// venta de cada uno. Sale de las órdenes de Shopify (dirección de despacho) —
+// MISMA fuente que Sell In/Out (Fase 4): loadOrders() + isMayoristaLine().
+// No duplica cálculo: el canal por punto reutiliza literalmente
+// canalDeCliente()/canalDeProductoSellin() (server.js, Fase 4).
+//
+// Fase 5 agrega, sin tocar el cálculo de venta existente:
+//   - canal (Horeca/Retail/Hospitality/null) por punto, vía las mismas
+//     funciones de Sell In — nunca por dirección ni por nombre.
+//   - topProducto (skuCode + título) por punto, del mismo loop de líneas.
+//   - ruta (zona + día de despacho) — campo NUEVO, 100% manual (no existe
+//     fuente real todavía: Rutas está "sin info"), preparado para cuando
+//     Distribución › Rutas exista. Guardado aparte (puntos-ruta.json),
+//     indexado por la misma clave estable que ya arma este endpoint.
+const PUNTOS_RUTA_FILE = join(PROMPTS_EFFECTIVE_DIR, 'puntos-ruta.json');
+function loadPuntosRuta(){
+  try {
+    if (existsSync(PUNTOS_RUTA_FILE)) {
+      const p = JSON.parse(readFileSync(PUNTOS_RUTA_FILE, 'utf-8'));
+      return { version: 1, items: (p.items && typeof p.items === 'object') ? p.items : {} };
+    }
+  } catch (e) { console.warn('puntos ruta load:', e.message); }
+  return { version: 1, items: {} };
+}
+function savePuntosRuta(d){ writeFileSync(PUNTOS_RUTA_FILE, JSON.stringify(d, null, 2)); }
+// Días reales de la semana (calendario, no dato de negocio inventado) — set
+// cerrado para el selector de "día de despacho".
+const PUNTOS_DIAS_SEMANA = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+
 app.get('/admin/puntos-venta', requireAdmin, async (req, res) => {
   const result = await loadOrders(String(req.query.refresh || '') === '1');
   const ordersReason = result.available ? '' : (result.reason || '');
+  const notes = loadCustomerNotes();
+  const extras = loadProductExtras();
+  const rutaStore = loadPuntosRuta();
   const map = new Map();
   for (const o of (result.available ? result.orders : [])) {
     const sa = o.shippingAddress;
@@ -10049,7 +10079,7 @@ app.get('/admin/puntos-venta', requireAdmin, async (req, res) => {
       || (sa ? 'a:' + [sa.address1, sa.city].filter(Boolean).join('|').toLowerCase() : null);
     if (!key) continue;
     let p = map.get(key);
-    if (!p) { p = { customerId:o.customerId||null, name:'', email:o.customerEmail||'', total:0, units:0, orders:0, lastDate:0, address:null, brands:new Set(), b2b:false }; map.set(key, p); }
+    if (!p) { p = { rutaKey:key, customerId:o.customerId||null, name:'', email:o.customerEmail||'', total:0, units:0, orders:0, lastDate:0, address:null, brands:new Set(), b2b:false, productos:new Map(), canales:new Map() }; map.set(key, p); }
     p.total += Number(o.total || 0);
     p.orders += 1;
     let isB2B = false;
@@ -10057,6 +10087,13 @@ app.get('/admin/puntos-venta', requireAdmin, async (req, res) => {
       p.units += Number(li.qty || 0);
       if (li.vendor) p.brands.add(li.vendor);
       if (isMayoristaLine(li)) isB2B = true;
+      if (li.productId) {
+        const pr = p.productos.get(li.productId) || { title: li.title, qty: 0 };
+        pr.qty += Number(li.qty || 0);
+        p.productos.set(li.productId, pr);
+        const c = canalDeProductoSellin(li.productId, extras);
+        if (c) p.canales.set(c, (p.canales.get(c) || 0) + 1);
+      }
     }
     if (isB2B) p.b2b = true;
     const t = new Date(o.createdAt).getTime();
@@ -10068,10 +10105,27 @@ app.get('/admin/puntos-venta', requireAdmin, async (req, res) => {
       if (sa) p.address = sa;
     }
   }
+  const puntoCanal = (p) => canalDeCliente(p.customerId, notes)
+    || ([...p.canales.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || null);
+  const puntoTopProducto = (p) => {
+    const top = [...p.productos.entries()].sort((a, b) => b[1].qty - a[1].qty)[0];
+    if (!top) return null;
+    const [productId, info] = top;
+    const ex = extras.items[String(productId)];
+    return { skuCode: ex?.skuCode || null, title: info.title, qty: info.qty };
+  };
+  const puntoRuta = (rutaKey) => {
+    const r = rutaStore.items[rutaKey];
+    return r ? { zona: r.zona || null, dia: Array.isArray(r.dia) ? r.dia : [] } : null;
+  };
   const points = [...map.values()].map(p => ({
     _customerId: p.customerId,
+    rutaKey: p.rutaKey,
     name: p.name, email: p.email, total: Math.round(p.total), units: p.units, orders: p.orders,
     b2b: p.b2b, brands: [...p.brands].slice(0, 6),
+    canal: puntoCanal(p),
+    topProducto: puntoTopProducto(p),
+    ruta: puntoRuta(p.rutaKey),
     address: p.address ? [p.address.address1, p.address.city, p.address.province].filter(Boolean).join(', ') : '',
     city: p.address?.city || '',
     lat: p.address?.lat ?? null, lng: p.address?.lng ?? null,
@@ -10092,9 +10146,13 @@ app.get('/admin/puntos-venta', requireAdmin, async (req, res) => {
       if (!existing.address) existing.address = fullAddr;
       existing.manualId = sp.id;
     } else {
+      const rutaKey = 'm:' + sp.id;
       points.push({
+        rutaKey,
         name: sp.name || 'Sin nombre', email: sp.email || '', total: 0, units: 0, orders: 0,
-        b2b: true, brands: [], address: fullAddr, city: sp.city || '',
+        b2b: true, brands: [], canal: canalDeCliente(sp.customerId, notes) || null,
+        topProducto: null, ruta: puntoRuta(rutaKey),
+        address: fullAddr, city: sp.city || '',
         lat: sp.lat ?? null, lng: sp.lng ?? null, lastOrder: null,
         manual: true, manualId: sp.id, customerId: sp.customerId || null,
       });
@@ -10108,8 +10166,25 @@ app.get('/admin/puntos-venta', requireAdmin, async (req, res) => {
     count: points.length,
     totalVenta: points.reduce((a, p) => a + p.total, 0),
     withCoords: points.filter(p => p.lat != null).length,
+    diasSemana: PUNTOS_DIAS_SEMANA,
     points: points.map(({ _customerId, ...rest }) => rest),
   });
+});
+
+// Asigna zona / día de despacho a un punto de venta — campo nuevo, 100%
+// manual (Rutas todavía no existe como fuente real), preparado para cuando
+// Distribución › Rutas exista y pueda tomar este dato en vez de pedirlo de
+// nuevo. `key` es el `rutaKey` opaco que ya trae cada punto en el GET.
+app.put('/admin/puntos-venta/:key/ruta', requireAdmin, (req, res) => {
+  const key = String(req.params.key);
+  const b = req.body || {};
+  const zona = b.zona != null ? String(b.zona).trim().slice(0, 120) : '';
+  const dia = Array.isArray(b.dia) ? b.dia.map(String).filter(d => PUNTOS_DIAS_SEMANA.includes(d)) : [];
+  const store = loadPuntosRuta();
+  if (!zona && !dia.length) delete store.items[key];
+  else store.items[key] = { zona: zona || null, dia, updatedAt: new Date().toISOString() };
+  savePuntosRuta(store);
+  res.json({ ok: true, key, ruta: store.items[key] || null });
 });
 
 // Crear un punto de venta a mano y registrarlo como cliente en Shopify.
