@@ -645,25 +645,44 @@ body.chat-collapsed.admin-home .adm-chat-reopen,body.chat-collapsed.estado-activ
 .sku-chan-top .sku-chan{flex:1 1 auto;justify-content:center;padding:.85rem 1rem;font-size:.88rem}
 .sku-search-row{margin-bottom:.9rem}
 .sku-search{max-width:360px}
-/* ── Carta de Hospitality (Comida/Barra → sección → ítems) ── */
-.hc-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin:.4rem 0 .6rem}
-.hc-local{font-family:var(--display);font-size:1.15rem;font-weight:800;color:var(--text)}
-.hc-fuente{font-family:var(--sans);font-size:.72rem;font-weight:600;color:var(--muted);margin-left:.4rem}
-.hc-tabs{display:flex;gap:.5rem}
+/* ── Carta editable de Hospitality ── */
+.hc-bar{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;margin:.4rem 0 .6rem}
+.hc-link{font-family:var(--sans);font-weight:700;font-size:.82rem;color:var(--gold-deep);text-decoration:none;background:var(--gold-dim);border:1px solid var(--gold-bd);border-radius:10px;padding:.4rem .7rem}
+.hc-link:hover{text-decoration:underline}
+.hc-tabs{display:flex;gap:.5rem;margin:.2rem 0 1rem}
 .hc-tab{border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--muted);font-family:var(--sans);font-weight:700;font-size:.85rem;padding:.55rem 1rem;cursor:pointer;display:flex;gap:.4rem;align-items:center}
 .hc-tab span{background:var(--gold-dim);color:var(--gold-deep);border-radius:99px;font-size:.7rem;padding:.05rem .45rem}
 .hc-tab.on{background:var(--gold-dim);color:var(--gold-deep);border-color:var(--gold)}
 .hc-note{font-family:var(--sans);font-size:.76rem;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.5rem .7rem;margin-bottom:1rem}
-.hc-sec{margin-bottom:1.3rem}
-.hc-sec-h{font-family:var(--display);font-size:1rem;font-weight:800;color:var(--gold-deep);letter-spacing:.01em;border-bottom:2px solid var(--gold-bd);padding-bottom:.3rem;margin-bottom:.6rem;display:flex;gap:.5rem;align-items:baseline}
+.hc-sec{margin-bottom:1.2rem}
+.hc-sec-h{font-family:var(--display);font-size:1rem;font-weight:800;color:var(--gold-deep);letter-spacing:.01em;border-bottom:2px solid var(--gold-bd);padding-bottom:.3rem;margin-bottom:.5rem;display:flex;gap:.5rem;align-items:baseline}
 .hc-sec-h span{font-family:var(--sans);font-size:.72rem;font-weight:600;color:var(--muted)}
-.hc-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:.7rem}
-.hc-item{border:1px solid var(--border);border-radius:12px;background:var(--card,#fff);padding:.7rem .85rem}
-.hc-item-top{display:flex;justify-content:space-between;gap:.6rem;align-items:baseline}
-.hc-item-name{font-family:var(--sans);font-weight:800;font-size:.92rem;color:var(--text)}
-.hc-item-price{font-family:var(--display);font-weight:800;font-size:.95rem;color:var(--gold-deep);white-space:nowrap}
-.hc-item-desc{font-family:var(--sans);font-size:.78rem;color:var(--muted);margin-top:.3rem;line-height:1.4}
-.hc-item-nota{display:inline-block;margin-top:.4rem;font-family:var(--sans);font-size:.66rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#2d5aa0;background:rgba(45,90,160,.10);border:1px solid rgba(45,90,160,.22);border-radius:99px;padding:.1rem .5rem}
+.hc-list{display:flex;flex-direction:column;gap:.4rem}
+.hc-row{display:flex;align-items:center;gap:.7rem;border:1px solid var(--border);border-radius:12px;background:var(--card,#fff);padding:.5rem .7rem}
+.hc-row.off{opacity:.5}
+.hc-thumb{flex:0 0 44px;width:44px;height:44px;border-radius:9px;background-size:cover;background-position:center;background-color:#eef1e8}
+.hc-thumb-ph{display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:#9bb08c}
+.hc-thumb-lg{width:88px;height:88px;flex-basis:88px;font-size:2rem}
+.hc-row-main{flex:1;min-width:0}
+.hc-row-name{font-family:var(--sans);font-weight:800;font-size:.9rem;color:var(--text)}
+.hc-row-desc{font-family:var(--sans);font-size:.75rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46ch}
+.hc-row-price{font-family:var(--display);font-weight:800;font-size:.92rem;color:var(--gold-deep);white-space:nowrap}
+.hc-item-nota{display:inline-block;font-family:var(--sans);font-size:.6rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#2d5aa0;background:rgba(45,90,160,.10);border:1px solid rgba(45,90,160,.22);border-radius:99px;padding:.05rem .4rem;vertical-align:middle}
+.hc-ic{border:none;background:transparent;cursor:pointer;font-size:1rem;padding:.2rem .3rem;border-radius:7px}
+.hc-ic:hover{background:var(--surface)}
+.hc-sw{position:relative;display:inline-block;width:36px;height:20px;flex:0 0 auto}
+.hc-sw input{opacity:0;width:0;height:0}
+.hc-sw span{position:absolute;inset:0;background:#c8ccc2;border-radius:99px;transition:.2s;cursor:pointer}
+.hc-sw span::before{content:"";position:absolute;height:14px;width:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.hc-sw input:checked+span{background:var(--gold)}
+.hc-sw input:checked+span::before{transform:translateX(16px)}
+.hc-form{display:flex;gap:1rem;border:1px solid var(--gold);border-radius:14px;background:var(--gold-dim);padding:.9rem;margin-bottom:.6rem;flex-wrap:wrap}
+.hc-form-foto{display:flex;flex-direction:column;gap:.4rem;align-items:center}
+.hc-foto-btn{position:relative;cursor:pointer;font-size:.78rem}
+.hc-form-fields{flex:1;min-width:260px;display:flex;flex-direction:column;gap:.5rem}
+.hc-form-row{display:flex;gap:.6rem;flex-wrap:wrap}
+.hc-form-row .cg-field{flex:1;min-width:120px}
+.hc-form-acts{display:flex;gap:.5rem;justify-content:flex-end;margin-top:.2rem}
 
 /* ─── Sell In · Sell Out (Fase 4) ───────────────────────────────────────── */
 .sio-block{margin-top:.9rem}
@@ -4689,43 +4708,130 @@ function applySkuChannel(){
   if (want !== activeProdSection) { activeProdSection = want; activeBrand = 'all'; loadProductos(); }
   else renderProductGrid();
 }
-// ── Carta de Hospitality (Kairos Garden / Badass) — desde el Excel de la carta ──
-let hospCartaData = null, hospCartaTipo = 'comida';
+// ── Carta EDITABLE de Hospitality (restoranes) + link a la página pública ──
+const HOSP_LOCALES = [{ id: 'garden', label: 'Kairos Garden' }, { id: 'badass', label: 'Kairos Badass' }];
+let hospLocal = 'garden', hospCartaTipo = 'comida', hospEditId = null, hospData = null;
+const hospClp = n => n != null ? ('$' + Math.round(n).toLocaleString('es-CL')) : '—';
 async function loadHospCarta(force){
   const wrap = document.getElementById('hospCartaWrap'); if (!wrap) return;
-  if (hospCartaData && !force) { renderHospCarta(); return; }
+  if (hospData && hospData.local === hospLocal && !force) { renderHospCarta(); return; }
   wrap.innerHTML = '<div class="adm-loading">Cargando carta…</div>';
   try {
-    const r = await fetch('/admin/comercial/carta-hospitality'); const d = await r.json();
+    const r = await fetch('/admin/carta/' + hospLocal); const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Error');
-    hospCartaData = d; renderHospCarta();
+    hospData = d; hospEditId = null; renderHospCarta();
   } catch (e) { wrap.innerHTML = '<div class="adm-empty" style="color:var(--red)">No se pudo cargar la carta: ' + escapeHtml(String(e.message || e)) + '</div>'; }
 }
-function renderHospCarta(){
-  const wrap = document.getElementById('hospCartaWrap'); const d = hospCartaData; if (!wrap || !d) return;
-  const clp = n => n != null ? ('$' + Math.round(n).toLocaleString('es-CL')) : '—';
-  const grupos = hospCartaTipo === 'barra' ? (d.barra || []) : (d.comida || []);
-  const secciones = grupos.map(g => `
-    <div class="hc-sec">
-      <div class="hc-sec-h">${escapeHtml(g.seccion)} <span>${g.items.length}</span></div>
-      <div class="hc-items">${g.items.map(it => `
-        <div class="hc-item">
-          <div class="hc-item-top"><span class="hc-item-name">${escapeHtml(it.nombre)}</span><span class="hc-item-price">${it.nota && /desde/i.test(it.nota) ? 'desde ' : ''}${clp(it.precio)}</span></div>
-          ${it.descripcion ? `<div class="hc-item-desc">${escapeHtml(it.descripcion)}</div>` : ''}
-          ${it.nota && !/^desde$/i.test(it.nota) ? `<span class="hc-item-nota">${escapeHtml(it.nota)}</span>` : ''}
-        </div>`).join('')}</div>
-    </div>`).join('');
-  wrap.innerHTML = `
-    <div class="hc-head">
-      <div class="hc-local">🍽️ ${escapeHtml(d.local || 'Kairos Garden')} <span class="hc-fuente">${escapeHtml(d.fuente || '')}</span></div>
-      <div class="hc-tabs">
-        <button type="button" class="hc-tab ${hospCartaTipo==='comida'?'on':''}" data-hct="comida">🍳 Comida <span>${d.nComida||0}</span></button>
-        <button type="button" class="hc-tab ${hospCartaTipo==='barra'?'on':''}" data-hct="barra">🍹 Barra <span>${d.nBarra||0}</span></button>
+function hospSecciones(tipo){
+  const items = (hospData.items || []).filter(x => x.tipo === tipo).sort((a, b) => (a.orden || 0) - (b.orden || 0));
+  const orden = [], map = {};
+  for (const it of items) { const s = it.seccion || 'Otros'; if (!map[s]) { map[s] = []; orden.push(s); } map[s].push(it); }
+  return { orden, map, n: items.length };
+}
+function hospItemRow(it){
+  if (hospEditId === it.id) return hospItemForm(it);
+  const foto = it.foto ? `<div class="hc-thumb" style="background-image:url('${escapeAttr(it.foto)}')"></div>` : `<div class="hc-thumb hc-thumb-ph">${it.tipo === 'barra' ? '🍹' : '🍳'}</div>`;
+  return `<div class="hc-row ${it.activo === false ? 'off' : ''}" data-hid="${it.id}">
+    ${foto}
+    <div class="hc-row-main"><div class="hc-row-name">${escapeHtml(it.nombre)}${it.nota ? ` <span class="hc-item-nota">${escapeHtml(it.nota)}</span>` : ''}</div>${it.descripcion ? `<div class="hc-row-desc">${escapeHtml(it.descripcion)}</div>` : ''}</div>
+    <div class="hc-row-price">${it.nota && /desde/i.test(it.nota) ? 'desde ' : ''}${hospClp(it.precio)}</div>
+    <label class="hc-sw" title="Mostrar en la carta"><input type="checkbox" ${it.activo === false ? '' : 'checked'} data-hosptoggle="${it.id}"><span></span></label>
+    <button class="hc-ic" data-hospedit="${it.id}" title="Editar">✏️</button>
+    <button class="hc-ic" data-hospdel="${it.id}" title="Eliminar">🗑️</button>
+  </div>`;
+}
+function hospItemForm(it){
+  const nv = it || { id: 'new', tipo: hospCartaTipo, seccion: '', nombre: '', descripcion: '', precio: '', nota: '', foto: null };
+  const secs = [...new Set((hospData.items || []).filter(x => x.tipo === (nv.tipo || hospCartaTipo)).map(x => x.seccion).filter(Boolean))];
+  const foto = nv.foto ? `<div class="hc-thumb hc-thumb-lg" style="background-image:url('${escapeAttr(nv.foto)}')"></div>` : `<div class="hc-thumb hc-thumb-lg hc-thumb-ph">${(nv.tipo || hospCartaTipo) === 'barra' ? '🍹' : '🍳'}</div>`;
+  return `<div class="hc-form" data-hform="${nv.id}">
+    <div class="hc-form-foto">${foto}<label class="adm-btn adm-btn-ghost hc-foto-btn">📷 Foto<input type="file" accept="image/png,image/jpeg,image/webp" data-hospfoto="${nv.id}" style="display:none"></label>${nv.foto ? `<button class="adm-btn adm-btn-ghost" data-hospfotodel="${nv.id}" type="button">Quitar</button>` : ''}</div>
+    <div class="hc-form-fields">
+      <div class="hc-form-row"><label class="cg-field"><span>Nombre</span><input id="hfNombre" value="${escapeAttr(nv.nombre)}"></label><label class="cg-field" style="max-width:150px"><span>Precio ($)</span><input id="hfPrecio" inputmode="numeric" value="${nv.precio != null ? escapeAttr(nv.precio) : ''}" placeholder="vacío = a consultar"></label></div>
+      <label class="cg-field"><span>Descripción</span><textarea id="hfDesc" rows="2">${escapeHtml(nv.descripcion || '')}</textarea></label>
+      <div class="hc-form-row">
+        <label class="cg-field"><span>Tipo</span><select id="hfTipo"><option value="comida" ${(nv.tipo||'comida')==='comida'?'selected':''}>🍳 Comida</option><option value="barra" ${nv.tipo==='barra'?'selected':''}>🍹 Barra</option></select></label>
+        <label class="cg-field"><span>Sección</span><input id="hfSeccion" list="hfSecList" value="${escapeAttr(nv.seccion||'')}" placeholder="Ej: Para Compartir"><datalist id="hfSecList">${secs.map(s => `<option value="${escapeAttr(s)}">`).join('')}</datalist></label>
+        <label class="cg-field" style="max-width:150px"><span>Nota / badge</span><input id="hfNota" value="${escapeAttr(nv.nota||'')}" placeholder="Nuevo, Desde…"></label>
       </div>
+      <div class="hc-form-acts"><button class="adm-btn adm-btn-ghost" data-hospcancel type="button">Cancelar</button><button class="adm-btn adm-btn-gold" data-hospsave="${nv.id}" type="button">Guardar</button></div>
+      <div class="cg-err" id="hfErr"></div>
     </div>
-    <div class="hc-note">Carta de <b>Kairos Garden</b> importada del Excel. La de <b>Kairos Badass</b> se agrega cuando la subas. Solo lectura por ahora.</div>
-    ${secciones || '<div class="adm-empty">Sin ítems en esta parte de la carta.</div>'}`;
-  wrap.querySelectorAll('.hc-tab').forEach(b => b.onclick = () => { hospCartaTipo = b.dataset.hct; renderHospCarta(); });
+  </div>`;
+}
+function renderHospCarta(){
+  const wrap = document.getElementById('hospCartaWrap'); const d = hospData; if (!wrap || !d) return;
+  const g = hospSecciones(hospCartaTipo);
+  const nComida = (d.items || []).filter(x => x.tipo === 'comida').length, nBarra = (d.items || []).filter(x => x.tipo === 'barra').length;
+  const pubUrl = 'k-bros.cl' + (d.publicPath || ('/carta/' + hospLocal));
+  const nuevoForm = hospEditId === 'new' ? hospItemForm(null) : '';
+  const secciones = g.orden.map(s => `<div class="hc-sec"><div class="hc-sec-h">${escapeHtml(s)} <span>${g.map[s].length}</span></div><div class="hc-list">${g.map[s].map(hospItemRow).join('')}</div></div>`).join('');
+  wrap.innerHTML = `
+    <div class="hc-bar">
+      <select class="costeo-svc" id="hospLocalSel">${HOSP_LOCALES.map(l => `<option value="${l.id}" ${l.id===hospLocal?'selected':''}>${escapeHtml(l.label)}</option>`).join('')}</select>
+      <a class="hc-link" href="${escapeAttr(d.publicPath || ('/carta/' + hospLocal))}" target="_blank" rel="noopener">🔗 ${escapeHtml(pubUrl)}</a>
+      <button class="adm-btn adm-btn-ghost" id="hospCopy" type="button">Copiar link</button>
+      <button class="adm-btn adm-btn-gold" id="hospNew" type="button">+ Nuevo ítem</button>
+    </div>
+    <div class="hc-note">Esta es la carta pública de <b>${escapeHtml(d.nombre)}</b>. Todo lo que edites acá (nombre, descripción, precio, foto) se ve al instante en <b>${escapeHtml(pubUrl)}</b>.</div>
+    <div class="hc-tabs">
+      <button type="button" class="hc-tab ${hospCartaTipo==='comida'?'on':''}" data-hct="comida">🍳 Comida <span>${nComida}</span></button>
+      <button type="button" class="hc-tab ${hospCartaTipo==='barra'?'on':''}" data-hct="barra">🍹 Barra <span>${nBarra}</span></button>
+    </div>
+    ${nuevoForm}
+    ${secciones || '<div class="adm-empty">Sin ítems en esta parte de la carta. Tocá <b>+ Nuevo ítem</b>.</div>'}`;
+  wrap.querySelectorAll('.hc-tab').forEach(b => b.onclick = () => { hospCartaTipo = b.dataset.hct; hospEditId = null; renderHospCarta(); });
+  const sel = wrap.querySelector('#hospLocalSel'); if (sel) sel.onchange = () => { hospLocal = sel.value; loadHospCarta(true); };
+  const nb = wrap.querySelector('#hospNew'); if (nb) nb.onclick = () => { hospEditId = 'new'; renderHospCarta(); };
+  const cp = wrap.querySelector('#hospCopy'); if (cp) cp.onclick = () => { navigator.clipboard && navigator.clipboard.writeText('https://' + pubUrl); showToast('Link copiado ✓', 'ok'); };
+  wrap.querySelectorAll('[data-hospedit]').forEach(b => b.onclick = () => { hospEditId = b.dataset.hospedit; renderHospCarta(); });
+  wrap.querySelectorAll('[data-hospcancel]').forEach(b => b.onclick = () => { hospEditId = null; renderHospCarta(); });
+  wrap.querySelectorAll('[data-hospdel]').forEach(b => b.onclick = () => hospItemDelete(b.dataset.hospdel));
+  wrap.querySelectorAll('[data-hospsave]').forEach(b => b.onclick = () => hospItemSave(b.dataset.hospsave));
+  wrap.querySelectorAll('[data-hosptoggle]').forEach(c => c.onchange = () => hospItemToggle(c.dataset.hosptoggle, c.checked));
+  wrap.querySelectorAll('[data-hospfoto]').forEach(inp => inp.onchange = () => hospFotoUpload(inp.dataset.hospfoto, inp.files[0]));
+  wrap.querySelectorAll('[data-hospfotodel]').forEach(b => b.onclick = () => hospFotoUpload(b.dataset.hospfotodel, null));
+  const ts = wrap.querySelector('#hfTipo'); if (ts) ts.onchange = () => { /* refrescar datalist de secciones */ const f = wrap.querySelector('#hfSeccion'); if (f) { const secs = [...new Set((hospData.items||[]).filter(x=>x.tipo===ts.value).map(x=>x.seccion).filter(Boolean))]; wrap.querySelector('#hfSecList').innerHTML = secs.map(s=>`<option value="${escapeAttr(s)}">`).join(''); } };
+}
+function hospFormPayload(){
+  const g = id => document.getElementById(id);
+  return { tipo: g('hfTipo').value, seccion: g('hfSeccion').value.trim(), nombre: g('hfNombre').value.trim(), descripcion: g('hfDesc').value, precio: g('hfPrecio').value.trim() === '' ? null : cNum(g('hfPrecio').value), nota: g('hfNota').value.trim() };
+}
+async function hospItemSave(id){
+  const err = document.getElementById('hfErr'); if (err) err.textContent = '';
+  const payload = hospFormPayload();
+  if (!payload.nombre) { if (err) { err.textContent = '⚠ Ingresá el nombre.'; err.classList.add('show'); } return; }
+  try {
+    const isNew = id === 'new';
+    const url = isNew ? ('/admin/carta/' + hospLocal + '/item') : ('/admin/carta/' + hospLocal + '/item/' + encodeURIComponent(id));
+    const r = await fetch(url, { method: isNew ? 'POST' : 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Error');
+    hospEditId = null; await loadHospCarta(true); showToast('Guardado ✓', 'ok');
+  } catch (e) { if (err) { err.textContent = '⚠ ' + String(e.message || e); err.classList.add('show'); } }
+}
+async function hospItemDelete(id){
+  if (!confirm('¿Eliminar este ítem de la carta?')) return;
+  try { const r = await fetch('/admin/carta/' + hospLocal + '/item/' + encodeURIComponent(id), { method: 'DELETE' }); const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Error'); await loadHospCarta(true); }
+  catch (e) { alert(String(e.message || e)); }
+}
+async function hospItemToggle(id, activo){
+  try { await fetch('/admin/carta/' + hospLocal + '/item/' + encodeURIComponent(id), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activo }) }); const it = (hospData.items || []).find(x => x.id === id); if (it) it.activo = activo; }
+  catch (e) { alert(String(e.message || e)); loadHospCarta(true); }
+}
+async function hospFotoUpload(id, file){
+  if (id === 'new') { alert('Guardá el ítem primero y después subís la foto.'); return; }
+  try {
+    let body;
+    if (file === null) body = { foto: null };
+    else {
+      if (file.size > 8 * 1024 * 1024) { alert('Máximo 8 MB.'); return; }
+      const dataBase64 = await new Promise((res, rej) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.onerror = rej; rd.readAsDataURL(file); });
+      body = { foto: { dataBase64, contentType: file.type, filename: file.name } };
+    }
+    const r = await fetch('/admin/carta/' + hospLocal + '/item/' + encodeURIComponent(id) + '/foto', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const d = await r.json(); if (!r.ok) throw new Error(d.error || 'Error');
+    await loadHospCarta(true); showToast('Foto actualizada ✓', 'ok');
+  } catch (e) { alert(String(e.message || e)); }
 }
 document.getElementById('skuSearch').addEventListener('input', (e) => {
   skuSearchQ = e.target.value.trim().toLowerCase();

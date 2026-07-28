@@ -2729,25 +2729,152 @@ app.delete('/admin/sku-menu/:id', requireAdmin, (req, res) => {
   saveSkuMenu(menu);
   res.json({ ok: true });
 });
-// Carta de Hospitality (restoranes Kairos Garden / Badass). Semilla de solo lectura
-// importada del Excel de la carta: Comida / Barra → sección → ítems (nombre,
-// descripción, precio, nota). Sirve la vista Hospitality del módulo SKU.
-let cartaHospCache = null;
-function loadCartaHosp(){
-  if (cartaHospCache) return cartaHospCache;
-  try { cartaHospCache = JSON.parse(readFileSync(join(__dirname, 'hospitality-carta-seed.json'), 'utf-8')); }
-  catch (e) { console.warn('carta hosp seed:', e.message); cartaHospCache = { comida: [], barra: [] }; }
-  return cartaHospCache;
+// ══ Carta editable de Hospitality (restoranes) + página pública /carta/:local ══
+// Cada local (Kairos Garden / Badass) tiene su carta propia, editable 100% desde
+// el admin (nombre, descripción, precio, foto, nota, activo). Se siembra la 1ª vez
+// desde el Excel/JSON. La página pública en /carta/:local la muestra a los clientes.
+const CARTA_LOCALES = {
+  garden: { nombre: 'Kairos Garden', seed: 'hospitality-carta-seed.json' },
+  badass: { nombre: 'Kairos Badass', seed: null },
+};
+const cartaLocalOk = (l) => Object.prototype.hasOwnProperty.call(CARTA_LOCALES, String(l));
+const cartaFile = (local) => join(PROMPTS_EFFECTIVE_DIR, 'carta-' + local + '.json');
+function cartaSeedItems(local){
+  const def = CARTA_LOCALES[local]; if (!def || !def.seed) return [];
+  try {
+    const s = JSON.parse(readFileSync(join(__dirname, def.seed), 'utf-8'));
+    const items = []; let n = 0;
+    const add = (arr, tipo) => { for (const it of (arr || [])) items.push({ id: prodNewId('cta'), tipo, seccion: it.seccion || 'Otros', nombre: it.nombre || '', descripcion: it.descripcion || '', precio: (it.precio != null ? it.precio : (it.precio_clp != null ? it.precio_clp : null)), nota: it.nota || '', foto: null, activo: true, orden: n++ }); };
+    add(s.comida, 'comida'); add(s.barra, 'barra');
+    return items;
+  } catch (e) { console.warn('carta seed:', e.message); return []; }
 }
-app.get('/admin/comercial/carta-hospitality', requireAdmin, (req, res) => {
-  const c = loadCartaHosp();
-  // Agrupa cada tipo por sección, conservando el orden de aparición.
-  const agrupar = (arr) => {
-    const orden = [], map = {};
-    for (const it of (arr || [])) { const s = it.seccion || 'Otros'; if (!map[s]) { map[s] = []; orden.push(s); } map[s].push({ nombre: it.nombre, descripcion: it.descripcion || '', precio: it.precio != null ? it.precio : null, nota: it.nota || '' }); }
-    return orden.map(s => ({ seccion: s, items: map[s] }));
+function cartaLoad(local){
+  try { if (existsSync(cartaFile(local))) { const d = JSON.parse(readFileSync(cartaFile(local), 'utf-8')); if (Array.isArray(d.items)) return d; } }
+  catch (e) { console.warn('carta load:', e.message); }
+  const d = { local, nombre: (CARTA_LOCALES[local] || {}).nombre || local, items: cartaSeedItems(local) };
+  if (d.items.length) cartaSave(d);
+  return d;
+}
+function cartaSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(cartaFile(d.local), JSON.stringify(d, null, 2)); }
+function cartaItemNorm(b, cur){
+  const tipo = b.tipo === 'barra' ? 'barra' : (b.tipo === 'comida' ? 'comida' : (cur ? cur.tipo : 'comida'));
+  const precio = (b.precio === '' || b.precio == null) ? (cur ? cur.precio : null) : (Number.isFinite(Number(b.precio)) ? Math.round(Number(b.precio)) : (cur ? cur.precio : null));
+  return {
+    tipo,
+    seccion: costosStr(b.seccion, 80) || (cur ? cur.seccion : '') || 'Otros',
+    nombre: costosStr(b.nombre, 160),
+    descripcion: String(b.descripcion == null ? (cur ? cur.descripcion : '') : b.descripcion).slice(0, 1500),
+    nota: costosStr(b.nota, 60),
+    precio: (b.precio === null) ? null : precio,
+    activo: b.activo == null ? (cur ? cur.activo : true) : !!b.activo,
   };
-  res.json({ local: c.local || 'Kairos Garden', fuente: c.fuente || '', comida: agrupar(c.comida), barra: agrupar(c.barra), nComida: (c.comida || []).length, nBarra: (c.barra || []).length });
+}
+// HTML de la página pública de la carta (mobile-first, vibra garden/botánica).
+function cartaPublicHtml(d){
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const clp = (n) => n != null ? ('$' + Math.round(n).toLocaleString('es-CL')) : '';
+  const items = (d.items || []).filter(x => x.activo !== false).slice().sort((a, b) => (a.orden || 0) - (b.orden || 0));
+  const buildTipo = (tipo) => {
+    const list = items.filter(x => x.tipo === tipo);
+    const orden = [], map = {};
+    for (const it of list) { const s = it.seccion || 'Otros'; if (!map[s]) { map[s] = []; orden.push(s); } map[s].push(it); }
+    const nav = orden.map((s, i) => `<a href="#${tipo}-${i}" class="cta-chip">${esc(s)}</a>`).join('');
+    const secs = orden.map((s, i) => `<section class="cta-sec" id="${tipo}-${i}"><h2 class="cta-sec-h">${esc(s)}</h2><div class="cta-grid">${map[s].map(it => {
+      const desde = /desde/i.test(it.nota || '');
+      const precio = it.precio != null ? ((desde ? 'Desde ' : '') + clp(it.precio)) : (it.nota ? esc(it.nota) : '');
+      const badge = it.nota && !/^desde$/i.test(it.nota) ? `<span class="cta-badge">${esc(it.nota)}</span>` : '';
+      const foto = it.foto ? `<div class="cta-foto" style="background-image:url('${esc(it.foto)}')"></div>` : `<div class="cta-foto cta-ph">🍃</div>`;
+      return `<article class="cta-card">${foto}<div class="cta-cb"><div class="cta-ct"><h3>${esc(it.nombre)}</h3><span class="cta-price">${precio}</span></div>${it.descripcion ? `<p>${esc(it.descripcion)}</p>` : ''}${badge}</div></article>`;
+    }).join('')}</div></section>`).join('');
+    return { nav, secs };
+  };
+  const comida = buildTipo('comida'), barra = buildTipo('barra');
+  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(d.nombre)} · Carta</title>
+<style>
+:root{--verde:#1f3d2b;--verde2:#2e5c40;--crema:#f6f4ec;--oro:#c9a227;--tinta:#26311f;--dim:#6b7a63;--linea:#e4e6dd}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--crema);color:var(--tinta)}
+.cta-hd{background:var(--verde);color:#fff;padding:1.1rem 1rem;text-align:center;position:sticky;top:0;z-index:30}
+.cta-logo{font-size:1.35rem;font-weight:800;letter-spacing:.02em}
+.cta-tabs{display:flex;gap:.5rem;justify-content:center;padding:.7rem;background:var(--verde);position:sticky;top:0;z-index:29}
+.cta-hd+.cta-tabs{position:sticky;top:3.4rem}
+.cta-tab{border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;font-weight:700;font-size:.95rem;padding:.5rem 1.2rem;border-radius:99px;cursor:pointer}
+.cta-tab.on{background:var(--oro);color:var(--verde);border-color:var(--oro)}
+.cta-nav{display:flex;gap:.4rem;overflow-x:auto;padding:.6rem .8rem;background:var(--crema);position:sticky;top:6.4rem;z-index:20;border-bottom:1px solid var(--linea);-webkit-overflow-scrolling:touch}
+.cta-chip{flex:0 0 auto;text-decoration:none;color:var(--verde2);border:1px solid var(--linea);background:#fff;border-radius:99px;padding:.35rem .8rem;font-size:.8rem;font-weight:700;white-space:nowrap}
+main{max-width:900px;margin:0 auto;padding:.5rem 1rem 3rem}
+.cta-sec{scroll-margin-top:8rem;margin-top:1.6rem}
+.cta-sec-h{font-size:1.25rem;font-weight:800;color:var(--verde);border-bottom:2px solid var(--oro);padding-bottom:.35rem;margin:0 0 .9rem}
+.cta-grid{display:grid;grid-template-columns:1fr;gap:.8rem}
+@media(min-width:640px){.cta-grid{grid-template-columns:1fr 1fr}}
+.cta-card{display:flex;gap:.8rem;background:#fff;border:1px solid var(--linea);border-radius:16px;overflow:hidden;box-shadow:0 4px 14px rgba(31,61,43,.05)}
+.cta-foto{flex:0 0 92px;width:92px;min-height:92px;background-size:cover;background-position:center}
+.cta-ph{display:flex;align-items:center;justify-content:center;font-size:1.6rem;background:#eef1e8;color:#9bb08c}
+.cta-cb{padding:.7rem .8rem;flex:1;min-width:0}
+.cta-ct{display:flex;justify-content:space-between;gap:.5rem;align-items:baseline}
+.cta-ct h3{margin:0;font-size:1rem;font-weight:800;color:var(--tinta)}
+.cta-price{font-weight:800;color:var(--verde2);white-space:nowrap;font-size:.95rem}
+.cta-cb p{margin:.35rem 0 0;font-size:.82rem;color:var(--dim);line-height:1.45}
+.cta-badge{display:inline-block;margin-top:.5rem;font-size:.62rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;background:var(--verde2);border-radius:99px;padding:.15rem .55rem}
+.cta-ft{text-align:center;color:var(--dim);font-size:.75rem;padding:1.4rem}
+.cta-empty{text-align:center;color:var(--dim);padding:2rem}
+</style></head><body>
+<header class="cta-hd"><div class="cta-logo">${esc(d.nombre)}</div></header>
+<div class="cta-tabs"><button class="cta-tab on" data-t="comida" type="button">🍳 Comida</button><button class="cta-tab" data-t="barra" type="button">🍹 Barra</button></div>
+<nav class="cta-nav" id="nav-comida">${comida.nav}</nav>
+<nav class="cta-nav" id="nav-barra" style="display:none">${barra.nav}</nav>
+<main id="pane-comida">${comida.secs || '<p class="cta-empty">Sin ítems en la carta de comida.</p>'}</main>
+<main id="pane-barra" style="display:none">${barra.secs || '<p class="cta-empty">Sin ítems en la carta de barra.</p>'}</main>
+<footer class="cta-ft">${esc(d.nombre)} · carta digital · K-BROS</footer>
+<script>document.querySelectorAll('.cta-tab').forEach(function(b){b.onclick=function(){var t=b.dataset.t;document.querySelectorAll('.cta-tab').forEach(function(x){x.classList.toggle('on',x===b);});['comida','barra'].forEach(function(k){document.getElementById('pane-'+k).style.display=k===t?'':'none';document.getElementById('nav-'+k).style.display=k===t?'':'none';});window.scrollTo(0,0);};});</script>
+</body></html>`;
+}
+// GET carta completa (admin): items + link público.
+app.get('/admin/carta/:local', requireAdmin, (req, res) => {
+  const local = String(req.params.local); if (!cartaLocalOk(local)) return res.status(404).json({ error: 'Local no válido.' });
+  const d = cartaLoad(local);
+  res.json({ local, nombre: d.nombre, publicPath: '/carta/' + local, items: (d.items || []).slice().sort((a, b) => (a.orden || 0) - (b.orden || 0)) });
+});
+app.post('/admin/carta/:local/item', requireAdmin, (req, res) => {
+  const local = String(req.params.local); if (!cartaLocalOk(local)) return res.status(404).json({ error: 'Local no válido.' });
+  const n = cartaItemNorm(req.body || {}, null);
+  if (!n.nombre) return res.status(400).json({ error: 'Ingresá el nombre del ítem.' });
+  const d = cartaLoad(local); const orden = (d.items.reduce((m, x) => Math.max(m, x.orden || 0), 0)) + 1;
+  const item = { id: prodNewId('cta'), foto: null, orden, ...n };
+  d.items.push(item); cartaSave(d); res.json({ ok: true, item });
+});
+app.put('/admin/carta/:local/item/:id', requireAdmin, (req, res) => {
+  const local = String(req.params.local); if (!cartaLocalOk(local)) return res.status(404).json({ error: 'Local no válido.' });
+  const d = cartaLoad(local); const it = d.items.find(x => x.id === String(req.params.id));
+  if (!it) return res.status(404).json({ error: 'Ítem no encontrado.' });
+  Object.assign(it, cartaItemNorm(req.body || {}, it)); cartaSave(d); res.json({ ok: true, item: it });
+});
+app.delete('/admin/carta/:local/item/:id', requireAdmin, (req, res) => {
+  const local = String(req.params.local); if (!cartaLocalOk(local)) return res.status(404).json({ error: 'Local no válido.' });
+  const d = cartaLoad(local); const n0 = d.items.length; d.items = d.items.filter(x => x.id !== String(req.params.id));
+  if (d.items.length === n0) return res.status(404).json({ error: 'Ítem no encontrado.' });
+  cartaSave(d); res.json({ ok: true });
+});
+// Subir/actualizar la foto de un ítem (base64 → /uploads).
+app.post('/admin/carta/:local/item/:id/foto', requireAdmin, (req, res) => {
+  const local = String(req.params.local); if (!cartaLocalOk(local)) return res.status(404).json({ error: 'Local no válido.' });
+  const d = cartaLoad(local); const it = d.items.find(x => x.id === String(req.params.id));
+  if (!it) return res.status(404).json({ error: 'Ítem no encontrado.' });
+  const adj = (req.body || {}).foto;
+  if (adj === null) { it.foto = null; cartaSave(d); return res.json({ ok: true, foto: null }); }
+  if (!adj || !adj.dataBase64) return res.status(400).json({ error: 'Falta la imagen.' });
+  const ext = UPLOAD_TYPES[String(adj.contentType).toLowerCase()];
+  if (!ext || ext === 'pdf') return res.status(415).json({ error: 'Subí una imagen (png/jpg/webp).' });
+  let buf; try { buf = Buffer.from(adj.dataBase64, 'base64'); } catch { return res.status(400).json({ error: 'Imagen inválida.' }); }
+  if (!buf.length) return res.status(400).json({ error: 'Imagen vacía.' });
+  if (buf.length > MAX_UPLOAD_BYTES) return res.status(413).json({ error: 'Máximo 8 MB.' });
+  try { const name = randomUUID() + '.' + ext; writeFileSync(join(UPLOADS_DIR, name), buf); it.foto = '/uploads/' + name; cartaSave(d); res.json({ ok: true, foto: it.foto }); }
+  catch (e) { res.status(500).json({ error: 'Error guardando la foto: ' + e.message }); }
+});
+// Página pública de la carta (sin login) — la que ve el cliente del restorán.
+app.get('/carta/:local', (req, res) => {
+  const local = String(req.params.local); if (!cartaLocalOk(local)) return res.status(404).send('Carta no encontrada.');
+  res.set('Cache-Control', 'no-store').set('Content-Type', 'text/html; charset=utf-8').send(cartaPublicHtml(cartaLoad(local)));
 });
 
 // Cambiar estado activo/borrador de un producto existente en Shopify.
