@@ -1,0 +1,345 @@
+{
+ "local": "badass",
+ "nombre": "Kairos Badass",
+ "fuente": "gour.media/badass",
+ "comida": [
+  {
+   "seccion": "Wild Lunch (12.30 - 16.00)",
+   "nombre": "Easy Lunch",
+   "descripcion": "Nuestra opción más chill. 1) Poké de camarón apanado, pollo apanado o Veggie, cebollín, chips de camote, palmito flambeado, palta y salsa acevichada sobre su clásica cama de arroz. 2) Elige entre Schop Kairos del día o bebida. *No acumulable con otras promociones. *Lunes a domingo 12:30 a 16:00 hrs. *Agregados preguntar precio al servicio.",
+   "precio_clp": 8970,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Wild Lunch (12.30 - 16.00)",
+   "nombre": "Big Lunch",
+   "descripcion": "El preferido de Banny, bien completito. 1) ¿De qué tienes ganas? Opción 1: Pesca del día acompañada de arroz y ensalada con lechuga, tomate y palmito. 2) Elige entre Schop Kairos del día o bebida. *No acumulable con otras promociones. *Lunes a domingo 12:30 a 16:00 hrs. *Agregados preguntar precio al servicio.",
+   "precio_clp": 10970,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Para Empezar",
+   "nombre": "Gyosas Fungi",
+   "descripcion": "Cinco gyosas doradas y crujientes, rellenas con una mezcla de queso crema, champiñón y togarashi sobre una cama de salsa acevichada ahumada. Suaves por dentro y explosivas en sabor.",
+   "precio_clp": 8970,
+   "nota": ""
+  },
+  {
+   "seccion": "Para Empezar",
+   "nombre": "Edamames",
+   "descripcion": "Edamames salteados y bañados en una mantequilla especiada que explota en sabor, terminados con un toque de sal de mar. Un vicio simple y directo.",
+   "precio_clp": 8670,
+   "nota": ""
+  },
+  {
+   "seccion": "Para Empezar",
+   "nombre": "The Boneless",
+   "descripcion": "Trozos de pollo apanado, crujientes y bañados en una intensa salsa coreana, donde lo dulce, lo picante y lo umami chocan a la perfección. Rematados con semillas de sésamo y ciboulette.",
+   "precio_clp": 9970,
+   "nota": "Nueva receta"
+  },
+  {
+   "seccion": "Para compartir",
+   "nombre": "Goldmember",
+   "descripcion": "Cinco piezas de queso mozzarella apanado en panko, doradas. Crujientes por fuera, cremosas por dentro y acompañadas de una mayonesa de cilantro que le da el toque fresco.",
+   "precio_clp": 9970,
+   "nota": ""
+  },
+  {
+   "seccion": "Para compartir",
+   "nombre": "Tiradito Summer",
+   "descripcion": "Láminas de la pesca del día, bañadas en una leche de tigre ahumada. Coronado con palmitos, mousse de palta y chalaquita, para un balance perfecto entre cremosidad, acidez y un toque crujiente.",
+   "precio_clp": 12470,
+   "nota": ""
+  },
+  {
+   "seccion": "Para compartir",
+   "nombre": "Sexy Ceviche",
+   "descripcion": "Pesca del día sumergida en nuestra leche de tigre ahumada, con acidez y profundidad. Acompañado de camote frito, camote glaseado y brotes, para un juego de texturas impecable.",
+   "precio_clp": 14970,
+   "nota": ""
+  },
+  {
+   "seccion": "Para compartir",
+   "nombre": "Tartar Spicy Love",
+   "descripcion": "Salmón fresco y palta cremosa, fusionados con nuestra mezcla de mayo-sriracha y togarashi para un toque picante. Acompañado de wantanes crujientes y brotes.",
+   "precio_clp": 14970,
+   "nota": "Nueva receta"
+  },
+  {
+   "seccion": "Para compartir",
+   "nombre": "Pollo Coronel Sanders",
+   "descripcion": "Crujiente pollo broaster, bañado en una crema ácida, con tocino crocante ahumado en ciruelo, ají pollero y nuestra mayonesa secreta. Todo montado sobre una base de papas fritas.",
+   "precio_clp": 16470,
+   "nota": ""
+  },
+  {
+   "seccion": "Para compartir",
+   "nombre": "Mechada Elisa",
+   "descripcion": "Deliciosa mechada, aros de cebolla, tocino crocante ahumado, queso cheddar y decoración de ciboulette sobre una cama de papas fritas.",
+   "precio_clp": 16970,
+   "nota": ""
+  },
+  {
+   "seccion": "Para compartir",
+   "nombre": "Lomo Liso Del Bigotudo",
+   "descripcion": "Lomo liso, jugoso, parrillero y al punto perfecto con chimichurri casero, acompañado por una porción de papas fritas o ensalada (a elección). (200 gr.)",
+   "precio_clp": 18470,
+   "nota": ""
+  },
+  {
+   "seccion": "La Huella Del Chef",
+   "nombre": "Salmon Fiorentina",
+   "descripcion": "Filete de salmón a la plancha, acompañado de verduras salteadas y bañado en una suave salsa florentina con queso parmesano y un toque de pesto. ¡Pídelo en su versión fresh sin salsa florentina!",
+   "precio_clp": 19970,
+   "nota": ""
+  },
+  {
+   "seccion": "La Huella Del Chef",
+   "nombre": "Salmon Mediterraneo",
+   "descripcion": "Salmón steak sellado y flambeado, acompañado de ñoquis de la casa bañados en pesto. Con almendras tostadas, láminas de queso, romero y coronado con limón de pica.",
+   "precio_clp": 19970,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "La Huella Del Chef",
+   "nombre": "Salmon Risotto Fungi",
+   "descripcion": "Filete de salmón a la plancha con mantequilla batayaki, servido sobre un cremoso risotto de champiñones al vino blanco y coronado con queso parmesano recién rallado y ciboulette fresco.",
+   "precio_clp": 18970,
+   "nota": ""
+  },
+  {
+   "seccion": "La Huella Del Chef",
+   "nombre": "Salteado Cremoso Di Zucca",
+   "descripcion": "Un salteado intenso del filete, con cebolla morada, cebollín y tomates cherry, servido sobre un cremoso risotto de zapallo, con toque final de queso parmesano.",
+   "precio_clp": 19970,
+   "nota": ""
+  },
+  {
+   "seccion": "La Huella Del Chef",
+   "nombre": "Pepper Steak Cremoso",
+   "descripcion": "Jugoso filete servido sobre una cama de cremosa salsa pepper steak. Lo acompaña una porción de ñoquis de papa con salsa bechamel del chef y romero fresco. (200 gr.)",
+   "precio_clp": 19970,
+   "nota": ""
+  },
+  {
+   "seccion": "Platos Principales",
+   "nombre": "Poke",
+   "descripcion": "Base de arroz de sushi, coronado con chips de camote crocantes, palta, palmito sopleteado, cebollín fresco y un toque de sésamo. Elige tu estilo: Veggie, Pollo, Camarón o Salmón Spicy.",
+   "precio_clp": 8970,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Platos Principales",
+   "nombre": "Kung-fu Chicken",
+   "descripcion": "Pollo apanado al estilo thai junto a verduras frescas, bañado en nuestra salsa Jungel Nectar (agridulce de la casa con un toque spicy). Acompañado de arroz chaufa con sésamo al lado.",
+   "precio_clp": 12470,
+   "nota": "Nueva receta"
+  },
+  {
+   "seccion": "Platos Principales",
+   "nombre": "Pollito al Velador",
+   "descripcion": "Base de arroz chaufa salteado al wok, coronado con pollo crujiente bañado en salsa agridulce. Acompañado con un mix verde sazonado con nuestro dressing cítrico de naranja.",
+   "precio_clp": 13470,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Platos Principales",
+   "nombre": "Filete Chào Fanš 牛肉炒饭",
+   "descripcion": "Clásico arroz chaufa salteado al estilo oriental y una mezcla de verduras frescas. Acompañado con un jugoso filete salteado, con cebollín y toques de sésamo.",
+   "precio_clp": 13970,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Platos Principales",
+   "nombre": "Mil-Amores",
+   "descripcion": "Milanesa de vacuno dorada y crujiente, coronada con queso fundido, tomates cherry asados y un toque de orégano. A un costado, papas fritas doradas y un potecito de salsa golf.",
+   "precio_clp": 15970,
+   "nota": ""
+  },
+  {
+   "seccion": "Platos Principales",
+   "nombre": "Mila – Nona",
+   "descripcion": "Milanesa de vacuno dorada y crujiente, coronada con suaves gnocchis bañados en una cremosa salsa bechamel y queso gratinado al momento. Finalizada con un toque de albahaca fresca.",
+   "precio_clp": 16970,
+   "nota": ""
+  },
+  {
+   "seccion": "Platos Principales",
+   "nombre": "Mila-gro al Pesto",
+   "descripcion": "Milanesa dorada y crujiente sobre base de pesto fresco, coronada con ñoquis al pesto. Corales de parmesano y albahaca frita aportan textura y aroma.",
+   "precio_clp": 16970,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Ensaladas",
+   "nombre": "Ensalada de Atún",
+   "descripcion": "Mix de hojas verdes asiáticas, con atún sellado en sésamo, intercalado con palta y durazno. Al centro, hilos crujientes de wantán y un toque de maní tostado, con salsa teriyaki.",
+   "precio_clp": 11970,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Ensaladas",
+   "nombre": "Ensalada de Pollo",
+   "descripcion": "Una cama de lechuga fresca, coronada con queso parmesano, pollo apanado, crotones crujientes y el inconfundible toque de nuestro aliño César.",
+   "precio_clp": 11970,
+   "nota": ""
+  },
+  {
+   "seccion": "Ensaladas",
+   "nombre": "Ensalada de Salmón",
+   "descripcion": "Una cama de lechuga fresca, coronada con queso parmesano, salmón jugoso, crotones crujientes y el inconfundible toque de nuestro aliño César.",
+   "precio_clp": 11970,
+   "nota": ""
+  },
+  {
+   "seccion": "Ensaladas",
+   "nombre": "Ensalada de Camarón",
+   "descripcion": "Camarones empanizados, queso parmesano y crotones crujientes sobre una base de lechuga fresca, bañada en nuestro aliño César.",
+   "precio_clp": 11970,
+   "nota": ""
+  },
+  {
+   "seccion": "Makis",
+   "nombre": "Midori Veggi",
+   "descripcion": "5 cortes rellenos de lechuga, camote y palta, coronados con un cremoso tartar vegie de palmito, palta y almendra, y un toque final de furikake.",
+   "precio_clp": 4970,
+   "nota": ""
+  },
+  {
+   "seccion": "Makis",
+   "nombre": "Avocado Ganja Tare",
+   "descripcion": "Cinco makis cubiertos en palta y rellenos de salmón y más palta, bañados con salsa acevichada ahumada, salsa unagui, sésamo mix y tenkatsu.",
+   "precio_clp": 4970,
+   "nota": "Nueva receta"
+  },
+  {
+   "seccion": "Makis",
+   "nombre": "Panko Roll It Baby",
+   "descripcion": "Maki envuelto en panko con camarón, palta, ciboulette y decorado con mousse de palta y mini wantancitos.",
+   "precio_clp": 4970,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Makis",
+   "nombre": "Crispy Chicken",
+   "descripcion": "5 cortes rellenos de pollo jugoso, queso crema suave y palta fresca, envueltos en una capa dorada y crujiente.",
+   "precio_clp": 5470,
+   "nota": "Nueva receta"
+  },
+  {
+   "seccion": "Makis",
+   "nombre": "Avocado Koopa Troopa",
+   "descripcion": "5 cortes rellenos de camarón panko, queso crema y kanji, cubierto en una capa dorada de palta sopleteada. Bañado en nuestra salsa Badass y rematado con tenkatsu negro. (Descripción incompleta: la página se cortó aquí y no se capturó el precio.)",
+   "precio_clp": null,
+   "nota": "Precio no capturado"
+  }
+ ],
+ "barra": [
+  {
+   "seccion": "Colección de la casa",
+   "nombre": "Nada Personal",
+   "descripcion": "PILS, 4,1° alc, IBU 25. German Pilsner muy ligera y refrescante, de amargor equilibrado, elegante espuma y aromas florales. Clásica pero real.",
+   "precio_clp": 4170,
+   "nota": "Desde / Productos locales"
+  },
+  {
+   "seccion": "Colección de la casa",
+   "nombre": "Galactic",
+   "descripcion": "GOLDEN, 4,8° alc, IBU 16. Nuestra cerveza más popular. Pale Ale de color dorado profundo, equilibrada y fácil de beber, con notas a caramelo y toffee.",
+   "precio_clp": 4170,
+   "nota": "Desde / Productos locales"
+  },
+  {
+   "seccion": "Colección de la casa",
+   "nombre": "Alerta Roja",
+   "descripcion": "RED, 5,0° alc, IBU 25. Color ámbar rojizo y fácil de beber. Predomina un dulzor a caramelo con una sutil nota tostada que aporta complejidad y equilibrio.",
+   "precio_clp": 4170,
+   "nota": "Desde / Productos locales"
+  },
+  {
+   "seccion": "Colección de la casa",
+   "nombre": "Secret Lab",
+   "descripcion": "APA, 5,0° alc, IBU 37. Estilo clásico de la escuela americana: lupulada, ligera pero con carácter. Color dorado, mucho cuerpo y espuma persistente.",
+   "precio_clp": 4170,
+   "nota": "Desde / Productos locales"
+  },
+  {
+   "seccion": "Colección de la casa",
+   "nombre": "Imperio Perdido",
+   "descripcion": "NEIPA, 4,5° alc, IBU 30. Turbia, repleta de aromas cítricos y cremosos con sabores tropicales. Más refrescante y ligera que una Hazy IPA tradicional.",
+   "precio_clp": 4170,
+   "nota": "Desde / Productos locales"
+  },
+  {
+   "seccion": "Colección de temporada",
+   "nombre": "Ritual de la Banana",
+   "descripcion": "WEIZEN, 4,5° alc, IBU 14. Clásico de Baviera, refrescante a base de trigo, con notas a clavo de olor y banana en perfecto equilibrio.",
+   "precio_clp": 4170,
+   "nota": "Desde / Productos locales"
+  },
+  {
+   "seccion": "Colección de temporada",
+   "nombre": "Samba",
+   "descripcion": "IPA, 5,8° alc. Un paso más lupulado y amargo que nuestra APA, pero con una intensidad moderada.",
+   "precio_clp": 4170,
+   "nota": "Desde / Productos locales"
+  },
+  {
+   "seccion": "Colección de temporada",
+   "nombre": "Kenny Bell",
+   "descripcion": "American Amber Ale, 5,2° alc, IBU 27. Color ambarino, un toque lupulada y de intensidad moderada, con sabor característico a caramelo y malta.",
+   "precio_clp": 4170,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Colección de artistas",
+   "nombre": "Valle Nevado",
+   "descripcion": "Barley Wine, 10° alc. Se sugiere en media pinta (250cc). Intensa, con notas a caramelo, frutos rojos deshidratados (pasas, ciruelas), cuerpo pleno y elevado amargor. Ingredientes: agua, malta, lúpulo, chips de roble y levadura.",
+   "precio_clp": 4470,
+   "nota": "Desde / Edición limitada"
+  },
+  {
+   "seccion": "Colección de artistas",
+   "nombre": "Goat Father",
+   "descripcion": "Doppelbock, 6,6°. Cerveza alemana robusta e intensa: oscura, maltosa, con notas a caramelo tostado, chocolate y un leve guiño licoroso.",
+   "precio_clp": 4470,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Firulais Craft Mix",
+   "nombre": "Firulais Chelada – Craft Mix",
+   "descripcion": "Cerveza lager de cuerpo ligero con limón de pica natural y sal de mar. Cítrica, refrescante y lista para tomar (ready to drink). Opcional: borde de sal y especias.",
+   "precio_clp": 4170,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Especial Chelas",
+   "nombre": "Kairos Taste",
+   "descripcion": "Tabla de degustación de 3 (750cc) o 6 (1500cc) cervezas de la casa a elección. 250 cc cada copa.",
+   "precio_clp": 9770,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Especial Chelas",
+   "nombre": "Maria Chelada",
+   "descripcion": "Michelada roja: borde de sal con merkén, base de limón sutil, jugo de tomate y sriracha By Maria, con nuestra Weizen. Mezcla explosiva para los amantes de la michelada.",
+   "precio_clp": 6970,
+   "nota": ""
+  },
+  {
+   "seccion": "Cervezas Invitadas",
+   "nombre": "Porter – Del Puerto",
+   "descripcion": "Estilo Porter, 4,5° alc, IBU sin especificar.",
+   "precio_clp": 4970,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "De la casa",
+   "nombre": "Bad Banny",
+   "descripcion": "Gin Banny, licor de pomelo, syrup de arándanos, combinado con jugo de limón y naranja para un éxtasis cítrico.",
+   "precio_clp": 9970,
+   "nota": ""
+  }
+ ]
+}

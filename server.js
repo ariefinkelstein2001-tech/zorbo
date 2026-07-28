@@ -2735,7 +2735,7 @@ app.delete('/admin/sku-menu/:id', requireAdmin, (req, res) => {
 // desde el Excel/JSON. La página pública en /carta/:local la muestra a los clientes.
 const CARTA_LOCALES = {
   garden: { nombre: 'Kairos Garden', seed: 'hospitality-carta-seed.json' },
-  badass: { nombre: 'Kairos Badass', seed: null },
+  badass: { nombre: 'Kairos Badass', seed: 'badass-carta-seed.json' },
 };
 const cartaLocalOk = (l) => Object.prototype.hasOwnProperty.call(CARTA_LOCALES, String(l));
 const cartaFile = (local) => join(PROMPTS_EFFECTIVE_DIR, 'carta-' + local + '.json');
@@ -2750,8 +2750,14 @@ function cartaSeedItems(local){
   } catch (e) { console.warn('carta seed:', e.message); return []; }
 }
 function cartaLoad(local){
-  try { if (existsSync(cartaFile(local))) { const d = JSON.parse(readFileSync(cartaFile(local), 'utf-8')); if (Array.isArray(d.items)) return d; } }
-  catch (e) { console.warn('carta load:', e.message); }
+  try {
+    if (existsSync(cartaFile(local))) {
+      const d = JSON.parse(readFileSync(cartaFile(local), 'utf-8'));
+      // Si ya hay ítems, se respeta lo editado. Si quedó vacía pero hay semilla
+      // disponible (ej. se abrió la pestaña antes de tener el menú), se siembra.
+      if (Array.isArray(d.items) && (d.items.length || !(CARTA_LOCALES[local] || {}).seed)) return d;
+    }
+  } catch (e) { console.warn('carta load:', e.message); }
   const d = { local, nombre: (CARTA_LOCALES[local] || {}).nombre || local, items: cartaSeedItems(local) };
   if (d.items.length) cartaSave(d);
   return d;
