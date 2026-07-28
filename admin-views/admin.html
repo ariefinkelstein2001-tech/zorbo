@@ -709,15 +709,55 @@ body.chat-collapsed.admin-home .adm-chat-reopen,body.chat-collapsed.estado-activ
 .adm-np-row2{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
 .adm-np-row3{display:grid;grid-template-columns:1fr 1fr .8fr;gap:.6rem}
 .adm-np-color{padding:.2rem;height:38px;cursor:pointer}
-.adm-np-packs{display:flex;flex-direction:column;gap:.4rem}
-.adm-np-pack{display:flex;align-items:center;gap:.5rem;font-size:.82rem;color:var(--text)}
-.adm-np-price{max-width:120px;margin-left:auto}
-.np-pk-qty{width:60px;padding:.4rem .5rem;border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:.85rem;text-align:center;outline:none}
-.np-pk-qty:focus{border-color:var(--gold-bd-h)}
 .adm-np-preview{display:flex;flex-direction:column;gap:.4rem;align-items:center}
 #npCanvas{width:100%;max-width:340px;aspect-ratio:1;border:1px solid var(--border);border-radius:10px;background:#fff}
 .adm-np-hint{font-size:.74rem;color:var(--dim);text-align:center;font-style:italic}
 .adm-np-err{background:rgba(211,51,51,.1);border:1px solid rgba(211,51,51,.35);color:#c0392b;border-radius:8px;padding:.55rem .8rem;font-size:.82rem;font-weight:600;margin:0 0 .6rem}
+
+/* Modal Nuevo SKU: wizard paso a paso (divulgación progresiva) */
+.np-wiz-dots{display:flex;gap:.3rem;margin:-.2rem 0 1.1rem}
+.np-wiz-dot{width:22px;height:4px;border-radius:3px;background:var(--surface3)}
+.np-wiz-dot.done{background:var(--gold-bd-h)}
+.np-wiz-dot.on{background:var(--gold)}
+.np-step{display:none}
+.np-step.on{display:block}
+.np-step-title{font-family:var(--display);font-size:1.05rem;font-weight:800;color:var(--text);margin-bottom:.2rem}
+.np-step-sub{font-size:.8rem;color:var(--muted);margin-bottom:.9rem;line-height:1.5}
+.np-canal-grid,.np-marca-grid,.np-fmt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.7rem}
+.np-canal-card,.np-marca-card,.np-fmt-card{
+  display:flex;flex-direction:column;align-items:center;gap:.35rem;text-align:center;
+  border:1px solid var(--border);border-radius:14px;background:var(--surface);
+  padding:1rem .8rem;cursor:pointer;font-family:var(--sans);font-size:.85rem;font-weight:700;color:var(--text);
+  transition:transform .15s,box-shadow .2s,border-color .2s,background .2s;
+}
+.np-canal-card .ic,.np-marca-card .ic,.np-fmt-card .ic{font-size:1.5rem}
+.np-canal-card:hover,.np-marca-card:hover,.np-fmt-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.08);border-color:var(--gold-bd-h)}
+.np-canal-card.on,.np-marca-card.on,.np-fmt-card.on{background:var(--gold-dim);border-color:var(--gold);color:var(--gold-deep);box-shadow:0 8px 20px rgba(245,166,35,.18)}
+.np-canal-multi{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.8rem;padding:.8rem;background:var(--surface2);border:1px solid var(--border);border-radius:12px}
+.np-canal-multi label{display:flex;align-items:center;gap:.4rem;font-size:.82rem;font-weight:600;cursor:pointer}
+.np-amb-grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+@media(max-width:600px){.np-amb-grid{grid-template-columns:1fr}}
+.np-amb-card{
+  display:flex;flex-direction:column;align-items:center;gap:.3rem;text-align:center;
+  border:1px solid var(--border);border-radius:16px;background:var(--surface);padding:1.4rem 1rem;cursor:pointer;
+  transition:transform .15s,box-shadow .2s,border-color .2s;
+}
+.np-amb-card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.10);border-color:var(--gold-bd-h)}
+.np-amb-card .ic{font-size:2rem}
+.np-amb-card b{font-family:var(--display);font-size:.95rem}
+.np-amb-card small{color:var(--muted);font-size:.72rem;line-height:1.4}
+.np-lista-row{display:flex;align-items:center;gap:.6rem;padding:.5rem .2rem;border-bottom:1px solid var(--border)}
+.np-lista-row:last-child{border-bottom:none}
+.np-lista-row label{display:flex;align-items:center;gap:.5rem;flex:1;font-size:.85rem;cursor:pointer}
+.np-lista-new{display:flex;gap:.5rem;margin-top:.7rem}
+.np-lista-new input{flex:1}
+.np-distrib-canal{margin-bottom:1rem}
+.np-distrib-canal-h{font-family:var(--display);font-size:.82rem;font-weight:800;color:var(--gold-deep);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem}
+.np-distrib-row{display:flex;align-items:center;gap:.6rem;padding:.35rem 0}
+.np-distrib-row label{display:flex;align-items:center;gap:.5rem;flex:1;font-size:.85rem}
+.np-distrib-row input[type="number"]{width:110px}
+.np-wiz-nav{display:flex;justify-content:space-between;gap:.6rem}
+.np-wiz-nav #npWizBack:disabled{visibility:hidden}
 
 /* ── CONVERSACIONES (embudo) ── */
 .adm-stats{
@@ -3255,87 +3295,147 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
       <div class="adm-fb-card adm-np-card">
         <button type="button" class="adm-fb-x" data-act="close-np" aria-label="Cerrar">✕</button>
         <div class="adm-fb-head">
-          <div class="adm-fb-title">Agregar producto</div>
-          <div class="adm-fb-sub">Sube la foto de la lata y completa los datos. La maqueta (lata + cuadro) se arma sola y el producto se crea en Shopify con su tag y su código SKU.</div>
+          <div class="adm-fb-title">Nuevo SKU</div>
+          <div class="adm-fb-sub" id="npStepMeta">Paso 1 · Canal</div>
         </div>
-        <div class="adm-np-grid">
-          <div class="adm-np-form">
-            <div class="adm-np-row2">
-              <div class="adm-fb-col">
-                <label class="adm-fb-label">Sección</label>
-                <div class="adm-pillgroup" id="npSection">
-                  <button data-v="minorista" class="on" type="button">Minorista · ZORBO</button>
-                  <button data-v="mayorista"        type="button">Mayorista · MAYORISTA</button>
-                </div>
-              </div>
-              <div class="adm-fb-col">
-                <label class="adm-fb-label">Estado</label>
-                <div class="adm-pillgroup" id="npStatus">
-                  <button data-v="active" class="on" type="button">Activo</button>
-                  <button data-v="draft"         type="button">Borrador</button>
-                </div>
-              </div>
-            </div>
-            <div class="adm-np-row2">
-              <div class="adm-fb-col"><label class="adm-fb-label">Marca / proveedor</label>
-                <select class="adm-input" id="npVendor">
-                  <option value="Kairos Brewing">Kairos Brewing</option>
-                  <option value="Firulais">Firulais</option>
-                  <option value="Banny">Banny</option>
-                  <option value="Otros">Otros</option>
-                </select>
-              </div>
-              <div class="adm-fb-col"><label class="adm-fb-label">Estilo / tipo</label>
-                <input class="adm-input" id="npType" placeholder="Pils, APA, Chelada, Gin…"></div>
-            </div>
-            <div class="adm-fb-col"><label class="adm-fb-label">Nombre</label>
-              <input class="adm-input" id="npName" placeholder="Nada Personal"></div>
-            <div class="adm-fb-col"><label class="adm-fb-label">Descriptores (separados por ·)</label>
-              <input class="adm-input" id="npDesc" placeholder="Refrescante · Floral · Equilibrada"></div>
-            <div class="adm-np-row3">
-              <div class="adm-fb-col"><label class="adm-fb-label">% Alcohol</label>
-                <input class="adm-input" id="npAbv" placeholder="4.1"></div>
-              <div class="adm-fb-col"><label class="adm-fb-label">Tamaño</label>
-                <input class="adm-input" id="npSize" placeholder="473ml" value="473ml"></div>
-              <div class="adm-fb-col"><label class="adm-fb-label">Color</label>
-                <input class="adm-input adm-np-color" id="npColor" type="color" value="#d8a079"></div>
-            </div>
-            <div class="adm-fb-col"><label class="adm-fb-label">Packs y precios (CLP)</label>
-              <div class="adm-np-packs" id="npPacks">
-                <label class="adm-np-pack"><input type="checkbox" class="np-pk-on" checked> <input type="number" class="np-pk-qty" value="6" min="1" step="1"> Pack <input class="adm-input adm-np-price" type="number" placeholder="precio"></label>
-                <label class="adm-np-pack"><input type="checkbox" class="np-pk-on" checked> <input type="number" class="np-pk-qty" value="12" min="1" step="1"> Pack <input class="adm-input adm-np-price" type="number" placeholder="precio"></label>
-                <label class="adm-np-pack"><input type="checkbox" class="np-pk-on" checked> <input type="number" class="np-pk-qty" value="24" min="1" step="1"> Pack <input class="adm-input adm-np-price" type="number" placeholder="precio"></label>
-              </div>
-              <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem">
-                <button type="button" class="adm-btn adm-btn-ghost" id="npAddPack">+ Agregar pack</button>
-                <button type="button" class="adm-btn adm-btn-ghost" id="npAddBarril">+ Agregar barril</button>
-              </div>
-            </div>
-            <div class="adm-fb-col"><label class="adm-fb-label">Costos de compra (para la orden de compra · opcional)</label>
-              <div class="adm-np-row3">
-                <div class="adm-fb-col"><label class="adm-fb-label" style="font-size:.62rem">Precio neto</label>
-                  <input class="adm-input" id="npNeto" type="number" min="0" step="1" placeholder="0"></div>
-                <div class="adm-fb-col"><label class="adm-fb-label" style="font-size:.62rem">Despacho x unidad</label>
-                  <input class="adm-input" id="npDespacho" type="number" min="0" step="1" placeholder="0"></div>
-                <div class="adm-fb-col"><label class="adm-fb-label" style="font-size:.62rem">ILA</label>
-                  <select class="adm-input" id="npIla"><option value="0">Sin ILA</option><option value="10">10%</option><option value="18">18%</option><option value="20.5">20,5%</option><option value="31.5">31,5%</option></select></div>
-              </div>
-              <div class="adm-np-hint" style="text-align:left;margin-top:.25rem">En la OC: ILA se calcula sobre el neto, IVA sobre neto + despacho.</div>
-            </div>
-            <div class="adm-fb-col"><label class="adm-fb-label">Foto de la lata (PNG/JPG)</label>
-              <label class="adm-prod-upload"><input type="file" id="npCan" accept="image/png,image/jpeg,image/webp" hidden><span>📷 Subir foto de la lata</span></label>
-            </div>
-          </div>
-          <div class="adm-np-preview">
-            <label class="adm-fb-label">Maqueta (preview)</label>
-            <canvas id="npCanvas" width="1200" height="1200"></canvas>
-            <div class="adm-np-hint" id="npHint">Sube la foto de la lata para ver la maqueta.</div>
+        <div class="np-wiz-dots" id="npWizDots"></div>
+
+        <!-- Paso 1: Canal -->
+        <div class="np-step" data-step="canal">
+          <div class="np-step-title">¿En qué canal se vende?</div>
+          <div class="np-canal-grid" id="npCanalGrid"></div>
+          <div class="np-canal-multi" id="npCanalMulti" style="display:none"></div>
+        </div>
+
+        <!-- Paso 2: Marca -->
+        <div class="np-step" data-step="marca">
+          <div class="np-step-title">¿De qué marca es?</div>
+          <div class="np-marca-grid" id="npMarcaGrid"></div>
+        </div>
+
+        <!-- Paso 2.5: caso ambiguo (Hospitality + marca de bebida) -->
+        <div class="np-step" data-step="ambiguo">
+          <div class="np-step-title">¿Es un producto envasado o un ítem de carta?</div>
+          <div class="np-step-sub">Elegiste Hospitality con una marca de bebidas envasadas — puede ser cualquiera de las dos, así que lo definimos a mano.</div>
+          <div class="np-amb-grid">
+            <button type="button" class="np-amb-card" data-amb="bebida"><span class="ic">📦</span><b>Producto envasado</b><small>Lata, botella, barril — se crea en Shopify</small></button>
+            <button type="button" class="np-amb-card" data-amb="menu"><span class="ic">🍽️</span><b>Ítem de carta</b><small>Plato o trago del local — no es un producto Shopify</small></button>
           </div>
         </div>
+
+        <!-- Ruta Bebida: datos básicos -->
+        <div class="np-step" data-step="b-basicos">
+          <div class="np-step-title">Datos del producto</div>
+          <div class="adm-np-row2">
+            <div class="adm-fb-col">
+              <label class="adm-fb-label">Sección</label>
+              <div class="adm-pillgroup" id="npSection">
+                <button data-v="minorista" class="on" type="button">Minorista · ZORBO</button>
+                <button data-v="mayorista"        type="button">Mayorista · MAYORISTA</button>
+              </div>
+            </div>
+            <div class="adm-fb-col">
+              <label class="adm-fb-label">Estado</label>
+              <div class="adm-pillgroup" id="npStatus">
+                <button data-v="active" class="on" type="button">Activo</button>
+                <button data-v="draft"         type="button">Borrador</button>
+              </div>
+            </div>
+          </div>
+          <div class="adm-fb-col"><label class="adm-fb-label">Nombre</label>
+            <input class="adm-input" id="npName" placeholder="Nada Personal"></div>
+          <div class="adm-fb-col"><label class="adm-fb-label">Estilo / tipo (opcional)</label>
+            <input class="adm-input" id="npType" placeholder="Pils, APA, Chelada, Gin…"></div>
+        </div>
+
+        <!-- Ruta Bebida: formato + tamaño -->
+        <div class="np-step" data-step="b-formato">
+          <div class="np-step-title">Formato y tamaño</div>
+          <div class="np-fmt-grid" id="npFormatoGrid">
+            <button type="button" class="np-fmt-card" data-fmt="botella"><span class="ic">🍾</span>Botella</button>
+            <button type="button" class="np-fmt-card" data-fmt="lata"><span class="ic">🥫</span>Lata</button>
+          </div>
+          <div class="adm-fb-col"><label class="adm-fb-label">Tamaño</label>
+            <input class="adm-input" id="npTamano" placeholder="473cc, 750ml, 20L…"></div>
+        </div>
+
+        <!-- Ruta Bebida: colección (según marca) -->
+        <div class="np-step" data-step="b-coleccion">
+          <div class="np-step-title">Colección</div>
+          <div id="npColeccionBody"></div>
+        </div>
+
+        <!-- Ruta Bebida: formato de distribución por canal -->
+        <div class="np-step" data-step="b-distribucion">
+          <div class="np-step-title">Formato de distribución y precio</div>
+          <div class="np-step-sub">Uno o más por canal. Cada formato queda como una variante con su propio sub-código, colgando del SKU-código del producto.</div>
+          <div id="npDistribBody"></div>
+        </div>
+
+        <!-- Ruta Bebida: detalles visuales + costos (opcional) -->
+        <div class="np-step" data-step="b-detalles">
+          <div class="np-step-title">Detalles visuales y costos <span style="font-weight:400;color:var(--muted)">(opcional)</span></div>
+          <div class="adm-np-grid">
+            <div class="adm-np-form">
+              <div class="adm-fb-col"><label class="adm-fb-label">Descriptores (separados por ·)</label>
+                <input class="adm-input" id="npDesc" placeholder="Refrescante · Floral · Equilibrada"></div>
+              <div class="adm-np-row2">
+                <div class="adm-fb-col"><label class="adm-fb-label">% Alcohol</label>
+                  <input class="adm-input" id="npAbv" placeholder="4.1"></div>
+                <div class="adm-fb-col"><label class="adm-fb-label">Color</label>
+                  <input class="adm-input adm-np-color" id="npColor" type="color" value="#d8a079"></div>
+              </div>
+              <div class="adm-fb-col"><label class="adm-fb-label">Costos de compra (para la orden de compra)</label>
+                <div class="adm-np-row3">
+                  <div class="adm-fb-col"><label class="adm-fb-label" style="font-size:.62rem">Precio neto</label>
+                    <input class="adm-input" id="npNeto" type="number" min="0" step="1" placeholder="0"></div>
+                  <div class="adm-fb-col"><label class="adm-fb-label" style="font-size:.62rem">Despacho x unidad</label>
+                    <input class="adm-input" id="npDespacho" type="number" min="0" step="1" placeholder="0"></div>
+                  <div class="adm-fb-col"><label class="adm-fb-label" style="font-size:.62rem">ILA</label>
+                    <select class="adm-input" id="npIla"><option value="0">Sin ILA</option><option value="10">10%</option><option value="18">18%</option><option value="20.5">20,5%</option><option value="31.5">31,5%</option></select></div>
+                </div>
+                <div class="adm-np-hint" style="text-align:left;margin-top:.25rem">En la OC: ILA se calcula sobre el neto, IVA sobre neto + despacho.</div>
+              </div>
+              <div class="adm-fb-col"><label class="adm-fb-label">Foto del envase (PNG/JPG)</label>
+                <label class="adm-prod-upload"><input type="file" id="npCan" accept="image/png,image/jpeg,image/webp" hidden><span>📷 Subir foto</span></label>
+              </div>
+            </div>
+            <div class="adm-np-preview">
+              <label class="adm-fb-label">Maqueta (preview)</label>
+              <canvas id="npCanvas" width="1200" height="1200"></canvas>
+              <div class="adm-np-hint" id="npHint">Sube la foto del envase para ver la maqueta.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ruta Menú: tipo -->
+        <div class="np-step" data-step="m-tipo">
+          <div class="np-step-title">¿Cocina o Barra?</div>
+          <div class="np-fmt-grid" id="npTipoGrid">
+            <button type="button" class="np-fmt-card" data-tipo="cocina"><span class="ic">🍳</span>Cocina</button>
+            <button type="button" class="np-fmt-card" data-tipo="barra"><span class="ic">🍹</span>Barra</button>
+          </div>
+        </div>
+
+        <!-- Ruta Menú: categoría -->
+        <div class="np-step" data-step="m-categoria">
+          <div class="np-step-title">Categoría</div>
+          <div id="npCategoriaBody"></div>
+        </div>
+
+        <!-- Ruta Menú: nombre + precio + canal -->
+        <div class="np-step" data-step="m-detalle">
+          <div class="np-step-title">Nombre y precio</div>
+          <div class="adm-fb-col"><label class="adm-fb-label">Nombre del ítem</label>
+            <input class="adm-input" id="npMenuTitulo" placeholder="Bowl de la casa"></div>
+          <div class="adm-fb-col"><label class="adm-fb-label">Precio (opcional)</label>
+            <input class="adm-input" id="npMenuPrecio" type="number" min="0" step="1" placeholder="0"></div>
+        </div>
+
         <div class="adm-np-err" id="npErr" style="display:none"></div>
-        <div class="adm-fb-acts">
-          <button type="button" class="adm-btn adm-btn-ghost" data-act="close-np">Cancelar</button>
-          <button type="button" class="adm-btn adm-btn-gold" id="npCreate">Crear en Shopify</button>
+        <div class="adm-fb-acts np-wiz-nav">
+          <button type="button" class="adm-btn adm-btn-ghost" id="npWizBack">← Atrás</button>
+          <button type="button" class="adm-btn adm-btn-gold" id="npWizNext">Siguiente →</button>
         </div>
       </div>
     </div>
@@ -3649,11 +3749,13 @@ const ADMIN_QUOTES = [
   { t:'Hay dos botones que nunca me gusta apretar: pánico y posponer.', a:'Ted Lasso' },
 ];
 const BASE_BRANDS = [
-  { id:'all',      label:'Todos'           },
-  { id:'kairos',   label:'Kairos Brewing'  },
-  { id:'firulais', label:'Firulais'        },
-  { id:'banny',    label:'Banny'           },
-  { id:'otros',    label:'Otros'           },
+  { id:'all',           label:'Todos'           },
+  { id:'kairos',        label:'Kairos Brewing'  },
+  { id:'kairos_garden', label:'Kairos Garden'   },
+  { id:'kairos_badass', label:'Kairos Badass'   },
+  { id:'firulais',      label:'Firulais'        },
+  { id:'banny',         label:'Banny'           },
+  { id:'otros',         label:'Otros'           },
 ];
 // SECCIONES y BRANDS se recalculan al cargar las marcas custom (Página web).
 let SECCIONES = BASE_SECCIONES.slice();
@@ -3697,29 +3799,6 @@ function applyCustomBrands(){
   const brOut = [];
   for (const b of BASE_BRANDS) { if (b.id === 'otros') brOut.push(...cb); brOut.push(b); }
   BRANDS = brOut;
-  rebuildVendorOptions();
-}
-let extraVendors = [];
-function rebuildVendorOptions(){
-  const sel = document.getElementById('npVendor');
-  if (!sel) return;
-  const cur = sel.value && sel.value !== '__add__' ? sel.value : '';
-  const opts = [
-    ['Kairos Brewing','Kairos Brewing'], ['Firulais','Firulais'], ['Banny','Banny'],
-    ...CUSTOM_BRANDS.map(b => [b.vendor || b.label, b.label]),
-    ...extraVendors.map(v => [v, v]),
-    ['Otros','Otros'],
-  ];
-  sel.innerHTML = opts.map(([v,l]) => `<option value="${escapeAttr(v)}">${escapeHtml(l)}</option>`).join('')
-    + '<option value="__add__">➕ Agregar otra…</option>';
-  if (cur && opts.some(o => o[0] === cur)) sel.value = cur;
-  sel.onchange = () => {
-    if (sel.value !== '__add__') return;
-    const name = (prompt('Nombre de la nueva marca / proveedor:') || '').trim();
-    if (name && !extraVendors.some(v => v.toLowerCase() === name.toLowerCase())) extraVendors.push(name);
-    rebuildVendorOptions();
-    sel.value = name || 'Kairos Brewing';
-  };
 }
 
 // ─── Marcas (drill-down: marca → Redes Sociales/Página web → Diseño/Audiovisual/General) ──
@@ -4347,29 +4426,54 @@ document.getElementById('btnReload').onclick = () => {
 };
 
 // ─── Productos: catálogo Shopify + notas extra para Zorbot ──────────────────
+// Los ítems de carta (Ruta Menú · Kairos Garden/Badass) no son productos
+// Shopify — se cargan de un endpoint aparte que nunca depende de Shopify, y
+// se mezclan acá con el catálogo para que la grilla de SKU sea una sola vista.
+function npMenuItemToCard(it){
+  return {
+    id: 'menu_' + it.id, menuId: it.id, title: it.titulo, handle: null, vendor: null,
+    brand: it.marca, status: 'ACTIVE', image: null, video: null,
+    price: it.precio, compareAt: null, variants: 0, isMayorista: false, isZorbo: false,
+    ilaPct: 0, extra: '', files: [], hasExtra: false, updatedAt: it.updatedAt,
+    skuCode: it.skuCode, channels: Array.isArray(it.canales) ? it.canales : [],
+    formato: null, tamano: null, coleccion: it.categoria ? it.categoria.label : null,
+    variantesSku: [], ruta: 'menu', tipo: it.tipo,
+  };
+}
 async function loadProductos(refresh){
-  document.getElementById('productGrid').innerHTML = '<div class="adm-loading">Cargando catálogo desde Shopify…</div>';
+  document.getElementById('productGrid').innerHTML = '<div class="adm-loading">Cargando catálogo…</div>';
   document.getElementById('brandTabs').innerHTML = '';
   const metaEl = document.getElementById('prodMeta');
   if (metaEl) metaEl.textContent = activeProdSection === 'mayorista'
     ? 'sync Shopify · solo productos con tag MAYORISTA · notas extra solo para Zorbot'
     : 'sync Shopify · solo productos con tag ZORBO (minorista) · notas extra solo para Zorbot';
-  try {
-    const r = await fetch('/admin/products?section=' + encodeURIComponent(activeProdSection) + (refresh ? '&refresh=1' : ''));
-    if (!r.ok) {
-      const e = await r.json().catch(() => ({}));
-      throw new Error(e.error || 'HTTP ' + r.status);
-    }
-    const data = await r.json();
-    productsCache = data.products || [];
-    renderBrandTabs();
-    renderProductGrid();
-    if (data.skuAssigned > 0) {
-      showToast(`${data.skuAssigned} producto${data.skuAssigned===1?'':'s'} recibió código SKU nuevo ✓`, 'ok');
-    }
-  } catch (e) {
+  const [shopifyRes, menuRes] = await Promise.allSettled([
+    fetch('/admin/products?section=' + encodeURIComponent(activeProdSection) + (refresh ? '&refresh=1' : '')).then(async r => {
+      if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'HTTP ' + r.status); }
+      return r.json();
+    }),
+    fetch('/admin/sku-menu').then(async r => {
+      if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'HTTP ' + r.status); }
+      return r.json();
+    }),
+    loadNpMeta(),
+  ]);
+  const shopifyProducts = shopifyRes.status === 'fulfilled' ? (shopifyRes.value.products || []) : [];
+  const menuItems = menuRes.status === 'fulfilled' ? (menuRes.value.items || []) : [];
+  productsCache = [...shopifyProducts, ...menuItems.map(npMenuItemToCard)];
+
+  if (!productsCache.length && shopifyRes.status === 'rejected' && menuRes.status === 'rejected') {
     document.getElementById('productGrid').innerHTML =
-      `<div class="adm-empty" style="color:var(--red)">Error cargando productos: ${escapeHtml(e.message)}</div>`;
+      `<div class="adm-empty" style="color:var(--red)">Error cargando productos: ${escapeHtml(shopifyRes.reason.message)}</div>`;
+    return;
+  }
+  renderBrandTabs();
+  renderProductGrid();
+  if (shopifyRes.status === 'fulfilled' && shopifyRes.value.skuAssigned > 0) {
+    showToast(`${shopifyRes.value.skuAssigned} producto${shopifyRes.value.skuAssigned===1?'':'s'} recibió código SKU nuevo ✓`, 'ok');
+  }
+  if (shopifyRes.status === 'rejected' && menuItems.length) {
+    showToast('Shopify no disponible: ' + shopifyRes.reason.message, 'err');
   }
 }
 
@@ -4445,7 +4549,56 @@ function renderProductGrid(){
   bindProductCards();
 }
 
+// Checkboxes de canal reutilizados en la ficha de cualquier SKU (Shopify o
+// de carta) — la vía crítica para dejar de tener productos "sin canal
+// asignado": nunca se infiere, el equipo lo marca a mano.
+function skuChannelCheckboxesHtml(pid, current){
+  const chs = current || [];
+  const canales = (npMeta.canales && npMeta.canales.length) ? npMeta.canales : SKU_CANALES_FALLBACK;
+  return `<div class="np-canal-multi" style="display:flex">${canales.map(c =>
+    `<label><input type="checkbox" class="prodChanCk" data-pid="${escapeAttr(pid)}" value="${c.id}" ${chs.includes(c.id)?'checked':''}> ${escapeHtml(c.label)}</label>`).join('')}</div>`;
+}
+const SKU_CANALES_FALLBACK = [
+  { id:'horeca', label:'Horeca' }, { id:'retail', label:'Retail' },
+  { id:'online', label:'Venta Online' }, { id:'hospitality', label:'Hospitality' },
+];
+
+function menuCardHtml(p){
+  const isOpen = openProductId === p.id;
+  const price = p.price != null ? `$${Math.round(p.price).toLocaleString('es-CL')}` : '—';
+  const noChannel = !(p.channels && p.channels.length);
+  const tagDots = [
+    `<span class="adm-prod-tag active">${p.tipo === 'barra' ? 'barra' : 'cocina'}</span>`,
+    (activeSkuChan === 'todas' && noChannel) ? '<span class="adm-prod-tag nochan">sin canal asignado</span>' : '',
+  ].filter(Boolean).join('');
+  const editor = isOpen ? `
+    <div class="adm-prod-editor">
+      <label class="adm-prod-label">Canal(es)</label>
+      ${skuChannelCheckboxesHtml(p.id, p.channels)}
+      <div class="adm-prod-acts">
+        <button class="adm-btn adm-btn-ghost" data-act="cancel" data-pid="${p.id}" type="button">Cerrar</button>
+        <button class="adm-btn adm-btn-gold" data-act="save-menu-chan" data-pid="${p.id}" type="button">Guardar canal</button>
+      </div>
+      <div class="adm-prod-meta">${p.updatedAt ? 'Última edición: ' + new Date(p.updatedAt).toLocaleString('es-CL') : ''}</div>
+    </div>` : '';
+  return `
+    <div class="adm-prod ${isOpen ? 'open':''}" data-pid="${p.id}">
+      <div class="adm-prod-head" data-act="toggle" data-pid="${p.id}">
+        <div class="adm-prod-img-wrap"><div class="adm-prod-img-empty">${p.tipo === 'barra' ? '🍹' : '🍳'}</div></div>
+        <div class="adm-prod-body">
+          <div class="adm-prod-tags">${tagDots}<span class="adm-prod-brand">${escapeHtml(brandLabel(p.brand))}</span></div>
+          <div class="adm-prod-title">${escapeHtml(p.title)}</div>
+          ${p.skuCode ? `<span class="adm-prod-sku" title="Código SKU interno · identificador único e inmutable">${escapeHtml(p.skuCode)}</span>` : ''}
+          <div class="adm-prod-price">${price}<span class="adm-prod-vars">${escapeHtml(p.coleccion || '')}</span></div>
+        </div>
+        <div class="adm-prod-toggle">${isOpen ? '−' : '+'}</div>
+      </div>
+      ${editor}
+    </div>`;
+}
+
 function productCardHtml(p){
+  if (p.ruta === 'menu') return menuCardHtml(p);
   const isOpen = openProductId === p.id;
   const price = p.price != null ? `$${Math.round(p.price).toLocaleString('es-CL')}` : '—';
   const compare = (p.compareAt && p.compareAt > p.price)
@@ -4464,6 +4617,9 @@ function productCardHtml(p){
   ].filter(Boolean).join('');
   const editor = isOpen ? `
     <div class="adm-prod-editor">
+      <label class="adm-prod-label">Canal(es) <span style="font-weight:400;color:#999">(dónde se vende — nunca se adivina, lo asigna el equipo)</span></label>
+      ${skuChannelCheckboxesHtml(p.id, p.channels)}
+      <span class="dist-status adm-prod-chan-st" data-pid="${p.id}"></span>
       <label class="adm-prod-label">ILA <span style="font-weight:400;color:#999">(impuesto a bebidas alcohólicas · se usa en la orden de compra)</span></label>
       <div class="adm-prod-ila-row">
         <select class="adm-prod-ila" data-pid="${p.id}">
@@ -4524,10 +4680,12 @@ function productCardHtml(p){
 }
 
 function brandLabel(id){
-  if (id === 'kairos')   return 'Kairos Brewing';
-  if (id === 'firulais') return 'Firulais';
-  if (id === 'banny')    return 'Banny';
-  if (id === 'otros')    return 'Otros';
+  if (id === 'kairos')        return 'Kairos Brewing';
+  if (id === 'kairos_garden') return 'Kairos Garden';
+  if (id === 'kairos_badass') return 'Kairos Badass';
+  if (id === 'firulais')      return 'Firulais';
+  if (id === 'banny')         return 'Banny';
+  if (id === 'otros')         return 'Otros';
   return 'Otros';
 }
 function getShopifyImage(p){ return p.image; }
@@ -4697,6 +4855,63 @@ function bindProductCards(){
       }
     };
   });
+  // Canal(es) de un producto Shopify existente — se guarda solo al tocar un
+  // checkbox (mismo patrón que el ILA), sin pisar el resto de la ficha.
+  // Los ítems de carta usan el MISMO checkbox (misma clase, mismo componente
+  // visual) pero se guardan con el botón "Guardar canal" contra /admin/sku-menu
+  // — acá se filtran explícitamente para no pegarle al endpoint de Shopify.
+  document.querySelectorAll('.prodChanCk').forEach(cb => {
+    cb.onclick = (ev) => ev.stopPropagation();
+    if (cb.dataset.pid && cb.dataset.pid.startsWith('menu_')) return;
+    cb.onchange = async () => {
+      const pid = cb.dataset.pid;
+      const card = document.querySelector(`.adm-prod[data-pid="${CSS.escape(pid)}"]`);
+      const channels = [...card.querySelectorAll('.prodChanCk:checked')].map(x => x.value);
+      const st = card.querySelector('.adm-prod-chan-st');
+      if (st) { st.className = 'dist-status adm-prod-chan-st'; st.textContent = '…'; }
+      try {
+        const r = await fetch('/admin/products/' + encodeURIComponent(pid) + '/channels', {
+          method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ channels }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+        const idx = productsCache.findIndex(x => x.id === pid);
+        if (idx >= 0) productsCache[idx].channels = channels;
+        if (st) { st.className = 'dist-status ok adm-prod-chan-st'; st.textContent = '✓ guardado'; setTimeout(()=>{ if (st) st.textContent=''; }, 1600); }
+        renderBrandTabs();
+      } catch (e) {
+        if (st) { st.className = 'dist-status err adm-prod-chan-st'; st.textContent = e.message; }
+      }
+    };
+  });
+  // Canal(es) de un ítem de carta (Ruta Menú)
+  document.querySelectorAll('.adm-prod [data-act="save-menu-chan"]').forEach(el => {
+    el.onclick = async (ev) => {
+      ev.stopPropagation();
+      const pid = el.dataset.pid;
+      const p = productsCache.find(x => x.id === pid);
+      if (!p) return;
+      const card = document.querySelector(`.adm-prod[data-pid="${CSS.escape(pid)}"]`);
+      const channels = [...card.querySelectorAll('.prodChanCk:checked')].map(x => x.value);
+      el.disabled = true; const o = el.textContent; el.textContent = 'Guardando…';
+      try {
+        const r = await fetch('/admin/sku-menu/' + encodeURIComponent(p.menuId), {
+          method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ canales: channels }),
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+        p.channels = channels;
+        p.updatedAt = data.item.updatedAt;
+        showToast('Canal guardado ✓', 'ok');
+        openProductId = null;
+        renderProductGrid();
+        renderBrandTabs();
+      } catch (e) {
+        showToast('Error: ' + e.message, 'err');
+        el.disabled = false; el.textContent = o;
+      }
+    };
+  });
   // Toggle activo/borrador
   document.querySelectorAll('.adm-prod [data-act="togglestatus"]').forEach(el => {
     el.onclick = async (ev) => {
@@ -4728,16 +4943,69 @@ function bindProductCards(){
 
 document.getElementById('btnReloadProd').onclick = () => { openProductId = null; loadProductos(true); };
 
-// ─── Crear producto nuevo (maqueta por canvas + alta en Shopify) ────────────
-let npSection = 'minorista';
-let npCanImg = null; // Image de la lata cargada
+// ─── Nuevo SKU: formulario inteligente paso a paso (Fase 3) ─────────────────
+// Divulgación progresiva: canal → marca → (caso ambiguo si aplica) → bifurca
+// en Ruta Bebida (crea/actualiza en Shopify) o Ruta Menú (100% interno, sin
+// Shopify — Kairos Garden/Badass son locales, no tienen SKU de Shopify).
+let npCanImg = null; // imagen del envase cargada (Ruta Bebida)
+let npMeta = { marcas: [], canales: [], listas: {} };
+let npWiz = { step: 'canal', canalMode: null, canales: [], marca: null, ambRuta: null,
+  formato: null, tamano: '', coleccionId: '', distrib: {} /* {canalId: {formatoId: precio}} */,
+  tipo: null, categoriaId: null };
+
+async function loadNpMeta(){
+  try {
+    const r = await fetch('/admin/sku/meta');
+    const d = await r.json();
+    if (r.ok) npMeta = d;
+  } catch {}
+}
+
+function npWizSteps(){
+  const steps = ['canal', 'marca'];
+  const marcaDef = npMeta.marcas.find(m => m.id === npWiz.marca);
+  if (!marcaDef) return steps;
+  const esAmbiguo = marcaDef.ruta === 'bebida' && npWiz.canales.includes('hospitality');
+  if (esAmbiguo && !npWiz.ambRuta) { steps.push('ambiguo'); return steps; }
+  const ruta = esAmbiguo ? npWiz.ambRuta : marcaDef.ruta;
+  if (ruta === 'bebida') {
+    steps.push('b-basicos', 'b-formato');
+    const listaColeccion = marcaDef.coleccionLista ? (npMeta.listas[marcaDef.coleccionLista] || []).filter(x => x.activo !== false) : [];
+    if (listaColeccion.length) steps.push('b-coleccion');
+    steps.push('b-distribucion', 'b-detalles');
+  } else if (ruta === 'menu') {
+    steps.push('m-tipo', 'm-categoria', 'm-detalle');
+  }
+  return steps;
+}
+function npCurrentRuta(){
+  const marcaDef = npMeta.marcas.find(m => m.id === npWiz.marca);
+  if (!marcaDef) return null;
+  if (marcaDef.ruta === 'bebida' && npWiz.canales.includes('hospitality')) return npWiz.ambRuta || null;
+  return marcaDef.ruta;
+}
+const NP_STEP_LABELS = {
+  canal:'Canal', marca:'Marca', ambiguo:'¿Envasado o carta?',
+  'b-basicos':'Datos del producto', 'b-formato':'Formato y tamaño', 'b-coleccion':'Colección',
+  'b-distribucion':'Distribución y precio', 'b-detalles':'Detalles (opcional)',
+  'm-tipo':'Cocina o Barra', 'm-categoria':'Categoría', 'm-detalle':'Nombre y precio',
+};
 
 function openNewProd(){
-  npSection = activeProdSection || 'minorista';
-  document.querySelectorAll('#npSection button').forEach(b => b.classList.toggle('on', b.dataset.v === npSection));
+  npWiz = { step: 'canal', canalMode: null, canales: [], marca: null, ambRuta: null,
+    formato: null, tamano: '', coleccionId: '', distrib: {}, tipo: null, categoriaId: null };
+  npCanImg = null;
+  document.getElementById('npHint').style.display = '';
+  drawMaqueta();
+  ['npName','npType','npTamano','npDesc','npAbv','npNeto','npDespacho','npMenuTitulo','npMenuPrecio'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  document.getElementById('npColor').value = '#d8a079';
+  document.querySelectorAll('#npSection button').forEach(x => x.classList.toggle('on', x.dataset.v === 'minorista'));
+  document.querySelectorAll('#npStatus button').forEach(x => x.classList.toggle('on', x.dataset.v === 'active'));
   document.getElementById('newProdModal').classList.add('open');
   document.body.classList.add('drawer-open');
-  const e = document.getElementById('npErr'); if (e) { e.style.display = 'none'; e.textContent = ''; }
+  npShowErr('');
+  loadNpMeta().then(() => { npRenderCanalGrid(); npRenderMarcaGrid(); npWizRender(); });
+  npWizRender();
 }
 function closeNewProd(){
   document.getElementById('newProdModal').classList.remove('open');
@@ -4745,6 +5013,210 @@ function closeNewProd(){
 }
 document.getElementById('btnNewProd').onclick = openNewProd;
 document.getElementById('newProdModal').addEventListener('click', e => { if (e.target.dataset.act === 'close-np') closeNewProd(); });
+
+// ── Render del wizard ──
+function npWizRender(){
+  const steps = npWizSteps();
+  if (!steps.includes(npWiz.step)) npWiz.step = steps[steps.length - 1] || 'canal';
+  const idx = steps.indexOf(npWiz.step);
+  document.querySelectorAll('.np-step').forEach(el => el.classList.toggle('on', el.dataset.step === npWiz.step));
+  document.getElementById('npStepMeta').textContent = `Paso ${idx + 1} de ${steps.length} · ${NP_STEP_LABELS[npWiz.step] || ''}`;
+  document.getElementById('npWizDots').innerHTML = steps.map((s, i) =>
+    `<span class="np-wiz-dot ${i < idx ? 'done' : ''} ${i === idx ? 'on' : ''}"></span>`).join('');
+  document.getElementById('npWizBack').disabled = idx === 0;
+  // OJO: "idx === steps.length-1" NO alcanza como criterio de "último paso" —
+  // el array todavía es corto (['canal','marca']) mientras la marca no se
+  // eligió, así que marcaría 'marca' como último paso antes de tiempo. Solo
+  // los pasos terminales reales de cada ruta cuentan.
+  const isLast = npWiz.step === 'b-detalles' || npWiz.step === 'm-detalle';
+  const ruta = npCurrentRuta();
+  document.getElementById('npWizNext').textContent = isLast ? (ruta === 'menu' ? 'Crear SKU de carta' : 'Crear en Shopify') : 'Siguiente →';
+  if (npWiz.step === 'b-coleccion') npRenderColeccionBody();
+  if (npWiz.step === 'b-distribucion') npRenderDistribBody();
+  if (npWiz.step === 'm-categoria') npRenderCategoriaBody();
+}
+
+function npRenderCanalGrid(){
+  const defs = [
+    ...npMeta.canales.map(c => ({ id:c.id, label:c.label, ic:{horeca:'🏬',retail:'🛒',online:'💻',hospitality:'🍽️'}[c.id]||'📦' })),
+    { id:'todas', label:'Todas', ic:'🗂️' },
+    { id:'algunas', label:'Algunas', ic:'✅' },
+  ];
+  document.getElementById('npCanalGrid').innerHTML = defs.map(d =>
+    `<button type="button" class="np-canal-card ${npWiz.canalMode===d.id?'on':''}" data-canalmode="${d.id}"><span class="ic">${d.ic}</span>${escapeHtml(d.label)}</button>`).join('');
+  document.querySelectorAll('#npCanalGrid [data-canalmode]').forEach(b => b.onclick = () => {
+    const mode = b.dataset.canalmode;
+    npWiz.canalMode = mode;
+    if (mode === 'todas') npWiz.canales = npMeta.canales.map(c => c.id);
+    else if (mode === 'algunas') { /* se arma con los checkboxes */ }
+    else npWiz.canales = [mode];
+    document.querySelectorAll('#npCanalGrid [data-canalmode]').forEach(x => x.classList.toggle('on', x === b));
+    const multi = document.getElementById('npCanalMulti');
+    if (mode === 'algunas') {
+      multi.style.display = '';
+      multi.innerHTML = npMeta.canales.map(c => `<label><input type="checkbox" value="${c.id}" ${npWiz.canales.includes(c.id)?'checked':''}> ${escapeHtml(c.label)}</label>`).join('');
+      multi.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.onchange = () => {
+        npWiz.canales = [...multi.querySelectorAll('input:checked')].map(x => x.value);
+      });
+    } else {
+      multi.style.display = 'none';
+    }
+  });
+}
+function npRenderMarcaGrid(){
+  document.getElementById('npMarcaGrid').innerHTML = npMeta.marcas.map(m =>
+    `<button type="button" class="np-marca-card ${npWiz.marca===m.id?'on':''}" data-marca="${m.id}"><span class="ic">${m.ruta==='menu'?'🍽️':'🍺'}</span>${escapeHtml(m.label)}</button>`).join('');
+  document.querySelectorAll('#npMarcaGrid [data-marca]').forEach(b => b.onclick = () => {
+    npWiz.marca = b.dataset.marca;
+    npWiz.ambRuta = null;
+    document.querySelectorAll('#npMarcaGrid [data-marca]').forEach(x => x.classList.toggle('on', x === b));
+  });
+}
+document.querySelectorAll('.np-amb-card').forEach(b => b.onclick = () => {
+  npWiz.ambRuta = b.dataset.amb;
+  npShowErr('');
+  // 'ambiguo' ya no aparece en npWizSteps() una vez que ambRuta está seteado
+  // (ver npWizSteps): el índice 2 es siempre el primer paso de la ruta recién
+  // resuelta ('canal','marca',<primer paso>,...), así que saltamos ahí directo
+  // en vez de usar indexOf('ambiguo') sobre el array ya recalculado.
+  const steps = npWizSteps();
+  npWiz.step = steps[2] || 'canal';
+  npWizRender();
+});
+
+// ── Ruta Bebida: formato ──
+document.querySelectorAll('#npFormatoGrid [data-fmt]').forEach(b => b.onclick = () => {
+  npWiz.formato = b.dataset.fmt;
+  document.querySelectorAll('#npFormatoGrid [data-fmt]').forEach(x => x.classList.toggle('on', x === b));
+});
+
+// ── Ruta Bebida: colección (lista configurable + crear nueva) ──
+function npMarcaDef(){ return npMeta.marcas.find(m => m.id === npWiz.marca) || null; }
+function npRenderColeccionBody(){
+  const marca = npMarcaDef();
+  const listaId = marca && marca.coleccionLista;
+  const items = (listaId ? npMeta.listas[listaId] : []) || [];
+  const activos = items.filter(x => x.activo !== false);
+  const body = document.getElementById('npColeccionBody');
+  body.innerHTML = activos.map(it => `
+    <div class="np-lista-row"><label><input type="radio" name="npColeccion" value="${it.id}" ${npWiz.coleccionId===it.id?'checked':''}> ${escapeHtml(it.label)}</label></div>
+  `).join('') + `
+    <div class="np-lista-new">
+      <input class="adm-input" id="npColeccionNueva" placeholder="Crear nueva colección…">
+      <button type="button" class="adm-btn adm-btn-ghost" id="npColeccionAdd">+ Crear</button>
+    </div>`;
+  body.querySelectorAll('input[name="npColeccion"]').forEach(r => r.onchange = () => { npWiz.coleccionId = r.value; });
+  document.getElementById('npColeccionAdd').onclick = async () => {
+    const inp = document.getElementById('npColeccionNueva');
+    const label = inp.value.trim();
+    if (!label) return;
+    try {
+      const r = await fetch('/admin/sku/listas/' + listaId, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ label }) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Error');
+      npMeta.listas[listaId] = npMeta.listas[listaId] || [];
+      npMeta.listas[listaId].push(d.item);
+      npWiz.coleccionId = d.item.id;
+      npRenderColeccionBody();
+    } catch (e) { showToast('Error: ' + e.message, 'err'); }
+  };
+}
+
+// ── Ruta Bebida: distribución (formatos configurables por canal + precio) ──
+function npRenderDistribBody(){
+  const body = document.getElementById('npDistribBody');
+  body.innerHTML = npWiz.canales.map(canalId => {
+    const canal = npMeta.canales.find(c => c.id === canalId);
+    const listaId = 'formato_' + canalId;
+    const items = (npMeta.listas[listaId] || []).filter(x => x.activo !== false);
+    const rows = items.map(it => {
+      const cur = (npWiz.distrib[canalId] || {})[it.id];
+      return `<div class="np-distrib-row">
+        <label><input type="checkbox" class="npd-on" data-canal="${canalId}" data-fmt="${it.id}" ${cur!=null?'checked':''}> ${escapeHtml(it.label)}</label>
+        <input type="number" class="adm-input npd-precio" data-canal="${canalId}" data-fmt="${it.id}" placeholder="precio" min="0" step="1" value="${cur!=null?cur:''}" ${cur==null?'disabled':''}>
+      </div>`;
+    }).join('');
+    return `<div class="np-distrib-canal">
+      <div class="np-distrib-canal-h">${escapeHtml(canal ? canal.label : canalId)}</div>
+      ${rows || '<div class="adm-empty" style="padding:.4rem 0">Sin formatos configurados para este canal todavía.</div>'}
+      <div class="np-lista-new">
+        <input class="adm-input npd-nueva" data-canal="${canalId}" placeholder="Crear nuevo formato…">
+        <button type="button" class="adm-btn adm-btn-ghost npd-add" data-canal="${canalId}" type="button">+ Crear</button>
+      </div>
+    </div>`;
+  }).join('');
+  body.querySelectorAll('.npd-on').forEach(cb => cb.onchange = () => {
+    const { canal, fmt } = cb.dataset;
+    npWiz.distrib[canal] = npWiz.distrib[canal] || {};
+    const priceInp = body.querySelector(`.npd-precio[data-canal="${canal}"][data-fmt="${fmt}"]`);
+    if (cb.checked) { npWiz.distrib[canal][fmt] = Number(priceInp.value) || 0; priceInp.disabled = false; priceInp.focus(); }
+    else { delete npWiz.distrib[canal][fmt]; priceInp.disabled = true; priceInp.value = ''; }
+  });
+  body.querySelectorAll('.npd-precio').forEach(inp => inp.oninput = () => {
+    const { canal, fmt } = inp.dataset;
+    if (npWiz.distrib[canal] && npWiz.distrib[canal][fmt] != null) npWiz.distrib[canal][fmt] = Number(inp.value) || 0;
+  });
+  body.querySelectorAll('.npd-add').forEach(btn => btn.onclick = async () => {
+    const canalId = btn.dataset.canal;
+    const inp = body.querySelector(`.npd-nueva[data-canal="${canalId}"]`);
+    const label = inp.value.trim();
+    if (!label) return;
+    const listaId = 'formato_' + canalId;
+    try {
+      const r = await fetch('/admin/sku/listas/' + listaId, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ label }) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Error');
+      npMeta.listas[listaId] = npMeta.listas[listaId] || [];
+      npMeta.listas[listaId].push(d.item);
+      npWiz.distrib[canalId] = npWiz.distrib[canalId] || {};
+      npWiz.distrib[canalId][d.item.id] = 0;
+      npRenderDistribBody();
+    } catch (e) { showToast('Error: ' + e.message, 'err'); }
+  });
+}
+function npDistribList(){
+  const rows = [];
+  for (const canal of Object.keys(npWiz.distrib)) {
+    for (const formatoId of Object.keys(npWiz.distrib[canal])) {
+      rows.push({ canal, formatoId, precio: npWiz.distrib[canal][formatoId] || 0 });
+    }
+  }
+  return rows;
+}
+
+// ── Ruta Menú: tipo + categoría ──
+document.querySelectorAll('#npTipoGrid [data-tipo]').forEach(b => b.onclick = () => {
+  npWiz.tipo = b.dataset.tipo;
+  npWiz.categoriaId = null;
+  document.querySelectorAll('#npTipoGrid [data-tipo]').forEach(x => x.classList.toggle('on', x === b));
+});
+function npRenderCategoriaBody(){
+  const listaId = npWiz.tipo === 'barra' ? 'categoria_barra' : 'categoria_cocina';
+  const items = (npMeta.listas[listaId] || []).filter(x => x.activo !== false);
+  const body = document.getElementById('npCategoriaBody');
+  body.innerHTML = items.map(it => `
+    <div class="np-lista-row"><label><input type="radio" name="npCategoria" value="${it.id}" ${npWiz.categoriaId===it.id?'checked':''}> ${escapeHtml(it.label)}</label></div>
+  `).join('') + `
+    <div class="np-lista-new">
+      <input class="adm-input" id="npCategoriaNueva" placeholder="Crear nueva categoría…">
+      <button type="button" class="adm-btn adm-btn-ghost" id="npCategoriaAdd">+ Crear</button>
+    </div>`;
+  body.querySelectorAll('input[name="npCategoria"]').forEach(r => r.onchange = () => { npWiz.categoriaId = r.value; });
+  document.getElementById('npCategoriaAdd').onclick = async () => {
+    const inp = document.getElementById('npCategoriaNueva');
+    const label = inp.value.trim();
+    if (!label) return;
+    try {
+      const r = await fetch('/admin/sku/listas/' + listaId, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ label }) });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Error');
+      npMeta.listas[listaId] = npMeta.listas[listaId] || [];
+      npMeta.listas[listaId].push(d.item);
+      npWiz.categoriaId = d.item.id;
+      npRenderCategoriaBody();
+    } catch (e) { showToast('Error: ' + e.message, 'err'); }
+  };
+}
 
 // ─── Prefijos de SKU por marca ───────────────────────────────────────────────
 async function openSkuPrefixModal(){
@@ -4794,17 +5266,14 @@ document.getElementById('skuPrefixSave').onclick = async () => {
   }
 };
 document.querySelectorAll('#npSection button').forEach(b => b.onclick = () => {
-  npSection = b.dataset.v;
   document.querySelectorAll('#npSection button').forEach(x => x.classList.toggle('on', x === b));
 });
-let npStatus = 'active';
 document.querySelectorAll('#npStatus button').forEach(b => b.onclick = () => {
-  npStatus = b.dataset.v;
   document.querySelectorAll('#npStatus button').forEach(x => x.classList.toggle('on', x === b));
 });
 
 // Inputs que re-dibujan la maqueta
-['npName','npDesc','npAbv','npSize','npColor','npType'].forEach(id => {
+['npName','npDesc','npAbv','npTamano','npColor','npType'].forEach(id => {
   document.getElementById(id).addEventListener('input', () => drawMaquetaWhenReady());
 });
 document.getElementById('npCan').addEventListener('change', (e) => {
@@ -4842,7 +5311,7 @@ function drawMaqueta(packLabel){
   const name = (document.getElementById('npName').value || 'PRODUCTO').toUpperCase();
   const desc = document.getElementById('npDesc').value || '';
   const abv  = (document.getElementById('npAbv').value || '0').replace('%','').trim() + '%';
-  const size = document.getElementById('npSize').value || '473ml';
+  const size = document.getElementById('npTamano').value || '473ml';
   const isBarril = /barril/i.test(packLabel || '');
   const pkNum = isBarril ? (((packLabel.match(/\d+/) || ['30'])[0]) + 'L') : ((packLabel || '6 Pack').match(/\d+/) || ['6'])[0];
   const pkWord = isBarril ? 'BARRIL' : 'PACK';
@@ -4927,46 +5396,56 @@ function drawMaquetaWhenReady(packLabel){
   }
 }
 
-function getSelectedPacks(){
-  const packs = [];
-  document.querySelectorAll('#npPacks .adm-np-pack').forEach(row => {
-    const cb = row.querySelector('.np-pk-on');
-    const price = row.querySelector('.adm-np-price');
-    if (!cb.checked) return;
-    if (row.classList.contains('adm-np-barril')){
-      // Formato barril: el "qty" son los litros. Título "Barril 30L".
-      const lt = parseInt(row.querySelector('.np-pk-liters').value, 10);
-      if (lt > 0) packs.push({ title: 'Barril ' + lt + 'L', price: price.value || '0' });
-    } else {
-      const qty = parseInt(row.querySelector('.np-pk-qty').value, 10);
-      if (qty > 0) packs.push({ title: qty + ' Pack', price: price.value || '0' });
-    }
-  });
-  return packs;
-}
-document.getElementById('npAddPack')?.addEventListener('click', () => {
-  const row = document.createElement('label');
-  row.className = 'adm-np-pack';
-  row.innerHTML = '<input type="checkbox" class="np-pk-on" checked> <input type="number" class="np-pk-qty" min="1" step="1" placeholder="6"> Pack <input class="adm-input adm-np-price" type="number" placeholder="precio">';
-  document.getElementById('npPacks').appendChild(row);
-  row.querySelector('.np-pk-qty').focus();
-});
-document.getElementById('npAddBarril')?.addEventListener('click', () => {
-  const row = document.createElement('label');
-  row.className = 'adm-np-pack adm-np-barril';
-  row.innerHTML = '<input type="checkbox" class="np-pk-on" checked> Barril <input type="number" class="np-pk-liters" value="30" min="1" step="1"> L <input class="adm-input adm-np-price" type="number" placeholder="precio">';
-  document.getElementById('npPacks').appendChild(row);
-  row.querySelector('.np-pk-liters').focus();
-});
-
 function npShowErr(msg){ const e=document.getElementById('npErr'); if(!e) return; if(!msg){ e.style.display='none'; e.textContent=''; return; } e.textContent=msg; e.style.display=''; }
-document.getElementById('npCreate').onclick = async () => {
+
+// ── Navegación del wizard: validar el paso actual antes de avanzar ──
+function npValidateStep(step){
+  if (step === 'canal') return npWiz.canales.length ? null : 'Elegí al menos un canal.';
+  if (step === 'marca') return npWiz.marca ? null : 'Elegí una marca.';
+  if (step === 'ambiguo') return npWiz.ambRuta ? null : 'Elegí una opción.';
+  if (step === 'b-basicos') return document.getElementById('npName').value.trim() ? null : 'Falta el nombre del producto.';
+  if (step === 'b-formato') {
+    if (!npWiz.formato) return 'Elegí Botella o Lata.';
+    if (!document.getElementById('npTamano').value.trim()) return 'Falta el tamaño.';
+    return null;
+  }
+  if (step === 'b-distribucion') return npDistribList().length ? null : 'Agregá al menos un formato de distribución con precio.';
+  if (step === 'm-tipo') return npWiz.tipo ? null : 'Elegí Cocina o Barra.';
+  if (step === 'm-categoria') return npWiz.categoriaId ? null : 'Elegí una categoría.';
+  if (step === 'm-detalle') return document.getElementById('npMenuTitulo').value.trim() ? null : 'Falta el nombre del ítem.';
+  return null; // b-coleccion y b-detalles son opcionales
+}
+function npWizNextStep(){
   npShowErr('');
-  const title = document.getElementById('npName').value.trim();
-  if (!title) { npShowErr('Falta el nombre del producto.'); document.getElementById('npName').focus(); return; }
-  const packs = getSelectedPacks();
-  if (!packs.length) { npShowErr('Elige al menos un pack o barril (marca el check y pon la cantidad).'); return; }
-  const btn = document.getElementById('npCreate');
+  const err = npValidateStep(npWiz.step);
+  if (err) { npShowErr(err); return; }
+  const steps = npWizSteps();
+  const idx = steps.indexOf(npWiz.step);
+  if (idx === steps.length - 1) { npWizSubmit(); return; }
+  npWiz.step = steps[idx + 1];
+  npWizRender();
+  if (npWiz.step === 'b-detalles') drawMaquetaWhenReady();
+}
+function npWizBackStep(){
+  npShowErr('');
+  const steps = npWizSteps();
+  const idx = steps.indexOf(npWiz.step);
+  if (idx <= 0) return;
+  npWiz.step = steps[idx - 1];
+  if (npWiz.step === 'canal' || npWiz.step === 'marca') npWiz.ambRuta = null;
+  npWizRender();
+}
+document.getElementById('npWizNext').onclick = npWizNextStep;
+document.getElementById('npWizBack').onclick = npWizBackStep;
+
+// ── Envío: Ruta Bebida (Shopify) o Ruta Menú (100% interno) ──
+async function npWizSubmit(){
+  const ruta = npCurrentRuta();
+  if (ruta === 'bebida') return npSubmitBebida();
+  if (ruta === 'menu') return npSubmitMenu();
+}
+async function npSubmitBebida(){
+  const btn = document.getElementById('npWizNext');
   btn.disabled = true; const o = btn.textContent; btn.textContent = 'Creando…';
   try {
     // Esperar a que la fuente de marca esté cargada para que las maquetas
@@ -4974,24 +5453,40 @@ document.getElementById('npCreate').onclick = async () => {
     if (document.fonts && document.fonts.ready) {
       try { await document.fonts.load("800 80px 'Bricolage Grotesque'"); await document.fonts.ready; } catch {}
     }
-    // La foto de la lata es OPCIONAL. Si la subieron, se genera una maqueta por
-    // pack; si no (ej: un barril), se crea el producto sin imagen.
+    const distribList = npDistribList(); // [{canal, formatoId, precio}]
+    const multiCanal = new Set(distribList.map(d => d.canal)).size > 1;
+    const canalLabel = (id) => (npMeta.canales.find(c => c.id === id) || {}).label || id;
+    const fmtLabel = (canal, formatoId) => {
+      const it = (npMeta.listas['formato_' + canal] || []).find(x => x.id === formatoId);
+      return it ? it.label : '';
+    };
+    // La foto es OPCIONAL. Si la subieron, se genera una maqueta por cada
+    // formato de distribución elegido (mismo alt que usará Shopify de option1,
+    // para que el server pueda asociar cada imagen a su variante).
     let images = [];
     if (npCanImg) {
       const cv = document.getElementById('npCanvas');
-      images = packs.map(p => {
-        drawMaqueta(p.title);
-        return { alt: p.title, dataBase64: cv.toDataURL('image/png').split(',')[1] };
+      images = distribList.map(d => {
+        const label = fmtLabel(d.canal, d.formatoId);
+        const alt = multiCanal ? `${canalLabel(d.canal)} · ${label}` : label;
+        drawMaqueta(label);
+        return { alt, dataBase64: cv.toDataURL('image/png').split(',')[1] };
       });
       drawMaqueta(); // volver al preview default
     }
+    const sectionBtn = document.querySelector('#npSection button.on');
+    const statusBtn = document.querySelector('#npStatus button.on');
     const body = {
-      section: npSection,
-      status: npStatus,
-      vendor: document.getElementById('npVendor').value,
-      title,
+      marca: npWiz.marca,
+      title: document.getElementById('npName').value.trim(),
       productType: document.getElementById('npType').value.trim(),
-      variants: packs,
+      section: sectionBtn ? sectionBtn.dataset.v : 'minorista',
+      status: statusBtn ? statusBtn.dataset.v : 'active',
+      formato: npWiz.formato,
+      tamano: document.getElementById('npTamano').value.trim(),
+      coleccionId: npWiz.coleccionId || '',
+      canales: npWiz.canales,
+      distribucion: distribList,
       images,
     };
     const r = await fetch('/admin/products/create', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
@@ -5004,17 +5499,39 @@ document.getElementById('npCreate').onclick = async () => {
     if (data.id && (neto || despacho || ila)) {
       try { await fetch('/admin/distribuidora/costs/'+encodeURIComponent(data.id), { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ precioNeto: neto||null, dispatch: despacho, ilaPct: ila }) }); } catch {}
     }
-    showToast(`Producto creado en Shopify ✓ (${data.title})`, 'ok');
+    showToast(`SKU creado ✓ ${data.skuCode || ''} — ${data.title}`, 'ok');
     closeNewProd();
-    // refrescar catálogo
-    activeProdSection = npSection;
-    document.querySelectorAll('.adm-pillgroup[data-filter="prodSection"] button').forEach(x => x.classList.toggle('on', x.dataset.v === npSection));
+    activeProdSection = body.section;
+    document.querySelectorAll('.adm-pillgroup[data-filter="prodSection"] button').forEach(x => x.classList.toggle('on', x.dataset.v === body.section));
     loadProductos();
   } catch (e) {
     npShowErr('Error: ' + e.message);
     showToast('Error: ' + e.message, 'err');
   } finally { btn.disabled = false; btn.textContent = o; }
-};
+}
+async function npSubmitMenu(){
+  const btn = document.getElementById('npWizNext');
+  btn.disabled = true; const o = btn.textContent; btn.textContent = 'Creando…';
+  try {
+    const body = {
+      marca: npWiz.marca,
+      tipo: npWiz.tipo,
+      categoriaId: npWiz.categoriaId,
+      titulo: document.getElementById('npMenuTitulo').value.trim(),
+      precio: Number(document.getElementById('npMenuPrecio').value) || null,
+      canales: npWiz.canales,
+    };
+    const r = await fetch('/admin/sku-menu', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+    showToast(`SKU de carta creado ✓ ${data.item.skuCode} — ${data.item.titulo}`, 'ok');
+    closeNewProd();
+    loadProductos();
+  } catch (e) {
+    npShowErr('Error: ' + e.message);
+    showToast('Error: ' + e.message, 'err');
+  } finally { btn.disabled = false; btn.textContent = o; }
+}
 
 // ─── Conversaciones (embudo) ────────────────────────────────────────────────
 let chatFilters = { brand:'all', mode:'b2c', module:'todos', from:'', to:'', q:'' };

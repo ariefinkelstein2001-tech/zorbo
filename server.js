@@ -2120,7 +2120,10 @@ function brandFromProduct(p, customBrands){
 // producto se borre. Prefijo configurable por marca vía
 // GET/PUT /admin/products/sku-config; si no hay override, se deriva.
 const SKU_CONFIG_FILE = join(PROMPTS_EFFECTIVE_DIR, 'sku-config.json');
-const SKU_PREFIX_DEFAULTS = { kairos: 'KB', firulais: 'FIR', banny: 'BAN', otros: 'OTR' };
+const SKU_PREFIX_DEFAULTS = {
+  kairos: 'KB', firulais: 'FIR', banny: 'BAN', otros: 'OTR',
+  kairos_garden: 'KGD', kairos_badass: 'KBD',
+};
 
 function loadSkuConfig(){
   try {
@@ -2173,6 +2176,110 @@ function skuBackfill(all, extras, customBrands){
   if (assigned > 0) { saveProductExtras(extras); saveSkuConfig(cfg); }
   return assigned;
 }
+
+// ─── Fase 3: formulario inteligente de SKU (canal × marca) ──────────────────
+// Cinco marcas, dos rutas de formulario. Kairos Garden/Badass son locales
+// gastronómicos — sus ítems de carta NUNCA son productos Shopify (no existe
+// "SKU de Shopify" para un plato), así que su ruta es 100% interna
+// (prompts/sku-menu.json). Kairos Brewing/Banny/Firulais son bebidas
+// envasadas → siguen creando/actualizando un producto real en Shopify.
+const SKU_MARCAS = [
+  { id: 'kairos',        label: 'Kairos Brewing', ruta: 'bebida', vendor: 'Kairos Brewing', coleccionLista: 'coleccion_kairos' },
+  { id: 'kairos_garden', label: 'Kairos Garden',  ruta: 'menu' },
+  { id: 'kairos_badass', label: 'Kairos Badass',  ruta: 'menu' },
+  { id: 'banny',         label: 'Banny',          ruta: 'bebida', vendor: 'Banny',    coleccionLista: 'coleccion_banny' },
+  { id: 'firulais',      label: 'Firulais',       ruta: 'bebida', vendor: 'Firulais', coleccionLista: 'coleccion_firulais' },
+];
+const SKU_CANALES = [
+  { id: 'horeca',      label: 'Horeca' },
+  { id: 'retail',      label: 'Retail' },
+  { id: 'online',      label: 'Venta Online' },
+  { id: 'hospitality', label: 'Hospitality' },
+];
+const skuMarcaDef = (id) => SKU_MARCAS.find(m => m.id === id) || null;
+
+// Listas configurables (colecciones por marca, categorías de carta, formatos
+// de distribución por canal). Mismo espíritu que los "estados" de Inventario:
+// se puede agregar/renombrar/desactivar desde la UI, nunca texto libre suelto
+// en el formulario — todo sale de una de estas listas.
+const SKU_LISTAS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'sku-listas.json');
+const SKU_LISTA_IDS = [
+  'coleccion_kairos', 'coleccion_banny', 'coleccion_firulais',
+  'categoria_cocina', 'categoria_barra',
+  'formato_horeca', 'formato_retail', 'formato_online', 'formato_hospitality',
+];
+const SKU_LISTAS_SEED = {
+  coleccion_kairos:   ['De la casa', 'De temporada', 'De artistas', 'World tour'],
+  coleccion_banny:    ['Gin', 'Ron', 'Whisky', 'Ready To Drink'],
+  coleccion_firulais: [], // Firulais "No aplica" — a propósito sin colecciones
+  categoria_cocina: [
+    'Para Empezar', 'Para compartir', 'La huella del chef', 'Platos principales',
+    'Ensaladas', 'Makis', 'Entre panes', 'Menú de niños', 'Postres',
+    'Guarniciones', 'Banny dips',
+  ],
+  categoria_barra: [
+    'Colección de la casa', 'Colección de temporada', 'Colección de artistas',
+    'Firulais Craft Mix', 'Especial Chelas', 'Cervezas Invitadas', 'De la Casa',
+    'Jarras de la casa', 'Malas costumbres', 'De autor',
+    'Low Alcohol and Skinny Cocktails', 'Mocktails', 'Clásicos', 'Spritz',
+    'Kombucha', 'Chelas sin alcohol', 'Para tomar 0,0',
+  ],
+  formato_horeca:      ['Caja 24 latas', 'Bidón 20L', 'Barril 20L', 'Barril 30L'],
+  formato_retail:      ['Pallet 51 cajas x24'],
+  formato_online:      ['Unidad', 'Pack 4', 'Pack 6', 'Pack 12', 'Pack 24', 'Botella 473cc', 'Merch'],
+  formato_hospitality: ['Caja 24 latas', 'Bidón 20L', 'Barril 20L', 'Barril 30L'],
+};
+function loadSkuListas(){
+  let lists = {};
+  try {
+    if (existsSync(SKU_LISTAS_FILE)) {
+      const parsed = JSON.parse(readFileSync(SKU_LISTAS_FILE, 'utf-8'));
+      if (parsed.lists && typeof parsed.lists === 'object') lists = parsed.lists;
+    }
+  } catch (e) { console.warn('sku listas load:', e.message); }
+  let changed = false;
+  for (const id of SKU_LISTA_IDS) {
+    if (!Array.isArray(lists[id])) {
+      lists[id] = (SKU_LISTAS_SEED[id] || []).map(label => ({ id: prodNewId('skl'), label, activo: true }));
+      changed = true;
+    }
+  }
+  if (changed) saveSkuListas({ version: 1, lists });
+  return { version: 1, lists };
+}
+function saveSkuListas(d){ writeFileSync(SKU_LISTAS_FILE, JSON.stringify(d, null, 2)); }
+
+// Sub-código de variante (Ruta Bebida): cuelga del SKU-código del producto,
+// uno por formato de distribución elegido. Ej. KB-00001 + "Barril 30L" → B30.
+// `taken` es el set de sufijos ya usados EN ESE PRODUCTO (evita choques ej.
+// "Barril 20L" y "Barril 30L" ambos con prefijo B — quedan B20/B30).
+function skuVariantSuffix(label, taken){
+  const clean = String(label || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const digits = (clean.match(/\d+/g) || []).join('');
+  const firstWord = (clean.trim().split(/\s+/)[0] || 'VAR').replace(/[^A-Za-z]/g, '').toUpperCase();
+  const base = digits ? (firstWord.slice(0, 1) + digits) : (firstWord.slice(0, 4) || 'VAR');
+  let out = base, n = 2;
+  while (taken.has(out)) { out = base + n; n++; }
+  taken.add(out);
+  return out;
+}
+
+// ─── SKU de carta (Ruta Menú): platos/tragos de Kairos Garden y Badass ──────
+// 100% interno — nunca hay producto Shopify detrás (no existe SKU de Shopify
+// para un ítem de carta). Vive aparte de prompts/products.json porque no
+// tiene product id de Shopify que lo indexe.
+const SKU_MENU_FILE = join(PROMPTS_EFFECTIVE_DIR, 'sku-menu.json');
+function loadSkuMenu(){
+  try {
+    if (!existsSync(SKU_MENU_FILE)) return { version: 1, items: {} };
+    const parsed = JSON.parse(readFileSync(SKU_MENU_FILE, 'utf-8'));
+    return (parsed.items && typeof parsed.items === 'object') ? parsed : { version: 1, items: {} };
+  } catch (e) {
+    console.warn('sku menu load:', e.message);
+    return { version: 1, items: {} };
+  }
+}
+function saveSkuMenu(d){ writeFileSync(SKU_MENU_FILE, JSON.stringify(d, null, 2)); }
 
 // ─── Marcas custom (definidas en Página web → Marcas) ─────────────────────────
 const BASE_BRAND_KEYS = ['kairos', 'firulais', 'banny'];
@@ -2371,10 +2478,15 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
           hasExtra:   !!(ex && (ex.extra && ex.extra.trim() || ex.video || (ex.files && ex.files.length))),
           updatedAt:  ex?.updatedAt || null,
           skuCode:    ex?.skuCode || null,
-          // Canal (horeca/retail/online/hospitality): se asigna recién en Fase 3
-          // desde el formulario inteligente. Hoy casi ningún producto lo tiene —
-          // se muestra vacío, nunca se adivina desde otros tags de Shopify.
+          // Canal(es): se asignan al crear con el formulario inteligente (Fase 3) o
+          // a mano después (editor de canal en la ficha). Nunca se adivinan desde
+          // tags de Shopify — si está vacío es porque nadie lo asignó todavía.
           channels:   Array.isArray(ex?.channels) ? ex.channels : [],
+          formato:    ex?.formato || null,
+          tamano:     ex?.tamano || null,
+          coleccion:  ex?.coleccion || null,
+          variantesSku: Array.isArray(ex?.variantesSku) ? ex.variantesSku : [],
+          ruta:       'bebida',
         };
       });
     res.json({ section, requiredTag, products, skuAssigned });
@@ -2402,6 +2514,196 @@ app.put('/admin/products/sku-config', requireAdmin, (req, res) => {
   res.json({ ok: true, prefixes: cfg.prefixes });
 });
 
+// Metadata del formulario inteligente (Fase 3): marcas, canales y las 9
+// listas configurables (colecciones × 3 marcas, categorías cocina/barra,
+// formatos de distribución × 4 canales). Todo en un solo GET para que el
+// wizard cargue sin ir paso a paso al server.
+app.get('/admin/sku/meta', requireAdmin, (req, res) => {
+  const listas = loadSkuListas();
+  res.json({ marcas: SKU_MARCAS, canales: SKU_CANALES, listas: listas.lists });
+});
+
+function skuListaItem(listaId, itemId){
+  const listas = loadSkuListas();
+  const list = listas.lists[listaId] || [];
+  return list.find(x => x.id === itemId) || null;
+}
+// ¿Algún producto/ítem de carta sigue referenciando este item de lista?
+// (bloquea el borrado, mismo criterio que los "estados" de Inventario)
+function skuListaInUse(listaId, itemId){
+  if (listaId.startsWith('coleccion_')) {
+    const extras = loadProductExtras();
+    return Object.values(extras.items).some(it => it.coleccion && it.coleccion.id === itemId);
+  }
+  if (listaId.startsWith('formato_')) {
+    const extras = loadProductExtras();
+    return Object.values(extras.items).some(it => Array.isArray(it.variantesSku) && it.variantesSku.some(v => v.formatoId === itemId));
+  }
+  if (listaId.startsWith('categoria_')) {
+    const menu = loadSkuMenu();
+    return Object.values(menu.items).some(it => it.categoria && it.categoria.id === itemId);
+  }
+  return false;
+}
+app.get('/admin/sku/listas', requireAdmin, (req, res) => {
+  res.json({ lists: loadSkuListas().lists });
+});
+app.post('/admin/sku/listas/:listaId', requireAdmin, (req, res) => {
+  const listaId = String(req.params.listaId);
+  if (!SKU_LISTA_IDS.includes(listaId)) return res.status(404).json({ error: 'Lista no reconocida.' });
+  const label = String((req.body || {}).label || '').trim().slice(0, 80);
+  if (!label) return res.status(400).json({ error: 'Falta el nombre.' });
+  const d = loadSkuListas();
+  if (d.lists[listaId].some(x => x.label.toLowerCase() === label.toLowerCase())) {
+    return res.status(409).json({ error: 'Ya existe un ítem con ese nombre en esta lista.' });
+  }
+  const item = { id: prodNewId('skl'), label, activo: true };
+  d.lists[listaId].push(item);
+  saveSkuListas(d);
+  res.json({ ok: true, item });
+});
+app.put('/admin/sku/listas/:listaId/:itemId', requireAdmin, (req, res) => {
+  const { listaId, itemId } = req.params;
+  if (!SKU_LISTA_IDS.includes(listaId)) return res.status(404).json({ error: 'Lista no reconocida.' });
+  const d = loadSkuListas();
+  const item = d.lists[listaId].find(x => x.id === itemId);
+  if (!item) return res.status(404).json({ error: 'Ítem no encontrado.' });
+  const b = req.body || {};
+  if (b.label != null) { const v = String(b.label).trim().slice(0, 80); if (v) item.label = v; }
+  if (b.activo != null) item.activo = !!b.activo;
+  saveSkuListas(d);
+  res.json({ ok: true, item });
+});
+app.delete('/admin/sku/listas/:listaId/:itemId', requireAdmin, (req, res) => {
+  const { listaId, itemId } = req.params;
+  if (!SKU_LISTA_IDS.includes(listaId)) return res.status(404).json({ error: 'Lista no reconocida.' });
+  if (skuListaInUse(listaId, itemId)) {
+    return res.status(400).json({ error: 'Está en uso por al menos un SKU — desactívalo en vez de borrarlo.' });
+  }
+  const d = loadSkuListas();
+  const before = d.lists[listaId].length;
+  d.lists[listaId] = d.lists[listaId].filter(x => x.id !== itemId);
+  if (d.lists[listaId].length === before) return res.status(404).json({ error: 'Ítem no encontrado.' });
+  saveSkuListas(d);
+  res.json({ ok: true });
+});
+
+// Asignar canal(es) a un producto EXISTENTE — la vía crítica para que los
+// filtros de la landing (Horeca/Retail/Online/Hospitality) dejen de estar
+// vacíos. Nunca se infiere: el canal lo elige el usuario, uno o varios.
+app.put('/admin/products/:id/channels', requireAdmin, (req, res) => {
+  const id = String(req.params.id).trim();
+  const channels = Array.isArray((req.body || {}).channels) ? req.body.channels : null;
+  if (!channels) return res.status(400).json({ error: 'Falta channels (array).' });
+  const valid = new Set(SKU_CANALES.map(c => c.id));
+  const clean = [...new Set(channels.map(c => String(c)))].filter(c => valid.has(c));
+  const extras = loadProductExtras();
+  extras.items[id] = { ...(extras.items[id] || {}), channels: clean, updatedAt: new Date().toISOString() };
+  saveProductExtras(extras);
+  res.json({ ok: true, id, channels: clean });
+});
+// Editar la ficha de Ruta Bebida de un producto ya creado (marca/formato/
+// tamaño/colección) — no re-crea el producto en Shopify, solo actualiza los
+// metadatos internos. La colección se guarda como snapshot {id,label}.
+app.put('/admin/products/:id/ficha', requireAdmin, (req, res) => {
+  const id = String(req.params.id).trim();
+  const b = req.body || {};
+  const extras = loadProductExtras();
+  const cur = extras.items[id] || {};
+  const patch = {};
+  if (b.formato === 'botella' || b.formato === 'lata') patch.formato = b.formato;
+  if (b.tamano != null) patch.tamano = String(b.tamano).trim().slice(0, 40);
+  if (b.coleccionId != null) {
+    if (b.coleccionId === '') patch.coleccion = null;
+    else {
+      const marca = skuMarcaDef(String(b.marca || '')) || {};
+      const listaId = marca.coleccionLista || null;
+      const item = listaId ? skuListaItem(listaId, String(b.coleccionId)) : null;
+      if (item) patch.coleccion = { id: item.id, label: item.label };
+    }
+  }
+  extras.items[id] = { ...cur, ...patch, updatedAt: new Date().toISOString() };
+  saveProductExtras(extras);
+  res.json({ ok: true, id, ...patch });
+});
+
+// ─── SKU de carta (Ruta Menú): CRUD completo, sin Shopify de por medio ──────
+app.get('/admin/sku-menu', requireAdmin, (req, res) => {
+  const menu = loadSkuMenu();
+  const tipo = req.query.tipo ? String(req.query.tipo) : null;
+  let items = Object.values(menu.items);
+  if (tipo === 'cocina' || tipo === 'barra') items = items.filter(it => it.tipo === tipo);
+  items.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+  res.json({ items });
+});
+app.post('/admin/sku-menu', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const marcaId = String(b.marca || '');
+  const marca = skuMarcaDef(marcaId);
+  const canalesValidos = new Set(SKU_CANALES.map(c => c.id));
+  const canales = Array.isArray(b.canales) ? [...new Set(b.canales.map(String))].filter(c => canalesValidos.has(c)) : [];
+  // Ruta Menú es normal para Kairos Garden/Badass. Para las marcas de bebida
+  // (Kairos Brewing/Banny/Firulais) solo es válida en el caso ambiguo — canal
+  // Hospitality — que el formulario ya resolvió preguntando "¿envasado o
+  // carta?" antes de llegar acá.
+  if (!marca || (marca.ruta !== 'menu' && !canales.includes('hospitality'))) {
+    return res.status(400).json({ error: 'Marca inválida para Ruta Menú (debe ser Kairos Garden/Badass, o una marca de bebida con canal Hospitality).' });
+  }
+  const tipo = b.tipo === 'barra' ? 'barra' : (b.tipo === 'cocina' ? 'cocina' : null);
+  if (!tipo) return res.status(400).json({ error: 'Falta tipo (cocina o barra).' });
+  const titulo = String(b.titulo || '').trim().slice(0, 120);
+  if (!titulo) return res.status(400).json({ error: 'Falta el nombre del ítem.' });
+  const listaId = tipo === 'barra' ? 'categoria_barra' : 'categoria_cocina';
+  const catItem = skuListaItem(listaId, String(b.categoriaId || ''));
+  if (!catItem) return res.status(400).json({ error: 'Elegí una categoría de la lista (o creá una nueva primero).' });
+  const precio = Number.isFinite(Number(b.precio)) && Number(b.precio) > 0 ? Number(b.precio) : null;
+
+  const cfg = loadSkuConfig();
+  const skuCode = nextSkuCode(marcaId, cfg, getCustomBrands());
+  saveSkuConfig(cfg);
+
+  const now = new Date().toISOString();
+  const item = {
+    id: prodNewId('skm'), skuCode, marca: marcaId, ruta: 'menu', tipo,
+    categoria: { id: catItem.id, label: catItem.label },
+    titulo, precio, canales, activo: true, createdAt: now, updatedAt: now,
+  };
+  const menu = loadSkuMenu();
+  menu.items[item.id] = item;
+  saveSkuMenu(menu);
+  res.json({ ok: true, item });
+});
+app.put('/admin/sku-menu/:id', requireAdmin, (req, res) => {
+  const id = String(req.params.id);
+  const menu = loadSkuMenu();
+  const item = menu.items[id];
+  if (!item) return res.status(404).json({ error: 'No encontrado.' });
+  const b = req.body || {};
+  if (b.titulo != null) { const v = String(b.titulo).trim().slice(0, 120); if (v) item.titulo = v; }
+  if (b.precio != null) item.precio = Number.isFinite(Number(b.precio)) && Number(b.precio) > 0 ? Number(b.precio) : null;
+  if (b.categoriaId != null) {
+    const listaId = item.tipo === 'barra' ? 'categoria_barra' : 'categoria_cocina';
+    const catItem = skuListaItem(listaId, String(b.categoriaId));
+    if (catItem) item.categoria = { id: catItem.id, label: catItem.label };
+  }
+  if (Array.isArray(b.canales)) {
+    const canalesValidos = new Set(SKU_CANALES.map(c => c.id));
+    item.canales = [...new Set(b.canales.map(String))].filter(c => canalesValidos.has(c));
+  }
+  if (b.activo != null) item.activo = !!b.activo;
+  item.updatedAt = new Date().toISOString();
+  saveSkuMenu(menu);
+  res.json({ ok: true, item });
+});
+app.delete('/admin/sku-menu/:id', requireAdmin, (req, res) => {
+  const id = String(req.params.id);
+  const menu = loadSkuMenu();
+  if (!menu.items[id]) return res.status(404).json({ error: 'No encontrado.' });
+  delete menu.items[id];
+  saveSkuMenu(menu);
+  res.json({ ok: true });
+});
+
 // Cambiar estado activo/borrador de un producto existente en Shopify.
 app.put('/admin/products/:id/status', requireAdmin, async (req, res) => {
   const id = String(req.params.id).trim();
@@ -2425,6 +2727,12 @@ app.put('/admin/products/:id/status', requireAdmin, async (req, res) => {
 // Crear un producto NUEVO en Shopify desde el panel. B2C → tag ZORBO,
 // B2B → tag MAYORISTA. Recibe variantes (6/12/24) y las maquetas en base64.
 // Requiere write_products. IMPORTANTE: va ANTES de /:id para que no lo capture.
+// Ruta Bebida del formulario inteligente (Fase 3): crea el producto en
+// Shopify Y su ficha SKU interna en el mismo paso. El SKU-código se genera
+// ANTES de llamar a Shopify para poder grabar los sub-códigos de variante
+// (uno por formato de distribución elegido) directo en variant.sku — ese
+// campo llega siempre vacío desde Shopify hoy, así que escribirlo es
+// aditivo, no pisa nada.
 app.post('/admin/products/create', requireAdmin, async (req, res) => {
   if (!process.env.SHOPIFY_ADMIN_TOKEN) {
     return res.status(503).json({ error: 'Shopify no conectado.' });
@@ -2432,31 +2740,69 @@ app.post('/admin/products/create', requireAdmin, async (req, res) => {
   const b = req.body || {};
   const title = String(b.title || '').trim();
   if (!title) return res.status(400).json({ error: 'Falta el nombre del producto.' });
+
+  const marca = skuMarcaDef(String(b.marca || ''));
+  if (!marca || marca.ruta !== 'bebida') {
+    return res.status(400).json({ error: 'Marca inválida para Ruta Bebida (debe ser Kairos Brewing, Banny o Firulais).' });
+  }
+  const formato = (b.formato === 'botella' || b.formato === 'lata') ? b.formato : null;
+  if (!formato) return res.status(400).json({ error: 'Falta el formato (Botella o Lata).' });
+  const tamano = String(b.tamano || '').trim().slice(0, 40);
+  if (!tamano) return res.status(400).json({ error: 'Falta el tamaño.' });
+
+  let coleccion = null;
+  if (marca.coleccionLista && b.coleccionId) {
+    const item = skuListaItem(marca.coleccionLista, String(b.coleccionId));
+    if (!item) return res.status(400).json({ error: 'Colección inválida — elegila de la lista o creá una nueva primero.' });
+    coleccion = { id: item.id, label: item.label };
+  }
+
+  const canalesValidos = new Set(SKU_CANALES.map(c => c.id));
+  const canales = Array.isArray(b.canales) ? [...new Set(b.canales.map(String))].filter(c => canalesValidos.has(c)) : [];
+  if (!canales.length) return res.status(400).json({ error: 'Elegí al menos un canal.' });
+
+  const distribucionIn = Array.isArray(b.distribucion) ? b.distribucion : [];
+  if (!distribucionIn.length) return res.status(400).json({ error: 'Agregá al menos un formato de distribución con precio.' });
+  const canalLabel = (id) => (SKU_CANALES.find(c => c.id === id) || {}).label || id;
+  const taken = new Set();
+  const distribucion = [];
+  for (const row of distribucionIn) {
+    const canal = String(row.canal || '');
+    if (!canalesValidos.has(canal)) return res.status(400).json({ error: 'Canal de distribución inválido.' });
+    const listaId = 'formato_' + canal;
+    const fmtItem = skuListaItem(listaId, String(row.formatoId || ''));
+    if (!fmtItem) return res.status(400).json({ error: 'Formato de distribución inválido — elegilo de la lista o creá uno nuevo primero.' });
+    const precio = parseInt(row.precio, 10) || 0;
+    const subCodigo = skuVariantSuffix(fmtItem.label, taken);
+    distribucion.push({ canal, formatoId: fmtItem.id, formatoLabel: fmtItem.label, precio, subCodigo });
+  }
+
   const section = String(b.section || 'minorista').toLowerCase();
   const tag = section === 'mayorista' ? 'MAYORISTA' : 'ZORBO';
-  const vendor = String(b.vendor || '').trim() || 'Kairos Brewing';
   const productType = String(b.productType || '').trim();
-  const extraTags = Array.isArray(b.tags) ? b.tags.map(t => String(t).trim()).filter(Boolean) : [];
-  const tags = [tag, ...extraTags].join(', ');
+  const tags = [tag].join(', ');
+  const status = String(b.status || 'active').toLowerCase() === 'draft' ? 'draft' : 'active';
 
-  let variants = Array.isArray(b.variants) ? b.variants
-        .filter(v => v && v.title)
-        .map(v => ({ option1: String(v.title).trim(), price: String(parseInt(v.price,10) || 0) }))
-      : [];
-  let options;
-  if (variants.length) options = [{ name: 'Cantidad', values: variants.map(v => v.option1) }];
-  else { variants = [{ price: String(parseInt(b.price,10) || 0) }]; options = undefined; }
+  // Skus con más de un canal seleccionado en el mismo formato (ej. Horeca y
+  // Hospitality comparten "Caja 24 latas") necesitan el canal en el nombre
+  // de la variante para no chocar en Shopify (no permite variantes con el
+  // mismo valor de opción repetido).
+  const multiCanal = new Set(distribucion.map(d => d.canal)).size > 1;
+  const variants = distribucion.map(d => ({
+    option1: multiCanal ? `${canalLabel(d.canal)} · ${d.formatoLabel}` : d.formatoLabel,
+    price: String(d.precio),
+    sku: d.subCodigo,
+  }));
+  const options = [{ name: 'Formato', values: variants.map(v => v.option1) }];
 
   const images = (Array.isArray(b.images) ? b.images : [])
     .filter(im => im && im.dataBase64)
     .map(im => ({ attachment: String(im.dataBase64), alt: String(im.alt || '').slice(0,120) }));
 
-  const status = String(b.status || 'active').toLowerCase() === 'draft' ? 'draft' : 'active';
   const payload = { product: {
-    title, vendor, status, tags,
+    title, vendor: marca.vendor, status, tags,
     ...(productType ? { product_type: productType } : {}),
-    ...(options ? { options } : {}),
-    variants,
+    options, variants,
     ...(images.length ? { images } : {}),
   }};
 
@@ -2477,8 +2823,25 @@ app.post('/admin/products/create', requireAdmin, async (req, res) => {
         }
       }
     } catch (e) { console.warn('variant image assoc:', e.message); }
+
+    // SKU-código + ficha: se asigna ACÁ (no espera al próximo GET/backfill)
+    // para que el producto salga del modal con su código ya visible.
+    const cfg = loadSkuConfig();
+    const skuCode = nextSkuCode(marca.id, cfg, getCustomBrands());
+    saveSkuConfig(cfg);
+    const extras = loadProductExtras();
+    const now = new Date().toISOString();
+    extras.items[String(product.id)] = {
+      ...(extras.items[String(product.id)] || {}),
+      skuCode, channels: canales, formato, tamano,
+      ...(coleccion ? { coleccion } : {}),
+      variantesSku: distribucion.map(d => ({ formatoId: d.formatoId, formatoLabel: d.formatoLabel, canal: d.canal, subCodigo: d.subCodigo })),
+      updatedAt: now,
+    };
+    saveProductExtras(extras);
+
     productsCache = null; productsCacheAt = 0;
-    res.json({ ok: true, id: String(product.id), handle: product.handle, title: product.title });
+    res.json({ ok: true, id: String(product.id), handle: product.handle, title: product.title, skuCode });
   } catch (e) {
     const msg = String(e.message || e);
     if (/\b40[13]\b|write_products|access denied|not approved|scope/i.test(msg)) {
