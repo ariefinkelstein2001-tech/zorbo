@@ -1,0 +1,2017 @@
+{
+ "local": "Kairos Garden",
+ "fuente": "Carta Kairos Garden (jul 2026)",
+ "comida": [
+  {
+   "seccion": "Almuerzo Silvestre (12:30 - 16:00)",
+   "nombre": "Easy Lunch",
+   "descripcion": "Nuestra opción más chill. 1) Poké de camarón apanado o pollo apanado, cebollín, chips de camote, palmito flambeado, palta y salsa acevichada sobre su clásica cama de arroz. 2) Elige entre Schop Kairos del día o bebida. No acumulable con otras promociones. Lunes a domingo 12:30 a 16:00 hrs.",
+   "precio": 8990,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Almuerzo Silvestre (12:30 - 16:00)",
+   "nombre": "Full Lunch",
+   "descripcion": "1) Elige: Opción 1: Ñoquis con crema de zapallo / Opción 2: Lasaña Boloñesa. 2) Elige entre Schop Kairos del día o bebida. No acumulable con otras promociones. Lunes a domingo 12:30 a 16:00 hrs.",
+   "precio": 9990,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Para Comenzar",
+   "nombre": "Goldmember Mechada",
+   "descripcion": "Crujientes por fuera, irresistibles por dentro. Croquetas de mechada, terminadas con queso parmesano, ciboulette y nuestra mayo de la casa.",
+   "precio": null,
+   "nota": "Variedades (consultar precio)"
+  },
+  {
+   "seccion": "Para Comenzar",
+   "nombre": "Goldenmember Salmón",
+   "descripcion": "El mar se puso elegante. Croquetas de salmón y camarón con masago, togarashi, cebollín y salsa acevichada. Frescas, cremosas y peligrosamente adictivas.",
+   "precio": 7970,
+   "nota": ""
+  },
+  {
+   "seccion": "Para Comenzar",
+   "nombre": "Gyosas Toad",
+   "descripcion": "Gyosas rellenas de champiñón, queso crema y togarashi. Sobre una cama de salsa de ají amarillo ahumado y agridulce, decoradas con brotes frescos del garden.",
+   "precio": 8970,
+   "nota": ""
+  },
+  {
+   "seccion": "Para Comenzar",
+   "nombre": "Tiradito en la playa",
+   "descripcion": "Sobre una base de leche de tigre de ají amarillo ahumado, láminas de pesca del día con chalaquitas y palmito ahumado. Toques de mousse de palta, aceite de cilantro y achiote.",
+   "precio": 12470,
+   "nota": ""
+  },
+  {
+   "seccion": "Para Comenzar",
+   "nombre": "Camarón que se duerme",
+   "descripcion": "Camarones al panko crujientes sobre una base sedosa de mousse de palta, acompañados de chalaquitas frescas y puntos de mousse de palta. Un mix de sésamo le da el toque final.",
+   "precio": 10990,
+   "nota": ""
+  },
+  {
+   "seccion": "Para Comenzar",
+   "nombre": "Tartar del garden",
+   "descripcion": "Cortes pequeños de salmón fresco y palta, acompañado de mayo Sriracha y wantánes crujientes.",
+   "precio": 12990,
+   "nota": ""
+  },
+  {
+   "seccion": "Para Comenzar",
+   "nombre": "Tartar Spicy Beef",
+   "descripcion": "Carne fresca mezclada con mostaza, pepinillos y un toque de salsa spicy, servida con ensalada fresca y wantanes crujientes.",
+   "precio": 14470,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Para Compartir",
+   "nombre": "Black Mamba Acevichado",
+   "descripcion": "2 BAO en tinta de calamar; relleno de camarón al panko, mayonesa sriracha de la casa y encurtido de zanahoria, pepino y nabo.",
+   "precio": 7970,
+   "nota": ""
+  },
+  {
+   "seccion": "Para Compartir",
+   "nombre": "Back in Black Anticuchero",
+   "descripcion": "Dos baos en tinta de calamar con carne anticuchera, jugosa y llena de sabor, acompañada de mermelada de piña asada y caramelizada, coleslaw y brotes.",
+   "precio": 9470,
+   "nota": ""
+  },
+  {
+   "seccion": "Para Compartir",
+   "nombre": "Ostiones Batayaki",
+   "descripcion": "Ostiones jugosos salteados al estilo Batayaki, bañados en mantequilla especiada y un sutil toque de vino blanco, gratinados con parmesano.",
+   "precio": 9970,
+   "nota": ""
+  },
+  {
+   "seccion": "Para Compartir",
+   "nombre": "Empanadas de Lomo Salteado",
+   "descripcion": "Empanadas fritas rellenas de lomo salteado, servidas sobre salsa acevichada ahumada y espolvoreadas con togarashi.",
+   "precio": 9970,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Para Compartir",
+   "nombre": "El huerto de Antonella",
+   "descripcion": "Mix de verduras salteadas, chimichurri y frescos sabores del huerto de Antonella sobre una cama de 500 gr de papas fritas (fritas a 180 grados).",
+   "precio": 13990,
+   "nota": ""
+  },
+  {
+   "seccion": "Para Compartir",
+   "nombre": "Pollo Coronel Sanders",
+   "descripcion": "Pollo broaster, crema ácida, tocino crocante ahumado en ciruelo, ají pollero y mayonesa de la casa sobre una cama de papas fritas (fritas a 180 grados).",
+   "precio": 16470,
+   "nota": ""
+  },
+  {
+   "seccion": "Para Compartir",
+   "nombre": "Mechada Elisa",
+   "descripcion": "Mechada, aros de cebolla, tocino crocante ahumado en manzano, queso cheddar y ciboulette sobre una cama de papas fritas (fritas a 180 grados).",
+   "precio": 16970,
+   "nota": ""
+  },
+  {
+   "seccion": "Para Compartir",
+   "nombre": "Chorrillana Richard 55",
+   "descripcion": "Carne de vacuno, cebolla caramelizada en cerveza Kairos Golden, chimichurri, vienesa, huevo, mayonesa de la casa y salsa de ajo sobre papas fritas (fritas a 180 grados).",
+   "precio": 16970,
+   "nota": ""
+  },
+  {
+   "seccion": "Para Compartir",
+   "nombre": "Entraña de la madriguera",
+   "descripcion": "El plato perfecto para los amantes de la carne. Corte cocinado sobre las brasas realzando su jugosidad y sabor intenso.",
+   "precio": 19990,
+   "nota": ""
+  },
+  {
+   "seccion": "Platos Principales",
+   "nombre": "Poke",
+   "descripcion": "Base de arroz de sushi, coronado con chips de camote crocantes, palta, palmito sopleteado, cebollín fresco y sésamo. Elige tu estilo: pollo panko, camarón panko, tartar de salmón o tartar veggie de palta-palmito.",
+   "precio": 7990,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Platos Principales",
+   "nombre": "Lasagna bolognese di chef coniglio",
+   "descripcion": "Capas de pasta fresca, queso en abundancia y salsa boloñesa casera.",
+   "precio": 11990,
+   "nota": ""
+  },
+  {
+   "seccion": "Platos Principales",
+   "nombre": "Gnocchi Di Zucca",
+   "descripcion": "Ñoquis suaves y esponjosos bañados en una cremosa salsa de zapallo con parmesano, coronados con tomates cherry asados.",
+   "precio": 11990,
+   "nota": "Vegetariano"
+  },
+  {
+   "seccion": "Platos Principales",
+   "nombre": "Mil-Amores",
+   "descripcion": "Milanesa dorada y crujiente, coronada con queso fundido, tomates cherry asados y orégano. Acompañada de papas fritas y salsa golf.",
+   "precio": 13970,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Platos Principales",
+   "nombre": "Costillitas del amor",
+   "descripcion": "Costillitas tiernas y ahumadas, caramelizadas con salsa BBQ de la casa y decoradas con chimichurri.",
+   "precio": 16970,
+   "nota": ""
+  },
+  {
+   "seccion": "Platos Principales",
+   "nombre": "Lomo liso del rancho",
+   "descripcion": "Jugosos trozos de lomo liso a la parrilla, con un toque de chimichurri casero.",
+   "precio": 18470,
+   "nota": ""
+  },
+  {
+   "seccion": "Platos Principales",
+   "nombre": "Mila - Nona",
+   "descripcion": "Milanesa dorada y crujiente, coronada con gnocchis bañados en salsa bechamel y queso gratinado al momento, con un toque de albahaca fresca.",
+   "precio": 16970,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "La Huella del Chef",
+   "nombre": "Salteado Cremoso Di Zucca",
+   "descripcion": "Salteado de jugosa carne con cebolla morada, cebollín y tomates cherry, servido sobre un cremoso risotto de zapallo con queso parmesano. Selección de temporada del chef.",
+   "precio": 14970,
+   "nota": ""
+  },
+  {
+   "seccion": "La Huella del Chef",
+   "nombre": "Fetuccini salteado",
+   "descripcion": "Cortes de carne sellados a fuego alto junto a camarones frescos, cebolla morada, cebollín y tomates cherry, unidos a fettuccini salteado en cremosa salsa huancaína de ají amarillo y queso fresco.",
+   "precio": 15990,
+   "nota": ""
+  },
+  {
+   "seccion": "La Huella del Chef",
+   "nombre": "Salmon Fiorentina",
+   "descripcion": "Filete de salmón a la plancha, acompañado de verduras salteadas y bañado en salsa florentina con queso parmesano y un toque de pesto. Selección de temporada del chef.",
+   "precio": 17970,
+   "nota": ""
+  },
+  {
+   "seccion": "La Huella del Chef",
+   "nombre": "Pepper Steak Cremoso",
+   "descripcion": "Lomo liso cocinado al punto sobre salsa pepper steak especiada, acompañado de ñoquis de papa caseros en bechamel del chef, coronado con romero fresco.",
+   "precio": 19990,
+   "nota": ""
+  }
+ ],
+ "barra": [
+  {
+   "seccion": "Trago del mes",
+   "nombre": "Pink Royal",
+   "descripcion": "Mezcla floral con notas frutales y cítricas. Gin y licor de blueberry con un toque de durazno y albahaca. Ideal para quienes buscan un cóctel fresco y aromático.",
+   "precio": 10990,
+   "nota": ""
+  },
+  {
+   "seccion": "Colección de la casa",
+   "nombre": "Imperio Perdido",
+   "descripcion": "NEIPA, 4,5° alc, IBU 30. Turbia, repleta de aromas cítricos y cremosos con sabores tropicales; más refrescante y ligera que una Hazy IPA tradicional.",
+   "precio": 3770,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Colección de la casa",
+   "nombre": "Secret Lab",
+   "descripcion": "APA, 5,0° alc, IBU 37. Estilo clásico americano: lupulada, ligera pero con carácter. Color dorado, mucho cuerpo y espuma persistente.",
+   "precio": 3770,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Colección de la casa",
+   "nombre": "Alerta Roja",
+   "descripcion": "RED, 5,0° alc, IBU 25. Cerveza color ámbar rojizo, fácil de beber; dulzor a caramelo con una sutil nota tostada.",
+   "precio": 3770,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Colección de la casa",
+   "nombre": "Galactic",
+   "descripcion": "GOLDEN, 4,8° alc, IBU 16. Pale Ale de color dorado profundo, equilibrada y fácil de beber; notas a caramelo y toffee con frescor de lúpulos.",
+   "precio": 3770,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Colección de la casa",
+   "nombre": "Nada Personal",
+   "descripcion": "PILS, 4,1° alc, IBU 25. German Pilsner muy ligera y refrescante, de amargor equilibrado, elegante espuma y aromas florales.",
+   "precio": 3770,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Colección de temporada",
+   "nombre": "Hoyo en uno",
+   "descripcion": "Hoppy Lager, 4,7° alc. Una Pils llevada a la nueva escuela: equilibra frescura e intensidad de lúpulos, con una tomabilidad excesiva.",
+   "precio": 3770,
+   "nota": "Desde / Recomendado"
+  },
+  {
+   "seccion": "Colección de temporada",
+   "nombre": "Ritual de la Banana",
+   "descripcion": "WEIZEN, 4,5° alc, IBU 14. Cerveza refrescante a base de trigo, con notas a clavo de olor y banana en perfecto equilibrio.",
+   "precio": 3770,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Colección de temporada",
+   "nombre": "Kenny Bell",
+   "descripcion": "American Amber Ale, 5,2° alc, IBU 22. Clásico cobrizo con espuma persistente; aromas cítricos y resinosos con notas de pan tostado y caramelo suave.",
+   "precio": 3770,
+   "nota": "Desde / Nuevo"
+  },
+  {
+   "seccion": "Colección de temporada",
+   "nombre": "Obertura",
+   "descripcion": "Stout, 5,1° alc. Cerveza oscura, potente, rostizada y de mucho carácter. Cuerpo medio, sedoso, dulzor leve y espuma cremosa.",
+   "precio": 3770,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Colección de temporada",
+   "nombre": "Samba",
+   "descripcion": "IPA, 5,8° alc. Un paso más lupulado y amargo que nuestra APA, pero con intensidad moderada.",
+   "precio": 3770,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Colección de artistas",
+   "nombre": "Good Bye My Lover",
+   "descripcion": "Imperial Stout. Cerveza oscura, potente y de sabor intenso; espuma color canela, notas de frutos deshidratados, malta tostada, chocolate y café con final licoroso.",
+   "precio": 4470,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Colección de artistas",
+   "nombre": "Edición limitada Valle Nevado",
+   "descripcion": "Barley Wine, 10° alc (se sugiere en media pinta 250cc). Intensa, con notas a caramelo y frutos rojos deshidratados (pasas, ciruelas), de cuerpo pleno y elevado amargor.",
+   "precio": 4470,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Colección de artistas",
+   "nombre": "Goat Father",
+   "descripcion": "Doppelbock, 6,6°. Cerveza alemana robusta: oscura, maltosa, con notas a caramelo tostado, chocolate y un leve guiño licoroso.",
+   "precio": 4470,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Colección de artistas",
+   "nombre": "Osagui",
+   "descripcion": "Japanese Lager, 4,6°, IBU 22. Lager japonesa con arroz y yuzu, extremadamente refrescante y de cuerpo muy ligero.",
+   "precio": 4470,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Firulais Craft Mix",
+   "nombre": "Firulais Chelada - Craft Mix",
+   "descripcion": "Cerveza lager de cuerpo ligero con limón de pica natural y sal de mar. Cítrica, refrescante y lista para tomar. Opcional: borde de sal y especias.",
+   "precio": 3770,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Especial Chelas",
+   "nombre": "Maria-chelada",
+   "descripcion": "Michelada roja: borde de sal con merkén, base de limón sutil, jugo de tomate y sriracha By Maria, con Weizen de la casa.",
+   "precio": 6970,
+   "nota": ""
+  },
+  {
+   "seccion": "Especial Chelas",
+   "nombre": "The time line",
+   "descripcion": "Tabla de degustación de 10 cervezas de la casa predeterminadas. 250cc cada una (2,5 litros en total).",
+   "precio": 23790,
+   "nota": ""
+  },
+  {
+   "seccion": "Especial Chelas",
+   "nombre": "Kairos Taste",
+   "descripcion": "Tabla de degustación de 3 (750cc) o 6 (1500cc) cervezas de la casa a elección. 250cc cada copa.",
+   "precio": 8790,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Especial Chelas",
+   "nombre": "Kairos Meter",
+   "descripcion": "El schop de cerveza más grande de Chile: aprox. 1,5 litros de cerveza artesanal Kairos PILS o GOLDEN a cambio de tu zapato.",
+   "precio": 13490,
+   "nota": ""
+  },
+  {
+   "seccion": "Especial Chelas",
+   "nombre": "Recarga Growler (1.000cc)",
+   "descripcion": "Recarga de Growler con cerveza (1000cc).",
+   "precio": 8990,
+   "nota": ""
+  },
+  {
+   "seccion": "Jarras de la casa",
+   "nombre": "Pócima de la Maldad (jarra)",
+   "descripcion": "Jarra de sangría de la casa: Gin Banny y Cabernet con jugos de naranja y limón, especias, canela y jarabe del garden. Pídela en versión blanca o tinta.",
+   "precio": 19970,
+   "nota": ""
+  },
+  {
+   "seccion": "Jarras de la casa",
+   "nombre": "La Dama del Mago",
+   "descripcion": "Gin Banny macerado en maracuyá, manzanilla y mango, con tónica pink, toque de espumante brut, syrup de naranja-maracuyá y jugo de limón fresco.",
+   "precio": 19970,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Jarras de la casa",
+   "nombre": "Infierno Tropical",
+   "descripcion": "Sangría de autor con Gin Banny macerado en frutilla, maracuyá y rocoto, syrup de canela, shrub de ají cacho de cabra, naranja, limón y vino tinto. Perfil intenso, frutal y picante.",
+   "precio": 19970,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Tragos de la casa",
+   "nombre": "El amor que nunca fue",
+   "descripcion": "Gin Banny, jugo de maracuyá, pomelo y limón, Kairos NEIPA y jarabe de la casa con notas dulces y picantes.",
+   "precio": 9970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos de la casa",
+   "nombre": "Pineapple Express",
+   "descripcion": "Gin Banny con almíbar de piña, licor de piña, albahaca machacada, jugo de limón y ginger beer.",
+   "precio": 9970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos de la casa",
+   "nombre": "Bad Banny",
+   "descripcion": "Gin Banny, licor de pomelo, syrup de arándanos y bitter de la casa con jugo de limón, naranja y pomelo.",
+   "precio": 9970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos de la casa",
+   "nombre": "Pócima de la maldad tinta",
+   "descripcion": "Sangría Doña Clota con Gin Banny. Sensaciones cítricas y dulces equilibradas, con notas a canela y durazno.",
+   "precio": 8970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos de la casa",
+   "nombre": "Pócima de la maldad blanca",
+   "descripcion": "Sangría Doña Clota blanca con Gin Banny. Frutas tropicales y cítricas muy equilibradas.",
+   "precio": 8970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos de la casa",
+   "nombre": "Doña Clota Sangría Tinta",
+   "descripcion": "Vino tinto y jugo de naranja, enriquecido con notas a canela y durazno. Equilibrio entre lo refrescante y lo delicioso.",
+   "precio": 5470,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos de la casa",
+   "nombre": "Doña Clota Sangría Blanca",
+   "descripcion": "Sauvignon Blanc, jugo de naranja y jarabe de albahaca-durazno; notas tropicales y cítricas en cada sorbo.",
+   "precio": 5470,
+   "nota": ""
+  },
+  {
+   "seccion": "Tropicals",
+   "nombre": "Tropical Peach",
+   "descripcion": "Ron Rey de Copas, Peachtree, syrup de hibiscus, jugo de limón, mango y Monster Peachy. Dulzor de durazno y mango equilibrado con acidez del limón y fondo floral.",
+   "precio": 6970,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Tropicals",
+   "nombre": "Tropical Garden",
+   "descripcion": "Gin Banny, pepino, maracuyá, jugo de limón, jarabe de la casa y Monster tropical. Reversión del clásico Tropical Gin.",
+   "precio": 7970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tropicals",
+   "nombre": "Tropical Walker",
+   "descripcion": "Johnnie Walker Blonde, jugo de naranja, maracuyá y limón. Mezcla vibrante de cítricos con el toque suave del whisky.",
+   "precio": 9990,
+   "nota": ""
+  },
+  {
+   "seccion": "Tropicals",
+   "nombre": "Tropical Pink",
+   "descripcion": "Gin Banny, syrup de frutos rojos, licor de sandía y tónica pink. Equilibrio entre la frescura de la sandía y el dulzor de los frutos rojos.",
+   "precio": 7590,
+   "nota": ""
+  },
+  {
+   "seccion": "Tropicals",
+   "nombre": "Tropical Apple",
+   "descripcion": "Gin Banny, jugo de limón, licor de manzana verde y Monster de manzana. Explosión de sabores cítricos y dulces.",
+   "precio": 7590,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos de autor",
+   "nombre": "Pana Rabbit",
+   "descripcion": "Gin con jugo tropical de maracuyá y un toque de Kairos NEIPA; jarabe de naranja con maracuyá.",
+   "precio": 6870,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos de autor",
+   "nombre": "Conejillo Prohibido",
+   "descripcion": "Peligrosamente cítrico. Pisco de manzana, maracuyá, naranja y limón. Dulzor ácido con frescura descarada.",
+   "precio": 7470,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Tragos de autor",
+   "nombre": "Elixir Nativo",
+   "descripcion": "Ron Rey de Copas, syrup de eucalipto y miel, jugo de limón, ginger beer y espuma de jengibre. Notas herbales, cítricas y especiadas.",
+   "precio": 7470,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Tragos de autor",
+   "nombre": "Jardín del Edén",
+   "descripcion": "Gin macerado en huesillo, limón, jengibre y canela. Refrescante, especiado y chileno hasta los huesos.",
+   "precio": 7470,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Tragos de autor",
+   "nombre": "Cueva del Desierto",
+   "descripcion": "Tequila silver, Martini Bianco, maracuyá, naranja, limón y syrup de hierba luisa, decorado con flores comestibles.",
+   "precio": 7470,
+   "nota": "Nuevo"
+  },
+  {
+   "seccion": "Tragos de autor",
+   "nombre": "Playboy",
+   "descripcion": "Whisky honey y pisco manzana, con syrup de jengibre y jugo de limón. Notas acaloradas, dulces y cítricas.",
+   "precio": 7990,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos de autor",
+   "nombre": "Como conejos",
+   "descripcion": "Tequila, syrup de hibiscus, ají cacho de cabra y jugo de maracuyá, coronado con Kairos NEIPA y borde de tajín. Atrevido y picante.",
+   "precio": 8990,
+   "nota": ""
+  },
+  {
+   "seccion": "Mocktails",
+   "nombre": "Lola",
+   "descripcion": "Limón, fresas, pomelo y romero, con toques ahumados de romero, finalizado con Weissbier Paulaner sin alcohol.",
+   "precio": 5990,
+   "nota": ""
+  },
+  {
+   "seccion": "Mocktails",
+   "nombre": "Roger",
+   "descripcion": "Crema de coco, jugo de naranja, maracuyá y notas de pepino, finalizado con ginger beer.",
+   "precio": 5990,
+   "nota": ""
+  },
+  {
+   "seccion": "Mocktails",
+   "nombre": "White Rabbit",
+   "descripcion": "Jugo de piña, naranja y leche de coco con un leve toque picante de jengibre, finalizado con Kombucha Biloba Elixir (miel, cúrcuma, jengibre y reishi).",
+   "precio": 5990,
+   "nota": ""
+  },
+  {
+   "seccion": "Mocktails",
+   "nombre": "Bugs",
+   "descripcion": "Mango, piña y jugo de limón con un toque de Kombucha Biloba Momentum (clavo de olor, mate y guaraná).",
+   "precio": 5990,
+   "nota": ""
+  },
+  {
+   "seccion": "Mocktails",
+   "nombre": "Tambor",
+   "descripcion": "Naranja y mandarina machacadas, albahaca fresca y jugo de limón con syrup de la casa. Un mojito siciliano refrescante y cítrico.",
+   "precio": 5990,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Caipiroska",
+   "descripcion": "Vodka y limón: la Caipirinha con un toque cosmopolita.",
+   "precio": 5970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Caipirinha variedades",
+   "descripcion": "Cachaça, lima y jarabe. Elige la versión que más te guste.",
+   "precio": 5970,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Daiquiri Tradicional",
+   "descripcion": "Ron blanco y limón. Elige la versión que más te guste.",
+   "precio": 6470,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Tom Collins",
+   "descripcion": "Gin, limón y CO2: un clásico reinventado.",
+   "precio": 6490,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Paloma",
+   "descripcion": "Tequila y jugo de pomelo finalizado con tónica pomelo; decorado con borde de sal.",
+   "precio": 6970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Mojito Variedades",
+   "descripcion": "Ron blanco, jarabe de la casa, limón, menta y soda. Elige la versión que más te guste.",
+   "precio": 6470,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Pisco Sour Variedades",
+   "descripcion": "Pisco con jugo de limón y una delicada espuma. 250cc. Elige la versión que más te guste.",
+   "precio": 6470,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Dry Martini",
+   "descripcion": "Gin, vermut seco y un twist de limón; termina con una aceituna verde.",
+   "precio": 6470,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Piña colada",
+   "descripcion": "Ron, crema de coco y jugo de piña. Mega tropical, de playa.",
+   "precio": 6970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Negroni Variedades",
+   "descripcion": "Gin, whisky o espumante, vermut rojo y Campari. Equilibrio perfecto entre amargo y dulce.",
+   "precio": 6970,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Cosmopolitan",
+   "descripcion": "Vodka, triple sec, arándanos y lima.",
+   "precio": 6970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Bloody Mary",
+   "descripcion": "Vodka, jugo de tomate y especias.",
+   "precio": 6970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Ruso negro",
+   "descripcion": "Vodka y licor de café: mezcla misteriosa y seductora.",
+   "precio": 6970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Ruso blanco",
+   "descripcion": "Vodka, licor de café y crema: textura perfecta, suave y elegante.",
+   "precio": 6970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Ron fashioned",
+   "descripcion": "Ron y bitter de la casa: reversión del clásico Old Fashioned.",
+   "precio": 6970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Carajillo (tú eliges)",
+   "descripcion": "Licor 43 o licor de café mixeado con café espresso doble.",
+   "precio": 6970,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Espresso Martini (tú eliges)",
+   "descripcion": "Vodka, licor de café o Kahlúa y la energía del espresso.",
+   "precio": 6970,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Ramazzotti Variedades",
+   "descripcion": "Ramazzotti con espumante y notas a limón; frescura y mucha vida.",
+   "precio": 6970,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Margarita Variedades",
+   "descripcion": "Tequila y triple sec con jugo de limón fresco y borde de sal.",
+   "precio": 6970,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Aperol Spritz",
+   "descripcion": "Aperol con espumante refrescante y rodaja de naranja.",
+   "precio": 6970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Gin & Tonic de la casa",
+   "descripcion": "Gin Banny con agua tónica británica premium; notas botánicas, cítricas y dulces equilibradas con el amargor de la tónica.",
+   "precio": 7470,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Disaronno Sour",
+   "descripcion": "Fusión audaz del limón con el toque italiano de Disaronno.",
+   "precio": 7470,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Rusty Nail",
+   "descripcion": "Whisky y Drambuie en armonía, para amantes de los cócteles robustos.",
+   "precio": 7490,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Godfather",
+   "descripcion": "Whisky con un toque de amaretto. Una oferta que no podrás rechazar.",
+   "precio": 7970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Old Fashioned",
+   "descripcion": "Bourbon y bitter de la casa: un tributo a la elegancia.",
+   "precio": 7970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Moscow Mule Variedades",
+   "descripcion": "Vodka con ginger beer británica y jugo fresco de limón.",
+   "precio": 7970,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Manhattan",
+   "descripcion": "Bourbon, vermut y un toque de angostura.",
+   "precio": 8470,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Whisky Sour",
+   "descripcion": "Whisky con cítricos de limón; notas a vainilla y madera.",
+   "precio": 8470,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos clásicos",
+   "nombre": "Sour Catedral Peruano",
+   "descripcion": "Sour fiel a la receta peruana con Pisco Cuatro Gallos. Fresco, sedoso y equilibrado, con espuma cremosa.",
+   "precio": 11470,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos postre y nostálgicos",
+   "nombre": "Pacífico",
+   "descripcion": "Ron blanco con coco y Malibú, curacao blue, jugo de piña y limón, con delfines de gomita Flipy.",
+   "precio": 8970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos postre y nostálgicos",
+   "nombre": "Bigotes de la abuela",
+   "descripcion": "Whisky Drambuie con espresso, caramelo, leche entera y licor de cacao. Cremoso pero con malicia.",
+   "precio": 8970,
+   "nota": ""
+  },
+  {
+   "seccion": "Tragos postre y nostálgicos",
+   "nombre": "Monita Martini",
+   "descripcion": "Vodka con Baileys y fudge de chocolate con licor de cacao. Tiene café y suficiente malicia para salir de fiesta.",
+   "precio": 8970,
+   "nota": ""
+  },
+  {
+   "seccion": "Copas",
+   "nombre": "Copa Espumante Extra Brut",
+   "descripcion": "185cc de Espumante Undurraga Extra Brut.",
+   "precio": 5970,
+   "nota": ""
+  },
+  {
+   "seccion": "Copas",
+   "nombre": "Copa Espumante Brut",
+   "descripcion": "185cc de Espumante Undurraga Brut.",
+   "precio": 5970,
+   "nota": ""
+  },
+  {
+   "seccion": "Copas",
+   "nombre": "Copa Vino Chardonnay",
+   "descripcion": "185cc de Apaltagua Chardonnay Reserva.",
+   "precio": 5970,
+   "nota": ""
+  },
+  {
+   "seccion": "Copas",
+   "nombre": "Copa Vino Sauvignon Blanc",
+   "descripcion": "185cc de Errázuriz Sauvignon Blanc Reserva.",
+   "precio": 5970,
+   "nota": ""
+  },
+  {
+   "seccion": "Copas",
+   "nombre": "Copa Vino Merlot",
+   "descripcion": "185cc de Santa Ema Merlot Reserva.",
+   "precio": 5970,
+   "nota": ""
+  },
+  {
+   "seccion": "Copas",
+   "nombre": "Copa Vino Cabernet Sauvignon",
+   "descripcion": "185cc de Aliwen Cabernet Sauvignon Reserva.",
+   "precio": 5970,
+   "nota": ""
+  },
+  {
+   "seccion": "Copas",
+   "nombre": "Copa Vino Carmenere",
+   "descripcion": "185cc de Carmenere Reserva Casas Patronales.",
+   "precio": 5970,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron",
+   "nombre": "Rey de Copas",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 4970,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron",
+   "nombre": "Pampero Especial",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 6990,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron",
+   "nombre": "Havana Selección de Maestros",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 16990,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron",
+   "nombre": "Havana Club 7",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 10970,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron",
+   "nombre": "Havana Club Especial",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 6490,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron",
+   "nombre": "Bacardi Añejo",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 6990,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron",
+   "nombre": "Bacardi Carta Blanca",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 6970,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron",
+   "nombre": "Flor de Caña 12 años",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 11970,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron",
+   "nombre": "Zacapa 23",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 16990,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron",
+   "nombre": "Bacardi Carta Oro",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 6490,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco",
+   "nombre": "Alto del Carmen 35°",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 4970,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco",
+   "nombre": "Alto del Carmen 40°",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 5990,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco",
+   "nombre": "Alto del Carmen etiqueta negra",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 6490,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco",
+   "nombre": "Horcón Quemado 40°",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 7990,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco",
+   "nombre": "Mistral Nobel Honey",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 8490,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco",
+   "nombre": "Mistral Nobel Apple",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 8490,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco",
+   "nombre": "Mistral Nobel",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 8490,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco",
+   "nombre": "Mistral 40°",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 6490,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco",
+   "nombre": "Mistral 35°",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 5470,
+   "nota": ""
+  },
+  {
+   "seccion": "Vodka",
+   "nombre": "Absolut Vainilla",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 8990,
+   "nota": ""
+  },
+  {
+   "seccion": "Vodka",
+   "nombre": "Belvedere",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 12990,
+   "nota": ""
+  },
+  {
+   "seccion": "Vodka",
+   "nombre": "Absolut Original",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 7990,
+   "nota": ""
+  },
+  {
+   "seccion": "Vodka",
+   "nombre": "Grey Goose",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 10990,
+   "nota": ""
+  },
+  {
+   "seccion": "Vodka",
+   "nombre": "Stolichnaya",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 6990,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky",
+   "nombre": "Johnnie Walker Blonde",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 8470,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky",
+   "nombre": "The Singleton 12 años",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 12990,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky",
+   "nombre": "Buchanan's 12 años",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 9990,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky",
+   "nombre": "Ballantine's 7 años",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 8990,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky",
+   "nombre": "Ballantine's",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 7990,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky",
+   "nombre": "Glenfiddich",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 16990,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky",
+   "nombre": "Chivas Regal 18",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 14990,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky",
+   "nombre": "Chivas Regal 12",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 9990,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky",
+   "nombre": "Johnnie Walker Gold",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 19990,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky",
+   "nombre": "Johnnie Walker Double Black",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 14990,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky",
+   "nombre": "Johnnie Walker Black",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 9990,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky",
+   "nombre": "Johnnie Walker Red",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 7490,
+   "nota": ""
+  },
+  {
+   "seccion": "Bourbon",
+   "nombre": "Jim Beam",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 9990,
+   "nota": ""
+  },
+  {
+   "seccion": "Bourbon",
+   "nombre": "Jack Daniel's Gentleman",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 12990,
+   "nota": ""
+  },
+  {
+   "seccion": "Bourbon",
+   "nombre": "Jack Daniel's Honey",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 8990,
+   "nota": ""
+  },
+  {
+   "seccion": "Bourbon",
+   "nombre": "Jack Daniel's Apple",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 8990,
+   "nota": ""
+  },
+  {
+   "seccion": "Bourbon",
+   "nombre": "Jack Daniel's Old No.7",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 8990,
+   "nota": ""
+  },
+  {
+   "seccion": "Bourbon",
+   "nombre": "Bulleit Bourbon",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 13990,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin",
+   "nombre": "Banny",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 7470,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin",
+   "nombre": "Beefeater Pink",
+   "descripcion": "",
+   "precio": 9990,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin",
+   "nombre": "Beefeater",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 9990,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin",
+   "nombre": "Bombay",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 9490,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin",
+   "nombre": "República Amazónica",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 7990,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin",
+   "nombre": "Mare",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 14990,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin",
+   "nombre": "Citadelle",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 9990,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin",
+   "nombre": "Hendrick's",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 9990,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin",
+   "nombre": "Tanqueray Royale",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 8490,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin",
+   "nombre": "Tanqueray Sevilla",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 8490,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin",
+   "nombre": "Tanqueray London Dry",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 8990,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin",
+   "nombre": "Tanqueray TEN",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 11990,
+   "nota": ""
+  },
+  {
+   "seccion": "Licores",
+   "nombre": "Disaronno",
+   "descripcion": "",
+   "precio": 4990,
+   "nota": ""
+  },
+  {
+   "seccion": "Licores",
+   "nombre": "Jägermeister",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 6970,
+   "nota": ""
+  },
+  {
+   "seccion": "Licores",
+   "nombre": "Frangelico",
+   "descripcion": "",
+   "precio": 7970,
+   "nota": ""
+  },
+  {
+   "seccion": "Licores",
+   "nombre": "Drambuie",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 6870,
+   "nota": ""
+  },
+  {
+   "seccion": "Licores",
+   "nombre": "Martini Fiero",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 4990,
+   "nota": ""
+  },
+  {
+   "seccion": "Licores",
+   "nombre": "Campari",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 4970,
+   "nota": ""
+  },
+  {
+   "seccion": "Licores",
+   "nombre": "Baileys",
+   "descripcion": "",
+   "precio": 6470,
+   "nota": ""
+  },
+  {
+   "seccion": "Licores",
+   "nombre": "Fernet Branca",
+   "descripcion": "Con bebida 220ml.",
+   "precio": 6990,
+   "nota": ""
+  },
+  {
+   "seccion": "Tequila",
+   "nombre": "Don Julio Reposado",
+   "descripcion": "Con limón y sal.",
+   "precio": 10990,
+   "nota": ""
+  },
+  {
+   "seccion": "Tequila",
+   "nombre": "Don Julio Blanco",
+   "descripcion": "Con limón y sal.",
+   "precio": 10990,
+   "nota": ""
+  },
+  {
+   "seccion": "Tequila",
+   "nombre": "Herradura Reposado",
+   "descripcion": "Con limón y sal.",
+   "precio": 9990,
+   "nota": ""
+  },
+  {
+   "seccion": "Tequila",
+   "nombre": "Herradura Silver",
+   "descripcion": "Con limón y sal.",
+   "precio": 9990,
+   "nota": ""
+  },
+  {
+   "seccion": "Tequila",
+   "nombre": "José Cuervo Reposado",
+   "descripcion": "Con limón y sal.",
+   "precio": 4990,
+   "nota": ""
+  },
+  {
+   "seccion": "Tequila",
+   "nombre": "José Cuervo Silver",
+   "descripcion": "Con limón y sal.",
+   "precio": 4990,
+   "nota": ""
+  },
+  {
+   "seccion": "Tequila",
+   "nombre": "Olmeca Reposado",
+   "descripcion": "Con limón y sal.",
+   "precio": 5990,
+   "nota": ""
+  },
+  {
+   "seccion": "Tequila",
+   "nombre": "Olmeca Silver",
+   "descripcion": "Con limón y sal.",
+   "precio": 5990,
+   "nota": ""
+  },
+  {
+   "seccion": "Shots",
+   "nombre": "Don Julio Blanco",
+   "descripcion": "Con limón y sal.",
+   "precio": 10990,
+   "nota": ""
+  },
+  {
+   "seccion": "Shots",
+   "nombre": "Don Julio Reposado",
+   "descripcion": "Con limón y sal.",
+   "precio": 10990,
+   "nota": ""
+  },
+  {
+   "seccion": "Shots",
+   "nombre": "Jägermeister",
+   "descripcion": "",
+   "precio": 4170,
+   "nota": ""
+  },
+  {
+   "seccion": "Shots",
+   "nombre": "Jägerbomb",
+   "descripcion": "Shot de Jägermeister acompañado de bebida energética.",
+   "precio": 8990,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron Botella",
+   "nombre": "Bacardi Carta Blanca",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 45000,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron Botella",
+   "nombre": "Bacardi Carta Oro",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 45000,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron Botella",
+   "nombre": "Havana Club 7",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 70000,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron Botella",
+   "nombre": "Flor de Caña 12 años",
+   "descripcion": "Con 3 bebidas de 330cc.",
+   "precio": 85000,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron Botella",
+   "nombre": "Havana Selección de Maestros",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 130000,
+   "nota": ""
+  },
+  {
+   "seccion": "Ron Botella",
+   "nombre": "Zacapa 23",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 150000,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco Botella",
+   "nombre": "Alto del Carmen 35°",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 45000,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco Botella",
+   "nombre": "Mistral 35°",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 45000,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco Botella",
+   "nombre": "Mistral 40°",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 50000,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco Botella",
+   "nombre": "Alto del Carmen 40°",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 50000,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco Botella",
+   "nombre": "Alto del Carmen Envejecido",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 55000,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco Botella",
+   "nombre": "Horcón Quemado 40°",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 60000,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco Botella",
+   "nombre": "Mistral Nobel Honey",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 60000,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco Botella",
+   "nombre": "Mistral Nobel Apple",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 60000,
+   "nota": ""
+  },
+  {
+   "seccion": "Pisco Botella",
+   "nombre": "Mistral Nobel",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 60000,
+   "nota": ""
+  },
+  {
+   "seccion": "Vodka Botella",
+   "nombre": "Absolut Original",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 45000,
+   "nota": ""
+  },
+  {
+   "seccion": "Vodka Botella",
+   "nombre": "Stolichnaya",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 45000,
+   "nota": ""
+  },
+  {
+   "seccion": "Vodka Botella",
+   "nombre": "Absolut Vainilla",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 50000,
+   "nota": ""
+  },
+  {
+   "seccion": "Vodka Botella",
+   "nombre": "Grey Goose",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 75000,
+   "nota": ""
+  },
+  {
+   "seccion": "Vodka Botella",
+   "nombre": "Belvedere",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 100000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "Jim Beam Bourbon",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 55000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "Johnnie Walker Red",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 60000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "Buchanan's 12 años",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 70000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "Jack Daniel's Honey",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 85000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "Johnnie Walker Black",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 85000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "Jack Daniel's Apple",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 85000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "Jack Daniel's Old No.7",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 85000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "Chivas Regal 12",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 85000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "Johnnie Walker Double Black",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 90000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "The Singleton 12 años",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 90000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "Bulleit Bourbon",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 90000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "Jack Daniel's Gentleman",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 100000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "Glenfiddich",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 100000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "Johnnie Walker Gold",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 125000,
+   "nota": ""
+  },
+  {
+   "seccion": "Whisky Botella",
+   "nombre": "Chivas Regal 18",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 130000,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin Botella",
+   "nombre": "Tanqueray London Dry",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 50000,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin Botella",
+   "nombre": "Bombay",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 55000,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin Botella",
+   "nombre": "Beefeater",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 55000,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin Botella",
+   "nombre": "Beefeater Pink",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 60000,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin Botella",
+   "nombre": "Hendrick's",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 80000,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin Botella",
+   "nombre": "Citadelle",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 90000,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin Botella",
+   "nombre": "Tanqueray TEN",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 90000,
+   "nota": ""
+  },
+  {
+   "seccion": "Gin Botella",
+   "nombre": "Gin Mare",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 130000,
+   "nota": ""
+  },
+  {
+   "seccion": "Tequila Botella",
+   "nombre": "Olmeca Silver",
+   "descripcion": "Con limón y sal.",
+   "precio": 60000,
+   "nota": ""
+  },
+  {
+   "seccion": "Tequila Botella",
+   "nombre": "Olmeca Reposado",
+   "descripcion": "Con limón y sal.",
+   "precio": 60000,
+   "nota": ""
+  },
+  {
+   "seccion": "Tequila Botella",
+   "nombre": "Herradura Silver",
+   "descripcion": "Con limón y sal.",
+   "precio": 85000,
+   "nota": ""
+  },
+  {
+   "seccion": "Tequila Botella",
+   "nombre": "Herradura Reposado",
+   "descripcion": "Con limón y sal.",
+   "precio": 85000,
+   "nota": ""
+  },
+  {
+   "seccion": "Tequila Botella",
+   "nombre": "Don Julio Blanco",
+   "descripcion": "Con limón y sal.",
+   "precio": 100000,
+   "nota": ""
+  },
+  {
+   "seccion": "Tequila Botella",
+   "nombre": "Don Julio Reposado",
+   "descripcion": "Con limón y sal.",
+   "precio": 115000,
+   "nota": ""
+  },
+  {
+   "seccion": "Licores Botella",
+   "nombre": "Jägermeister",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 50000,
+   "nota": ""
+  },
+  {
+   "seccion": "Licores Botella",
+   "nombre": "Baileys",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 60000,
+   "nota": ""
+  },
+  {
+   "seccion": "Licores Botella",
+   "nombre": "Fernet Branca",
+   "descripcion": "Con 3 bebidas de 220ml.",
+   "precio": 55000,
+   "nota": ""
+  },
+  {
+   "seccion": "Vino",
+   "nombre": "Botella Vino Apaltagua Chardonnay Reserva",
+   "descripcion": "Botella 750cc.",
+   "precio": 15770,
+   "nota": ""
+  },
+  {
+   "seccion": "Vino",
+   "nombre": "Botella Vino Errázuriz Sauvignon Blanc Reserva",
+   "descripcion": "Botella 750cc.",
+   "precio": 14770,
+   "nota": ""
+  },
+  {
+   "seccion": "Vino",
+   "nombre": "Botella Vino Santa Ema Merlot Reserva",
+   "descripcion": "Botella 750cc.",
+   "precio": 13770,
+   "nota": ""
+  },
+  {
+   "seccion": "Vino",
+   "nombre": "Botella Vino Aliwen Cabernet Sauvignon Reserva",
+   "descripcion": "Botella 750cc.",
+   "precio": 12770,
+   "nota": ""
+  },
+  {
+   "seccion": "Vino",
+   "nombre": "Botella Vino Casas Patronales Carmenere Reserva",
+   "descripcion": "Botella 750cc.",
+   "precio": 13770,
+   "nota": ""
+  },
+  {
+   "seccion": "Espumantes",
+   "nombre": "Undurraga Extra Brut",
+   "descripcion": "750cc.",
+   "precio": 18800,
+   "nota": ""
+  },
+  {
+   "seccion": "Espumantes",
+   "nombre": "Undurraga Brut",
+   "descripcion": "750cc.",
+   "precio": 14800,
+   "nota": ""
+  },
+  {
+   "seccion": "Chelas Sin Alcohol",
+   "nombre": "Heineken 0.0°",
+   "descripcion": "",
+   "precio": 3990,
+   "nota": ""
+  },
+  {
+   "seccion": "Chelas Sin Alcohol",
+   "nombre": "Weissbier 0,0% (Paulaner)",
+   "descripcion": "Cerveza tipo Weissbier de 0,0% alcohol. Finos aromas de malta, refrescantes sabores afrutados y un agradable toque de dulzor.",
+   "precio": 3990,
+   "nota": "Desde"
+  },
+  {
+   "seccion": "Kombucha",
+   "nombre": "Kombucha Biloba Zen",
+   "descripcion": "500cc de Kombucha Biloba con boldo, lavanda y melisa.",
+   "precio": 4970,
+   "nota": ""
+  },
+  {
+   "seccion": "Kombucha",
+   "nombre": "Kombucha Biloba Elixir",
+   "descripcion": "500cc de Kombucha Biloba con cúrcuma, jengibre, reishi y miel.",
+   "precio": 4970,
+   "nota": ""
+  },
+  {
+   "seccion": "Kombucha",
+   "nombre": "Kombucha Biloba Momentum",
+   "descripcion": "500cc de Kombucha Biloba con hierba de clavo, mate y guaraná.",
+   "precio": 4970,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Monster Tropical",
+   "descripcion": "",
+   "precio": 5190,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Monster Tradicional",
+   "descripcion": "",
+   "precio": 5190,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Fever Tree Pink Grapefruit",
+   "descripcion": "200cc.",
+   "precio": 5970,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Fever Tree Ginger Ale",
+   "descripcion": "200cc.",
+   "precio": 5970,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Fever Tree Agua Tónica",
+   "descripcion": "200cc.",
+   "precio": 5970,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Red Bull Tropical",
+   "descripcion": "250cc.",
+   "precio": 5190,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Red Bull Tradicional",
+   "descripcion": "250cc.",
+   "precio": 5190,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Agua con Gas",
+   "descripcion": "330cc.",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Schweppes Zero",
+   "descripcion": "330cc.",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Schweppes",
+   "descripcion": "330cc.",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Fanta Zero",
+   "descripcion": "330cc.",
+   "precio": 3790,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Fanta",
+   "descripcion": "330cc.",
+   "precio": 3790,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Sprite Zero",
+   "descripcion": "330cc.",
+   "precio": 3790,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Sprite",
+   "descripcion": "330cc.",
+   "precio": 3790,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Coca Cola Light",
+   "descripcion": "330cc.",
+   "precio": 3790,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Coca Cola Zero",
+   "descripcion": "330cc.",
+   "precio": 3790,
+   "nota": ""
+  },
+  {
+   "seccion": "Gaseosas",
+   "nombre": "Coca Cola",
+   "descripcion": "330cc.",
+   "precio": 3790,
+   "nota": ""
+  },
+  {
+   "seccion": "Agua",
+   "nombre": "Vital sin gas",
+   "descripcion": "330cc.",
+   "precio": 2970,
+   "nota": ""
+  },
+  {
+   "seccion": "Agua",
+   "nombre": "Vital con gas",
+   "descripcion": "330cc.",
+   "precio": 2970,
+   "nota": ""
+  },
+  {
+   "seccion": "Jugos",
+   "nombre": "Jugo de Berries",
+   "descripcion": "",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Jugos",
+   "nombre": "Limonada Menta Jengibre",
+   "descripcion": "450cc.",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Jugos",
+   "nombre": "Limonada Jengibre",
+   "descripcion": "450cc.",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Jugos",
+   "nombre": "Limonada Menta",
+   "descripcion": "450cc.",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Jugos",
+   "nombre": "Limonada Clásica",
+   "descripcion": "450cc.",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Jugos",
+   "nombre": "Jugo de chirimoya",
+   "descripcion": "450cc.",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Jugos",
+   "nombre": "Jugo de piña",
+   "descripcion": "450cc.",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Jugos",
+   "nombre": "Jugo de frutilla",
+   "descripcion": "450cc.",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Jugos",
+   "nombre": "Jugo de frambuesa",
+   "descripcion": "450cc.",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Jugos",
+   "nombre": "Jugo de maracuyá",
+   "descripcion": "450cc.",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Jugos",
+   "nombre": "Jugo de mango",
+   "descripcion": "450cc.",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Jugos",
+   "nombre": "Jugo de naranja",
+   "descripcion": "450cc.",
+   "precio": 3970,
+   "nota": ""
+  },
+  {
+   "seccion": "Ice Tea",
+   "nombre": "Ice Tea Naranja Maracuyá",
+   "descripcion": "450cc.",
+   "precio": 3570,
+   "nota": ""
+  },
+  {
+   "seccion": "Ice Tea",
+   "nombre": "Ice Tea Mango",
+   "descripcion": "450cc.",
+   "precio": 3570,
+   "nota": ""
+  }
+ ]
+}

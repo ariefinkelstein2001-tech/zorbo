@@ -640,8 +640,30 @@ body.chat-collapsed.admin-home .adm-chat-reopen,body.chat-collapsed.estado-activ
 .sku-chan:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.08);border-color:var(--gold-bd-h)}
 .sku-chan.on{background:var(--gold-dim);color:var(--gold-deep);border-color:var(--gold);box-shadow:0 8px 20px rgba(245,166,35,.18)}
 @media(max-width:760px){.sku-hero{flex-direction:column}.sku-chan-filters{gap:.5rem}}
+/* Canales arriba de todo (navegación principal del módulo SKU) */
+.sku-chan-top{margin:0 0 1rem}
+.sku-chan-top .sku-chan{flex:1 1 auto;justify-content:center;padding:.85rem 1rem;font-size:.88rem}
 .sku-search-row{margin-bottom:.9rem}
 .sku-search{max-width:360px}
+/* ── Carta de Hospitality (Comida/Barra → sección → ítems) ── */
+.hc-head{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin:.4rem 0 .6rem}
+.hc-local{font-family:var(--display);font-size:1.15rem;font-weight:800;color:var(--text)}
+.hc-fuente{font-family:var(--sans);font-size:.72rem;font-weight:600;color:var(--muted);margin-left:.4rem}
+.hc-tabs{display:flex;gap:.5rem}
+.hc-tab{border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--muted);font-family:var(--sans);font-weight:700;font-size:.85rem;padding:.55rem 1rem;cursor:pointer;display:flex;gap:.4rem;align-items:center}
+.hc-tab span{background:var(--gold-dim);color:var(--gold-deep);border-radius:99px;font-size:.7rem;padding:.05rem .45rem}
+.hc-tab.on{background:var(--gold-dim);color:var(--gold-deep);border-color:var(--gold)}
+.hc-note{font-family:var(--sans);font-size:.76rem;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.5rem .7rem;margin-bottom:1rem}
+.hc-sec{margin-bottom:1.3rem}
+.hc-sec-h{font-family:var(--display);font-size:1rem;font-weight:800;color:var(--gold-deep);letter-spacing:.01em;border-bottom:2px solid var(--gold-bd);padding-bottom:.3rem;margin-bottom:.6rem;display:flex;gap:.5rem;align-items:baseline}
+.hc-sec-h span{font-family:var(--sans);font-size:.72rem;font-weight:600;color:var(--muted)}
+.hc-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:.7rem}
+.hc-item{border:1px solid var(--border);border-radius:12px;background:var(--card,#fff);padding:.7rem .85rem}
+.hc-item-top{display:flex;justify-content:space-between;gap:.6rem;align-items:baseline}
+.hc-item-name{font-family:var(--sans);font-weight:800;font-size:.92rem;color:var(--text)}
+.hc-item-price{font-family:var(--display);font-weight:800;font-size:.95rem;color:var(--gold-deep);white-space:nowrap}
+.hc-item-desc{font-family:var(--sans);font-size:.78rem;color:var(--muted);margin-top:.3rem;line-height:1.4}
+.hc-item-nota{display:inline-block;margin-top:.4rem;font-family:var(--sans);font-size:.66rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#2d5aa0;background:rgba(45,90,160,.10);border:1px solid rgba(45,90,160,.22);border-radius:99px;padding:.1rem .5rem}
 
 /* ─── Sell In · Sell Out (Fase 4) ───────────────────────────────────────── */
 .sio-block{margin-top:.9rem}
@@ -3282,13 +3304,22 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
 
     <!-- Vista de productos (sync con Shopify + notas Zorbot) -->
     <div class="adm-panel" id="productsView" style="display:none">
+      <!-- Canales: arriba de todo, es la navegación principal del módulo SKU.
+           Venta Online = minorista Shopify · Horeca y Retail = mayorista Shopify ·
+           Hospitality = carta de los restoranes (Kairos Garden / Badass). -->
+      <div class="sku-chan-filters sku-chan-top" id="skuChanFilters">
+        <button type="button" class="sku-chan on" data-chan="todas"><span class="ic">🗂️</span>Todas</button>
+        <button type="button" class="sku-chan" data-chan="horeca_retail"><span class="ic">🏬</span>Horeca y Retail</button>
+        <button type="button" class="sku-chan" data-chan="online"><span class="ic">🛒</span>Venta Online</button>
+        <button type="button" class="sku-chan" data-chan="hospitality"><span class="ic">🍽️</span>Hospitality</button>
+      </div>
       <div class="adm-panel-head">
         <div>
           <div class="adm-panel-title">SKU</div>
           <div class="adm-panel-meta" id="prodMeta">sync Shopify · cada producto tiene un código SKU único · las notas extra solo viajan a Zorbot</div>
         </div>
         <div class="adm-actions">
-          <div class="adm-pillgroup" data-filter="prodSection">
+          <div class="adm-pillgroup" data-filter="prodSection" id="skuSectionPills">
             <button data-v="minorista" class="on" type="button">Minorista <span class="adm-pill-sub">ZORBO</span></button>
             <button data-v="mayorista"        type="button">Mayorista <span class="adm-pill-sub">MAYORISTA</span></button>
           </div>
@@ -3297,19 +3328,13 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
         </div>
       </div>
 
-      <div class="sku-hero">
+      <div class="sku-hero" id="skuHero">
         <button class="sku-new-btn" id="btnNewProd" type="button">
           <span class="sku-new-plus">+</span>
           <span class="sku-new-txt"><b>Nuevo SKU</b><small>Crear producto en Shopify</small></span>
         </button>
-        <div class="sku-chan-filters" id="skuChanFilters">
-          <button type="button" class="sku-chan on" data-chan="todas"><span class="ic">🗂️</span>Todas</button>
-          <button type="button" class="sku-chan" data-chan="horeca_retail"><span class="ic">🏬</span>Horeca y Retail</button>
-          <button type="button" class="sku-chan" data-chan="online"><span class="ic">🛒</span>Venta Online</button>
-          <button type="button" class="sku-chan" data-chan="hospitality"><span class="ic">🍽️</span>Hospitality</button>
-        </div>
       </div>
-      <div class="sku-search-row">
+      <div class="sku-search-row" id="skuSearchRow">
         <input class="adm-input sku-search" id="skuSearch" type="search" placeholder="Buscar por nombre o código SKU (ej. KB-00001)…">
       </div>
 
@@ -3317,6 +3342,8 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
       <div class="adm-prod-grid" id="productGrid">
         <div class="adm-loading">Cargando productos…</div>
       </div>
+      <!-- Vista Hospitality: carta de los restoranes (Comida/Barra → sección) -->
+      <div id="hospCartaWrap" style="display:none"></div>
     </div>
 
     <!-- Modal: prefijos de SKU por marca -->
@@ -4641,9 +4668,65 @@ document.querySelectorAll('#skuChanFilters .sku-chan').forEach(b => {
   b.onclick = () => {
     activeSkuChan = b.dataset.chan;
     document.querySelectorAll('#skuChanFilters .sku-chan').forEach(x => x.classList.toggle('on', x === b));
-    renderProductGrid();
+    applySkuChannel();
   };
 });
+// Aplica el canal elegido: Venta Online → catálogo minorista · Horeca y Retail →
+// catálogo mayorista · Hospitality → carta de los restoranes · Todas → catálogo actual.
+function applySkuChannel(){
+  const isHosp = activeSkuChan === 'hospitality';
+  const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+  show('hospCartaWrap', isHosp);
+  show('productGrid', !isHosp);
+  show('brandTabs', !isHosp);
+  show('skuSearchRow', !isHosp);
+  show('skuHero', !isHosp);
+  show('skuSectionPills', activeSkuChan === 'todas'); // los pills solo mandan en "Todas"
+  if (isHosp) { loadHospCarta(); return; }
+  // Online/Horeca fuerzan la sección; Todas respeta la que esté elegida.
+  const want = activeSkuChan === 'online' ? 'minorista' : activeSkuChan === 'horeca_retail' ? 'mayorista' : activeProdSection;
+  document.querySelectorAll('#skuSectionPills button').forEach(x => x.classList.toggle('on', x.dataset.v === want));
+  if (want !== activeProdSection) { activeProdSection = want; activeBrand = 'all'; loadProductos(); }
+  else renderProductGrid();
+}
+// ── Carta de Hospitality (Kairos Garden / Badass) — desde el Excel de la carta ──
+let hospCartaData = null, hospCartaTipo = 'comida';
+async function loadHospCarta(force){
+  const wrap = document.getElementById('hospCartaWrap'); if (!wrap) return;
+  if (hospCartaData && !force) { renderHospCarta(); return; }
+  wrap.innerHTML = '<div class="adm-loading">Cargando carta…</div>';
+  try {
+    const r = await fetch('/admin/comercial/carta-hospitality'); const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    hospCartaData = d; renderHospCarta();
+  } catch (e) { wrap.innerHTML = '<div class="adm-empty" style="color:var(--red)">No se pudo cargar la carta: ' + escapeHtml(String(e.message || e)) + '</div>'; }
+}
+function renderHospCarta(){
+  const wrap = document.getElementById('hospCartaWrap'); const d = hospCartaData; if (!wrap || !d) return;
+  const clp = n => n != null ? ('$' + Math.round(n).toLocaleString('es-CL')) : '—';
+  const grupos = hospCartaTipo === 'barra' ? (d.barra || []) : (d.comida || []);
+  const secciones = grupos.map(g => `
+    <div class="hc-sec">
+      <div class="hc-sec-h">${escapeHtml(g.seccion)} <span>${g.items.length}</span></div>
+      <div class="hc-items">${g.items.map(it => `
+        <div class="hc-item">
+          <div class="hc-item-top"><span class="hc-item-name">${escapeHtml(it.nombre)}</span><span class="hc-item-price">${it.nota && /desde/i.test(it.nota) ? 'desde ' : ''}${clp(it.precio)}</span></div>
+          ${it.descripcion ? `<div class="hc-item-desc">${escapeHtml(it.descripcion)}</div>` : ''}
+          ${it.nota && !/^desde$/i.test(it.nota) ? `<span class="hc-item-nota">${escapeHtml(it.nota)}</span>` : ''}
+        </div>`).join('')}</div>
+    </div>`).join('');
+  wrap.innerHTML = `
+    <div class="hc-head">
+      <div class="hc-local">🍽️ ${escapeHtml(d.local || 'Kairos Garden')} <span class="hc-fuente">${escapeHtml(d.fuente || '')}</span></div>
+      <div class="hc-tabs">
+        <button type="button" class="hc-tab ${hospCartaTipo==='comida'?'on':''}" data-hct="comida">🍳 Comida <span>${d.nComida||0}</span></button>
+        <button type="button" class="hc-tab ${hospCartaTipo==='barra'?'on':''}" data-hct="barra">🍹 Barra <span>${d.nBarra||0}</span></button>
+      </div>
+    </div>
+    <div class="hc-note">Carta de <b>Kairos Garden</b> importada del Excel. La de <b>Kairos Badass</b> se agrega cuando la subas. Solo lectura por ahora.</div>
+    ${secciones || '<div class="adm-empty">Sin ítems en esta parte de la carta.</div>'}`;
+  wrap.querySelectorAll('.hc-tab').forEach(b => b.onclick = () => { hospCartaTipo = b.dataset.hct; renderHospCarta(); });
+}
 document.getElementById('skuSearch').addEventListener('input', (e) => {
   skuSearchQ = e.target.value.trim().toLowerCase();
   renderProductGrid();
@@ -4680,9 +4763,11 @@ function renderBrandTabs(){
 function renderProductGrid(){
   const wrap = document.getElementById('productGrid');
   let list = activeBrand === 'all' ? productsCache.slice() : productsCache.filter(p => p.brand === activeBrand);
-  if (activeSkuChan !== 'todas') {
-    const match = SKU_CHAN_MATCH[activeSkuChan];
-    list = list.filter(p => match((p.channels || []).map(c => String(c).toLowerCase())));
+  // Venta Online = catálogo minorista · Horeca y Retail = catálogo mayorista.
+  // En ambos mostramos solo productos de Shopify (la carta va en Hospitality);
+  // la sección ya define minorista/mayorista, así que no filtramos por p.channels.
+  if (activeSkuChan === 'online' || activeSkuChan === 'horeca_retail') {
+    list = list.filter(p => p.ruta !== 'menu');
   }
   if (skuSearchQ) {
     list = list.filter(p => (p.title || '').toLowerCase().includes(skuSearchQ) || (p.skuCode || '').toLowerCase().includes(skuSearchQ));

@@ -2729,6 +2729,26 @@ app.delete('/admin/sku-menu/:id', requireAdmin, (req, res) => {
   saveSkuMenu(menu);
   res.json({ ok: true });
 });
+// Carta de Hospitality (restoranes Kairos Garden / Badass). Semilla de solo lectura
+// importada del Excel de la carta: Comida / Barra → sección → ítems (nombre,
+// descripción, precio, nota). Sirve la vista Hospitality del módulo SKU.
+let cartaHospCache = null;
+function loadCartaHosp(){
+  if (cartaHospCache) return cartaHospCache;
+  try { cartaHospCache = JSON.parse(readFileSync(join(__dirname, 'hospitality-carta-seed.json'), 'utf-8')); }
+  catch (e) { console.warn('carta hosp seed:', e.message); cartaHospCache = { comida: [], barra: [] }; }
+  return cartaHospCache;
+}
+app.get('/admin/comercial/carta-hospitality', requireAdmin, (req, res) => {
+  const c = loadCartaHosp();
+  // Agrupa cada tipo por sección, conservando el orden de aparición.
+  const agrupar = (arr) => {
+    const orden = [], map = {};
+    for (const it of (arr || [])) { const s = it.seccion || 'Otros'; if (!map[s]) { map[s] = []; orden.push(s); } map[s].push({ nombre: it.nombre, descripcion: it.descripcion || '', precio: it.precio != null ? it.precio : null, nota: it.nota || '' }); }
+    return orden.map(s => ({ seccion: s, items: map[s] }));
+  };
+  res.json({ local: c.local || 'Kairos Garden', fuente: c.fuente || '', comida: agrupar(c.comida), barra: agrupar(c.barra), nComida: (c.comida || []).length, nBarra: (c.barra || []).length });
+});
 
 // Cambiar estado activo/borrador de un producto existente en Shopify.
 app.put('/admin/products/:id/status', requireAdmin, async (req, res) => {
