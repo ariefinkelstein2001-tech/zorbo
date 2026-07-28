@@ -1095,6 +1095,9 @@ body.drawer-open{overflow:hidden}
   font-family:var(--display);font-size:1rem;font-weight:700;letter-spacing:-.005em;color:var(--text);
 }
 .adm-chart-sub{font-family:var(--mono);font-size:.62rem;color:var(--dim);letter-spacing:.06em}
+/* Analítica comercial: subtítulos en texto normal (DM Sans), la mono queda solo
+   para números tabulares — a diferencia del resto de los charts del panel. */
+#analiticacomercialView .adm-chart-sub{font-family:var(--sans);font-size:.72rem;color:var(--muted);letter-spacing:normal}
 .adm-chart-canvas-wrap{
   position:relative;width:100%;height:260px;
 }
@@ -2526,57 +2529,6 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
         </div>
       </div>
 
-      <!-- ── SELL-OUT MAYORISTA (Shopify orders) ── -->
-      <div class="adm-section-divider"><span>Sell-out mayorista · ventas reales</span></div>
-      <div id="salesAvailable">
-        <div class="adm-stats" id="salesStats"></div>
-        <div class="adm-charts">
-          <div class="adm-chart-card">
-            <div class="adm-chart-head">
-              <div class="adm-chart-title">Top 10 en plata</div>
-              <div class="adm-chart-sub">recaudación por producto (solo MAYORISTA)</div>
-            </div>
-            <div class="adm-chart-canvas-wrap"><canvas id="chartTopMoney"></canvas></div>
-          </div>
-          <div class="adm-chart-card">
-            <div class="adm-chart-head">
-              <div class="adm-chart-title">Top 10 en cantidad</div>
-              <div class="adm-chart-sub">unidades vendidas</div>
-            </div>
-            <div class="adm-chart-canvas-wrap"><canvas id="chartTopQty"></canvas></div>
-          </div>
-          <div class="adm-chart-card adm-chart-wide">
-            <div class="adm-chart-head">
-              <div class="adm-chart-title">Crecimiento mes vs mes anterior</div>
-              <div class="adm-chart-sub" id="growthSub">por producto</div>
-            </div>
-            <div class="adm-growth" id="salesGrowth"></div>
-          </div>
-          <div class="adm-chart-card">
-            <div class="adm-chart-head">
-              <div class="adm-chart-title">Mejores días del mes</div>
-              <div class="adm-chart-sub">venta promedio por número de día</div>
-            </div>
-            <div class="adm-bestdays" id="salesBestDays"></div>
-          </div>
-          <div class="adm-chart-card">
-            <div class="adm-chart-head">
-              <div class="adm-chart-title">Combinaciones más pedidas</div>
-              <div class="adm-chart-sub">productos comprados juntos</div>
-            </div>
-            <div class="adm-combos" id="salesCombos"></div>
-          </div>
-          <div class="adm-chart-card adm-chart-wide">
-            <div class="adm-chart-head">
-              <div class="adm-chart-title">Mapa de calor · día × hora</div>
-              <div class="adm-chart-sub">cuándo se vende más (venta en $)</div>
-            </div>
-            <div class="adm-heatmap" id="salesHeat"></div>
-          </div>
-        </div>
-      </div>
-      <div id="salesEmpty" class="adm-empty-card" style="display:none"></div>
-
       <!-- ── USO DEL BOT ── -->
       <div class="adm-section-divider"><span>Funciones del bot</span></div>
       <div class="adm-charts">
@@ -2596,44 +2548,9 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
         </div>
       </div>
 
-      <!-- ── CLIENTES MAYORISTAS ── -->
-      <div class="adm-section-divider"><span>Clientes mayoristas</span></div>
-      <div class="adm-panel" id="wsBox">
-        <div class="adm-ws-controls">
-          <input class="adm-input adm-ws-search" id="wsSearch" type="search" placeholder="Buscar por nombre o email…">
-          <div class="adm-ws-sort">
-            <label>Ordenar</label>
-            <select class="adm-select" id="wsSort">
-              <option value="recent">Más reciente</option>
-              <option value="spent">Más comprado</option>
-              <option value="inactive">Sin actividad reciente</option>
-              <option value="orders">Más pedidos</option>
-            </select>
-          </div>
-          <button class="adm-btn adm-btn-ghost" id="wsReload" type="button">Recargar</button>
-        </div>
-        <div class="adm-ws-count" id="wsCount"></div>
-        <div class="adm-ws-list" id="wsList"><div class="adm-loading">Cargando clientes…</div></div>
-      </div>
-
       <!-- ── PIXIS (data de cadena externa) ── -->
       <div class="adm-section-divider"><span>Pixis · data de mercado (cadena externa)</span></div>
       <div id="pixisBox" class="adm-empty-card"></div>
-    </div>
-
-    <!-- Drawer ficha de cliente mayorista -->
-    <div class="adm-drawer" id="custDrawer" aria-hidden="true">
-      <div class="adm-drawer-bg" data-act="close-cust"></div>
-      <div class="adm-drawer-panel">
-        <div class="adm-drawer-head">
-          <div style="min-width:0;flex:1">
-            <div class="adm-drawer-title" id="custName">Cliente</div>
-            <div class="adm-drawer-meta" id="custContact">—</div>
-          </div>
-          <button type="button" class="adm-drawer-x" data-act="close-cust" aria-label="Cerrar">✕</button>
-        </div>
-        <div class="adm-drawer-body" id="custBody"><div class="adm-loading">Cargando…</div></div>
-      </div>
     </div>
 
     <!-- Vista Mundial (pack mundialero · predicciones) -->
@@ -2689,19 +2606,135 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
       <div id="adsBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
-    <!-- Vista Top clientes por producto -->
-    <div class="adm-panel" id="topclientesView" style="display:none">
+    <!-- Vista Análisis de Datos: landing con 3 accesos internos (Horeca / Documentos / Analítica comercial) -->
+    <div class="adm-panel" id="analisisdatosView" style="display:none">
       <div class="adm-panel-head">
         <div>
-          <div class="adm-panel-title">Top clientes por producto</div>
-          <div class="adm-panel-meta">quién más compró un producto en toda la historia de la tienda</div>
+          <div class="adm-panel-title">Análisis de Datos</div>
+          <div class="adm-panel-meta">ventas HORECA, documentos de compra y analítica comercial · todo con datos reales</div>
         </div>
       </div>
-      <div class="tc-search">
-        <input type="text" id="tcInput" placeholder="Escribe un producto… ej: Samba, Golden, Banny">
-        <button class="adm-btn" id="tcBtn" type="button">Buscar</button>
+      <div class="marcas-title">Elige un acceso</div>
+      <div class="marcas-grid" id="andGrid">
+        <div class="marcas-card" data-and="horeca"><div class="ic">🍺</div><div class="lb">Horeca (Pyxis)</div></div>
+        <div class="marcas-card" data-and="pyxisdocs"><div class="ic">🧾</div><div class="lb">Documentos (Pyxis)</div></div>
+        <div class="marcas-card" data-and="analiticacomercial"><div class="ic">⭐</div><div class="lb">Analítica comercial</div></div>
       </div>
-      <div id="tcBody"><div class="dist-empty">Escribe el nombre de un producto y dale Buscar para ver el ranking de clientes.</div></div>
+    </div>
+
+    <!-- Vista Analítica comercial: sell-out mayorista, top 10, crecimiento, mejores días,
+         combinaciones, mapa de calor, clientes mayoristas y top clientes por producto.
+         Relocalizados tal cual desde Marketing › Analítica (misma lógica, misma data). -->
+    <div class="adm-panel" id="analiticacomercialView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Analítica comercial</div>
+          <div class="adm-panel-meta" id="andcRangeMeta">ventas mayoristas reales · Shopify</div>
+        </div>
+        <div class="adm-actions">
+          <div class="adm-pillgroup" data-filter="andcrange">
+            <button data-v="7d"    type="button">7d</button>
+            <button data-v="30d"   class="on" type="button">30d</button>
+            <button data-v="90d"   type="button">90d</button>
+            <button data-v="year"  type="button">Año</button>
+            <button data-v="all"   type="button">Todo</button>
+          </div>
+          <button class="adm-btn adm-btn-ghost" id="btnReloadAndc" type="button">Recargar</button>
+        </div>
+      </div>
+
+      <div id="andcSalesAvailable">
+        <div class="adm-stats" id="andcSalesStats"></div>
+        <div class="adm-charts">
+          <div class="adm-chart-card">
+            <div class="adm-chart-head">
+              <div class="adm-chart-title">Top 10 en plata</div>
+              <div class="adm-chart-sub">recaudación por producto (solo MAYORISTA)</div>
+            </div>
+            <div class="adm-chart-canvas-wrap"><canvas id="andcChartTopMoney"></canvas></div>
+          </div>
+          <div class="adm-chart-card">
+            <div class="adm-chart-head">
+              <div class="adm-chart-title">Top 10 en cantidad</div>
+              <div class="adm-chart-sub">unidades vendidas</div>
+            </div>
+            <div class="adm-chart-canvas-wrap"><canvas id="andcChartTopQty"></canvas></div>
+          </div>
+          <div class="adm-chart-card adm-chart-wide">
+            <div class="adm-chart-head">
+              <div class="adm-chart-title">Crecimiento mes vs mes anterior</div>
+              <div class="adm-chart-sub" id="andcGrowthSub">por producto</div>
+            </div>
+            <div class="adm-growth" id="andcSalesGrowth"></div>
+          </div>
+          <div class="adm-chart-card">
+            <div class="adm-chart-head">
+              <div class="adm-chart-title">Mejores días del mes</div>
+              <div class="adm-chart-sub">venta promedio por número de día</div>
+            </div>
+            <div class="adm-bestdays" id="andcSalesBestDays"></div>
+          </div>
+          <div class="adm-chart-card">
+            <div class="adm-chart-head">
+              <div class="adm-chart-title">Combinaciones más pedidas</div>
+              <div class="adm-chart-sub">productos comprados juntos</div>
+            </div>
+            <div class="adm-combos" id="andcSalesCombos"></div>
+          </div>
+          <div class="adm-chart-card adm-chart-wide">
+            <div class="adm-chart-head">
+              <div class="adm-chart-title">Mapa de calor · día × hora</div>
+              <div class="adm-chart-sub">cuándo se vende más (venta en $)</div>
+            </div>
+            <div class="adm-heatmap" id="andcSalesHeat"></div>
+          </div>
+        </div>
+      </div>
+      <div id="andcSalesEmpty" class="adm-empty-card" style="display:none"></div>
+
+      <div class="adm-section-divider"><span>Clientes mayoristas</span></div>
+      <div class="adm-panel" id="andcWsBox">
+        <div class="adm-ws-controls">
+          <input class="adm-input adm-ws-search" id="andcWsSearch" type="search" placeholder="Buscar por nombre o email…">
+          <div class="adm-ws-sort">
+            <label>Ordenar</label>
+            <select class="adm-select" id="andcWsSort">
+              <option value="recent">Más reciente</option>
+              <option value="spent">Más comprado</option>
+              <option value="inactive">Sin actividad reciente</option>
+              <option value="orders">Más pedidos</option>
+            </select>
+          </div>
+          <button class="adm-btn adm-btn-ghost" id="andcWsReload" type="button">Recargar</button>
+        </div>
+        <div class="adm-ws-count" id="andcWsCount"></div>
+        <div class="adm-ws-list" id="andcWsList"><div class="adm-loading">Cargando clientes…</div></div>
+      </div>
+
+      <div class="adm-section-divider"><span>Top clientes por producto</span></div>
+      <div class="adm-panel">
+        <div class="adm-panel-meta" style="margin-bottom:.6rem">quién más compró un producto en toda la historia de la tienda</div>
+        <div class="tc-search">
+          <input type="text" id="tcInput" placeholder="Escribe un producto… ej: Samba, Golden, Banny">
+          <button class="adm-btn" id="tcBtn" type="button">Buscar</button>
+        </div>
+        <div id="tcBody"><div class="dist-empty">Escribe el nombre de un producto y dale Buscar para ver el ranking de clientes.</div></div>
+      </div>
+    </div>
+
+    <!-- Drawer ficha de cliente mayorista (Analítica comercial) -->
+    <div class="adm-drawer" id="andcCustDrawer" aria-hidden="true">
+      <div class="adm-drawer-bg" data-act="close-andc-cust"></div>
+      <div class="adm-drawer-panel">
+        <div class="adm-drawer-head">
+          <div style="min-width:0;flex:1">
+            <div class="adm-drawer-title" id="andcCustName">Cliente</div>
+            <div class="adm-drawer-meta" id="andcCustContact">—</div>
+          </div>
+          <button type="button" class="adm-drawer-x" data-act="close-andc-cust" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="adm-drawer-body" id="andcCustBody"><div class="adm-loading">Cargando…</div></div>
+      </div>
     </div>
 
     <!-- Vista Distribuidora (proveedores · costos · márgenes · OC · comercialización) -->
@@ -3473,9 +3506,14 @@ const BASE_SECCIONES = [
   { id:'mayorista', kind:'md',       label:'Mayoristas (B2B)',cat:'marketing', desc:'restaurantes · botillerías · eventos', nav:false, parentNav:'marcas' },
   { id:'productos',  kind:'products', label:'Productos',       cat:'comercial', desc:'catálogo Shopify · notas extra para Zorbot' },
   { id:'puntos',     kind:'puntos',   label:'Puntos de venta', cat:'comercial', desc:'mapa de locales donde estás · venta por punto' },
-  { id:'topclientes',kind:'topclientes',label:'Top clientes',  cat:'comercial', desc:'quién compra más cada producto · histórico Shopify' },
-  { id:'horeca',     kind:'horeca',   label:'Ventas HORECA (Pyxis)', cat:'comercial', desc:'ventas de cervezas en locales HORECA · Kairos vs competencia · datos reales de Pyxis' },
-  { id:'pyxisdocs',  kind:'pyxisdocs',label:'Documentos (Pyxis)', cat:'comercial', desc:'facturas de compra de bebidas/licores por local · precio de referencia con IVA + ILA' },
+  // Análisis de Datos: mismo patrón parent+drill-down que "Marcas" (nav:false en los
+  // hijos, parentNav apunta al padre). Horeca y Documentos son las mismas secciones de
+  // siempre, solo cambiaron de ubicación. "Analítica comercial" es nueva: reúne los
+  // widgets de venta real que antes vivían mal ubicados en Marketing › Analítica.
+  { id:'analisisdatos', kind:'analisisdatos', label:'Análisis de Datos', cat:'comercial', desc:'Horeca (Pyxis) · Documentos (Pyxis) · Analítica comercial — sell-out, top clientes y clientes mayoristas' },
+  { id:'horeca',     kind:'horeca',   label:'Ventas HORECA (Pyxis)', cat:'comercial', desc:'ventas de cervezas en locales HORECA · Kairos vs competencia · datos reales de Pyxis', nav:false, parentNav:'analisisdatos' },
+  { id:'pyxisdocs',  kind:'pyxisdocs',label:'Documentos (Pyxis)', cat:'comercial', desc:'facturas de compra de bebidas/licores por local · precio de referencia con IVA + ILA', nav:false, parentNav:'analisisdatos' },
+  { id:'analiticacomercial', kind:'analiticacomercial', label:'Analítica comercial', cat:'comercial', desc:'sell-out mayorista · top 10 · crecimiento · mejores días · combinaciones · mapa de calor · clientes mayoristas · top clientes', nav:false, parentNav:'analisisdatos' },
   { id:'distribuidora', kind:'distribuidora', label:'Distribuidora', cat:'distribucion', desc:'proveedores · costos · márgenes · órdenes de compra · comercialización' },
   { id:'rutas',     kind:'rutas',    label:'Rutas',           cat:'distribucion', desc:'mapa · día y horario de despacho' },
   { id:'mantenimiento', kind:'mantenimiento', label:'Gestión, trazabilidad y mantenimiento', cat:'distribucion', desc:'máquinas dispensadoras · barriles despachados · mantención y limpieza' },
@@ -3738,10 +3776,17 @@ function marcasRenderBody(marca){
 // Mientras se navega por Marcas, el breadcrumb del topbar queda simple: el detalle
 // (marca/canal/pestaña) ya se ve en la barra persistente debajo.
 ksCrumbOverride = function(curSec){
-  if (!curSec || (curSec.id !== 'marcas' && curSec.parentNav !== 'marcas')) return false;
-  const crumb = document.getElementById('ksCrumb');
-  if (crumb) crumb.textContent = 'Marketing · Marcas';
-  return true;
+  if (curSec && (curSec.id === 'marcas' || curSec.parentNav === 'marcas')) {
+    const crumb = document.getElementById('ksCrumb');
+    if (crumb) crumb.textContent = 'Marketing · Marcas';
+    return true;
+  }
+  if (curSec && (curSec.id === 'analisisdatos' || curSec.parentNav === 'analisisdatos')) {
+    const crumb = document.getElementById('ksCrumb');
+    if (crumb) crumb.textContent = 'Comercial · Análisis de Datos' + (curSec.id === 'analisisdatos' ? '' : ' · ' + curSec.label);
+    return true;
+  }
+  return false;
 };
 
 let activeProdSection = 'minorista';
@@ -3915,8 +3960,11 @@ async function selectSeccion(id){
   } else if (sec.kind === 'puntos') {
     showView('puntos');
     await loadPuntos();
-  } else if (sec.kind === 'topclientes') {
-    showView('topclientes');
+  } else if (sec.kind === 'analisisdatos') {
+    showView('analisisdatos');
+  } else if (sec.kind === 'analiticacomercial') {
+    showView('analiticacomercial');
+    await loadAnaliticaComercial();
   } else if (sec.kind === 'horeca') {
     showView('horeca');
     await loadHoreca();
@@ -3964,7 +4012,8 @@ function showView(kind){
   document.getElementById('mdView').style.display         = kind === 'md'         ? '' : 'none';
   document.getElementById('productsView').style.display   = kind === 'products'   ? '' : 'none';
   document.getElementById('puntosView').style.display     = kind === 'puntos'     ? '' : 'none';
-  document.getElementById('topclientesView').style.display= kind === 'topclientes'? '' : 'none';
+  document.getElementById('analisisdatosView').style.display = kind === 'analisisdatos' ? '' : 'none';
+  document.getElementById('analiticacomercialView').style.display = kind === 'analiticacomercial' ? '' : 'none';
   document.getElementById('horecaView').style.display     = kind === 'horeca'     ? '' : 'none';
   if (kind !== 'horeca' && typeof horecaTimer !== 'undefined' && horecaTimer) { clearTimeout(horecaTimer); horecaTimer = null; }
   document.getElementById('pyxisdocsView').style.display  = kind === 'pyxisdocs'  ? '' : 'none';
@@ -5941,25 +5990,12 @@ async function loadAnalytics(){
     document.getElementById('anaStats').innerHTML =
       `<div class="adm-empty" style="color:var(--red)">Error cargando analítica: ${escapeHtml(e.message)}</div>`;
   }
-  // En paralelo: ventas (Shopify), uso del bot, pixis, clientes mayoristas
-  loadSalesAnalytics();
+  // En paralelo: uso del bot y pixis (lo comercial — ventas, clientes mayoristas —
+  // vive en Comercial › Análisis de Datos › Analítica comercial)
   loadBotAnalytics();
   loadPixis();
-  loadWholesale();
 }
 
-async function loadSalesAnalytics(){
-  const box = document.getElementById('salesStats');
-  if (box) box.innerHTML = '<div class="adm-loading">Cargando ventas…</div>';
-  try {
-    const r = await fetch('/admin/analytics/sales?range=' + encodeURIComponent(anaRange));
-    const d = await r.json();
-    if (!d.available) { renderSalesEmpty(d.reason); return; }
-    renderSales(d);
-  } catch (e) {
-    renderSalesEmpty('Error cargando ventas: ' + e.message);
-  }
-}
 async function loadBotAnalytics(){
   try {
     const r = await fetch('/admin/analytics/bot?range=' + encodeURIComponent(anaRange));
@@ -5975,35 +6011,7 @@ async function loadPixis(){
   } catch (e) { renderPixis({ available:false, reason:'No se pudo consultar Pixis.' }); }
 }
 
-function renderSalesEmpty(reason){
-  document.getElementById('salesAvailable').style.display = 'none';
-  const el = document.getElementById('salesEmpty');
-  el.style.display = '';
-  el.innerHTML = `
-    <div class="adm-empty-ico">📊</div>
-    <div class="adm-empty-title">Ventas no disponibles todavía</div>
-    <div class="adm-empty-text">${escapeHtml(reason || 'No hay data de ventas.')}</div>
-    <div class="adm-empty-hint">Para ver el sell-out mayorista, el token de Shopify necesita el permiso <code>read_orders</code>. Pedile al equipo que re-autorice la app de Zorbot en Shopify (Settings → Apps → re-instalar con el nuevo scope).</div>`;
-}
-
-function renderSales(d){
-  document.getElementById('salesAvailable').style.display = '';
-  document.getElementById('salesEmpty').style.display = 'none';
-  const s = d.summary || {};
-  document.getElementById('salesStats').innerHTML = [
-    { k:'ÓRDENES MAYORISTAS', v: (s.orders||0).toLocaleString('es-CL'), sub: d.range.label },
-    { k:'RECAUDACIÓN', v: '$'+(s.revenue||0).toLocaleString('es-CL'), sub: 'solo productos MAYORISTA', tone:'gold' },
-    { k:'TICKET PROMEDIO', v: '$'+(s.avgTicket||0).toLocaleString('es-CL'), sub: 'por orden mayorista' },
-  ].map(c => `<div class="adm-stat ${c.tone?'tone-'+c.tone:''}"><div class="adm-stat-k">${c.k}</div><div class="adm-stat-v">${escapeHtml(c.v)}</div><div class="adm-stat-s">${escapeHtml(c.sub)}</div></div>`).join('');
-
-  renderBarChart('chartTopMoney', d.topMoney, { money:true, key:'salesMoney' });
-  renderBarChart('chartTopQty',   d.topQty,   { money:false, key:'salesQty' });
-  renderGrowth(d.growth);
-  renderBestDays(d.bestDays);
-  renderCombos(d.combos);
-  renderHeatmap(d.heat);
-}
-
+// Utilidad genérica de barras horizontales (reutilizada por Analítica comercial).
 function renderBarChart(canvasId, items, opts){
   destroyChart(opts.key);
   if (emptyChartIfNoData(canvasId, items)) return;
@@ -6016,65 +6024,6 @@ function renderBarChart(canvasId, items, opts){
     }]},
     options: chartOptions({ horizontal:true, legend:false, money:opts.money }),
   });
-}
-
-function renderGrowth(g){
-  const el = document.getElementById('salesGrowth');
-  document.getElementById('growthSub').textContent = g ? `${g.thisMonthLabel} vs ${g.prevMonthLabel}` : 'por producto';
-  if (!g || !g.items.length) { el.innerHTML = '<div class="adm-empty">Sin datos de los últimos 2 meses.</div>'; return; }
-  el.innerHTML = g.items.map(it => {
-    const pctTxt = it.pct === null ? 'NUEVO' : (it.pct>0?'+':'')+it.pct+'%';
-    const cls = it.pct === null ? 'new' : (it.pct>=0?'up':'down');
-    return `<div class="adm-growth-row">
-      <span class="adm-growth-name">${escapeHtml(it.name)}</span>
-      <span class="adm-growth-vals">$${it.previous.toLocaleString('es-CL')} → $${it.current.toLocaleString('es-CL')}</span>
-      <span class="adm-growth-pct ${cls}">${pctTxt}</span>
-    </div>`;
-  }).join('');
-}
-
-function renderBestDays(days){
-  const el = document.getElementById('salesBestDays');
-  if (!days || !days.length) { el.innerHTML = '<div class="adm-empty">Sin datos.</div>'; return; }
-  const max = days[0].avg || 1;
-  el.innerHTML = days.map(d => `
-    <div class="adm-bestday">
-      <span class="adm-bestday-num">${d.day}</span>
-      <div class="adm-bestday-bar"><span style="width:${Math.round(d.avg/max*100)}%"></span></div>
-      <span class="adm-bestday-val">$${d.avg.toLocaleString('es-CL')}</span>
-    </div>`).join('');
-}
-
-function renderCombos(combos){
-  const el = document.getElementById('salesCombos');
-  if (!combos || !combos.length) { el.innerHTML = '<div class="adm-empty">Sin combinaciones aún.</div>'; return; }
-  el.innerHTML = combos.map(c => `
-    <div class="adm-combo">
-      <span class="adm-combo-pair">${escapeHtml(c.a)} <span class="adm-combo-plus">+</span> ${escapeHtml(c.b)}</span>
-      <span class="adm-combo-count">${c.count}×</span>
-    </div>`).join('');
-}
-
-function renderHeatmap(heat){
-  const el = document.getElementById('salesHeat');
-  if (!heat || !heat.length) { el.innerHTML = '<div class="adm-empty">Sin datos.</div>'; return; }
-  let max = 0;
-  for (const row of heat) for (const v of row) if (v > max) max = v;
-  const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  let html = '<div class="adm-heat-grid">';
-  html += '<div class="adm-heat-corner"></div>';
-  for (let h=0; h<24; h++) html += `<div class="adm-heat-hh">${h%3===0?h:''}</div>`;
-  for (let d=0; d<7; d++){
-    html += `<div class="adm-heat-day">${dayNames[d]}</div>`;
-    for (let h=0; h<24; h++){
-      const v = heat[d][h];
-      const intensity = max ? v/max : 0;
-      const bg = v ? `rgba(245,166,35,${(0.12+intensity*0.78).toFixed(2)})` : 'rgba(0,0,0,.03)';
-      html += `<div class="adm-heat-cell" style="background:${bg}" title="${dayNames[d]} ${h}:00 · $${Math.round(v).toLocaleString('es-CL')}"></div>`;
-    }
-  }
-  html += '</div>';
-  el.innerHTML = html;
 }
 
 function renderBotAnalytics(d){
@@ -6117,169 +6066,9 @@ function renderPixis(d){
     <div class="adm-empty-hint">Para conectarlo necesitas cargar en Railway las variables ${needs||'<code>PIXIS_API_BASE</code> y <code>PIXIS_API_KEY</code>'} con los datos de tu cuenta Pixis (API base URL + API key). Una vez cargadas, esta sección se activa sola.</div>`;
 }
 
-// ─── Clientes mayoristas ────────────────────────────────────────────────────
-let wsCache = [];
+// fmtMoney/fmtDate: utilidades compartidas (Analítica comercial, Distribuidora, etc).
 function fmtMoney(n){ return '$' + Math.round(Number(n)||0).toLocaleString('es-CL'); }
 function fmtDate(iso){ if(!iso) return '—'; const d=new Date(iso); return isFinite(d)?d.toLocaleDateString('es-CL',{day:'2-digit',month:'short',year:'numeric'}):'—'; }
-
-async function loadWholesale(force){
-  const list = document.getElementById('wsList');
-  list.innerHTML = '<div class="adm-loading">Cargando clientes…</div>';
-  try {
-    const r = await fetch('/admin/customers/wholesale' + (force?'?refresh=1':''));
-    const d = await r.json();
-    if (!d.available) {
-      list.innerHTML = `<div class="adm-empty">${escapeHtml(d.reason||'No disponible.')} ${/read_customers|read_orders/.test(d.reason||'')?'Re-autoriza la app de Shopify con el permiso de clientes.':''}</div>`;
-      document.getElementById('wsCount').textContent = '';
-      return;
-    }
-    wsCache = d.customers || [];
-    renderWholesale();
-  } catch (e) {
-    list.innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`;
-  }
-}
-
-function renderWholesale(){
-  const q = (document.getElementById('wsSearch').value || '').toLowerCase().trim();
-  const sort = document.getElementById('wsSort').value;
-  let list = wsCache.slice();
-  if (q) list = list.filter(c => (c.name||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q));
-  list.sort((a,b) => {
-    if (sort === 'spent')    return b.totalSpent - a.totalSpent;
-    if (sort === 'orders')   return b.orders - a.orders;
-    if (sort === 'inactive') return (new Date(a.lastOrder||0)) - (new Date(b.lastOrder||0));
-    return (new Date(b.lastOrder||0)) - (new Date(a.lastOrder||0)); // recent
-  });
-  document.getElementById('wsCount').textContent = `${list.length} cliente${list.length===1?'':'s'} mayorista${list.length===1?'':'s'}`;
-  const el = document.getElementById('wsList');
-  if (!list.length) { el.innerHTML = '<div class="adm-empty">No hay clientes que coincidan.</div>'; return; }
-  el.innerHTML = `
-    <div class="adm-ws-row adm-ws-th">
-      <span>Cliente</span><span>Total</span><span>Pedidos</span><span>Última compra</span><span>Más pedido</span>
-    </div>` + list.map(c => `
-    <div class="adm-ws-row" data-id="${escapeAttr(c.id)}">
-      <span class="adm-ws-name">${escapeHtml(c.name)}${c.hasNote?' <span class="adm-ws-noteflag" title="Tiene nota interna">📝</span>':''}<small>${escapeHtml(c.email||c.phone||'')}</small></span>
-      <span class="adm-ws-money">${fmtMoney(c.totalSpent)}</span>
-      <span>${c.orders}</span>
-      <span>${fmtDate(c.lastOrder)}</span>
-      <span class="adm-ws-top">${escapeHtml(c.topProduct||'—')}</span>
-    </div>`).join('');
-  el.querySelectorAll('.adm-ws-row[data-id]').forEach(row => {
-    row.onclick = () => openCustomer(row.dataset.id);
-  });
-}
-
-document.getElementById('wsSearch').oninput = renderWholesale;
-document.getElementById('wsSort').onchange = renderWholesale;
-document.getElementById('wsReload').onclick = () => loadWholesale(true);
-
-// ── Ficha del cliente (drawer) ──
-let custCurrentId = null;
-async function openCustomer(id){
-  custCurrentId = id;
-  const dr = document.getElementById('custDrawer');
-  dr.classList.add('open'); document.body.classList.add('drawer-open');
-  document.getElementById('custName').textContent = 'Cliente';
-  document.getElementById('custContact').textContent = '—';
-  document.getElementById('custBody').innerHTML = '<div class="adm-loading">Cargando…</div>';
-  try {
-    const r = await fetch('/admin/customers/' + encodeURIComponent(id));
-    const d = await r.json();
-    if (!d.available || !d.customer) throw new Error(d.reason || d.error || 'No disponible');
-    renderCustomer(d.customer);
-  } catch (e) {
-    document.getElementById('custBody').innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`;
-  }
-}
-function closeCustomer(){
-  document.getElementById('custDrawer').classList.remove('open');
-  if (!document.getElementById('chatDrawer').classList.contains('open')) document.body.classList.remove('drawer-open');
-  custCurrentId = null;
-}
-document.getElementById('custDrawer').addEventListener('click', (e) => { if (e.target.dataset.act === 'close-cust') closeCustomer(); });
-document.addEventListener('keydown', (e) => { if (e.key==='Escape' && document.getElementById('custDrawer').classList.contains('open')) closeCustomer(); });
-
-function renderCustomer(c){
-  document.getElementById('custName').textContent = c.name;
-  document.getElementById('custContact').innerHTML = [c.email, c.phone, c.address].filter(Boolean).map(escapeHtml).join(' · ') || '—';
-  const m = c.metrics || {};
-  const metricCards = [
-    { k:'TOTAL GASTADO', v: fmtMoney(m.totalSpent) },
-    { k:'PEDIDOS', v: m.ordersCount || 0 },
-    { k:'TICKET PROM.', v: fmtMoney(m.avgTicket) },
-    { k:'FRECUENCIA', v: m.freqDays != null ? m.freqDays + ' días' : '—' },
-    { k:'1ª COMPRA', v: fmtDate(m.firstOrder) },
-    { k:'ÚLTIMA', v: fmtDate(m.lastOrder) },
-  ];
-  const top = (c.topProducts||[]);
-  const maxTop = top.length ? top[0].qty : 1;
-  const monthly = (c.monthlySpend||[]);
-  const maxMonth = monthly.reduce((mx,x)=>Math.max(mx,x.amount),0) || 1;
-
-  document.getElementById('custBody').innerHTML = `
-    <div class="cust-metrics">${metricCards.map(x=>`<div class="cust-metric"><div class="cust-metric-k">${x.k}</div><div class="cust-metric-v">${escapeHtml(String(x.v))}</div></div>`).join('')}</div>
-
-    <div class="cust-sect">
-      <div class="cust-sect-t">Top 5 productos</div>
-      ${top.length ? top.map(p=>`<div class="cust-top"><span class="cust-top-name">${escapeHtml(p.name)}</span><div class="cust-top-bar"><span style="width:${Math.round(p.qty/maxTop*100)}%"></span></div><span class="cust-top-q">${p.qty}u</span></div>`).join('') : '<div class="adm-empty">Sin órdenes en el rango cargado.</div>'}
-    </div>
-
-    <div class="cust-sect">
-      <div class="cust-sect-t">Evolución de compras (mensual)</div>
-      ${monthly.length ? `<div class="cust-evo">${monthly.map(x=>`<div class="cust-evo-col" title="${x.month}: ${fmtMoney(x.amount)}"><div class="cust-evo-bar" style="height:${Math.max(4,Math.round(x.amount/maxMonth*90))}%"></div><span>${x.month.slice(5)}</span></div>`).join('')}</div>` : '<div class="adm-empty">Sin datos.</div>'}
-    </div>
-
-    <div class="cust-sect">
-      <div class="cust-sect-t">Historial de pedidos (${(c.orders||[]).length})</div>
-      ${(c.orders||[]).length ? c.orders.map(o=>`
-        <div class="cust-order">
-          <div class="cust-order-head"><b>${escapeHtml(o.name||('#'+o.id))}</b><span>${fmtDate(o.createdAt)}</span><span class="cust-order-total">${fmtMoney(o.total)}</span></div>
-          <div class="cust-order-items">${o.items.map(it=>`${escapeHtml(it.title)} ×${it.qty}`).join(' · ')}</div>
-          ${o.status?`<span class="cust-order-status">${escapeHtml(o.status)}</span>`:''}
-        </div>`).join('') : '<div class="adm-empty">Sin pedidos en el cache.</div>'}
-    </div>
-
-    <div class="cust-sect">
-      <div class="cust-sect-t">Conversaciones con Zorbot (${(c.conversations||[]).length})</div>
-      ${(c.conversations||[]).length ? c.conversations.map(cv=>`
-        <div class="cust-conv" data-sid="${escapeAttr(cv.sessionId)}">
-          <span class="cust-conv-prev">${escapeHtml(cv.firstUserMsg||'(sin mensaje)')}</span>
-          <span class="cust-conv-when">${escapeHtml(fmtRelative(cv.lastActivity||cv.startTime))}</span>
-        </div>`).join('') : '<div class="adm-empty">Sin chats asociados (se matchea por email/teléfono en los mensajes).</div>'}
-    </div>
-
-    <div class="cust-sect">
-      <div class="cust-sect-t">Notas internas</div>
-      <textarea class="cust-note" id="custNote" rows="4" placeholder="Observaciones del equipo sobre este cliente…">${escapeHtml(c.note||'')}</textarea>
-      <div class="cust-note-acts">
-        <span class="cust-note-meta">${c.noteUpdatedAt?('Última edición: '+fmtDate(c.noteUpdatedAt)):''}</span>
-        <button class="adm-btn adm-btn-gold" id="custNoteSave" type="button">Guardar nota</button>
-      </div>
-    </div>`;
-
-  // bind conversaciones → abrir el drawer de chat (reusa openConversation)
-  document.querySelectorAll('#custBody .cust-conv[data-sid]').forEach(el => {
-    el.onclick = () => { closeCustomer(); openConversation(el.dataset.sid); };
-  });
-  // bind guardar nota
-  document.getElementById('custNoteSave').onclick = async () => {
-    const note = document.getElementById('custNote').value;
-    const btn = document.getElementById('custNoteSave');
-    btn.disabled = true; const o = btn.textContent; btn.textContent = 'Guardando…';
-    try {
-      const r = await fetch('/admin/customers/' + encodeURIComponent(custCurrentId) + '/note', {
-        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ note }),
-      });
-      const data = await r.json();
-      if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
-      showToast('Nota guardada ✓', 'ok');
-      const ci = wsCache.findIndex(x => x.id === custCurrentId);
-      if (ci >= 0) wsCache[ci].hasNote = !!note.trim();
-    } catch (e) { showToast('Error: ' + e.message, 'err'); }
-    finally { btn.disabled = false; btn.textContent = o; }
-  };
-}
 
 function renderAnalytics(d){
   document.getElementById('anaRangeMeta').textContent = `rango: ${d.range.label} · ${d.totals.conversations} conversación${d.totals.conversations===1?'':'es'} en este rango`;
@@ -6530,6 +6319,296 @@ document.querySelectorAll('.adm-pillgroup[data-filter="range"] button').forEach(
   };
 });
 document.getElementById('btnReloadAna').onclick = loadAnalytics;
+
+// ═══════════ Comercial › Análisis de Datos › Analítica comercial ═══════════
+// Relocalizado tal cual desde Marketing › Analítica (misma lógica y datos, cambia
+// solo la ubicación): sell-out mayorista, top 10, crecimiento, mejores días,
+// combinaciones, mapa de calor, clientes mayoristas y top clientes por producto.
+// Filtro de rango independiente del de Marketing (andcRange, no anaRange) para no
+// interferir con esa pantalla.
+let andcRange = '30d';
+
+async function loadAnaliticaComercial(){
+  loadSalesAnalyticsAndc();
+  loadWholesaleAndc();
+}
+
+async function loadSalesAnalyticsAndc(){
+  const box = document.getElementById('andcSalesStats');
+  if (box) box.innerHTML = '<div class="adm-loading">Cargando ventas…</div>';
+  try {
+    const r = await fetch('/admin/analytics/sales?range=' + encodeURIComponent(andcRange));
+    const d = await r.json();
+    if (!d.available) { renderSalesEmptyAndc(d.reason); return; }
+    renderSalesAndc(d);
+  } catch (e) {
+    renderSalesEmptyAndc('Error cargando ventas: ' + e.message);
+  }
+}
+
+function renderSalesEmptyAndc(reason){
+  document.getElementById('andcSalesAvailable').style.display = 'none';
+  const el = document.getElementById('andcSalesEmpty');
+  el.style.display = '';
+  el.innerHTML = `
+    <div class="adm-empty-ico">📊</div>
+    <div class="adm-empty-title">Ventas no disponibles todavía</div>
+    <div class="adm-empty-text">${escapeHtml(reason || 'No hay data de ventas.')}</div>
+    <div class="adm-empty-hint">Para ver el sell-out mayorista, el token de Shopify necesita el permiso <code>read_orders</code>. Pedile al equipo que re-autorice la app de Zorbot en Shopify (Settings → Apps → re-instalar con el nuevo scope).</div>`;
+}
+
+function renderSalesAndc(d){
+  document.getElementById('andcSalesAvailable').style.display = '';
+  document.getElementById('andcSalesEmpty').style.display = 'none';
+  const s = d.summary || {};
+  document.getElementById('andcSalesStats').innerHTML = [
+    { k:'ÓRDENES MAYORISTAS', v: (s.orders||0).toLocaleString('es-CL'), sub: d.range.label },
+    { k:'RECAUDACIÓN', v: '$'+(s.revenue||0).toLocaleString('es-CL'), sub: 'solo productos MAYORISTA', tone:'gold' },
+    { k:'TICKET PROMEDIO', v: '$'+(s.avgTicket||0).toLocaleString('es-CL'), sub: 'por orden mayorista' },
+  ].map(c => `<div class="adm-stat ${c.tone?'tone-'+c.tone:''}"><div class="adm-stat-k">${c.k}</div><div class="adm-stat-v">${escapeHtml(c.v)}</div><div class="adm-stat-s">${escapeHtml(c.sub)}</div></div>`).join('');
+
+  renderBarChart('andcChartTopMoney', d.topMoney, { money:true, key:'andcSalesMoney' });
+  renderBarChart('andcChartTopQty',   d.topQty,   { money:false, key:'andcSalesQty' });
+  renderGrowthAndc(d.growth);
+  renderBestDaysAndc(d.bestDays);
+  renderCombosAndc(d.combos);
+  renderHeatmapAndc(d.heat);
+}
+
+function renderGrowthAndc(g){
+  const el = document.getElementById('andcSalesGrowth');
+  document.getElementById('andcGrowthSub').textContent = g ? `${g.thisMonthLabel} vs ${g.prevMonthLabel}` : 'por producto';
+  if (!g || !g.items.length) { el.innerHTML = '<div class="adm-empty">Sin datos de los últimos 2 meses.</div>'; return; }
+  el.innerHTML = g.items.map(it => {
+    const pctTxt = it.pct === null ? 'NUEVO' : (it.pct>0?'+':'')+it.pct+'%';
+    const cls = it.pct === null ? 'new' : (it.pct>=0?'up':'down');
+    return `<div class="adm-growth-row">
+      <span class="adm-growth-name">${escapeHtml(it.name)}</span>
+      <span class="adm-growth-vals">$${it.previous.toLocaleString('es-CL')} → $${it.current.toLocaleString('es-CL')}</span>
+      <span class="adm-growth-pct ${cls}">${pctTxt}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderBestDaysAndc(days){
+  const el = document.getElementById('andcSalesBestDays');
+  if (!days || !days.length) { el.innerHTML = '<div class="adm-empty">Sin datos.</div>'; return; }
+  const max = days[0].avg || 1;
+  el.innerHTML = days.map(d => `
+    <div class="adm-bestday">
+      <span class="adm-bestday-num">${d.day}</span>
+      <div class="adm-bestday-bar"><span style="width:${Math.round(d.avg/max*100)}%"></span></div>
+      <span class="adm-bestday-val">$${d.avg.toLocaleString('es-CL')}</span>
+    </div>`).join('');
+}
+
+function renderCombosAndc(combos){
+  const el = document.getElementById('andcSalesCombos');
+  if (!combos || !combos.length) { el.innerHTML = '<div class="adm-empty">Sin combinaciones aún.</div>'; return; }
+  el.innerHTML = combos.map(c => `
+    <div class="adm-combo">
+      <span class="adm-combo-pair">${escapeHtml(c.a)} <span class="adm-combo-plus">+</span> ${escapeHtml(c.b)}</span>
+      <span class="adm-combo-count">${c.count}×</span>
+    </div>`).join('');
+}
+
+function renderHeatmapAndc(heat){
+  const el = document.getElementById('andcSalesHeat');
+  if (!heat || !heat.length) { el.innerHTML = '<div class="adm-empty">Sin datos.</div>'; return; }
+  let max = 0;
+  for (const row of heat) for (const v of row) if (v > max) max = v;
+  const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  let html = '<div class="adm-heat-grid">';
+  html += '<div class="adm-heat-corner"></div>';
+  for (let h=0; h<24; h++) html += `<div class="adm-heat-hh">${h%3===0?h:''}</div>`;
+  for (let d=0; d<7; d++){
+    html += `<div class="adm-heat-day">${dayNames[d]}</div>`;
+    for (let h=0; h<24; h++){
+      const v = heat[d][h];
+      const intensity = max ? v/max : 0;
+      const bg = v ? `rgba(245,166,35,${(0.12+intensity*0.78).toFixed(2)})` : 'rgba(0,0,0,.03)';
+      html += `<div class="adm-heat-cell" style="background:${bg}" title="${dayNames[d]} ${h}:00 · $${Math.round(v).toLocaleString('es-CL')}"></div>`;
+    }
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+// ── Clientes mayoristas ──
+let andcWsCache = [];
+async function loadWholesaleAndc(force){
+  const list = document.getElementById('andcWsList');
+  list.innerHTML = '<div class="adm-loading">Cargando clientes…</div>';
+  try {
+    const r = await fetch('/admin/customers/wholesale' + (force?'?refresh=1':''));
+    const d = await r.json();
+    if (!d.available) {
+      list.innerHTML = `<div class="adm-empty">${escapeHtml(d.reason||'No disponible.')} ${/read_customers|read_orders/.test(d.reason||'')?'Re-autoriza la app de Shopify con el permiso de clientes.':''}</div>`;
+      document.getElementById('andcWsCount').textContent = '';
+      return;
+    }
+    andcWsCache = d.customers || [];
+    renderWholesaleAndc();
+  } catch (e) {
+    list.innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderWholesaleAndc(){
+  const q = (document.getElementById('andcWsSearch').value || '').toLowerCase().trim();
+  const sort = document.getElementById('andcWsSort').value;
+  let list = andcWsCache.slice();
+  if (q) list = list.filter(c => (c.name||'').toLowerCase().includes(q) || (c.email||'').toLowerCase().includes(q));
+  list.sort((a,b) => {
+    if (sort === 'spent')    return b.totalSpent - a.totalSpent;
+    if (sort === 'orders')   return b.orders - a.orders;
+    if (sort === 'inactive') return (new Date(a.lastOrder||0)) - (new Date(b.lastOrder||0));
+    return (new Date(b.lastOrder||0)) - (new Date(a.lastOrder||0)); // recent
+  });
+  document.getElementById('andcWsCount').textContent = `${list.length} cliente${list.length===1?'':'s'} mayorista${list.length===1?'':'s'}`;
+  const el = document.getElementById('andcWsList');
+  if (!list.length) { el.innerHTML = '<div class="adm-empty">No hay clientes que coincidan.</div>'; return; }
+  el.innerHTML = `
+    <div class="adm-ws-row adm-ws-th">
+      <span>Cliente</span><span>Total</span><span>Pedidos</span><span>Última compra</span><span>Más pedido</span>
+    </div>` + list.map(c => `
+    <div class="adm-ws-row" data-id="${escapeAttr(c.id)}">
+      <span class="adm-ws-name">${escapeHtml(c.name)}${c.hasNote?' <span class="adm-ws-noteflag" title="Tiene nota interna">📝</span>':''}<small>${escapeHtml(c.email||c.phone||'')}</small></span>
+      <span class="adm-ws-money">${fmtMoney(c.totalSpent)}</span>
+      <span>${c.orders}</span>
+      <span>${fmtDate(c.lastOrder)}</span>
+      <span class="adm-ws-top">${escapeHtml(c.topProduct||'—')}</span>
+    </div>`).join('');
+  el.querySelectorAll('.adm-ws-row[data-id]').forEach(row => {
+    row.onclick = () => openCustomerAndc(row.dataset.id);
+  });
+}
+
+document.getElementById('andcWsSearch').oninput = renderWholesaleAndc;
+document.getElementById('andcWsSort').onchange = renderWholesaleAndc;
+document.getElementById('andcWsReload').onclick = () => loadWholesaleAndc(true);
+
+// ── Ficha del cliente (drawer) ──
+let andcCustCurrentId = null;
+async function openCustomerAndc(id){
+  andcCustCurrentId = id;
+  const dr = document.getElementById('andcCustDrawer');
+  dr.classList.add('open'); document.body.classList.add('drawer-open');
+  document.getElementById('andcCustName').textContent = 'Cliente';
+  document.getElementById('andcCustContact').textContent = '—';
+  document.getElementById('andcCustBody').innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const r = await fetch('/admin/customers/' + encodeURIComponent(id));
+    const d = await r.json();
+    if (!d.available || !d.customer) throw new Error(d.reason || d.error || 'No disponible');
+    renderCustomerAndc(d.customer);
+  } catch (e) {
+    document.getElementById('andcCustBody').innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+function closeCustomerAndc(){
+  document.getElementById('andcCustDrawer').classList.remove('open');
+  if (!document.getElementById('chatDrawer').classList.contains('open')) document.body.classList.remove('drawer-open');
+  andcCustCurrentId = null;
+}
+document.getElementById('andcCustDrawer').addEventListener('click', (e) => { if (e.target.dataset.act === 'close-andc-cust') closeCustomerAndc(); });
+document.addEventListener('keydown', (e) => { if (e.key==='Escape' && document.getElementById('andcCustDrawer').classList.contains('open')) closeCustomerAndc(); });
+
+function renderCustomerAndc(c){
+  document.getElementById('andcCustName').textContent = c.name;
+  document.getElementById('andcCustContact').innerHTML = [c.email, c.phone, c.address].filter(Boolean).map(escapeHtml).join(' · ') || '—';
+  const m = c.metrics || {};
+  const metricCards = [
+    { k:'TOTAL GASTADO', v: fmtMoney(m.totalSpent) },
+    { k:'PEDIDOS', v: m.ordersCount || 0 },
+    { k:'TICKET PROM.', v: fmtMoney(m.avgTicket) },
+    { k:'FRECUENCIA', v: m.freqDays != null ? m.freqDays + ' días' : '—' },
+    { k:'1ª COMPRA', v: fmtDate(m.firstOrder) },
+    { k:'ÚLTIMA', v: fmtDate(m.lastOrder) },
+  ];
+  const top = (c.topProducts||[]);
+  const maxTop = top.length ? top[0].qty : 1;
+  const monthly = (c.monthlySpend||[]);
+  const maxMonth = monthly.reduce((mx,x)=>Math.max(mx,x.amount),0) || 1;
+
+  document.getElementById('andcCustBody').innerHTML = `
+    <div class="cust-metrics">${metricCards.map(x=>`<div class="cust-metric"><div class="cust-metric-k">${x.k}</div><div class="cust-metric-v">${escapeHtml(String(x.v))}</div></div>`).join('')}</div>
+
+    <div class="cust-sect">
+      <div class="cust-sect-t">Top 5 productos</div>
+      ${top.length ? top.map(p=>`<div class="cust-top"><span class="cust-top-name">${escapeHtml(p.name)}</span><div class="cust-top-bar"><span style="width:${Math.round(p.qty/maxTop*100)}%"></span></div><span class="cust-top-q">${p.qty}u</span></div>`).join('') : '<div class="adm-empty">Sin órdenes en el rango cargado.</div>'}
+    </div>
+
+    <div class="cust-sect">
+      <div class="cust-sect-t">Evolución de compras (mensual)</div>
+      ${monthly.length ? `<div class="cust-evo">${monthly.map(x=>`<div class="cust-evo-col" title="${x.month}: ${fmtMoney(x.amount)}"><div class="cust-evo-bar" style="height:${Math.max(4,Math.round(x.amount/maxMonth*90))}%"></div><span>${x.month.slice(5)}</span></div>`).join('')}</div>` : '<div class="adm-empty">Sin datos.</div>'}
+    </div>
+
+    <div class="cust-sect">
+      <div class="cust-sect-t">Historial de pedidos (${(c.orders||[]).length})</div>
+      ${(c.orders||[]).length ? c.orders.map(o=>`
+        <div class="cust-order">
+          <div class="cust-order-head"><b>${escapeHtml(o.name||('#'+o.id))}</b><span>${fmtDate(o.createdAt)}</span><span class="cust-order-total">${fmtMoney(o.total)}</span></div>
+          <div class="cust-order-items">${o.items.map(it=>`${escapeHtml(it.title)} ×${it.qty}`).join(' · ')}</div>
+          ${o.status?`<span class="cust-order-status">${escapeHtml(o.status)}</span>`:''}
+        </div>`).join('') : '<div class="adm-empty">Sin pedidos en el cache.</div>'}
+    </div>
+
+    <div class="cust-sect">
+      <div class="cust-sect-t">Conversaciones con Zorbot (${(c.conversations||[]).length})</div>
+      ${(c.conversations||[]).length ? c.conversations.map(cv=>`
+        <div class="cust-conv" data-sid="${escapeAttr(cv.sessionId)}">
+          <span class="cust-conv-prev">${escapeHtml(cv.firstUserMsg||'(sin mensaje)')}</span>
+          <span class="cust-conv-when">${escapeHtml(fmtRelative(cv.lastActivity||cv.startTime))}</span>
+        </div>`).join('') : '<div class="adm-empty">Sin chats asociados (se matchea por email/teléfono en los mensajes).</div>'}
+    </div>
+
+    <div class="cust-sect">
+      <div class="cust-sect-t">Notas internas</div>
+      <textarea class="cust-note" id="andcCustNote" rows="4" placeholder="Observaciones del equipo sobre este cliente…">${escapeHtml(c.note||'')}</textarea>
+      <div class="cust-note-acts">
+        <span class="cust-note-meta">${c.noteUpdatedAt?('Última edición: '+fmtDate(c.noteUpdatedAt)):''}</span>
+        <button class="adm-btn adm-btn-gold" id="andcCustNoteSave" type="button">Guardar nota</button>
+      </div>
+    </div>`;
+
+  // bind conversaciones → abrir el drawer de chat (reusa openConversation, feature de Marketing)
+  document.querySelectorAll('#andcCustBody .cust-conv[data-sid]').forEach(el => {
+    el.onclick = () => { closeCustomerAndc(); openConversation(el.dataset.sid); };
+  });
+  // bind guardar nota
+  document.getElementById('andcCustNoteSave').onclick = async () => {
+    const note = document.getElementById('andcCustNote').value;
+    const btn = document.getElementById('andcCustNoteSave');
+    btn.disabled = true; const o = btn.textContent; btn.textContent = 'Guardando…';
+    try {
+      const r = await fetch('/admin/customers/' + encodeURIComponent(andcCustCurrentId) + '/note', {
+        method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ note }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'HTTP ' + r.status);
+      showToast('Nota guardada ✓', 'ok');
+      const ci = andcWsCache.findIndex(x => x.id === andcCustCurrentId);
+      if (ci >= 0) andcWsCache[ci].hasNote = !!note.trim();
+    } catch (e) { showToast('Error: ' + e.message, 'err'); }
+    finally { btn.disabled = false; btn.textContent = o; }
+  };
+}
+
+// Bind range pills de Analítica comercial (independiente del de Marketing)
+document.querySelectorAll('.adm-pillgroup[data-filter="andcrange"] button').forEach(b => {
+  b.onclick = () => {
+    andcRange = b.dataset.v;
+    document.querySelectorAll('.adm-pillgroup[data-filter="andcrange"] button').forEach(x => x.classList.toggle('on', x === b));
+    loadSalesAnalyticsAndc();
+  };
+});
+document.getElementById('btnReloadAndc').onclick = loadAnaliticaComercial;
+
+// Cards de la landing de Análisis de Datos → navegan a cada acceso interno
+document.querySelectorAll('#andGrid [data-and]').forEach(card => {
+  card.onclick = () => selectSeccion(card.dataset.and);
+});
 
 // ─── Editor Página web (home) ─────────────────────────────────────────────────
 const WEB_DEFAULTS = {
@@ -8285,7 +8364,7 @@ async function runTopClientes(){
         <div class="mun-count">${d.count} clientes · ${d.totalUnits.toLocaleString('es-CL')} unidades · ${(d.totalPedidos||0).toLocaleString('es-CL')} pedidos · coincidencias: ${d.matchedProducts.map(escapeHtml).join(' · ')||'—'}</div>
         <button class="adm-btn adm-btn-gold" id="tcXlBtn" type="button">Descargar Excel</button>
       </div>
-      <div class="mun-hint">Tocá un cliente para ver el detalle de cada pedido.</div>
+      <div class="mun-hint">Toca un cliente para ver el detalle de cada pedido.</div>
       <div class="mun-wrap"><table class="mun-table">
         <thead><tr><th>#</th><th>Cliente</th><th>Contacto</th><th style="text-align:right">Unidades</th><th style="text-align:right">Gasto</th><th style="text-align:right">Pedidos</th><th>Última</th></tr></thead>
         <tbody>${rows}</tbody>
@@ -10630,7 +10709,7 @@ function renderHoreca(){
   // Resumen IA
   const R=horecaResumen;
   const iaTxt=R&&R.texto?`<div style="white-space:pre-wrap;line-height:1.5;font-size:.9rem">${escapeHtml(R.texto)}</div><div style="font-size:.7rem;color:#9098a3;margin-top:.4rem">Generado ${R.generadoEn?prodDT(R.generadoEn):''} · solo con cifras reales de Pyxis</div>`
-    :`<div style="color:#7a8290;font-size:.85rem">Todavía no hay resumen. Apretá "Generar resumen" para que la IA analice las ventas (solo con números reales).</div>`;
+    :`<div style="color:#7a8290;font-size:.85rem">Todavía no hay resumen. Presiona "Generar resumen" para que la IA analice las ventas (solo con números reales).</div>`;
   const ia=`<div class="ks-card" style="margin-bottom:1rem;padding:1rem;border-radius:12px;background:#fff;border:1px solid #eef0f3">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.5rem"><b style="color:#0b2a5e">🤖 Resumen inteligente</b>
     <button class="adm-btn adm-btn-gold" id="horecaIA" type="button" style="font-size:.75rem">${R&&R.texto?'↻ Actualizar':'Generar resumen'}</button></div>${iaTxt}</div>`;
@@ -10798,11 +10877,11 @@ async function loadPyxisDocs(){
     if(pyxisDocsF.local)q.set('local',pyxisDocsF.local); if(pyxisDocsF.src)q.set('src',pyxisDocsF.src);
     const r=await fetch('/admin/pyxis/documentos?'+q.toString()); const d=await r.json(); if(!r.ok||d.error) throw new Error(d.error||'Error');
     pyxisDocsData=d; renderPyxisDocs();
-  }catch(e){ body.innerHTML='<div class="est-note" style="color:#c0392b;margin:1rem">⚠ '+escapeHtml(String(e.message||e))+'<br><span style="color:#666">Revisá que Pyxis esté conectado (Producción → Configuración → Integración ERP · Pyxis).</span></div>'; }
+  }catch(e){ body.innerHTML='<div class="est-note" style="color:#c0392b;margin:1rem">⚠ '+escapeHtml(String(e.message||e))+'<br><span style="color:#666">Revisa que Pyxis esté conectado (Producción → Configuración → Integración ERP · Pyxis).</span></div>'; }
 }
 function renderPyxisDocs(){
   const d=pyxisDocsData; if(!d) return;
-  const locOpts=['<option value="">— Elegí un local —</option>'].concat((d.locales||[]).map(l=>`<option value="${l.id}" ${String(l.id)===String(pyxisDocsF.local)?'selected':''}>${escapeHtml(l.nombre)}</option>`)).join('');
+  const locOpts=['<option value="">— Elige un local —</option>'].concat((d.locales||[]).map(l=>`<option value="${l.id}" ${String(l.id)===String(pyxisDocsF.local)?'selected':''}>${escapeHtml(l.nombre)}</option>`)).join('');
   const famOpts=[['bl','Bebidas + Licores'],['todos','Todas las familias'],['bebida','Solo Bebidas'],['licor','Solo Licores']].map(([v,t])=>`<option value="${v}" ${pyxisDocsF.familia===v?'selected':''}>${t}</option>`).join('');
   const filtros=`<div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:flex-end;background:#f7f8fa;border:1px solid #eef0f3;border-radius:12px;padding:.7rem .9rem;margin-bottom:1rem">
     <label class="cg-field"><span>Desde</span><input type="date" id="pdIni" class="costeo-svc" value="${pyxisDocsF.ini}"></label>
@@ -10813,7 +10892,7 @@ function renderPyxisDocs(){
     <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="pdBuscar" type="button">Buscar</button></div>
   </div>`;
   const clp=hClp;
-  if(!pyxisDocsF.local){ document.getElementById('pyxisdocsBody').innerHTML=filtros+'<div class="est-note" style="color:#7a8290">Elegí un <b>local</b> y apretá Buscar para ver sus facturas de compra.</div>'; wirePyxisDocs(); return; }
+  if(!pyxisDocsF.local){ document.getElementById('pyxisdocsBody').innerHTML=filtros+'<div class="est-note" style="color:#7a8290">Elige un <b>local</b> y presiona Buscar para ver sus facturas de compra.</div>'; wirePyxisDocs(); return; }
   const rows=(d.docs||[]).map(x=>`<tr>
     <td>${escapeHtml((x.fecha||'').slice(0,10))}</td>
     <td class="dist-num">${x.folio}</td>
@@ -10823,13 +10902,13 @@ function renderPyxisDocs(){
     <td class="dist-num" style="font-weight:700">${clp(x.total)}</td>
     <td><button class="adm-btn adm-btn-ghost" data-fact="${x.folio}" data-rut="${escapeAttr(x.rut||'')}" data-fam="${escapeAttr(x.familia||'')}" type="button" style="font-size:.72rem">📄 Ver factura</button></td>
   </tr><tr class="pd-fact-row" id="pdFact${x.folio}" style="display:none"><td colspan="7"></td></tr>`).join('');
-  const tabla=(d.docs&&d.docs.length)?`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Fecha</th><th>Folio</th><th>Proveedor</th><th>Tipo</th><th>Familia</th><th>Total</th><th>Factura</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="est-note" style="color:#7a8290">No hay documentos de bebidas/licores para ese local y rango. Probá otro rango o quitá la búsqueda.</div>';
+  const tabla=(d.docs&&d.docs.length)?`<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Fecha</th><th>Folio</th><th>Proveedor</th><th>Tipo</th><th>Familia</th><th>Total</th><th>Factura</th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="est-note" style="color:#7a8290">No hay documentos de bebidas/licores para ese local y rango. Prueba otro rango o quita la búsqueda.</div>';
   const ref=`<div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin:1rem 0 .5rem"><div class="cg-form-title" style="margin:0">💰 Precio de referencia (compra + IVA + ILA)</div><button class="adm-btn adm-btn-gold" id="pdRef" type="button" style="font-size:.75rem">Analizar facturas visibles</button></div><div id="pdRefBox">${pyxisRefBoxHtml()}</div>`;
   document.getElementById('pyxisdocsBody').innerHTML=filtros+`<div class="est-note" style="margin-bottom:.6rem">${(d.docs||[]).length} documento(s) · ${escapeHtml(d.ini)} → ${escapeHtml(d.end)}. Cada factura muestra el precio de compra (sin imp.) y el <b>precio con IVA + ILA</b> — tu referencia para el precio de venta.</div>`+tabla+ref;
   wirePyxisDocs();
 }
 function pyxisRefBoxHtml(){
-  const r=pyxisRefData; if(!r) return '<div class="est-note" style="color:#7a8290">Apretá "Analizar facturas visibles" — leo cada factura (PDF) con IA, saco los productos y calculo el precio con IVA + ILA de cada uno (ron 31%, whisky/gin/pisco/vodka 31%, cerveza/vino 20,5%).</div>';
+  const r=pyxisRefData; if(!r) return '<div class="est-note" style="color:#7a8290">Presiona "Analizar facturas visibles" — leo cada factura (PDF) con IA, saco los productos y calculo el precio con IVA + ILA de cada uno (ron 31%, whisky/gin/pisco/vodka 31%, cerveza/vino 20,5%).</div>';
   if(!r.items||!r.items.length) return '<div class="est-note" style="color:#7a8290">No se encontraron bebidas/licores en las facturas analizadas.</div>';
   const clp=hClp;
   const rows=r.items.map(i=>`<tr><td>${escapeHtml(i.descripcion)}</td><td><span class="adm-cat-chip">${escapeHtml(i.tipo)}</span> <span style="font-size:.66rem;color:#9098a3">+${i.impPct}%</span></td><td class="dist-num">${clp(i.precioProm)}${i.precioMin!==i.precioMax?('<div style="font-size:.66rem;color:#9098a3">'+clp(i.precioMin)+'–'+clp(i.precioMax)+'</div>'):''}</td><td class="dist-num" style="font-weight:800;color:#1f8a70">${clp(i.precioConImpProm)}</td><td class="dist-num">${i.veces}</td></tr>`).join('');
@@ -10853,7 +10932,7 @@ async function pyxisVerFactura(folio,rut,familia){
     const lr=(f.lineas||[]).map(l=>`<tr><td>${escapeHtml(l.codigo||'')}</td><td>${escapeHtml(l.descripcion||'')}</td><td class="dist-num">${l.cantidad||0}</td><td class="dist-num">${clp(l.precioUnit)}</td><td>${l.tipo&&l.tipo!=='ninguno'?('<span class="adm-cat-chip">'+escapeHtml(l.tipo)+'</span> <span style="font-size:.66rem;color:#9098a3">+'+l.impPct+'%</span>'):'<span style="color:#c9ced6">—</span>'}</td><td class="dist-num" style="font-weight:800;color:#1f8a70">${l.tipo&&l.tipo!=='ninguno'?clp(l.precioConImp):'—'}</td></tr>`).join('');
     cell.innerHTML=`<div style="padding:.5rem .3rem"><div style="font-size:.8rem;color:#7a8290;margin-bottom:.3rem"><b>${escapeHtml(f.proveedor||'')}</b> · folio ${escapeHtml(String(f.folio))} · ${escapeHtml((f.fecha||'').slice(0,10))} · Neto ${clp(f.neto)} · IVA ${clp(f.iva)} · Total ${clp(f.total)}</div>
       <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Cód.</th><th>Descripción</th><th>Cant.</th><th>P. compra (sin imp.)</th><th>Tipo</th><th>Precio c/IVA+ILA</th></tr></thead><tbody>${lr}</tbody></table></div>
-      <div style="font-size:.68rem;color:#9098a3;margin-top:.3rem">Precio con impuestos = precio de compra × (1 + 19% IVA + ILA según tipo). Leído del PDF por IA — verificá si algo no calza.</div></div>`;
+      <div style="font-size:.68rem;color:#9098a3;margin-top:.3rem">Precio con impuestos = precio de compra × (1 + 19% IVA + ILA según tipo). Leído del PDF por IA — verifica si algo no calza.</div></div>`;
   }catch(e){ cell.innerHTML='<div class="est-note" style="color:#c0392b;padding:.6rem">⚠ '+escapeHtml(String(e.message||e))+'</div>'; }
 }
 async function pyxisAnalizarRef(){
@@ -12964,7 +13043,7 @@ updateChatModeLabel();
 const KS_ICON = {
   analytics:'📊', ads:'📣', mundial:'🏆', chats:'💬', feedback:'📝', marcas:'🎨', web:'🌐', tutoriales:'🎬',
   general:'⚙️', kairos:'🍺', firulais:'🐶', banny:'🥃', mayorista:'🤝',
-  productos:'🏷️', puntos:'📍', topclientes:'⭐',
+  productos:'🏷️', puntos:'📍', analisisdatos:'🧭', horeca:'🍺', pyxisdocs:'🧾', analiticacomercial:'⭐',
   distribuidora:'🚚', rutas:'🗺️', mantenimiento:'🔧',
   costeo:'🧾', oee:'📊', calidad:'🏅', inventarios:'🗃', estado:'💰', costos:'💸', gastos:'🧮', nomina:'👥', equipo:'🪪', pnl:'📈', forecast:'🔮',
   produccion:'🏭'
