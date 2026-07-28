@@ -14486,6 +14486,15 @@
         "rendimiento": null,
         "volumen": 1,
         "ila": 0
+      },
+      {
+        "id": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+        "descripcion": "COCA COLA LATA CHICA",
+        "precioNeto": 544,
+        "unidad": "litro",
+        "rendimiento": null,
+        "volumen": 1,
+        "ila": 0
       }
     ],
     "recetasBase": [
@@ -20755,6 +20764,1526 @@
         ],
         "precioReal": null,
         "iva": false
+      },
+      {
+        "id": "6a3c416d-3f12-414e-911a-731c4223b87e",
+        "nombre": "Citadelle Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "3030fb3f-6e17-4c1f-93e2-cf26d43a1bd5",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "cd1ce852-163c-4d6c-a5a9-648add935c8f",
+        "nombre": "Hendricks Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "cce73d5c-f5eb-4837-8dbe-1bbf258c5c14",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "532e6ef2-8871-481f-88f2-85ec5b595eee",
+        "nombre": "Tanqueray Ten Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "b70e7eb1-0117-4447-bff7-44ce5ccc36e6",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "2c91afe0-4a1d-429a-b2c8-5662409730b6",
+        "nombre": "Tanqueray London Dry Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "f9a2606c-16a7-4a6a-b2e3-f9cd64eb6e72",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "eec4a137-d9c4-4166-a278-fa18808858eb",
+        "nombre": "Tanqueray Sevilla Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "be4d56db-ac91-4fa4-a199-de6869acb3b8",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "e6e8729e-f14e-4e88-96ea-2560966122c5",
+        "nombre": "Tanqueray Royale Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "0272eb13-8733-4314-8b20-395d2e3b7bad",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "8c8ad52d-faa2-4f5c-a499-fa9e5a5c3bb5",
+        "nombre": "Gin Mare Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "a2838ed2-4494-4da7-83ee-43206171f070",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "1e3a8e30-24a0-4193-85e0-6f87051f7c7d",
+        "nombre": "Republica Amazonica Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "205039f5-abde-4f95-bb68-12bd4f56f58a",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "1ed07407-1882-44e4-953e-8f673809517a",
+        "nombre": "Bombay Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "072ca307-3cc9-46e9-826c-b8912f39dbe3",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "41abcb19-00ec-48a9-9137-49603d40c0f8",
+        "nombre": "Beefeter Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "97d8a588-e392-40a5-b7d9-1e25eaff21c7",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "55063de7-ead4-440e-ae60-7f7c281c5075",
+        "nombre": "Beefeter Pink Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "9680417e-bc15-400f-b75f-022514b667ff",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "8bbf3972-d35d-40c2-b7b2-4d913a535abb",
+        "nombre": "Gin Banny Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "4e50f066-7508-43b5-9fb7-27059f8ede0b",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "39e58226-e8fa-447d-865c-5c3bda174a47",
+        "nombre": "Johnnie Walker Blue Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "83df1841-3d34-4a98-b8a6-2eb830113ce1",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "6142f9e7-cc3a-4e13-9c0f-40537e35d0ab",
+        "nombre": "Johnnie Walker Gold Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "7d2b21bd-33fb-4e7a-879b-7adcc8e81919",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "eed86d5d-527a-45ab-9fb9-bba433dfc469",
+        "nombre": "Johnnie Walker Red Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "b90ea8bb-dcd8-4cfe-a721-b440776c91ed",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "bacf190d-2035-46e6-8c26-c5113f72e2af",
+        "nombre": "Johnnie Walker Black Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "418ca36f-919e-4d3b-8841-aad361046303",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "591c2fc6-dd21-4275-ae92-ae20acb03cd4",
+        "nombre": "Johnnie Walker Double Black Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "384f013a-c1e1-42eb-81c2-1f1f9f20528a",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "f0cb8009-020f-4e52-a5ab-f9b202de9303",
+        "nombre": "Jack Daniels Gentleman Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "abc31379-7486-4b19-9fea-d0753c67b2ab",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "d60031ca-66bc-4fc4-95ad-8a9da666f306",
+        "nombre": "Jack Daniels Old 7 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "721480ca-45f9-4d1f-9ef9-0155bd1f0edc",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "675211dc-cc47-495b-868e-bc1a84d5b940",
+        "nombre": "Jack Daniels Honey Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "667bd8a6-1c21-4d4c-8380-f25a29f050cc",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "8ad1b5e6-ce4c-400c-b8ab-10cdabc168f7",
+        "nombre": "Jack Daniels Apple Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "9846a585-38da-4b9a-bff8-5369ed27cd26",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "af566aa1-3e5c-4ecd-ad09-35c50973d1fb",
+        "nombre": "Chivas Regal 18 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "5ffdb6e0-d8ca-4681-b424-fef7ad5b0874",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "904ecf3e-db1a-4dc6-8999-affbae0c3d61",
+        "nombre": "Chivas Regal 12 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "66ba35e9-5d2c-41f7-8af7-c7dcc3515fee",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "f3b4f534-3bd1-46df-b936-41be5e7d59ca",
+        "nombre": "Jim Beam Bourbon Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "601d447c-62c0-4444-b89f-335f0235cf29",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "74ae1b09-2c52-4e13-b869-44f6063fc233",
+        "nombre": "Bulliet Bourbon Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "623f980f-8479-4393-97ad-d28a7222107f",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "a887b3bd-532f-4042-960c-00760d993b3f",
+        "nombre": "Ballantines Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "fae5c04c-5f32-48a6-81d6-2164c07c00f0",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "78a89aac-f7ca-45b0-8df2-13dcd5e017c5",
+        "nombre": "Ballantines Blended 7 Años Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "aabc8fcc-fb43-4332-907f-364e8e03134c",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "980ec207-5e79-4f9c-a580-7816f5229983",
+        "nombre": "Buchanan´S 12 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "1d39e036-21a9-42a5-a11e-35ef0717ef4d",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "831c6d40-93b8-4aec-b6ab-06d065fd9ba4",
+        "nombre": "Glenfiddich 12 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "8724b59a-bb50-4238-a796-f499b98c7fb9",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "d646a07d-11e7-4a3a-ae28-ee913258a734",
+        "nombre": "The Singleton 12 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "1d066276-63f6-40ab-9c57-f89f34f02b18",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "3a293ba0-53a0-4b06-8b0d-eeeb44bcbb3b",
+        "nombre": "Johnnie Walker Blonde Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "51d4c5d5-bed4-468d-ba7d-854208c49067",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "e6930430-eb09-4be1-bc11-67aabd1cd566",
+        "nombre": "Grey Goose Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "4015f532-9ed9-44d9-83e9-ce3901d38d3d",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "f162769c-ed72-44ae-88a8-65f4f313f2f9",
+        "nombre": "Stolichnaya Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "621dbc15-b4c0-4fe8-be69-1be892ef3fef",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "a64ee28c-10fe-4a46-a1b7-e360f2a692dd",
+        "nombre": "Absolute Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "87d2cf01-8516-4f4a-a1db-380579c7af39",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "c78e2759-c0f2-4271-8af5-16b98445094c",
+        "nombre": "Absolute Vainilla Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "cee62240-2bd3-4cfb-9af9-1ca93567e16f",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "9d544727-a68e-4f66-8da1-7e14ac94d4f1",
+        "nombre": "Belvedere Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "509ba80e-5a52-4270-99a5-f6a51e236c72",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "a7dcd6dc-010c-4412-96e9-5fe9937f2a3e",
+        "nombre": "Cuatro Gallos Italia Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "9a522d83-e4d4-4fe7-8a93-1ee319d3528f",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "f654e00b-9949-4159-88de-95398b3fcfd5",
+        "nombre": "Alto Del Carmen Etiqueta Negra Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "a9f75ae3-2434-411a-ba26-c8772f6ba2d1",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "50e2d523-ae81-45ae-a708-1997cd0084fd",
+        "nombre": "Alto Del Carmen 40° Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "d641c4bb-b33f-4c2f-95cd-28f52e49406b",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "0067c2d9-0ab0-4135-b549-8df9e9350041",
+        "nombre": "Alto Del Carmen Transparente 40° Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e9165229-23cf-4887-8b92-4fb4459caf00",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "04884c53-a6f5-4492-98c4-906e809ee413",
+        "nombre": "Alto Del Carmen 35° Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "697437cf-20fd-4b21-afb2-0969a54642bd",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "11bd8915-9047-407d-8f74-362988cb720d",
+        "nombre": "Mistral Nobel Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "523cf186-83fb-4d16-92a4-6a817b1184f3",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "2c901c37-ca87-48e3-b64f-b7b2dd472f78",
+        "nombre": "Mistral Nobel Honey Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "d5c784cf-38ad-4a1e-95a6-feb1326da750",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "1e77f289-96d8-46b7-9e42-4d9c682770ac",
+        "nombre": "Mistral Nobel Apple Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "5224d81e-f198-4994-8444-afd9d89a3992",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "dc7526ba-dec5-4385-b66d-0599446398fa",
+        "nombre": "Mistral 40° Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "0447ebb0-738e-4a6a-b8d4-307b9e6de4f2",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "9d301e3d-e760-4bc1-a611-6f60631ccb54",
+        "nombre": "Mistral 35° Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "a5ca705c-31f3-4aad-880a-3c57f719ee69",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "f510c35d-712e-4da3-a73e-72df663b9a1d",
+        "nombre": "Orcon Quemado Añejado Reservado 40° Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e30382a0-9a7f-459a-807c-f4fbd28aa9bc",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "a384fc04-1cd7-4ebe-908d-43005240a4ed",
+        "nombre": "Pampero Aniversario Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "fc650f09-0b58-494b-962d-511cd559e233",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "664ee44d-ff6d-4965-a21f-8855ba422a00",
+        "nombre": "Flor De Caña 12 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "2b0e7161-cbec-4336-8afe-64708e42ca18",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "6e6ba71f-d3b6-4715-9926-f88e03f06c06",
+        "nombre": "Bacardi Carta De Oro Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "fc6d859c-4471-42e0-a5d6-f1e82ee418e1",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "6bba3594-042c-4f1f-8f6d-57ae80f7d836",
+        "nombre": "Bacardi Carta Blanca Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "3b51ebd5-8e2a-4015-a9cd-585593ccf1ae",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "ab0f566f-014b-4667-9c61-2041c8a58614",
+        "nombre": "Bacardi Añejo Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "24e65e24-a90e-4661-8040-ed9dbd28e058",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "0ebdb04f-6f3e-4775-a81d-5d1f765efe98",
+        "nombre": "Havana Club Especial Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "ae7e4b55-1b6d-48df-8433-5cce28cf26d4",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "765f0697-fee3-43d8-a152-fd2118d0724c",
+        "nombre": "Havana Club 7 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "60923175-4d22-4144-89f3-9195dae726b1",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "6c1c5b1b-ac03-4388-b295-cd95ac0d923b",
+        "nombre": "Havana Club Selección De Maestros Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "4d657a92-cea3-4688-9d33-a61b82fd52b6",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "5f7fe340-2d57-46b6-b69c-4e048be5c741",
+        "nombre": "Zacapa 23 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e5ece529-ce1a-461e-882c-485e7d514d60",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "60a51d0a-39e4-470d-b3a0-e51f105ac7c9",
+        "nombre": "Pampero Especial Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "3fa365d7-1fc2-4e71-b90f-f1748e2cb4d8",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "7ad0d75d-45e7-453d-85c6-62d24148353a",
+        "nombre": "Ron Rey De Copas Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "1a62b90f-2358-40fb-bafb-2399ec04c9db",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "3d791783-4785-4a6b-81e1-575ea8323075",
+        "nombre": "Herradura Silver Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "f3520200-9513-42fc-9054-2f35a6ed60e4",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "b3a8db46-3718-4043-ba39-4e61dd00e3f3",
+        "nombre": "Herradura Reposado Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "3af1a4e2-4c0e-4e67-96a1-5b04131d06f4",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "aac43c52-5bd7-44fb-98ab-3922248a9b04",
+        "nombre": "Olmeca Silver Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "3be08769-500f-4cbf-9a4b-2def107aa50e",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "1b88b69c-377f-4d52-bed0-b3e0b59d1b93",
+        "nombre": "Olmeca Reposado Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "c65a6ac0-38ab-40c4-a597-00e4adfe9864",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "8df98983-d32a-4038-bffe-1d1198a708a7",
+        "nombre": "Jose Cuervo Silver Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "475ce004-1619-40cb-bcd3-06c3086d4b66",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "e171768b-404d-4e1d-8663-6bae3e17ecce",
+        "nombre": "Jose Cuervo Reposado Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "276ddf42-1bb2-4e97-b367-146aa7b74a79",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "1c27221e-b4d6-4fb2-bab8-54dc68ffff44",
+        "nombre": "Don Julio Blanco Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "4b7118a1-b2a4-4f21-9000-d7fbf77f5d38",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "cfd1ada5-6db3-4587-bcce-3f6b790c1727",
+        "nombre": "Don Julio Reposado Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "31fd69d8-0d76-4f28-882b-1f49f6b5c7e1",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "a1cbc65d-e4ea-4e97-9f9f-7671813871ba",
+        "nombre": "Frangelico Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "728e87e2-4cd6-4a1e-b9a3-43dbdaa99f71",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "ac2e47b7-2c00-4bed-86b5-95bb37f24c0f",
+        "nombre": "Pobre Vermouth Rosso Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "f10a0f75-dbe2-4e12-87dd-18fe43a5dc5a",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "bcfdba72-8999-4a0f-b986-1008a2c13d16",
+        "nombre": "Pobre Vermouth Blanco Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "cee2a5b9-a02b-47f9-9b55-1284483badb6",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "b6a6f1eb-1b75-4504-9552-fab53c7ff7f3",
+        "nombre": "Baileys Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "60998192-a697-4976-ba62-12ee52191494",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "05220f6e-52b9-4412-9a2c-66e4069b54b9",
+        "nombre": "Disaronno Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "a611fa88-5993-4fc6-a4db-54df2f2a999f",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "60806838-6a85-48f0-a77d-f45b19923d2f",
+        "nombre": "Fernet Branca Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "4b2848e0-e8f7-48e4-9b82-0b2d39e50f99",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "22fe67b7-c384-4722-a23c-db7d9544c0af",
+        "nombre": "Jagermeister Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e16e820b-84af-48ce-9266-4acb4e1689f9",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "75477556-e64a-4353-9c5b-242b6c02eba3",
+        "nombre": "Martini Fiero Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "c4b57760-ebcf-4899-bd2a-05e6f2a2f79a",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "5468bfd8-b466-407b-b0ef-2acc9f07eab9",
+        "nombre": "Drambui Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "1be514fd-97b6-4d30-840d-7c1304f41d84",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "72b9c212-8d40-4f6e-be52-7a33c3943a57",
+        "nombre": "Campari Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "a4ed26ed-0d93-421d-b49a-e25af291193c",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "a41b6a5f-7fea-489a-bd88-47f8199a90fc",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
       }
     ],
     "categorias": [
@@ -20795,7 +22324,8 @@
       "Gaseosas",
       "Agua",
       "Jugos",
-      "Ice tea"
+      "Ice tea",
+      "Cortos"
     ],
     "carta": {
       "v": 0,
@@ -23814,6 +25344,15 @@
         "volumen": 1,
         "ila": 20.5,
         "despacho": 868
+      },
+      {
+        "id": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+        "descripcion": "COCA COLA LATA CHICA",
+        "precioNeto": 444,
+        "unidad": "litro",
+        "rendimiento": null,
+        "volumen": 1,
+        "ila": 0
       }
     ],
     "recetasBase": [
@@ -26859,6 +28398,1526 @@
         "lineas": [],
         "precioReal": 9770,
         "iva": false
+      },
+      {
+        "id": "bebbc341-f45e-474e-833a-eba66e87bd9c",
+        "nombre": "Citadelle Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "6d9a39e7-388f-4c96-b875-a749b474862b",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "0ca8be74-2aaf-479f-995d-ab6c0df8d44f",
+        "nombre": "Hendricks Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "1cd86cf4-6dd0-471c-b97d-f9792d48bf99",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "4a12a865-a27f-499e-8f07-aa62105f8931",
+        "nombre": "Tanqueray Ten Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "d370ca3f-d7ce-4aae-94dd-a2092e9149fe",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "a705dd28-4159-44b6-9165-28a3516ad835",
+        "nombre": "Tanqueray London Dry Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "c4283228-4df1-4047-8e1a-39ef8861e669",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "154e60ee-f07e-47cf-a544-b137e1faf396",
+        "nombre": "Tanqueray Sevilla Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "ddb1fe34-b555-46b5-99e2-5de24bf018ff",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "8fe722bb-a41d-4bf7-88ce-cb143d0c65f8",
+        "nombre": "Tanqueray Royale Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "bddae811-d856-4ca8-9c5e-e1a84aaca64f",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "502a1831-6ab7-4d05-b6f2-9e79cc87517d",
+        "nombre": "Gin Mare Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "d4d5d291-1212-4652-a99a-8e0b982e590e",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "6bae405d-0826-453a-837a-1a503562e8ba",
+        "nombre": "Republica Amazonica Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "ac5399a1-8987-426b-a468-513d711e6cbf",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "ddbe0db5-e2b9-4dc8-9872-e5b0a75a27e8",
+        "nombre": "Bombay Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "c363ec49-e567-4ed6-8f98-9feabaaabeb4",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "37166991-fda4-48a5-85d2-c893c194198a",
+        "nombre": "Beefeter Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "159f6f3c-1405-4438-b19a-5f7dc322c0e8",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "b4069378-fcd2-4f02-bea1-bc0eb5c4bd4e",
+        "nombre": "Beefeter Pink Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "335c1587-a87a-4643-8799-e71094d7ab06",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "adaf9ae6-719d-4449-a2c7-ecfe49c9e6f9",
+        "nombre": "Gin Banny Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "b029e0f8-e8e8-4867-bf81-539d32b717e1",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "6b249ce2-8cb2-4ce4-872f-27e4cdc37a94",
+        "nombre": "Johnnie Walker Blue Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "f13e4c80-f175-4f4b-95a6-3c3fa00ef077",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "380a6435-d6e4-4a65-9c80-728d5c6ffa9c",
+        "nombre": "Johnnie Walker Gold Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "9b516eba-8cf4-4e18-97e1-8e737991392e",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "04ba8a38-94db-4bf1-aed8-ae0c3c6876a2",
+        "nombre": "Johnnie Walker Red Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "73fc08b8-59b1-4f4d-9107-e12789f700b8",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "df4c1839-f8d3-4131-b9e2-96bc28c4dc1e",
+        "nombre": "Johnnie Walker Black Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "01b36252-3ecc-4805-9680-23b0b61e4ede",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "076214cf-133d-4b03-8bb8-80abaf6b075a",
+        "nombre": "Johnnie Walker Double Black Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "ac68918f-228e-466c-833c-cda64feee963",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "e092a465-8ac8-4558-b2c2-5640a01b0bcd",
+        "nombre": "Jack Daniels Gentleman Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "5cb7ffc3-9faf-4844-85c6-88536d14eb17",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "82eead0e-dcc1-447e-9ddd-93fe397e9c44",
+        "nombre": "Jack Daniels Old 7 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "fe2e3e12-cc22-495f-b339-55b41ff4210b",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "a78162e9-e305-4c39-9ef0-d67720ad169c",
+        "nombre": "Jack Daniels Honey Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "2ad43d72-b8df-482b-aaa7-86103e8930fd",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "d867d6fa-5fc7-4065-a8bb-9b3555139ef8",
+        "nombre": "Jack Daniels Apple Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "79eddc06-6042-4251-80c2-17ccc680e2e3",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "769c4fc5-1c1b-4be3-a6bc-f095b2f45fa1",
+        "nombre": "Chivas Regal 18 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "103ccb7b-5c2c-4c6c-babc-e483395606fc",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "7289f195-de37-438d-8365-bc0e65e37c7f",
+        "nombre": "Chivas Regal 12 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e77d8935-2326-4257-ace5-d5abb1557657",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "3146bc71-2912-4582-b0eb-b4c721a9546f",
+        "nombre": "Jim Beam Bourbon Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "ecc9387d-e2a0-4a6e-83e1-b5ce1026fafc",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "8667aa5f-7421-4c44-b082-ba22695ef0d8",
+        "nombre": "Bulliet Bourbon Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "a24e6abe-332d-4437-8b37-aa0c95284da7",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "52e838fe-66ee-4e97-a940-56824f920031",
+        "nombre": "Ballantines Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "aa409e9d-8531-483b-a226-c75dcaf42a72",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "751e3c07-bbdf-482c-b273-50364f1d0616",
+        "nombre": "Ballantines Blended 7 Años Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "4c6d6c0b-100a-44b5-b1fa-21615094587f",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "9439856e-7c93-4610-8c22-7f3c86895516",
+        "nombre": "Buchanan´S 12 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "ec446669-8363-4f41-abe0-d5c096f53512",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "870fc297-c29a-4912-9fba-f580ae5924b1",
+        "nombre": "Glenfiddich 12 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "7ed58c50-ed89-4620-981f-0cd0aef037b0",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "be23808b-5f2d-4afa-af17-7752dac0351f",
+        "nombre": "The Singleton 12 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "aa560485-c22b-4854-b7b2-c53c8b7eaeaf",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "87cd4ed6-4a38-4d4b-aeec-09a3a86051f4",
+        "nombre": "Johnnie Walker Blonde Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "1ff551db-06f7-4353-b0a9-4b201b18e20f",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "6988808a-e265-4b97-a053-e7557ae56bd7",
+        "nombre": "Grey Goose Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "3f729610-522b-43c6-a972-532b50acaba5",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "afc11fd0-5ca9-4a6f-b6ec-990c944bba78",
+        "nombre": "Stolichnaya Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "c246c519-1a1c-4120-84f9-80f73ec5df58",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "4b78d053-800a-4c35-9e5a-f4ab42d42dc5",
+        "nombre": "Absolute Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "dc113ccc-d70c-45f5-a024-51b10aadd537",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "ffc722cd-6016-428d-bbb1-35bd82ad03af",
+        "nombre": "Absolute Vainilla Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "de7c9a43-665a-408e-acac-81e6ed1369ab",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "c22e87fc-f4e7-4cf8-bdc6-1bbfd76473c9",
+        "nombre": "Belvedere Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "cfda8c76-c7c9-4778-8d54-510916901940",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "713d6dc7-ff7b-49f0-8673-5fc47cdf64fc",
+        "nombre": "Cuatro Gallos Italia Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "b973c88d-0753-4154-8989-ea32ce55b61b",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "1108e465-65f7-4526-9726-d6b7b2c8bebe",
+        "nombre": "Alto Del Carmen Etiqueta Negra Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "115aa11e-5236-4f8c-8d3e-eed715424758",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "079f3789-4178-4eb0-81de-c9b602775dc5",
+        "nombre": "Alto Del Carmen 40° Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "d9654485-d2d8-4d5b-93c6-e148fc341217",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "25f2c514-72e5-43f0-804f-fd58379c91cb",
+        "nombre": "Alto Del Carmen Transparente 40° Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "f80f7b64-112a-4174-ba1f-08f360b9bfb6",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "9f5e9750-17c8-4506-9ccb-d58a7f69d220",
+        "nombre": "Alto Del Carmen 35° Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "b710d036-3857-4e57-a612-edd60427cc26",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "7a5c9eb8-91db-40ca-a3f2-8b50e35f9ea4",
+        "nombre": "Mistral Nobel Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "846629e1-2e45-4ea2-bf8a-ef1bccd6f875",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "17ee1103-9c78-42ea-90ca-6bfadaa6a97d",
+        "nombre": "Mistral Nobel Honey Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "057ca213-69a8-48a3-9da7-8f2d95a5c778",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "87b8dc97-8cab-40b4-bd0e-a1338b807aa1",
+        "nombre": "Mistral Nobel Apple Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "8f36211d-5ebc-4e4f-ae24-45dd5423f481",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "147b86b1-409c-41ec-8318-5a13afb6ff76",
+        "nombre": "Mistral 40° Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "455f615d-f13a-472d-95c9-795dca2c33e5",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "3b4c9326-4ac3-4690-ac52-91f92e8de28c",
+        "nombre": "Mistral 35° Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e1b966f6-ba60-4121-b12a-6203a5c77fab",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "08c09c62-6572-47d2-b31a-5a9f3f0b8f95",
+        "nombre": "Orcon Quemado Añejado Reservado 40° Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "ccbfb34a-4b5e-4ce9-b1d0-7a7f904572a0",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "af0f2a10-092c-4914-a648-41e41cf74814",
+        "nombre": "Pampero Aniversario Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "ba255e2d-0494-409e-a7ae-e13430a27a93",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "f00116c5-1409-4b27-8f47-6b06661b4481",
+        "nombre": "Flor De Caña 12 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "da4272bb-c185-4248-b57f-68595960a025",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "5850bd54-6343-4bab-9247-915f3b4c99a7",
+        "nombre": "Bacardi Carta De Oro Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "dc01dcbe-337f-46e6-a42f-e4994062b285",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "7b98e0a0-40e6-4445-a26f-81100d91fe7d",
+        "nombre": "Bacardi Carta Blanca Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "a0e61be0-4456-4df9-9b8d-884a8c844596",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "fc55430a-6478-499c-8989-d85805b9036c",
+        "nombre": "Bacardi Añejo Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "92302839-e9d6-4abd-8375-a431b9527bfb",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "516e897c-68fe-41bc-8c68-9d8958071110",
+        "nombre": "Havana Club Especial Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e3d0cdcc-07ee-4752-af59-7824f91dde28",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "9f243a50-bb6b-4af0-8627-ff7d369726bf",
+        "nombre": "Havana Club 7 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "38760608-d3db-4d53-93ab-5921a2820568",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "11ff5f4d-857d-4280-babc-9dbfd6c7d7c3",
+        "nombre": "Havana Club Selección De Maestros Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "c18b77f2-d7dc-4576-a073-1791a2602f30",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "95899215-59a9-417d-8644-719f30a23d9f",
+        "nombre": "Zacapa 23 Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "c037b05c-6d5c-4f50-a373-9605637595d0",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "86ae1fd1-f1e5-4395-a752-700f94eb1475",
+        "nombre": "Pampero Especial Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "f5f016d0-9e6e-4466-821b-692d38b784b2",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "2b739ff4-19d6-4306-bf29-36c888989875",
+        "nombre": "Ron Rey De Copas Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "fee47293-89b2-4d06-a1ea-ec37c60da63f",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "2a6f8bca-56d0-44f8-be17-c442106271b7",
+        "nombre": "Herradura Silver Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "b9407ac9-e1fe-4d31-8ff0-e7ef9adc13cc",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "c8de5db7-1441-4e17-aafc-c53569a7a3f0",
+        "nombre": "Herradura Reposado Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "69718c5e-bed7-46d0-98fc-54086a25d3aa",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "a73fce12-6777-4a05-a457-2e8e4adad3e2",
+        "nombre": "Olmeca Silver Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "c5d1f07d-a3ec-4a96-974e-7e47506a5ede",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "04735002-f7cd-4c50-b986-8dd9ea875a54",
+        "nombre": "Olmeca Reposado Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "8b5feaab-dcb9-4ec2-b15c-2365041a1fcb",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "53176918-4b00-48a2-9776-5060a4475526",
+        "nombre": "Jose Cuervo Silver Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "f3af07b9-a2ef-4b66-981e-56e5de035e66",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "04e67a81-a194-4f4b-9f0c-fd0f77cdd9c9",
+        "nombre": "Jose Cuervo Reposado Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "5fb02250-a9dd-4b42-9b14-897076abd99e",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "83dab45b-924e-45d1-b38d-fcf55a1a97be",
+        "nombre": "Don Julio Blanco Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "6cc31cab-b3ad-4cff-a046-337340b78635",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "92d5f835-8c9d-4f9e-9c90-db6781e612a7",
+        "nombre": "Don Julio Reposado Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "77654d44-9873-4b41-b6e9-bf59090cd59b",
+            "cantidad": 0.045
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "708e5c10-b55a-43cb-ad11-061f9b2fc807",
+        "nombre": "Frangelico Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "1f7a69f0-e8ff-4767-8558-a454394ad7a3",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "2b56c1d1-275f-4933-9b0e-8f1665704b7e",
+        "nombre": "Pobre Vermouth Rosso Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "193d4ccb-9c18-4e19-954a-3227a51807cb",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "d003727c-98c1-4bcb-ab09-8cdcbc96f766",
+        "nombre": "Pobre Vermouth Blanco Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "4804a766-f314-40b8-ab71-2c29ca81a257",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "2b5365d7-5e1a-4f96-8b8b-43042a782145",
+        "nombre": "Baileys Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "f1c3f0f7-cea9-4876-9403-224bdade1ed0",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "6e96eb05-ff6b-49c3-adba-66ca50f3b641",
+        "nombre": "Disaronno Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "266b0d69-b9f1-40aa-860f-dd9c0e9f23d8",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "c363ce49-edf5-4a34-a25e-31ff77887bbe",
+        "nombre": "Fernet Branca Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "cd8a45a0-f68d-4508-9f08-71020443efee",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "60731f9b-173e-43b4-ab77-b2e2b11a7c36",
+        "nombre": "Jagermeister Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "a1521365-03ed-4d81-ba72-9cceeee3c0b7",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "79615d46-e5be-4d4b-a70f-5afd246872e9",
+        "nombre": "Martini Fiero Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "dc81c47c-a068-4e3b-9945-c30b5777dbcc",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "2d143548-f4dd-49ca-9d57-2b33845b332b",
+        "nombre": "Drambui Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "bd9bc24f-621c-4bfb-85c5-963b86443605",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "a53c38cb-7a54-4a65-b990-c4630c515ef8",
+        "nombre": "Campari Corto",
+        "categoria": "Cortos",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "af9540d5-c97c-4951-a85f-7e8a5aacec11",
+            "cantidad": 0.06
+          },
+          {
+            "refType": "insumo",
+            "refId": "3a59e533-1215-4eaa-9520-984e965bd5a7",
+            "cantidad": 1
+          }
+        ],
+        "precioReal": null,
+        "iva": false
       }
     ],
     "categorias": [
@@ -26878,7 +29937,8 @@
       "Spritz",
       "Kombucha",
       "Chelas sin alcohol",
-      "Para Tomar 0.0"
+      "Para Tomar 0.0",
+      "Cortos"
     ],
     "carta": {
       "v": 0,
