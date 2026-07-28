@@ -608,6 +608,40 @@ body.chat-collapsed.admin-home .adm-chat-reopen,body.chat-collapsed.estado-activ
   transition:background .15s,color .15s,border-color .15s;
 }
 .adm-prod:hover .adm-prod-toggle{background:var(--gold-dim);color:var(--gold);border-color:var(--gold-bd-h)}
+.adm-prod-sku{
+  font-family:var(--mono);font-size:.7rem;font-weight:600;color:var(--gold-deep);
+  background:var(--gold-dim);border:1px solid var(--gold-bd);border-radius:5px;
+  padding:.1rem .4rem;letter-spacing:.03em;user-select:all;
+}
+.adm-prod-tag.nochan{background:var(--surface3);color:#888;border:1px solid #ddd}
+
+/* SKU: hero (Nuevo SKU + filtros de canal), estilo dashboard-hub */
+.sku-hero{display:flex;align-items:stretch;gap:1rem;flex-wrap:wrap;margin:1.2rem 0 .9rem}
+.sku-new-btn{
+  position:relative;overflow:hidden;display:flex;align-items:center;gap:.8rem;
+  border:none;border-radius:16px;padding:1rem 1.5rem;cursor:pointer;
+  background:linear-gradient(135deg,var(--gold) 0%,var(--gold-deep) 100%);
+  box-shadow:0 10px 28px rgba(245,166,35,.30);
+  transition:transform .15s,box-shadow .2s;flex:0 0 auto;
+}
+.sku-new-btn:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(245,166,35,.40)}
+.sku-new-btn::after{content:"";position:absolute;right:-30px;top:-30px;width:100px;height:100px;border-radius:50%;background:#fff;opacity:.12}
+.sku-new-plus{font-family:var(--display);font-size:1.7rem;font-weight:800;color:#fff;line-height:1}
+.sku-new-txt{display:flex;flex-direction:column;gap:.1rem;text-align:left;position:relative}
+.sku-new-txt b{font-family:var(--display);font-size:1.05rem;font-weight:800;color:#fff;letter-spacing:.01em}
+.sku-new-txt small{font-family:var(--sans);font-size:.72rem;color:rgba(255,255,255,.85)}
+.sku-chan-filters{display:flex;align-items:stretch;gap:.6rem;flex-wrap:wrap;flex:1 1 auto}
+.sku-chan{
+  display:flex;align-items:center;gap:.5rem;border:1px solid var(--border);border-radius:14px;
+  background:var(--surface);color:var(--muted);font-family:var(--sans);font-size:.82rem;font-weight:700;
+  padding:.7rem 1rem;cursor:pointer;transition:transform .15s,box-shadow .2s,border-color .2s,background .2s,color .2s;
+}
+.sku-chan .ic{font-size:1.05rem}
+.sku-chan:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(0,0,0,.08);border-color:var(--gold-bd-h)}
+.sku-chan.on{background:var(--gold-dim);color:var(--gold-deep);border-color:var(--gold);box-shadow:0 8px 20px rgba(245,166,35,.18)}
+@media(max-width:760px){.sku-hero{flex-direction:column}.sku-chan-filters{gap:.5rem}}
+.sku-search-row{margin-bottom:.9rem}
+.sku-search{max-width:360px}
 
 .adm-prod-editor{
   border-top:1px solid var(--gold-bd);padding:1rem 1.1rem 1.1rem;display:flex;flex-direction:column;gap:.65rem;
@@ -3162,8 +3196,8 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
     <div class="adm-panel" id="productsView" style="display:none">
       <div class="adm-panel-head">
         <div>
-          <div class="adm-panel-title">Productos</div>
-          <div class="adm-panel-meta" id="prodMeta">sync Shopify · las notas extra solo viajan a Zorbot</div>
+          <div class="adm-panel-title">SKU</div>
+          <div class="adm-panel-meta" id="prodMeta">sync Shopify · cada producto tiene un código SKU único · las notas extra solo viajan a Zorbot</div>
         </div>
         <div class="adm-actions">
           <div class="adm-pillgroup" data-filter="prodSection">
@@ -3171,12 +3205,47 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
             <button data-v="mayorista"        type="button">Mayorista <span class="adm-pill-sub">MAYORISTA</span></button>
           </div>
           <button class="adm-btn adm-btn-ghost" id="btnReloadProd" type="button">Recargar catálogo</button>
-          <button class="adm-btn adm-btn-gold"  id="btnNewProd"    type="button">+ Agregar producto</button>
+          <button class="adm-btn adm-btn-ghost" id="btnSkuPrefixes" type="button">⚙️ Prefijos de SKU</button>
         </div>
       </div>
+
+      <div class="sku-hero">
+        <button class="sku-new-btn" id="btnNewProd" type="button">
+          <span class="sku-new-plus">+</span>
+          <span class="sku-new-txt"><b>Nuevo SKU</b><small>Crear producto en Shopify</small></span>
+        </button>
+        <div class="sku-chan-filters" id="skuChanFilters">
+          <button type="button" class="sku-chan on" data-chan="todas"><span class="ic">🗂️</span>Todas</button>
+          <button type="button" class="sku-chan" data-chan="horeca_retail"><span class="ic">🏬</span>Horeca y Retail</button>
+          <button type="button" class="sku-chan" data-chan="online"><span class="ic">🛒</span>Venta Online</button>
+          <button type="button" class="sku-chan" data-chan="hospitality"><span class="ic">🍽️</span>Hospitality</button>
+        </div>
+      </div>
+      <div class="sku-search-row">
+        <input class="adm-input sku-search" id="skuSearch" type="search" placeholder="Buscar por nombre o código SKU (ej. KB-00001)…">
+      </div>
+
       <div class="adm-subtabs" id="brandTabs"></div>
       <div class="adm-prod-grid" id="productGrid">
         <div class="adm-loading">Cargando productos…</div>
+      </div>
+    </div>
+
+    <!-- Modal: prefijos de SKU por marca -->
+    <div class="adm-fb" id="skuPrefixModal" aria-hidden="true">
+      <div class="adm-fb-bg" data-act="close-skupfx"></div>
+      <div class="adm-fb-card">
+        <button type="button" class="adm-fb-x" data-act="close-skupfx" aria-label="Cerrar">✕</button>
+        <div class="adm-fb-head">
+          <div class="adm-fb-title">Prefijos de SKU por marca</div>
+          <div class="adm-fb-sub">El prefijo va antes del correlativo (ej. KB-00001). Cambiarlo no afecta los códigos ya asignados, solo los que se generen después.</div>
+        </div>
+        <div id="skuPrefixBody"><div class="adm-loading">Cargando…</div></div>
+        <div class="adm-fb-acts">
+          <button class="adm-btn adm-btn-ghost" id="skuPrefixCancel" type="button">Cerrar</button>
+          <button class="adm-btn adm-btn-gold" id="skuPrefixSave" type="button">Guardar prefijos</button>
+        </div>
+        <div class="cg-err" id="skuPrefixErr"></div>
       </div>
     </div>
 
@@ -3187,7 +3256,7 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
         <button type="button" class="adm-fb-x" data-act="close-np" aria-label="Cerrar">✕</button>
         <div class="adm-fb-head">
           <div class="adm-fb-title">Agregar producto</div>
-          <div class="adm-fb-sub">Sube la foto de la lata y completá los datos. La maqueta (lata + cuadro) se arma sola y el producto se crea en Shopify con su tag.</div>
+          <div class="adm-fb-sub">Sube la foto de la lata y completa los datos. La maqueta (lata + cuadro) se arma sola y el producto se crea en Shopify con su tag y su código SKU.</div>
         </div>
         <div class="adm-np-grid">
           <div class="adm-np-form">
@@ -3504,7 +3573,7 @@ const BASE_SECCIONES = [
   { id:'firulais',  kind:'md',       label:'Firulais',        cat:'marketing', desc:'cheladas craft', nav:false, parentNav:'marcas' },
   { id:'banny',     kind:'md',       label:'Banny',           cat:'marketing', desc:'destilados · RTD', nav:false, parentNav:'marcas' },
   { id:'mayorista', kind:'md',       label:'Mayoristas (B2B)',cat:'marketing', desc:'restaurantes · botillerías · eventos', nav:false, parentNav:'marcas' },
-  { id:'productos',  kind:'products', label:'Productos',       cat:'comercial', desc:'catálogo Shopify · notas extra para Zorbot' },
+  { id:'productos',  kind:'products', label:'SKU',             cat:'comercial', desc:'catálogo Shopify · código SKU único por producto · notas extra para Zorbot' },
   { id:'puntos',     kind:'puntos',   label:'Puntos de venta', cat:'comercial', desc:'mapa de locales donde estás · venta por punto' },
   // Análisis de Datos: mismo patrón parent+drill-down que "Marcas" (nav:false en los
   // hijos, parentNav apunta al padre). Horeca y Documentos son las mismas secciones de
@@ -3591,6 +3660,8 @@ let SECCIONES = BASE_SECCIONES.slice();
 let BRANDS = BASE_BRANDS.slice();
 let CUSTOM_BRANDS = [];
 let activeBrand = 'all';
+let activeSkuChan = 'todas';
+let skuSearchQ = '';
 // Hook para que una sección con drill-down propio (ej. Marcas) escriba su propio
 // breadcrumb en #ksCrumb. Devuelve true si lo hizo (así ksSync no lo pisa).
 let ksCrumbOverride = null;
@@ -4293,11 +4364,34 @@ async function loadProductos(refresh){
     productsCache = data.products || [];
     renderBrandTabs();
     renderProductGrid();
+    if (data.skuAssigned > 0) {
+      showToast(`${data.skuAssigned} producto${data.skuAssigned===1?'':'s'} recibió código SKU nuevo ✓`, 'ok');
+    }
   } catch (e) {
     document.getElementById('productGrid').innerHTML =
       `<div class="adm-empty" style="color:var(--red)">Error cargando productos: ${escapeHtml(e.message)}</div>`;
   }
 }
+
+// Filtros de canal (Fase 2): el canal recién se asigna en Fase 3 (formulario
+// inteligente), así que hoy casi ningún producto lo tiene — "Todas" es la
+// única vista completa; las otras filtran por lo poco que ya esté asignado.
+const SKU_CHAN_MATCH = {
+  horeca_retail: (chs) => chs.includes('horeca') || chs.includes('retail'),
+  online:        (chs) => chs.includes('online'),
+  hospitality:   (chs) => chs.includes('hospitality'),
+};
+document.querySelectorAll('#skuChanFilters .sku-chan').forEach(b => {
+  b.onclick = () => {
+    activeSkuChan = b.dataset.chan;
+    document.querySelectorAll('#skuChanFilters .sku-chan').forEach(x => x.classList.toggle('on', x === b));
+    renderProductGrid();
+  };
+});
+document.getElementById('skuSearch').addEventListener('input', (e) => {
+  skuSearchQ = e.target.value.trim().toLowerCase();
+  renderProductGrid();
+});
 
 // Toggle Minorista / Mayorista — recarga el grid completo
 document.querySelectorAll('.adm-pillgroup[data-filter="prodSection"] button').forEach(b => {
@@ -4329,9 +4423,16 @@ function renderBrandTabs(){
 
 function renderProductGrid(){
   const wrap = document.getElementById('productGrid');
-  const list = activeBrand === 'all' ? productsCache : productsCache.filter(p => p.brand === activeBrand);
+  let list = activeBrand === 'all' ? productsCache.slice() : productsCache.filter(p => p.brand === activeBrand);
+  if (activeSkuChan !== 'todas') {
+    const match = SKU_CHAN_MATCH[activeSkuChan];
+    list = list.filter(p => match((p.channels || []).map(c => String(c).toLowerCase())));
+  }
+  if (skuSearchQ) {
+    list = list.filter(p => (p.title || '').toLowerCase().includes(skuSearchQ) || (p.skuCode || '').toLowerCase().includes(skuSearchQ));
+  }
   if (!list.length) {
-    wrap.innerHTML = '<div class="adm-empty">No hay productos para esta marca en Shopify.</div>';
+    wrap.innerHTML = `<div class="adm-empty">${skuSearchQ ? 'Ningún producto coincide con "' + escapeHtml(skuSearchQ) + '".' : 'No hay productos para este filtro en Shopify.'}</div>`;
     return;
   }
   // Orden: con notas primero, luego mayoristas al final
@@ -4351,6 +4452,7 @@ function productCardHtml(p){
     ? `<span class="adm-prod-old">$${Math.round(p.compareAt).toLocaleString('es-CL')}</span>` : '';
   const fileCount = (p.files || []).length;
   const isDraft = String(p.status||'ACTIVE').toUpperCase() === 'DRAFT';
+  const noChannel = !(p.channels && p.channels.length);
   const tagDots = [
     isDraft                ? '<span class="adm-prod-tag draft">borrador</span>' : '<span class="adm-prod-tag active">activo</span>',
     p.isMayorista          ? '<span class="adm-prod-tag mayo">B2B</span>' : '',
@@ -4358,6 +4460,7 @@ function productCardHtml(p){
     (p.extra && p.extra.trim()) ? '<span class="adm-prod-tag note">notas</span>' : '',
     p.video                ? '<span class="adm-prod-tag video">▶ video</span>' : '',
     fileCount              ? `<span class="adm-prod-tag file">📎 ${fileCount}</span>` : '',
+    (activeSkuChan === 'todas' && noChannel) ? '<span class="adm-prod-tag nochan" title="Todavía no tiene un canal asignado (llega en la Fase 3)">sin canal asignado</span>' : '',
   ].filter(Boolean).join('');
   const editor = isOpen ? `
     <div class="adm-prod-editor">
@@ -4411,6 +4514,7 @@ function productCardHtml(p){
         <div class="adm-prod-body">
           <div class="adm-prod-tags">${tagDots}<span class="adm-prod-brand">${escapeHtml(brandLabel(p.brand))}</span></div>
           <div class="adm-prod-title">${escapeHtml(p.title)}</div>
+          ${p.skuCode ? `<span class="adm-prod-sku" title="Código SKU interno · identificador único e inmutable">${escapeHtml(p.skuCode)}</span>` : ''}
           <div class="adm-prod-price">${compare}${price}<span class="adm-prod-vars">${p.variants} variante${p.variants===1?'':'s'}</span></div>
         </div>
         <div class="adm-prod-toggle">${isOpen ? '−' : '+'}</div>
@@ -4641,6 +4745,54 @@ function closeNewProd(){
 }
 document.getElementById('btnNewProd').onclick = openNewProd;
 document.getElementById('newProdModal').addEventListener('click', e => { if (e.target.dataset.act === 'close-np') closeNewProd(); });
+
+// ─── Prefijos de SKU por marca ───────────────────────────────────────────────
+async function openSkuPrefixModal(){
+  document.getElementById('skuPrefixModal').classList.add('open');
+  document.body.classList.add('drawer-open');
+  const err = document.getElementById('skuPrefixErr'); if (err) { err.classList.remove('show'); err.textContent = ''; }
+  const body = document.getElementById('skuPrefixBody');
+  body.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const r = await fetch('/admin/products/sku-config');
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    const brands = BRANDS.filter(b => b.id !== 'all');
+    body.innerHTML = brands.map(b => `
+      <label class="cg-field" style="margin-bottom:.6rem">
+        <span>${escapeHtml(b.label)}</span>
+        <input class="adm-input skuPfxInput" data-brand="${escapeAttr(b.id)}" maxlength="6"
+          value="${escapeAttr(d.prefixes[b.id] || '')}" placeholder="ej. KB" style="text-transform:uppercase;max-width:140px">
+      </label>`).join('');
+  } catch (e) {
+    body.innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`;
+  }
+}
+function closeSkuPrefixModal(){
+  document.getElementById('skuPrefixModal').classList.remove('open');
+  if (!document.querySelector('.adm-drawer.open')) document.body.classList.remove('drawer-open');
+}
+document.getElementById('btnSkuPrefixes').onclick = openSkuPrefixModal;
+document.getElementById('skuPrefixCancel').onclick = closeSkuPrefixModal;
+document.getElementById('skuPrefixModal').addEventListener('click', e => { if (e.target.dataset.act === 'close-skupfx') closeSkuPrefixModal(); });
+document.getElementById('skuPrefixSave').onclick = async () => {
+  const prefixes = {};
+  document.querySelectorAll('.skuPfxInput').forEach(inp => { prefixes[inp.dataset.brand] = inp.value.trim(); });
+  const btn = document.getElementById('skuPrefixSave');
+  const err = document.getElementById('skuPrefixErr');
+  btn.disabled = true; const o = btn.textContent; btn.textContent = 'Guardando…';
+  try {
+    const r = await fetch('/admin/products/sku-config', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ prefixes }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    showToast('Prefijos guardados ✓', 'ok');
+    closeSkuPrefixModal();
+  } catch (e) {
+    err.textContent = '⚠ ' + String(e.message || e); err.classList.add('show');
+  } finally {
+    btn.disabled = false; btn.textContent = o;
+  }
+};
 document.querySelectorAll('#npSection button').forEach(b => b.onclick = () => {
   npSection = b.dataset.v;
   document.querySelectorAll('#npSection button').forEach(x => x.classList.toggle('on', x === b));

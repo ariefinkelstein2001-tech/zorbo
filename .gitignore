@@ -13,4 +13,5 @@ prompts/operacional.json
 prompts/team.json
 prompts/estado-resultado.json
 prompts/estado-historico-cd.json
+prompts/sku-config.json
 public/uploads/

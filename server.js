@@ -2111,6 +2111,69 @@ function brandFromProduct(p, customBrands){
   return 'otros';
 }
 
+// ─── SKU-código: identificador interno único e inmutable por producto ───────
+// Es el "RUT" del producto (Comercial → SKU, Fase 2 del plan maestro). Vive
+// aparte de Shopify: es ADITIVO, nunca toca el SKU de Shopify (que existe a
+// nivel de VARIANTE — ver PRODUCTS_QUERY, v.sku — no a nivel de producto).
+// Formato: prefijo por marca + correlativo con ceros (ej. KB-00001). El
+// contador por prefijo solo sube — un código nunca se reutiliza aunque el
+// producto se borre. Prefijo configurable por marca vía
+// GET/PUT /admin/products/sku-config; si no hay override, se deriva.
+const SKU_CONFIG_FILE = join(PROMPTS_EFFECTIVE_DIR, 'sku-config.json');
+const SKU_PREFIX_DEFAULTS = { kairos: 'KB', firulais: 'FIR', banny: 'BAN', otros: 'OTR' };
+
+function loadSkuConfig(){
+  try {
+    if (!existsSync(SKU_CONFIG_FILE)) return { version: 1, prefixes: { ...SKU_PREFIX_DEFAULTS }, nextSeq: {} };
+    const parsed = JSON.parse(readFileSync(SKU_CONFIG_FILE, 'utf-8'));
+    return {
+      version: 1,
+      prefixes: { ...SKU_PREFIX_DEFAULTS, ...(parsed.prefixes && typeof parsed.prefixes === 'object' ? parsed.prefixes : {}) },
+      nextSeq: (parsed.nextSeq && typeof parsed.nextSeq === 'object') ? parsed.nextSeq : {},
+    };
+  } catch (e) {
+    console.warn('sku config load:', e.message);
+    return { version: 1, prefixes: { ...SKU_PREFIX_DEFAULTS }, nextSeq: {} };
+  }
+}
+function saveSkuConfig(d){
+  writeFileSync(SKU_CONFIG_FILE, JSON.stringify(d, null, 2));
+}
+function skuPrefixFor(brandKey, cfg, customBrands){
+  if (cfg.prefixes[brandKey]) return cfg.prefixes[brandKey];
+  const cb = (customBrands || []).find(b => b.key === brandKey);
+  const base = (cb && cb.label) || brandKey || 'SKU';
+  const derived = String(base).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 3);
+  return derived || 'SKU';
+}
+function nextSkuCode(brandKey, cfg, customBrands){
+  const prefix = skuPrefixFor(brandKey, cfg, customBrands);
+  const cur = Number(cfg.nextSeq[prefix]) || 0;
+  const n = cur + 1;
+  cfg.nextSeq[prefix] = n;
+  return prefix + '-' + String(n).padStart(5, '0');
+}
+// Asigna código a los productos del catálogo (tag ZORBO o MAYORISTA) que
+// todavía no tengan uno. Corre en cada GET /admin/products — idempotente:
+// después de la primera pasada no vuelve a tocar los que ya tienen código.
+// Cubre tanto el backfill inicial como los productos nuevos creados después.
+function skuBackfill(all, extras, customBrands){
+  const cfg = loadSkuConfig();
+  let assigned = 0;
+  for (const p of all) {
+    const tagsUpper = (p.tags || []).map(t => String(t).trim().toUpperCase());
+    if (!tagsUpper.includes('ZORBO') && !tagsUpper.includes('MAYORISTA')) continue;
+    const pid = String(p.id);
+    if (extras.items[pid] && extras.items[pid].skuCode) continue;
+    const brandKey = brandFromProduct(p, customBrands);
+    const code = nextSkuCode(brandKey, cfg, customBrands);
+    extras.items[pid] = { ...(extras.items[pid] || {}), skuCode: code };
+    assigned++;
+  }
+  if (assigned > 0) { saveProductExtras(extras); saveSkuConfig(cfg); }
+  return assigned;
+}
+
 // ─── Marcas custom (definidas en Página web → Marcas) ─────────────────────────
 const BASE_BRAND_KEYS = ['kairos', 'firulais', 'banny'];
 function getCustomBrands(){
@@ -2280,6 +2343,7 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
     const extras = loadProductExtras();
     const customBrands = getCustomBrands();
     const productCosts = loadDistri().productCosts || {};
+    const skuAssigned = skuBackfill(all, extras, customBrands);
     const products = all
       .filter(p => (p.tags || []).map(t => String(t).trim().toUpperCase()).includes(requiredTag))
       .map(p => {
@@ -2306,12 +2370,36 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
           files:      Array.isArray(ex?.files) ? ex.files : [],
           hasExtra:   !!(ex && (ex.extra && ex.extra.trim() || ex.video || (ex.files && ex.files.length))),
           updatedAt:  ex?.updatedAt || null,
+          skuCode:    ex?.skuCode || null,
+          // Canal (horeca/retail/online/hospitality): se asigna recién en Fase 3
+          // desde el formulario inteligente. Hoy casi ningún producto lo tiene —
+          // se muestra vacío, nunca se adivina desde otros tags de Shopify.
+          channels:   Array.isArray(ex?.channels) ? ex.channels : [],
         };
       });
-    res.json({ section, requiredTag, products });
+    res.json({ section, requiredTag, products, skuAssigned });
   } catch (e) {
     res.status(500).json({ error: 'Error cargando productos: ' + e.message });
   }
+});
+
+// Prefijos de SKU-código por marca (kairos/firulais/banny/otros + marcas
+// custom). Editable desde el panel (Comercial → SKU → ⚙️ Prefijos).
+app.get('/admin/products/sku-config', requireAdmin, (req, res) => {
+  const cfg = loadSkuConfig();
+  res.json({ prefixes: cfg.prefixes });
+});
+app.put('/admin/products/sku-config', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  if (!b.prefixes || typeof b.prefixes !== 'object') return res.status(400).json({ error: 'Falta prefixes.' });
+  const cfg = loadSkuConfig();
+  for (const [k, v] of Object.entries(b.prefixes)) {
+    if (!/^[a-z0-9-]{1,40}$/.test(k)) continue;
+    const val = String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+    if (val) cfg.prefixes[k] = val;
+  }
+  saveSkuConfig(cfg);
+  res.json({ ok: true, prefixes: cfg.prefixes });
 });
 
 // Cambiar estado activo/borrador de un producto existente en Shopify.
