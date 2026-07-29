@@ -2067,6 +2067,10 @@ td.est-xl-title{font-size:.95rem;font-weight:800;color:var(--gold-deep,#a05f00)}
 .cg-filters-l{font-size:.72rem;font-weight:700;color:var(--dim,#999);text-transform:uppercase;letter-spacing:.04em}
 .cg-filters select{font:inherit;font-size:.8rem;padding:.4rem .6rem;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
 .cg-filter-clear{font:inherit;font-size:.75rem;font-weight:700;color:var(--gold-deep,#a05f00);background:none;border:0;cursor:pointer}
+.cg-search{font:inherit;font-size:.8rem;padding:.4rem .6rem;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);min-width:230px;flex:1 1 230px;max-width:340px}
+.pv-edit{background:transparent;border:none;cursor:pointer;font-size:.85rem;padding:0 .25rem;opacity:.8}
+.pv-edit:hover{opacity:1}
+.cg-form-edit{outline:2px solid var(--gold,#f5a623);outline-offset:2px;border-radius:12px}
 .cg-filters-n{margin-left:auto;font-size:.72rem;color:var(--dim,#999);font-variant-numeric:tabular-nums}
 .cg-subsel{font:inherit;font-size:.71rem;padding:.12rem .3rem;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text-2,#52525b);margin-left:.35rem;max-width:150px;vertical-align:middle;cursor:pointer}
 .cg-subsel:hover,.cg-subsel:focus-visible{border-color:var(--gold-bd-h,#f5a623)}
@@ -11200,7 +11204,20 @@ const COSTOS_TIPO_CFG={
   costo:{ bodyId:'costosBody', prefix:'costos', reloadId:'costosReload', pctTotal:true, vacio:'Todavía no hay costos registrados', nombre:'costo' },
   gasto:{ bodyId:'gastosBody', prefix:'gastos', reloadId:'gastosReload', pctTotal:true,  vacio:'Todavía no hay gastos registrados', nombre:'gasto' },
 };
-function cgBlankForm(){ return { centroDistribucion:CD_DEFAULT, proveedor:'', categoria:'', subcategoria:'', subnivel:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'', centrosCosto:[] }; }
+function cgBlankForm(){ return { editId:null, centroDistribucion:CD_DEFAULT, proveedor:'', categoria:'', subcategoria:'', subnivel:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'', centrosCosto:[] }; }
+// Carga un documento existente al formulario para editarlo (reusa todo el form).
+function costosEditar(tipo,id){
+  const a=costosData[tipo]; const e=(a.entradas||[]).find(x=>x.id===id); if(!e) return;
+  if(e.origenId){ alert('Este documento es una copia automática de otra CD. Editá el documento original en su CD.'); return; }
+  const f=costosForm[tipo];
+  f.editId=id; f.proveedor=e.proveedor||''; f.categoria=e.categoria||''; f.subcategoria=e.subcategoria||''; f.subnivel=e.subnivel||'';
+  f.fecha=e.fecha||''; f.folio=e.folio||''; f.valor=String(e.valor==null?'':e.valor); f.marca=e.marca||''; f.pctTotal=e.pctTotal!=null?String(e.pctTotal):'';
+  f.marcaSel={kairos:false,banny:false,firulais:false}; f.marcaPct={kairos:'',banny:'',firulais:''}; f.centrosCosto=[];
+  if(e.marca==='algunas' && Array.isArray(e.marcaDetalle)){ for(const m of e.marcaDetalle){ if(f.marcaSel[m.marca]!==undefined){ f.marcaSel[m.marca]=true; f.marcaPct[m.marca]=String(m.pct); } } }
+  renderCostos(tipo);
+  const body=document.getElementById(COSTOS_TIPO_CFG[tipo].bodyId); if(body) body.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function costosCancelarEdicion(tipo){ costosForm[tipo]=cgBlankForm(); costosForm[tipo].centroDistribucion=(costosData[tipo]&&costosData[tipo].cd)||CD_DEFAULT; renderCostos(tipo); }
 // Después de "Agregar" solo se limpia "Este documento" (fecha/folio/valor/%/
 // adjunto) — proveedor/categoría/subcategoría/marca quedan tal cual, para
 // cargar varios documentos seguidos del mismo proveedor sin re-elegirlos cada
@@ -11210,7 +11227,7 @@ function cgResetSection2(tipo){
   f.fecha=''; f.folio=''; f.valor=''; f.pctTotal=''; f.centrosCosto=[]; f.adjunto=null;
 }
 // Filtros de la tabla (por categoría padre y por subcategoría). Por tipo.
-let costosFiltro={costo:{cat:'',sub:''},gasto:{cat:'',sub:''}};
+let costosFiltro={costo:{cat:'',sub:'',q:''},gasto:{cat:'',sub:'',q:''}};
 // Orden de la tabla (ver sortableTableHeader/-Apply/-WireHeaders). Independiente
 // del filtro: el filtro decide qué filas se muestran, el orden decide en qué
 // secuencia — ninguno pisa al otro.
@@ -11276,14 +11293,16 @@ function renderCostos(tipo){
   const rs=a.resumen||{porCategoria:{},total:0};
   const resumenCards=(a.categorias||[]).map(c=>{const b=rs.porCategoria[c.id]||{total:0,n:0};return `<div class="cg-card"><div class="cg-card-l">${escapeHtml(c.label)}</div><div class="cg-card-v">${eM(b.total)}</div><div class="cg-card-n">${b.n} doc${b.n===1?'':'s'}</div></div>`;}).join('');
   // Filtros por categoría padre + subcategoría (cliente).
-  const flt=costosFiltro[tipo]||{cat:'',sub:''};
+  const flt=costosFiltro[tipo]||{cat:'',sub:'',q:''};
+  const catLblFor=(e)=>((a.categorias||[]).find(c=>c.id===e.categoria)||{}).label||e.categoria;
   let visibles=(a.entradas||[]);
   if(flt.cat) visibles=visibles.filter(e=>e.categoria===flt.cat);
   if(flt.sub) visibles=visibles.filter(e=>(e.subEfectiva||'')===flt.sub);
+  if(flt.q){ const q=flt.q.toLowerCase(); visibles=visibles.filter(e=>(String(e.proveedor||'').toLowerCase().includes(q))||(String(e.folio||'').toLowerCase().includes(q))||(String(catLblFor(e)).toLowerCase().includes(q))||(String(cgMarcaLabel(e)).toLowerCase().includes(q))); }
   const catFilterOpts=['<option value="">Todas las categorías</option>',...(a.categorias||[]).map(c=>`<option value="${c.id}" ${c.id===flt.cat?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
   const subFilterSubs=SUBMAP[flt.cat]||null;
   const subFilterOpts=subFilterSubs?['<option value="">Todas las subcategorías</option>',...subFilterSubs.map(s=>`<option value="${s.id}" ${s.id===flt.sub?'selected':''}>${escapeHtml(s.label)}</option>`)].join(''):'';
-  const filterBar=`<div class="cg-filters"><span class="cg-filters-l">📅 ${escapeHtml(finRangeLabel(cfg.prefix))}</span><span style="color:#c9ccd1">·</span><span class="cg-filters-l">Filtrar</span><select id="${cgId(tipo,'FCat')}">${catFilterOpts}</select>${subFilterSubs?`<select id="${cgId(tipo,'FSub')}">${subFilterOpts}</select>`:''}${(flt.cat||flt.sub)?`<button class="cg-filter-clear" id="${cgId(tipo,'FClear')}" type="button">✕ limpiar</button>`:''}<span class="cg-filters-n">${visibles.length} de ${(a.entradas||[]).length}</span></div>`;
+  const filterBar=`<div class="cg-filters"><span class="cg-filters-l">📅 ${escapeHtml(finRangeLabel(cfg.prefix))}</span><span style="color:#c9ccd1">·</span><input class="cg-search" id="${cgId(tipo,'FQ')}" type="search" placeholder="🔎 Buscar proveedor, folio o categoría…" value="${escapeAttr(flt.q||'')}"><span class="cg-filters-l">Filtrar</span><select id="${cgId(tipo,'FCat')}">${catFilterOpts}</select>${subFilterSubs?`<select id="${cgId(tipo,'FSub')}">${subFilterOpts}</select>`:''}${(flt.cat||flt.sub||flt.q)?`<button class="cg-filter-clear" id="${cgId(tipo,'FClear')}" type="button">✕ limpiar</button>`:''}<span class="cg-filters-n">${visibles.length} de ${(a.entradas||[]).length}</span></div>`;
   // Orden (independiente del filtro de arriba): se aplica DESPUÉS de filtrar,
   // así el contador y el set de filas nunca cambian por ordenar.
   const catLabelOf=(e)=>((a.categorias||[]).find(c=>c.id===e.categoria)||{}).label || e.categoria;
@@ -11322,7 +11341,7 @@ function renderCostos(tipo){
       <td>${escapeHtml(e.folio||'—')}${e.duplicada?' <span class="cg-tag" style="background:#fdeaea;color:#c0392b" title="Hay otra factura con el mismo folio y proveedor">⚠ duplicada</span>':''}</td>
       <td class="dist-num">${eM(e.valor)}${pctNote}${centrosNote}${origenNote}${ncNote}</td>
       <td>${e.adjunto&&e.adjunto.url?`<a class="cg-doc-link" href="${escapeAttr(e.adjunto.url)}" target="_blank" title="${escapeAttr(e.adjunto.name||'documento')}">📎 ver</a>`:'<span style="color:#ccc">—</span>'}</td>
-      <td><button class="pv-del" data-cgdel="${e.id}" data-cgtipo="${tipo}" title="Eliminar">✕</button></td>
+      <td style="white-space:nowrap">${e.origenId?'':`<button class="pv-edit" data-cgedit="${e.id}" data-cgtipo="${tipo}" title="Editar">✏️</button>`}<button class="pv-del" data-cgdel="${e.id}" data-cgtipo="${tipo}" title="Eliminar">✕</button></td>
     </tr>`;}).join('');
   const cdOpts=CD_IDS.map(c=>`<option value="${c}" ${f.centroDistribucion===c?'selected':''}>${escapeHtml(CD_LBL[c])}</option>`).join('');
   body.innerHTML=`
@@ -11330,8 +11349,8 @@ function renderCostos(tipo){
       <label class="cg-field"><span>Centro de Distribución</span><select id="${cgId(tipo,'CD')}">${cdOpts}</select></label>
       <div class="cg-cd-hint">Estás viendo y cargando ${cfg.nombre}s de <b>${escapeHtml(CD_LBL[f.centroDistribucion])}</b> — cada CD tiene su propia administración financiera.</div>
     </div>
-    <div class="cg-form">
-      <div class="cg-form-title">Registrar ${cfg.nombre}</div>
+    <div class="cg-form${f.editId?' cg-form-edit':''}">
+      <div class="cg-form-title">${f.editId?('✏️ Editar '+cfg.nombre):('Registrar '+cfg.nombre)}</div>
       <div class="cg-form-grid">
         <label class="cg-field"><span>Proveedor</span><select id="${cgId(tipo,'Prov')}">${provOpts}</select></label>
         <label class="cg-field"><span>Categoría (Estado de Resultado)</span><select id="${cgId(tipo,'Cat')}">${catOpts}</select></label>
@@ -11358,7 +11377,7 @@ function renderCostos(tipo){
         </div>`;
         })():''}
         <label class="cg-field"><span>Documento (PDF / imagen)</span><input type="file" id="${cgId(tipo,'File')}" accept="application/pdf,image/png,image/jpeg,image/webp,image/gif"><small class="cg-file-name" id="${cgId(tipo,'FileName')}">${f.adjunto?escapeHtml(f.adjunto.filename):'opcional · máx 8 MB'}</small></label>
-        <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="${cgId(tipo,'Add')}" type="button">+ Agregar</button></div>
+        <div class="cg-field cg-field-btn">${f.editId?`<button class="adm-btn adm-btn-ghost" id="${cgId(tipo,'CancelEdit')}" type="button">Cancelar</button> `:''}<button class="adm-btn adm-btn-gold" id="${cgId(tipo,'Add')}" type="button">${f.editId?'Guardar cambios':'+ Agregar'}</button></div>
       </div>
       <div class="cg-err" id="${cgId(tipo,'Err')}"></div>
       <div class="cg-ok" id="${cgId(tipo,'Ok')}"></div>
@@ -11398,7 +11417,10 @@ function wireCostos(tipo){
   const fsub=document.getElementById(cgId(tipo,'FSub'));
   if(fsub) fsub.onchange=()=>{ costosFiltro[tipo].sub=fsub.value; renderCostos(tipo); };
   const fclr=document.getElementById(cgId(tipo,'FClear'));
-  if(fclr) fclr.onclick=()=>{ costosFiltro[tipo]={cat:'',sub:''}; renderCostos(tipo); };
+  if(fclr) fclr.onclick=()=>{ costosFiltro[tipo]={cat:'',sub:'',q:''}; renderCostos(tipo); };
+  // Buscador de texto (proveedor / folio / categoría / marca). Re-render + refoco.
+  const fq=document.getElementById(cgId(tipo,'FQ'));
+  if(fq) fq.oninput=()=>{ costosFiltro[tipo].q=fq.value; renderCostos(tipo); const nf=document.getElementById(cgId(tipo,'FQ')); if(nf){ nf.focus(); const v=nf.value; try{nf.setSelectionRange(v.length,v.length);}catch(e){} } };
   // Reclasificación inline de subcategoría/subnivel (edita registros existentes).
   document.querySelectorAll(`#${cfg.bodyId} [data-cgsub],#${cfg.bodyId} [data-cgsubn]`).forEach(sel=>{
     sel.onchange=()=>{ const id=sel.dataset.cgsub||sel.dataset.cgsubn; costosReclasificar(tipo,id); };
@@ -11436,6 +11458,8 @@ function wireCostos(tipo){
     rd.readAsDataURL(fl);
   };
   document.getElementById(cgId(tipo,'Add')).onclick=()=>costosAgregar(tipo);
+  const cancelEdit=document.getElementById(cgId(tipo,'CancelEdit')); if(cancelEdit) cancelEdit.onclick=()=>costosCancelarEdicion(tipo);
+  document.querySelectorAll(`[data-cgedit][data-cgtipo="${tipo}"]`).forEach(b=>b.onclick=()=>costosEditar(tipo,b.dataset.cgedit));
   document.querySelectorAll(`[data-cgdel][data-cgtipo="${tipo}"]`).forEach(b=>b.onclick=()=>costosEliminar(tipo,b.dataset.cgdel));
 }
 function costosShowErr(tipo,msg){ const e=document.getElementById(cgId(tipo,'Err')); if(e){ e.textContent='⚠ '+msg; e.classList.add('show'); } }
@@ -11453,6 +11477,16 @@ async function costosAgregar(tipo){
   if(!payload.marca) return costosShowErr(tipo,'Elige a qué marca corresponde.');
   if(!/^\d{4}-\d{2}-\d{2}$/.test(payload.fecha)) return costosShowErr(tipo,'Elige la fecha del documento.');
   if(!payload.valor) return costosShowErr(tipo,'Ingresa el valor.');
+  // Modo edición: PUT del documento existente (no toca adjunto ni espejos).
+  if(f.editId){
+    try{
+      const r=await fetch('/admin/costos/entrada/'+encodeURIComponent(f.editId),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+      costosForm[tipo]=cgBlankForm(); costosForm[tipo].centroDistribucion=(costosData[tipo]&&costosData[tipo].cd)||CD_DEFAULT;
+      await loadCostos(tipo); showToast('Cambios guardados ✓','ok');
+    }catch(err){ costosShowErr(tipo,String(err.message||err)); }
+    return;
+  }
   try{
     let r=await fetch('/admin/costos/entrada',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}); let d=await r.json();
     // Factura duplicada (mismo folio + proveedor): avisar y dejar confirmar.

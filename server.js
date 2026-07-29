@@ -4480,6 +4480,39 @@ app.put('/admin/costos/entrada/:id/subcategoria', requireAdmin, (req, res) => {
   costosSave(data);
   res.json({ ok: true });
 });
+// PUT: edición completa de un registro (proveedor, categoría, marca, fecha, folio,
+// valor, % del total). No toca los espejos automáticos ni el adjunto.
+app.put('/admin/costos/entrada/:id', requireAdmin, (req, res) => {
+  const id = String(req.params.id); const data = costosLoad();
+  const e = (data.entradas || []).find(x => x.id === id);
+  if (!e) return res.status(404).json({ error: 'Registro no encontrado.' });
+  if (e.origenId) return res.status(400).json({ error: 'Este registro es una copia automática de otra CD — editalo en el documento original.' });
+  const b = req.body || {};
+  const proveedor = costosStr(b.proveedor, 120);
+  const categoria = costosStr(b.categoria, 40);
+  const catDef = COSTOS_CATEGORIAS.find(c => c.id === categoria);
+  const fecha = costosStr(b.fecha, 20);
+  const valor = costosNum(b.valor);
+  const marca = costosStr(b.marca, 20);
+  if (!proveedor) return res.status(400).json({ error: 'Elegí un proveedor.' });
+  if (!catDef) return res.status(400).json({ error: 'Elegí una categoría válida.' });
+  const { subcategoria, subnivel } = costosSubValidar(categoria, costosStr(b.subcategoria, 40), costosStr(b.subnivel, 40));
+  if (COSTOS_SUBCATEGORIAS[categoria] && !subcategoria) return res.status(400).json({ error: 'Elegí una subcategoría.' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return res.status(400).json({ error: 'Elegí la fecha del documento.' });
+  if (!valor) return res.status(400).json({ error: 'Ingresá el valor.' });
+  if (!COSTOS_MARCA_VALORES.includes(marca)) return res.status(400).json({ error: 'Elegí a qué marca corresponde.' });
+  let marcaDetalle = null;
+  if (marca === 'algunas') {
+    const arr = Array.isArray(b.marcaDetalle) ? b.marcaDetalle : []; const seen = new Set(); marcaDetalle = [];
+    for (const it of arr) { const m = costosStr(it && it.marca, 20); if (!COSTOS_MARCAS.includes(m) || seen.has(m)) continue; const pct = Number(it && it.pct); if (!Number.isFinite(pct) || pct <= 0 || pct > 100) continue; seen.add(m); marcaDetalle.push({ marca: m, pct: Math.round(pct * 10) / 10 }); }
+    if (!marcaDetalle.length) marcaDetalle = e.marcaDetalle || null;
+  }
+  let pctTotal = null;
+  if (b.pctTotal != null && b.pctTotal !== '') { const p = Number(b.pctTotal); if (!Number.isFinite(p) || p <= 0 || p > 100) return res.status(400).json({ error: 'El porcentaje del total debe ser entre 1 y 100.' }); pctTotal = Math.round(p * 10) / 10; }
+  if (!data.proveedores.some(p => p.nombre === proveedor)) data.proveedores.push({ id: costosNewId('prov'), nombre: proveedor });
+  Object.assign(e, { proveedor, categoria, subcategoria, subnivel, fecha, folio: costosStr(b.folio, 60), valor, marca, marcaDetalle, pctTotal });
+  costosSave(data); res.json({ ok: true, entrada: e });
+});
 app.delete('/admin/costos/entrada/:id', requireAdmin, (req, res) => {
   const id = String(req.params.id); const data = costosLoad();
   const removed = data.entradas.find(e => e.id === id);
