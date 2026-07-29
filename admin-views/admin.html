@@ -837,17 +837,6 @@ body.chat-collapsed.admin-home .adm-chat-reopen,body.chat-collapsed.estado-activ
 .np-canal-card.on,.np-marca-card.on,.np-fmt-card.on{background:var(--gold-dim);border-color:var(--gold);color:var(--gold-deep);box-shadow:0 8px 20px rgba(245,166,35,.18)}
 .np-canal-multi{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.8rem;padding:.8rem;background:var(--surface2);border:1px solid var(--border);border-radius:12px}
 .np-canal-multi label{display:flex;align-items:center;gap:.4rem;font-size:.82rem;font-weight:600;cursor:pointer}
-.np-amb-grid{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
-@media(max-width:600px){.np-amb-grid{grid-template-columns:1fr}}
-.np-amb-card{
-  display:flex;flex-direction:column;align-items:center;gap:.3rem;text-align:center;
-  border:1px solid var(--border);border-radius:16px;background:var(--surface);padding:1.4rem 1rem;cursor:pointer;
-  transition:transform .15s,box-shadow .2s,border-color .2s;
-}
-.np-amb-card:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(0,0,0,.10);border-color:var(--gold-bd-h)}
-.np-amb-card .ic{font-size:2rem}
-.np-amb-card b{font-family:var(--display);font-size:.95rem}
-.np-amb-card small{color:var(--muted);font-size:.72rem;line-height:1.4}
 .np-lista-row{display:flex;align-items:center;gap:.6rem;padding:.5rem .2rem;border-bottom:1px solid var(--border)}
 .np-lista-row:last-child{border-bottom:none}
 .np-lista-row label{display:flex;align-items:center;gap:.5rem;flex:1;font-size:.85rem;cursor:pointer}
@@ -3448,27 +3437,23 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
         </div>
         <div class="np-wiz-dots" id="npWizDots"></div>
 
-        <!-- Paso 1: Canal -->
+        <!-- Paso 1: CD -->
+        <div class="np-step" data-step="cd">
+          <div class="np-step-title">¿A qué centro de distribución corresponde?</div>
+          <div class="np-marca-grid" id="npCdGrid"></div>
+        </div>
+
+        <!-- Paso 2: Canal (solo CD Kairos) -->
         <div class="np-step" data-step="canal">
           <div class="np-step-title">¿En qué canal se vende?</div>
           <div class="np-canal-grid" id="npCanalGrid"></div>
           <div class="np-canal-multi" id="npCanalMulti" style="display:none"></div>
         </div>
 
-        <!-- Paso 2: Marca -->
+        <!-- Paso 3: Marca (solo CD Kairos — en los CD-restaurante la marca es implícita del CD) -->
         <div class="np-step" data-step="marca">
           <div class="np-step-title">¿De qué marca es?</div>
           <div class="np-marca-grid" id="npMarcaGrid"></div>
-        </div>
-
-        <!-- Paso 2.5: caso ambiguo (Hospitality + marca de bebida) -->
-        <div class="np-step" data-step="ambiguo">
-          <div class="np-step-title">¿Es un producto envasado o un ítem de carta?</div>
-          <div class="np-step-sub">Elegiste Hospitality con una marca de bebidas envasadas — puede ser cualquiera de las dos, así que lo definimos a mano.</div>
-          <div class="np-amb-grid">
-            <button type="button" class="np-amb-card" data-amb="bebida"><span class="ic">📦</span><b>Producto envasado</b><small>Lata, botella, barril — se crea en Shopify</small></button>
-            <button type="button" class="np-amb-card" data-amb="menu"><span class="ic">🍽️</span><b>Ítem de carta</b><small>Plato o trago del local — no es un producto Shopify</small></button>
-          </div>
         </div>
 
         <!-- Ruta Bebida: datos básicos -->
@@ -5352,13 +5337,18 @@ function bindProductCards(){
 
 document.getElementById('btnReloadProd').onclick = () => { openProductId = null; loadProductos(true); };
 
-// ─── Nuevo SKU: formulario inteligente paso a paso (Fase 3) ─────────────────
-// Divulgación progresiva: canal → marca → (caso ambiguo si aplica) → bifurca
-// en Ruta Bebida (crea/actualiza en Shopify) o Ruta Menú (100% interno, sin
-// Shopify — Kairos Garden/Badass son locales, no tienen SKU de Shopify).
+// ─── Nuevo SKU: formulario inteligente paso a paso (Fase 3 + Diccionario) ───
+// Divulgación progresiva: CD → (si es CD Kairos) canal → marca → Ruta Bebida;
+// (si es un CD-restaurante) directo a Cocina/Barra → Ruta Menú. El CD manda
+// la ruta — CD Kairos es comercialización/distribución (nunca ítems de
+// carta), los 3 CD-restaurante (Garden Vespucio/Antofagasta/Badass) solo
+// venden comida/barra en el propio local (nunca productos Shopify). Elegir
+// el CD primero también resuelve la ambigüedad de local que necesitaba el
+// diccionario de SKU (Garden Vespucio vs Antofagasta).
 let npCanImg = null; // imagen del envase cargada (Ruta Bebida)
-let npMeta = { marcas: [], canales: [], listas: {} };
-let npWiz = { step: 'canal', canalMode: null, canales: [], marca: null, ambRuta: null,
+let npMeta = { marcas: [], canales: [], listas: {}, cds: [] };
+const NP_CD_MARCA_MENU = { CDGV: 'kairos_garden', CDGA: 'kairos_garden', CDKB: 'kairos_badass' };
+let npWiz = { step: 'cd', cd: null, canalMode: null, canales: [], marca: null,
   formato: null, tamano: '', coleccionId: '', distrib: {} /* {canalId: {formatoId: precio}} */,
   tipo: null, categoriaId: null };
 
@@ -5370,38 +5360,38 @@ async function loadNpMeta(){
   } catch {}
 }
 
+function npCdDef(){ return npMeta.cds.find(c => c.codigo === npWiz.cd) || null; }
+function npCdEsComercializacion(){ const c = npCdDef(); return !!c && c.tipo === 'comercializacion_distribucion'; }
+
 function npWizSteps(){
-  const steps = ['canal', 'marca'];
-  const marcaDef = npMeta.marcas.find(m => m.id === npWiz.marca);
-  if (!marcaDef) return steps;
-  const esAmbiguo = marcaDef.ruta === 'bebida' && npWiz.canales.includes('hospitality');
-  if (esAmbiguo && !npWiz.ambRuta) { steps.push('ambiguo'); return steps; }
-  const ruta = esAmbiguo ? npWiz.ambRuta : marcaDef.ruta;
-  if (ruta === 'bebida') {
+  const steps = ['cd'];
+  if (!npWiz.cd) return steps;
+  if (npCdEsComercializacion()) {
+    steps.push('canal', 'marca');
+    const marcaDef = npMeta.marcas.find(m => m.id === npWiz.marca && m.ruta === 'bebida');
+    if (!marcaDef) return steps;
     steps.push('b-basicos', 'b-formato');
     const listaColeccion = marcaDef.coleccionLista ? (npMeta.listas[marcaDef.coleccionLista] || []).filter(x => x.activo !== false) : [];
     if (listaColeccion.length) steps.push('b-coleccion');
     steps.push('b-distribucion', 'b-detalles');
-  } else if (ruta === 'menu') {
+  } else {
     steps.push('m-tipo', 'm-categoria', 'm-detalle');
   }
   return steps;
 }
 function npCurrentRuta(){
-  const marcaDef = npMeta.marcas.find(m => m.id === npWiz.marca);
-  if (!marcaDef) return null;
-  if (marcaDef.ruta === 'bebida' && npWiz.canales.includes('hospitality')) return npWiz.ambRuta || null;
-  return marcaDef.ruta;
+  if (!npWiz.cd) return null;
+  return npCdEsComercializacion() ? 'bebida' : 'menu';
 }
 const NP_STEP_LABELS = {
-  canal:'Canal', marca:'Marca', ambiguo:'¿Envasado o carta?',
+  cd:'Centro de distribución', canal:'Canal', marca:'Marca',
   'b-basicos':'Datos del producto', 'b-formato':'Formato y tamaño', 'b-coleccion':'Colección',
   'b-distribucion':'Distribución y precio', 'b-detalles':'Detalles (opcional)',
   'm-tipo':'Cocina o Barra', 'm-categoria':'Categoría', 'm-detalle':'Nombre y precio',
 };
 
 function openNewProd(){
-  npWiz = { step: 'canal', canalMode: null, canales: [], marca: null, ambRuta: null,
+  npWiz = { step: 'cd', cd: null, canalMode: null, canales: [], marca: null,
     formato: null, tamano: '', coleccionId: '', distrib: {}, tipo: null, categoriaId: null };
   npCanImg = null;
   document.getElementById('npHint').style.display = '';
@@ -5413,7 +5403,7 @@ function openNewProd(){
   document.getElementById('newProdModal').classList.add('open');
   document.body.classList.add('drawer-open');
   npShowErr('');
-  loadNpMeta().then(() => { npRenderCanalGrid(); npRenderMarcaGrid(); npWizRender(); });
+  loadNpMeta().then(() => { npRenderCdGrid(); npRenderCanalGrid(); npRenderMarcaGrid(); npWizRender(); });
   npWizRender();
 }
 function closeNewProd(){
@@ -5426,7 +5416,7 @@ document.getElementById('newProdModal').addEventListener('click', e => { if (e.t
 // ── Render del wizard ──
 function npWizRender(){
   const steps = npWizSteps();
-  if (!steps.includes(npWiz.step)) npWiz.step = steps[steps.length - 1] || 'canal';
+  if (!steps.includes(npWiz.step)) npWiz.step = steps[steps.length - 1] || 'cd';
   const idx = steps.indexOf(npWiz.step);
   document.querySelectorAll('.np-step').forEach(el => el.classList.toggle('on', el.dataset.step === npWiz.step));
   document.getElementById('npStepMeta').textContent = `Paso ${idx + 1} de ${steps.length} · ${NP_STEP_LABELS[npWiz.step] || ''}`;
@@ -5434,9 +5424,9 @@ function npWizRender(){
     `<span class="np-wiz-dot ${i < idx ? 'done' : ''} ${i === idx ? 'on' : ''}"></span>`).join('');
   document.getElementById('npWizBack').disabled = idx === 0;
   // OJO: "idx === steps.length-1" NO alcanza como criterio de "último paso" —
-  // el array todavía es corto (['canal','marca']) mientras la marca no se
-  // eligió, así que marcaría 'marca' como último paso antes de tiempo. Solo
-  // los pasos terminales reales de cada ruta cuentan.
+  // el array todavía es corto (ej. ['cd','canal','marca']) mientras la marca
+  // (o el CD) no se terminan de elegir, así que marcaría un paso intermedio
+  // como último antes de tiempo. Solo los pasos terminales reales cuentan.
   const isLast = npWiz.step === 'b-detalles' || npWiz.step === 'm-detalle';
   const ruta = npCurrentRuta();
   document.getElementById('npWizNext').textContent = isLast ? (ruta === 'menu' ? 'Crear SKU de carta' : 'Crear en Shopify') : 'Siguiente →';
@@ -5445,6 +5435,16 @@ function npWizRender(){
   if (npWiz.step === 'm-categoria') npRenderCategoriaBody();
 }
 
+function npRenderCdGrid(){
+  const ic = { CDK: '🏭', CDGV: '🍽️', CDGA: '🍽️', CDKB: '🍽️' };
+  document.getElementById('npCdGrid').innerHTML = npMeta.cds.map(c =>
+    `<button type="button" class="np-marca-card ${npWiz.cd===c.codigo?'on':''}" data-cd="${c.codigo}"><span class="ic">${ic[c.codigo]||'📍'}</span>${escapeHtml(c.nombre)}</button>`).join('');
+  document.querySelectorAll('#npCdGrid [data-cd]').forEach(b => b.onclick = () => {
+    npWiz.cd = b.dataset.cd;
+    npWiz.marca = NP_CD_MARCA_MENU[npWiz.cd] || null; // implícita en CD-restaurante; se re-elige en el paso Marca si es CD Kairos
+    document.querySelectorAll('#npCdGrid [data-cd]').forEach(x => x.classList.toggle('on', x === b));
+  });
+}
 function npRenderCanalGrid(){
   const defs = [
     ...npMeta.canales.map(c => ({ id:c.id, label:c.label, ic:{horeca:'🏬',retail:'🛒',online:'💻',hospitality:'🍽️'}[c.id]||'📦' })),
@@ -5473,25 +5473,16 @@ function npRenderCanalGrid(){
   });
 }
 function npRenderMarcaGrid(){
-  document.getElementById('npMarcaGrid').innerHTML = npMeta.marcas.map(m =>
-    `<button type="button" class="np-marca-card ${npWiz.marca===m.id?'on':''}" data-marca="${m.id}"><span class="ic">${m.ruta==='menu'?'🍽️':'🍺'}</span>${escapeHtml(m.label)}</button>`).join('');
+  // Solo marcas de bebida — CD Kairos nunca crea ítems de carta (Ruta Menú es
+  // exclusiva de los CD-restaurante, cuya marca ya viene implícita del CD).
+  const marcas = npMeta.marcas.filter(m => m.ruta === 'bebida');
+  document.getElementById('npMarcaGrid').innerHTML = marcas.map(m =>
+    `<button type="button" class="np-marca-card ${npWiz.marca===m.id?'on':''}" data-marca="${m.id}"><span class="ic">🍺</span>${escapeHtml(m.label)}</button>`).join('');
   document.querySelectorAll('#npMarcaGrid [data-marca]').forEach(b => b.onclick = () => {
     npWiz.marca = b.dataset.marca;
-    npWiz.ambRuta = null;
     document.querySelectorAll('#npMarcaGrid [data-marca]').forEach(x => x.classList.toggle('on', x === b));
   });
 }
-document.querySelectorAll('.np-amb-card').forEach(b => b.onclick = () => {
-  npWiz.ambRuta = b.dataset.amb;
-  npShowErr('');
-  // 'ambiguo' ya no aparece en npWizSteps() una vez que ambRuta está seteado
-  // (ver npWizSteps): el índice 2 es siempre el primer paso de la ruta recién
-  // resuelta ('canal','marca',<primer paso>,...), así que saltamos ahí directo
-  // en vez de usar indexOf('ambiguo') sobre el array ya recalculado.
-  const steps = npWizSteps();
-  npWiz.step = steps[2] || 'canal';
-  npWizRender();
-});
 
 // ── Ruta Bebida: formato ──
 document.querySelectorAll('#npFormatoGrid [data-fmt]').forEach(b => b.onclick = () => {
@@ -5809,9 +5800,9 @@ function npShowErr(msg){ const e=document.getElementById('npErr'); if(!e) return
 
 // ── Navegación del wizard: validar el paso actual antes de avanzar ──
 function npValidateStep(step){
+  if (step === 'cd') return npWiz.cd ? null : 'Elegí un centro de distribución.';
   if (step === 'canal') return npWiz.canales.length ? null : 'Elegí al menos un canal.';
   if (step === 'marca') return npWiz.marca ? null : 'Elegí una marca.';
-  if (step === 'ambiguo') return npWiz.ambRuta ? null : 'Elegí una opción.';
   if (step === 'b-basicos') return document.getElementById('npName').value.trim() ? null : 'Falta el nombre del producto.';
   if (step === 'b-formato') {
     if (!npWiz.formato) return 'Elegí Botella o Lata.';
@@ -5841,7 +5832,6 @@ function npWizBackStep(){
   const idx = steps.indexOf(npWiz.step);
   if (idx <= 0) return;
   npWiz.step = steps[idx - 1];
-  if (npWiz.step === 'canal' || npWiz.step === 'marca') npWiz.ambRuta = null;
   npWizRender();
 }
 document.getElementById('npWizNext').onclick = npWizNextStep;
@@ -5923,6 +5913,7 @@ async function npSubmitMenu(){
   btn.disabled = true; const o = btn.textContent; btn.textContent = 'Creando…';
   try {
     const body = {
+      cdCodigo: npWiz.cd,
       marca: npWiz.marca,
       tipo: npWiz.tipo,
       categoriaId: npWiz.categoriaId,

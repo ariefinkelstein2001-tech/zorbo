@@ -2870,6 +2870,7 @@ function skuDiccMatchEstiloTexto(texto){
   return null;
 }
 const SKU_DICC_MARCA_LEGACY = { kairos: 'KB', banny: 'BAN', firulais: 'FIR' };
+const SKU_DICC_MARCA_MENU_COD = { kairos_garden: 'GAR', kairos_badass: 'BAD' };
 // Propone el mapeo de UN producto/ítem con código legado. Devuelve
 // { propuesta:{cd,marca,unidadMedida,estilo,formato,cantidad,sku} | null, motivo }.
 function skuDiccProponerMapeo(entidad){
@@ -2888,16 +2889,17 @@ function skuDiccProponerMapeo(entidad){
     return { propuesta: { cd: 'CDK', marca: marcaCod, estilo: estilo.codigo, unidadMedida: null, formato: null, cantidad: null }, motivo: 'Identidad de PRODUCTO resuelta (Marca+Estilo). Variante completa (unidad/formato/cantidad) pendiente de Paso 3/4.' };
   }
   if (entidad.origen === 'sku-menu') {
-    if (entidad.marca === 'kairos_badass') {
-      const estilo = entidad.tipo === 'cocina' ? d.estilos.find(e => e.codigo === '021') : skuDiccMatchEstiloTexto(entidad.titulo);
-      if (!estilo) return { propuesta: null, motivo: entidad.tipo === 'barra' ? 'Ítem de barra: no se pudo determinar si es con alcohol (022) o sin alcohol (023) — falta ese dato en el formulario de Ruta Menú.' : 'No se reconoció el estilo.' };
-      const formato = entidad.tipo === 'cocina' ? 'COM' : 'BAR';
-      return { propuesta: { cd: 'CDKB', marca: 'BAD', estilo: estilo.codigo, unidadMedida: 'UN', formato, cantidad: 1 }, motivo: 'Mapeo completo (CD Badass, único local con este código).' };
-    }
-    if (entidad.marca === 'kairos_garden') {
-      return { propuesta: null, motivo: '"Kairos Garden" no distingue local en el formulario de Ruta Menú (Vespucio = CDGV vs Antofagasta = CDGA) — falta ese campo para poder armar el SKU completo. No se asume uno de los dos.' };
-    }
-    return { propuesta: null, motivo: `Marca "${entidad.marca}" de Ruta Menú no tiene CD/marca de diccionario asociado.` };
+    const marcaCod = SKU_DICC_MARCA_MENU_COD[entidad.marca];
+    if (!marcaCod) return { propuesta: null, motivo: `Marca "${entidad.marca}" de Ruta Menú no tiene CD/marca de diccionario asociado.` };
+    // Kairos Badass tiene un solo local, siempre CDKB. Kairos Garden tiene dos
+    // (Vespucio/Antofagasta) — sin cdCodigo persistido en el ítem no se puede
+    // saber cuál, y no se asume uno de los dos.
+    const cd = entidad.marca === 'kairos_badass' ? 'CDKB' : (entidad.cdCodigo === 'CDGV' || entidad.cdCodigo === 'CDGA' ? entidad.cdCodigo : null);
+    if (!cd) return { propuesta: null, motivo: '"Kairos Garden" sin CD asignado (Vespucio/Antofagasta) en este ítem — creado antes de que el wizard capturara el CD. No se asume uno de los dos.' };
+    const estilo = entidad.tipo === 'cocina' ? d.estilos.find(e => e.codigo === '021') : skuDiccMatchEstiloTexto(entidad.titulo);
+    if (!estilo) return { propuesta: null, motivo: entidad.tipo === 'barra' ? 'Ítem de barra: no se pudo determinar si es con alcohol (022) o sin alcohol (023) — falta ese dato en el formulario de Ruta Menú.' : 'No se reconoció el estilo.' };
+    const formato = entidad.tipo === 'cocina' ? 'COM' : 'BAR';
+    return { propuesta: { cd, marca: marcaCod, estilo: estilo.codigo, unidadMedida: 'UN', formato, cantidad: 1 }, motivo: 'Mapeo completo.' };
   }
   return { propuesta: null, motivo: 'Origen desconocido.' };
 }
@@ -2913,7 +2915,7 @@ function skuDiccEscanearLegado(){
   const menu = loadSkuMenu();
   for (const [id, it] of Object.entries(menu.items || {})) {
     if (!it || !it.skuCode) continue;
-    const { propuesta, motivo } = skuDiccProponerMapeo({ origen: 'sku-menu', titulo: it.titulo, marca: it.marca, tipo: it.tipo });
+    const { propuesta, motivo } = skuDiccProponerMapeo({ origen: 'sku-menu', titulo: it.titulo, marca: it.marca, tipo: it.tipo, cdCodigo: it.cdCodigo });
     filas.push({ origen: 'sku-menu', id, skuCodeLegado: it.skuCode, titulo: it.titulo, propuesta, estado: propuesta ? 'mapeado' : 'sin_mapear', motivo });
   }
   return filas;
@@ -2956,8 +2958,12 @@ app.post('/admin/sku-diccionario/aplicar-mapeo-legado', requireAdmin, (req, res)
 // wizard cargue sin ir paso a paso al server.
 app.get('/admin/sku/meta', requireAdmin, (req, res) => {
   const listas = loadSkuListas();
-  res.json({ marcas: SKU_MARCAS, canales: SKU_CANALES, listas: listas.lists });
+  const d = skuDiccLoad();
+  res.json({ marcas: SKU_MARCAS, canales: SKU_CANALES, listas: listas.lists, cds: d.cds });
 });
+// CD restaurante → marca implícita de Ruta Menú (única para CDKB, GAR se
+// desambigua con cdCodigo para CDGV/CDGA).
+const SKU_CD_MARCA_MENU = { CDGV: 'kairos_garden', CDGA: 'kairos_garden', CDKB: 'kairos_badass' };
 
 function skuListaItem(listaId, itemId){
   const listas = loadSkuListas();
@@ -3076,15 +3082,20 @@ app.post('/admin/sku-menu', requireAdmin, (req, res) => {
   const b = req.body || {};
   const marcaId = String(b.marca || '');
   const marca = skuMarcaDef(marcaId);
+  // Ruta Menú es exclusiva de los CD-restaurante (Kairos Garden/Badass) — CD
+  // Kairos nunca crea ítems de carta (es comercialización/distribución, no un
+  // local). El CD manda: valida que cdCodigo sea uno de los 3 restaurantes y
+  // que coincida con la marca implícita de ese CD (Garden Vespucio/Antofagasta
+  // → kairos_garden, Badass → kairos_badass) — así queda resuelta desde el
+  // alta la ambigüedad de local que el diccionario de SKU necesita.
+  const cdCodigo = String(b.cdCodigo || '');
+  const marcaEsperada = SKU_CD_MARCA_MENU[cdCodigo];
+  if (!marcaEsperada) return res.status(400).json({ error: 'Elegí un CD-restaurante válido (Garden Vespucio, Garden Antofagasta o Badass).' });
+  if (!marca || marca.ruta !== 'menu' || marcaId !== marcaEsperada) {
+    return res.status(400).json({ error: 'La marca no corresponde al CD elegido.' });
+  }
   const canalesValidos = new Set(SKU_CANALES.map(c => c.id));
   const canales = Array.isArray(b.canales) ? [...new Set(b.canales.map(String))].filter(c => canalesValidos.has(c)) : [];
-  // Ruta Menú es normal para Kairos Garden/Badass. Para las marcas de bebida
-  // (Kairos Brewing/Banny/Firulais) solo es válida en el caso ambiguo — canal
-  // Hospitality — que el formulario ya resolvió preguntando "¿envasado o
-  // carta?" antes de llegar acá.
-  if (!marca || (marca.ruta !== 'menu' && !canales.includes('hospitality'))) {
-    return res.status(400).json({ error: 'Marca inválida para Ruta Menú (debe ser Kairos Garden/Badass, o una marca de bebida con canal Hospitality).' });
-  }
   const tipo = b.tipo === 'barra' ? 'barra' : (b.tipo === 'cocina' ? 'cocina' : null);
   if (!tipo) return res.status(400).json({ error: 'Falta tipo (cocina o barra).' });
   const titulo = String(b.titulo || '').trim().slice(0, 120);
@@ -3100,7 +3111,7 @@ app.post('/admin/sku-menu', requireAdmin, (req, res) => {
 
   const now = new Date().toISOString();
   const item = {
-    id: prodNewId('skm'), skuCode, marca: marcaId, ruta: 'menu', tipo,
+    id: prodNewId('skm'), skuCode, marca: marcaId, cdCodigo, ruta: 'menu', tipo,
     categoria: { id: catItem.id, label: catItem.label },
     titulo, precio, canales, activo: true, createdAt: now, updatedAt: now,
   };
@@ -3117,6 +3128,11 @@ app.put('/admin/sku-menu/:id', requireAdmin, (req, res) => {
   const b = req.body || {};
   if (b.titulo != null) { const v = String(b.titulo).trim().slice(0, 120); if (v) item.titulo = v; }
   if (b.precio != null) item.precio = Number.isFinite(Number(b.precio)) && Number(b.precio) > 0 ? Number(b.precio) : null;
+  if (b.cdCodigo != null) {
+    const cd = String(b.cdCodigo);
+    if (SKU_CD_MARCA_MENU[cd] === item.marca) item.cdCodigo = cd;
+    else return res.status(400).json({ error: 'Ese CD no corresponde a la marca de este ítem.' });
+  }
   if (b.categoriaId != null) {
     const listaId = item.tipo === 'barra' ? 'categoria_barra' : 'categoria_cocina';
     const catItem = skuListaItem(listaId, String(b.categoriaId));
