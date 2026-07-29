@@ -3903,14 +3903,24 @@ async function estadoResolve(month, rango){
   // Carga manual histórica por Centro de Distribución (2025+, ver
   // estadoHistCdLoad): reemplaza HORECA/Retail/Hospitality del mes si hay una
   // entrada auditada para este CD. Venta Online NUNCA se toca acá — sigue
-  // siempre en vivo desde Shopify (shWeb). Solo aplica al mes calendario
-  // completo (un total mensual agregado no se puede trocear por rango de
-  // fecha personalizado). 2026 y el resto de los meses/CD sin entrada
-  // explícita siguen exactamente como antes.
+  // siempre en vivo desde Shopify (shWeb). 2026 y el resto de los meses/CD sin
+  // entrada explícita siguen exactamente como antes.
+  //
+  // Estos totales se cargaron a mano como AGREGADO MENSUAL, sin detalle por día:
+  // el número vale por el mes entero, no está fechado en un día puntual. Por eso
+  // se aplican siempre que el rango elegido REPRESENTE ese mes — sea el mes
+  // completo, un sub-rango dentro del mes (ej. 1–30 en un mes de 31 días) o un
+  // rango que lo abarque por completo. Así el usuario no tiene que acertar el
+  // último día exacto para que el mes aparezca. (Un rango que cruza el borde de
+  // dos meses sin contener a este entero no lo aplica: ahí no hay forma de
+  // trocear un total sin detalle diario.)
   let origenHistorico = null, historicoDetalle = null;
   const histMes = (estadoHistCdLoad().cd[CD_DEFAULT] || {})[month];
-  const esMesCompletoDefault = r.from === cdMonthRange(month).from && r.to === cdMonthRange(month).to;
-  if (histMes && esMesCompletoDefault) {
+  const monthR = cdMonthRange(month);
+  const rangoRepresentaElMes =
+    (r.from >= monthR.from && r.to <= monthR.to) ||   // sub-rango dentro del mes (incluye el mes exacto)
+    (r.from <= monthR.from && r.to >= monthR.to);     // rango que abarca el mes entero
+  if (histMes && rangoRepresentaElMes) {
     ingresos.horeca = { total: histMes.horeca, milSabores: 0, otros: histMes.horeca, pedidos: [] };
     ingresos.hospitality = {
       garden: { litros: 0, valor: histMes.hospitalidadDetalle.vespucio + histMes.hospitalidadDetalle.antofagasta, tabla: [], pedidos: [] },
