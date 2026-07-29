@@ -9948,6 +9948,442 @@ function monthLabel(m){
   return ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][m] || '';
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CARGA HISTÓRICA DE VENTA EN LITROS 2025 — CD KAIROS (por producto y canal)
+// Herramienta de una sola vez, con la máxima prudencia posible con data
+// comercial: TODO queda marcado como "carga_manual_historica_2025" (auditable
+// — quién, cuándo, de qué mes/canal/estilo salió cada litro). Emparejamiento
+// SIEMPRE por SKU-código real (producto Shopify o ítem de carta interno);
+// nunca se crea un producto nuevo por diferencia de nombre, y lo que no
+// empareja queda "sin mapear" para revisión humana. Nada se persiste hasta
+// que se llame al endpoint de aplicar — los de preview son de solo lectura.
+//
+// Fuente de los números de esta sección: datos REALES pasados por el equipo
+// comercial (planilla CD Kairos + planillas de los 3 locales Hospitality),
+// verbatim. Es carga humana, no una estimación del sistema.
+// ─────────────────────────────────────────────────────────────────────────────
+const HIST25_FILE = join(PROMPTS_EFFECTIVE_DIR, 'venta-historica-2025.json');
+function hist25Load(){
+  try {
+    if (existsSync(HIST25_FILE)) {
+      const p = JSON.parse(readFileSync(HIST25_FILE, 'utf-8'));
+      return { version: 1, entradas: Array.isArray(p.entradas) ? p.entradas : [] };
+    }
+  } catch (e) { console.warn('hist25 load:', e.message); }
+  return { version: 1, entradas: [] };
+}
+function hist25Save(d){ writeFileSync(HIST25_FILE, JSON.stringify(d, null, 2)); }
+const HIST25_MESES = 12;
+
+// COMBINADO (HORECA + Online) de la planilla CD Kairos, litros ene→dic 2025,
+// por estilo. A esto se le resta el online real de Shopify para obtener
+// HORECA puro. "Colección de Artistas" es un TOTAL AGREGADO de varios
+// productos distintos — no se puede emparejar a un solo SKU-código sin que
+// alguien desglose qué artista vendió cuánto, así que queda marcado
+// `agregado:true` (no se carga, se reporta como pendiente de desglose).
+const HIST25_CD_COMBINADO = {
+  kairos: {
+    'Nada Personal (Pils)':        [1871,1555,1588,1238,1498,1516,1457,1825,1700,1901,1536,2015],
+    'Alerta Roja (Red)':           [406,351,337,553,424,337,813,240,385,444,549,625],
+    'Galactic Golden':             [3767,3158,3351,2802,3368,3138,3872,3947,3603,4156,3103,4694],
+    'Imperio Perdido (Neipa)':     [115,0,28,34,34,32,48,3,24,108,37,123],
+    'Secret Lab (Apa)':            [1725,1209,846,1041,1292,1533,1158,1376,1357,1799,1494,2136],
+    'Ritual de la Banana (Weizen)':[0,0,48,30,11,0,26,0,0,108,40,0],
+    'Lanus (Italian Pils)':        [1374,1200,1050,1182,1048,805,957,900,825,1140,980,1020],
+    'Kenny Bell (Ambar)':          Array(12).fill(0),
+    'Samba (Ipa)':                 Array(12).fill(0),
+    'Obertura (Stout)':            Array(12).fill(0),
+    'Hoppy Lager (Hoyo en Uno)':   Array(12).fill(0),
+    'Osagui':                      Array(12).fill(0),
+    'Acholada':                    Array(12).fill(0),
+  },
+  banny: {
+    'Gin London Dry':      [120,80,180,100,120,160,100,120,160,180,180,140],
+    'Ron Rey de Copas':    Array(12).fill(0),
+    'Gin Contemporáneo':   Array(12).fill(0),
+  },
+  firulais: {
+    'Chelada Cachupín':    Array(12).fill(0),
+  },
+};
+// Total agregado (no desglosable por SKU) — oct/nov/dic quedaron PENDIENTES
+// de confirmar por el propio equipo comercial (no se asume 0).
+const HIST25_CD_ARTISTAS_AGREGADO = { marca: 'kairos', litros: [97,267,45,109,48,43,6,13,35,null,null,null], pendienteConfirmar: [9,10,11] };
+
+// Retail: 0 explícito en TODO 2025 (Walmart parte 2026) — es una decisión
+// real, no un "sin datos". Se carga igual que el resto, con su propio origen.
+const HIST25_RETAIL_ESTILOS = [
+  ...Object.keys(HIST25_CD_COMBINADO.kairos).map(e => ({ marca: 'kairos', estilo: e })),
+  ...Object.keys(HIST25_CD_COMBINADO.banny).map(e => ({ marca: 'banny', estilo: e })),
+  ...Object.keys(HIST25_CD_COMBINADO.firulais).map(e => ({ marca: 'firulais', estilo: e })),
+];
+
+const cdNormLoose = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+// Nombre de estilo → {skuCode, matchTipo} | null. Primero intenta como
+// producto Shopify real (Ruta Bebida, por TÍTULO), después como ítem de
+// carta (Ruta Menú, ej. Sangría — nunca tiene producto Shopify detrás).
+// Nunca crea nada; si no encuentra, null = "sin mapear".
+function hist25MatchEstilo(nombreEstilo, allProducts, extras){
+  const n = cdNormLoose(nombreEstilo);
+  if (allProducts && allProducts.length) {
+    for (const p of allProducts) {
+      const pn = cdNormLoose(p.title);
+      if (pn === n || pn.includes(n) || n.includes(pn)) {
+        const ex = extras.items[String(p.id)];
+        if (ex && ex.skuCode) return { skuCode: ex.skuCode, matchTipo: 'producto', productId: String(p.id) };
+      }
+    }
+  }
+  const menu = loadSkuMenu();
+  for (const it of Object.values(menu.items || {})) {
+    if (cdNormLoose(it.titulo) === n) return { skuCode: it.skuCode, matchTipo: 'carta', itemId: it.id };
+  }
+  return null;
+}
+
+// Litros de Venta Online (Shopify B2C) de un producto YA emparejado, para un
+// mes calendario exacto — MISMA lógica de matching de formato→litros que
+// Sell In/Sell Out (sellinFormatoLabel + skuFormatoLitros), reutilizada, no
+// recalculada distinto. Si Shopify no está conectado, honestamente
+// "no disponible" (nunca 0 inventado).
+function hist25OnlineLitrosMes(match, anio, mes, ordersResult, extras){
+  if (!match || match.matchTipo !== 'producto') return { available: false, reason: 'Sin SKU-código de producto Shopify emparejado.' };
+  if (!ordersResult.available) return { available: false, reason: ordersResult.reason };
+  const from = Date.UTC(anio, mes - 1, 1), to = Date.UTC(anio, mes, 1);
+  let litros = 0, foundOrder = false;
+  for (const o of ordersResult.orders) {
+    const t = new Date(o.createdAt).getTime();
+    if (t < from || t >= to) continue;
+    for (const li of (o.lineItems || [])) {
+      if (isMayoristaLine(li)) continue; // Venta Online = SIN tag MAYORISTA
+      if (!li.productId || String(li.productId) !== match.productId) continue;
+      foundOrder = true;
+      const label = sellinFormatoLabel(li, extras);
+      const lu = label != null ? skuFormatoLitros(label) : null;
+      if (lu != null) litros += lu * li.qty;
+    }
+  }
+  // Sin órdenes de ESTE producto en el mes = venta online real de 0 ese mes
+  // (dato calculado, no inventado — hay conexión real a Shopify, solo no hubo pedidos).
+  return { available: true, litros: Math.round(litros * 1000) / 1000, tuvoOrdenes: foundOrder };
+}
+
+// HORECA_puro = combinado − online. Si el online supera al combinado
+// (HORECA negativo), NO se calcula — se marca para revisión, nunca se
+// carga un negativo ni se fuerza a 0.
+function hist25HorecaPorResta(combinado, onlineResult){
+  if (combinado == null) return { estado: 'pendiente_confirmar', litros: null };
+  if (!onlineResult.available) return { estado: 'sin_dato_online', litros: null, motivo: onlineResult.reason };
+  const horeca = Math.round((combinado - onlineResult.litros) * 1000) / 1000;
+  if (horeca < 0) return { estado: 'horeca_negativo', litros: null, combinado, online: onlineResult.litros, delta: horeca };
+  return { estado: 'ok', litros: horeca, combinado, online: onlineResult.litros };
+}
+
+// Preview de solo lectura: producto × mes → combinado, online (Shopify),
+// HORECA resultante. No escribe nada. Esto es lo que hay que mostrar y
+// esperar el OK antes de aplicar.
+app.get('/admin/historico-2025/cd-kairos/preview', requireAdmin, async (req, res) => {
+  try {
+    const allProducts = await loadProductsCache(false);
+    const extras = loadProductExtras();
+    const ordersResult = await loadOrders(false);
+    const filas = [];
+    const sinMapear = new Set();
+    for (const [marca, estilos] of Object.entries(HIST25_CD_COMBINADO)) {
+      for (const [estilo, valores] of Object.entries(estilos)) {
+        const match = hist25MatchEstilo(estilo, allProducts, extras);
+        if (!match) sinMapear.add(estilo);
+        for (let i = 0; i < HIST25_MESES; i++) {
+          const mes = i + 1;
+          const combinado = valores[i];
+          const online = combinado == null ? { available: false, reason: 'Combinado pendiente.' } : hist25OnlineLitrosMes(match, 2025, mes, ordersResult, extras);
+          const horeca = hist25HorecaPorResta(combinado, online);
+          filas.push({
+            marca, estilo, mes, skuCode: match ? match.skuCode : null, matchTipo: match ? match.matchTipo : null,
+            combinado, online: online.available ? online.litros : null, onlineDisponible: online.available,
+            horeca: horeca.litros, estado: !match ? 'sin_mapear' : horeca.estado,
+          });
+        }
+      }
+    }
+    // Colección de Artistas — agregado, se reporta aparte, nunca se reparte a un producto.
+    const artistas = HIST25_CD_ARTISTAS_AGREGADO.litros.map((v, i) => ({ mes: i + 1, litros: v, pendienteConfirmar: v == null }));
+    const resumen = {
+      totalFilas: filas.length,
+      sinMapear: [...sinMapear],
+      horecaNegativo: filas.filter(f => f.estado === 'horeca_negativo'),
+      sinDatoOnline: filas.filter(f => f.estado === 'sin_dato_online').length,
+      shopifyDisponible: ordersResult.available,
+      shopifyReason: ordersResult.available ? null : ordersResult.reason,
+    };
+    res.json({ available: true, filas, artistasAgregado: artistas, retailEstilos: HIST25_RETAIL_ESTILOS, resumen });
+  } catch (e) { res.status(500).json({ error: 'Error generando preview: ' + e.message }); }
+});
+
+// Aplica (persiste) la carga — SOLO filas en estado 'ok' o el bloque Retail
+// (0 explícito). Nunca aplica sin_mapear/horeca_negativo/sin_dato_online:
+// esas quedan afuera hasta que se resuelvan a mano. Idempotente por
+// (anio,mes,canal,marca,estilo): si ya existe, la reemplaza (permite re-aplicar
+// tras corregir un mapeo), siempre re-etiquetando auditoría.
+app.post('/admin/historico-2025/cd-kairos/aplicar', requireAdmin, async (req, res) => {
+  try {
+    const allProducts = await loadProductsCache(false);
+    const extras = loadProductExtras();
+    const ordersResult = await loadOrders(false);
+    const store = hist25Load();
+    const usuario = (req.session && req.session.username) || 'admin';
+    const now = new Date().toISOString();
+    const upsert = (entrada) => {
+      const idx = store.entradas.findIndex(e => e.anio === entrada.anio && e.mes === entrada.mes && e.canal === entrada.canal && e.marca === entrada.marca && e.estilo === entrada.estilo && e.local == null);
+      if (idx >= 0) store.entradas[idx] = entrada; else store.entradas.push(entrada);
+    };
+    let aplicadas = 0, omitidas = 0;
+    for (const [marca, estilos] of Object.entries(HIST25_CD_COMBINADO)) {
+      for (const [estilo, valores] of Object.entries(estilos)) {
+        const match = hist25MatchEstilo(estilo, allProducts, extras);
+        for (let i = 0; i < HIST25_MESES; i++) {
+          const mes = i + 1;
+          const combinado = valores[i];
+          const online = combinado == null ? { available: false } : hist25OnlineLitrosMes(match, 2025, mes, ordersResult, extras);
+          const horeca = hist25HorecaPorResta(combinado, online);
+          if (match && horeca.estado === 'ok') {
+            upsert({ id: 'h25_' + marca + '_' + estilo.replace(/\W+/g, '_') + '_horeca_' + mes, anio: 2025, mes, canal: 'horeca', local: null, marca, estilo, skuCode: match.skuCode, litros: horeca.litros, origen: 'carga_manual_historica_2025', metodo: 'resta_combinado_menos_online', cargadoEn: now, cargadoPor: usuario });
+            upsert({ id: 'h25_' + marca + '_' + estilo.replace(/\W+/g, '_') + '_online_' + mes, anio: 2025, mes, canal: 'online', local: null, marca, estilo, skuCode: match.skuCode, litros: online.litros, origen: 'carga_manual_historica_2025', metodo: 'shopify_online_directo', cargadoEn: now, cargadoPor: usuario });
+            aplicadas += 2;
+          } else omitidas++;
+        }
+      }
+    }
+    for (const { marca, estilo } of HIST25_RETAIL_ESTILOS) {
+      for (let mes = 1; mes <= 12; mes++) {
+        upsert({ id: 'h25_' + marca + '_' + estilo.replace(/\W+/g, '_') + '_retail_' + mes, anio: 2025, mes, canal: 'retail', local: null, marca, estilo, skuCode: null, litros: 0, origen: 'carga_manual_historica_2025', metodo: 'retail_cero_explicito', cargadoEn: now, cargadoPor: usuario });
+        aplicadas++;
+      }
+    }
+    hist25Save(store);
+    res.json({ ok: true, aplicadas, omitidas });
+  } catch (e) { res.status(500).json({ error: 'Error aplicando la carga: ' + e.message }); }
+});
+
+// ─── Hospitality 2025 (litros por local × marca × estilo × mes) ────────────
+// Mismo espíritu que el importador flexible de Retail (Fase 4): mapear →
+// previsualizar → confirmar. Acá la "fuente" es la planilla que pasó el
+// equipo (texto estructurado, no un CSV subido), así que se guarda como
+// datos de referencia (seed) y se corre la MISMA validación de subtotales
+// que se le pediría a un CSV real. Ninguna discrepancia se carga en
+// silencio — queda listada para revisión humana.
+const HIST25_HOSP_ESTILOS_CASA = ['Nada Personal (Pils)', 'Alerta Roja (Red)', 'Galactic Golden', 'Imperio Perdido (Neipa)', 'Secret Lab (Apa)'];
+const HIST25_HOSP_ESTILOS_TEMPORADA = ['Kenny Bell (Ambar)', 'Ritual de la Banana (Weizen)', 'Samba (Ipa)', 'Obertura (Stout)', 'Hoppy Lager (Hoyo en Uno)'];
+const HIST25_HOSP_ESTILOS_WORLDTOUR = ['Osagui', 'Acholada', 'Lanus (Italian Pils)'];
+const z12 = () => Array(12).fill(0);
+// Los locales que no operan todo el año traen sus valores indexados por
+// número de mes real (1-12) — los meses sin operación NO existen en el
+// objeto (no se fuerza un 0 de "vendió cero" donde en realidad no había local abierto).
+const HIST25_HOSP = {
+  garden_vespucio: {
+    label: 'Kairos Garden Vespucio', mesesActivos: [1,2,3,4,5,6,7,8,9,10,11,12],
+    subtotalKairosBrewing: [8767,8027,8362,6674,8335,5910,7961,8121,7521,8950,9000,8900],
+    subtotalBanny:         [286,308,262,322,360,320,388,340,260,340,300,320],
+    coleccionDeLaCasa: { subtotal: [7066,6571,7045,5728,6997,4974,6736,6794,5967,7150,6820,7130], estilos: {
+      'Nada Personal (Pils)':    [2689,2410,2603,2430,2657,1865,2626,2609,2470,2830,3130,3680],
+      'Alerta Roja (Red)':       [1858,1510,1841,1426,1674,1326,1832,1542,1460,2010,1420,1550],
+      'Galactic Golden':         [1137,1481,1149,919,1043,791,985,1182,974,1170,930,1010],
+      'Imperio Perdido (Neipa)': [894,698,963,612,1063,638,880,902,784,750,840,740],
+      'Secret Lab (Apa)':        [488,472,489,341,560,354,413,559,279,390,500,150],
+    }},
+    coleccionDeTemporada: { subtotal: [800,621,647,447,449,485,604,604,737,1130,990,850], estilos: {
+      'Kenny Bell (Ambar)':           [0,0,0,0,0,0,0,0,0,230,270,310],
+      'Ritual de la Banana (Weizen)': [800,621,647,447,449,485,604,604,109,270,270,180],
+      'Samba (Ipa)':                  [0,0,0,0,0,0,0,0,191,180,180,120],
+      'Obertura (Stout)':             [0,0,0,0,0,0,0,0,281,300,90,150],
+      'Hoppy Lager (Hoyo en Uno)':    [0,0,0,0,0,0,0,0,156,150,180,90],
+    }},
+    worldTour: { 'Osagui': z12(), 'Acholada': z12(), 'Lanus (Italian Pils)': z12() },
+    coleccionDeArtistas: [901,835,670,499,889,451,621,723,817,670,1190,920], // agregado, no desglosable
+    banny: { 'Gin London Dry': [286,308,262,322,360,320,388,340,260,340,300,320], 'Ron Rey de Copas': z12(), 'Gin Contemporáneo': z12() },
+    sangria: { estilo: 'Sangría Doña Clota Tinta', litros: [160,220,260,60,null,null,null,null,null,null,null,null], incluidoEnSubtotalBanny: false, pendienteConfirmar: [5,6,7,8,9,10,11,12] },
+    firulais: { 'Chelada Cachupín': z12() },
+  },
+  garden_antofagasta: {
+    label: 'Kairos Garden Antofagasta', mesesActivos: [8,9,10,11,12],
+    subtotalKairosBrewing: { 8:2500, 9:7460, 10:8496, 11:1930, 12:7200 },
+    subtotalBanny:         { 8:0, 9:200, 10:0, 11:300, 12:0 },
+    coleccionDeLaCasa: { subtotal: { 8:2500, 9:5060, 10:7495, 11:1480, 12:6600 }, estilos: {
+      'Nada Personal (Pils)':    { 8:1500, 9:2020, 10:2076, 11:480, 12:2000 },
+      'Alerta Roja (Red)':       { 8:0, 9:1000, 10:523, 11:0, 12:1300 },
+      'Galactic Golden':         { 8:0, 9:1500, 10:4300, 11:0, 12:2000 },
+      'Imperio Perdido (Neipa)': { 8:500, 9:0, 10:11, 11:0, 12:300 },
+      'Secret Lab (Apa)':        { 8:500, 9:540, 10:585, 11:1000, 12:1000 },
+    }},
+    coleccionDeTemporada: { subtotal: { 8:0, 9:1830, 10:1001, 11:450, 12:600 }, estilos: {
+      'Kenny Bell (Ambar)':           { 8:0, 9:160, 10:11, 11:0, 12:0 },
+      'Ritual de la Banana (Weizen)': { 8:0, 9:950, 10:484, 11:0, 12:120 },
+      'Samba (Ipa)':                  { 8:0, 9:240, 10:11, 11:0, 12:120 },
+      'Obertura (Stout)':             { 8:0, 9:240, 10:484, 11:450, 12:180 },
+      'Hoppy Lager (Hoyo en Uno)':    { 8:0, 9:240, 10:11, 11:0, 12:180 },
+    }},
+    worldTour: { 'Osagui': {8:0,9:0,10:0,11:0,12:0}, 'Acholada': {8:0,9:0,10:0,11:0,12:0}, 'Lanus (Italian Pils)': {8:0,9:0,10:0,11:0,12:0} },
+    coleccionDeArtistas: { 8:0, 9:570, 10:0, 11:0, 12:0 },
+    banny: { 'Gin London Dry': { 8:0, 9:200, 10:0, 11:300, 12:0 }, 'Ron Rey de Copas': { 8:0, 9:0, 10:0, 11:0, 12:140 }, 'Gin Contemporáneo': { 8:0, 9:0, 10:0, 11:0, 12:0 } },
+    sangria: { estilo: 'Sangría Doña Clota Tinta', litros: null, incluidoEnSubtotalBanny: null, pendienteConfirmar: [] },
+    firulais: { 'Chelada Cachupín': { 8:0, 9:0, 10:0, 11:0, 12:0 } },
+  },
+  badass_parque_arauco: {
+    label: 'Kairos Badass (Parque Arauco)', mesesActivos: [6,7,8,9,10,11,12], mesInicioPorConfirmar: true,
+    subtotalKairosBrewing: { 6:1197, 7:1532, 8:1315, 9:1512, 10:1870, 11:2390, 12:1670 },
+    subtotalBanny:         { 6:0, 7:0, 8:0, 9:0, 10:0, 11:0, 12:20 },
+    coleccionDeLaCasa: { subtotal: { 6:775, 7:1216, 8:815, 9:1060, 10:1390, 11:1710, 12:1180 }, estilos: {
+      'Nada Personal (Pils)':    { 6:187, 7:402, 8:255, 9:447, 10:460, 11:610, 12:540 },
+      'Alerta Roja (Red)':       { 6:127, 7:281, 8:250, 9:191, 10:270, 11:220, 12:180 },
+      'Galactic Golden':         { 6:137, 7:162, 8:60, 9:121, 10:270, 11:480, 12:180 },
+      'Imperio Perdido (Neipa)': { 6:157, 7:266, 8:150, 9:195, 10:300, 11:270, 12:160 },
+      'Secret Lab (Apa)':        { 6:167, 7:105, 8:100, 9:106, 10:90, 11:130, 12:120 },
+    }},
+    coleccionDeTemporada: { subtotal: { 6:127, 7:172, 8:0, 9:150, 10:200, 11:370, 12:150 }, estilos: {
+      'Kenny Bell (Ambar)':           { 6:0, 7:0, 8:0, 9:0, 10:20, 11:0, 12:60 },
+      'Ritual de la Banana (Weizen)': { 6:127, 7:172, 8:0, 9:150, 10:120, 11:250, 12:90 },
+      'Samba (Ipa)':                  { 6:0, 7:0, 8:0, 9:0, 10:60, 11:90, 12:0 },
+      'Obertura (Stout)':             { 6:0, 7:0, 8:0, 9:0, 10:0, 11:30, 12:0 },
+      'Hoppy Lager (Hoyo en Uno)':    { 6:0, 7:0, 8:0, 9:0, 10:0, 11:0, 12:0 },
+    }},
+    worldTour: { 'Osagui': {6:0,7:0,8:0,9:0,10:0,11:0,12:0}, 'Acholada': {6:0,7:0,8:0,9:0,10:0,11:0,12:0}, 'Lanus (Italian Pils)': {6:0,7:0,8:0,9:0,10:0,11:0,12:0} },
+    coleccionDeArtistas: { 6:295, 7:144, 8:500, 9:302, 10:280, 11:310, 12:340 },
+    banny: { 'Gin London Dry': { 6:60, 7:388, 8:60, 9:80, 10:140, 11:200, 12:103 }, 'Ron Rey de Copas': { 6:0, 7:0, 8:0, 9:0, 10:0, 11:0, 12:20 }, 'Gin Contemporáneo': { 6:0, 7:0, 8:0, 9:0, 10:0, 11:0, 12:0 } },
+    sangria: { estilo: 'Sangría Doña Clota Tinta', litros: null, incluidoEnSubtotalBanny: null, pendienteConfirmar: [] },
+    firulais: { 'Chelada Cachupín': { 6:0, 7:0, 8:0, 9:0, 10:0, 11:0, 12:0 } },
+  },
+};
+function hist25GetMes(valores, mes){ if (valores == null) return null; return Array.isArray(valores) ? (valores[mes - 1] ?? null) : (valores[mes] ?? null); }
+function hist25SumEstilos(estilosObj, mesesActivos){
+  const out = {};
+  for (const mes of mesesActivos) out[mes] = Object.values(estilosObj).reduce((s, v) => s + (hist25GetMes(v, mes) || 0), 0);
+  return out;
+}
+// Corre la validación subtotal-vs-suma-de-estilos que pidió el equipo, para
+// UN local, y devuelve la lista de discrepancias reales (mes a mes).
+function hist25ValidarLocal(localId, local){
+  const discrepancias = [];
+  const chequear = (alcance, sumaPorMes, dadoPorMes, meses) => {
+    for (const mes of meses) {
+      const s = Math.round((sumaPorMes[mes] || 0) * 1000) / 1000;
+      const g = Math.round((hist25GetMes(dadoPorMes, mes) || 0) * 1000) / 1000;
+      if (s !== g) discrepancias.push({ local: localId, alcance, mes, sumaCalculada: s, subtotalDado: g, delta: Math.round((s - g) * 1000) / 1000 });
+    }
+  };
+  chequear('Colección de la Casa', hist25SumEstilos(local.coleccionDeLaCasa.estilos, local.mesesActivos), local.coleccionDeLaCasa.subtotal, local.mesesActivos);
+  chequear('Colección de Temporada', hist25SumEstilos(local.coleccionDeTemporada.estilos, local.mesesActivos), local.coleccionDeTemporada.subtotal, local.mesesActivos);
+  const sumaI = {};
+  for (const mes of local.mesesActivos) {
+    sumaI[mes] = hist25GetMes(local.coleccionDeLaCasa.subtotal, mes) + hist25GetMes(local.coleccionDeTemporada.subtotal, mes)
+      + Object.values(local.worldTour).reduce((s, v) => s + (hist25GetMes(v, mes) || 0), 0)
+      + (hist25GetMes(local.coleccionDeArtistas, mes) || 0);
+  }
+  chequear('Subtotal I (Kairos Brewing)', sumaI, local.subtotalKairosBrewing, local.mesesActivos);
+  chequear('Subtotal II (Banny, sin Sangría)', hist25SumEstilos(local.banny, local.mesesActivos), local.subtotalBanny, local.mesesActivos);
+  return discrepancias;
+}
+app.get('/admin/historico-2025/hospitality/preview', requireAdmin, async (req, res) => {
+  try {
+    const allProducts = await loadProductsCache(false);
+    const extras = loadProductExtras();
+    const discrepancias = [];
+    const filas = [];
+    const sinMapear = new Set();
+    for (const [localId, local] of Object.entries(HIST25_HOSP)) {
+      discrepancias.push(...hist25ValidarLocal(localId, local));
+      const grupos = [
+        { marca: 'kairos', estilos: local.coleccionDeLaCasa.estilos },
+        { marca: 'kairos', estilos: local.coleccionDeTemporada.estilos },
+        { marca: 'kairos', estilos: local.worldTour },
+        { marca: 'banny', estilos: local.banny },
+        { marca: 'firulais', estilos: local.firulais },
+      ];
+      for (const g of grupos) {
+        for (const [estilo, valores] of Object.entries(g.estilos)) {
+          const match = hist25MatchEstilo(estilo, allProducts, extras);
+          if (!match) sinMapear.add(estilo);
+          for (const mes of local.mesesActivos) {
+            const litros = hist25GetMes(valores, mes);
+            filas.push({ local: localId, marca: g.marca, estilo, mes, skuCode: match ? match.skuCode : null, matchTipo: match ? match.matchTipo : null, litros, estado: match ? 'ok' : 'sin_mapear' });
+          }
+        }
+      }
+      // Colección de Artistas del local — agregado, no desglosable a un SKU.
+      for (const mes of local.mesesActivos) {
+        filas.push({ local: localId, marca: 'kairos', estilo: 'Colección de Artistas (agregado)', mes, skuCode: null, matchTipo: null, litros: hist25GetMes(local.coleccionDeArtistas, mes), estado: 'agregado_no_desglosable' });
+      }
+      // Sangría — ítem de carta (sin SKU de Shopify), matcheado por ID interno si existe.
+      const sMatch = hist25MatchEstilo(local.sangria.estilo, allProducts, extras);
+      if (!sMatch) sinMapear.add(local.sangria.estilo + ' (' + local.label + ')');
+      for (const mes of local.mesesActivos) {
+        const litros = hist25GetMes(local.sangria.litros, mes);
+        filas.push({
+          local: localId, marca: 'banny', estilo: local.sangria.estilo, mes,
+          skuCode: sMatch ? sMatch.skuCode : null, matchTipo: sMatch ? sMatch.matchTipo : null,
+          litros, estado: !sMatch ? 'sin_mapear' : (litros == null ? 'pendiente_confirmar' : 'ok'),
+          nota: 'No incluido en el Subtotal II (Banny) de la planilla — discrepancia conocida a resolver.',
+        });
+      }
+    }
+    const resumen = {
+      totalFilas: filas.length,
+      discrepancias, totalDiscrepancias: discrepancias.length,
+      sinMapear: [...sinMapear],
+      agregadosNoDesglosables: filas.filter(f => f.estado === 'agregado_no_desglosable').length,
+      pendientesConfirmar: filas.filter(f => f.estado === 'pendiente_confirmar'),
+    };
+    res.json({ available: true, filas, resumen });
+  } catch (e) { res.status(500).json({ error: 'Error generando preview de Hospitality: ' + e.message }); }
+});
+// Aplica SOLO filas 'ok' (emparejadas y sin discrepancia de subtotal en su
+// local). Nunca aplica sin_mapear / agregado_no_desglosable / pendiente_confirmar,
+// ni nada de un local con discrepancias de subtotal sin resolver primero.
+app.post('/admin/historico-2025/hospitality/aplicar', requireAdmin, async (req, res) => {
+  try {
+    const allProducts = await loadProductsCache(false);
+    const extras = loadProductExtras();
+    const store = hist25Load();
+    const usuario = (req.session && req.session.username) || 'admin';
+    const now = new Date().toISOString();
+    const localesConDiscrepancia = new Set();
+    for (const [localId, local] of Object.entries(HIST25_HOSP)) {
+      if (hist25ValidarLocal(localId, local).length) localesConDiscrepancia.add(localId);
+    }
+    let aplicadas = 0, omitidas = 0;
+    for (const [localId, local] of Object.entries(HIST25_HOSP)) {
+      const bloqueado = localesConDiscrepancia.has(localId);
+      const grupos = [
+        { marca: 'kairos', estilos: local.coleccionDeLaCasa.estilos },
+        { marca: 'kairos', estilos: local.coleccionDeTemporada.estilos },
+        { marca: 'kairos', estilos: local.worldTour },
+        { marca: 'banny', estilos: local.banny },
+        { marca: 'firulais', estilos: local.firulais },
+      ];
+      for (const g of grupos) {
+        for (const [estilo, valores] of Object.entries(g.estilos)) {
+          const match = hist25MatchEstilo(estilo, allProducts, extras);
+          for (const mes of local.mesesActivos) {
+            const litros = hist25GetMes(valores, mes);
+            if (match && !bloqueado && litros != null) {
+              const id = 'h25_hosp_' + localId + '_' + g.marca + '_' + estilo.replace(/\W+/g, '_') + '_' + mes;
+              const idx = store.entradas.findIndex(e => e.id === id);
+              const entrada = { id, anio: 2025, mes, canal: 'hospitality', local: localId, marca: g.marca, estilo, skuCode: match.skuCode, litros, origen: 'carga_manual_historica_2025', metodo: 'hospitality_planilla', cargadoEn: now, cargadoPor: usuario };
+              if (idx >= 0) store.entradas[idx] = entrada; else store.entradas.push(entrada);
+              aplicadas++;
+            } else omitidas++;
+          }
+        }
+      }
+    }
+    hist25Save(store);
+    res.json({ ok: true, aplicadas, omitidas, localesBloqueadosPorDiscrepancia: [...localesConDiscrepancia] });
+  } catch (e) { res.status(500).json({ error: 'Error aplicando Hospitality: ' + e.message }); }
+});
+app.get('/admin/historico-2025/entradas', requireAdmin, (req, res) => {
+  const store = hist25Load();
+  res.json({ total: store.entradas.length, entradas: store.entradas });
+});
+
 // ─── Pack Mundialero (planilla en /admin → "Mundial") ───────────────────────
 // Cada compra que incluye un pack mundialero queda lista en una tabla tipo
 // Excel: nombre, contacto y las predicciones (1er/2do/3er lugar + goleador) que

@@ -23,4 +23,5 @@ prompts/retail-templates.json
 prompts/puntos-ruta.json
 prompts/forecast-comercial.json
 prompts/comercial-resumen.json
+prompts/venta-historica-2025.json
 public/uploads/
