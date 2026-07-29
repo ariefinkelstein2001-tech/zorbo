@@ -5371,7 +5371,6 @@
       "Entre panes (Burgers)",
       "Guarniciones",
       "Postres",
-      "Para tomar 0,0°",
       "Banny dips",
       "Agregados"
     ],
@@ -5540,12 +5539,6 @@
         {
           "id": "garden-s11",
           "nombre": "Postres",
-          "reventa": false,
-          "items": []
-        },
-        {
-          "id": "garden-s12",
-          "nombre": "Para tomar 0,0°",
           "reventa": false,
           "items": []
         },
@@ -11721,8 +11714,7 @@
       "Menu de niños",
       "Postres",
       "Guarniciones",
-      "Banny Dips",
-      "Para Tomar 0.0"
+      "Banny Dips"
     ],
     "carta": {
       "v": 2,
@@ -11906,12 +11898,6 @@
         {
           "id": "badass-s12",
           "nombre": "Banny Dips",
-          "reventa": false,
-          "items": []
-        },
-        {
-          "id": "badass-s13",
-          "nombre": "Para Tomar 0.0",
           "reventa": false,
           "items": []
         }
