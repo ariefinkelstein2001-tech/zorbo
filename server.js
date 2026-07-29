@@ -5679,6 +5679,18 @@ const OPERACIONAL_ESTILOS_SEED = {
   'Obertura': 'kairos', 'Hoppy Lagger': 'kairos', 'IPA': 'kairos', 'Ambar': 'kairos', 'Osagui': 'kairos', 'Acholada': 'kairos',
   'Colección de Artista': 'kairos', 'Cachupín': 'firulais', 'Gin': 'banny', 'Ron Rey de Copas': 'banny',
 };
+// Nombre de estilo (config de Producción/Operación) → código del diccionario
+// de SKU — transversal con Comercial. 'Gin' queda deliberadamente sin código:
+// el nombre no distingue 014 (Contemporáneo) de 015 (London Dry), y el
+// diccionario prohíbe adivinar entre los dos. 'Hoppy Lagger' es el nombre
+// real usado en esta config (con la 'g' de más) — se mapea igual, no se
+// "corrige" el nombre acá para no romper la clave que ya usan los datos
+// guardados; el diccionario oficial dice 'Hoppy Lager'.
+const OPERACIONAL_ESTILO_A_CODIGO = {
+  'NEIPA': '004', 'Weizen': '006', 'Golden': '001', 'Pils': '002', 'APA': '003', 'Red': '005',
+  'Obertura': '007', 'Hoppy Lagger': '008', 'IPA': '009', 'Ambar': '010', 'Osagui': '012', 'Acholada': '011',
+  'Colección de Artista': '020', 'Cachupín': '018', 'Ron Rey de Copas': '016',
+};
 const OPERACIONAL_CONFIG_DEF = { mermaPct: 8, leadTimeMeses: 1, stockSeguridadMeses: 1, tamanoLoteMinL: 500, tasaCrecimientoPct: 0 };
 function operacionalLoad(){
   let data = { estilos: {} };
@@ -5738,7 +5750,7 @@ app.get('/admin/forecast/operacional', requireAdmin, async (req, res) => {
       const loteL = Math.max(1, Number(cfg.tamanoLoteMinL) || 1);
       const produccionLote = Math.max(0, Math.ceil(produccionBruta / loteL) * loteL);
       const mesProduccion = opShiftMonth(month, Number(cfg.leadTimeMeses) || 0);
-      return { estilo, ...cfg, demandaBase: Math.round(demandaBase), demandaProyectada, fuenteDemanda, inventarioObjetivo, inventarioInicial, produccionBruta: Math.round(produccionBruta), produccionLote, mesProduccion };
+      return { estilo, estiloCodigo: OPERACIONAL_ESTILO_A_CODIGO[estilo] || null, ...cfg, demandaBase: Math.round(demandaBase), demandaProyectada, fuenteDemanda, inventarioObjetivo, inventarioInicial, produccionBruta: Math.round(produccionBruta), produccionLote, mesProduccion };
     }).sort((a, b) => a.marca.localeCompare(b.marca) || a.estilo.localeCompare(b.estilo, 'es'));
     const porMarca = {};
     for (const m of COSTOS_MARCAS) porMarca[m] = { litrosProduccion: 0, litrosDemanda: 0 };
