@@ -11868,17 +11868,17 @@ function saveCosteo(rest, svc, doc){ const all = loadCosteoAll(); all[costeoDocK
 // insumo; el override solo cambia el divisor de rendimiento. No aplica a barra (volumen).
 function insumoPrecioReal(i, rendOverride){
   // El ILA se aplica siempre que el insumo lo tenga cargado (litro/mililitro Y
-  // "unidad" — ej: una lata de bebida también paga ILA); en comida/gramo/kilogramo
-  // el campo simplemente no se carga y queda en 0, sin efecto.
-  const conIla = (Number(i.precioNeto) || 0) * (1 + (Number(i.ila) || 0) / 100);
+  // "unidad" — ej: una lata de bebida también paga ILA); en gramo/kilogramo
+  // el campo simplemente no se carga y queda en 0, sin efecto. El despacho (flete,
+  // neto, sin ILA) aplica a CUALQUIER insumo, de barra o de comida.
+  const conIlaDesp = (Number(i.precioNeto) || 0) * (1 + (Number(i.ila) || 0) / 100) + (Number(i.despacho) || 0);
   if (i.volumen && i.volumen > 0) {
-    // + despacho (el despacho es neto, sin ILA), todo ÷ volumen.
-    return Math.round((conIla + (Number(i.despacho) || 0)) / i.volumen);
+    return Math.round(conIlaDesp / i.volumen);
   }
-  // Comida / barra por unidad o peso: precio por unidad = (neto con ILA ÷ formato)
-  // ÷ rendimiento. El formato es la cantidad que cubre el precio neto (ej: $500
-  // por 0,5 kg → $1.000/kg). Default 1.
-  const base = (Number(i.formato) > 0) ? conIla / Number(i.formato) : conIla;
+  // Comida / barra por unidad o peso: precio por unidad = (neto con ILA+despacho ÷
+  // formato) ÷ rendimiento. El formato es la cantidad que cubre el precio neto
+  // (ej: $500 por 0,5 kg → $1.000/kg). Default 1.
+  const base = (Number(i.formato) > 0) ? conIlaDesp / Number(i.formato) : conIlaDesp;
   const rend = (Number(rendOverride) > 0 && Number(rendOverride) <= 1) ? Number(rendOverride) : i.rendimiento;
   return (rend && rend > 0) ? Math.round(base / rend) : Math.round(base);
 }
@@ -12006,7 +12006,7 @@ app.post('/admin/costeo/insumos', requireAdmin, (req, res) => {
   const d = loadCosteo(rest, req.query.svc);
   const volumen = (Number(b.volumen) > 0) ? Number(b.volumen) : null;
   const ila = (Number(b.ila) > 0) ? Number(b.ila) : (volumen ? 0 : null);
-  const despacho = (Number(b.despacho) > 0) ? Math.round(Number(b.despacho)) : (volumen ? 0 : null);
+  const despacho = (Number(b.despacho) > 0) ? Math.round(Number(b.despacho)) : 0;
   const formato = (Number(b.formato) > 0) ? Number(b.formato) : null;
   const equivGramos = (Number(b.equivGramos) > 0) ? Number(b.equivGramos) : null;
   const equivMl = (Number(b.equivMl) > 0) ? Number(b.equivMl) : null;
@@ -12351,18 +12351,18 @@ function insumosSheetRows(doc, svc){
   const S = { header: 1, money: 3, pct: 4 };
   const rows = [barra
     ? [{ v: 'Descripción', s: S.header }, { v: 'Precio neto', s: S.header }, { v: 'Unidad', s: S.header }, { v: 'ILA', s: S.header }, { v: 'Despacho', s: S.header }, { v: 'Neto + ILA + Desp.', s: S.header }, { v: 'Volumen', s: S.header }, { v: 'Formato', s: S.header }, { v: '% Rend.', s: S.header }, { v: 'Precio', s: S.header }]
-    : [{ v: 'Descripción', s: S.header }, { v: 'Precio neto', s: S.header }, { v: 'Formato', s: S.header }, { v: 'Unidad', s: S.header }, { v: '% Rend.', s: S.header }, { v: 'Precio real', s: S.header }]];
+    : [{ v: 'Descripción', s: S.header }, { v: 'Precio neto', s: S.header }, { v: 'Despacho', s: S.header }, { v: 'Formato', s: S.header }, { v: 'Unidad', s: S.header }, { v: '% Rend.', s: S.header }, { v: 'Precio real', s: S.header }]];
   (doc.insumos || []).slice().sort((a, b) => a.descripcion.localeCompare(b.descripcion)).forEach(i => {
     if (barra) {
       const isVol = Number(i.volumen) > 0;
       const hasIla = isVol || i.unidad === 'unidad';
-      const netoIla = (Number(i.precioNeto) || 0) * (1 + (Number(i.ila) || 0) / 100) + (isVol ? (Number(i.despacho) || 0) : 0);
+      const netoIlaDesp = (Number(i.precioNeto) || 0) * (1 + (Number(i.ila) || 0) / 100) + (Number(i.despacho) || 0);
       const rendCell = i.rendimiento != null ? { v: i.rendimiento, t: 'n', s: S.pct } : { v: '' };
       rows.push([
         { v: i.descripcion }, { v: Number(i.precioNeto) || 0, t: 'n', s: S.money }, { v: i.unidad || '' },
         { v: hasIla ? (Number(i.ila) || 0) / 100 : '', t: hasIla ? 'n' : undefined, s: hasIla ? S.pct : undefined },
-        { v: isVol ? Number(i.despacho) || 0 : '', t: isVol ? 'n' : undefined, s: isVol ? S.money : undefined },
-        { v: hasIla ? Math.round(netoIla) : '', t: hasIla ? 'n' : undefined, s: hasIla ? S.money : undefined },
+        { v: Number(i.despacho) || 0, t: 'n', s: S.money },
+        { v: Math.round(netoIlaDesp), t: 'n', s: S.money },
         { v: isVol ? (i.volumen || '') : '' }, { v: isVol ? '' : (i.formato || '') },
         isVol ? { v: '' } : rendCell,
         { v: Number(i.precioReal) || 0, t: 'n', s: S.money },
@@ -12370,7 +12370,8 @@ function insumosSheetRows(doc, svc){
     } else {
       const rendCell = i.rendimiento != null ? { v: i.rendimiento, t: 'n', s: S.pct } : { v: '' };
       rows.push([
-        { v: i.descripcion }, { v: Number(i.precioNeto) || 0, t: 'n', s: S.money }, { v: i.formato || '' }, { v: i.unidad || '' },
+        { v: i.descripcion }, { v: Number(i.precioNeto) || 0, t: 'n', s: S.money }, { v: Number(i.despacho) || 0, t: 'n', s: S.money },
+        { v: i.formato || '' }, { v: i.unidad || '' },
         rendCell, { v: Number(i.precioReal) || 0, t: 'n', s: S.money },
       ]);
     }
@@ -12381,7 +12382,7 @@ function insumosSheetRows(doc, svc){
     rows.push([{ v: 'Recetas base (RB)', s: S.header }]);
     rbList.forEach(r => rows.push(barra
       ? [{ v: r.nombre }, { v: '' }, { v: r.unidad || '' }, { v: '' }, { v: '' }, { v: '' }, { v: '' }, { v: '' }, { v: '' }, { v: Number(r.precioUnidad) || 0, t: 'n', s: S.money }]
-      : [{ v: r.nombre }, { v: '' }, { v: '' }, { v: r.unidad || '' }, { v: '' }, { v: Number(r.precioUnidad) || 0, t: 'n', s: S.money }]));
+      : [{ v: r.nombre }, { v: '' }, { v: '' }, { v: '' }, { v: r.unidad || '' }, { v: '' }, { v: Number(r.precioUnidad) || 0, t: 'n', s: S.money }]));
   }
   return rows;
 }
