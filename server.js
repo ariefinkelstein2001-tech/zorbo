@@ -12336,15 +12336,21 @@ function insumosSheetRows(doc, svc){
   const barra = costeoSvcKey(svc) === 'barra';
   const S = { header: 1, money: 3, pct: 4 };
   const rows = [barra
-    ? [{ v: 'Descripción', s: S.header }, { v: 'Precio neto', s: S.header }, { v: 'ILA', s: S.header }, { v: 'Despacho', s: S.header }, { v: 'Neto + ILA + Desp.', s: S.header }, { v: 'Volumen', s: S.header }, { v: 'Unidad', s: S.header }, { v: 'Precio', s: S.header }]
+    ? [{ v: 'Descripción', s: S.header }, { v: 'Precio neto', s: S.header }, { v: 'Unidad', s: S.header }, { v: 'ILA', s: S.header }, { v: 'Despacho', s: S.header }, { v: 'Neto + ILA + Desp.', s: S.header }, { v: 'Volumen', s: S.header }, { v: 'Formato', s: S.header }, { v: '% Rend.', s: S.header }, { v: 'Precio', s: S.header }]
     : [{ v: 'Descripción', s: S.header }, { v: 'Precio neto', s: S.header }, { v: 'Formato', s: S.header }, { v: 'Unidad', s: S.header }, { v: '% Rend.', s: S.header }, { v: 'Precio real', s: S.header }]];
   (doc.insumos || []).slice().sort((a, b) => a.descripcion.localeCompare(b.descripcion)).forEach(i => {
     if (barra) {
+      const isVol = Number(i.volumen) > 0;
       const netoIla = (Number(i.precioNeto) || 0) * (1 + (Number(i.ila) || 0) / 100) + (Number(i.despacho) || 0);
+      const rendCell = i.rendimiento != null ? { v: i.rendimiento, t: 'n', s: S.pct } : { v: '' };
       rows.push([
-        { v: i.descripcion }, { v: Number(i.precioNeto) || 0, t: 'n', s: S.money }, { v: (Number(i.ila) || 0) / 100, t: 'n', s: S.pct },
-        { v: Number(i.despacho) || 0, t: 'n', s: S.money }, { v: Math.round(netoIla), t: 'n', s: S.money },
-        { v: i.volumen || '' }, { v: i.unidad || '' }, { v: Number(i.precioReal) || 0, t: 'n', s: S.money },
+        { v: i.descripcion }, { v: Number(i.precioNeto) || 0, t: 'n', s: S.money }, { v: i.unidad || '' },
+        { v: isVol ? (Number(i.ila) || 0) / 100 : '', t: isVol ? 'n' : undefined, s: isVol ? S.pct : undefined },
+        { v: isVol ? Number(i.despacho) || 0 : '', t: isVol ? 'n' : undefined, s: isVol ? S.money : undefined },
+        { v: isVol ? Math.round(netoIla) : '', t: isVol ? 'n' : undefined, s: isVol ? S.money : undefined },
+        { v: isVol ? (i.volumen || '') : '' }, { v: isVol ? '' : (i.formato || '') },
+        isVol ? { v: '' } : rendCell,
+        { v: Number(i.precioReal) || 0, t: 'n', s: S.money },
       ]);
     } else {
       const rendCell = i.rendimiento != null ? { v: i.rendimiento, t: 'n', s: S.pct } : { v: '' };
@@ -12359,7 +12365,7 @@ function insumosSheetRows(doc, svc){
     rows.push([]);
     rows.push([{ v: 'Recetas base (RB)', s: S.header }]);
     rbList.forEach(r => rows.push(barra
-      ? [{ v: r.nombre }, { v: '' }, { v: '' }, { v: '' }, { v: '' }, { v: '' }, { v: r.unidad || '' }, { v: Number(r.precioUnidad) || 0, t: 'n', s: S.money }]
+      ? [{ v: r.nombre }, { v: '' }, { v: r.unidad || '' }, { v: '' }, { v: '' }, { v: '' }, { v: '' }, { v: '' }, { v: '' }, { v: Number(r.precioUnidad) || 0, t: 'n', s: S.money }]
       : [{ v: r.nombre }, { v: '' }, { v: '' }, { v: r.unidad || '' }, { v: '' }, { v: Number(r.precioUnidad) || 0, t: 'n', s: S.money }]));
   }
   return rows;
