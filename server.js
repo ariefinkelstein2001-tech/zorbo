@@ -11994,6 +11994,30 @@ function resolveCosteo(d){
   return { insumos, recetasBase, ingredientes, platos, categorias: d.categorias };
 }
 
+// Diagnóstico de despliegue/almacenamiento: para confirmar sin acceso a Railway
+// si el sitio en vivo está corriendo el código/commit esperado y si sus datos
+// viven en el disco efímero (se resetean con cada deploy) o en un volumen
+// persistente aparte (DATA_DIR), que no se actualiza con los pushes a git.
+app.get('/admin/costeo/_diag', requireAdmin, (req, res) => {
+  const all = loadCosteoAll();
+  const counts = {};
+  ['garden', 'badass', 'garden_barra', 'badass_barra'].forEach(k => {
+    const doc = all[k] || {};
+    counts[k] = {
+      insumos: (doc.insumos || []).length,
+      recetasBase: (doc.recetasBase || []).length,
+      platos: (doc.platos || []).length,
+      cortos: (doc.platos || []).filter(p => p.categoria === 'Cortos').length,
+    };
+  });
+  res.json({
+    gitCommit: process.env.RAILWAY_GIT_COMMIT_SHA || null,
+    dataDirEnv: DATA_DIR || null,
+    promptsEffectiveDir: PROMPTS_EFFECTIVE_DIR,
+    usandoVolumenPersistente: !!DATA_DIR,
+    counts,
+  });
+});
 app.get('/admin/costeo', requireAdmin, (req, res) => {
   const rest = costeoRestKey(req.query.rest); const svc = costeoSvcKey(req.query.svc);
   res.json({ restaurante: rest, servicio: svc, ...resolveCosteo(loadCosteo(rest, svc)) });
