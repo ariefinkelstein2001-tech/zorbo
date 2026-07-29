@@ -10041,7 +10041,7 @@ function lineRendCell(l, idx, pfx){
   return `<div class="ren-cell"><input type="text" inputmode="numeric" class="ren-inp${l.rend!=null?' on':''}" data-${pfx}ren="${idx}" value="${cur}" placeholder="${ph}" title="Rendimiento de esta línea (hereda ${ph}% del insumo). Vacío = heredado."><span class="ren-pct">%</span>
     <button type="button" class="ren-nm" data-${pfx}nm="${idx}" title="Sin merma = 100%">💯</button>${chip}</div>`;
 }
-function costeoResetState(){ rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch=''; platoEditing=null; platoDraft=[]; platoSearch=''; platoCatFilter=''; }
+function costeoResetState(){ rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch=''; platoEditing=null; platoDraft=[]; platoSearch=''; platoCatFilter=''; cartaSearch=''; cartaCatFilter=''; }
 
 // ── Costeo: pestañas de área (Gastronomía = herramienta real de siempre, sin
 // tocar; Productora y Comercialización y Distribución todavía sin info). ──
@@ -10634,7 +10634,9 @@ async function platoDelete(id){
 // El precio mostrado SIEMPRE es el sugerido por el costeo (no el de la carta
 // pública). La carta pública solo aporta el orden y las secciones.
 let cartaData = null;
+let cartaSearch = '', cartaCatFilter = '';
 const REST_LABEL = { garden:'Kairos Garden', badass:'Badass' };
+const ctSearchNorm = (s) => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 async function renderCosteoCarta(){
   const body=document.getElementById('costeoBody');
   body.innerHTML='<div class="adm-loading">Cargando carta…</div>';
@@ -10664,43 +10666,70 @@ function cartaRow(p, secId, isSinAsignar){
 const CT_THEAD = '<thead><tr><th>Plato</th><th style="text-align:right">Precio de venta</th><th style="text-align:right">Costo</th><th style="text-align:right">% de costo</th><th style="text-align:right;width:150px">Sección</th></tr></thead>';
 function drawCarta(){
   const c=cartaData;
+  const q = ctSearchNorm(cartaSearch);
+  const catF = cartaCatFilter;
   // Reventa (solo barra): indexo por nombre suelto para llenar las secciones de
   // coctel que en realidad son de reventa (cervezas, etc.) con sus productos.
   const revByName = new Map();
   if (isBarra() && reventaData && reventaData.secciones) reventaData.secciones.forEach(rs=>revByName.set(ctLooseNorm(rs.nombre), rs));
   const usedRev = new Set();
-  const secBlocks = c.secciones.map(s=>{
+  // Primero se resuelven TODAS las secciones (para que usedRev quede completo sin
+  // importar el filtro) y recién después se decide cuáles mostrar, así el filtro de
+  // categoría no hace que una sección de reventa ya emparejada reaparezca suelta.
+  const secItems = c.secciones.map(s=>{
     // Si la sección no tiene platos costeados pero calza con una de reventa,
     // muestro los productos de reventa ahí mismo (editables).
     const rs = (!s.platos.length && isBarra()) ? revByName.get(ctLooseNorm(s.nombre)) : null;
     if (rs){
       usedRev.add(rs.id);
-      return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${rs.productos.length})</span></div>${reventaTableHtml(rs)}</div>`;
+      const productos = q ? rs.productos.filter(p=>ctSearchNorm(p.nombre).includes(q)) : rs.productos;
+      const html = `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${productos.length})</span></div>${reventaTableHtml({...rs, productos})}</div>`;
+      return { nombre: s.nombre, match: !q || productos.length>0, html };
     }
-    const rows = s.platos.map(p=>cartaRow(p, s.id, false)).join('');
-    const table = s.platos.length
+    const platos = q ? s.platos.filter(p=>ctSearchNorm(p.nombre).includes(q)) : s.platos;
+    const rows = platos.map(p=>cartaRow(p, s.id, false)).join('');
+    const table = platos.length
       ? `<div class="mun-wrap"><table class="mun-table">${CT_THEAD}<tbody>${rows}</tbody></table></div>`
       : `<div class="dist-empty" style="padding:.6rem">Sin platos costeados en esta sección.</div>`;
-    const sc = s.sinCostear.length ? `<div class="ct-sincost"><b>Sin costear:</b> ${s.sinCostear.map(n=>`<span>${escapeHtml(n)}</span>`).join('')}</div>` : '';
-    return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.platos.length})</span></div>${table}${sc}</div>`;
-  }).join('');
-  const saRows = c.sinAsignar.map(p=>cartaRow(p, null, true)).join('');
-  const saBlock = c.sinAsignar.length
-    ? `<div class="ct-sec ct-sec-sa"><div class="ct-sec-h">Sin asignar <span>(${c.sinAsignar.length})</span></div><div class="mun-wrap"><table class="mun-table">${CT_THEAD}<tbody>${saRows}</tbody></table></div></div>`
+    const sc = (!q && s.sinCostear.length) ? `<div class="ct-sincost"><b>Sin costear:</b> ${s.sinCostear.map(n=>`<span>${escapeHtml(n)}</span>`).join('')}</div>` : '';
+    const html = `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${platos.length})</span></div>${table}${sc}</div>`;
+    return { nombre: s.nombre, match: !q || platos.length>0, html };
+  });
+  const secBlocks = secItems.filter(it=>it.match && (!catF || catF===it.nombre)).map(it=>it.html).join('');
+  const saAll = q ? c.sinAsignar.filter(p=>ctSearchNorm(p.nombre).includes(q)) : c.sinAsignar;
+  const saRows = saAll.map(p=>cartaRow(p, null, true)).join('');
+  const saBlock = (c.sinAsignar.length && saAll.length && (!catF || catF==='__SIN_ASIGNAR__'))
+    ? `<div class="ct-sec ct-sec-sa"><div class="ct-sec-h">Sin asignar <span>(${saAll.length})</span></div><div class="mun-wrap"><table class="mun-table">${CT_THEAD}<tbody>${saRows}</tbody></table></div></div>`
     : '';
   // Reventa que NO calzó con ninguna sección de coctel (Copas, Ron, Vinos, Gaseosas,
   // Jugos, etc.): se listan al final, en su orden de carta.
   let revBlock = '';
   if (isBarra() && reventaData && reventaData.secciones){
     const rest = reventaData.secciones.filter(s=>!usedRev.has(s.id));
-    revBlock = `
+    const restFiltered = rest.filter(s=>!catF || catF===s.nombre).map(s=>{
+      const productos = q ? s.productos.filter(p=>ctSearchNorm(p.nombre).includes(q)) : s.productos;
+      return { ...s, productos };
+    }).filter(s=>!q || s.productos.length>0);
+    // Sin búsqueda activa se muestra el encabezado igual (para poder crear una
+    // sección nueva) aunque no calce ninguna con la categoría elegida; con
+    // búsqueda activa, si no hay resultados, se oculta todo el bloque.
+    const showHeader = (!catF || rest.some(s=>s.nombre===catF)) && (!q || restFiltered.length);
+    if (showHeader) revBlock = `
       <div class="ct-rev-head">
         <div class="ct-sec-h" style="border:none">Reventa · destilados y bebidas <span>(venta directa)</span></div>
         <button class="adm-btn adm-btn-ghost" id="rvAddSec" type="button">+ Sección</button>
       </div>
       <div class="ct-toolbar-info" style="margin:-.3rem 0 .6rem">Se compran hechos y se revenden. Carga el <b>precio de compra</b> y el <b>% de costo</b> = compra ÷ venta se calcula solo.</div>
-      ${rest.map(reventaSectionBlock).join('')}`;
+      ${restFiltered.map(reventaSectionBlock).join('')}`;
   }
+  // Categorías disponibles para el selector: secciones del menú + Sin asignar +
+  // secciones de reventa que quedaron sueltas (no calzaron con ninguna del menú).
+  const catOptions = [
+    ...c.secciones.map(s=>({v:s.nombre, l:s.nombre})),
+    ...(c.sinAsignar.length ? [{v:'__SIN_ASIGNAR__', l:'Sin asignar'}] : []),
+    ...((isBarra() && reventaData && reventaData.secciones) ? reventaData.secciones.filter(s=>!usedRev.has(s.id)).map(s=>({v:s.nombre,l:s.nombre})) : []),
+  ];
+  const noResults = q && !secBlocks && !saBlock && !revBlock;
   document.getElementById('costeoBody').innerHTML = `
     <div class="ct-toolbar">
       <div class="ct-toolbar-info"><b>Precio de venta REAL</b> (el que cobrás al público, editable acá). El <b>% de costo</b> es contra ese precio real; el <b>costo</b> sale del costeo. ${c.meta.totalSecciones} secciones · ${c.meta.totalPlatos} platos.</div>
@@ -10711,13 +10740,21 @@ function drawCarta(){
         <button class="adm-btn adm-btn-gold" id="ctPdfBtn" type="button">PDF</button>
       </div>
     </div>
-    ${secBlocks || '<div class="dist-empty">No hay secciones todavía.</div>'}
+    <div class="tc-search" style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <input type="text" id="ctSearchInp" placeholder="Buscar producto…" value="${escapeAttr(cartaSearch)}" style="flex:1;min-width:180px">
+      <select id="ctCatFilter" style="max-width:260px"><option value="">Todas las categorías</option>${catOptions.map(o=>`<option value="${escapeAttr(o.v)}" ${catF===o.v?'selected':''}>${escapeHtml(o.l)}</option>`).join('')}</select>
+    </div>
+    ${noResults ? '<div class="dist-empty">No hay productos que coincidan con la búsqueda.</div>' : ''}
+    ${secBlocks || (catF || noResults ? '' : '<div class="dist-empty">No hay secciones todavía.</div>')}
     ${saBlock}
     ${revBlock}`;
   document.querySelectorAll('#costeoBody .ct-move').forEach(sel=>sel.onchange=()=>cartaMove(sel.dataset.pid, sel.value));
   document.querySelectorAll('#costeoBody .ct-real').forEach(inp=>{ inp.onchange=()=>cartaSaveReal(inp); });
   document.getElementById('ctXlBtn').onclick=cartaExcel;
   document.getElementById('ctPdfBtn').onclick=cartaPdf;
+  const csi=document.getElementById('ctSearchInp');
+  csi.oninput=()=>{ cartaSearch=csi.value; const p=csi.selectionStart; drawCarta(); const n=document.getElementById('ctSearchInp'); if(n){ n.focus(); try{n.setSelectionRange(p,p);}catch{} } };
+  document.getElementById('ctCatFilter').onchange=(e)=>{ cartaCatFilter=e.target.value; drawCarta(); };
   if (isBarra() && reventaData) wireReventaHandlers();
   costeoLockView();
 }
