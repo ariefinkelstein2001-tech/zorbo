@@ -4214,7 +4214,8 @@ const COSTOS_CAT_TIPO = Object.fromEntries(COSTOS_CATEGORIAS.map(c => [c.id, c.t
 // el folio que se ven en la tabla siguen siendo los de la factura real, sin tocar.
 function costosValorEfectivo(e){
   const valor = Number(e.valor) || 0;
-  if (COSTOS_CAT_TIPO[e.categoria] !== 'gasto') return valor;
+  // Si el documento (costo o gasto) es una factura compartida y se cargó
+  // "Porcentaje del total", solo esa fracción cuenta para el Estado de Resultado.
   const pct = e.pctTotal;
   if (pct == null || pct === '') return valor;
   const p = Math.min(100, Math.max(0, Number(pct) || 0));
@@ -4391,9 +4392,9 @@ function costosCrearEntradaDesdeBody(b){
     const suma = marcaDetalle.reduce((s, it) => s + it.pct, 0);
     if (suma > 100.01) return { error: 'La suma de los porcentajes por marca no puede superar 100%.' };
   }
-  // "Porcentaje del total": solo aplica a Gastos (facturas compartidas con el restaurante).
+  // "Porcentaje del total": facturas compartidas (aplica a costos y gastos).
   let pctTotal = null;
-  if (catDef.tipo === 'gasto' && b.pctTotal != null && b.pctTotal !== '') {
+  if (b.pctTotal != null && b.pctTotal !== '') {
     const p = Number(b.pctTotal);
     if (!Number.isFinite(p) || p <= 0 || p > 100) return { error: 'El porcentaje del total debe ser entre 1 y 100.' };
     pctTotal = Math.round(p * 10) / 10;

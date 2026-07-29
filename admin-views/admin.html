@@ -11197,7 +11197,7 @@ const CD_LBL={cd_kairos:'CD KAIROS',garden_vespucio:'CD Kairos Garden Vespucio',
 const CD_IDS=Object.keys(CD_LBL);
 const CD_DEFAULT='cd_kairos';
 const COSTOS_TIPO_CFG={
-  costo:{ bodyId:'costosBody', prefix:'costos', reloadId:'costosReload', pctTotal:false, vacio:'Todavía no hay costos registrados', nombre:'costo' },
+  costo:{ bodyId:'costosBody', prefix:'costos', reloadId:'costosReload', pctTotal:true, vacio:'Todavía no hay costos registrados', nombre:'costo' },
   gasto:{ bodyId:'gastosBody', prefix:'gastos', reloadId:'gastosReload', pctTotal:true,  vacio:'Todavía no hay gastos registrados', nombre:'gasto' },
 };
 function cgBlankForm(){ return { centroDistribucion:CD_DEFAULT, proveedor:'', categoria:'', subcategoria:'', subnivel:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'', centrosCosto:[] }; }
