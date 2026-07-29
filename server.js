@@ -9768,9 +9768,19 @@ async function comercialCuadro1(){
   const canalesDeMes = async (ms) => {
     try {
       const e = await estadoResolve(ms); const i = e.ingresos;
+      // Horeca del total ya resuelto (i.horeca.total), NO de cd_kairos.neto +
+      // ventas_cruzada.total: en los meses históricos de 2025 esos dos campos
+      // quedan en 0 (vienen de Shopify, que no alcanza tan atrás) y el total
+      // real del mes vive en i.horeca.total. Para meses en vivo son iguales.
+      const hist = (estadoHistCdLoad().cd[CD_DEFAULT] || {})[ms];
+      // Venta Online histórica: Shopify no llega a 2025 (devuelve 0), así que si
+      // el mes es histórico y en vivo da 0, se usa el valor de Venta Online
+      // auditado al cargar el mes (ventaOnlineRef). Para meses en vivo manda
+      // siempre lo real de Shopify.
+      const online = (i.ventas_web.cobrado || 0) || ((hist && hist.ventaOnlineRef) || 0);
       return {
-        horeca: (i.cd_kairos.neto || 0) + (i.ventas_cruzada.total || 0),
-        online: i.ventas_web.cobrado || 0,
+        horeca: (i.horeca && i.horeca.total) || 0,
+        online,
         retail: (i.retail != null ? i.retail : 0),
         hospitality: (i.hospitality && i.hospitality.total) || 0,
         ok: !!e.shopifyOk,
