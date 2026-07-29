@@ -2498,7 +2498,6 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
 .ren-nm:hover{border-color:var(--gold,#f5a623)}
 .ren-chip{font-size:.58rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#8a6d1f;background:rgba(245,166,35,.16);border-radius:5px;padding:.05rem .3rem}
 .ren-pct{font-size:.72rem;font-weight:700;color:var(--muted,#888);margin-left:-.1rem}
-.ct-reventa{font-size:.6rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#8a6d1f;background:rgba(245,166,35,.14);border:1px solid rgba(245,166,35,.4);border-radius:6px;padding:.1rem .4rem;vertical-align:middle}
 .pl-iva{display:inline-flex;align-items:center;gap:.35rem;font-size:.8rem;color:var(--text,#111);cursor:pointer;user-select:none}
 .pl-iva input{width:15px;height:15px;accent-color:var(--gold,#f5a623)}
 
@@ -10545,7 +10544,7 @@ function drawCarta(){
     const rs = (!s.platos.length && isBarra()) ? revByName.get(ctLooseNorm(s.nombre)) : null;
     if (rs){
       usedRev.add(rs.id);
-      return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${rs.productos.length})</span> <span class="ct-reventa">reventa</span></div>${reventaTableHtml(rs)}</div>`;
+      return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${rs.productos.length})</span></div>${reventaTableHtml(rs)}</div>`;
     }
     const rows = s.platos.map(p=>cartaRow(p, s.id, false)).join('');
     const table = s.platos.length
@@ -10668,7 +10667,7 @@ function reventaTableHtml(s){
 // Bloque completo (encabezado + tabla) para una sección de reventa que NO calza
 // con ninguna sección del coctel (Copas, Ron, Vinos, Gaseosas, etc.).
 function reventaSectionBlock(s){
-  return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.productos.length})</span> <span class="ct-reventa">reventa</span></div>${reventaTableHtml(s)}</div>`;
+  return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.productos.length})</span></div>${reventaTableHtml(s)}</div>`;
 }
 function wireReventaHandlers(){
   const sec=document.getElementById('rvAddSec'); if(sec) sec.onclick=reventaAddSeccion;
