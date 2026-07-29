@@ -4441,5 +4441,554 @@
    "nombre": "Para Tomar 0.0",
    "reventa": 1
   }
- ]
+ ],
+ "cortos": {
+  "bebida": {
+   "descripcion": "COCA COLA LATA CHICA",
+   "precioNeto": 444,
+   "volumen": 1,
+   "unidad": "litro",
+   "ila": 0,
+   "cantidad": 1
+  },
+  "seccion": "Cortos",
+  "margenPct": 30,
+  "productos": [
+   {
+    "nombre": "Citadelle Corto",
+    "familia": "Gin",
+    "ref": "CITADELLE",
+    "cantidad": 0.06,
+    "precioNeto": 29020
+   },
+   {
+    "nombre": "Hendricks Corto",
+    "familia": "Gin",
+    "ref": "HENDRICKS",
+    "cantidad": 0.06,
+    "precioNeto": 20324
+   },
+   {
+    "nombre": "Tanqueray Ten Corto",
+    "familia": "Gin",
+    "ref": "TANQUERAY TEN",
+    "cantidad": 0.06,
+    "precioNeto": 31922
+   },
+   {
+    "nombre": "Tanqueray London Dry Corto",
+    "familia": "Gin",
+    "ref": "TANQUERAY LONDON DRY",
+    "cantidad": 0.06,
+    "precioNeto": 14549
+   },
+   {
+    "nombre": "Tanqueray Sevilla Corto",
+    "familia": "Gin",
+    "ref": "TANQUERAY SEVILLA",
+    "cantidad": 0.06,
+    "precioNeto": 11979
+   },
+   {
+    "nombre": "Tanqueray Royale Corto",
+    "familia": "Gin",
+    "ref": "TANQUERAY ROYALE",
+    "cantidad": 0.06,
+    "precioNeto": 12025
+   },
+   {
+    "nombre": "Gin Mare Corto",
+    "familia": "Gin",
+    "ref": "GIN MARE",
+    "cantidad": 0.06,
+    "precioNeto": 44807
+   },
+   {
+    "nombre": "Republica Amazonica Corto",
+    "familia": "Gin",
+    "ref": "REPUBLICA AMAZONICA",
+    "cantidad": 0.06,
+    "precioNeto": 12014
+   },
+   {
+    "nombre": "Bombay Corto",
+    "familia": "Gin",
+    "ref": "BOMBAY",
+    "cantidad": 0.06,
+    "precioNeto": 18738
+   },
+   {
+    "nombre": "Beefeter Corto",
+    "familia": "Gin",
+    "ref": "BEEFETER",
+    "cantidad": 0.06,
+    "precioNeto": 18022
+   },
+   {
+    "nombre": "Beefeter Pink Corto",
+    "familia": "Gin",
+    "ref": "BEEFETER PINK",
+    "cantidad": 0.06,
+    "precioNeto": 22505
+   },
+   {
+    "nombre": "Gin Banny Corto",
+    "familia": "Gin",
+    "ref": "GIN BANNY",
+    "cantidad": 0.06,
+    "precioNeto": 11785
+   },
+   {
+    "nombre": "Johnnie Walker Blue Corto",
+    "familia": "Whisky",
+    "ref": "JOHNNIE WALKER BLUE",
+    "cantidad": 0.06,
+    "precioNeto": 284415
+   },
+   {
+    "nombre": "Johnnie Walker Gold Corto",
+    "familia": "Whisky",
+    "ref": "JOHNNIE WALKER GOLD",
+    "cantidad": 0.06,
+    "precioNeto": 73367
+   },
+   {
+    "nombre": "Johnnie Walker Red Corto",
+    "familia": "Whisky",
+    "ref": "JOHNNIE WALKER RED",
+    "cantidad": 0.06,
+    "precioNeto": 15245
+   },
+   {
+    "nombre": "Johnnie Walker Black Corto",
+    "familia": "Whisky",
+    "ref": "JOHNNIE WALKER BLACK",
+    "cantidad": 0.06,
+    "precioNeto": 38540
+   },
+   {
+    "nombre": "Johnnie Walker Double Black Corto",
+    "familia": "Whisky",
+    "ref": "JOHNNIE WALKER DOUBLE BLACK",
+    "cantidad": 0.06,
+    "precioNeto": 46496
+   },
+   {
+    "nombre": "Jack Daniels Gentleman Corto",
+    "familia": "Whisky",
+    "ref": "JACK DANIELS GENTLEMAN",
+    "cantidad": 0.06,
+    "precioNeto": 32722
+   },
+   {
+    "nombre": "Jack Daniels Old 7 Corto",
+    "familia": "Whisky",
+    "ref": "JACK DANIELS OLD 7",
+    "cantidad": 0.06,
+    "precioNeto": 32722
+   },
+   {
+    "nombre": "Jack Daniels Honey Corto",
+    "familia": "Whisky",
+    "ref": "JACK DANIELS HONEY",
+    "cantidad": 0.06,
+    "precioNeto": 32722
+   },
+   {
+    "nombre": "Jack Daniels Apple Corto",
+    "familia": "Whisky",
+    "ref": "JACK DANIELS APPLE",
+    "cantidad": 0.06,
+    "precioNeto": 32722
+   },
+   {
+    "nombre": "Chivas Regal 18 Corto",
+    "familia": "Whisky",
+    "ref": "CHIVAS REGAL 18",
+    "cantidad": 0.06,
+    "precioNeto": 73519
+   },
+   {
+    "nombre": "Chivas Regal 12 Corto",
+    "familia": "Whisky",
+    "ref": "CHIVAS REGAL 12",
+    "cantidad": 0.06,
+    "precioNeto": 30055
+   },
+   {
+    "nombre": "Jim Beam Bourbon Corto",
+    "familia": "Whisky",
+    "ref": "JIM BEAM BOURBON",
+    "cantidad": 0.06,
+    "precioNeto": 21072
+   },
+   {
+    "nombre": "Bulliet Bourbon Corto",
+    "familia": "Whisky",
+    "ref": "BULLIET BOURBON",
+    "cantidad": 0.06,
+    "precioNeto": 30350
+   },
+   {
+    "nombre": "Ballantines Corto",
+    "familia": "Whisky",
+    "ref": "BALLANTINES",
+    "cantidad": 0.06,
+    "precioNeto": 15675
+   },
+   {
+    "nombre": "Ballantines Blended 7 Años Corto",
+    "familia": "Whisky",
+    "ref": "BALLANTINES BLENDED 7 AÑOS",
+    "cantidad": 0.06,
+    "precioNeto": 11812
+   },
+   {
+    "nombre": "Buchanan´S 12 Corto",
+    "familia": "Whisky",
+    "ref": "BUCHANAN´S 12",
+    "cantidad": 0.06,
+    "precioNeto": 26947
+   },
+   {
+    "nombre": "Glenfiddich 12 Corto",
+    "familia": "Whisky",
+    "ref": "GLENFIDDICH 12",
+    "cantidad": 0.06,
+    "precioNeto": 34294
+   },
+   {
+    "nombre": "The Singleton 12 Corto",
+    "familia": "Whisky",
+    "ref": "THE SINGLETON 12",
+    "cantidad": 0.06,
+    "precioNeto": 32914
+   },
+   {
+    "nombre": "Johnnie Walker Blonde Corto",
+    "familia": "Whisky",
+    "ref": "JOHNNIE WALKER BLONDE",
+    "cantidad": 0.06,
+    "precioNeto": 15371
+   },
+   {
+    "nombre": "Grey Goose Corto",
+    "familia": "Vodka",
+    "ref": "GREY GOOSE",
+    "cantidad": 0.06,
+    "precioNeto": 20241
+   },
+   {
+    "nombre": "Stolichnaya Corto",
+    "familia": "Vodka",
+    "ref": "VODKA STOLICHNAYA",
+    "cantidad": 0.06,
+    "precioNeto": 12307
+   },
+   {
+    "nombre": "Absolute Corto",
+    "familia": "Vodka",
+    "ref": "ABSOLUTE",
+    "cantidad": 0.06,
+    "precioNeto": 13928
+   },
+   {
+    "nombre": "Absolute Vainilla Corto",
+    "familia": "Vodka",
+    "ref": "ABSOLUTE VAINILLA",
+    "cantidad": 0.06,
+    "precioNeto": 13681
+   },
+   {
+    "nombre": "Belvedere Corto",
+    "familia": "Vodka",
+    "ref": "BELVEDERE",
+    "cantidad": 0.06,
+    "precioNeto": 30376
+   },
+   {
+    "nombre": "Cuatro Gallos Italia Corto",
+    "familia": "Pisco",
+    "ref": "CUATRO GALLOS ITALIA",
+    "cantidad": 0.06,
+    "precioNeto": 26884
+   },
+   {
+    "nombre": "Alto Del Carmen Etiqueta Negra Corto",
+    "familia": "Pisco",
+    "ref": "ALTO DEL CARMEN ETIQUETA NEGRA",
+    "cantidad": 0.06,
+    "precioNeto": 10109
+   },
+   {
+    "nombre": "Alto Del Carmen 40° Corto",
+    "familia": "Pisco",
+    "ref": "ALTO DEL CARMEN 40°",
+    "cantidad": 0.06,
+    "precioNeto": 10012
+   },
+   {
+    "nombre": "Alto Del Carmen Transparente 40° Corto",
+    "familia": "Pisco",
+    "ref": "ALTO DEL CARMEN TRANSPARENTE 40°",
+    "cantidad": 0.06,
+    "precioNeto": 10015
+   },
+   {
+    "nombre": "Alto Del Carmen 35° Corto",
+    "familia": "Pisco",
+    "ref": "ALTO DEL CARMEN 35°",
+    "cantidad": 0.06,
+    "precioNeto": 5966
+   },
+   {
+    "nombre": "Mistral Nobel Corto",
+    "familia": "Pisco",
+    "ref": "MISTRAL NOBEL",
+    "cantidad": 0.06,
+    "precioNeto": 14661
+   },
+   {
+    "nombre": "Mistral Nobel Honey Corto",
+    "familia": "Pisco",
+    "ref": "MISTRAL NOBEL HONEY",
+    "cantidad": 0.06,
+    "precioNeto": 14661
+   },
+   {
+    "nombre": "Mistral Nobel Apple Corto",
+    "familia": "Pisco",
+    "ref": "MISTRAL NOBEL APPLE",
+    "cantidad": 0.06,
+    "precioNeto": 14661
+   },
+   {
+    "nombre": "Mistral 40° Corto",
+    "familia": "Pisco",
+    "ref": "MISTRAL 40°",
+    "cantidad": 0.06,
+    "precioNeto": 8152
+   },
+   {
+    "nombre": "Mistral 35° Corto",
+    "familia": "Pisco",
+    "ref": "MISTRAL 35°",
+    "cantidad": 0.06,
+    "precioNeto": 7039
+   },
+   {
+    "nombre": "Orcon Quemado Añejado Reservado 40° Corto",
+    "familia": "Pisco",
+    "ref": "ORCON QUEMADO AÑEJADO RESERVADO 40°",
+    "cantidad": 0.06,
+    "precioNeto": 12999
+   },
+   {
+    "nombre": "Pampero Aniversario Corto",
+    "familia": "Ron",
+    "ref": "PAMPERO ANIVERSARIO",
+    "cantidad": 0.06,
+    "precioNeto": 21258
+   },
+   {
+    "nombre": "Flor De Caña 12 Corto",
+    "familia": "Ron",
+    "ref": "FLOR DE CAÑA 12",
+    "cantidad": 0.06,
+    "precioNeto": 26989
+   },
+   {
+    "nombre": "Bacardi Carta De Oro Corto",
+    "familia": "Ron",
+    "ref": "BACARDI CARTA DE ORO",
+    "cantidad": 0.06,
+    "precioNeto": 9420
+   },
+   {
+    "nombre": "Bacardi Carta Blanca Corto",
+    "familia": "Ron",
+    "ref": "BACARDI CARTA BLANCA",
+    "cantidad": 0.06,
+    "precioNeto": 11749
+   },
+   {
+    "nombre": "Bacardi Añejo Corto",
+    "familia": "Ron",
+    "ref": "BACARDI AÑEJO",
+    "cantidad": 0.06,
+    "precioNeto": 9634
+   },
+   {
+    "nombre": "Havana Club Especial Corto",
+    "familia": "Ron",
+    "ref": "HAVANA CLUB ESPECIAL",
+    "cantidad": 0.06,
+    "precioNeto": 7539
+   },
+   {
+    "nombre": "Havana Club 7 Corto",
+    "familia": "Ron",
+    "ref": "HAVANA CLUB 7",
+    "cantidad": 0.06,
+    "precioNeto": 23032
+   },
+   {
+    "nombre": "Havana Club Selección De Maestros Corto",
+    "familia": "Ron",
+    "ref": "HAVANA CLUB SELECCIÓN DE MAESTROS",
+    "cantidad": 0.06,
+    "precioNeto": 53245
+   },
+   {
+    "nombre": "Zacapa 23 Corto",
+    "familia": "Ron",
+    "ref": "ZACAPA 23",
+    "cantidad": 0.06,
+    "precioNeto": 53351
+   },
+   {
+    "nombre": "Pampero Especial Corto",
+    "familia": "Ron",
+    "ref": "PAMPERO ESPECIAL",
+    "cantidad": 0.06,
+    "precioNeto": 13838
+   },
+   {
+    "nombre": "Ron Rey De Copas Corto",
+    "familia": "Ron",
+    "ref": "Ron rey de copa",
+    "cantidad": 0.06,
+    "precioNeto": 6429,
+    "alias": [
+     "RON REY DE COPAS"
+    ]
+   },
+   {
+    "nombre": "Herradura Silver Corto",
+    "familia": "Tequila",
+    "ref": "HERRADURA SILVER",
+    "cantidad": 0.045,
+    "precioNeto": 38565
+   },
+   {
+    "nombre": "Herradura Reposado Corto",
+    "familia": "Tequila",
+    "ref": "HERRADURA REPOSADO",
+    "cantidad": 0.045,
+    "precioNeto": 31004
+   },
+   {
+    "nombre": "Olmeca Silver Corto",
+    "familia": "Tequila",
+    "ref": "OLMECA SILVER",
+    "cantidad": 0.045,
+    "precioNeto": 22140
+   },
+   {
+    "nombre": "Olmeca Reposado Corto",
+    "familia": "Tequila",
+    "ref": "OLMECA REPOSADO",
+    "cantidad": 0.045,
+    "precioNeto": 22140
+   },
+   {
+    "nombre": "Jose Cuervo Silver Corto",
+    "familia": "Tequila",
+    "ref": "JOSE CUERVO SILVER",
+    "cantidad": 0.045,
+    "precioNeto": 19811
+   },
+   {
+    "nombre": "Jose Cuervo Reposado Corto",
+    "familia": "Tequila",
+    "ref": "JOSE CUERVO REPOSADO",
+    "cantidad": 0.045,
+    "precioNeto": 19926
+   },
+   {
+    "nombre": "Don Julio Blanco Corto",
+    "familia": "Tequila",
+    "ref": "DON JULIO BLANCO",
+    "cantidad": 0.045,
+    "precioNeto": 40110
+   },
+   {
+    "nombre": "Don Julio Reposado Corto",
+    "familia": "Tequila",
+    "ref": "DON JULIO REPOSADO",
+    "cantidad": 0.045,
+    "precioNeto": 47919
+   },
+   {
+    "nombre": "Frangelico Corto",
+    "familia": "Licores",
+    "ref": "FRANGELICO",
+    "cantidad": 0.06,
+    "precioNeto": 17364
+   },
+   {
+    "nombre": "Pobre Vermouth Rosso Corto",
+    "familia": "Licores",
+    "ref": "POBRE VERMOUTH ROSSO",
+    "cantidad": 0.06,
+    "precioNeto": 11081
+   },
+   {
+    "nombre": "Pobre Vermouth Blanco Corto",
+    "familia": "Licores",
+    "ref": "POBRE VERMOUTH BLANCO",
+    "cantidad": 0.06,
+    "precioNeto": 11081
+   },
+   {
+    "nombre": "Baileys Corto",
+    "familia": "Licores",
+    "ref": "BAILEYS",
+    "cantidad": 0.06,
+    "precioNeto": 8384
+   },
+   {
+    "nombre": "Disaronno Corto",
+    "familia": "Licores",
+    "ref": "DISARONNO",
+    "cantidad": 0.06,
+    "precioNeto": 28059
+   },
+   {
+    "nombre": "Fernet Branca Corto",
+    "familia": "Licores",
+    "ref": "FERNET BRANCA",
+    "cantidad": 0.06,
+    "precioNeto": 11947
+   },
+   {
+    "nombre": "Jagermeister Corto",
+    "familia": "Licores",
+    "ref": "JAGERMEISTER",
+    "cantidad": 0.06,
+    "precioNeto": 18741
+   },
+   {
+    "nombre": "Martini Fiero Corto",
+    "familia": "Licores",
+    "ref": "MARTINI FIERO",
+    "cantidad": 0.06,
+    "precioNeto": 7337
+   },
+   {
+    "nombre": "Drambui Corto",
+    "familia": "Licores",
+    "ref": "DRAMBUI",
+    "cantidad": 0.06,
+    "precioNeto": 28062
+   },
+   {
+    "nombre": "Campari Corto",
+    "familia": "Licores",
+    "ref": "CAMPARI",
+    "cantidad": 0.06,
+    "precioNeto": 18741
+   }
+  ]
+ }
 }
