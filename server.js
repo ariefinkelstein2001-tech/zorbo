@@ -9752,59 +9752,35 @@ async function comercialCuadro1(){
   const monthActual = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
   const monthPasado = fcMonthAgo(monthActual, 1);
   const monthAnoPasado = fcMonthAgo(monthActual, 12);
-
-  const ordersResult = await loadOrders(false);
-  const extras = loadProductExtras();
-  const retailStore = loadRetailVentas();
-
-  const onlineMesTotal = (ms) => {
-    if (!ordersResult.available) return null;
-    const [y, m] = ms.split('-').map(Number);
-    const from = Date.UTC(y, m - 1, 1), to = Date.UTC(y, m, 1);
-    let plata = 0, litros = 0, found = false;
-    for (const o of ordersResult.orders) {
-      const t = new Date(o.createdAt).getTime();
-      if (t < from || t >= to) continue;
-      for (const li of (o.lineItems || [])) {
-        if (isMayoristaLine(li)) continue;
-        found = true; plata += li.amount;
-        const label = sellinFormatoLabel(li, extras);
-        const lu = label != null ? skuFormatoLitros(label) : null;
-        if (lu != null) litros += lu * li.qty;
-      }
-    }
-    return found ? { plata: Math.round(plata), litros: Math.round(litros * 1000) / 1000 } : null;
+  // Los 4 canales salen del MISMO Ingreso por Venta de K-BROS (estadoResolve),
+  // no de Pyxis: es el dato interno auditado (Horeca, Venta Online, Retail,
+  // Hospitality) que usa el Estado de Resultado — así "año pasado" también aplica.
+  const canalesDeMes = async (ms) => {
+    try {
+      const e = await estadoResolve(ms); const i = e.ingresos;
+      return {
+        horeca: (i.cd_kairos.neto || 0) + (i.ventas_cruzada.total || 0),
+        online: i.ventas_web.cobrado || 0,
+        retail: (i.retail != null ? i.retail : 0),
+        hospitality: (i.hospitality && i.hospitality.total) || 0,
+        ok: !!e.shopifyOk,
+      };
+    } catch { return null; }
   };
-  const retailMesTotal = (ms) => {
-    if (!retailStore.uploads.length) return null;
-    let plata = 0, found = false;
-    for (const u of retailStore.uploads) for (const row of u.rows) {
-      if (!row.fecha || String(row.fecha).slice(0, 7) !== ms) continue;
-      found = true; plata += row.plata;
-    }
-    return found ? { plata: Math.round(plata), litros: null } : null;
-  };
-
-  let horecaResumen = null, hospResumen = null;
-  try { horecaResumen = await pyxisCervezasResumen('2', {}); } catch { horecaResumen = null; }
-  try { hospResumen = await pyxisHospitalidadResumen('2', {}); } catch { hospResumen = null; }
-  // p1/p2/p3 de Pyxis son SIEMPRE calendario-exactos: p3=mes actual, p2=mes
-  // pasado, p1=hace 2 meses (pyxisMesesLabels) — nunca llegan a "hace un año".
-  const horecaMesIdx = (idx) => horecaResumen ? { plata: Math.round(horecaResumen.kairos.reduce((s, p) => s + (p.m[idx] || 0), 0)), litros: null } : null;
-  const hospMesIdx = (idx) => (hospResumen && hospResumen.available)
-    ? { plata: Math.round((hospResumen.totales.mensual.comida[idx] || 0) + (hospResumen.totales.mensual.barra[idx] || 0)), litros: null } : null;
-
+  const [a, p, y] = await Promise.all([canalesDeMes(monthActual), canalesDeMes(monthPasado), canalesDeMes(monthAnoPasado)]);
+  // Muestra el valor si el mes se pudo resolver (aunque sea 0). null solo si no
+  // se pudo calcular (ej. Shopify caído al pedir el mes).
+  const cel = (obj, k) => (obj && obj[k] != null) ? { plata: Math.round(obj[k]), litros: null } : null;
   return {
     monthActual, monthPasado, monthAnoPasado,
     canales: {
-      horeca:      { label: 'Horeca',       mesActual: horecaMesIdx(2), mesPasado: horecaMesIdx(1), mismoMesAnoPasado: null },
-      retail:      { label: 'Retail',       mesActual: retailMesTotal(monthActual), mesPasado: retailMesTotal(monthPasado), mismoMesAnoPasado: retailMesTotal(monthAnoPasado) },
-      online:      { label: 'Venta Online', mesActual: onlineMesTotal(monthActual), mesPasado: onlineMesTotal(monthPasado), mismoMesAnoPasado: onlineMesTotal(monthAnoPasado) },
-      hospitality: { label: 'Hospitality',  mesActual: hospMesIdx(2), mesPasado: hospMesIdx(1), mismoMesAnoPasado: null },
+      horeca:      { label: 'Horeca',       mesActual: cel(a, 'horeca'),      mesPasado: cel(p, 'horeca'),      mismoMesAnoPasado: cel(y, 'horeca') },
+      retail:      { label: 'Retail',       mesActual: cel(a, 'retail'),      mesPasado: cel(p, 'retail'),      mismoMesAnoPasado: cel(y, 'retail') },
+      online:      { label: 'Venta Online', mesActual: cel(a, 'online'),      mesPasado: cel(p, 'online'),      mismoMesAnoPasado: cel(y, 'online') },
+      hospitality: { label: 'Hospitality',  mesActual: cel(a, 'hospitality'), mesPasado: cel(p, 'hospitality'), mismoMesAnoPasado: cel(y, 'hospitality') },
     },
     notas: {
-      horeca: 'Pyxis solo entrega los últimos 3 meses corridos: "mismo mes año pasado" no está disponible para Horeca.',
-      hospitality: (hospResumen && hospResumen.available) ? 'Pyxis solo entrega los últimos 3 meses corridos: "mismo mes año pasado" no está disponible para Hospitality.' : (hospResumen ? hospResumen.reason : 'Pyxis no disponible.'),
+      fuente: 'Datos del Ingreso por Venta de K-BROS (mismo que el Estado de Resultado).',
     },
   };
 }
