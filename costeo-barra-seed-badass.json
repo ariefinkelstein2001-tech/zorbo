@@ -4990,5 +4990,12 @@
     "precioNeto": 18741
    }
   ]
+ },
+ "botellas": {
+  "seccion": "Botellas",
+  "sufijo": "Botella",
+  "volumen": 0.75,
+  "bebidas": 5,
+  "margenPct": 30
  }
 }

@@ -12027,7 +12027,8 @@ function costeoNormalizeCarta(c){
   const urv = Number.isFinite(c.urv) ? c.urv : 0; // versión: quitar flag "reventa" (todo se costea)
   const rvb = Number.isFinite(c.rvb) ? c.rvb : 0; // versión: sembrar productos de reventa de barra (destilados)
   const ctv = Number.isFinite(c.ctv) ? c.ctv : 0; // versión: sembrar los CORTOS de barra (espirituoso + lata chica)
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, secciones, asignaciones };
+  const btv = Number.isFinite(c.btv) ? c.btv : 0; // versión: sembrar las BOTELLAS de barra (botella + 5 latas chicas)
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -12387,16 +12388,53 @@ function costeoSeedReventaBarra(doc, rest){
   doc.carta.rvb = BARRA_REVENTA_V;
   return true;
 }
-// Siembra los CORTOS de barra (hoja "PRECIO CORTOS" del Excel de carta) desde el
-// bloque seed.cortos: un trago por marca de destilado/licor = 60 ml del espirituoso
-// (45 ml en tequila) + una bebida en lata chica de 220 cc. Todos quedan en la
-// sección/categoría "Cortos".
-// Resolución del espirituoso: por nombre contra los insumos del doc (exacto o
-// alias); si la marca no está en el catálogo se crea con el precio promedio del
-// Excel (neto = promedio ÷ 1,19, ILA 0, como el resto de barra). Si el insumo ya
-// existe NO se le toca el precio — salvo que esté en 0 (dato roto), ahí se completa.
-// Idempotente: saltea el corto si ya hay un trago con ese nombre. Corre una vez
-// por doc de barra (carta.ctv); solo Badass trae seed.cortos → Garden es no-op.
+// ── Cortos y botellas de barra (hoja "PRECIO CORTOS" del Excel de carta) ──
+// Las dos siembras comparten la misma lista de marcas (seed.cortos.productos):
+// el corto es 60 ml del espirituoso (45 en tequila) + 1 lata chica, y la botella
+// es la botella completa + 5 latas chicas. De ahí los helpers compartidos.
+
+// Insumo de la bebida en lata. Si ya está cargado se respeta tal cual (precio
+// incluido); si no, se crea con el del seed. Devuelve el insumo o null.
+function costeoBarraBebidaIns(doc, byName, beb){
+  if (!beb || !beb.descripcion) return null;
+  const k = costeoNorm(beb.descripcion);
+  if (byName.has(k)) return byName.get(k);
+  const ins = { id: randomUUID(), descripcion: costeoStr(beb.descripcion, 200), precioNeto: Math.round(Number(beb.precioNeto) || 0), unidad: costeoUnit(beb.unidad || 'litro'), volumen: (Number(beb.volumen) > 0) ? Number(beb.volumen) : 1, ila: Number(beb.ila) || 0, despacho: 0, rendimiento: null };
+  doc.insumos.push(ins); byName.set(k, ins);
+  return ins;
+}
+// Insumo del espirituoso de una marca: se busca en el catálogo por nombre exacto
+// o por alguno de sus alias. Si no está y `crear` es true, se crea con el precio
+// promedio del Excel (neto = promedio ÷ 1,19, ILA 0, como el resto de barra). A
+// un insumo que ya existe NO se le toca el precio — salvo que esté en 0 (dato
+// roto), ahí se completa con el promedio llevado a su unidad de compra.
+function costeoBarraEspirituosoIns(doc, byName, cp, crear){
+  let esp = null;
+  for (const n of [cp.ref, ...(Array.isArray(cp.alias) ? cp.alias : [])]) {
+    if (n && byName.has(costeoNorm(n))) { esp = byName.get(costeoNorm(n)); break; }
+  }
+  if (!esp) {
+    if (!crear) return null;
+    esp = { id: randomUUID(), descripcion: costeoStr(cp.ref, 200), precioNeto: Math.round(Number(cp.precioNeto) || 0), unidad: 'litro', volumen: 1, ila: 0, despacho: 0, rendimiento: null };
+    doc.insumos.push(esp); byName.set(costeoNorm(esp.descripcion), esp);
+  } else if (!(Number(esp.precioNeto) > 0) && Number(cp.precioNeto) > 0) {
+    esp.precioNeto = Math.round(Number(cp.precioNeto) * ((Number(esp.volumen) > 0) ? Number(esp.volumen) : 1));
+  }
+  return esp;
+}
+// Deja la sección en la carta y en las categorías, para que los tragos no caigan
+// en "Sin asignar".
+function costeoBarraAsegurarSeccion(doc, rest, seccion, slug){
+  if (!(doc.carta.secciones || []).some(s => costeoNorm(s.nombre) === costeoNorm(seccion))) {
+    doc.carta.secciones.push({ id: `${costeoRestKey(rest)}-${slug}`, nombre: seccion, reventa: false, items: [] });
+  }
+  if (!(doc.categorias || []).some(c => costeoNorm(c) === costeoNorm(seccion))) doc.categorias.push(seccion);
+}
+// Siembra los CORTOS: un trago por marca de destilado/licor = 60 ml del
+// espirituoso (45 ml en tequila) + una bebida en lata chica de 220 cc, todos en
+// la sección/categoría "Cortos". Idempotente: saltea el corto si ya hay un trago
+// con ese nombre. Corre una vez por doc de barra (carta.ctv); solo Badass trae
+// seed.cortos → Garden es no-op.
 const BARRA_CORTOS_V = 1;
 function costeoSeedCortosBarra(doc, rest){
   if (!doc) return false;
@@ -12407,48 +12445,66 @@ function costeoSeedCortosBarra(doc, rest){
   if (cor && Array.isArray(cor.productos) && cor.productos.length) {
     const seccion = costeoStr(cor.seccion, 120) || 'Cortos';
     const byName = new Map(); (doc.insumos || []).forEach(i => byName.set(costeoNorm(i.descripcion), i));
-    // Insumo de la bebida (lata chica). Si ya está cargado se respeta tal cual.
-    const beb = cor.bebida || {};
-    const bebKey = costeoNorm(beb.descripcion);
-    let bebIns = byName.get(bebKey);
-    if (!bebIns && beb.descripcion) {
-      bebIns = { id: randomUUID(), descripcion: costeoStr(beb.descripcion, 200), precioNeto: Math.round(Number(beb.precioNeto) || 0), unidad: costeoUnit(beb.unidad || 'litro'), volumen: (Number(beb.volumen) > 0) ? Number(beb.volumen) : 1, ila: Number(beb.ila) || 0, despacho: 0, rendimiento: null };
-      doc.insumos.push(bebIns); byName.set(bebKey, bebIns);
-    }
-    const bebCant = (Number(beb.cantidad) > 0) ? Number(beb.cantidad) : 1;
+    const bebIns = costeoBarraBebidaIns(doc, byName, cor.bebida);
+    const bebCant = (Number(cor.bebida && cor.bebida.cantidad) > 0) ? Number(cor.bebida.cantidad) : 1;
     const platosPorNombre = new Set((doc.platos || []).map(p => costeoNorm(p.nombre)));
     const margenDef = (Number(cor.margenPct) > 0 && Number(cor.margenPct) <= 100) ? Number(cor.margenPct) : 30;
     cor.productos.forEach(cp => {
       const nombre = costeoStr(cp.nombre, 200); if (!nombre) return;
       const yaEsta = platosPorNombre.has(costeoNorm(nombre));
-      // Espirituoso: nombre principal o cualquiera de sus alias.
-      let esp = null;
-      for (const n of [cp.ref, ...(Array.isArray(cp.alias) ? cp.alias : [])]) {
-        if (n && byName.has(costeoNorm(n))) { esp = byName.get(costeoNorm(n)); break; }
-      }
-      if (!esp) {
-        if (yaEsta) return; // el trago ya existe con su propio insumo: no se duplica nada
-        esp = { id: randomUUID(), descripcion: costeoStr(cp.ref, 200), precioNeto: Math.round(Number(cp.precioNeto) || 0), unidad: 'litro', volumen: 1, ila: 0, despacho: 0, rendimiento: null };
-        doc.insumos.push(esp); byName.set(costeoNorm(esp.descripcion), esp);
-      } else if (!(Number(esp.precioNeto) > 0) && Number(cp.precioNeto) > 0) {
-        // El insumo existe pero sin precio: se completa con el promedio del Excel,
-        // llevado a la unidad de compra del insumo (el promedio es por litro).
-        esp.precioNeto = Math.round(Number(cp.precioNeto) * ((Number(esp.volumen) > 0) ? Number(esp.volumen) : 1));
-      }
-      if (yaEsta) return;
+      // Si el trago ya existe con su propio insumo, no se crea nada nuevo.
+      const esp = costeoBarraEspirituosoIns(doc, byName, cp, !yaEsta);
+      if (yaEsta || !esp) return;
       const lineas = [{ refType: 'insumo', refId: esp.id, cantidad: Number(cp.cantidad) || 0.06 }];
       if (bebIns) lineas.push({ refType: 'insumo', refId: bebIns.id, cantidad: bebCant });
       const m = Number(cp.margenPct); const margenPct = (m > 0 && m <= 100) ? m : margenDef;
       doc.platos.push({ id: randomUUID(), nombre, categoria: seccion, margenPct, lineas, precioReal: null, iva: false });
       platosPorNombre.add(costeoNorm(nombre));
     });
-    // Sección de carta + categoría, para que no caigan en "Sin asignar".
-    if (!(doc.carta.secciones || []).some(s => costeoNorm(s.nombre) === costeoNorm(seccion))) {
-      doc.carta.secciones.push({ id: `${costeoRestKey(rest)}-cortos`, nombre: seccion, reventa: false, items: [] });
-    }
-    if (!(doc.categorias || []).some(c => costeoNorm(c) === costeoNorm(seccion))) doc.categorias.push(seccion);
+    costeoBarraAsegurarSeccion(doc, rest, seccion, 'cortos');
   }
   doc.carta.ctv = BARRA_CORTOS_V;
+  return true;
+}
+// Siembra las BOTELLAS: la contracara del corto, una por cada marca de
+// seed.cortos.productos = botella completa del espirituoso + 5 latas chicas, en
+// la sección/categoría "Botellas". El tamaño de botella sale de seed.botellas
+// (0,75 L, que es como se compran 71 de las 76 marcas); las marcas cargadas por
+// litro o a granel se costean igual a 750 ml. Idempotente y con la misma
+// resolución de insumos que los cortos. Corre una vez por doc (carta.btv).
+const BARRA_BOTELLAS_V = 1;
+function costeoSeedBotellasBarra(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.btv >= BARRA_BOTELLAS_V) return false;
+  let seed; try { seed = JSON.parse(readFileSync(join(__dirname, costeoBarraSeedFile(rest)), 'utf-8')); } catch { seed = null; }
+  const bot = seed && seed.botellas;
+  const marcas = (seed && seed.cortos && Array.isArray(seed.cortos.productos)) ? seed.cortos.productos : [];
+  if (bot && marcas.length) {
+    const seccion = costeoStr(bot.seccion, 120) || 'Botellas';
+    const sufijo = costeoStr(bot.sufijo, 40) || 'Botella';
+    const volumen = (Number(bot.volumen) > 0) ? Number(bot.volumen) : 0.75;
+    const byName = new Map(); (doc.insumos || []).forEach(i => byName.set(costeoNorm(i.descripcion), i));
+    // La bebida es la misma lata del corto, solo que van 5.
+    const bebIns = costeoBarraBebidaIns(doc, byName, (bot.bebida || (seed.cortos && seed.cortos.bebida)));
+    const bebCant = (Number(bot.bebidas) > 0) ? Number(bot.bebidas) : 5;
+    const platosPorNombre = new Set((doc.platos || []).map(p => costeoNorm(p.nombre)));
+    const margenDef = (Number(bot.margenPct) > 0 && Number(bot.margenPct) <= 100) ? Number(bot.margenPct) : 30;
+    marcas.forEach(cp => {
+      // "Citadelle Corto" → "Citadelle Botella": la botella se nombra por la marca.
+      const marca = costeoStr(cp.nombre, 200).replace(/\s+corto\s*$/i, '');
+      const nombre = costeoStr(marca + ' ' + sufijo, 200); if (!marca) return;
+      const yaEsta = platosPorNombre.has(costeoNorm(nombre));
+      const esp = costeoBarraEspirituosoIns(doc, byName, cp, !yaEsta);
+      if (yaEsta || !esp) return;
+      const lineas = [{ refType: 'insumo', refId: esp.id, cantidad: volumen }];
+      if (bebIns) lineas.push({ refType: 'insumo', refId: bebIns.id, cantidad: bebCant });
+      doc.platos.push({ id: randomUUID(), nombre, categoria: seccion, margenPct: margenDef, lineas, precioReal: null, iva: false });
+      platosPorNombre.add(costeoNorm(nombre));
+    });
+    costeoBarraAsegurarSeccion(doc, rest, seccion, 'botellas');
+  }
+  doc.carta.btv = BARRA_BOTELLAS_V;
   return true;
 }
 // Asegura los 2 docs de barra (garden_barra / badass_barra): los siembra desde el
@@ -12464,6 +12520,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoUnreventaBarra(all[key])) ch = true;
     if (costeoSeedReventaBarra(all[key], rest)) ch = true;
     if (costeoSeedCortosBarra(all[key], rest)) ch = true;
+    if (costeoSeedBotellasBarra(all[key], rest)) ch = true;
   }
   return ch;
 }
