@@ -9925,6 +9925,9 @@ const C_UNITS = (cur) => ['litro','mililitro','kilogramo','gramo','unidad'].map(
 // rodaja de limón, menta, una lata de bebida) usa el mismo modelo que comida:
 // precio = (neto ÷ formato) ÷ rendimiento, sin ILA ni despacho.
 const ciIsVolUnit = (u) => u==='litro' || u==='mililitro';
+// El ILA también aplica a insumos "por unidad" (ej: lata de bebida energética o
+// gaseosa), no solo a los que se cargan por volumen. No aplica a gramo/kilogramo.
+const ciHasIla = (u) => ciIsVolUnit(u) || u==='unidad';
 // Texto de "Precio real" a mostrar: si el insumo se carga en gramo/mililitro,
 // se muestra directo el equivalente por kilo/litro (no interesa el precio por
 // gramo suelto). El precio real interno (por gramo/ml) es el que se sigue
@@ -9940,13 +9943,14 @@ function ciPrecioRealText(unidad, rawPerUnit, roundedPerUnit){
 // volumen; cualquier otro (kilogramo/gramo/unidad, sea barra o comida) usa
 // neto ÷ formato ÷ rendimiento — igual que server.js:insumoPrecioReal.
 function ciRawPerUnit(i){
+  // ILA se aplica siempre que el insumo lo tenga cargado (litro/mililitro Y
+  // "unidad" — ej: una lata de bebida también paga ILA); en gramo/kilogramo/
+  // comida el campo no se carga y queda en 0, sin efecto.
+  const conIla=(Number(i.precioNeto)||0)*(1+(Number(i.ila)||0)/100);
   const vol=Number(i.volumen);
-  if(vol>0){
-    const netoIla=(Number(i.precioNeto)||0)*(1+(Number(i.ila)||0)/100)+(Number(i.despacho)||0);
-    return netoIla/vol;
-  }
-  const fmt=Number(i.formato); const pn=Number(i.precioNeto)||0;
-  const base=(fmt>0) ? pn/fmt : pn;
+  if(vol>0) return (conIla+(Number(i.despacho)||0))/vol;
+  const fmt=Number(i.formato);
+  const base=(fmt>0) ? conIla/fmt : conIla;
   const rd=Number(i.rendimiento);
   return (rd>0 && rd<=1) ? base/rd : base;
 }
@@ -10132,12 +10136,13 @@ function renderCosteoInsumos(){
   const rbList = (costeoData.recetasBase||[]).filter(r=>!q || r.nombre.toLowerCase().includes(q)).slice().sort((a,b)=>a.nombre.localeCompare(b.nombre));
   const rows = list.map(i=> barra ? (()=>{
     const isVol = ciIsVolUnit(i.unidad);
+    const hasIla = ciHasIla(i.unidad);
     return `
     <tr data-iid="${i.id}">
       <td><input class="ci-inp" style="width:100%" data-f="descripcion" value="${escapeAttr(i.descripcion)}"></td>
       <td class="dist-num"><span class="ci-money"><input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:95px" data-f="precioNeto" value="${i.precioNeto||''}"></span></td>
       <td><select class="ci-inp" data-f="unidad" style="width:98px">${C_UNITS(i.unidad)}</select></td>
-      <td class="dist-num">${isVol ? `<select class="ci-inp dist-num" data-f="ila" style="width:72px">${C_ILA(i.ila)}</select>` : '<span style="color:#bbb">—</span>'}</td>
+      <td class="dist-num">${hasIla ? `<select class="ci-inp dist-num" data-f="ila" style="width:72px">${C_ILA(i.ila)}</select>` : '<span style="color:#bbb">—</span>'}</td>
       <td class="dist-num">${isVol ? `<input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:78px" data-f="despacho" value="${i.despacho||''}" placeholder="0">` : '<span style="color:#bbb">—</span>'}</td>
       <td class="dist-num">${isVol ? `<input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:55px" data-f="volumen" value="${i.volumen||''}" placeholder="1">` : `<input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:55px" data-f="formato" value="${i.formato||''}" placeholder="1">`}</td>
       <td class="dist-num">${isVol ? '<span style="color:#bbb">—</span>' : `<input type="text" inputmode="decimal" class="ci-inp dist-num" style="width:65px" data-f="rendimiento" value="${i.rendimiento||''}" placeholder="—">`}</td>
@@ -10229,8 +10234,11 @@ function renderCosteoInsumos(){
     const nu=document.getElementById('niUnidad');
     const toggleBarraForm=()=>{
       const isVol = ciIsVolUnit(nu.value);
-      ['niIlaWrap','niDespWrap','niVolWrap'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display = isVol ? '' : 'none'; });
-      ['niFormatoWrap','niRendWrap'].forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display = isVol ? 'none' : ''; });
+      const hasIla = ciHasIla(nu.value);
+      const set=(id,show)=>{ const e=document.getElementById(id); if(e) e.style.display = show ? '' : 'none'; };
+      set('niIlaWrap', hasIla);
+      set('niDespWrap', isVol); set('niVolWrap', isVol);
+      set('niFormatoWrap', !isVol); set('niRendWrap', !isVol);
     };
     if(nu){ nu.onchange=toggleBarraForm; toggleBarraForm(); }
   }
@@ -10256,7 +10264,7 @@ async function addInsumo(){
     ? (()=>{ const u=document.getElementById('niUnidad').value; const pn=cNum(document.getElementById('niPrecio').value);
         return ciIsVolUnit(u)
           ? { descripcion:desc, precioNeto:pn, unidad:u, ila:cNum(document.getElementById('niIla').value), despacho:cNum(document.getElementById('niDesp').value), volumen:cNum(document.getElementById('niVol').value) }
-          : { descripcion:desc, precioNeto:pn, unidad:u, formato:cNum(document.getElementById('niFormato').value), rendimiento:cNum(document.getElementById('niRend').value) };
+          : { descripcion:desc, precioNeto:pn, unidad:u, formato:cNum(document.getElementById('niFormato').value), rendimiento:cNum(document.getElementById('niRend').value), ila: ciHasIla(u) ? cNum(document.getElementById('niIla').value) : 0 };
       })()
     : { descripcion:desc, precioNeto:cNum(document.getElementById('niPrecio').value), formato:cNum(document.getElementById('niFormato').value), unidad:document.getElementById('niUnidad').value, rendimiento:cNum(document.getElementById('niRend').value), equivGramos:cNum(document.getElementById('niEquivGramos').value), equivMl:cNum(document.getElementById('niEquivMl').value) };
   try{
@@ -10275,11 +10283,14 @@ async function saveInsumo(id){
   if(barra){
     const u=g('unidad')||(ins?ins.unidad:'litro'); volU=u;
     if(ciIsVolUnit(u)){
-      ila=cNum(g('ila')); const desp=cNum(g('despacho')); const vol=cNum(g('volumen')); netoIla=pn*(1+ila/100)+desp; rawReal=(vol>0)?netoIla/vol:netoIla; real=Math.round(rawReal);
+      ila=cNum(g('ila')); const desp=cNum(g('despacho')); const vol=cNum(g('volumen'));
+      const conIla=pn*(1+ila/100); netoIla=conIla+desp; rawReal=(vol>0)?netoIla/vol:netoIla; real=Math.round(rawReal);
       payload={descripcion:g('descripcion'),precioNeto:pn,unidad:u,ila:ila,despacho:desp,volumen:vol,formato:0,rendimiento:0};
     } else {
-      const rd=cNum(g('rendimiento')); const fmt=cNum(g('formato')); const base=(fmt>0)?pn/fmt:pn; rawReal=(rd>0&&rd<=1)?base/rd:base; real=Math.round(rawReal); ila=0;
-      payload={descripcion:g('descripcion'),precioNeto:pn,unidad:u,formato:fmt,rendimiento:rd,ila:0,despacho:0,volumen:0};
+      ila = ciHasIla(u) ? cNum(g('ila')) : 0;
+      const rd=cNum(g('rendimiento')); const fmt=cNum(g('formato')); const conIla=pn*(1+ila/100);
+      const base=(fmt>0)?conIla/fmt:conIla; rawReal=(rd>0&&rd<=1)?base/rd:base; real=Math.round(rawReal);
+      payload={descripcion:g('descripcion'),precioNeto:pn,unidad:u,formato:fmt,rendimiento:rd,ila:ila,despacho:0,volumen:0};
     }
   } else {
     const rd=cNum(g('rendimiento')); const fmt=cNum(g('formato')); const base=(fmt>0)?pn/fmt:pn; rawReal=(rd>0&&rd<=1)?base/rd:base; real=Math.round(rawReal);
@@ -10295,7 +10306,7 @@ async function saveInsumo(id){
       if(barra){
         ins.unidad=volU;
         if(ciIsVolUnit(volU)){ ins.volumen=cNum(g('volumen'))||null; ins.ila=ila; ins.despacho=cNum(g('despacho'))||0; ins.formato=null; ins.rendimiento=null; }
-        else { const rd=cNum(g('rendimiento')); const fmt=cNum(g('formato')); ins.rendimiento=(rd>0&&rd<=1)?rd:null; ins.formato=(fmt>0)?fmt:null; ins.volumen=null; ins.ila=0; ins.despacho=0; }
+        else { const rd=cNum(g('rendimiento')); const fmt=cNum(g('formato')); ins.rendimiento=(rd>0&&rd<=1)?rd:null; ins.formato=(fmt>0)?fmt:null; ins.volumen=null; ins.ila=ila; ins.despacho=0; }
       } else {const rd=cNum(g('rendimiento'));ins.rendimiento=(rd>0&&rd<=1)?rd:null;ins.unidad=g('unidad');const fmt=cNum(g('formato'));ins.formato=(fmt>0)?fmt:null;ins.equivGramos=cNum(g('equivGramos'))||null;ins.equivMl=cNum(g('equivMl'))||null;}
     }
     st.className='dist-status ok'; st.textContent='✓'; setTimeout(()=>{st.textContent='';},1400);

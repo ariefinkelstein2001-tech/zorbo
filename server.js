@@ -11857,14 +11857,18 @@ function saveCosteo(rest, svc, doc){ const all = loadCosteoAll(); all[costeoDocK
 // (ej: carne molida de smash → 100%, sin merma). El precio neto sigue viviendo en el
 // insumo; el override solo cambia el divisor de rendimiento. No aplica a barra (volumen).
 function insumoPrecioReal(i, rendOverride){
+  // El ILA se aplica siempre que el insumo lo tenga cargado (litro/mililitro Y
+  // "unidad" — ej: una lata de bebida también paga ILA); en comida/gramo/kilogramo
+  // el campo simplemente no se carga y queda en 0, sin efecto.
+  const conIla = (Number(i.precioNeto) || 0) * (1 + (Number(i.ila) || 0) / 100);
   if (i.volumen && i.volumen > 0) {
-    // (neto + ILA) + despacho (el despacho es neto, sin ILA), todo ÷ volumen.
-    const conIla = (Number(i.precioNeto) || 0) * (1 + (Number(i.ila) || 0) / 100) + (Number(i.despacho) || 0);
-    return Math.round(conIla / i.volumen);
+    // + despacho (el despacho es neto, sin ILA), todo ÷ volumen.
+    return Math.round((conIla + (Number(i.despacho) || 0)) / i.volumen);
   }
-  // Comida: precio por unidad = (neto ÷ formato) ÷ rendimiento. El formato es la
-  // cantidad que cubre el precio neto (ej: $500 por 0,5 kg → $1.000/kg). Default 1.
-  const base = (Number(i.formato) > 0) ? (Number(i.precioNeto) || 0) / Number(i.formato) : (Number(i.precioNeto) || 0);
+  // Comida / barra por unidad o peso: precio por unidad = (neto con ILA ÷ formato)
+  // ÷ rendimiento. El formato es la cantidad que cubre el precio neto (ej: $500
+  // por 0,5 kg → $1.000/kg). Default 1.
+  const base = (Number(i.formato) > 0) ? conIla / Number(i.formato) : conIla;
   const rend = (Number(rendOverride) > 0 && Number(rendOverride) <= 1) ? Number(rendOverride) : i.rendimiento;
   return (rend && rend > 0) ? Math.round(base / rend) : Math.round(base);
 }
@@ -12341,13 +12345,14 @@ function insumosSheetRows(doc, svc){
   (doc.insumos || []).slice().sort((a, b) => a.descripcion.localeCompare(b.descripcion)).forEach(i => {
     if (barra) {
       const isVol = Number(i.volumen) > 0;
-      const netoIla = (Number(i.precioNeto) || 0) * (1 + (Number(i.ila) || 0) / 100) + (Number(i.despacho) || 0);
+      const hasIla = isVol || i.unidad === 'unidad';
+      const netoIla = (Number(i.precioNeto) || 0) * (1 + (Number(i.ila) || 0) / 100) + (isVol ? (Number(i.despacho) || 0) : 0);
       const rendCell = i.rendimiento != null ? { v: i.rendimiento, t: 'n', s: S.pct } : { v: '' };
       rows.push([
         { v: i.descripcion }, { v: Number(i.precioNeto) || 0, t: 'n', s: S.money }, { v: i.unidad || '' },
-        { v: isVol ? (Number(i.ila) || 0) / 100 : '', t: isVol ? 'n' : undefined, s: isVol ? S.pct : undefined },
+        { v: hasIla ? (Number(i.ila) || 0) / 100 : '', t: hasIla ? 'n' : undefined, s: hasIla ? S.pct : undefined },
         { v: isVol ? Number(i.despacho) || 0 : '', t: isVol ? 'n' : undefined, s: isVol ? S.money : undefined },
-        { v: isVol ? Math.round(netoIla) : '', t: isVol ? 'n' : undefined, s: isVol ? S.money : undefined },
+        { v: hasIla ? Math.round(netoIla) : '', t: hasIla ? 'n' : undefined, s: hasIla ? S.money : undefined },
         { v: isVol ? (i.volumen || '') : '' }, { v: isVol ? '' : (i.formato || '') },
         isVol ? { v: '' } : rendCell,
         { v: Number(i.precioReal) || 0, t: 'n', s: S.money },
