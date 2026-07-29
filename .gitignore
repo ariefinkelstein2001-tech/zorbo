@@ -21,4 +21,6 @@ prompts/pyxis-hospitality.json
 prompts/retail-ventas.json
 prompts/retail-templates.json
 prompts/puntos-ruta.json
+prompts/forecast-comercial.json
+prompts/comercial-resumen.json
 public/uploads/

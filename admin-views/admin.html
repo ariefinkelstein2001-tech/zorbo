@@ -726,6 +726,25 @@ body.chat-collapsed.admin-home .adm-chat-reopen,body.chat-collapsed.estado-activ
 .ri-upload-row-item:last-child{border-bottom:none}
 @media(max-width:760px){.sio-canal-grid{grid-template-columns:1fr}}
 
+/* ─── Inicio Comercial + Forecast Comercial ─────────────────────────────── */
+.com-c1-wrap{overflow-x:auto}
+.com-c1-table{width:100%;border-collapse:collapse;font-size:.82rem;font-variant-numeric:tabular-nums}
+.com-c1-table th{text-align:left;font-family:var(--sans);font-size:.64rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted,#666);padding:.3rem .5rem;border-bottom:1px solid var(--border)}
+.com-c1-table td{padding:.4rem .5rem;border-bottom:1px solid var(--border)}
+.com-c1-table td small{color:var(--muted,#666);font-weight:400}
+.com-progress{margin-top:.7rem}
+.com-progress-track{height:10px;border-radius:99px;background:rgba(0,0,0,.06);overflow:hidden}
+.com-progress-fill{height:100%;background:linear-gradient(90deg,var(--gold,#f5a623),var(--gold-bright,#ffb840));border-radius:99px;transition:width .3s}
+.com-progress-lbl{font-family:var(--sans);font-size:.74rem;color:var(--muted,#666);margin-top:.4rem}
+.com-c3-filters{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem;margin-bottom:.8rem}
+.com-c3 .sku-chan{padding:.4rem .7rem;font-size:.74rem}
+.fcom-tag{display:inline-block;font-family:var(--sans);font-size:.62rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:.12rem .5rem;border-radius:999px;margin-left:.4rem;white-space:nowrap}
+.fcom-tag.sugerido{background:rgba(45,90,160,.10);color:#2d5aa0}
+.fcom-tag.ajustado{background:var(--gold-dim);color:var(--gold-deep)}
+.fcom-tag.vacio{background:rgba(0,0,0,.05);color:var(--muted,#999)}
+.fcom-val-inp{width:110px}
+@media(max-width:900px){.com-c3-filters{flex-direction:column;align-items:stretch}}
+
 .adm-prod-editor{
   border-top:1px solid var(--gold-bd);padding:1rem 1.1rem 1.1rem;display:flex;flex-direction:column;gap:.65rem;
   background:linear-gradient(180deg,var(--surface2) 0%,#f3f3f3 100%);
@@ -3134,6 +3153,22 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
       <div id="finhomeBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
+    <!-- Inicio Comercial: misma plantilla que Inicio Finanzas (resumen IA +
+         3 cuadros + filtro de período), datos propios del área Comercial. -->
+    <div class="adm-panel" id="comercialhomeView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">🛒 Comercial</div>
+          <div class="adm-panel-meta">resumen del área — Sell In/Out, Forecast Comercial y top de productos, todo con datos reales</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="comHomeReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div class="ks-period" id="comPeriodBar" style="margin-top:0"></div>
+      <div id="comHomeBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
     <div class="adm-panel" id="pnlView" style="display:none">
       <div class="adm-panel-head">
         <div>
@@ -3212,6 +3247,22 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
         <button type="button" class="prod-tab" data-fctab="anual">Simulación anual</button>
       </div>
       <div id="fcBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
+    <!-- Forecast Comercial: grilla CANAL × MARCA, meta +15% configurable por celda. -->
+    <div class="adm-panel" id="forecastcomercialView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Forecast Comercial</div>
+          <div class="adm-panel-meta">proyección canal × marca · número sugerido de fuentes reales · meta configurable</div>
+        </div>
+        <div class="adm-actions">
+          <label class="est-daterange">Mes <input type="month" id="fcomMesCal" class="est-date"></label>
+          <div class="sio-toggle" id="fcomUnidadToggle"><button data-u="plata" class="on" type="button">$</button><button data-u="litros" type="button">Litros</button></div>
+          <button class="adm-btn adm-btn-gold" id="fcomGuardar" type="button">Guardar</button>
+        </div>
+      </div>
+      <div id="fcomBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
     <!-- Vista de tutoriales (videos técnicos) -->
@@ -3866,6 +3917,9 @@ const BASE_SECCIONES = [
   { id:'firulais',  kind:'md',       label:'Firulais',        cat:'marketing', desc:'cheladas craft', nav:false, parentNav:'marcas' },
   { id:'banny',     kind:'md',       label:'Banny',           cat:'marketing', desc:'destilados · RTD', nav:false, parentNav:'marcas' },
   { id:'mayorista', kind:'md',       label:'Mayoristas (B2B)',cat:'marketing', desc:'restaurantes · botillerías · eventos', nav:false, parentNav:'marcas' },
+  // Inicio Comercial: mismo patrón que "Inicio Finanzas" (nav:false, se abre
+  // al hacer clic en el encabezado de categoría "COMERCIAL" del sidebar).
+  { id:'comercial-home', kind:'comercialhome', label:'Inicio Comercial', cat:'comercial', nav:false, desc:'resumen del área con IA + cuadros' },
   { id:'productos',  kind:'products', label:'SKU',             cat:'comercial', desc:'catálogo Shopify · código SKU único por producto · notas extra para Zorbot' },
   { id:'sellinout',  kind:'sellinout',label:'Sell In · Sell Out', cat:'comercial', desc:'lo que K-BROS vende a los canales (Sell In) vs lo que los canales venden al consumidor final (Sell Out) · Horeca, Retail, Hospitality, Venta Online' },
   { id:'puntos',     kind:'puntos',   label:'Puntos de venta', cat:'comercial', desc:'mapa de locales donde estás · venta por punto' },
@@ -3899,6 +3953,7 @@ const BASE_SECCIONES = [
   { id:'notascredito', kind:'notascredito', label:'Notas de crédito', cat:'finanzas', desc:'anular ventas por canal o corregir costos/gastos · afecta el Estado de Resultado' },
   { id:'nomina',    kind:'nomina',   label:'Gestión de Personas', cat:'personas', desc:'nómina de trabajadores · costo empresa · descarga de Excel' },
   { id:'forecast',  kind:'forecast', label:'Forecast', cat:'herramientas', desc:'EERR proyectado · presupuestos por % · simulación del año' },
+  { id:'forecast-comercial', kind:'forecastcomercial', label:'Forecast Comercial', cat:'herramientas', desc:'proyección canal × marca · meta +15% configurable · litros y plata' },
   { id:'equipo',    kind:'equipo',   label:'Cuentas del equipo', cat:'herramientas', desc:'altas y ediciones de cuentas individuales · nombre · apodo · acceso' },
   { id:'produccion',kind:'produccion',label:'Centro de Producción', cat:'produccion', desc:'tanques · cocción · recetas · envasado · limpiezas · paradas' },
 ];
@@ -4298,6 +4353,12 @@ async function selectSeccion(id){
   } else if (sec.kind === 'forecast') {
     showView('forecast');
     forecastBoot();
+  } else if (sec.kind === 'forecastcomercial') {
+    showView('forecastcomercial');
+    fcomBoot();
+  } else if (sec.kind === 'comercialhome') {
+    showView('comercialhome');
+    await loadComercialHome();
   } else if (sec.kind === 'products') {
     showView('products');
     await loadProductos();
@@ -4355,7 +4416,7 @@ async function selectSeccion(id){
 function showView(kind){
   // El Estado de Resultado no usa el preview de Zorbot: se oculta y la vista ocupa todo el ancho.
   document.body.classList.toggle('estado-active', kind === 'estado');
-  document.body.classList.toggle('finhome-active', kind === 'finhome'); // dashboard de área: sin panel Zorbot, a todo el ancho
+  document.body.classList.toggle('finhome-active', kind === 'finhome' || kind === 'comercialhome'); // dashboard de área: sin panel Zorbot, a todo el ancho
   // "Último read" solo aplica a contenido de marca (md); en el resto de vistas no significa nada, así que se oculta.
   if (kind !== 'md') document.getElementById('tagBuild').style.display = 'none';
   document.getElementById('homeView').style.display       = kind === 'home'       ? '' : 'none';
@@ -4384,6 +4445,8 @@ function showView(kind){
   document.getElementById('notascreditoView').style.display = kind === 'notascredito' ? '' : 'none';
   document.getElementById('pnlView').style.display        = kind === 'pnl'        ? '' : 'none';
   document.getElementById('forecastView').style.display   = kind === 'forecast'   ? '' : 'none';
+  document.getElementById('forecastcomercialView').style.display = kind === 'forecastcomercial' ? '' : 'none';
+  document.getElementById('comercialhomeView').style.display = kind === 'comercialhome' ? '' : 'none';
   if (kind !== 'produccion' && typeof prodStopTimers === 'function') prodStopTimers();
   if (kind === 'estado') estadoBoot();
   document.getElementById('feedbackView').style.display   = kind === 'feedback'   ? '' : 'none';
@@ -12002,6 +12065,172 @@ async function finGenerarResumen(){
 document.getElementById('finhomeReload').onclick=loadFinHome;
 document.getElementById('finhomeMesCal').onchange=loadFinHome;
 
+// ─── Inicio Comercial (misma plantilla que Inicio Finanzas) ────────────────
+let comState = { period: 'mes_actual', from: '', to: '' };
+let comHomeData = null, comResumen = null;
+let comTop = { canal: 'todas', marca: 'todas', modo: 'amplio', orden: 'plata' };
+
+function comPeriodQS(){
+  const qs = new URLSearchParams({ period: comState.period });
+  if (comState.period === 'custom') { qs.set('from', comState.from); qs.set('to', comState.to); }
+  return qs.toString();
+}
+function comRenderPeriodBar(){
+  const el = document.getElementById('comPeriodBar'); if (!el) return;
+  const opts = [['mes_actual', 'Mes actual'], ['mes_pasado', 'Mes pasado'], ['30d', 'Últimos 30 días'], ['custom', 'Rango personalizado']];
+  el.innerHTML = opts.map(([id, lab]) => `<button type="button" class="ks-period-btn ${comState.period === id ? 'on' : ''}" data-period="${id}">${escapeHtml(lab)}</button>`).join('')
+    + (comState.period === 'custom' ? `<span class="ks-period-custom"><input type="date" id="comFrom" value="${escapeAttr(comState.from)}" aria-label="Desde"><span>–</span><input type="date" id="comTo" value="${escapeAttr(comState.to)}" aria-label="Hasta"></span>` : '')
+    + `<span class="ks-period-label" id="comPeriodLabel"></span>`;
+  el.querySelectorAll('[data-period]').forEach(b => b.onclick = () => {
+    comState.period = b.dataset.period;
+    if (comState.period === 'custom' && !comState.from) {
+      const ymd = (d) => d.toISOString().slice(0, 10);
+      const to = new Date(), from = new Date(); from.setDate(from.getDate() - 29);
+      comState.from = ymd(from); comState.to = ymd(to);
+    }
+    comRenderPeriodBar();
+    if (comState.period !== 'custom') loadComercialHome();
+  });
+  if (comState.period === 'custom') {
+    const fEl = document.getElementById('comFrom'), tEl = document.getElementById('comTo');
+    const onChange = () => { comState.from = fEl.value; comState.to = tEl.value; if (comState.from && comState.to && comState.from <= comState.to) loadComercialHome(); };
+    fEl.onchange = onChange; tEl.onchange = onChange;
+  }
+}
+async function loadComercialHome(){
+  comRenderPeriodBar();
+  const body = document.getElementById('comHomeBody');
+  body.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const [homeR, resR] = await Promise.all([
+      fetch('/admin/comercial/home?' + comPeriodQS()).then(r => r.json()),
+      fetch('/admin/comercial/resumen').then(r => r.json()).catch(() => ({ texto: null, generadoEn: null })),
+    ]);
+    if (homeR.error) throw new Error(homeR.error);
+    comHomeData = homeR; comResumen = resR;
+    renderComercialHome();
+    comLoadTop();
+  } catch (e) { body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message || e))}</div>`; }
+}
+function comCuadro1Html(c1){
+  const nd = '<span class="fin-nd">Sin datos</span>';
+  const fmtCell = (v) => v == null ? nd : `${fmtMoney(v.plata)}${v.litros != null ? ` <small>(${fmtLitros(v.litros)})</small>` : ''}`;
+  const rows = ['horeca', 'retail', 'online', 'hospitality'].map(k => {
+    const c = c1.canales[k];
+    return `<tr><td>${escapeHtml(c.label)}</td><td>${fmtCell(c.mesActual)}</td><td>${fmtCell(c.mesPasado)}</td><td>${fmtCell(c.mismoMesAnoPasado)}</td></tr>`;
+  }).join('');
+  const notas = Object.values(c1.notas || {}).filter((v, i, a) => v && a.indexOf(v) === i);
+  return `<div class="ks-card"><div class="ks-card-h"><span class="t">Ventas comparativas por canal</span></div>
+    <div class="com-c1-wrap"><table class="com-c1-table">
+      <thead><tr><th>Canal</th><th>Mes actual</th><th>Mes pasado</th><th>Año pasado</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    ${notas.length ? `<div class="fin-nd" style="margin-top:.5rem">${notas.map(escapeHtml).join(' · ')}</div>` : ''}
+  </div>`;
+}
+function comCuadro2Html(c2){
+  const nd = '<span class="fin-nd">Sin datos</span>';
+  if (c2.proyectado == null && c2.meta == null) {
+    return `<div class="ks-card"><div class="ks-card-h"><span class="t">Proyección vs real</span></div><div class="fin-nd">Sin proyección cargada para ${escapeHtml(c2.month)} — cargala en Herramientas › Forecast Comercial.</div></div>`;
+  }
+  const barPct = c2.pctMeta != null ? Math.max(0, Math.min(100, c2.pctMeta)) : 0;
+  return `<div class="ks-card"><div class="ks-card-h"><span class="t">Proyección vs real</span></div>
+    <div class="fin-vrow"><span class="fin-vrow-l">Proyectado</span><span class="fin-vrow-v">${c2.proyectado != null ? fmtMoney(c2.proyectado) : nd}</span></div>
+    <div class="fin-vrow"><span class="fin-vrow-l">Meta</span><span class="fin-vrow-v">${c2.meta != null ? fmtMoney(c2.meta) : nd}</span></div>
+    <div class="fin-vrow"><span class="fin-vrow-l">Vendido a hoy</span><span class="fin-vrow-v">${c2.vendidoAHoy != null ? fmtMoney(c2.vendidoAHoy) : nd}</span></div>
+    ${c2.esMesActual ? `
+      <div class="com-progress"><div class="com-progress-track"><div class="com-progress-fill" style="width:${barPct}%"></div></div></div>
+      <div class="com-progress-lbl">${c2.pctMeta != null ? c2.pctMeta + '% de la meta' : 'Sin dato de avance'} · día ${c2.diaHoy} de ${c2.diasDelMes}</div>
+    ` : `<div class="fin-nd" style="margin-top:.4rem">Mes fuera del actual — sin barra de avance del día.</div>`}
+  </div>`;
+}
+function comCuadro3Html(){
+  return `<div class="ks-card com-c3">
+    <div class="ks-card-h"><span class="t">Top por producto</span></div>
+    <div class="com-c3-filters">
+      <div class="sku-chan-filters" id="comTopCanalFilters">
+        <button class="sku-chan on" data-canal="todas" type="button">Todos los canales</button>
+        <button class="sku-chan" data-canal="horeca" type="button">Horeca</button>
+        <button class="sku-chan" data-canal="retail" type="button">Retail</button>
+        <button class="sku-chan" data-canal="online" type="button">Venta Online</button>
+        <button class="sku-chan" data-canal="hospitality" type="button">Hospitality</button>
+      </div>
+      <select class="adm-select" id="comTopMarca">
+        <option value="todas">Todas las marcas</option>
+        <option value="kairos">Kairos Brewing</option>
+        <option value="firulais">Firulais</option>
+        <option value="banny">Banny</option>
+      </select>
+      <div class="sio-toggle" id="comTopModo"><button data-m="amplio" class="on" type="button">Amplio</button><button data-m="formato" type="button">Por formato</button></div>
+      <div class="sio-toggle" id="comTopOrden"><button data-o="plata" class="on" type="button">Plata</button><button data-o="unidades" type="button">Unidades</button></div>
+    </div>
+    <div id="comTopBox"><div class="adm-loading">Cargando…</div></div>
+  </div>`;
+}
+function renderComercialHome(){
+  const a = comHomeData, body = document.getElementById('comHomeBody'); if (!a) return;
+  const r = comResumen || {};
+  const iaFoot = `<div class="fin-ia-foot"><span class="fin-ia-badge">✦ Resumen generado con IA</span>${r.generadoEn ? `<span class="fin-ia-when">${new Date(r.generadoEn).toLocaleString('es-CL')}</span>` : ''}<button class="fin-ia-btn" id="comIaBtn" type="button">${r.texto ? 'Actualizar resumen' : 'Generar resumen'}</button></div>`;
+  const iaBody = r.texto ? `<div class="fin-ia-text">${escapeHtml(r.texto).replace(/\n/g, '<br>')}</div>` : `<div class="fin-ia-empty">Todavía no hay un resumen generado. Se arma con las cifras reales de Forecast Comercial — apretá <b>Generar resumen</b>.</div>`;
+  const iaBlock = `<div class="fin-ia" id="comIa">${iaBody}${iaFoot}</div>`;
+  body.innerHTML = `${iaBlock}<div class="ks-cuadros fin-cuadros">${comCuadro1Html(a.cuadro1)}${comCuadro2Html(a.cuadro2)}${comCuadro3Html()}</div>`;
+  const btn = document.getElementById('comIaBtn'); if (btn) btn.onclick = comGenerarResumen;
+  document.getElementById('comTopCanalFilters').querySelectorAll('.sku-chan').forEach(b => b.onclick = () => {
+    const box = document.getElementById('comTopCanalFilters');
+    if (b.dataset.canal === 'todas') {
+      box.querySelectorAll('.sku-chan').forEach(x => x.classList.toggle('on', x === b));
+    } else {
+      b.classList.toggle('on');
+      box.querySelector('[data-canal="todas"]').classList.remove('on');
+      const anyOn = [...box.querySelectorAll('.sku-chan:not([data-canal="todas"])')].some(x => x.classList.contains('on'));
+      if (!anyOn) box.querySelector('[data-canal="todas"]').classList.add('on');
+    }
+    comTop.canal = [...box.querySelectorAll('.sku-chan.on')].map(x => x.dataset.canal).filter(c => c !== 'todas').join(',') || 'todas';
+    comLoadTop();
+  });
+  document.getElementById('comTopMarca').onchange = (e) => { comTop.marca = e.target.value; comLoadTop(); };
+  document.querySelectorAll('#comTopModo button').forEach(b => b.onclick = () => {
+    comTop.modo = b.dataset.m;
+    document.querySelectorAll('#comTopModo button').forEach(x => x.classList.toggle('on', x === b));
+    comLoadTop();
+  });
+  document.querySelectorAll('#comTopOrden button').forEach(b => b.onclick = () => {
+    comTop.orden = b.dataset.o;
+    document.querySelectorAll('#comTopOrden button').forEach(x => x.classList.toggle('on', x === b));
+    comLoadTop();
+  });
+}
+async function comLoadTop(){
+  const box = document.getElementById('comTopBox'); if (!box) return;
+  box.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const qs = new URLSearchParams({ period: comState.period, canal: comTop.canal, marca: comTop.marca, modo: comTop.modo, orden: comTop.orden });
+    if (comState.period === 'custom') { qs.set('from', comState.from); qs.set('to', comState.to); }
+    const r = await fetch('/admin/comercial/top-productos?' + qs.toString());
+    const d = await r.json();
+    if (!d.available) { box.innerHTML = `<div class="fin-nd">${escapeHtml(d.reason || 'Sin datos.')}</div>`; return; }
+    if (!d.rows.length) { box.innerHTML = '<div class="fin-nd">Sin ventas en este período/filtro.</div>'; return; }
+    const rows = d.rows.map(p => `<div class="fin-top-r">
+      <span class="p" title="${escapeAttr(p.title)}">${escapeHtml(p.skuCode || '—')} · ${escapeHtml(p.title)}${p.formatoLabel ? ' · ' + escapeHtml(p.formatoLabel) : ''}</span>
+      <span class="n">${fmtMoney(p.plata)}</span><span class="n">${(p.unidades || 0).toLocaleString('es-CL')}</span></div>`).join('');
+    box.innerHTML = `<div class="fin-top"><div class="fin-top-h"><span>Producto</span><span class="n">Plata</span><span class="n">Unid.</span></div>${rows}</div>`;
+  } catch (e) { box.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message || e))}</div>`; }
+}
+async function comGenerarResumen(){
+  const btn = document.getElementById('comIaBtn'); const ia = document.getElementById('comIa');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generando…'; }
+  if (ia) { const old = ia.querySelector('.fin-ia-err'); if (old) old.remove(); }
+  try {
+    const r = await fetch('/admin/comercial/resumen/generar', { method: 'POST' }); const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    comResumen = d; renderComercialHome();
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Reintentar'; }
+    if (ia) { const err = document.createElement('div'); err.className = 'fin-ia-err'; err.textContent = '⚠ No se pudo generar: ' + String(e.message || e); ia.appendChild(err); }
+  }
+}
+document.getElementById('comHomeReload').onclick = loadComercialHome;
+
 // ─── Notas de crédito (Finanzas): anular ventas por canal o corregir costos/gastos ───
 let ncData=null;
 function ncBlankForm(){ return {tipo:'',folio:'',fecha:'',monto:'',canal:'',categoria:'',referencia:'',anulaCompleta:false,motivo:'',docId:'',docLabel:'',docBuscar:''}; }
@@ -12788,6 +13017,104 @@ function fcAnualWire(){
       }catch(e){ alert(String(e.message||e)); }
     };
   });
+}
+
+// ─── Forecast Comercial (Herramientas) ──────────────────────────────────────
+let fcomMonth = null, fcomData = null, fcomUnidad = 'plata', fcomDirty = {};
+function fcomCurMonth(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function fcomBoot(){
+  const sel = document.getElementById('fcomMesCal');
+  if (sel && !sel.value) sel.value = fcomCurMonth();
+  fcomMonth = sel.value;
+  sel.onchange = () => { fcomMonth = sel.value; fcomLoad(); };
+  document.querySelectorAll('#fcomUnidadToggle button').forEach(b => b.onclick = () => {
+    fcomUnidad = b.dataset.u;
+    document.querySelectorAll('#fcomUnidadToggle button').forEach(x => x.classList.toggle('on', x === b));
+    fcomRenderGrid();
+  });
+  document.getElementById('fcomGuardar').onclick = fcomGuardarTodo;
+  fcomLoad();
+}
+async function fcomLoad(){
+  const body = document.getElementById('fcomBody');
+  body.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const r = await fetch('/admin/forecast-comercial/' + fcomMonth);
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    fcomData = d; fcomDirty = {};
+    fcomRenderGrid();
+  } catch (e) { body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message || e))}</div>`; }
+}
+function fcomRenderGrid(){
+  const d = fcomData; if (!d) return;
+  const body = document.getElementById('fcomBody');
+  const nd = '<span class="fin-nd">Sin datos</span>';
+  const un = fcomUnidad === 'plata' ? '$' : 'L';
+  const fmtU = (v) => v == null ? null : (fcomUnidad === 'plata' ? fmtMoney(v) : fmtLitros(v));
+  const totalesHtml = `<div class="adm-stats" style="margin-bottom:1rem">
+    <div class="adm-stat"><div class="adm-stat-k">PROYECTADO (${un})</div><div class="adm-stat-v">${fmtU(fcomUnidad === 'plata' ? d.totales.plataProyectado : d.totales.litrosProyectado) || '—'}</div></div>
+    <div class="adm-stat tone-gold"><div class="adm-stat-k">META</div><div class="adm-stat-v">${fmtU(fcomUnidad === 'plata' ? d.totales.plataMeta : d.totales.litrosMeta) || '—'}</div></div>
+  </div>`;
+  const canalBlocks = Object.entries(d.canales).map(([canalId, def]) => {
+    const rows = def.cols.map(col => {
+      const key = canalId + '::' + col;
+      const c = d.celdas[key];
+      const u = fcomUnidad === 'plata' ? c.plata : c.litros;
+      const origenLbl = u.sugeridoOrigen === 'mismo_mes_ano_pasado' ? 'mismo mes año pasado' : (u.sugeridoOrigen === 'promedio_3m' ? 'promedio 3 meses' : null);
+      const tag = u.tocado ? '<span class="fcom-tag ajustado">ajustado</span>' : (u.sugerido != null ? `<span class="fcom-tag sugerido" title="${escapeAttr(origenLbl || '')}">sugerido${origenLbl ? (' · ' + escapeHtml(origenLbl)) : ''}</span>` : '<span class="fcom-tag vacio">sin dato</span>');
+      return `<tr data-fcom-key="${escapeAttr(key)}">
+        <td>${escapeHtml(d.colLabels[col] || col)}</td>
+        <td><input type="text" inputmode="decimal" class="fc-pct-inp fcom-val-inp" value="${u.valor != null ? u.valor : ''}" placeholder="${u.sugerido != null ? u.sugerido : '—'}"> ${tag}</td>
+        <td><input type="number" min="0" max="500" step="1" class="fc-pct-inp fcom-meta-inp" style="width:70px" value="${c.metaPct}">%</td>
+        <td class="dist-num">${fmtU(u.meta) || nd}</td>
+      </tr>`;
+    }).join('');
+    return `<div class="ks-card" style="margin-bottom:.8rem">
+      <div class="ks-card-h"><span class="t">${escapeHtml(def.label)}</span></div>
+      <div class="mun-wrap"><table class="mun-table" style="min-width:0">
+        <thead><tr><th>${canalId === 'hospitality' ? 'Local' : 'Marca'}</th><th>Proyección (${un})</th><th>Meta</th><th style="text-align:right">Meta (${un})</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+  }).join('');
+  body.innerHTML = totalesHtml + canalBlocks;
+  body.querySelectorAll('.fcom-val-inp').forEach(inp => inp.oninput = () => {
+    const tr = inp.closest('tr'); const key = tr.dataset.fcomKey;
+    if (!fcomDirty[key]) fcomDirty[key] = {};
+    fcomDirty[key][fcomUnidad + 'Valor'] = inp.value.trim() === '' ? null : Number(inp.value.replace(',', '.'));
+    const tagEl = tr.querySelector('.fcom-tag'); if (tagEl) { tagEl.className = 'fcom-tag ajustado'; tagEl.textContent = 'ajustado'; }
+  });
+  body.querySelectorAll('.fcom-meta-inp').forEach(inp => inp.oninput = () => {
+    const tr = inp.closest('tr'); const key = tr.dataset.fcomKey;
+    if (!fcomDirty[key]) fcomDirty[key] = {};
+    fcomDirty[key].metaPct = Number(inp.value) || 0;
+  });
+}
+async function fcomGuardarTodo(){
+  if (!fcomData) return;
+  const btn = document.getElementById('fcomGuardar');
+  btn.disabled = true; const orig = btn.textContent; btn.textContent = 'Guardando…';
+  try {
+    const celdas = {};
+    for (const [canalId, def] of Object.entries(fcomData.canales)) {
+      for (const col of def.cols) {
+        const key = canalId + '::' + col;
+        const c = fcomData.celdas[key];
+        const dirty = fcomDirty[key] || {};
+        const plataValor = 'plataValor' in dirty ? dirty.plataValor : (c.plata.tocado ? c.plata.valor : null);
+        const litrosValor = 'litrosValor' in dirty ? dirty.litrosValor : (c.litros.tocado ? c.litros.valor : null);
+        const metaPct = dirty.metaPct != null ? dirty.metaPct : c.metaPct;
+        celdas[key] = { plataValor, litrosValor, metaPct };
+      }
+    }
+    const r = await fetch('/admin/forecast-comercial/' + fcomMonth, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ celdas }) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    showToast('Forecast Comercial guardado ✓', 'ok');
+    await fcomLoad();
+  } catch (e) { showToast('Error: ' + e.message, 'err'); }
+  finally { btn.disabled = false; btn.textContent = orig; }
 }
 
 // ─── Producción & OEE (Fase 1) ──────────────────────────────────────────────
@@ -14599,12 +14926,14 @@ function renderSidebar(){
   side.querySelectorAll('.ks-i').forEach(el => { el.onclick = () => { selectSeccion(el.dataset.id); document.body.classList.remove('ks-open'); }; });
   side.querySelectorAll('.ks-gh').forEach(h => { h.onclick = () => {
     const g = h.parentElement; const catId = g.dataset.cat;
-    // El grupo FINANZAS abre su página de inicio de área (plantilla reutilizable) y se expande.
-    if (catId === 'finanzas') {
+    // Los grupos FINANZAS y COMERCIAL abren su página de inicio de área
+    // (misma plantilla reutilizable) y se expanden.
+    if (catId === 'finanzas' || catId === 'comercial') {
+      const homeId = catId === 'finanzas' ? 'finanzas-home' : 'comercial-home';
       // Toggle normal: si estaba abierto se colapsa; si estaba colapsado se abre Y muestra el inicio de área.
       g.classList.toggle('col');
       if (g.classList.contains('col')) { open.delete(catId); }
-      else { open.add(catId); selectSeccion('finanzas-home'); document.body.classList.remove('ks-open'); }
+      else { open.add(catId); selectSeccion(homeId); document.body.classList.remove('ks-open'); }
       return;
     }
     g.classList.toggle('col');

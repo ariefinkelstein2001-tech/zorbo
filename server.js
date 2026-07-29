@@ -7010,13 +7010,19 @@ async function pyxisHospitalidadResumen(grupo, opts){
   const porLocal = new Map(); // local → {comida, barra}
   const sinClasificar = new Map(); // familia no mapeada → {total, filas}
   let totalComida = 0, totalBarra = 0, cantComida = 0, cantBarra = 0;
+  // Desglose por mes calendario (p1=hace 2 meses, p2=mes pasado, p3=mes
+  // actual — mismo índice que pyxisMesesLabels()/pyxisCervezasResumen). Se
+  // suma acá, aditivo, para que el HOME de Comercial pueda leer "mes actual"
+  // y "mes pasado" reales sin volver a bajar/clasificar la planilla de Pyxis.
+  const mensualComida = [0, 0, 0], mensualBarra = [0, 0, 0];
 
   for (const r of rows) {
     const local = norm(r.nombreLocal);
     if (!localesSet.has(local)) continue;
     const fam = norm(r.familia);
     const tipo = comidaSet.has(fam) ? 'comida' : (barraSet.has(fam) ? 'barra' : null);
-    const total = num(r.p1) + num(r.p2) + num(r.p3);
+    const meses3 = [num(r.p1), num(r.p2), num(r.p3)];
+    const total = meses3[0] + meses3[1] + meses3[2];
     const cant = num(r.q1) + num(r.q2) + num(r.q3);
     if (!tipo) {
       const s = sinClasificar.get(fam) || { total: 0, filas: 0 };
@@ -7030,6 +7036,8 @@ async function pyxisHospitalidadResumen(grupo, opts){
     p.total += total; p.cant += cant; m.set(key, p);
     const lt = porLocal.get(local) || { comida: 0, barra: 0 };
     lt[tipo] += total; porLocal.set(local, lt);
+    const mensualArr = tipo === 'comida' ? mensualComida : mensualBarra;
+    for (let i = 0; i < 3; i++) mensualArr[i] += meses3[i];
     if (tipo === 'comida') { totalComida += total; cantComida += cant; }
     else { totalBarra += total; cantBarra += cant; }
   }
@@ -7041,7 +7049,10 @@ async function pyxisHospitalidadResumen(grupo, opts){
     available: true,
     grupo, meses: pyxisMesesLabels(), generadoEn: new Date().toISOString(),
     config: cfg, localesDisponibles, familiasDisponibles,
-    totales: { comida: Math.round(totalComida), barra: Math.round(totalBarra), cantComida, cantBarra, total: Math.round(totalComida + totalBarra) },
+    totales: {
+      comida: Math.round(totalComida), barra: Math.round(totalBarra), cantComida, cantBarra, total: Math.round(totalComida + totalBarra),
+      mensual: { comida: mensualComida.map(Math.round), barra: mensualBarra.map(Math.round) },
+    },
     topComida: topOf(prodByTipo.comida), topBarra: topOf(prodByTipo.barra),
     porLocal: [...porLocal.entries()].map(([local, v]) => ({ local, comida: Math.round(v.comida), barra: Math.round(v.barra) })),
     sinClasificar: [...sinClasificar.entries()].map(([familia, v]) => ({ familia, total: Math.round(v.total), filas: v.filas })).sort((a, b) => b.total - a.total),
@@ -9473,6 +9484,468 @@ app.get('/admin/sellout', requireAdmin, async (req, res) => {
   const retail = retailSelloutAgregado(r, marca);
 
   res.json({ available: true, range: r, marca, marcas: SELLIN_MARCAS, online, horeca, hospitality, retail });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Forecast Comercial (Herramientas) — grilla CANAL × MARCA de proyección de
+// venta, con meta configurable (+15% default) por celda. Reutiliza las MISMAS
+// fuentes que Sell In/Out (loadOrders, isMayoristaLine, brandFromProduct,
+// sellinFormatoLabel/skuFormatoLitros, retail-ventas.json, pyxisHospitalidadResumen)
+// — nunca las vuelve a calcular en paralelo. El "número base sugerido" es
+// siempre un dato REAL (mismo mes año pasado, o si no hay, promedio de los
+// últimos 3 meses); si no hay ninguna de las dos fuentes, queda vacío — nunca
+// se inventa ni se estima.
+// ─────────────────────────────────────────────────────────────────────────────
+const FC_GRID = {
+  horeca:      { label: 'Horeca',       cols: ['kairos', 'firulais', 'banny'] },
+  retail:      { label: 'Retail',       cols: ['kairos', 'firulais', 'banny'] },
+  online:      { label: 'Venta Online', cols: ['kairos', 'firulais', 'banny'] },
+  hospitality: { label: 'Hospitality',  cols: ['garden_vespucio', 'garden_antofagasta', 'badass_parque_arauco'] },
+};
+const FC_COL_LABELS = {
+  kairos: 'Kairos Brewing', firulais: 'Firulais', banny: 'Banny',
+  garden_vespucio: 'Kairos Garden Vespucio', garden_antofagasta: 'Kairos Garden Antofagasta',
+  badass_parque_arauco: 'Kairos Badass Parque Arauco',
+};
+const FC_META_PCT_DEFAULT = 15;
+const FORECAST_COMERCIAL_FILE = join(PROMPTS_EFFECTIVE_DIR, 'forecast-comercial.json');
+function fcLoad(){
+  try {
+    if (existsSync(FORECAST_COMERCIAL_FILE)) {
+      const p = JSON.parse(readFileSync(FORECAST_COMERCIAL_FILE, 'utf-8'));
+      return { version: 1, meses: (p.meses && typeof p.meses === 'object') ? p.meses : {} };
+    }
+  } catch (e) { console.warn('forecast comercial load:', e.message); }
+  return { version: 1, meses: {} };
+}
+function fcSave(d){ writeFileSync(FORECAST_COMERCIAL_FILE, JSON.stringify(d, null, 2)); }
+function fcCellKey(canal, col){ return canal + '::' + col; }
+// 'YYYY-MM' menos n meses → 'YYYY-MM'.
+function fcMonthAgo(monthStr, n){
+  const [y, m] = monthStr.split('-').map(Number);
+  const d = new Date(Date.UTC(y, m - 1 - n, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+// Construye TODA la grilla de sugerencias para un mes, cargando cada fuente
+// real una sola vez (no una llamada por celda).
+async function fcSugeridoGrid(monthStr){
+  const anoPasadoStr = fcMonthAgo(monthStr, 12);
+  const mesesPrevios = [1, 2, 3].map(n => fcMonthAgo(monthStr, n));
+
+  const ordersResult = await loadOrders(false);
+  const extras = loadProductExtras();
+  const customBrands = getCustomBrands();
+  const retailStore = loadRetailVentas();
+  let hospResumen = null;
+  try { hospResumen = await pyxisHospitalidadResumen('2', {}); } catch { hospResumen = null; }
+
+  // Venta Online (Shopify B2C, no-mayorista) para un mes calendario exacto y
+  // una marca — misma lógica de matching que Sell In (variantSku → variantesSku
+  // → skuFormatoLitros), sin recalcularla distinto.
+  const onlineMes = (marca, ms) => {
+    if (!ordersResult.available) return null;
+    const [y, m] = ms.split('-').map(Number);
+    const from = Date.UTC(y, m - 1, 1), to = Date.UTC(y, m, 1);
+    let plata = 0, litros = 0, found = false;
+    for (const o of ordersResult.orders) {
+      const t = new Date(o.createdAt).getTime();
+      if (t < from || t >= to) continue;
+      for (const li of (o.lineItems || [])) {
+        if (isMayoristaLine(li)) continue;
+        const brandKey = brandFromProduct({ vendor: li.vendor, title: li.title, tags: li.tags }, customBrands);
+        if (brandKey !== marca) continue;
+        found = true; plata += li.amount;
+        const label = sellinFormatoLabel(li, extras);
+        const lu = label != null ? skuFormatoLitros(label) : null;
+        if (lu != null) litros += lu * li.qty;
+      }
+    }
+    return found ? { plata: Math.round(plata), litros: Math.round(litros * 1000) / 1000 } : null;
+  };
+  // Retail (filas del importador CSV, Fase 4) para un mes exacto y marca —
+  // mismo store, sin volver a parsear archivos. Sin litros: el CSV no trae
+  // formato/volumen por fila.
+  const retailMes = (marca, ms) => {
+    if (!retailStore.uploads.length) return null;
+    let plata = 0, found = false;
+    for (const u of retailStore.uploads) for (const row of u.rows) {
+      if (row.marca !== marca || !row.fecha || String(row.fecha).slice(0, 7) !== ms) continue;
+      found = true; plata += row.plata;
+    }
+    return found ? { plata: Math.round(plata), litros: null } : null;
+  };
+  // Hospitality: Pyxis solo entrega los últimos 3 meses corridos (nunca un mes
+  // específico de hace un año), y agrupa por LOCAL real de Pyxis — matcheamos
+  // por nombre (mismo criterio ya aceptado para clasificar cervezas/locales en
+  // Fase 4) contra los 3 locales canónicos del negocio.
+  const hospLocalMatch = (col) => {
+    if (!hospResumen || !hospResumen.available) return null;
+    const rx = { garden_vespucio: /vespucio/i, garden_antofagasta: /antofagasta/i, badass_parque_arauco: /badass|parque\s*arauco/i }[col];
+    return rx ? hospResumen.porLocal.find(l => rx.test(l.local)) : null;
+  };
+
+  const out = {};
+  for (const [canal, def] of Object.entries(FC_GRID)) {
+    for (const col of def.cols) {
+      const key = fcCellKey(canal, col);
+      let celda = { plata: { valor: null, origen: null }, litros: { valor: null, origen: null } };
+      if (canal === 'online' || canal === 'retail') {
+        const fn = canal === 'online' ? onlineMes : retailMes;
+        const yearAgo = fn(col, anoPasadoStr);
+        if (yearAgo && (yearAgo.plata || yearAgo.litros)) {
+          celda = {
+            plata: { valor: yearAgo.plata, origen: 'mismo_mes_ano_pasado' },
+            litros: { valor: yearAgo.litros, origen: yearAgo.litros != null ? 'mismo_mes_ano_pasado' : null },
+          };
+        } else {
+          const vals = mesesPrevios.map(m => fn(col, m)).filter(Boolean);
+          if (vals.length) {
+            const plata = Math.round(vals.reduce((s, v) => s + v.plata, 0) / vals.length);
+            const litrosVals = vals.filter(v => v.litros != null);
+            const litros = litrosVals.length ? Math.round(litrosVals.reduce((s, v) => s + v.litros, 0) / litrosVals.length * 1000) / 1000 : null;
+            celda = { plata: { valor: plata, origen: 'promedio_3m' }, litros: { valor: litros, origen: litros != null ? 'promedio_3m' : null } };
+          }
+        }
+      } else if (canal === 'hospitality') {
+        const match = hospLocalMatch(col);
+        if (match) celda = { plata: { valor: Math.round((match.comida + match.barra) / 3), origen: 'promedio_3m' }, litros: { valor: null, origen: null } };
+      }
+      // canal === 'horeca': Pyxis clasifica "kairos" como un solo balde (todas
+      // las marcas K-BROS juntas, ver Fase 4) — no hay forma real de separar
+      // Kairos Brewing/Firulais/Banny ahí sin inventar un reparto. Queda
+      // "Sin datos" a propósito; el equipo carga el número a mano si lo tiene.
+      out[key] = celda;
+    }
+  }
+  return out;
+}
+
+app.get('/admin/forecast-comercial/meta', requireAdmin, (req, res) => {
+  res.json({ canales: FC_GRID, colLabels: FC_COL_LABELS, metaPctDefault: FC_META_PCT_DEFAULT });
+});
+
+// Núcleo del cálculo, factorizado para que el HOME (Cuadro 2) pueda leer el
+// mismo resultado exacto sin recalcularlo aparte ("misma fuente, no cálculo
+// paralelo" — QA explícito del pedido).
+async function fcMonthCompute(month){
+  const store = fcLoad();
+  const guardado = store.meses[month] || { celdas: {} };
+  const sugeridoGrid = await fcSugeridoGrid(month);
+  const celdas = {};
+  let totPlataProy = 0, totPlataMeta = 0, totLitrosProy = 0, totLitrosMeta = 0;
+  const porCanal = {};
+  for (const [canal, def] of Object.entries(FC_GRID)) {
+    porCanal[canal] = { plataProyectado: 0, plataMeta: 0, litrosProyectado: 0, litrosMeta: 0 };
+    for (const col of def.cols) {
+      const key = fcCellKey(canal, col);
+      const g = guardado.celdas[key] || null;
+      const sug = sugeridoGrid[key] || { plata: { valor: null, origen: null }, litros: { valor: null, origen: null } };
+      const metaPct = (g && Number.isFinite(g.metaPct)) ? g.metaPct : FC_META_PCT_DEFAULT;
+      const plataValor = (g && g.plataValor != null) ? g.plataValor : sug.plata.valor;
+      const litrosValor = (g && g.litrosValor != null) ? g.litrosValor : sug.litros.valor;
+      const plataTocado = !!(g && g.plataValor != null);
+      const litrosTocado = !!(g && g.litrosValor != null);
+      const plataMeta = plataValor != null ? Math.round(plataValor * (1 + metaPct / 100)) : null;
+      const litrosMeta = litrosValor != null ? Math.round(litrosValor * (1 + metaPct / 100) * 1000) / 1000 : null;
+      celdas[key] = {
+        plata: { valor: plataValor, sugerido: sug.plata.valor, sugeridoOrigen: sug.plata.origen, tocado: plataTocado, meta: plataMeta },
+        litros: { valor: litrosValor, sugerido: sug.litros.valor, sugeridoOrigen: sug.litros.origen, tocado: litrosTocado, meta: litrosMeta },
+        metaPct,
+      };
+      if (plataValor != null) { totPlataProy += plataValor; porCanal[canal].plataProyectado += plataValor; }
+      if (plataMeta != null) { totPlataMeta += plataMeta; porCanal[canal].plataMeta += plataMeta; }
+      if (litrosValor != null) { totLitrosProy += litrosValor; porCanal[canal].litrosProyectado += litrosValor; }
+      if (litrosMeta != null) { totLitrosMeta += litrosMeta; porCanal[canal].litrosMeta += litrosMeta; }
+    }
+  }
+  return {
+    month, canales: FC_GRID, colLabels: FC_COL_LABELS, celdas,
+    totales: {
+      plataProyectado: Math.round(totPlataProy), plataMeta: Math.round(totPlataMeta),
+      litrosProyectado: Math.round(totLitrosProy * 1000) / 1000, litrosMeta: Math.round(totLitrosMeta * 1000) / 1000,
+    },
+    porCanal,
+    guardadoEn: guardado.guardadoEn || null,
+  };
+}
+
+app.get('/admin/forecast-comercial/:month', requireAdmin, async (req, res) => {
+  const month = String(req.params.month);
+  if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: 'Mes inválido (usar YYYY-MM).' });
+  try {
+    res.json(await fcMonthCompute(month));
+  } catch (e) {
+    res.status(500).json({ error: 'Error calculando Forecast Comercial: ' + e.message });
+  }
+});
+
+app.put('/admin/forecast-comercial/:month', requireAdmin, (req, res) => {
+  const month = String(req.params.month);
+  if (!/^\d{4}-\d{2}$/.test(month)) return res.status(400).json({ error: 'Mes inválido (usar YYYY-MM).' });
+  const b = req.body || {};
+  const celdasIn = (b.celdas && typeof b.celdas === 'object') ? b.celdas : {};
+  const validKeys = new Set();
+  for (const [canal, def] of Object.entries(FC_GRID)) for (const col of def.cols) validKeys.add(fcCellKey(canal, col));
+  const store = fcLoad();
+  const celdasOut = {};
+  for (const [key, val] of Object.entries(celdasIn)) {
+    if (!validKeys.has(key) || !val || typeof val !== 'object') continue;
+    const plataValor = val.plataValor != null && Number.isFinite(Number(val.plataValor)) ? Number(val.plataValor) : null;
+    const litrosValor = val.litrosValor != null && Number.isFinite(Number(val.litrosValor)) ? Number(val.litrosValor) : null;
+    const metaPct = Number.isFinite(Number(val.metaPct)) ? Math.max(0, Math.min(500, Number(val.metaPct))) : FC_META_PCT_DEFAULT;
+    celdasOut[key] = { plataValor, litrosValor, metaPct };
+  }
+  store.meses[month] = { celdas: celdasOut, guardadoEn: new Date().toISOString() };
+  fcSave(store);
+  res.json({ ok: true, month });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HOME de área Comercial — filtro de período (Mes actual · Mes pasado ·
+// Últimos 30 días · Rango personalizado, mismo mecanismo ya usado por el
+// dashboard general), Cuadro 1 (comparativa 3 meses por canal), Cuadro 2
+// (lee Forecast Comercial — MISMA fuente, no la recalcula) y Cuadro 3 (top
+// por producto, cruzado por SKU-código). Prohibido inventar cifras: donde no
+// hay fuente real, "Sin datos" (null), nunca cero.
+// ─────────────────────────────────────────────────────────────────────────────
+// Copia deliberada de dashResolvePeriodo() (mismo criterio exacto de
+// "Mes actual/Mes pasado/30d/Rango personalizado") — mismo patrón de
+// duplicación ya usado en el resto del archivo entre módulos de área.
+function comercialResolvePeriodo(tipo, fromQ, toQ){
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const ymd = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const monthOf = (s) => s.slice(0, 7);
+  const today = new Date();
+  if (tipo === 'mes_pasado') {
+    const d = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const month = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+    return { tipo, month, rango: null, label: 'Mes pasado' };
+  }
+  if (tipo === '30d') {
+    const to = new Date(today), from = new Date(today); from.setDate(from.getDate() - 29);
+    const toS = ymd(to), fromS = ymd(from);
+    return { tipo, month: monthOf(toS), rango: { from: fromS, to: toS }, label: 'Últimos 30 días' };
+  }
+  if (tipo === 'custom') {
+    const d = /^\d{4}-\d{2}-\d{2}$/;
+    if (!d.test(fromQ || '') || !d.test(toQ || '') || fromQ > toQ) return null;
+    return { tipo, month: monthOf(toQ), rango: { from: fromQ, to: toQ }, label: 'Rango personalizado' };
+  }
+  const month = `${today.getFullYear()}-${pad2(today.getMonth() + 1)}`;
+  return { tipo: 'mes_actual', month, rango: null, label: 'Mes actual' };
+}
+function comercialPeriodoRangoTs(periodo){
+  if (periodo.rango) {
+    return { from: new Date(periodo.rango.from + 'T00:00:00').getTime(), to: new Date(periodo.rango.to + 'T23:59:59.999').getTime() };
+  }
+  const [y, m] = periodo.month.split('-').map(Number);
+  return { from: new Date(y, m - 1, 1).getTime(), to: new Date(y, m, 1).getTime() };
+}
+
+// Cuadro 1: ventas comparativas por canal — mes actual / mes pasado / mismo
+// mes año pasado. Reutiliza loadOrders (Online), retail-ventas.json (Retail),
+// pyxisCervezasResumen/pyxisHospitalidadResumen (Horeca/Hospitality) — las
+// mismas fuentes de Sell In/Out, nunca un cálculo paralelo.
+async function comercialCuadro1(){
+  const today = new Date();
+  const monthActual = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const monthPasado = fcMonthAgo(monthActual, 1);
+  const monthAnoPasado = fcMonthAgo(monthActual, 12);
+
+  const ordersResult = await loadOrders(false);
+  const extras = loadProductExtras();
+  const retailStore = loadRetailVentas();
+
+  const onlineMesTotal = (ms) => {
+    if (!ordersResult.available) return null;
+    const [y, m] = ms.split('-').map(Number);
+    const from = Date.UTC(y, m - 1, 1), to = Date.UTC(y, m, 1);
+    let plata = 0, litros = 0, found = false;
+    for (const o of ordersResult.orders) {
+      const t = new Date(o.createdAt).getTime();
+      if (t < from || t >= to) continue;
+      for (const li of (o.lineItems || [])) {
+        if (isMayoristaLine(li)) continue;
+        found = true; plata += li.amount;
+        const label = sellinFormatoLabel(li, extras);
+        const lu = label != null ? skuFormatoLitros(label) : null;
+        if (lu != null) litros += lu * li.qty;
+      }
+    }
+    return found ? { plata: Math.round(plata), litros: Math.round(litros * 1000) / 1000 } : null;
+  };
+  const retailMesTotal = (ms) => {
+    if (!retailStore.uploads.length) return null;
+    let plata = 0, found = false;
+    for (const u of retailStore.uploads) for (const row of u.rows) {
+      if (!row.fecha || String(row.fecha).slice(0, 7) !== ms) continue;
+      found = true; plata += row.plata;
+    }
+    return found ? { plata: Math.round(plata), litros: null } : null;
+  };
+
+  let horecaResumen = null, hospResumen = null;
+  try { horecaResumen = await pyxisCervezasResumen('2', {}); } catch { horecaResumen = null; }
+  try { hospResumen = await pyxisHospitalidadResumen('2', {}); } catch { hospResumen = null; }
+  // p1/p2/p3 de Pyxis son SIEMPRE calendario-exactos: p3=mes actual, p2=mes
+  // pasado, p1=hace 2 meses (pyxisMesesLabels) — nunca llegan a "hace un año".
+  const horecaMesIdx = (idx) => horecaResumen ? { plata: Math.round(horecaResumen.kairos.reduce((s, p) => s + (p.m[idx] || 0), 0)), litros: null } : null;
+  const hospMesIdx = (idx) => (hospResumen && hospResumen.available)
+    ? { plata: Math.round((hospResumen.totales.mensual.comida[idx] || 0) + (hospResumen.totales.mensual.barra[idx] || 0)), litros: null } : null;
+
+  return {
+    monthActual, monthPasado, monthAnoPasado,
+    canales: {
+      horeca:      { label: 'Horeca',       mesActual: horecaMesIdx(2), mesPasado: horecaMesIdx(1), mismoMesAnoPasado: null },
+      retail:      { label: 'Retail',       mesActual: retailMesTotal(monthActual), mesPasado: retailMesTotal(monthPasado), mismoMesAnoPasado: retailMesTotal(monthAnoPasado) },
+      online:      { label: 'Venta Online', mesActual: onlineMesTotal(monthActual), mesPasado: onlineMesTotal(monthPasado), mismoMesAnoPasado: onlineMesTotal(monthAnoPasado) },
+      hospitality: { label: 'Hospitality',  mesActual: hospMesIdx(2), mesPasado: hospMesIdx(1), mismoMesAnoPasado: null },
+    },
+    notas: {
+      horeca: 'Pyxis solo entrega los últimos 3 meses corridos: "mismo mes año pasado" no está disponible para Horeca.',
+      hospitality: (hospResumen && hospResumen.available) ? 'Pyxis solo entrega los últimos 3 meses corridos: "mismo mes año pasado" no está disponible para Hospitality.' : (hospResumen ? hospResumen.reason : 'Pyxis no disponible.'),
+    },
+  };
+}
+
+// Cuadro 2: proyección vs real. LEE fcMonthCompute() (misma fuente que la
+// herramienta Forecast Comercial) + Cuadro 1 (mismo cálculo de "vendido a la
+// fecha" que ya usa Sell In/Out) — no recalcula nada aparte.
+async function comercialCuadro2(periodo){
+  const fc = await fcMonthCompute(periodo.month);
+  const today = new Date();
+  const monthActualReal = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  const esMesActual = periodo.month === monthActualReal;
+  let vendidoAHoy = null, diaHoy = null, diasDelMes = null;
+  if (esMesActual) {
+    const cuadro1 = await comercialCuadro1();
+    const c = cuadro1.canales;
+    const conDato = ['horeca', 'retail', 'online', 'hospitality'].filter(k => c[k].mesActual != null);
+    vendidoAHoy = conDato.length ? conDato.reduce((s, k) => s + c[k].mesActual.plata, 0) : null;
+    diaHoy = today.getDate();
+    diasDelMes = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  }
+  const pctMeta = (vendidoAHoy != null && fc.totales.plataMeta) ? Math.round(vendidoAHoy / fc.totales.plataMeta * 1000) / 10 : null;
+  return {
+    month: periodo.month, esMesActual,
+    proyectado: fc.totales.plataProyectado || null,
+    meta: fc.totales.plataMeta || null,
+    vendidoAHoy, diaHoy, diasDelMes, pctMeta,
+    porCanal: fc.porCanal,
+  };
+}
+
+// Cuadro 3: top por producto. Reutiliza EXACTAMENTE las mismas funciones de
+// atribución de canal/marca que Sell In/Out (canalDeCliente,
+// canalDeProductoSellin, brandFromProduct, isMayoristaLine) y el mismo
+// matcheo de variante por SKU-código (sellinFormatoLabel/variantesSku) — solo
+// agrega, además del nivel padre ya existente en Sell In, un segundo nivel
+// por variante (subCodigo) para el toggle "Por formato".
+async function comercialTopProductos(fromTs, toTs, canales, marcaFiltro){
+  const result = await loadOrders(false);
+  if (!result.available) return { available: false, reason: result.reason };
+  const extras = loadProductExtras();
+  const customBrands = getCustomBrands();
+  const notes = loadCustomerNotes();
+  const want = (c) => !canales || canales.includes(c);
+
+  const amplio = new Map();
+  const porFormato = new Map();
+  const orders = result.orders.filter(o => { const t = new Date(o.createdAt).getTime(); return t >= fromTs && t < toTs; });
+  for (const o of orders) {
+    for (const li of (o.lineItems || [])) {
+      const mayorista = isMayoristaLine(li);
+      const canal = mayorista ? (canalDeCliente(o.customerId, notes) || canalDeProductoSellin(li.productId, extras) || 'sin_canal') : 'online';
+      if (canal === 'sin_canal' || !want(canal)) continue;
+      const brandKey = brandFromProduct({ vendor: li.vendor, title: li.title, tags: li.tags }, customBrands);
+      if (marcaFiltro && marcaFiltro !== 'todas' && brandKey !== marcaFiltro) continue;
+
+      const pid = li.productId || ('sin-id:' + li.title);
+      const ex = li.productId ? extras.items[String(li.productId)] : null;
+      const skuCode = ex?.skuCode || null;
+
+      const a = amplio.get(pid) || { id: li.productId, skuCode, title: li.title, marca: brandKey, plata: 0, unidades: 0 };
+      a.plata += li.amount; a.unidades += li.qty; amplio.set(pid, a);
+
+      const variantesSku = Array.isArray(ex?.variantesSku) ? ex.variantesSku : [];
+      const match = li.variantSku ? variantesSku.find(v => v.subCodigo === li.variantSku) : null;
+      const formatoLabel = match ? match.formatoLabel : (li.variantTitle || 'Sin formato');
+      const subKey = pid + '::' + (li.variantSku || formatoLabel);
+      const f = porFormato.get(subKey) || { id: li.productId, skuCode, subCodigo: li.variantSku || null, formatoLabel, title: li.title, marca: brandKey, plata: 0, unidades: 0 };
+      f.plata += li.amount; f.unidades += li.qty; porFormato.set(subKey, f);
+    }
+  }
+  return {
+    available: true,
+    amplio: [...amplio.values()].map(p => ({ ...p, plata: Math.round(p.plata) })),
+    porFormato: [...porFormato.values()].map(p => ({ ...p, plata: Math.round(p.plata) })),
+  };
+}
+
+const COMERCIAL_CANALES_VALIDOS = ['horeca', 'retail', 'hospitality', 'online'];
+app.get('/admin/comercial/top-productos', requireAdmin, async (req, res) => {
+  try {
+    const periodo = comercialResolvePeriodo(String(req.query.period || 'mes_actual'), String(req.query.from || ''), String(req.query.to || ''));
+    if (!periodo) return res.status(400).json({ error: 'Rango de fechas inválido.' });
+    const { from, to } = comercialPeriodoRangoTs(periodo);
+    const canalParam = String(req.query.canal || 'todas');
+    const canales = canalParam === 'todas' ? null : canalParam.split(',').filter(c => COMERCIAL_CANALES_VALIDOS.includes(c));
+    const marca = String(req.query.marca || 'todas');
+    const modo = req.query.modo === 'formato' ? 'formato' : 'amplio';
+    const orden = req.query.orden === 'unidades' ? 'unidades' : 'plata';
+    const d = await comercialTopProductos(from, to, canales, marca);
+    if (!d.available) return res.json({ available: false, reason: d.reason, periodo });
+    const rows = (modo === 'formato' ? d.porFormato : d.amplio).sort((a, b) => b[orden] - a[orden]).slice(0, 10);
+    res.json({ available: true, periodo, modo, canal: canalParam, marca, orden, rows });
+  } catch (e) { res.status(500).json({ error: 'Error calculando top de productos: ' + e.message }); }
+});
+
+app.get('/admin/comercial/home', requireAdmin, async (req, res) => {
+  try {
+    const periodo = comercialResolvePeriodo(String(req.query.period || 'mes_actual'), String(req.query.from || ''), String(req.query.to || ''));
+    if (!periodo) return res.status(400).json({ error: 'Rango de fechas inválido.' });
+    const [cuadro1, cuadro2] = await Promise.all([comercialCuadro1(), comercialCuadro2(periodo)]);
+    res.json({ available: true, periodo, cuadro1, cuadro2 });
+  } catch (e) { res.status(500).json({ error: 'Error calculando el inicio de Comercial: ' + e.message }); }
+});
+
+// Resumen IA del HOME — mismo patrón de finanzas-resumen.json: cache plano
+// (solo la última generación), nunca se regenera solo, botón "Actualizar"
+// explícito. TODO: restringir por rol (Gerencia/Finanzas) — hoy visible para
+// todos los usuarios autenticados del panel, se pidió así explícitamente por
+// ahora.
+const COMERCIAL_RESUMEN_FILE = join(PROMPTS_EFFECTIVE_DIR, 'comercial-resumen.json');
+function comercialResumenLoad(){ try { if (existsSync(COMERCIAL_RESUMEN_FILE)) return JSON.parse(readFileSync(COMERCIAL_RESUMEN_FILE, 'utf-8')); } catch (e) { console.warn('comercial resumen load:', e.message); } return null; }
+function comercialResumenSave(o){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COMERCIAL_RESUMEN_FILE, JSON.stringify(o, null, 2)); }
+app.get('/admin/comercial/resumen', requireAdmin, (_req, res) => res.json(comercialResumenLoad() || { texto: null, generadoEn: null }));
+app.post('/admin/comercial/resumen/generar', requireAdmin, async (req, res) => {
+  try {
+    const today = new Date();
+    const month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    const periodo = { tipo: 'mes_actual', month, rango: null, label: 'Mes actual' };
+    const [c2, fc] = await Promise.all([comercialCuadro2(periodo), fcMonthCompute(month)]);
+    const fmt = n => n == null ? 'sin dato' : '$' + Math.round(n).toLocaleString('es-CL');
+    const ritmoNecesario = (c2.meta != null && c2.diasDelMes) ? Math.round(c2.meta / c2.diasDelMes) : null;
+    const ritmoReal = (c2.vendidoAHoy != null && c2.diaHoy) ? Math.round(c2.vendidoAHoy / c2.diaHoy) : null;
+    const porCanalTxt = Object.entries(fc.porCanal).map(([canal, v]) => `  · ${FC_GRID[canal].label}: proyectado ${fmt(v.plataProyectado || null)}, meta ${fmt(v.plataMeta || null)}`).join('\n');
+    const datos = [
+      `Día ${c2.diaHoy ?? '?'} de ${c2.diasDelMes ?? '?'} del mes ${month}.`,
+      `Proyección del mes (Forecast Comercial): ${fmt(c2.proyectado)}.`,
+      `Meta configurada por canal/marca (default +15%): ${fmt(c2.meta)}.`,
+      `Vendido hasta hoy: ${fmt(c2.vendidoAHoy)}.`,
+      `% de la meta alcanzado a la fecha: ${c2.pctMeta != null ? c2.pctMeta + '%' : 'sin dato'}.`,
+      `Ritmo diario necesario para llegar a la meta: ${ritmoNecesario != null ? fmt(ritmoNecesario) + '/día' : 'sin dato'}.`,
+      `Ritmo diario real hasta hoy: ${ritmoReal != null ? fmt(ritmoReal) + '/día' : 'sin dato'}.`,
+      ``, `Por canal (proyección vs meta):`, porCanalTxt || '  (sin datos)',
+    ].join('\n');
+    const sys = 'Sos analista comercial de K-BROS. Analizás si el equipo va a tiempo para llegar a la meta comercial del mes (Forecast Comercial, +15% configurable). Escribe en español chileno neutro (tuteo), 2 o 3 frases breves, directas y accionables — por ejemplo "el mes recién comienza, trabajá día a día" o "esta semana se movió menos de lo esperado, a este ritmo está difícil, subí la intensidad". REGLA ABSOLUTA: usá ÚNICAMENTE los números que te paso abajo; NO inventes ni estimes NINGÚN número; si falta un dato, omitilo; no inventes causas ni hechos que no se deduzcan de las cifras.';
+    const msg = await client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 600, system: sys, messages: [{ role: 'user', content: 'Cifras reales ya calculadas por el sistema:\n' + datos }] });
+    const texto = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim();
+    const out = { texto, generadoEn: new Date().toISOString(), month };
+    comercialResumenSave(out);
+    res.json(out);
+  } catch (e) { res.status(500).json({ error: 'No se pudo generar el resumen: ' + String(e.message || e).slice(0, 200) }); }
 });
 
 function monthLabel(m){
