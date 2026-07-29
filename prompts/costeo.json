@@ -22564,6 +22564,12 @@
           "nombre": "Ice tea",
           "reventa": false,
           "items": []
+        },
+        {
+          "id": "dfe8e322-4aa0-4e62-99a0-d04b34a0fbf9",
+          "nombre": "Cortos",
+          "reventa": false,
+          "items": []
         }
       ],
       "asignaciones": {}
@@ -30049,6 +30055,12 @@
         {
           "id": "badass-b17",
           "nombre": "Para Tomar 0.0",
+          "reventa": false,
+          "items": []
+        },
+        {
+          "id": "bd586bb1-53ae-457b-95b2-d3b88828bac8",
+          "nombre": "Cortos",
           "reventa": false,
           "items": []
         }
