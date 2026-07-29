@@ -11382,6 +11382,118 @@ function costosEditar(tipo,id){
   const body=document.getElementById(COSTOS_TIPO_CFG[tipo].bodyId); if(body) body.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function costosCancelarEdicion(tipo){ costosForm[tipo]=cgBlankForm(); costosForm[tipo].centroDistribucion=(costosData[tipo]&&costosData[tipo].cd)||CD_DEFAULT; renderCostos(tipo); }
+// ── Inventariar un documento de Costos/Gastos ──────────────────────────────
+// Abre un modal que registra la factura como ítem de Inventario (Producción),
+// guardando el vínculo con el documento. Según la sección elegida, cambian los
+// campos que se piden.
+let cgInv=null; // {tipo,id,e,seccion}
+const CG_INV_DESTINOS=[
+  {id:'insumo',label:'🌾 Materia prima / Insumo'},
+  {id:'activo_fijo',label:'🔧 Activo fijo / CAPEX'},
+  {id:'retornable',label:'🛢 Envase / Retornable'},
+  {id:'otros',label:'🧾 OPEX / Otros / Consumible'},
+];
+const CG_INV_RETORN_TIPOS=['Barril inox 20L','Barril inox 30L','Cilindro CO2','Pallet retornable','Caja retornable','Otro'];
+const CG_INV_AF_SUBTIPOS=[{id:'equipamiento',label:'Equipamiento Operacional'},{id:'instalacion',label:'Instalaciones y Plantas'}];
+const CG_INV_OTROS_TIPOS=[{id:'opex',label:'OPEX'},{id:'consumible',label:'Consumible'},{id:'repuesto',label:'Repuesto'},{id:'servicio',label:'Servicio'},{id:'otro',label:'Otro'}];
+function costosInventariarAbrir(tipo,id){
+  const a=costosData[tipo]; const e=(a&&a.entradas||[]).find(x=>x.id===id); if(!e) return;
+  if(e.origenId){ alert('Este documento es una copia automática de otra CD. Inventariá desde el documento original en su CD.'); return; }
+  cgInv={tipo,id,e,seccion:'insumo'};
+  cgInvRender();
+}
+function cgInvClose(){ cgInv=null; const bg=document.getElementById('cgInvBg'); if(bg) bg.remove(); }
+function cgInvFieldsHtml(){
+  const e=cgInv.e, s=cgInv.seccion;
+  const F=(lbl,id,attrs,val)=>`<label class="cg-field"><span>${lbl}</span><input id="cgInvF_${id}" ${attrs||''} value="${escapeAttr(val==null?'':val)}"></label>`;
+  const catInsumo=Object.keys(PROD_INV_CAT_LBL).map(c=>`<option value="${escapeAttr(c)}">${escapeHtml(PROD_INV_CAT_LBL[c])}</option>`).join('');
+  if(s==='insumo') return `
+    <label class="cg-field"><span>Categoría</span><select id="cgInvF_categoria">${catInsumo}</select></label>
+    ${F('Nombre del insumo','nombre','placeholder="Ej: Malta Pilsen / Lata 473cc"',e.proveedor?'':'')}
+    ${F('Código / SKU','codigo','')}
+    ${F('Unidad de medida','unidadMedida','placeholder="kg / L / un"')}
+    ${F('Cantidad recibida','cantidad','inputmode="numeric" placeholder="0"')}
+    ${F('Stock mínimo','stockMinimo','inputmode="numeric" placeholder="0"')}
+    ${F('Costo unitario ($)','costoUnitario','inputmode="numeric" placeholder="0"')}
+    ${F('Lote','lote','')}
+    ${F('Fecha recepción','fechaRecepcion','type="date"',e.fecha)}
+    ${F('Fecha vencimiento','fechaVencimiento','type="date"')}
+    ${F('Ubicación','ubicacion','')}`;
+  if(s==='activo_fijo') return `
+    <label class="cg-field"><span>Subtipo</span><select id="cgInvF_subtipo">${CG_INV_AF_SUBTIPOS.map(x=>`<option value="${x.id}">${escapeHtml(x.label)}</option>`).join('')}</select></label>
+    ${F('Nombre del activo','nombre','placeholder="Ej: Schoppera Local Providencia"')}
+    ${F('Código interno','codigoInterno','')}
+    ${F('Número de serie','numeroSerie','')}
+    ${F('Marca','marca','')}
+    ${F('Modelo','modelo','')}
+    ${F('Fecha compra','fechaCompra','type="date"',e.fecha)}
+    ${F('Costo de adquisición ($)','costoAdquisicion','inputmode="numeric"',e.valor)}
+    ${F('Ubicación','ubicacion','')}
+    ${F('Responsable / Cliente','responsable','')}`;
+  if(s==='retornable') return `
+    <label class="cg-field"><span>Tipo</span><select id="cgInvF_tipo">${CG_INV_RETORN_TIPOS.map(t=>`<option value="${escapeAttr(t)}">${escapeHtml(t)}</option>`).join('')}</select></label>
+    ${F('Identificador','identificador','placeholder="Ej: Barril #045"')}
+    ${F('Código interno','codigoInterno','')}
+    ${F('Capacidad','capacidad','placeholder="Ej: 20L / 9kg"')}
+    ${F('Ubicación actual','ubicacion','')}
+    ${F('Responsable / Cliente','responsable','')}`;
+  // otros
+  return `
+    <label class="cg-field"><span>Tipo</span><select id="cgInvF_tipo">${CG_INV_OTROS_TIPOS.map(x=>`<option value="${x.id}">${escapeHtml(x.label)}</option>`).join('')}</select></label>
+    ${F('Nombre','nombre','placeholder="Ej: Mantención bomba / Arriendo galpón"')}
+    ${F('Cantidad','cantidad','inputmode="numeric" placeholder="0"')}
+    ${F('Unidad de medida','unidadMedida','placeholder="un / hrs / mes"')}
+    ${F('Valor ($)','valor','inputmode="numeric"',e.valor)}
+    ${F('Ubicación / Área','ubicacion','')}
+    ${F('Nota','nota','placeholder="Detalle opcional"')}`;
+}
+function cgInvRender(){
+  if(!cgInv) return;
+  const e=cgInv.e;
+  const destinoBtns=CG_INV_DESTINOS.map(d=>`<button type="button" class="cg-inv-dest${cgInv.seccion===d.id?' on':''}" data-cginv-dest="${d.id}">${escapeHtml(d.label)}</button>`).join('');
+  const resumen=`<b>${escapeHtml(e.proveedor||'—')}</b> · Folio ${escapeHtml(e.folio||'—')} · ${escapeHtml(e.fecha||'—')} · <b>${fmtMoney(e.valor)}</b>`;
+  const html=`<div id="cgInvBox" style="background:#fff;max-width:640px;width:100%;max-height:90vh;overflow:auto;border-radius:14px;padding:1.1rem 1.2rem;box-shadow:0 20px 60px rgba(0,0,0,.35)">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.4rem">
+      <div style="font-weight:800;font-size:1.05rem">📦 Inventariar documento</div>
+      <button type="button" id="cgInvX" class="adm-btn adm-btn-ghost" style="font-size:.9rem">✕</button></div>
+    <div style="background:#f6f6f8;border-radius:8px;padding:.5rem .7rem;font-size:.85rem;margin-bottom:.6rem">${resumen}</div>
+    <div style="font-size:.8rem;color:#666;margin-bottom:.3rem">¿Qué tipo de inventario es? Según lo que elijas cambian los datos que se piden.</div>
+    <div class="cg-inv-dest-row" style="display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.7rem">${destinoBtns}</div>
+    <div class="cg-form-grid" id="cgInvFields">${cgInvFieldsHtml()}</div>
+    <div class="cg-err" id="cgInvErr" style="margin-top:.4rem"></div>
+    <div style="display:flex;justify-content:flex-end;gap:.5rem;margin-top:.8rem">
+      <button type="button" id="cgInvCancel" class="adm-btn adm-btn-ghost">Cancelar</button>
+      <button type="button" id="cgInvSave" class="adm-btn adm-btn-gold">Guardar en inventario</button></div>
+  </div>`;
+  let bg=document.getElementById('cgInvBg');
+  if(!bg){ bg=document.createElement('div'); bg.id='cgInvBg'; bg.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:1rem;z-index:9999'; document.body.appendChild(bg); }
+  bg.innerHTML=html;
+  bg.onclick=(ev)=>{ if(ev.target.id==='cgInvBg') cgInvClose(); };
+  document.getElementById('cgInvX').onclick=cgInvClose;
+  document.getElementById('cgInvCancel').onclick=cgInvClose;
+  document.getElementById('cgInvSave').onclick=cgInvGuardar;
+  document.querySelectorAll('[data-cginv-dest]').forEach(b=>b.onclick=()=>{ cgInv.seccion=b.dataset.cginvDest; cgInvRender(); });
+}
+async function cgInvGuardar(){
+  if(!cgInv) return;
+  const g=id=>document.getElementById(id);
+  const val=k=>{ const el=g('cgInvF_'+k); return el?el.value:''; };
+  const s=cgInv.seccion, tipo=cgInv.tipo, id=cgInv.id;
+  const body={seccion:s};
+  if(s==='insumo'){ Object.assign(body,{categoria:val('categoria'),nombre:val('nombre'),codigo:val('codigo'),unidadMedida:val('unidadMedida'),cantidad:cNum(val('cantidad')),stockMinimo:cNum(val('stockMinimo')),costoUnitario:cNum(val('costoUnitario')),lote:val('lote'),fechaRecepcion:val('fechaRecepcion'),fechaVencimiento:val('fechaVencimiento'),ubicacion:val('ubicacion')}); }
+  else if(s==='activo_fijo'){ Object.assign(body,{subtipo:val('subtipo'),nombre:val('nombre'),codigoInterno:val('codigoInterno'),numeroSerie:val('numeroSerie'),marca:val('marca'),modelo:val('modelo'),fechaCompra:val('fechaCompra'),costoAdquisicion:cNum(val('costoAdquisicion')),ubicacion:val('ubicacion'),responsable:val('responsable')}); }
+  else if(s==='retornable'){ Object.assign(body,{tipo:val('tipo'),identificador:val('identificador'),codigoInterno:val('codigoInterno'),capacidad:val('capacidad'),ubicacion:val('ubicacion'),responsable:val('responsable')}); }
+  else { Object.assign(body,{tipo:val('tipo'),nombre:val('nombre'),cantidad:cNum(val('cantidad')),unidadMedida:val('unidadMedida'),valor:cNum(val('valor')),ubicacion:val('ubicacion'),nota:val('nota')}); }
+  const err=g('cgInvErr'); if(err) err.textContent='';
+  const btn=g('cgInvSave'); if(btn){ btn.disabled=true; btn.textContent='Guardando…'; }
+  try{
+    const r=await fetch('/admin/costos/entrada/'+id+'/inventariar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.error||'Error');
+    cgInvClose();
+    await loadCostos(tipo);
+  }catch(e){ if(err) err.textContent='⚠ '+String(e.message||e); if(btn){ btn.disabled=false; btn.textContent='Guardar en inventario'; } }
+}
 // Después de "Agregar" solo se limpia "Este documento" (fecha/folio/valor/%/
 // adjunto) — proveedor/categoría/subcategoría/marca quedan tal cual, para
 // cargar varios documentos seguidos del mismo proveedor sin re-elegirlos cada
@@ -11496,6 +11608,10 @@ function renderCostos(tipo){
     const ncNote=(Array.isArray(e.ncVinculadas) && e.ncVinculadas.length)
       ? `<div class="cg-pct-note cg-nc-note">🧾 ${e.ncVinculadas.map(v=>escapeHtml(v.folio||'NC')+' −'+eM(v.monto)).join(' · ')} → neto <b>${eM(e.neto)}</b></div>`
       : '';
+    // Vínculo con Inventario: este documento ya generó uno o más ítems de inventario.
+    const invRefNote=(Array.isArray(e.inventarioRefs) && e.inventarioRefs.length)
+      ? `<div class="cg-pct-note" style="color:#2e7d32">📦 Inventariado: ${e.inventarioRefs.map(r=>escapeHtml(r.nombre||r.seccion||'ítem')).join(' · ')}</div>`
+      : '';
     return `
     <tr>
       <td>${escapeHtml(e.fecha)}</td>
@@ -11503,9 +11619,9 @@ function renderCostos(tipo){
       <td>${catCell}</td>
       <td>${escapeHtml(cgMarcaLabel(e))}</td>
       <td>${escapeHtml(e.folio||'—')}${e.duplicada?' <span class="cg-tag" style="background:#fdeaea;color:#c0392b" title="Hay otra factura con el mismo folio y proveedor">⚠ duplicada</span>':''}</td>
-      <td class="dist-num">${eM(e.valor)}${pctNote}${centrosNote}${origenNote}${ncNote}</td>
+      <td class="dist-num">${eM(e.valor)}${pctNote}${centrosNote}${origenNote}${ncNote}${invRefNote}</td>
       <td>${e.adjunto&&e.adjunto.url?`<a class="cg-doc-link" href="${escapeAttr(e.adjunto.url)}" target="_blank" title="${escapeAttr(e.adjunto.name||'documento')}">📎 ver</a>`:'<span style="color:#ccc">—</span>'}</td>
-      <td style="white-space:nowrap">${e.origenId?'':`<button class="pv-edit" data-cgedit="${e.id}" data-cgtipo="${tipo}" title="Editar">✏️</button>`}<button class="pv-del" data-cgdel="${e.id}" data-cgtipo="${tipo}" title="Eliminar">✕</button></td>
+      <td style="white-space:nowrap">${e.origenId?'':`<button class="pv-edit" data-cginv="${e.id}" data-cgtipo="${tipo}" title="Inventariar este documento">📦</button><button class="pv-edit" data-cgedit="${e.id}" data-cgtipo="${tipo}" title="Editar">✏️</button>`}<button class="pv-del" data-cgdel="${e.id}" data-cgtipo="${tipo}" title="Eliminar">✕</button></td>
     </tr>`;}).join('');
   const cdOpts=CD_IDS.map(c=>`<option value="${c}" ${f.centroDistribucion===c?'selected':''}>${escapeHtml(CD_LBL[c])}</option>`).join('');
   body.innerHTML=`
@@ -11624,6 +11740,7 @@ function wireCostos(tipo){
   document.getElementById(cgId(tipo,'Add')).onclick=()=>costosAgregar(tipo);
   const cancelEdit=document.getElementById(cgId(tipo,'CancelEdit')); if(cancelEdit) cancelEdit.onclick=()=>costosCancelarEdicion(tipo);
   document.querySelectorAll(`[data-cgedit][data-cgtipo="${tipo}"]`).forEach(b=>b.onclick=()=>costosEditar(tipo,b.dataset.cgedit));
+  document.querySelectorAll(`[data-cginv][data-cgtipo="${tipo}"]`).forEach(b=>b.onclick=()=>costosInventariarAbrir(tipo,b.dataset.cginv));
   document.querySelectorAll(`[data-cgdel][data-cgtipo="${tipo}"]`).forEach(b=>b.onclick=()=>costosEliminar(tipo,b.dataset.cgdel));
 }
 function costosShowErr(tipo,msg){ const e=document.getElementById(cgId(tipo,'Err')); if(e){ e.textContent='⚠ '+msg; e.classList.add('show'); } }
@@ -14005,6 +14122,9 @@ const INV_CARDS=[
   {id:'activosFijos',ico:'🔧',nombre:'Activos Fijos y Equipamiento Operacional',fuente:'Registro manual',
     desc:'Equipos o bienes que utilizas para operar el negocio y que tienen una vida útil prolongada.',
     ejemplos:'Ejemplos: schopperas, máquinas dispensadoras, refrigeradores, equipos de frío, bombas y herramientas.'},
+  {id:'otros',ico:'🧾',nombre:'Otros · OPEX y Consumibles',fuente:'Registro manual',
+    desc:'Cosas que no son materia prima física, activo fijo ni retornable, pero que igual quieres dejar registradas desde una factura.',
+    ejemplos:'Ejemplos: gastos OPEX, servicios, repuestos puntuales, consumibles varios.'},
 ];
 let invView='terminados', invInsumoCat='', invRetEditId=null, invAfEditId=null, invAfSchopperaChk=false;
 let invEstEditorOpen={estadosRetornables:false,estadosActivosFijos:false};
@@ -14036,8 +14156,18 @@ function invEstadoBadge(info){
   return `<span class="inv-badge inv-badge-${info.familia||'x'}" style="${fam.color?('--inv-c:'+fam.color):''}">${ico} ${escapeHtml(info.label||'')}</span>`;
 }
 function prodRenderInventarios(){
-  const V={terminados:invViewTerminados,insumos:invViewInsumos,retornables:invViewRetornables,activosFijos:invViewActivosFijos};
+  const V={terminados:invViewTerminados,insumos:invViewInsumos,retornables:invViewRetornables,activosFijos:invViewActivosFijos,otros:invViewOtros};
   return invCardSelector()+'<div class="inv-view">'+(V[invView]||invViewTerminados)()+'</div>';
+}
+// Badge "de dónde viene la compra" — se muestra en cada ítem inventariado desde
+// un documento de Costos/Gastos (origenCosto).
+function invOrigenBadge(x){
+  const o=x&&x.origenCosto; if(!o||!o.costoId) return '';
+  const doc=o.folio?('factura '+escapeHtml(o.folio)):'documento';
+  const prov=o.proveedor?(' · '+escapeHtml(o.proveedor)):'';
+  const val=o.valor?(' · '+fmtMoney(o.valor)):'';
+  const link=(o.adjunto&&o.adjunto.url)?` <a href="${escapeAttr(o.adjunto.url)}" target="_blank" title="Ver documento">📎</a>`:'';
+  return `<div class="inv-origen" title="Inventariado desde Costos/Gastos" style="font-size:.7rem;color:#2e7d32;margin-top:.15rem">📄 ${doc}${prov}${val}${link}</div>`;
 }
 // ── Cat. 1 · Productos Terminados (solo lectura, integración GC) ──
 function invViewTerminados(){
@@ -14089,7 +14219,7 @@ function invViewInsumos(){
   </div><div class="cg-err" id="invErr"></div></div>`;
   const filtOpts=`<option value="">Todas las categorías</option>`+cats.map(c=>`<option value="${escapeAttr(c)}" ${invInsumoCat===c?'selected':''}>${escapeHtml(PROD_INV_CAT_LBL[c]||c)}</option>`).join('');
   const rows=(inv.insumos||[]).filter(x=>!invInsumoCat||x.categoria===invInsumoCat);
-  const trs=rows.map(x=>`<tr><td>${escapeHtml(x.nombre)}</td><td>${escapeHtml(PROD_INV_CAT_LBL[x.categoria]||x.categoria)}</td><td>${escapeHtml(x.codigo||'—')}</td>
+  const trs=rows.map(x=>`<tr><td>${escapeHtml(x.nombre)}${invOrigenBadge(x)}</td><td>${escapeHtml(PROD_INV_CAT_LBL[x.categoria]||x.categoria)}</td><td>${escapeHtml(x.codigo||'—')}</td>
     <td class="dist-num">${cNum(x.cantidad).toLocaleString('es-CL')}${x.unidadMedida?(' '+escapeHtml(x.unidadMedida)):''}${x.stockMinimo?(x.cantidad<=x.stockMinimo?' <span style="color:#c0392b">⚠ bajo mínimo</span>':''):''}</td>
     <td class="dist-num">${fmtMoney(x.costoUnitario)}</td><td class="dist-num">${fmtMoney(x.valorTotal)}</td>
     <td>${x.fechaVencimiento||'—'}</td><td><button class="pv-del" data-inv-del="${x.id}">✕</button></td></tr>`).join('');
@@ -14122,7 +14252,7 @@ function invViewRetornables(){
       <label class="cg-field"><span>Fecha estimada de retorno</span><input type="date" id="invRetFer" value="${f.fechaEstimadaRetorno||''}"></label>
       <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="invRetSave" type="button">${editing?'💾 Guardar cambios':'+ Agregar'}</button>${editing?' <button class="adm-btn adm-btn-ghost" id="invRetCancel" type="button">Cancelar</button>':''}</div>
     </div><div class="cg-err" id="invRetErr"></div></div>`;
-  const rows=(inv.retornables||[]).map(x=>`<tr><td>${escapeHtml(x.tipo)}</td><td>${escapeHtml(x.identificador)}</td><td>${invEstadoBadge(x.estadoInfo)}</td>
+  const rows=(inv.retornables||[]).map(x=>`<tr><td>${escapeHtml(x.tipo)}</td><td>${escapeHtml(x.identificador)}${invOrigenBadge(x)}</td><td>${invEstadoBadge(x.estadoInfo)}</td>
     <td>${escapeHtml(x.ubicacion||'—')}</td><td>${escapeHtml(x.responsable||'—')}</td><td>${x.fechaEstimadaRetorno||'—'}</td>
     <td><button class="adm-btn adm-btn-ghost" data-ret-edit="${x.id}" style="font-size:.7rem;padding:.2rem .5rem">✎</button> <button class="pv-del" data-ret-del="${x.id}">✕</button></td></tr>`).join('');
   const table=`<div class="prod-sec-h" style="margin-top:1rem">Unidades registradas <span>${(inv.retornables||[]).length}</span>
@@ -14220,7 +14350,7 @@ function invViewActivosFijos(){
     ${schopperaFields}
     <div class="cal-btn-row" style="margin-top:.6rem"><button class="adm-btn adm-btn-gold" id="invAfSave" type="button">${invAfEditId?'💾 Guardar cambios':'+ Agregar'}</button>${invAfEditId?' <button class="adm-btn adm-btn-ghost" id="invAfCancel" type="button">Cancelar</button>':''}</div>
     <div class="cg-err" id="invAfErr"></div></div>`;
-  const rows=(inv.activosFijos||[]).map(x=>`<tr><td>${escapeHtml(x.nombre)}${x.esSchoppera?' <span class="inv-badge inv-badge-tag">🔧 schoppera</span>':''}</td>
+  const rows=(inv.activosFijos||[]).map(x=>`<tr><td>${escapeHtml(x.nombre)}${x.esSchoppera?' <span class="inv-badge inv-badge-tag">🔧 schoppera</span>':''}${invOrigenBadge(x)}</td>
     <td>${escapeHtml((meta.activoSubtipos||[]).find(s=>s.id===x.subtipo)?.label||x.subtipo||'—')}</td>
     <td>${invEstadoBadge(x.estadoInfo)}</td><td>${escapeHtml(x.ubicacion||'—')}</td><td>${escapeHtml(x.responsable||'—')}</td>
     <td class="dist-num">${fmtMoney(x.costoAdquisicion)}</td>
@@ -14237,6 +14367,37 @@ function invViewActivosFijos(){
         <div class="inv-cliente-items">${c.items.map(i=>escapeHtml(i.nombre)+' ('+escapeHtml(i.estado||'—')+')').join(' · ')}</div></div>`).join('')}
     </div>`:'';
   return form+table+resumen+invCapexModal();
+}
+// ── Cat. 5 · Otros / OPEX y Consumibles ──
+const INV_OTROS_TIPO_LBL={opex:'OPEX',consumible:'Consumible',repuesto:'Repuesto',servicio:'Servicio',otro:'Otro'};
+function invViewOtros(){
+  const inv=prodData.inventario||{};
+  const tipos=(prodData.meta&&prodData.meta.otrosTipos&&prodData.meta.otrosTipos.length)?prodData.meta.otrosTipos:Object.keys(INV_OTROS_TIPO_LBL);
+  const tipoOpts=tipos.map(t=>`<option value="${escapeAttr(t)}">${escapeHtml(INV_OTROS_TIPO_LBL[t]||t)}</option>`).join('');
+  const form=`<div class="cg-form"><div class="cg-form-title">➕ Agregar ítem (otros / OPEX / consumible)</div>
+    <div class="inv-src-note">Para cosas que no son materia prima física, activo fijo ni retornable, pero que igual querés dejar registradas — normalmente desde una factura con el botón 📦 Inventariar en Costos/Gastos.</div>
+    <div class="cg-form-grid">
+      <label class="cg-field"><span>Tipo</span><select id="invOtTipo">${tipoOpts}</select></label>
+      <label class="cg-field"><span>Nombre</span><input id="invOtNombre" placeholder="Ej: Mantención bomba / Arriendo galpón"></label>
+      <label class="cg-field"><span>Cantidad</span><input id="invOtCant" inputmode="numeric" placeholder="0"></label>
+      <label class="cg-field"><span>Unidad de medida</span><input id="invOtUnidad" placeholder="un / hrs / mes"></label>
+      <label class="cg-field"><span>Valor ($)</span><input id="invOtValor" inputmode="numeric" placeholder="0"></label>
+      <label class="cg-field"><span>Proveedor</span><input id="invOtProv"></label>
+      <label class="cg-field"><span>Ubicación / Área</span><input id="invOtUbic"></label>
+      <label class="cg-field"><span>Nota</span><input id="invOtNota" placeholder="Detalle opcional"></label>
+      <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="invOtAdd" type="button">+ Agregar</button></div>
+    </div><div class="cg-err" id="invOtErr"></div></div>`;
+  const rows=(inv.otros||[]).map(x=>`<tr><td>${escapeHtml(x.nombre||'—')}${invOrigenBadge(x)}</td>
+    <td><span class="inv-badge inv-badge-tag">${escapeHtml(INV_OTROS_TIPO_LBL[x.tipo]||x.tipo||'—')}</span></td>
+    <td class="dist-num">${x.cantidad?cNum(x.cantidad).toLocaleString('es-CL'):'—'}${x.unidadMedida?(' '+escapeHtml(x.unidadMedida)):''}</td>
+    <td class="dist-num">${x.valor?fmtMoney(x.valor):'—'}</td>
+    <td>${escapeHtml(x.ubicacion||'—')}</td>
+    <td>${escapeHtml(x.proveedor||'—')}</td>
+    <td><button class="pv-del" data-ot-del="${x.id}">✕</button></td></tr>`).join('');
+  const table=`<div class="prod-sec-h" style="margin-top:1rem">Ítems registrados <span>${(inv.otros||[]).length}</span></div>
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Nombre</th><th>Tipo</th><th style="text-align:right">Cantidad</th><th style="text-align:right">Valor</th><th>Ubicación</th><th>Proveedor</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="7" style="text-align:center;color:#999;padding:.7rem">Sin ítems registrados</td></tr>'}</tbody></table></div>
+    <div class="prod-sec-h" style="margin-top:.6rem">Valor total <span>${fmtMoney(inv.valorTotalOtros)}</span></div>`;
+  return form+table;
 }
 // Modal de confirmación del vínculo Inventario → Finanzas (CAPEX). Nunca se
 // crea automático: el usuario ve los datos pre-llenados y confirma o cancela.
@@ -14516,6 +14677,16 @@ function prodWireInventario(g){
         invCapexConfirm=null; await loadProduccion();
       }catch(e){ if(err) err.textContent='⚠ '+String(e.message||e); }
     };
+  }
+  if(invView==='otros'){
+    if(g('invOtAdd')) g('invOtAdd').onclick=async()=>{
+      const err=g('invOtErr'); if(err) err.textContent='';
+      const nombre=g('invOtNombre').value.trim(); if(!nombre){ if(err) err.textContent='⚠ Ingresá un nombre.'; return; }
+      const body={tipo:g('invOtTipo').value,nombre,cantidad:cNum(g('invOtCant').value),unidadMedida:g('invOtUnidad').value,valor:cNum(g('invOtValor').value),proveedor:g('invOtProv').value,ubicacion:g('invOtUbic').value,nota:g('invOtNota').value};
+      try{ const r=await fetch('/admin/produccion/inventario/otros',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await prodSafeJson(r); if(!r.ok) throw new Error(d.error||'Error'); await loadProduccion(); }
+      catch(e){ if(err) err.textContent='⚠ '+String(e.message||e); }
+    };
+    document.querySelectorAll('[data-ot-del]').forEach(b=>b.onclick=()=>{ if(confirm('Eliminar el ítem?')) prodDelete('inventario/otros',b.dataset.otDel); });
   }
 }
 // Estados configurables (retornables/activos fijos) — agregar/renombrar/ocultar/borrar.

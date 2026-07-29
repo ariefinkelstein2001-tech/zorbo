@@ -4334,7 +4334,7 @@ app.get('/admin/costos', requireAdmin, (req, res) => {
     proveedores: data.proveedores.slice().sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
     // subEfectiva/subLabel: incluyen el default "General" para Operativos sin subcategoría (no destructivo).
     // ncVinculadas/neto: notas de crédito enganchadas a este documento y su valor descontado.
-    entradas: entradas.map(e => { const sub = costosSubEfectiva(e); return { ...e, marca: e.marca || 'todas', subEfectiva: sub, subLabel: costosSubLabel(e.categoria, sub, e.subnivel), ncVinculadas: vinc[e.id] || [], ncDescuento: desc[e.id] || 0, neto: costosNetoEfectivo(e, desc), duplicada: esDup(e) }; }),
+    entradas: entradas.map(e => { const sub = costosSubEfectiva(e); return { ...e, marca: e.marca || 'todas', subEfectiva: sub, subLabel: costosSubLabel(e.categoria, sub, e.subnivel), ncVinculadas: vinc[e.id] || [], ncDescuento: desc[e.id] || 0, neto: costosNetoEfectivo(e, desc), duplicada: esDup(e), inventarioRefs: Array.isArray(e.inventarioRefs) ? e.inventarioRefs : [] }; }),
     meses, mes, rango,
     resumen: costosResumen(entradas, desc),
   });
@@ -4476,6 +4476,67 @@ app.post('/admin/costos/entrada', requireAdmin, (req, res) => {
   const r = costosCrearEntradaDesdeBody(req.body || {});
   if (r.error) return res.status(400).json(r);
   res.json({ ok: true, entrada: r.entrada, espejos: r.espejos });
+});
+// Inventariar un documento de Costos/Gastos: crea un ítem en la página de
+// Inventario (Producción) a partir de una factura ya registrada, guardando el
+// vínculo con el documento de compra (origenCosto). La sección destino define
+// qué campos se piden y en qué lista del inventario cae:
+//   insumo       → Materias Primas e Insumos
+//   activo_fijo  → Activos Fijos (+ vínculo CAPEX bidireccional con el costo)
+//   retornable   → Envases y Activos Retornables
+//   otros        → Otros / OPEX / Consumibles
+// Una misma factura puede inventariarse en más de un ítem (se acumulan en
+// entrada.inventarioRefs). No borra ni altera el monto del documento.
+app.post('/admin/costos/entrada/:id/inventariar', requireAdmin, (req, res) => {
+  const cg = costosLoad();
+  const e = cg.entradas.find(x => x.id === req.params.id);
+  if (!e) return res.status(404).json({ error: 'Documento no encontrado.' });
+  const b = req.body || {};
+  const seccion = prodStr(b.seccion, 20);
+  const origenCosto = {
+    costoId: e.id, folio: e.folio || '', proveedor: e.proveedor || '', fecha: e.fecha || '',
+    valor: Number(e.valor) || 0, categoriaCosto: e.categoria || '', cd: e.centroDistribucion || CD_DEFAULT,
+    adjunto: (e.adjunto && e.adjunto.url) ? { url: e.adjunto.url, name: e.adjunto.name || 'documento' } : null,
+  };
+  const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  let item = null, seccionKey = null, nombre = '';
+  if (seccion === 'insumo') {
+    nombre = prodStr(b.nombre, 80); if (!nombre) return res.status(400).json({ error: 'Ponle nombre al insumo.' });
+    item = {
+      id: prodNewId('ins'), categoria: PROD_INV_CATS.includes(prodStr(b.categoria)) ? prodStr(b.categoria) : 'ingrediente', nombre,
+      cantidad: Math.max(0, Math.round(prodNum(b.cantidad))), costoUnitario: Math.max(0, prodNum(b.costoUnitario)),
+      codigo: prodStr(b.codigo, 40), unidadMedida: prodStr(b.unidadMedida, 20), stockMinimo: Math.max(0, Math.round(prodNum(b.stockMinimo))),
+      lote: prodStr(b.lote, 40), proveedor: prodStr(b.proveedor, 120) || (e.proveedor || ''),
+      fechaRecepcion: prodDateOpt(b.fechaRecepcion) || prodDateOpt(e.fecha), fechaVencimiento: prodDateOpt(b.fechaVencimiento), ubicacion: prodStr(b.ubicacion, 80),
+      origenCosto,
+    };
+    d.inventario.insumos.push(item); seccionKey = 'insumos';
+  } else if (seccion === 'activo_fijo') {
+    nombre = prodStr(b.nombre, 120); if (!nombre) return res.status(400).json({ error: 'Ponle nombre al activo.' });
+    item = prodActivoFijoClean(
+      { ...b, fechaCompra: b.fechaCompra || e.fecha, costoAdquisicion: (b.costoAdquisicion != null && b.costoAdquisicion !== '') ? b.costoAdquisicion : e.valor },
+      { id: prodNewId('af'), nombre, capexEntradaId: e.id }, d.inventario.estadosActivosFijos || []);
+    item.nombre = nombre; item.capexEntradaId = e.id; item.origenCosto = origenCosto;
+    d.inventario.activosFijos.push(item); seccionKey = 'activosFijos';
+    e.activoFijoId = item.id; // vínculo bidireccional con el documento CAPEX
+  } else if (seccion === 'retornable') {
+    const identificador = prodStr(b.identificador, 60); if (!identificador) return res.status(400).json({ error: 'Ponle un identificador a la unidad.' });
+    item = prodRetornableClean(b, { id: prodNewId('ret') }, d.inventario.estadosRetornables || []);
+    item.origenCosto = origenCosto; nombre = item.identificador || '';
+    d.inventario.retornables.push(item); seccionKey = 'retornables';
+  } else if (seccion === 'otros') {
+    nombre = prodStr(b.nombre, 100); if (!nombre) return res.status(400).json({ error: 'Ponle nombre al ítem.' });
+    item = prodOtrosClean({ ...b, valor: (b.valor != null && b.valor !== '') ? b.valor : e.valor, proveedor: b.proveedor || e.proveedor, fecha: b.fecha || e.fecha }, { id: prodNewId('otr') });
+    item.nombre = nombre; item.origenCosto = origenCosto;
+    d.inventario.otros = d.inventario.otros || []; d.inventario.otros.push(item); seccionKey = 'otros';
+  } else {
+    return res.status(400).json({ error: 'Elegí una sección de inventario válida.' });
+  }
+  prodSave(d);
+  if (!Array.isArray(e.inventarioRefs)) e.inventarioRefs = [];
+  e.inventarioRefs.push({ seccion: seccionKey, itemId: item.id, nombre, ts: new Date().toISOString() });
+  costosSave(cg);
+  res.json({ ok: true, item, seccion: seccionKey, inventarioRefs: e.inventarioRefs });
 });
 // PUT: reclasifica la subcategoría/subnivel de un registro existente (edición no destructiva).
 app.put('/admin/costos/entrada/:id/subcategoria', requireAdmin, (req, res) => {
@@ -5597,6 +5658,11 @@ const PROD_SEDES = [
 // Cat. 2 — Materias Primas e Insumos. Mantiene los ids viejos (lata/tapa/
 // etiqueta) para no perder ningún ítem cargado antes de esta expansión.
 const PROD_INV_CATS = ['malta', 'lupulo', 'levadura', 'alcohol', 'ingrediente', 'lata', 'tapa', 'etiqueta', 'caja', 'packaging', 'barril_pet', 'co2_gas'];
+// Cat. 5 — Otros / OPEX / Consumibles: cosas que NO son materia prima física,
+// activo fijo ni retornable, pero que igual se inventarían desde un documento de
+// Costos/Gastos (ej. un gasto OPEX, un servicio, un repuesto puntual). Sirve de
+// destino "cajón" al inventariar una factura que no calza en las otras 4.
+const PROD_OTROS_TIPOS = ['opex', 'consumible', 'repuesto', 'servicio', 'otro'];
 // Cat. 3 — Envases y Activos Retornables: tipos de unidad.
 const PROD_RETORNABLE_TIPOS = ['Barril inox 20L', 'Barril inox 30L', 'Cilindro CO2', 'Pallet retornable', 'Caja retornable', 'Otro'];
 const PROD_CO2_CAPACIDADES = [6, 9, 12, 20]; // kg
@@ -5726,7 +5792,7 @@ function prodMigrarSedesTanques(d){
 }
 function prodInventarioDefaults(){
   return {
-    insumos: [], retornables: [], activosFijos: [],
+    insumos: [], retornables: [], activosFijos: [], otros: [],
     estadosRetornables: PROD_ESTADOS_RETORNABLES_SEED.map(s => ({ id: prodNewId('estr'), ...s })),
     estadosActivosFijos: PROD_ESTADOS_ACTIVOS_FIJOS_SEED.map(s => ({ id: prodNewId('estaf'), ...s })),
   };
@@ -5754,6 +5820,7 @@ function prodLoad(){
           insumos: Array.isArray(p.inventario.insumos) ? p.inventario.insumos : def.insumos,
           retornables: Array.isArray(p.inventario.retornables) ? p.inventario.retornables : def.retornables,
           activosFijos: Array.isArray(p.inventario.activosFijos) ? p.inventario.activosFijos : def.activosFijos,
+          otros: Array.isArray(p.inventario.otros) ? p.inventario.otros : def.otros,
           estadosRetornables: (Array.isArray(p.inventario.estadosRetornables) && p.inventario.estadosRetornables.length) ? p.inventario.estadosRetornables : def.estadosRetornables,
           estadosActivosFijos: (Array.isArray(p.inventario.estadosActivosFijos) && p.inventario.estadosActivosFijos.length) ? p.inventario.estadosActivosFijos : def.estadosActivosFijos,
         };
@@ -5864,7 +5931,7 @@ function prodDecorate(d){
   const lotes = d.lotes.map(l => { const base = prodVolumenBase(l); const env = prodLitrosEnvasados(l); return { ...l, diasOcup: prodDiasOcup(l), volumenBaseL: base, litrosEnvasados: env, litrosRestantes: Math.max(0, base - env), rendEnvasado: prodRendEnvasado(l, cfg), leadTimeDias: (l.fechaEnvasado && l.fechaCoccion) ? Math.max(0, Math.round((new Date(l.fechaEnvasado) - new Date(l.fechaCoccion)) / DAY)) : null }; });
   return { config: prodConfigSafe(cfg), tanques, lotes, limpiezas: d.limpiezas, paradas: d.paradas, recetas: d.recetas || [], inventario: prodDecorarInventario(d.inventario), meta: {
     etapas: PROD_ETAPAS, limpiezaTipos: PROD_LIMPIEZA_TIPOS, centros: PROD_CENTROS, paradaCategorias: PROD_PARADA_CAT, formatos: PROD_FORMATOS, sedes: PROD_SEDES,
-    invCategorias: PROD_INV_CATS, coloresCerveza: PROD_COLORES_CERVEZA, coloresDestilado: PROD_COLORES_DESTILADO,
+    invCategorias: PROD_INV_CATS, otrosTipos: PROD_OTROS_TIPOS, coloresCerveza: PROD_COLORES_CERVEZA, coloresDestilado: PROD_COLORES_DESTILADO,
     retornableTipos: PROD_RETORNABLE_TIPOS, co2Capacidades: PROD_CO2_CAPACIDADES, activoSubtipos: PROD_ACTIVO_SUBTIPOS,
     refrigTipos: PROD_REFRIG_TIPOS, dispensadoTipos: PROD_DISPENSADO_TIPOS, pinchadorTipos: PROD_PINCHADOR_TIPOS, tapHandleTipos: PROD_TAP_HANDLE_TIPOS,
     estadoFamilias: PROD_ESTADO_FAMILIAS,
@@ -5892,10 +5959,12 @@ function prodDecorarInventario(inv){
     (porCliente[k] = porCliente[k] || { cliente: k, ubicacion: a.ubicacion || '', items: [] }).items.push({ id: a.id, nombre: a.nombre, estado: (a.estadoInfo && a.estadoInfo.label) || a.estado || '' });
   }
   const resumenPorCliente = Object.values(porCliente).sort((x, y) => y.items.length - x.items.length);
+  const otros = (base.otros || []).map(x => ({ ...x, valorTotal: Math.round(prodNum(x.cantidad || 1) * prodNum(x.valor) * 100) / 100 }));
+  const valorTotalOtros = Math.round(otros.reduce((a, x) => a + (prodNum(x.valor) || 0), 0) * 100) / 100;
   return {
-    insumos, totalesPorCategoria, valorTotalInsumos, retornables, activosFijos, resumenPorCliente,
+    insumos, totalesPorCategoria, valorTotalInsumos, retornables, activosFijos, otros, valorTotalOtros, resumenPorCliente,
     estadosRetornables: base.estadosRetornables || [], estadosActivosFijos: base.estadosActivosFijos || [],
-    contadores: { insumos: insumos.length, retornables: retornables.length, activosFijos: activosFijos.length },
+    contadores: { insumos: insumos.length, retornables: retornables.length, activosFijos: activosFijos.length, otros: otros.length },
   };
 }
 // Config para el front: la clave del ERP nunca se envía, solo si está configurada.
@@ -7364,6 +7433,40 @@ app.delete('/admin/produccion/parada/:id', requireAdmin, (req, res) => { const d
 // lectura vía erpStock() (GET /admin/produccion/erp/stock), ya existente —
 // un formulario manual competiría con esa fuente real.
 const prodDateOpt = (v) => { const s = prodStr(v, 20); return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : ''; };
+// Trazabilidad Inventario ← Finanzas: de qué documento de Costos/Gastos (factura)
+// salió este ítem de inventario. Se guarda una copia inmutable de los datos clave
+// del documento (folio, proveedor, fecha, valor, adjunto) para que el inventario
+// muestre "de dónde viene la compra" aunque el documento se edite luego.
+function prodOrigenCostoClean(o){
+  if (!o || typeof o !== 'object') return null;
+  const costoId = prodStr(o.costoId, 40); if (!costoId) return null;
+  return {
+    costoId,
+    folio: prodStr(o.folio, 60),
+    proveedor: prodStr(o.proveedor, 120),
+    fecha: prodDateOpt(o.fecha),
+    valor: Math.max(0, prodNum(o.valor)),
+    categoriaCosto: prodStr(o.categoriaCosto, 40),
+    cd: prodStr(o.cd, 30),
+    adjunto: (o.adjunto && o.adjunto.url) ? { url: prodStr(o.adjunto.url, 400), name: prodStr(o.adjunto.name, 200) } : null,
+  };
+}
+// Cat. 5 — Otros / OPEX / Consumibles.
+function prodOtrosClean(b, base){
+  const r = base || {};
+  if (b.nombre != null) r.nombre = prodStr(b.nombre, 100);
+  if (b.tipo != null) { const t = prodStr(b.tipo, 20); r.tipo = PROD_OTROS_TIPOS.includes(t) ? t : 'otro'; }
+  if (!r.tipo) r.tipo = 'otro';
+  if (b.cantidad != null) r.cantidad = Math.max(0, prodNum(b.cantidad));
+  if (b.unidadMedida != null) r.unidadMedida = prodStr(b.unidadMedida, 20);
+  if (b.valor != null) r.valor = Math.max(0, prodNum(b.valor));
+  if (b.proveedor != null) r.proveedor = prodStr(b.proveedor, 120);
+  if (b.ubicacion != null) r.ubicacion = prodStr(b.ubicacion, 80);
+  if (b.fecha != null) r.fecha = prodDateOpt(b.fecha);
+  if (b.nota != null) r.nota = prodStr(b.nota, 300);
+  if (b.origenCosto != null) r.origenCosto = prodOrigenCostoClean(b.origenCosto);
+  return r;
+}
 // Cat. 2 — Materias Primas e Insumos (registro manual). Extiende el modelo
 // viejo (categoria/nombre/cantidad/costoUnitario) con los campos del §8.
 app.post('/admin/produccion/inventario/insumo', requireAdmin, (req, res) => {
@@ -7374,6 +7477,7 @@ app.post('/admin/produccion/inventario/insumo', requireAdmin, (req, res) => {
     cantidad: Math.max(0, Math.round(prodNum(b.cantidad))), costoUnitario: Math.max(0, prodNum(b.costoUnitario)),
     codigo: prodStr(b.codigo, 40), unidadMedida: prodStr(b.unidadMedida, 20), stockMinimo: Math.max(0, Math.round(prodNum(b.stockMinimo))),
     lote: prodStr(b.lote, 40), proveedor: prodStr(b.proveedor, 120), fechaRecepcion: prodDateOpt(b.fechaRecepcion), fechaVencimiento: prodDateOpt(b.fechaVencimiento), ubicacion: prodStr(b.ubicacion, 80),
+    origenCosto: prodOrigenCostoClean(b.origenCosto),
   };
   d.inventario.insumos.push(it); prodSave(d); res.json({ ok: true, insumo: it });
 });
@@ -7393,12 +7497,33 @@ app.put('/admin/produccion/inventario/insumo/:id', requireAdmin, (req, res) => {
   if (b.fechaRecepcion != null) it.fechaRecepcion = prodDateOpt(b.fechaRecepcion);
   if (b.fechaVencimiento != null) it.fechaVencimiento = prodDateOpt(b.fechaVencimiento);
   if (b.ubicacion != null) it.ubicacion = prodStr(b.ubicacion, 80);
+  if (b.origenCosto != null) it.origenCosto = prodOrigenCostoClean(b.origenCosto);
   prodSave(d); res.json({ ok: true, insumo: it });
 });
 app.delete('/admin/produccion/inventario/insumo/:id', requireAdmin, (req, res) => {
   const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
   const n = d.inventario.insumos.length; d.inventario.insumos = d.inventario.insumos.filter(x => x.id !== req.params.id);
   if (d.inventario.insumos.length === n) return res.status(404).json({ error: 'No encontrado.' });
+  prodSave(d); res.json({ ok: true });
+});
+// Cat. 5 — Otros / OPEX / Consumibles (registro manual y/o inventariado desde
+// un documento de Costos/Gastos).
+app.post('/admin/produccion/inventario/otros', requireAdmin, (req, res) => {
+  const b = req.body || {}; const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  const nombre = prodStr(b.nombre, 100); if (!nombre) return res.status(400).json({ error: 'Falta el nombre.' });
+  const it = prodOtrosClean(b, { id: prodNewId('otr') }); it.nombre = nombre;
+  d.inventario.otros = d.inventario.otros || []; d.inventario.otros.push(it); prodSave(d); res.json({ ok: true, otros: it });
+});
+app.put('/admin/produccion/inventario/otros/:id', requireAdmin, (req, res) => {
+  const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  const it = (d.inventario.otros || []).find(x => x.id === req.params.id); if (!it) return res.status(404).json({ error: 'No encontrado.' });
+  prodOtrosClean(req.body || {}, it); prodSave(d); res.json({ ok: true, otros: it });
+});
+app.delete('/admin/produccion/inventario/otros/:id', requireAdmin, (req, res) => {
+  const d = prodLoad(); d.inventario = d.inventario || prodInventarioDefaults();
+  const arr = d.inventario.otros || []; const n = arr.length;
+  d.inventario.otros = arr.filter(x => x.id !== req.params.id);
+  if (d.inventario.otros.length === n) return res.status(404).json({ error: 'No encontrado.' });
   prodSave(d); res.json({ ok: true });
 });
 // Estados configurables — genérico para retornables y activos fijos, mismo
@@ -7448,6 +7573,7 @@ function prodRetornableClean(b, base, estados){
   if (b.responsable != null) r.responsable = prodStr(b.responsable, 80);
   if (b.fechaUltimoMovimiento != null) r.fechaUltimoMovimiento = prodDateOpt(b.fechaUltimoMovimiento);
   if (b.fechaEstimadaRetorno != null) r.fechaEstimadaRetorno = prodDateOpt(b.fechaEstimadaRetorno);
+  if (b.origenCosto != null) r.origenCosto = prodOrigenCostoClean(b.origenCosto);
   return r;
 }
 app.post('/admin/produccion/inventario/retornable', requireAdmin, (req, res) => {
@@ -7488,6 +7614,7 @@ function prodActivoFijoClean(b, base, estados){
   if (b.responsable != null) r.responsable = prodStr(b.responsable, 80);
   if (b.fechaUltimaMantencion != null) r.fechaUltimaMantencion = prodDateOpt(b.fechaUltimaMantencion);
   if (b.proximaMantencion != null) r.proximaMantencion = prodDateOpt(b.proximaMantencion);
+  if (b.origenCosto != null) r.origenCosto = prodOrigenCostoClean(b.origenCosto);
   // Instalaciones y Plantas: capacidad productiva + leasing operativo a terceros.
   if (r.subtipo === 'instalacion') {
     if (b.capacidadProductivaLmes != null) r.capacidadProductivaLmes = Math.max(0, prodNum(b.capacidadProductivaLmes));
