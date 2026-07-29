@@ -2588,8 +2588,8 @@ const SKU_DICC_SEED = {
     { codigo: 'KB',  nombre: 'Kairos Brewing' },
     { codigo: 'BAN', nombre: 'Banny' },
     { codigo: 'FIR', nombre: 'Firulais' },
-    { codigo: 'CDP', nombre: 'Cervecería del Puerto', nota: 'Nueva en el diccionario — a confirmar si tiene productos hoy o es a futuro.' },
-    { codigo: 'BIL', nombre: 'Biloba', nota: 'Nueva en el diccionario — a confirmar si tiene productos hoy o es a futuro.' },
+    { codigo: 'CDP', nombre: 'Cervecería del Puerto', estado: 'activa', nota: 'Confirmado por el equipo: tiene productos activos hoy. El Excel adjunto no trae su línea de estilos — falta cargar sus SKU/estilos reales cuando estén disponibles (no se inventan acá).' },
+    { codigo: 'BIL', nombre: 'Biloba', estado: 'futura', nota: 'Confirmado por el equipo: en creación, todavía sin productos.' },
     { codigo: 'GAR', nombre: 'Kairos Garden', nota: 'Identidad del local, no una marca de bebida — se usa como MARCA en los SKU de CDGV/CDGA aunque el producto sea de otra marca (ej. una cerveza Kairos Brewing servida en barra).' },
     { codigo: 'BAD', nombre: 'Kairos Badass', nota: 'Identidad del local, no una marca de bebida — se usa como MARCA en los SKU de CDKB aunque el producto sea de otra marca.' },
   ],
@@ -2832,6 +2832,122 @@ app.get('/admin/sku-diccionario/validar', requireAdmin, (req, res) => {
     errores,
     cobertura: 'CD Kairos (línea completa Kairos Brewing) + Garden Vespucio (barra, Kairos Brewing). No incluye Banny/Firulais en locales ni Garden Antofagasta/Badass — no estaban en el Excel adjunto.',
   });
+});
+
+// ─── Diccionario de SKU — Paso 2: mapeo de KB-00001 (esquema legado, Fase 2)
+// al SKU del diccionario ────────────────────────────────────────────────────
+// El diccionario queda como identidad CANÓNICA: PRODUCTO = Marca+Estilo,
+// VARIANTE = SKU completo (recomendación explícita de la spec). El esquema
+// KB-00001/KGD-00001 (nextSkuCode/skuBackfill, más arriba) NO se borra —
+// sigue asignándose hoy porque el formulario de creación (Fase 3) todavía no
+// captura Estilo ni CD, los dos datos que faltan para armar un SKU completo
+// del diccionario (eso es Paso 3/4). Este bloque SOLO construye + valida el
+// motor de mapeo (preview de solo lectura + aplicar explícito) para cuando
+// haya productos reales con código legado que remapear — nunca borra el
+// código viejo, lo complementa con `skuDiccionario` en el mismo registro.
+function skuDiccNorm(s){
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+}
+// Estilo por texto libre (título de producto/ítem). 014/015 comparten la
+// etiqueta "Gin" — NUNCA se adivina entre ambos: si el texto no trae
+// "contemporáneo" o "london dry" explícito, queda sin_mapear a propósito.
+function skuDiccMatchEstiloTexto(texto){
+  const d = skuDiccLoad();
+  const n = skuDiccNorm(texto);
+  if (!n) return null;
+  if (n.includes('gin')) {
+    if (n.includes('contemporane')) return d.estilos.find(e => e.codigo === '014') || null;
+    if (n.includes('london dry') || n.includes('london')) return d.estilos.find(e => e.codigo === '015') || null;
+    return null; // ambiguo — no se adivina entre 014/015
+  }
+  // Resto: match por nombre completo del estilo (más largo primero, evita que
+  // "Pils" matchee dentro de "Italian Pils" antes de tiempo).
+  const candidatos = d.estilos.filter(e => !['014', '015', 'MIX', '021', '022', '023'].includes(e.codigo))
+    .sort((a, b) => b.nombre.length - a.nombre.length);
+  for (const e of candidatos) {
+    if (n.includes(skuDiccNorm(e.nombre))) return e;
+  }
+  return null;
+}
+const SKU_DICC_MARCA_LEGACY = { kairos: 'KB', banny: 'BAN', firulais: 'FIR' };
+// Propone el mapeo de UN producto/ítem con código legado. Devuelve
+// { propuesta:{cd,marca,unidadMedida,estilo,formato,cantidad,sku} | null, motivo }.
+function skuDiccProponerMapeo(entidad){
+  const d = skuDiccLoad();
+  if (entidad.origen === 'shopify') {
+    // Ruta Bebida: siempre CD Kairos (comercialización), unidad/formato/
+    // cantidad no se pueden inferir de forma confiable desde el título solo
+    // — dependen de la variante real vendida (Fase 3 ya guarda variantesSku,
+    // pero mapear cada variante a una fila de diccionario es trabajo de
+    // Paso 3/4, cuando se conecte formato→litros). Acá solo resolvemos
+    // Marca+Estilo (identidad de PRODUCTO), no la variante completa todavía.
+    const marcaCod = SKU_DICC_MARCA_LEGACY[entidad.brandKey];
+    if (!marcaCod) return { propuesta: null, motivo: `Marca "${entidad.brandKey}" no está en el diccionario (solo KB/BAN/FIR tienen equivalencia hoy).` };
+    const estilo = skuDiccMatchEstiloTexto(entidad.titulo);
+    if (!estilo) return { propuesta: null, motivo: 'No se reconoció el estilo en el título — revisar a mano.' };
+    return { propuesta: { cd: 'CDK', marca: marcaCod, estilo: estilo.codigo, unidadMedida: null, formato: null, cantidad: null }, motivo: 'Identidad de PRODUCTO resuelta (Marca+Estilo). Variante completa (unidad/formato/cantidad) pendiente de Paso 3/4.' };
+  }
+  if (entidad.origen === 'sku-menu') {
+    if (entidad.marca === 'kairos_badass') {
+      const estilo = entidad.tipo === 'cocina' ? d.estilos.find(e => e.codigo === '021') : skuDiccMatchEstiloTexto(entidad.titulo);
+      if (!estilo) return { propuesta: null, motivo: entidad.tipo === 'barra' ? 'Ítem de barra: no se pudo determinar si es con alcohol (022) o sin alcohol (023) — falta ese dato en el formulario de Ruta Menú.' : 'No se reconoció el estilo.' };
+      const formato = entidad.tipo === 'cocina' ? 'COM' : 'BAR';
+      return { propuesta: { cd: 'CDKB', marca: 'BAD', estilo: estilo.codigo, unidadMedida: 'UN', formato, cantidad: 1 }, motivo: 'Mapeo completo (CD Badass, único local con este código).' };
+    }
+    if (entidad.marca === 'kairos_garden') {
+      return { propuesta: null, motivo: '"Kairos Garden" no distingue local en el formulario de Ruta Menú (Vespucio = CDGV vs Antofagasta = CDGA) — falta ese campo para poder armar el SKU completo. No se asume uno de los dos.' };
+    }
+    return { propuesta: null, motivo: `Marca "${entidad.marca}" de Ruta Menú no tiene CD/marca de diccionario asociado.` };
+  }
+  return { propuesta: null, motivo: 'Origen desconocido.' };
+}
+function skuDiccEscanearLegado(){
+  const filas = [];
+  const extras = loadProductExtras();
+  for (const [pid, it] of Object.entries(extras.items || {})) {
+    if (!it || !it.skuCode) continue;
+    const brandKey = it.brandKey || null; // no se persiste brandKey hoy — best-effort
+    const { propuesta, motivo } = skuDiccProponerMapeo({ origen: 'shopify', titulo: it.tituloCache || pid, brandKey });
+    filas.push({ origen: 'shopify', id: pid, skuCodeLegado: it.skuCode, titulo: it.tituloCache || null, propuesta, estado: propuesta ? 'mapeado' : 'sin_mapear', motivo });
+  }
+  const menu = loadSkuMenu();
+  for (const [id, it] of Object.entries(menu.items || {})) {
+    if (!it || !it.skuCode) continue;
+    const { propuesta, motivo } = skuDiccProponerMapeo({ origen: 'sku-menu', titulo: it.titulo, marca: it.marca, tipo: it.tipo });
+    filas.push({ origen: 'sku-menu', id, skuCodeLegado: it.skuCode, titulo: it.titulo, propuesta, estado: propuesta ? 'mapeado' : 'sin_mapear', motivo });
+  }
+  return filas;
+}
+app.get('/admin/sku-diccionario/mapeo-legado', requireAdmin, (req, res) => {
+  const filas = skuDiccEscanearLegado();
+  res.json({
+    totalFilas: filas.length,
+    mapeados: filas.filter(f => f.estado === 'mapeado').length,
+    sinMapear: filas.filter(f => f.estado === 'sin_mapear').length,
+    filas,
+  });
+});
+// Persiste `skuDiccionario` en cada registro mapeado — NUNCA toca/borra el
+// `skuCode` legado (KB-00001 sigue existiendo como referencia histórica).
+// Solo aplica filas con propuesta completa (estado 'mapeado').
+app.post('/admin/sku-diccionario/aplicar-mapeo-legado', requireAdmin, (req, res) => {
+  const filas = skuDiccEscanearLegado();
+  let aplicadas = 0, omitidas = 0;
+  const extras = loadProductExtras();
+  const menu = loadSkuMenu();
+  for (const f of filas) {
+    if (f.estado !== 'mapeado') { omitidas++; continue; }
+    if (f.origen === 'shopify' && extras.items[f.id]) {
+      extras.items[f.id].skuDiccionario = f.propuesta;
+      aplicadas++;
+    } else if (f.origen === 'sku-menu' && menu.items[f.id]) {
+      menu.items[f.id].skuDiccionario = f.propuesta;
+      aplicadas++;
+    } else omitidas++;
+  }
+  saveProductExtras(extras);
+  saveSkuMenu(menu);
+  res.json({ ok: true, aplicadas, omitidas });
 });
 
 // Metadata del formulario inteligente (Fase 3): marcas, canales y las 9
