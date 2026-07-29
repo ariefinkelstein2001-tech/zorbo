@@ -10624,24 +10624,49 @@ const HIST25_RETAIL_ESTILOS = [
 ];
 
 const cdNormLoose = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
-// Nombre de estilo → {skuCode, matchTipo} | null. Primero intenta como
-// producto Shopify real (Ruta Bebida, por TÍTULO), después como ítem de
-// carta (Ruta Menú, ej. Sangría — nunca tiene producto Shopify detrás).
-// Nunca crea nada; si no encuentra, null = "sin mapear".
+// Nombre de estilo (tal como viene en la planilla histórica 2025) → código
+// del diccionario de SKU. Transversal: es la misma tabla de estilos que usa
+// Comercial (Fase Diccionario), así que la carga histórica ahora cruza por
+// código, no solo por nombre. Cuando el producto real YA tiene su propio
+// estiloCodigo asignado (Ruta Bebida), hist25MatchEstilo cruza contra ESE
+// dato real — si no coincide con lo que dice esta tabla, es una discrepancia
+// real entre Comercial (cómo se catalogó el producto) y la planilla
+// histórica, y se reporta, nunca se ignora en silencio.
+const HIST25_ESTILO_A_CODIGO = {
+  'Nada Personal (Pils)': '002', 'Alerta Roja (Red)': '005', 'Galactic Golden': '001',
+  'Imperio Perdido (Neipa)': '004', 'Secret Lab (Apa)': '003', 'Ritual de la Banana (Weizen)': '006',
+  'Lanus (Italian Pils)': '013', 'Kenny Bell (Ambar)': '010', 'Samba (Ipa)': '009',
+  'Obertura (Stout)': '007', 'Hoppy Lager (Hoyo en Uno)': '008', 'Osagui': '012', 'Acholada': '011',
+  'Gin London Dry': '015', 'Ron Rey de Copas': '016', 'Gin Contemporáneo': '014',
+  'Chelada Cachupín': '018', 'Colección de Artistas': '020',
+};
+// Nombre de estilo → {skuCode, matchTipo, estiloCodigo, discrepanciaEstilo} |
+// null. Primero intenta como producto Shopify real (Ruta Bebida, por
+// TÍTULO), después como ítem de carta (Ruta Menú, ej. Sangría — nunca tiene
+// producto Shopify detrás). Nunca crea nada; si no encuentra, null = "sin
+// mapear".
 function hist25MatchEstilo(nombreEstilo, allProducts, extras){
   const n = cdNormLoose(nombreEstilo);
+  const codigoEsperado = HIST25_ESTILO_A_CODIGO[nombreEstilo] || null;
   if (allProducts && allProducts.length) {
     for (const p of allProducts) {
       const pn = cdNormLoose(p.title);
       if (pn === n || pn.includes(n) || n.includes(pn)) {
         const ex = extras.items[String(p.id)];
-        if (ex && ex.skuCode) return { skuCode: ex.skuCode, matchTipo: 'producto', productId: String(p.id) };
+        if (ex && ex.skuCode) {
+          const estiloReal = ex.estiloCodigo || null;
+          return {
+            skuCode: ex.skuCode, matchTipo: 'producto', productId: String(p.id),
+            estiloCodigo: estiloReal || codigoEsperado,
+            discrepanciaEstilo: !!(estiloReal && codigoEsperado && estiloReal !== codigoEsperado),
+          };
+        }
       }
     }
   }
   const menu = loadSkuMenu();
   for (const it of Object.values(menu.items || {})) {
-    if (cdNormLoose(it.titulo) === n) return { skuCode: it.skuCode, matchTipo: 'carta', itemId: it.id };
+    if (cdNormLoose(it.titulo) === n) return { skuCode: it.skuCode, matchTipo: 'carta', itemId: it.id, estiloCodigo: codigoEsperado, discrepanciaEstilo: false };
   }
   return null;
 }
@@ -10703,10 +10728,12 @@ app.get('/admin/historico-2025/cd-kairos/preview', requireAdmin, async (req, res
           const combinado = valores[i];
           const online = combinado == null ? { available: false, reason: 'Combinado pendiente.' } : hist25OnlineLitrosMes(match, 2025, mes, ordersResult, extras);
           const horeca = hist25HorecaPorResta(combinado, online);
+          const estado = !match ? 'sin_mapear' : (match.discrepanciaEstilo ? 'discrepancia_estilo' : horeca.estado);
           filas.push({
             marca, estilo, mes, skuCode: match ? match.skuCode : null, matchTipo: match ? match.matchTipo : null,
+            estiloCodigo: match ? match.estiloCodigo : null, estiloCodigoEsperado: HIST25_ESTILO_A_CODIGO[estilo] || null,
             combinado, online: online.available ? online.litros : null, onlineDisponible: online.available,
-            horeca: horeca.litros, estado: !match ? 'sin_mapear' : horeca.estado,
+            horeca: horeca.litros, estado,
           });
         }
       }
@@ -10718,6 +10745,7 @@ app.get('/admin/historico-2025/cd-kairos/preview', requireAdmin, async (req, res
       sinMapear: [...sinMapear],
       horecaNegativo: filas.filter(f => f.estado === 'horeca_negativo'),
       sinDatoOnline: filas.filter(f => f.estado === 'sin_dato_online').length,
+      discrepanciasEstilo: filas.filter(f => f.estado === 'discrepancia_estilo'),
       shopifyDisponible: ordersResult.available,
       shopifyReason: ordersResult.available ? null : ordersResult.reason,
     };
@@ -10726,10 +10754,12 @@ app.get('/admin/historico-2025/cd-kairos/preview', requireAdmin, async (req, res
 });
 
 // Aplica (persiste) la carga — SOLO filas en estado 'ok' o el bloque Retail
-// (0 explícito). Nunca aplica sin_mapear/horeca_negativo/sin_dato_online:
-// esas quedan afuera hasta que se resuelvan a mano. Idempotente por
-// (anio,mes,canal,marca,estilo): si ya existe, la reemplaza (permite re-aplicar
-// tras corregir un mapeo), siempre re-etiquetando auditoría.
+// (0 explícito). Nunca aplica sin_mapear/horeca_negativo/sin_dato_online/
+// discrepancia_estilo: esas quedan afuera hasta que se resuelvan a mano.
+// Idempotente por (anio,mes,canal,marca,estilo): si ya existe, la reemplaza
+// (permite re-aplicar tras corregir un mapeo), siempre re-etiquetando
+// auditoría. Cada entrada persiste también estiloCodigo (diccionario de
+// SKU) para que el resto del ERP pueda cruzar por código, no por nombre.
 app.post('/admin/historico-2025/cd-kairos/aplicar', requireAdmin, async (req, res) => {
   try {
     const allProducts = await loadProductsCache(false);
@@ -10751,9 +10781,9 @@ app.post('/admin/historico-2025/cd-kairos/aplicar', requireAdmin, async (req, re
           const combinado = valores[i];
           const online = combinado == null ? { available: false } : hist25OnlineLitrosMes(match, 2025, mes, ordersResult, extras);
           const horeca = hist25HorecaPorResta(combinado, online);
-          if (match && horeca.estado === 'ok') {
-            upsert({ id: 'h25_' + marca + '_' + estilo.replace(/\W+/g, '_') + '_horeca_' + mes, anio: 2025, mes, canal: 'horeca', local: null, marca, estilo, skuCode: match.skuCode, litros: horeca.litros, origen: 'carga_manual_historica_2025', metodo: 'resta_combinado_menos_online', cargadoEn: now, cargadoPor: usuario });
-            upsert({ id: 'h25_' + marca + '_' + estilo.replace(/\W+/g, '_') + '_online_' + mes, anio: 2025, mes, canal: 'online', local: null, marca, estilo, skuCode: match.skuCode, litros: online.litros, origen: 'carga_manual_historica_2025', metodo: 'shopify_online_directo', cargadoEn: now, cargadoPor: usuario });
+          if (match && !match.discrepanciaEstilo && horeca.estado === 'ok') {
+            upsert({ id: 'h25_' + marca + '_' + estilo.replace(/\W+/g, '_') + '_horeca_' + mes, anio: 2025, mes, canal: 'horeca', local: null, marca, estilo, skuCode: match.skuCode, estiloCodigo: match.estiloCodigo, litros: horeca.litros, origen: 'carga_manual_historica_2025', metodo: 'resta_combinado_menos_online', cargadoEn: now, cargadoPor: usuario });
+            upsert({ id: 'h25_' + marca + '_' + estilo.replace(/\W+/g, '_') + '_online_' + mes, anio: 2025, mes, canal: 'online', local: null, marca, estilo, skuCode: match.skuCode, estiloCodigo: match.estiloCodigo, litros: online.litros, origen: 'carga_manual_historica_2025', metodo: 'shopify_online_directo', cargadoEn: now, cargadoPor: usuario });
             aplicadas += 2;
           } else omitidas++;
         }
@@ -10761,7 +10791,7 @@ app.post('/admin/historico-2025/cd-kairos/aplicar', requireAdmin, async (req, re
     }
     for (const { marca, estilo } of HIST25_RETAIL_ESTILOS) {
       for (let mes = 1; mes <= 12; mes++) {
-        upsert({ id: 'h25_' + marca + '_' + estilo.replace(/\W+/g, '_') + '_retail_' + mes, anio: 2025, mes, canal: 'retail', local: null, marca, estilo, skuCode: null, litros: 0, origen: 'carga_manual_historica_2025', metodo: 'retail_cero_explicito', cargadoEn: now, cargadoPor: usuario });
+        upsert({ id: 'h25_' + marca + '_' + estilo.replace(/\W+/g, '_') + '_retail_' + mes, anio: 2025, mes, canal: 'retail', local: null, marca, estilo, skuCode: null, estiloCodigo: HIST25_ESTILO_A_CODIGO[estilo] || null, litros: 0, origen: 'carga_manual_historica_2025', metodo: 'retail_cero_explicito', cargadoEn: now, cargadoPor: usuario });
         aplicadas++;
       }
     }
@@ -10907,15 +10937,17 @@ app.get('/admin/historico-2025/hospitality/preview', requireAdmin, async (req, r
         for (const [estilo, valores] of Object.entries(g.estilos)) {
           const match = hist25MatchEstilo(estilo, allProducts, extras);
           if (!match) sinMapear.add(estilo);
+          const estado = !match ? 'sin_mapear' : (match.discrepanciaEstilo ? 'discrepancia_estilo' : 'ok');
           for (const mes of local.mesesActivos) {
             const litros = hist25GetMes(valores, mes);
-            filas.push({ local: localId, marca: g.marca, estilo, mes, skuCode: match ? match.skuCode : null, matchTipo: match ? match.matchTipo : null, litros, estado: match ? 'ok' : 'sin_mapear' });
+            filas.push({ local: localId, marca: g.marca, estilo, mes, skuCode: match ? match.skuCode : null, matchTipo: match ? match.matchTipo : null, estiloCodigo: match ? match.estiloCodigo : null, litros, estado });
           }
         }
       }
-      // Colección de Artistas del local — agregado, no desglosable a un SKU.
+      // Colección de Artistas del local — agregado, no desglosable a un SKU
+      // (pero el código de ESTILO 020 del diccionario sí es conocido).
       for (const mes of local.mesesActivos) {
-        filas.push({ local: localId, marca: 'kairos', estilo: 'Colección de Artistas (agregado)', mes, skuCode: null, matchTipo: null, litros: hist25GetMes(local.coleccionDeArtistas, mes), estado: 'agregado_no_desglosable' });
+        filas.push({ local: localId, marca: 'kairos', estilo: 'Colección de Artistas (agregado)', mes, skuCode: null, matchTipo: null, estiloCodigo: '020', litros: hist25GetMes(local.coleccionDeArtistas, mes), estado: 'agregado_no_desglosable' });
       }
       // Sangría — ítem de carta (sin SKU de Shopify), matcheado por ID interno si existe.
       const sMatch = hist25MatchEstilo(local.sangria.estilo, allProducts, extras);
@@ -10936,6 +10968,7 @@ app.get('/admin/historico-2025/hospitality/preview', requireAdmin, async (req, r
       sinMapear: [...sinMapear],
       agregadosNoDesglosables: filas.filter(f => f.estado === 'agregado_no_desglosable').length,
       pendientesConfirmar: filas.filter(f => f.estado === 'pendiente_confirmar'),
+      discrepanciasEstilo: filas.filter(f => f.estado === 'discrepancia_estilo'),
     };
     res.json({ available: true, filas, resumen });
   } catch (e) { res.status(500).json({ error: 'Error generando preview de Hospitality: ' + e.message }); }
@@ -10969,10 +11002,10 @@ app.post('/admin/historico-2025/hospitality/aplicar', requireAdmin, async (req, 
           const match = hist25MatchEstilo(estilo, allProducts, extras);
           for (const mes of local.mesesActivos) {
             const litros = hist25GetMes(valores, mes);
-            if (match && !bloqueado && litros != null) {
+            if (match && !match.discrepanciaEstilo && !bloqueado && litros != null) {
               const id = 'h25_hosp_' + localId + '_' + g.marca + '_' + estilo.replace(/\W+/g, '_') + '_' + mes;
               const idx = store.entradas.findIndex(e => e.id === id);
-              const entrada = { id, anio: 2025, mes, canal: 'hospitality', local: localId, marca: g.marca, estilo, skuCode: match.skuCode, litros, origen: 'carga_manual_historica_2025', metodo: 'hospitality_planilla', cargadoEn: now, cargadoPor: usuario };
+              const entrada = { id, anio: 2025, mes, canal: 'hospitality', local: localId, marca: g.marca, estilo, skuCode: match.skuCode, estiloCodigo: match.estiloCodigo, litros, origen: 'carga_manual_historica_2025', metodo: 'hospitality_planilla', cargadoEn: now, cargadoPor: usuario };
               if (idx >= 0) store.entradas[idx] = entrada; else store.entradas.push(entrada);
               aplicadas++;
             } else omitidas++;
