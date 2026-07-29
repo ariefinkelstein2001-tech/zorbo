@@ -24,4 +24,5 @@ prompts/puntos-ruta.json
 prompts/forecast-comercial.json
 prompts/comercial-resumen.json
 prompts/venta-historica-2025.json
+prompts/sku-diccionario.json
 public/uploads/

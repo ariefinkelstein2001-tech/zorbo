@@ -2540,6 +2540,300 @@ app.put('/admin/products/sku-config', requireAdmin, (req, res) => {
   res.json({ ok: true, prefixes: cfg.prefixes });
 });
 
+// ─── Diccionario de SKU (ERP-wide, transversal) ─────────────────────────────
+// Idioma canónico de identificación de producto para TODO el ERP (no solo
+// Comercial). Fuente: SKU.xlsx (adjuntado por el equipo, hojas "CD KAIROS",
+// "CD KAIROS GARDEN VESPUCIO" y "DICCIONARIO"). Fórmula:
+//   SKU = CD + Marca + UnidadMedida + Estilo + Formato + Cantidad
+// Fase 1 de la migración: SOLO ingiere + limpia + valida el diccionario como
+// configuración editable (este archivo, mismo patrón que sku-config.json/
+// sku-listas.json — nada hardcodeado sin poder editarse desde el panel).
+// Todavía NO reemplaza ningún identificador de producto existente (KB-00001
+// sigue vivo) — eso es Fase 2+ de esta migración, con su propio preview.
+//
+// Limpieza aplicada al ingerir (diferencias reales encontradas en el Excel):
+//  · Trim en etiquetas con espacios sueltos: ' Golden'→'Golden',
+//    'Whiskey '→'Whiskey', 'Platos '→'Platos'.
+//  · Unidad de medida: la hoja DICCIONARIO trae los códigos de 0,7L/0,75L
+//    con COMA ('0,7L','0,75L'), pero los datos reales — la columna "UNIDAD
+//    DE MEDIDA" de cada fila y el propio SKU reconstruido, ej. CDKKB0.7L014
+//    BO1 — usan siempre PUNTO ('0.7L','0.75L'). Se normaliza al punto: es
+//    el código que efectivamente aparece en cada SKU real, la coma en la
+//    hoja de referencia era un error de tipeo del Excel.
+//  · 'CERVERIA DEL PUERTO' (typo del Excel) → 'Cervecería del Puerto'.
+//  · Códigos de estilo 014 y 015 quedan AMBOS con la etiqueta "Gin" en el
+//    Excel (Contemporáneo / London Dry, productos distintos) — a propósito
+//    NO se renombran para desambiguar: se distinguen siempre por código,
+//    nunca por etiqueta (instrucción explícita).
+//  · Código de estilo 019 no existe (la numeración salta de 018 a 020) —
+//    documentado como hueco real (`SKU_DICC_SEED.huecos`), no se reasigna.
+//  · Estilos 021/022/023 ("Platos", "Con alcohol", "Sin alcohol") no son
+//    estilos de cerveza — son categorías de carta que comparten el mismo
+//    espacio de códigos ESTILO para los CD-restaurante (formato COM/BAR).
+//  · Marcas GAR ("Kairos Garden") y BAD ("Kairos Badass") no son marcas de
+//    bebida — son la identidad del LOCAL, usada como MARCA en los SKU de
+//    los CD-restaurante (CDGV/CDGA/CDKB) incluso cuando el producto vendido
+//    es una cerveza Kairos Brewing (ej. CDGVGARUN001BAR1 = Golden en la
+//    barra de Garden Vespucio). El código de ESTILO (001=Golden) es lo que
+//    sigue enlazando ese mismo estilo con CD Kairos, no la marca.
+const SKU_DICC_FILE = join(PROMPTS_EFFECTIVE_DIR, 'sku-diccionario.json');
+const SKU_DICC_SEED = {
+  cds: [
+    { codigo: 'CDK',  nombre: 'CD Kairos',                   tipo: 'comercializacion_distribucion' },
+    { codigo: 'CDGV', nombre: 'CD Kairos Garden Vespucio',    tipo: 'restaurante' },
+    { codigo: 'CDGA', nombre: 'CD Kairos Garden Antofagasta', tipo: 'restaurante' },
+    { codigo: 'CDKB', nombre: 'CD Kairos Badass',             tipo: 'restaurante' },
+  ],
+  marcas: [
+    { codigo: 'KB',  nombre: 'Kairos Brewing' },
+    { codigo: 'BAN', nombre: 'Banny' },
+    { codigo: 'FIR', nombre: 'Firulais' },
+    { codigo: 'CDP', nombre: 'Cervecería del Puerto', nota: 'Nueva en el diccionario — a confirmar si tiene productos hoy o es a futuro.' },
+    { codigo: 'BIL', nombre: 'Biloba', nota: 'Nueva en el diccionario — a confirmar si tiene productos hoy o es a futuro.' },
+    { codigo: 'GAR', nombre: 'Kairos Garden', nota: 'Identidad del local, no una marca de bebida — se usa como MARCA en los SKU de CDGV/CDGA aunque el producto sea de otra marca (ej. una cerveza Kairos Brewing servida en barra).' },
+    { codigo: 'BAD', nombre: 'Kairos Badass', nota: 'Identidad del local, no una marca de bebida — se usa como MARCA en los SKU de CDKB aunque el producto sea de otra marca.' },
+  ],
+  unidadesMedida: [
+    { codigo: '0.473L', nombre: '0,473 litros', litros: 0.473 },
+    { codigo: '0.7L',   nombre: '0,7 litros',   litros: 0.7 },
+    { codigo: '0.75L',  nombre: '0,75 litros',  litros: 0.75 },
+    { codigo: '20L',    nombre: '20 litros',    litros: 20 },
+    { codigo: '30L',    nombre: '30 litros',    litros: 30 },
+    { codigo: 'UN',     nombre: 'Unidad', litros: null },
+  ],
+  estilos: [
+    { codigo: '001', nombre: 'Golden' },
+    { codigo: '002', nombre: 'Pils' },
+    { codigo: '003', nombre: 'Apa' },
+    { codigo: '004', nombre: 'Neipa' },
+    { codigo: '005', nombre: 'Red' },
+    { codigo: '006', nombre: 'Weizen' },
+    { codigo: '007', nombre: 'Stout' },
+    { codigo: '008', nombre: 'Hoppy Lager' },
+    { codigo: '009', nombre: 'Ipa' },
+    { codigo: '010', nombre: 'Amber' },
+    { codigo: '011', nombre: 'Andes Lager' },
+    { codigo: '012', nombre: 'Japanese Lager' },
+    { codigo: '013', nombre: 'Italian Pils' },
+    { codigo: '014', nombre: 'Gin', nota: 'Gin Contemporáneo. Comparte etiqueta "Gin" con 015 (producto distinto) — distinguir SIEMPRE por código.' },
+    { codigo: '015', nombre: 'Gin', nota: 'Gin London Dry. Comparte etiqueta "Gin" con 014 (producto distinto) — distinguir SIEMPRE por código.' },
+    { codigo: '016', nombre: 'Ron' },
+    { codigo: '017', nombre: 'Whiskey' },
+    { codigo: '018', nombre: 'Chelada' },
+    { codigo: '020', nombre: 'Colección de Artistas' },
+    { codigo: 'MIX', nombre: 'Mix de distintos productos' },
+    { codigo: '021', nombre: 'Platos' },
+    { codigo: '022', nombre: 'Con alcohol' },
+    { codigo: '023', nombre: 'Sin alcohol' },
+  ],
+  formatos: [
+    { codigo: 'LA',   nombre: 'Lata' },
+    { codigo: 'BO',   nombre: 'Botella' },
+    { codigo: 'BI',   nombre: 'Bidón' },
+    { codigo: 'BA',   nombre: 'Barril' },
+    { codigo: 'LAEL', nombre: 'Lata edición limitada' },
+    { codigo: 'BAEL', nombre: 'Barril edición limitada' },
+    { codigo: 'COM',  nombre: 'Comida' },
+    { codigo: 'BAR',  nombre: 'Barra' },
+  ],
+  cantidades: [1, 4, 6, 12, 24],
+  huecos: [
+    { ambito: 'estilo', codigo: '019', nota: 'No existe en el diccionario original (la numeración salta de 018 a 020). Confirmado como hueco real — no se reasigna.' },
+  ],
+};
+function skuDiccLoad(){
+  try {
+    if (!existsSync(SKU_DICC_FILE)) {
+      const d = { version: 1, cds: SKU_DICC_SEED.cds, marcas: SKU_DICC_SEED.marcas, unidadesMedida: SKU_DICC_SEED.unidadesMedida, estilos: SKU_DICC_SEED.estilos, formatos: SKU_DICC_SEED.formatos, cantidades: SKU_DICC_SEED.cantidades, huecos: SKU_DICC_SEED.huecos, meta: { fuente: 'SKU.xlsx', cargadoEn: new Date().toISOString() } };
+      writeFileSync(SKU_DICC_FILE, JSON.stringify(d, null, 2));
+      return d;
+    }
+    return JSON.parse(readFileSync(SKU_DICC_FILE, 'utf-8'));
+  } catch (e) {
+    console.warn('sku diccionario load:', e.message);
+    return { version: 1, cds: SKU_DICC_SEED.cds, marcas: SKU_DICC_SEED.marcas, unidadesMedida: SKU_DICC_SEED.unidadesMedida, estilos: SKU_DICC_SEED.estilos, formatos: SKU_DICC_SEED.formatos, cantidades: SKU_DICC_SEED.cantidades, huecos: SKU_DICC_SEED.huecos, meta: { fuente: 'SKU.xlsx', cargadoEn: new Date().toISOString() } };
+  }
+}
+function skuDiccSave(d){ writeFileSync(SKU_DICC_FILE, JSON.stringify(d, null, 2)); }
+function skuDiccBuildCode(cd, marca, unidadMedida, estilo, formato, cantidad){
+  return `${cd}${marca}${unidadMedida}${estilo}${formato}${cantidad}`;
+}
+// Tabla de referencia (SKU.xlsx, hojas "CD KAIROS" + "CD KAIROS GARDEN
+// VESPUCIO") — usada SOLO para validar que la fórmula reconstruye el SKU
+// real fila a fila. No es el catálogo vivo del ERP (eso sigue siendo
+// Shopify + sku-menu.json); es la evidencia de que el diccionario "calza".
+// Cobertura real del Excel adjunto: línea completa Kairos Brewing en CD
+// Kairos (13 estilos × formatos/unidades/cantidades + Gin/Ron/Whiskey/
+// Chelada/Colección de Artistas/Variedades) y la barra de Garden Vespucio
+// (13 estilos Kairos Brewing, solo formato BAR). NO incluye Banny/Firulais
+// en los locales, ni Garden Antofagasta/Badass — no venían en este Excel.
+const SKU_DICC_REFERENCIA = [
+["GALACTIC - GOLDEN", "CDK", "KB", "0.473L", "001", "LA", 1, "CDKKB0.473L001LA1"],
+  ["NADA PERSONAL - PILS", "CDK", "KB", "0.473L", "002", "LA", 1, "CDKKB0.473L002LA1"],
+  ["SECRET LAB - APA", "CDK", "KB", "0.473L", "003", "LA", 1, "CDKKB0.473L003LA1"],
+  ["IMPERIO PERDIDO - NEIPA", "CDK", "KB", "0.473L", "004", "LA", 1, "CDKKB0.473L004LA1"],
+  ["ALERTA ROJA - RED", "CDK", "KB", "0.473L", "005", "LA", 1, "CDKKB0.473L005LA1"],
+  ["RITUAL DE LA BANANA - WEIZEN", "CDK", "KB", "0.473L", "006", "LA", 1, "CDKKB0.473L006LA1"],
+  ["OBERTURA - STOUT", "CDK", "KB", "0.473L", "007", "LA", 1, "CDKKB0.473L007LA1"],
+  ["HOYO EN UNO - HOPPY LAGER", "CDK", "KB", "0.473L", "008", "LA", 1, "CDKKB0.473L008LA1"],
+  ["SAMBA - IPA", "CDK", "KB", "0.473L", "009", "LA", 1, "CDKKB0.473L009LA1"],
+  ["KENNY BELL - AMBER", "CDK", "KB", "0.473L", "010", "LA", 1, "CDKKB0.473L010LA1"],
+  ["ACHOLADA - ANDES LAGER", "CDK", "KB", "0.473L", "011", "LA", 1, "CDKKB0.473L011LA1"],
+  ["OSAGUI - JAPANESE LAGER", "CDK", "KB", "0.473L", "012", "LA", 1, "CDKKB0.473L012LA1"],
+  ["LANUS - ITALIAN PILS", "CDK", "KB", "0.473L", "013", "LA", 1, "CDKKB0.473L013LA1"],
+  ["CONTEMPORANEO - GIN", "CDK", "KB", "0.7L", "014", "BO", 1, "CDKKB0.7L014BO1"],
+  ["LONDON DRY - GIN", "CDK", "KB", "0.7L", "015", "BO", 1, "CDKKB0.7L015BO1"],
+  ["REY DE COPAS CARTA BLANCA - RON", "CDK", "KB", "0.75L", "016", "BO", 1, "CDKKB0.75L016BO1"],
+  ["BLACK RABBIT - WHISKEY", "CDK", "KB", "0.7L", "017", "BO", 1, "CDKKB0.7L017BO1"],
+  ["CACHUPÍN - CHELADA", "CDK", "KB", "0.7L", "018", "LA", 1, "CDKKB0.7L018LA1"],
+  ["COLECCIÓN DE ARTISTA - CERVEZA", "CDK", "KB", "0.473L", "020", "LA", 1, "CDKKB0.473L020LA1"],
+  ["GALACTIC - GOLDEN", "CDK", "KB", "20L", "001", "BA", 1, "CDKKB20L001BA1"],
+  ["NADA PERSONAL - PILS", "CDK", "KB", "20L", "002", "BA", 1, "CDKKB20L002BA1"],
+  ["SECRET LAB - APA", "CDK", "KB", "20L", "003", "BA", 1, "CDKKB20L003BA1"],
+  ["IMPERIO PERDIDO - NEIPA", "CDK", "KB", "20L", "004", "BA", 1, "CDKKB20L004BA1"],
+  ["ALERTA ROJA - RED", "CDK", "KB", "20L", "005", "BA", 1, "CDKKB20L005BA1"],
+  ["RITUAL DE LA BANANA - WEIZEN", "CDK", "KB", "20L", "006", "BA", 1, "CDKKB20L006BA1"],
+  ["OBERTURA - STOUT", "CDK", "KB", "20L", "007", "BA", 1, "CDKKB20L007BA1"],
+  ["HOYO EN UNO - HOPPY LAGER", "CDK", "KB", "20L", "008", "BA", 1, "CDKKB20L008BA1"],
+  ["SAMBA - IPA", "CDK", "KB", "20L", "009", "BA", 1, "CDKKB20L009BA1"],
+  ["KENNY BELL - AMBER", "CDK", "KB", "20L", "010", "BA", 1, "CDKKB20L010BA1"],
+  ["ACHOLADA - ANDES LAGER", "CDK", "KB", "20L", "011", "BA", 1, "CDKKB20L011BA1"],
+  ["OSAGUI - JAPANESE LAGER", "CDK", "KB", "20L", "012", "BA", 1, "CDKKB20L012BA1"],
+  ["LANUS - ITALIAN PILS", "CDK", "KB", "20L", "013", "BA", 1, "CDKKB20L013BA1"],
+  ["CONTEMPORANEO - GIN", "CDK", "KB", "20L", "014", "BI", 1, "CDKKB20L014BI1"],
+  ["LONDON DRY - GIN", "CDK", "KB", "20L", "015", "BI", 1, "CDKKB20L015BI1"],
+  ["REY DE COPAS CARTA BLANCA - RON", "CDK", "KB", "20L", "016", "BI", 1, "CDKKB20L016BI1"],
+  ["BLACK RABBIT - WHISKEY", "CDK", "KB", "20L", "017", "BI", 1, "CDKKB20L017BI1"],
+  ["CACHUPÍN - CHELADA", "CDK", "KB", "20L", "018", "BA", 1, "CDKKB20L018BA1"],
+  ["COLECCIÓN DE ARTISTA - CERVEZA", "CDK", "KB", "20L", "020", "BA", 1, "CDKKB20L020BA1"],
+  ["GALACTIC - GOLDEN", "CDK", "KB", "30L", "001", "BA", 1, "CDKKB30L001BA1"],
+  ["NADA PERSONAL - PILS", "CDK", "KB", "30L", "002", "BA", 1, "CDKKB30L002BA1"],
+  ["SECRET LAB - APA", "CDK", "KB", "30L", "003", "BA", 1, "CDKKB30L003BA1"],
+  ["IMPERIO PERDIDO - NEIPA", "CDK", "KB", "30L", "004", "BA", 1, "CDKKB30L004BA1"],
+  ["ALERTA ROJA - RED", "CDK", "KB", "30L", "005", "BA", 1, "CDKKB30L005BA1"],
+  ["RITUAL DE LA BANANA - WEIZEN", "CDK", "KB", "30L", "006", "BA", 1, "CDKKB30L006BA1"],
+  ["OBERTURA - STOUT", "CDK", "KB", "30L", "007", "BA", 1, "CDKKB30L007BA1"],
+  ["HOYO EN UNO - HOPPY LAGER", "CDK", "KB", "30L", "008", "BA", 1, "CDKKB30L008BA1"],
+  ["SAMBA - IPA", "CDK", "KB", "30L", "009", "BA", 1, "CDKKB30L009BA1"],
+  ["KENNY BELL - AMBER", "CDK", "KB", "30L", "010", "BA", 1, "CDKKB30L010BA1"],
+  ["ACHOLADA - ANDES LAGER", "CDK", "KB", "30L", "011", "BA", 1, "CDKKB30L011BA1"],
+  ["OSAGUI - JAPANESE LAGER", "CDK", "KB", "30L", "012", "BA", 1, "CDKKB30L012BA1"],
+  ["LANUS - ITALIAN PILS", "CDK", "KB", "30L", "013", "BA", 1, "CDKKB30L013BA1"],
+  ["CACHUPÍN - CHELADA", "CDK", "KB", "30L", "018", "BA", 1, "CDKKB30L018BA1"],
+  ["COLECCIÓN DE ARTISTA - CERVEZA", "CDK", "KB", "30L", "020", "BA", 1, "CDKKB30L020BA1"],
+  ["GALACTIC - GOLDEN", "CDK", "KB", "0.473L", "001", "LA", 4, "CDKKB0.473L001LA4"],
+  ["NADA PERSONAL - PILS", "CDK", "KB", "0.473L", "002", "LA", 4, "CDKKB0.473L002LA4"],
+  ["SECRET LAB - APA", "CDK", "KB", "0.473L", "003", "LA", 4, "CDKKB0.473L003LA4"],
+  ["IMPERIO PERDIDO - NEIPA", "CDK", "KB", "0.473L", "004", "LA", 4, "CDKKB0.473L004LA4"],
+  ["ALERTA ROJA - RED", "CDK", "KB", "0.473L", "005", "LA", 4, "CDKKB0.473L005LA4"],
+  ["RITUAL DE LA BANANA - WEIZEN", "CDK", "KB", "0.473L", "006", "LA", 4, "CDKKB0.473L006LA4"],
+  ["OBERTURA - STOUT", "CDK", "KB", "0.473L", "007", "LA", 4, "CDKKB0.473L007LA4"],
+  ["HOYO EN UNO - HOPPY LAGER", "CDK", "KB", "0.473L", "008", "LA", 4, "CDKKB0.473L008LA4"],
+  ["SAMBA - IPA", "CDK", "KB", "0.473L", "009", "LA", 4, "CDKKB0.473L009LA4"],
+  ["KENNY BELL - AMBER", "CDK", "KB", "0.473L", "010", "LA", 4, "CDKKB0.473L010LA4"],
+  ["ACHOLADA - ANDES LAGER", "CDK", "KB", "0.473L", "011", "LA", 4, "CDKKB0.473L011LA4"],
+  ["OSAGUI - JAPANESE LAGER", "CDK", "KB", "0.473L", "012", "LA", 4, "CDKKB0.473L012LA4"],
+  ["LANUS - ITALIAN PILS", "CDK", "KB", "0.473L", "013", "LA", 4, "CDKKB0.473L013LA4"],
+  ["CACHUPÍN - CHELADA", "CDK", "KB", "0.7L", "018", "LA", 4, "CDKKB0.7L018LA4"],
+  ["COLECCIÓN DE ARTISTA - CERVEZA", "CDK", "KB", "0.473L", "020", "LA", 4, "CDKKB0.473L020LA4"],
+  ["GALACTIC - GOLDEN", "CDK", "KB", "0.473L", "001", "LA", 6, "CDKKB0.473L001LA6"],
+  ["NADA PERSONAL - PILS", "CDK", "KB", "0.473L", "002", "LA", 6, "CDKKB0.473L002LA6"],
+  ["SECRET LAB - APA", "CDK", "KB", "0.473L", "003", "LA", 6, "CDKKB0.473L003LA6"],
+  ["IMPERIO PERDIDO - NEIPA", "CDK", "KB", "0.473L", "004", "LA", 6, "CDKKB0.473L004LA6"],
+  ["ALERTA ROJA - RED", "CDK", "KB", "0.473L", "005", "LA", 6, "CDKKB0.473L005LA6"],
+  ["RITUAL DE LA BANANA - WEIZEN", "CDK", "KB", "0.473L", "006", "LA", 6, "CDKKB0.473L006LA6"],
+  ["OBERTURA - STOUT", "CDK", "KB", "0.473L", "007", "LA", 6, "CDKKB0.473L007LA6"],
+  ["HOYO EN UNO - HOPPY LAGER", "CDK", "KB", "0.473L", "008", "LA", 6, "CDKKB0.473L008LA6"],
+  ["SAMBA - IPA", "CDK", "KB", "0.473L", "009", "LA", 6, "CDKKB0.473L009LA6"],
+  ["KENNY BELL - AMBER", "CDK", "KB", "0.473L", "010", "LA", 6, "CDKKB0.473L010LA6"],
+  ["ACHOLADA - ANDES LAGER", "CDK", "KB", "0.473L", "011", "LA", 6, "CDKKB0.473L011LA6"],
+  ["OSAGUI - JAPANESE LAGER", "CDK", "KB", "0.473L", "012", "LA", 6, "CDKKB0.473L012LA6"],
+  ["LANUS - ITALIAN PILS", "CDK", "KB", "0.473L", "013", "LA", 6, "CDKKB0.473L013LA6"],
+  ["CACHUPÍN - CHELADA", "CDK", "KB", "0.7L", "018", "LA", 6, "CDKKB0.7L018LA6"],
+  ["COLECCIÓN DE ARTISTA - CERVEZA", "CDK", "KB", "0.473L", "020", "LA", 6, "CDKKB0.473L020LA6"],
+  ["GALACTIC - GOLDEN", "CDK", "KB", "0.473L", "001", "LA", 12, "CDKKB0.473L001LA12"],
+  ["NADA PERSONAL - PILS", "CDK", "KB", "0.473L", "002", "LA", 12, "CDKKB0.473L002LA12"],
+  ["SECRET LAB - APA", "CDK", "KB", "0.473L", "003", "LA", 12, "CDKKB0.473L003LA12"],
+  ["IMPERIO PERDIDO - NEIPA", "CDK", "KB", "0.473L", "004", "LA", 12, "CDKKB0.473L004LA12"],
+  ["ALERTA ROJA - RED", "CDK", "KB", "0.473L", "005", "LA", 12, "CDKKB0.473L005LA12"],
+  ["RITUAL DE LA BANANA - WEIZEN", "CDK", "KB", "0.473L", "006", "LA", 12, "CDKKB0.473L006LA12"],
+  ["OBERTURA - STOUT", "CDK", "KB", "0.473L", "007", "LA", 12, "CDKKB0.473L007LA12"],
+  ["HOYO EN UNO - HOPPY LAGER", "CDK", "KB", "0.473L", "008", "LA", 12, "CDKKB0.473L008LA12"],
+  ["SAMBA - IPA", "CDK", "KB", "0.473L", "009", "LA", 12, "CDKKB0.473L009LA12"],
+  ["KENNY BELL - AMBER", "CDK", "KB", "0.473L", "010", "LA", 12, "CDKKB0.473L010LA12"],
+  ["ACHOLADA - ANDES LAGER", "CDK", "KB", "0.473L", "011", "LA", 12, "CDKKB0.473L011LA12"],
+  ["OSAGUI - JAPANESE LAGER", "CDK", "KB", "0.473L", "012", "LA", 12, "CDKKB0.473L012LA12"],
+  ["LANUS - ITALIAN PILS", "CDK", "KB", "0.473L", "013", "LA", 12, "CDKKB0.473L013LA12"],
+  ["CACHUPÍN - CHELADA", "CDK", "KB", "0.7L", "018", "LA", 12, "CDKKB0.7L018LA12"],
+  ["COLECCIÓN DE ARTISTA - CERVEZA", "CDK", "KB", "0.473L", "020", "LA", 12, "CDKKB0.473L020LA12"],
+  ["GALACTIC - GOLDEN", "CDK", "KB", "0.473L", "001", "LA", 24, "CDKKB0.473L001LA24"],
+  ["NADA PERSONAL - PILS", "CDK", "KB", "0.473L", "002", "LA", 24, "CDKKB0.473L002LA24"],
+  ["SECRET LAB - APA", "CDK", "KB", "0.473L", "003", "LA", 24, "CDKKB0.473L003LA24"],
+  ["IMPERIO PERDIDO - NEIPA", "CDK", "KB", "0.473L", "004", "LA", 24, "CDKKB0.473L004LA24"],
+  ["ALERTA ROJA - RED", "CDK", "KB", "0.473L", "005", "LA", 24, "CDKKB0.473L005LA24"],
+  ["RITUAL DE LA BANANA - WEIZEN", "CDK", "KB", "0.473L", "006", "LA", 24, "CDKKB0.473L006LA24"],
+  ["OBERTURA - STOUT", "CDK", "KB", "0.473L", "007", "LA", 24, "CDKKB0.473L007LA24"],
+  ["HOYO EN UNO - HOPPY LAGER", "CDK", "KB", "0.473L", "008", "LA", 24, "CDKKB0.473L008LA24"],
+  ["SAMBA - IPA", "CDK", "KB", "0.473L", "009", "LA", 24, "CDKKB0.473L009LA24"],
+  ["KENNY BELL - AMBER", "CDK", "KB", "0.473L", "010", "LA", 24, "CDKKB0.473L010LA24"],
+  ["ACHOLADA - ANDES LAGER", "CDK", "KB", "0.473L", "011", "LA", 24, "CDKKB0.473L011LA24"],
+  ["OSAGUI - JAPANESE LAGER", "CDK", "KB", "0.473L", "012", "LA", 24, "CDKKB0.473L012LA24"],
+  ["LANUS - ITALIAN PILS", "CDK", "KB", "0.473L", "013", "LA", 24, "CDKKB0.473L013LA24"],
+  ["CACHUPÍN - CHELADA", "CDK", "KB", "0.7L", "018", "LA", 24, "CDKKB0.7L018LA24"],
+  ["COLECCIÓN DE ARTISTA - CERVEZA", "CDK", "KB", "0.473L", "020", "LA", 24, "CDKKB0.473L020LA24"],
+  ["VARIEDADES", "CDK", "KB", "0.473L", "MIX", "LA", 1, "CDKKB0.473LMIXLA1"],
+  ["VARIEDADES", "CDK", "KB", "0.473L", "MIX", "LA", 4, "CDKKB0.473LMIXLA4"],
+  ["VARIEDADES", "CDK", "KB", "0.473L", "MIX", "LA", 6, "CDKKB0.473LMIXLA6"],
+  ["VARIEDADES", "CDK", "KB", "0.473L", "MIX", "LA", 12, "CDKKB0.473LMIXLA12"],
+  ["VARIEDADES", "CDK", "KB", "0.473L", "MIX", "LA", 24, "CDKKB0.473LMIXLA24"],
+  ["GALACTIC - GOLDEN", "CDGV", "GAR", "UN", "001", "BAR", 1, "CDGVGARUN001BAR1"],
+  ["NADA PERSONAL - PILS", "CDGV", "GAR", "UN", "002", "BAR", 1, "CDGVGARUN002BAR1"],
+  ["SECRET LAB - APA", "CDGV", "GAR", "UN", "003", "BAR", 1, "CDGVGARUN003BAR1"],
+  ["IMPERIO PERDIDO - NEIPA", "CDGV", "GAR", "UN", "004", "BAR", 1, "CDGVGARUN004BAR1"],
+  ["ALERTA ROJA - RED", "CDGV", "GAR", "UN", "005", "BAR", 1, "CDGVGARUN005BAR1"],
+  ["RITUAL DE LA BANANA - WEIZEN", "CDGV", "GAR", "UN", "006", "BAR", 1, "CDGVGARUN006BAR1"],
+  ["OBERTURA - STOUT", "CDGV", "GAR", "UN", "007", "BAR", 1, "CDGVGARUN007BAR1"],
+  ["HOYO EN UNO - HOPPY LAGER", "CDGV", "GAR", "UN", "008", "BAR", 1, "CDGVGARUN008BAR1"],
+  ["SAMBA - IPA", "CDGV", "GAR", "UN", "009", "BAR", 1, "CDGVGARUN009BAR1"],
+  ["KENNY BELL - AMBER", "CDGV", "GAR", "UN", "010", "BAR", 1, "CDGVGARUN010BAR1"],
+  ["ACHOLADA - ANDES LAGER", "CDGV", "GAR", "UN", "011", "BAR", 1, "CDGVGARUN011BAR1"],
+  ["OSAGUI - JAPANESE LAGER", "CDGV", "GAR", "UN", "012", "BAR", 1, "CDGVGARUN012BAR1"],
+  ["LANUS - ITALIAN PILS", "CDGV", "GAR", "UN", "013", "BAR", 1, "CDGVGARUN013BAR1"]
+];
+app.get('/admin/sku-diccionario', requireAdmin, (req, res) => {
+  const d = skuDiccLoad();
+  res.json(d);
+});
+app.put('/admin/sku-diccionario', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const d = skuDiccLoad();
+  const tablas = ['cds', 'marcas', 'unidadesMedida', 'estilos', 'formatos', 'cantidades', 'huecos'];
+  let changed = false;
+  for (const t of tablas) {
+    if (Array.isArray(b[t])) { d[t] = b[t]; changed = true; }
+  }
+  if (!changed) return res.status(400).json({ error: 'Nada para actualizar — envía al menos una tabla (cds/marcas/unidadesMedida/estilos/formatos/cantidades/huecos).' });
+  skuDiccSave(d);
+  res.json({ ok: true, diccionario: d });
+});
+// Reconstruye cada fila de referencia con la fórmula y confirma que calza
+// contra el SKU real del Excel — el chequeo que pidió el equipo antes de
+// adoptar el diccionario como canónico.
+app.get('/admin/sku-diccionario/validar', requireAdmin, (req, res) => {
+  const errores = [];
+  for (const row of SKU_DICC_REFERENCIA) {
+    const [nombre, cd, marca, unidadMedida, estilo, formato, cantidad, sku] = row;
+    const reconstruido = skuDiccBuildCode(cd, marca, unidadMedida, estilo, formato, cantidad);
+    if (reconstruido !== sku) errores.push({ nombre, cd, marca, unidadMedida, estilo, formato, cantidad, skuEsperado: sku, skuReconstruido: reconstruido });
+  }
+  res.json({
+    totalFilas: SKU_DICC_REFERENCIA.length,
+    coinciden: SKU_DICC_REFERENCIA.length - errores.length,
+    errores,
+    cobertura: 'CD Kairos (línea completa Kairos Brewing) + Garden Vespucio (barra, Kairos Brewing). No incluye Banny/Firulais en locales ni Garden Antofagasta/Badass — no estaban en el Excel adjunto.',
+  });
+});
+
 // Metadata del formulario inteligente (Fase 3): marcas, canales y las 9
 // listas configurables (colecciones × 3 marcas, categorías cocina/barra,
 // formatos de distribución × 4 canales). Todo en un solo GET para que el
