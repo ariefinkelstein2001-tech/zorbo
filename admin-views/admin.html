@@ -3477,7 +3477,11 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
           </div>
           <div class="adm-fb-col"><label class="adm-fb-label">Nombre</label>
             <input class="adm-input" id="npName" placeholder="Nada Personal"></div>
-          <div class="adm-fb-col"><label class="adm-fb-label">Estilo / tipo (opcional)</label>
+          <div class="adm-fb-col"><label class="adm-fb-label">Estilo del diccionario de SKU</label>
+            <select class="adm-input" id="npEstilo"><option value="">No está en la lista / sin elegir</option></select>
+            <div class="adm-np-hint" style="text-align:left;margin-top:.25rem">Dejalo así si el estilo real todavía no está en el diccionario — no se fuerza un código que no corresponde.</div>
+          </div>
+          <div class="adm-fb-col"><label class="adm-fb-label">Descriptor libre (opcional, va a la ficha de Shopify)</label>
             <input class="adm-input" id="npType" placeholder="Pils, APA, Chelada, Gin…"></div>
         </div>
 
@@ -3547,6 +3551,16 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
           <div class="np-fmt-grid" id="npTipoGrid">
             <button type="button" class="np-fmt-card" data-tipo="cocina"><span class="ic">🍳</span>Cocina</button>
             <button type="button" class="np-fmt-card" data-tipo="barra"><span class="ic">🍹</span>Barra</button>
+          </div>
+        </div>
+
+        <!-- Ruta Menú: con/sin alcohol (solo Barra) — resuelve el estilo del
+             diccionario (022/023) sin adivinar desde el nombre del trago. -->
+        <div class="np-step" data-step="m-alcohol">
+          <div class="np-step-title">¿Con alcohol o sin alcohol?</div>
+          <div class="np-fmt-grid" id="npAlcoholGrid">
+            <button type="button" class="np-fmt-card" data-alcohol="si"><span class="ic">🍸</span>Con alcohol</button>
+            <button type="button" class="np-fmt-card" data-alcohol="no"><span class="ic">🥤</span>Sin alcohol</button>
           </div>
         </div>
 
@@ -5348,9 +5362,9 @@ document.getElementById('btnReloadProd').onclick = () => { openProductId = null;
 let npCanImg = null; // imagen del envase cargada (Ruta Bebida)
 let npMeta = { marcas: [], canales: [], listas: {}, cds: [] };
 const NP_CD_MARCA_MENU = { CDGV: 'kairos_garden', CDGA: 'kairos_garden', CDKB: 'kairos_badass' };
-let npWiz = { step: 'cd', cd: null, canalMode: null, canales: [], marca: null,
+let npWiz = { step: 'cd', cd: null, canalMode: null, canales: [], marca: null, estiloCodigo: '',
   formato: null, tamano: '', coleccionId: '', distrib: {} /* {canalId: {formatoId: precio}} */,
-  tipo: null, categoriaId: null };
+  tipo: null, categoriaId: null, conAlcohol: null };
 
 async function loadNpMeta(){
   try {
@@ -5375,7 +5389,12 @@ function npWizSteps(){
     if (listaColeccion.length) steps.push('b-coleccion');
     steps.push('b-distribucion', 'b-detalles');
   } else {
-    steps.push('m-tipo', 'm-categoria', 'm-detalle');
+    steps.push('m-tipo');
+    // Con/sin alcohol solo aplica a Barra — es lo que permite resolver el
+    // estilo del diccionario (022/023) sin adivinar desde el nombre. Cocina
+    // siempre es "Platos" (021), no necesita este dato.
+    if (npWiz.tipo === 'barra') steps.push('m-alcohol');
+    steps.push('m-categoria', 'm-detalle');
   }
   return steps;
 }
@@ -5387,23 +5406,23 @@ const NP_STEP_LABELS = {
   cd:'Centro de distribución', canal:'Canal', marca:'Marca',
   'b-basicos':'Datos del producto', 'b-formato':'Formato y tamaño', 'b-coleccion':'Colección',
   'b-distribucion':'Distribución y precio', 'b-detalles':'Detalles (opcional)',
-  'm-tipo':'Cocina o Barra', 'm-categoria':'Categoría', 'm-detalle':'Nombre y precio',
+  'm-tipo':'Cocina o Barra', 'm-alcohol':'Con o sin alcohol', 'm-categoria':'Categoría', 'm-detalle':'Nombre y precio',
 };
 
 function openNewProd(){
-  npWiz = { step: 'cd', cd: null, canalMode: null, canales: [], marca: null,
-    formato: null, tamano: '', coleccionId: '', distrib: {}, tipo: null, categoriaId: null };
+  npWiz = { step: 'cd', cd: null, canalMode: null, canales: [], marca: null, estiloCodigo: '',
+    formato: null, tamano: '', coleccionId: '', distrib: {}, tipo: null, categoriaId: null, conAlcohol: null };
   npCanImg = null;
   document.getElementById('npHint').style.display = '';
   drawMaqueta();
-  ['npName','npType','npTamano','npDesc','npAbv','npNeto','npDespacho','npMenuTitulo','npMenuPrecio'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['npName','npType','npEstilo','npTamano','npDesc','npAbv','npNeto','npDespacho','npMenuTitulo','npMenuPrecio'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   document.getElementById('npColor').value = '#d8a079';
   document.querySelectorAll('#npSection button').forEach(x => x.classList.toggle('on', x.dataset.v === 'minorista'));
   document.querySelectorAll('#npStatus button').forEach(x => x.classList.toggle('on', x.dataset.v === 'active'));
   document.getElementById('newProdModal').classList.add('open');
   document.body.classList.add('drawer-open');
   npShowErr('');
-  loadNpMeta().then(() => { npRenderCdGrid(); npRenderCanalGrid(); npRenderMarcaGrid(); npWizRender(); });
+  loadNpMeta().then(() => { npRenderCdGrid(); npRenderCanalGrid(); npRenderMarcaGrid(); npRenderEstiloSelect(); npWizRender(); });
   npWizRender();
 }
 function closeNewProd(){
@@ -5482,6 +5501,16 @@ function npRenderMarcaGrid(){
     npWiz.marca = b.dataset.marca;
     document.querySelectorAll('#npMarcaGrid [data-marca]').forEach(x => x.classList.toggle('on', x === b));
   });
+}
+// Estilos del diccionario para Ruta Bebida — todos menos 021/022/023 (esas
+// son categorías de carta, no estilos de bebida envasada). MIX sí se incluye
+// (packs "Variedades" son un producto real del Excel).
+function npRenderEstiloSelect(){
+  const sel = document.getElementById('npEstilo');
+  const estilos = (npMeta.estilos || []).filter(e => !['021', '022', '023'].includes(e.codigo));
+  sel.innerHTML = '<option value="">No está en la lista / sin elegir</option>' +
+    estilos.map(e => `<option value="${e.codigo}">${escapeHtml(e.nombre)}</option>`).join('');
+  sel.onchange = () => { npWiz.estiloCodigo = sel.value; };
 }
 
 // ── Ruta Bebida: formato ──
@@ -5584,11 +5613,17 @@ function npDistribList(){
   return rows;
 }
 
-// ── Ruta Menú: tipo + categoría ──
+// ── Ruta Menú: tipo + con/sin alcohol + categoría ──
 document.querySelectorAll('#npTipoGrid [data-tipo]').forEach(b => b.onclick = () => {
   npWiz.tipo = b.dataset.tipo;
   npWiz.categoriaId = null;
+  npWiz.conAlcohol = null; // cambiar de tipo invalida la elección anterior
   document.querySelectorAll('#npTipoGrid [data-tipo]').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('#npAlcoholGrid [data-alcohol]').forEach(x => x.classList.remove('on'));
+});
+document.querySelectorAll('#npAlcoholGrid [data-alcohol]').forEach(b => b.onclick = () => {
+  npWiz.conAlcohol = b.dataset.alcohol === 'si';
+  document.querySelectorAll('#npAlcoholGrid [data-alcohol]').forEach(x => x.classList.toggle('on', x === b));
 });
 function npRenderCategoriaBody(){
   const listaId = npWiz.tipo === 'barra' ? 'categoria_barra' : 'categoria_cocina';
@@ -5811,6 +5846,7 @@ function npValidateStep(step){
   }
   if (step === 'b-distribucion') return npDistribList().length ? null : 'Agregá al menos un formato de distribución con precio.';
   if (step === 'm-tipo') return npWiz.tipo ? null : 'Elegí Cocina o Barra.';
+  if (step === 'm-alcohol') return npWiz.conAlcohol === true || npWiz.conAlcohol === false ? null : 'Elegí con alcohol o sin alcohol.';
   if (step === 'm-categoria') return npWiz.categoriaId ? null : 'Elegí una categoría.';
   if (step === 'm-detalle') return document.getElementById('npMenuTitulo').value.trim() ? null : 'Falta el nombre del ítem.';
   return null; // b-coleccion y b-detalles son opcionales
@@ -5879,6 +5915,7 @@ async function npSubmitBebida(){
       marca: npWiz.marca,
       title: document.getElementById('npName').value.trim(),
       productType: document.getElementById('npType').value.trim(),
+      estiloCodigo: npWiz.estiloCodigo || '',
       section: sectionBtn ? sectionBtn.dataset.v : 'minorista',
       status: statusBtn ? statusBtn.dataset.v : 'active',
       formato: npWiz.formato,
@@ -5916,6 +5953,7 @@ async function npSubmitMenu(){
       cdCodigo: npWiz.cd,
       marca: npWiz.marca,
       tipo: npWiz.tipo,
+      conAlcohol: npWiz.tipo === 'barra' ? npWiz.conAlcohol : null,
       categoriaId: npWiz.categoriaId,
       titulo: document.getElementById('npMenuTitulo').value.trim(),
       precio: Number(document.getElementById('npMenuPrecio').value) || null,

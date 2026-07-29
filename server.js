@@ -2511,6 +2511,7 @@ app.get('/admin/products', requireAdmin, async (req, res) => {
           formato:    ex?.formato || null,
           tamano:     ex?.tamano || null,
           coleccion:  ex?.coleccion || null,
+          estiloCodigo: ex?.estiloCodigo || null,
           variantesSku: Array.isArray(ex?.variantesSku) ? ex.variantesSku : [],
           ruta:       'bebida',
         };
@@ -2884,8 +2885,12 @@ function skuDiccProponerMapeo(entidad){
     // Marca+Estilo (identidad de PRODUCTO), no la variante completa todavía.
     const marcaCod = SKU_DICC_MARCA_LEGACY[entidad.brandKey];
     if (!marcaCod) return { propuesta: null, motivo: `Marca "${entidad.brandKey}" no está en el diccionario (solo KB/BAN/FIR tienen equivalencia hoy).` };
-    const estilo = skuDiccMatchEstiloTexto(entidad.titulo);
-    if (!estilo) return { propuesta: null, motivo: 'No se reconoció el estilo en el título — revisar a mano.' };
+    // Si el producto ya tiene estiloCodigo real (elegido en el wizard, Ruta
+    // Bebida) se usa directo — más confiable que adivinar desde el título.
+    // Solo se cae al matching por texto para productos creados antes de que
+    // existiera ese selector.
+    const estilo = entidad.estiloCodigo ? d.estilos.find(e => e.codigo === entidad.estiloCodigo) : skuDiccMatchEstiloTexto(entidad.titulo);
+    if (!estilo) return { propuesta: null, motivo: 'No se reconoció el estilo — creado antes del selector de Estilo, o el título no matchea ninguno. Revisar a mano.' };
     return { propuesta: { cd: 'CDK', marca: marcaCod, estilo: estilo.codigo, unidadMedida: null, formato: null, cantidad: null }, motivo: 'Identidad de PRODUCTO resuelta (Marca+Estilo). Variante completa (unidad/formato/cantidad) pendiente de Paso 3/4.' };
   }
   if (entidad.origen === 'sku-menu') {
@@ -2896,8 +2901,13 @@ function skuDiccProponerMapeo(entidad){
     // saber cuál, y no se asume uno de los dos.
     const cd = entidad.marca === 'kairos_badass' ? 'CDKB' : (entidad.cdCodigo === 'CDGV' || entidad.cdCodigo === 'CDGA' ? entidad.cdCodigo : null);
     if (!cd) return { propuesta: null, motivo: '"Kairos Garden" sin CD asignado (Vespucio/Antofagasta) en este ítem — creado antes de que el wizard capturara el CD. No se asume uno de los dos.' };
-    const estilo = entidad.tipo === 'cocina' ? d.estilos.find(e => e.codigo === '021') : skuDiccMatchEstiloTexto(entidad.titulo);
-    if (!estilo) return { propuesta: null, motivo: entidad.tipo === 'barra' ? 'Ítem de barra: no se pudo determinar si es con alcohol (022) o sin alcohol (023) — falta ese dato en el formulario de Ruta Menú.' : 'No se reconoció el estilo.' };
+    // Cocina → siempre 021 (Platos). Barra → 022/023 según el dato explícito
+    // con/sin alcohol del ítem (nunca se adivina desde el título/nombre).
+    let estilo = null;
+    if (entidad.tipo === 'cocina') estilo = d.estilos.find(e => e.codigo === '021');
+    else if (entidad.conAlcohol === true) estilo = d.estilos.find(e => e.codigo === '022');
+    else if (entidad.conAlcohol === false) estilo = d.estilos.find(e => e.codigo === '023');
+    if (!estilo) return { propuesta: null, motivo: entidad.tipo === 'barra' ? 'Ítem de barra sin dato de alcohol (con/sin) — creado antes de que el wizard capturara ese campo.' : 'No se reconoció el estilo.' };
     const formato = entidad.tipo === 'cocina' ? 'COM' : 'BAR';
     return { propuesta: { cd, marca: marcaCod, estilo: estilo.codigo, unidadMedida: 'UN', formato, cantidad: 1 }, motivo: 'Mapeo completo.' };
   }
@@ -2909,13 +2919,13 @@ function skuDiccEscanearLegado(){
   for (const [pid, it] of Object.entries(extras.items || {})) {
     if (!it || !it.skuCode) continue;
     const brandKey = it.brandKey || null; // no se persiste brandKey hoy — best-effort
-    const { propuesta, motivo } = skuDiccProponerMapeo({ origen: 'shopify', titulo: it.tituloCache || pid, brandKey });
+    const { propuesta, motivo } = skuDiccProponerMapeo({ origen: 'shopify', titulo: it.tituloCache || pid, brandKey, estiloCodigo: it.estiloCodigo });
     filas.push({ origen: 'shopify', id: pid, skuCodeLegado: it.skuCode, titulo: it.tituloCache || null, propuesta, estado: propuesta ? 'mapeado' : 'sin_mapear', motivo });
   }
   const menu = loadSkuMenu();
   for (const [id, it] of Object.entries(menu.items || {})) {
     if (!it || !it.skuCode) continue;
-    const { propuesta, motivo } = skuDiccProponerMapeo({ origen: 'sku-menu', titulo: it.titulo, marca: it.marca, tipo: it.tipo, cdCodigo: it.cdCodigo });
+    const { propuesta, motivo } = skuDiccProponerMapeo({ origen: 'sku-menu', titulo: it.titulo, marca: it.marca, tipo: it.tipo, cdCodigo: it.cdCodigo, conAlcohol: it.conAlcohol });
     filas.push({ origen: 'sku-menu', id, skuCodeLegado: it.skuCode, titulo: it.titulo, propuesta, estado: propuesta ? 'mapeado' : 'sin_mapear', motivo });
   }
   return filas;
@@ -2959,7 +2969,7 @@ app.post('/admin/sku-diccionario/aplicar-mapeo-legado', requireAdmin, (req, res)
 app.get('/admin/sku/meta', requireAdmin, (req, res) => {
   const listas = loadSkuListas();
   const d = skuDiccLoad();
-  res.json({ marcas: SKU_MARCAS, canales: SKU_CANALES, listas: listas.lists, cds: d.cds });
+  res.json({ marcas: SKU_MARCAS, canales: SKU_CANALES, listas: listas.lists, cds: d.cds, estilos: d.estilos });
 });
 // CD restaurante → marca implícita de Ruta Menú (única para CDKB, GAR se
 // desambigua con cdCodigo para CDGV/CDGA).
@@ -3064,6 +3074,15 @@ app.put('/admin/products/:id/ficha', requireAdmin, (req, res) => {
       if (item) patch.coleccion = { id: item.id, label: item.label };
     }
   }
+  if (b.estiloCodigo != null) {
+    if (b.estiloCodigo === '') patch.estiloCodigo = null;
+    else {
+      const d = skuDiccLoad();
+      const codigo = String(b.estiloCodigo);
+      if (!['021', '022', '023'].includes(codigo) && d.estilos.some(e => e.codigo === codigo)) patch.estiloCodigo = codigo;
+      else return res.status(400).json({ error: 'Estilo inválido.' });
+    }
+  }
   extras.items[id] = { ...cur, ...patch, updatedAt: new Date().toISOString() };
   saveProductExtras(extras);
   res.json({ ok: true, id, ...patch });
@@ -3098,6 +3117,14 @@ app.post('/admin/sku-menu', requireAdmin, (req, res) => {
   const canales = Array.isArray(b.canales) ? [...new Set(b.canales.map(String))].filter(c => canalesValidos.has(c)) : [];
   const tipo = b.tipo === 'barra' ? 'barra' : (b.tipo === 'cocina' ? 'cocina' : null);
   if (!tipo) return res.status(400).json({ error: 'Falta tipo (cocina o barra).' });
+  // Con/sin alcohol: solo aplica a Barra (Cocina siempre resuelve a "Platos"
+  // en el diccionario). Es obligatorio en Barra — sin este dato el ítem no
+  // se puede mapear a un estilo real (022/023) y nunca se adivina.
+  let conAlcohol = null;
+  if (tipo === 'barra') {
+    if (b.conAlcohol !== true && b.conAlcohol !== false) return res.status(400).json({ error: 'Elegí si es con alcohol o sin alcohol.' });
+    conAlcohol = b.conAlcohol;
+  }
   const titulo = String(b.titulo || '').trim().slice(0, 120);
   if (!titulo) return res.status(400).json({ error: 'Falta el nombre del ítem.' });
   const listaId = tipo === 'barra' ? 'categoria_barra' : 'categoria_cocina';
@@ -3111,7 +3138,7 @@ app.post('/admin/sku-menu', requireAdmin, (req, res) => {
 
   const now = new Date().toISOString();
   const item = {
-    id: prodNewId('skm'), skuCode, marca: marcaId, cdCodigo, ruta: 'menu', tipo,
+    id: prodNewId('skm'), skuCode, marca: marcaId, cdCodigo, ruta: 'menu', tipo, conAlcohol,
     categoria: { id: catItem.id, label: catItem.label },
     titulo, precio, canales, activo: true, createdAt: now, updatedAt: now,
   };
@@ -3132,6 +3159,9 @@ app.put('/admin/sku-menu/:id', requireAdmin, (req, res) => {
     const cd = String(b.cdCodigo);
     if (SKU_CD_MARCA_MENU[cd] === item.marca) item.cdCodigo = cd;
     else return res.status(400).json({ error: 'Ese CD no corresponde a la marca de este ítem.' });
+  }
+  if (b.conAlcohol != null && item.tipo === 'barra') {
+    if (b.conAlcohol === true || b.conAlcohol === false) item.conAlcohol = b.conAlcohol;
   }
   if (b.categoriaId != null) {
     const listaId = item.tipo === 'barra' ? 'categoria_barra' : 'categoria_cocina';
@@ -3388,6 +3418,19 @@ app.post('/admin/products/create', requireAdmin, async (req, res) => {
   const tags = [tag].join(', ');
   const status = String(b.status || 'active').toLowerCase() === 'draft' ? 'draft' : 'active';
 
+  // Estilo del diccionario de SKU (opcional — "No está en la lista" lo deja
+  // sin asignar en vez de forzar un código que no corresponde). Excluye
+  // 021/022/023 (Platos/Con alcohol/Sin alcohol) porque son categorías de
+  // carta, no estilos de bebida envasada.
+  let estiloCodigo = null;
+  if (b.estiloCodigo) {
+    const d = skuDiccLoad();
+    const codigo = String(b.estiloCodigo);
+    const valido = !['021', '022', '023'].includes(codigo) && d.estilos.some(e => e.codigo === codigo);
+    if (!valido) return res.status(400).json({ error: 'Estilo inválido.' });
+    estiloCodigo = codigo;
+  }
+
   // Skus con más de un canal seleccionado en el mismo formato (ej. Horeca y
   // Hospitality comparten "Caja 24 latas") necesitan el canal en el nombre
   // de la variante para no chocar en Shopify (no permite variantes con el
@@ -3440,6 +3483,7 @@ app.post('/admin/products/create', requireAdmin, async (req, res) => {
       ...(extras.items[String(product.id)] || {}),
       skuCode, channels: canales, formato, tamano,
       ...(coleccion ? { coleccion } : {}),
+      ...(estiloCodigo ? { estiloCodigo } : {}),
       variantesSku: distribucion.map(d => ({ formatoId: d.formatoId, formatoLabel: d.formatoLabel, canal: d.canal, subCodigo: d.subCodigo })),
       updatedAt: now,
     };
