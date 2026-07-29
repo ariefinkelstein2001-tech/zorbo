@@ -10435,6 +10435,14 @@ async function comercialCuadro2(periodo){
 // matcheo de variante por SKU-código (sellinFormatoLabel/variantesSku) — solo
 // agrega, además del nivel padre ya existente en Sell In, un segundo nivel
 // por variante (subCodigo) para el toggle "Por formato".
+//
+// Modelo de medición del diccionario de SKU: litros SOLO tiene sentido para
+// CD Kairos (comercialización/distribución). Esta función trabaja
+// exclusivamente sobre loadOrders() (órdenes Shopify de CD Kairos) — nunca
+// mezcla ítems de Ruta Menú (CD-restaurante, medidos en unidades) en este
+// mismo total. Por eso el filtro de marca en el frontend excluye a
+// propósito Kairos Garden/Badass: no tienen SKU-código de Shopify ni litros,
+// y sumarlos acá violaría esa separación.
 async function comercialTopProductos(fromTs, toTs, canales, marcaFiltro){
   const result = await loadOrders(false);
   if (!result.available) return { available: false, reason: result.reason };

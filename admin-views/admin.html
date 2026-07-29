@@ -614,6 +614,9 @@ body.chat-collapsed.admin-home .adm-chat-reopen,body.chat-collapsed.estado-activ
   padding:.1rem .4rem;letter-spacing:.03em;user-select:all;
 }
 .adm-prod-tag.nochan{background:var(--surface3);color:#888;border:1px solid #ddd}
+/* Modelo de medición por CD (diccionario de SKU): litros en CD Kairos,
+   unidades en los CD-restaurante — nunca se mezclan en un mismo total. */
+.adm-prod-tag.metrica{background:var(--info-dim);color:var(--info);border:1px solid #c2d4f5}
 
 /* SKU: hero (Nuevo SKU + filtros de canal), estilo dashboard-hub */
 .sku-hero{display:flex;align-items:stretch;gap:1rem;flex-wrap:wrap;margin:1.2rem 0 .9rem}
@@ -4700,8 +4703,16 @@ function npMenuItemToCard(it){
     ilaPct: 0, extra: '', files: [], hasExtra: false, updatedAt: it.updatedAt,
     skuCode: it.skuCode, channels: Array.isArray(it.canales) ? it.canales : [],
     formato: null, tamano: null, coleccion: it.categoria ? it.categoria.label : null,
-    variantesSku: [], ruta: 'menu', tipo: it.tipo,
+    variantesSku: [], ruta: 'menu', tipo: it.tipo, cdCodigo: it.cdCodigo || null,
   };
+}
+// Modelo de medición del diccionario de SKU: CD Kairos se mide en litros,
+// los CD-restaurante en unidades — nunca se mezclan. Solo es una etiqueta
+// informativa hoy (todavía no hay venta real trackeada por SKU en ninguno de
+// los dos lados); deja explícito qué métrica le corresponde a cada ítem.
+function npCdNombre(cdCodigo){
+  const cd = (npMeta.cds || []).find(c => c.codigo === cdCodigo);
+  return cd ? cd.nombre.replace(/^CD Kairos ?/, '') || 'CD Kairos' : cdCodigo || '';
 }
 async function loadProductos(refresh){
   document.getElementById('productGrid').innerHTML = '<div class="adm-loading">Cargando catálogo…</div>';
@@ -4977,6 +4988,7 @@ function menuCardHtml(p){
   const noChannel = !(p.channels && p.channels.length);
   const tagDots = [
     `<span class="adm-prod-tag active">${p.tipo === 'barra' ? 'barra' : 'cocina'}</span>`,
+    `<span class="adm-prod-tag metrica">Unidades${p.cdCodigo ? ' · ' + escapeHtml(npCdNombre(p.cdCodigo)) : ''}</span>`,
     (activeSkuChan === 'todas' && noChannel) ? '<span class="adm-prod-tag nochan">sin canal asignado</span>' : '',
   ].filter(Boolean).join('');
   const editor = isOpen ? `
@@ -5016,6 +5028,7 @@ function productCardHtml(p){
   const noChannel = !(p.channels && p.channels.length);
   const tagDots = [
     isDraft                ? '<span class="adm-prod-tag draft">borrador</span>' : '<span class="adm-prod-tag active">activo</span>',
+    '<span class="adm-prod-tag metrica">Litros · CD Kairos</span>',
     p.isMayorista          ? '<span class="adm-prod-tag mayo">B2B</span>' : '',
     p.isZorbo              ? '<span class="adm-prod-tag zorbo">ZORBO</span>' : '',
     (p.extra && p.extra.trim()) ? '<span class="adm-prod-tag note">notas</span>' : '',
