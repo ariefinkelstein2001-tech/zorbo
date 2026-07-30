@@ -12552,7 +12552,8 @@ function costeoNormalizeCarta(c){
   const ctv = Number.isFinite(c.ctv) ? c.ctv : 0; // versión: sembrar los CORTOS de barra (espirituoso + lata chica)
   const btv = Number.isFinite(c.btv) ? c.btv : 0; // versión: sembrar las BOTELLAS de barra (botella + 5 latas chicas)
   const ckv = Number.isFinite(c.ckv) ? c.ckv : 0; // versión: cervezas Kairos de reventa → trago costeado
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, secciones, asignaciones };
+  const ckmv = Number.isFinite(c.ckmv) ? c.ckmv : 0; // versión: media pinta (250cc) de cada cerveza Kairos
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13094,6 +13095,39 @@ function costeoCervezasKairos(doc, rest){
   doc.carta.ckv = CERVEZAS_KAIROS_V;
   return true;
 }
+// Versión "media pinta" (250cc) de cada trago de cerveza Kairos que ya haya
+// quedado creado por costeoCervezasKairos (pinta completa, 500cc): mismo
+// insumo y categoría, la mitad de cantidad. Sin precio de venta cargado (no
+// hay dato real de cuánto se cobra la media pinta) — el costeo sugiere uno al
+// margen default hasta que se cargue el precio real. Corre una sola vez por
+// doc de barra (carta.ckmv), después de costeoCervezasKairos.
+const CERVEZA_KAIROS_MEDIA_LITROS = 0.25;
+const CERVEZA_KAIROS_MEDIA_SUFIJO = 'Media Pinta';
+const CERVEZAS_KAIROS_MEDIA_V = 1;
+function costeoCervezasKairosMediaPinta(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.ckmv >= CERVEZAS_KAIROS_MEDIA_V) return false;
+  const kairos = (doc.insumos || []).find(i => costeoNorm(i.descripcion) === costeoNorm(CERVEZA_KAIROS_INS));
+  if (kairos) {
+    const objetivo = new Set(CERVEZAS_KAIROS_SECCIONES.map(costeoNormSuelto));
+    const platosPorNombre = new Set((doc.platos || []).map(p => costeoNorm(p.nombre)));
+    const base = (doc.platos || []).filter(p =>
+      objetivo.has(costeoNormSuelto(p.categoria)) &&
+      (p.lineas || []).some(l => l.refType === 'insumo' && l.refId === kairos.id && Number(l.cantidad) === CERVEZA_KAIROS_LITROS));
+    base.forEach(p => {
+      const nombre = costeoStr(p.nombre + ' ' + CERVEZA_KAIROS_MEDIA_SUFIJO, 200);
+      if (!nombre || platosPorNombre.has(costeoNorm(nombre))) return;
+      doc.platos.push({
+        id: randomUUID(), nombre, categoria: p.categoria, margenPct: 30, iva: false, precioReal: null,
+        lineas: [{ refType: 'insumo', refId: kairos.id, cantidad: CERVEZA_KAIROS_MEDIA_LITROS }],
+      });
+      platosPorNombre.add(costeoNorm(nombre));
+    });
+  }
+  doc.carta.ckmv = CERVEZAS_KAIROS_MEDIA_V;
+  return true;
+}
 // Asegura los 2 docs de barra (garden_barra / badass_barra): los siembra desde el
 // Excel de barra si están vacíos y planta sus secciones de carta. Devuelve true si mutó.
 function costeoEnsureBarraDocs(all){
@@ -13109,6 +13143,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoSeedCortosBarra(all[key], rest)) ch = true;
     if (costeoSeedBotellasBarra(all[key], rest)) ch = true;
     if (costeoCervezasKairos(all[key], rest)) ch = true;
+    if (costeoCervezasKairosMediaPinta(all[key], rest)) ch = true;
   }
   return ch;
 }
