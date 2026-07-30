@@ -22504,6 +22504,231 @@
         ],
         "precioReal": 3770,
         "iva": false
+      },
+      {
+        "id": "52645b78-1a09-418a-91c2-d09d0652d9d4",
+        "nombre": "Imperio Perdido Media Pinta",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "2b3dc5bd-7c08-47ca-8669-d3dab9249f1a",
+        "nombre": "Secret Lab Media Pinta",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "1a43fc1f-5390-4923-891b-a4c9e94e8b5d",
+        "nombre": "Alerta Roja Media Pinta",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "71c9a8a2-e715-409f-8c6a-1b8f5c2d043b",
+        "nombre": "Galactic Media Pinta",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "86556667-f440-483d-8292-0f7075160a3c",
+        "nombre": "Nada Personal Media Pinta",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "350a26b9-eb08-4088-ad9c-77e602759d26",
+        "nombre": "Hoyo en Uno Media Pinta",
+        "categoria": "Colección de temporada (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "de1a61bc-0be4-4ef5-a595-42c2b14da6a3",
+        "nombre": "Ritual de la Banana Media Pinta",
+        "categoria": "Colección de temporada (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "63c16d27-58d1-4a7b-b04c-4f85efcce05d",
+        "nombre": "Kenny Bell Media Pinta",
+        "categoria": "Colección de temporada (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "d1762f56-f996-453d-862f-0ef1f6b90f6f",
+        "nombre": "Obertura Stout Media Pinta",
+        "categoria": "Colección de temporada (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "2f0c77ab-2caf-4e75-96e3-f63d8d2a4294",
+        "nombre": "Samba Media Pinta",
+        "categoria": "Colección de temporada (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "a8c3e4e0-661d-4a2a-beda-dad3c8679fc1",
+        "nombre": "Good Bye My Lover Media Pinta",
+        "categoria": "Colección de artistas (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "172504e0-dc31-4c2b-91cf-655cc08b4c69",
+        "nombre": "Valle Nevado Media Pinta",
+        "categoria": "Colección de artistas (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "e7ecc63a-0fb9-4f17-84f4-71742167bfe9",
+        "nombre": "Goat Father Media Pinta",
+        "categoria": "Colección de artistas (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "902e1e06-982e-4696-81a7-c912e77dc338",
+        "nombre": "Osagui Media Pinta",
+        "categoria": "Colección de artistas (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "424dfe25-4003-4a53-9ce9-ea3576ba760b",
+        "nombre": "Firulais Chelada Craft Mix Media Pinta",
+        "categoria": "Firulais Craft Mix",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
       }
     ],
     "categorias": [
@@ -30293,6 +30518,156 @@
           }
         ],
         "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "932b974f-097b-46e2-987c-cf05505b1555",
+        "nombre": "Nada Personal Media Pinta",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "54b0822e-3e06-445c-a7e0-52753f370ad6",
+        "nombre": "Galactic Media Pinta",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "09c8563c-d585-437f-9471-70ade65ee9d4",
+        "nombre": "Alerta Roja Media Pinta",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "41dba7ed-5106-4d95-8651-0367a5404c8a",
+        "nombre": "Secret Lab Media Pinta",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "e60a825c-f4dd-408b-8a72-9a552b3c16a3",
+        "nombre": "Imperio Perdido Media Pinta",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "896b252d-90a8-4e95-aa57-903bc232b389",
+        "nombre": "Ritual de la Banana Media Pinta",
+        "categoria": "Colección de temporada (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "0be75be0-e427-4243-b497-013824afb75d",
+        "nombre": "Samba Media Pinta",
+        "categoria": "Colección de temporada (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "a52a5596-f0cf-49d4-a4f3-2a4b28aafd66",
+        "nombre": "Valle Nevado Media Pinta",
+        "categoria": "Colección de artistas (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "f624d930-2fa4-41d2-b9f4-dc9f0454c83f",
+        "nombre": "Goat Father Media Pinta",
+        "categoria": "Colección de artistas (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "e5f51115-c382-442c-98fc-882184d81cf0",
+        "nombre": "Firulais Chelada Craft Mix Media Pinta",
+        "categoria": "Firulais Craft Mix",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.25
+          }
+        ],
+        "precioReal": null,
         "iva": false
       }
     ],
