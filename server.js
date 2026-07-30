@@ -13305,14 +13305,19 @@ function costeoFixBebidaLata(doc, rest){
   doc.carta.blv = BARRA_BEBIDA_LATA_V;
   return true;
 }
-// Corrige la línea del espirituoso en cada plato de Botellas: se creó con un
-// volumen fijo (750 ml, el más común) para todas las marcas, pero no todas
-// vienen en botella de 750 — hay a 700 ml, 1 L, 1,5 L, etc. Cada insumo YA
-// tiene su volumen de botella real bien cargado (Nivel 1 · Insumos, no se
-// toca); esto solo hace que el plato "Botella" use ESE volumen en vez del
-// fijo. La línea de BEBIDA LATA no se toca. Corre una sola vez por doc de
-// barra (carta.bvv), después de costeoFixBebidaLata.
-const BARRA_BOTELLA_VOLUMEN_V = 1;
+// Corrige la línea del espirituoso en CUALQUIER plato de una sección de
+// "botella" (categoría que contenga la palabra, sea la "Botellas" única de
+// Badass o las de Garden por familia: "Ron Botella", "Pisco Botella", etc.):
+// se crearon con un volumen fijo (0,7 o 0,75, el más común según el
+// restaurante) para todas las marcas, pero no todas vienen en esa misma
+// botella — hay a 700 ml, 1 L, 1,5 L, 2 L, etc. Cada insumo YA tiene su
+// volumen de botella real bien cargado (Nivel 1 · Insumos, no se toca); esto
+// solo hace que el plato "Botella" use ESE volumen en vez del fijo. La línea
+// de BEBIDA LATA (cuando la hay, solo Badass) no se toca. v2: se amplía de
+// solo "Botellas" (Badass) a cualquier categoría "*Botella*" (Garden por
+// familia también tenía el mismo problema, con 0,7 fijo). Corre una sola vez
+// por doc de barra (carta.bvv), después de costeoFixBebidaLata.
+const BARRA_BOTELLA_VOLUMEN_V = 2;
 function costeoFixBotellaVolumen(doc, rest){
   if (!doc) return false;
   doc.carta = costeoNormalizeCarta(doc.carta);
@@ -13320,9 +13325,8 @@ function costeoFixBotellaVolumen(doc, rest){
   const insById = new Map((doc.insumos || []).map(i => [i.id, i]));
   const bebida = (doc.insumos || []).find(i => costeoNorm(i.descripcion) === costeoNorm('BEBIDA LATA'));
   const bebidaId = bebida && bebida.id;
-  const botellasCat = costeoNorm('Botellas');
   (doc.platos || []).forEach(p => {
-    if (costeoNorm(p.categoria) !== botellasCat) return;
+    if (!costeoNorm(p.categoria).includes('botella')) return;
     (p.lineas || []).forEach(l => {
       if (l.refType !== 'insumo' || l.refId === bebidaId) return;
       const ins = insById.get(l.refId);
