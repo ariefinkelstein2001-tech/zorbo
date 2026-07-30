@@ -1360,6 +1360,12 @@ body.drawer-open{overflow:hidden}
 .adm-growth-pct.up{color:var(--green);background:var(--green-dim)}
 .adm-growth-pct.down{color:var(--red);background:var(--red-dim)}
 .adm-growth-pct.new{color:var(--gold-deep);background:var(--gold-dim)}
+/* Buscador + filtro de canal + métrica del cuadro de crecimiento. */
+.adm-growth-tools{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin:.1rem 0 .6rem}
+.adm-growth-tools input{flex:1;min-width:170px}
+.adm-growth-tools select{max-width:200px}
+.adm-growth-count{font-family:var(--sans);font-size:.72rem;color:var(--muted);margin-bottom:.35rem}
+.adm-growth-sku{font-family:var(--mono);font-size:.68rem;color:var(--muted);margin-left:.4rem}
 
 /* Mejores días del mes */
 .adm-bestdays{display:flex;flex-direction:column;gap:.55rem}
@@ -2854,8 +2860,8 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
           </div>
           <div class="adm-chart-card">
             <div class="adm-chart-head">
-              <div class="adm-chart-title">Top 10 en cantidad</div>
-              <div class="adm-chart-sub">unidades vendidas</div>
+              <div class="adm-chart-title">Top 10 en volumen</div>
+              <div class="adm-chart-sub" id="andcTopLitrosSub">litros despachados</div>
             </div>
             <div class="adm-chart-canvas-wrap"><canvas id="andcChartTopQty"></canvas></div>
           </div>
@@ -2864,6 +2870,12 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
               <div class="adm-chart-title">Crecimiento mes vs mes anterior</div>
               <div class="adm-chart-sub" id="andcGrowthSub">por producto</div>
             </div>
+            <div class="adm-growth-tools">
+              <input type="text" id="andcGrowthSearch" placeholder="Buscar SKU, estilo o producto…">
+              <select id="andcGrowthCanal"></select>
+              <div class="sio-toggle" id="andcGrowthMetric"><button data-m="plata" class="on" type="button">Plata</button><button data-m="litros" type="button">Litros</button></div>
+            </div>
+            <div class="adm-growth-count" id="andcGrowthCount"></div>
             <div class="adm-growth" id="andcSalesGrowth"></div>
           </div>
           <div class="adm-chart-card">
@@ -7155,7 +7167,7 @@ function renderBarChart(canvasId, items, opts){
       data: items.map(i=>i.value),
       backgroundColor: ANA_COLORS.goldDim, borderColor: ANA_COLORS.gold, borderWidth:1, borderRadius:5,
     }]},
-    options: chartOptions({ horizontal:true, legend:false, money:opts.money }),
+    options: chartOptions({ horizontal:true, legend:false, money:opts.money, unit:opts.unit || '' }),
   });
 }
 
@@ -7413,15 +7425,19 @@ function renderOpportunities(opps){
     </div>`).join('');
 }
 
-function chartOptions({ horizontal=false, legend=false, money=false } = {}){
+// unit: sufijo para valores que no son plata (ej: ' L' para litros).
+function chartOptions({ horizontal=false, legend=false, money=false, unit='' } = {}){
   const valAxis = horizontal ? 'x' : 'y';
+  const fmtVal = money
+    ? (v) => '$' + Number(v).toLocaleString('es-CL')
+    : (unit ? (v) => Number(v).toLocaleString('es-CL',{maximumFractionDigits:1}) + unit : null);
   const opts = {
     indexAxis: horizontal ? 'y' : 'x',
     responsive:true, maintainAspectRatio:false,
     plugins:{
       legend: legend ? { display:true, labels:{ boxWidth:10, padding:12, font:{ size:11 } } } : { display:false },
-      tooltip: { ...tooltipBase(), callbacks: money ? {
-        label: (ctx) => ' $' + Number(ctx.parsed[valAxis] ?? ctx.parsed).toLocaleString('es-CL'),
+      tooltip: { ...tooltipBase(), callbacks: fmtVal ? {
+        label: (ctx) => ' ' + fmtVal(Number(ctx.parsed[valAxis] ?? ctx.parsed)),
       } : {} },
     },
     scales:{
@@ -7429,9 +7445,7 @@ function chartOptions({ horizontal=false, legend=false, money=false } = {}){
       y:{ grid:{ color: ANA_COLORS.grid, drawBorder:false }, ticks:{ color: ANA_COLORS.muted, precision:0 } },
     },
   };
-  if (money) {
-    opts.scales[valAxis].ticks.callback = (v) => '$' + Number(v).toLocaleString('es-CL');
-  }
+  if (fmtVal) opts.scales[valAxis].ticks.callback = fmtVal;
   return opts;
 }
 function tooltipBase(){
@@ -7501,26 +7515,90 @@ function renderSalesAndc(d){
   ].map(c => `<div class="adm-stat ${c.tone?'tone-'+c.tone:''}"><div class="adm-stat-k">${c.k}</div><div class="adm-stat-v">${escapeHtml(c.v)}</div><div class="adm-stat-s">${escapeHtml(c.sub)}</div></div>`).join('');
 
   renderBarChart('andcChartTopMoney', d.topMoney, { money:true, key:'andcSalesMoney' });
-  renderBarChart('andcChartTopQty',   d.topQty,   { money:false, key:'andcSalesQty' });
+  renderBarChart('andcChartTopQty',   d.topLitros, { money:false, unit:' L', key:'andcSalesQty' });
+  const tlm = d.topLitrosMeta || {};
+  const subLitros = document.getElementById('andcTopLitrosSub');
+  if (subLitros) subLitros.textContent = tlm.sinDatoQty
+    ? `litros despachados · ${tlm.cobertura}% de las unidades convertidas (${tlm.sinDatoQty} u sin formato)`
+    : 'litros despachados';
   renderGrowthAndc(d.growth);
   renderBestDaysAndc(d.bestDays);
   renderCombosAndc(d.combos);
   renderHeatmapAndc(d.heat);
 }
 
+// Crecimiento por producto, con buscador, filtro de canal y métrica. El backend
+// manda TODOS los productos con sus dos métricas y el desglose por canal; el
+// corte y el % se calculan acá según lo que esté elegido.
+const ANDC_GROWTH_CANAL_LBL = { horeca:'Horeca', retail:'Retail', hospitality:'Hospitality', sin_canal:'Sin canal asignado' };
+let andcGrowthSearch = '', andcGrowthCanal = '__all__', andcGrowthMetric = 'plata';
+const ANDC_GROWTH_MAX = 25;
+function andcGrowthNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,''); }
 function renderGrowthAndc(g){
   const el = document.getElementById('andcSalesGrowth');
+  const cnt = document.getElementById('andcGrowthCount');
   document.getElementById('andcGrowthSub').textContent = g ? `${g.thisMonthLabel} vs ${g.prevMonthLabel}` : 'por producto';
-  if (!g || !g.items.length) { el.innerHTML = '<div class="adm-empty">Sin datos de los últimos 2 meses.</div>'; return; }
-  el.innerHTML = g.items.map(it => {
-    const pctTxt = it.pct === null ? 'NUEVO' : (it.pct>0?'+':'')+it.pct+'%';
-    const cls = it.pct === null ? 'new' : (it.pct>=0?'up':'down');
-    return `<div class="adm-growth-row">
-      <span class="adm-growth-name">${escapeHtml(it.name)}</span>
-      <span class="adm-growth-vals">$${it.previous.toLocaleString('es-CL')} → $${it.current.toLocaleString('es-CL')}</span>
-      <span class="adm-growth-pct ${cls}">${pctTxt}</span>
-    </div>`;
-  }).join('');
+  const sel = document.getElementById('andcGrowthCanal');
+  if (sel && !sel.options.length) {
+    sel.innerHTML = `<option value="__all__">Todos los canales</option>` +
+      (g && g.canales ? g.canales : []).map(c => `<option value="${c}">${escapeHtml(ANDC_GROWTH_CANAL_LBL[c]||c)}</option>`).join('');
+  }
+  if (!g || !g.items || !g.items.length) {
+    el.innerHTML = '<div class="adm-empty">Sin datos de los últimos 2 meses.</div>';
+    if (cnt) cnt.textContent = '';
+    return;
+  }
+  const draw = () => {
+    const q = andcGrowthNorm(andcGrowthSearch).trim();
+    const litros = andcGrowthMetric === 'litros';
+    const celdaDe = (it) => (andcGrowthCanal === '__all__') ? it.total : (it.canales?.[andcGrowthCanal] || { curPlata:0, prevPlata:0, curLitros:0, prevLitros:0 });
+    const val = (c) => litros ? { cur: c.curLitros, prev: c.prevLitros } : { cur: c.curPlata, prev: c.prevPlata };
+    const fmt = (n) => litros ? fmtLitros(n) : fmtMoney(n);
+    const filas = g.items
+      .filter(it => !q || andcGrowthNorm(`${it.name} ${it.skuCode||''} ${it.estilo||''}`).includes(q))
+      .map(it => ({ it, ...val(celdaDe(it)) }))
+      // Con un canal elegido, los productos que no se movieron ahí no son ruido útil.
+      .filter(x => x.cur || x.prev)
+      .sort((a,b)=> (b.cur - b.prev) - (a.cur - a.prev));
+    if (!filas.length) {
+      el.innerHTML = `<div class="adm-empty">Sin movimiento${q?' para esa búsqueda':''}${andcGrowthCanal!=='__all__'?' en este canal':''}.</div>`;
+      if (cnt) cnt.textContent = '';
+      return;
+    }
+    const vistas = filas.slice(0, ANDC_GROWTH_MAX);
+    if (cnt) cnt.textContent = filas.length > vistas.length
+      ? `Mostrando ${vistas.length} de ${filas.length} productos — afiná la búsqueda para ver el resto.`
+      : `${filas.length} producto${filas.length===1?'':'s'}.`;
+    el.innerHTML = vistas.map(({ it, cur, prev }) => {
+      const pct = prev > 0 ? Math.round((cur-prev)/prev*100) : (cur > 0 ? null : 0); // null = nuevo (sin base)
+      const pctTxt = pct === null ? 'NUEVO' : (pct>0?'+':'')+pct+'%';
+      const cls = pct === null ? 'new' : (pct>=0?'up':'down');
+      const sku = it.skuCode ? `<span class="adm-growth-sku">${escapeHtml(it.skuCode)}</span>` : '';
+      return `<div class="adm-growth-row">
+        <span class="adm-growth-name">${escapeHtml(it.name)}${sku}</span>
+        <span class="adm-growth-vals">${fmt(prev)} → ${fmt(cur)}</span>
+        <span class="adm-growth-pct ${cls}">${pctTxt}</span>
+      </div>`;
+    }).join('');
+  };
+  draw();
+  const inp = document.getElementById('andcGrowthSearch');
+  if (inp) {
+    inp.value = andcGrowthSearch;
+    inp.oninput = () => { andcGrowthSearch = inp.value; draw(); };
+  }
+  if (sel) {
+    sel.value = andcGrowthCanal;
+    sel.onchange = () => { andcGrowthCanal = sel.value; draw(); };
+  }
+  document.querySelectorAll('#andcGrowthMetric button').forEach(b => {
+    b.classList.toggle('on', b.dataset.m === andcGrowthMetric);
+    b.onclick = () => {
+      andcGrowthMetric = b.dataset.m;
+      document.querySelectorAll('#andcGrowthMetric button').forEach(x=>x.classList.toggle('on', x===b));
+      draw();
+    };
+  });
 }
 
 function renderBestDaysAndc(days){

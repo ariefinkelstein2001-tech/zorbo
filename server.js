@@ -9561,6 +9561,47 @@ app.get('/admin/shopify/scopes', requireAdmin, async (_req, res) => {
   }
 });
 
+// Crecimiento mes vs mes anterior por producto. Guarda las DOS métricas (plata y
+// litros) y el desglose por canal, para poder leer "subió Golden, ¿pero por fuera
+// de nuestros propios locales?". Devuelve TODOS los productos, no un top: el
+// buscador y el filtro de canal viven en el front, así se puede ir a buscar uno
+// puntual que no entraría en un top 10. El % lo calcula el front según la métrica
+// y el canal elegidos. Función pura para poder correrla con datos de prueba.
+const ANALYTICS_GROWTH_CANALES = ['horeca', 'retail', 'hospitality', 'sin_canal'];
+function analyticsCrecimientoPorProducto(orders, { thisM, thisY, prevM, prevY, extras, notes, estiloPorCodigo, litrosDeLinea }){
+  const celda = () => ({ curPlata: 0, prevPlata: 0, curLitros: 0, prevLitros: 0 });
+  const porProducto = new Map(); // title → { name, skuCode, estilo, total, canales }
+  for (const o of orders) {
+    const d = new Date(o.createdAt);
+    const inCur  = d.getMonth()===thisM && d.getFullYear()===thisY;
+    const inPrev = d.getMonth()===prevM && d.getFullYear()===prevY;
+    if (!inCur && !inPrev) continue;
+    for (const li of (o.lineItems||[]).filter(isMayoristaLine)) {
+      if (!porProducto.has(li.title)) {
+        const ex = li.productId ? extras.items[String(li.productId)] : null;
+        porProducto.set(li.title, {
+          name: li.title, skuCode: ex?.skuCode || null, estilo: sellinEstiloDeProducto(ex, estiloPorCodigo),
+          total: celda(), canales: Object.fromEntries(ANALYTICS_GROWTH_CANALES.map(c => [c, celda()])),
+        });
+      }
+      const g = porProducto.get(li.title);
+      const canal = canalDeCliente(o.customerId, notes) || canalDeProductoSellin(li.productId, extras) || 'sin_canal';
+      const litros = litrosDeLinea(li) || 0;
+      for (const cel of [g.total, g.canales[canal]]) {
+        if (inCur) { cel.curPlata += li.amount; cel.curLitros += litros; }
+        else { cel.prevPlata += li.amount; cel.prevLitros += litros; }
+      }
+    }
+  }
+  const redondear = (c) => ({
+    curPlata: Math.round(c.curPlata), prevPlata: Math.round(c.prevPlata),
+    curLitros: Math.round(c.curLitros * 10) / 10, prevLitros: Math.round(c.prevLitros * 10) / 10,
+  });
+  return [...porProducto.values()]
+    .map(g => ({ ...g, total: redondear(g.total), canales: Object.fromEntries(ANALYTICS_GROWTH_CANALES.map(c => [c, redondear(g.canales[c])])) }))
+    .filter(g => g.total.curPlata || g.total.prevPlata || g.total.curLitros || g.total.prevLitros)
+    .sort((a,b)=> (b.total.curPlata - b.total.prevPlata) - (a.total.curPlata - a.total.prevPlata));
+}
 app.get('/admin/analytics/sales', requireAdmin, async (req, res) => {  const r = rangeFor(String(req.query.range || '30d'));
   const result = await loadOrders(String(req.query.refresh || '') === '1');
   if (!result.available) {
@@ -9572,10 +9613,26 @@ app.get('/admin/analytics/sales', requireAdmin, async (req, res) => {  const r =
       return t >= r.from && t <= r.to;
     });
 
+    // Atribución de canal y conversión a litros: MISMAS funciones que Sell In
+    // (canalDeCliente/canalDeProductoSellin, sellinFormatoLabel/skuFormatoLitros),
+    // no un cálculo paralelo.
+    const extras = loadProductExtras();
+    const notes = loadCustomerNotes();
+    const dicc = skuDiccLoad();
+    const estiloPorCodigo = new Map((dicc.estilos || []).map(e => [String(e.codigo), e.nombre]));
+    const litrosDeLinea = (li) => {
+      const label = sellinFormatoLabel(li, extras);
+      const lu = label != null ? skuFormatoLitros(label) : null;
+      return lu != null ? Math.round(lu * li.qty * 1000) / 1000 : null; // null = formato sin equivalencia
+    };
+
     // Solo líneas de productos mayoristas
     const moneyByProduct = new Map();   // title → $
-    const qtyByProduct   = new Map();   // title → unidades
-    let mayoOrderCount = 0, mayoRevenue = 0;
+    // Volumen por producto: litros despachados, que es la unidad con la que se
+    // repone. Las unidades se siguen contando aparte para poder decir qué parte
+    // del volumen no se pudo convertir (formatos sin litros cargados).
+    const volByProduct = new Map();     // title → { litros, unidades, sinDatoQty }
+    let mayoOrderCount = 0, mayoRevenue = 0, volSinDatoQty = 0, volUnidades = 0;
     const comboCounts = new Map();      // "A|||B" → veces
     const dayOfMonth = {};              // 1..31 → { sum, count(días distintos) }
     const heat = Array.from({length:7}, () => Array(24).fill(0)); // [weekday][hour] = $
@@ -9589,7 +9646,12 @@ app.get('/admin/analytics/sales', requireAdmin, async (req, res) => {  const r =
       const titlesInOrder = new Set();
       for (const li of mayoLines) {
         moneyByProduct.set(li.title, (moneyByProduct.get(li.title) || 0) + li.amount);
-        qtyByProduct.set(li.title, (qtyByProduct.get(li.title) || 0) + li.qty);
+        const litros = litrosDeLinea(li);
+        if (!volByProduct.has(li.title)) volByProduct.set(li.title, { litros: 0, unidades: 0, sinDatoQty: 0 });
+        const v = volByProduct.get(li.title);
+        v.litros += litros || 0; v.unidades += li.qty;
+        if (litros == null) { v.sinDatoQty += li.qty; volSinDatoQty += li.qty; }
+        volUnidades += li.qty;
         orderMayoTotal += li.amount;
         titlesInOrder.add(li.title);
       }
@@ -9613,7 +9675,11 @@ app.get('/admin/analytics/sales', requireAdmin, async (req, res) => {  const r =
 
     const topMoney = [...moneyByProduct.entries()].map(([name, v]) => ({ name, value: Math.round(v) }))
       .sort((a,b)=>b.value-a.value).slice(0,10);
-    const topQty = [...qtyByProduct.entries()].map(([name, v]) => ({ name, value: v }))
+    // Top por LITROS despachados (no por cantidad de unidades: un barril de 30 L
+    // y una lata de 0,47 L cuentan una unidad cada uno y no son comparables).
+    const topLitros = [...volByProduct.entries()]
+      .map(([name, v]) => ({ name, value: Math.round(v.litros * 10) / 10, unidades: v.unidades, sinDatoQty: v.sinDatoQty }))
+      .filter(x => x.value > 0)
       .sort((a,b)=>b.value-a.value).slice(0,10);
     const avgTicket = mayoOrderCount ? Math.round(mayoRevenue / mayoOrderCount) : 0;
     const combos = [...comboCounts.entries()].map(([k, v]) => {
@@ -9630,30 +9696,19 @@ app.get('/admin/analytics/sales', requireAdmin, async (req, res) => {  const r =
     const thisM = now.getMonth(), thisY = now.getFullYear();
     const prevDate = new Date(thisY, thisM-1, 1);
     const prevM = prevDate.getMonth(), prevY = prevDate.getFullYear();
-    const cur = new Map(), prev = new Map();
-    for (const o of result.orders) {
-      const d = new Date(o.createdAt);
-      const inCur  = d.getMonth()===thisM && d.getFullYear()===thisY;
-      const inPrev = d.getMonth()===prevM && d.getFullYear()===prevY;
-      if (!inCur && !inPrev) continue;
-      for (const li of (o.lineItems||[]).filter(isMayoristaLine)) {
-        const m = inCur ? cur : prev;
-        m.set(li.title, (m.get(li.title) || 0) + li.amount);
-      }
-    }
-    const growthNames = new Set([...cur.keys(), ...prev.keys()]);
-    const growth = [...growthNames].map(name => {
-      const c = Math.round(cur.get(name)||0), p = Math.round(prev.get(name)||0);
-      const pct = p > 0 ? Math.round((c-p)/p*100) : (c > 0 ? null : 0); // null = nuevo (sin base)
-      return { name, current: c, previous: p, pct };
-    }).filter(x => x.current || x.previous)
-      .sort((a,b)=> (b.current - b.previous) - (a.current - a.previous)).slice(0,10);
+    const growth = analyticsCrecimientoPorProducto(result.orders, {
+      thisM, thisY, prevM, prevY, extras, notes, estiloPorCodigo, litrosDeLinea,
+    });
 
     res.json({
       available: true, range: r,
       summary: { orders: mayoOrderCount, revenue: Math.round(mayoRevenue), avgTicket },
-      topMoney, topQty, combos, bestDays, heat,
-      growth: { thisMonthLabel: monthLabel(thisM), prevMonthLabel: monthLabel(prevM), items: growth },
+      topMoney, topLitros, combos, bestDays, heat,
+      topLitrosMeta: {
+        unidades: volUnidades, sinDatoQty: volSinDatoQty,
+        cobertura: volUnidades > 0 ? Math.round((1 - volSinDatoQty / volUnidades) * 100) : null,
+      },
+      growth: { thisMonthLabel: monthLabel(thisM), prevMonthLabel: monthLabel(prevM), canales: ANALYTICS_GROWTH_CANALES, items: growth },
     });
   } catch (e) {
     res.status(500).json({ error: 'Error en analítica de ventas: ' + e.message });
