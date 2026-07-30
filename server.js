@@ -4659,7 +4659,7 @@ let COSTOS_ID_SEQ = 0;
 function costosNewId(prefix){ COSTOS_ID_SEQ = (COSTOS_ID_SEQ + 1) % 100000; return prefix + '_' + Date.now().toString(36) + '_' + COSTOS_ID_SEQ.toString(36); }
 function costosLoad(){
   let data = { proveedores: [], entradas: [] };
-  try { if (existsSync(COSTOS_FILE)) { const p = JSON.parse(readFileSync(COSTOS_FILE, 'utf-8')); data.proveedores = Array.isArray(p.proveedores) ? p.proveedores : []; data.entradas = Array.isArray(p.entradas) ? p.entradas : []; } }
+  try { if (existsSync(COSTOS_FILE)) { const p = JSON.parse(readFileSync(COSTOS_FILE, 'utf-8')); data.proveedores = Array.isArray(p.proveedores) ? p.proveedores : []; data.entradas = Array.isArray(p.entradas) ? p.entradas : []; if (p.migraciones && typeof p.migraciones === 'object' && !Array.isArray(p.migraciones)) data.migraciones = p.migraciones; } }
   catch (e) { console.warn('costos load:', e.message); }
   // Semilla de proveedores la primera vez (o si el archivo no tiene proveedores).
   if (!data.proveedores.length) {
@@ -4672,8 +4672,56 @@ function costosLoad(){
   // (la única CD con administración financiera armada hasta este punto).
   let migrado = false;
   for (const e of data.entradas) { if (!e.centroDistribucion) { e.centroDistribucion = CD_DEFAULT; migrado = true; } }
+  if (costosAplicarReclasificaciones(data)) migrado = true;
   if (migrado) costosSave(data);
   return data;
+}
+// ── Reclasificaciones puntuales de documentos ya cargados ──
+// Mover un documento de categoría es un cambio de DATOS, y los datos en vivo no
+// viven en el repo (DATA_DIR + volumen), así que va como migración de código.
+// Cada una lleva su flag en data.migraciones para correr UNA sola vez: si después
+// alguien reclasifica algo a mano, la migración no se lo vuelve a pisar.
+// No borra ni recrea nada: cambia la categoría del mismo registro, así conserva
+// id, folio, monto, adjunto, notas de crédito vinculadas y los espejos entre CD.
+const COSTOS_RECLASIFICACIONES = [
+  {
+    id: 'transportes369_2025_a_operativos',
+    proveedor: 'Transportes 369 SpA',
+    desde: '2025-01', hasta: '2025-12',
+    // Solo lo que hoy está en Costos; lo que ya sea gasto no se toca.
+    categoriasOrigen: ['costo_directo', 'costo_indirecto'],
+    categoria: 'gastos_operativos',
+    // Es una empresa de transporte, así que cae en esa subcategoría. El tercer
+    // nivel (venta / logístico / administrativo) no se puede deducir del
+    // documento: queda vacío para completar a mano.
+    subcategoria: 'transporte',
+  },
+];
+function costosAplicarReclasificaciones(data){
+  data.migraciones = (data.migraciones && typeof data.migraciones === 'object' && !Array.isArray(data.migraciones)) ? data.migraciones : {};
+  let cambio = false;
+  for (const r of COSTOS_RECLASIFICACIONES) {
+    if (data.migraciones[r.id]) continue;
+    const pk = costosKey(r.proveedor);
+    const movidas = [];
+    for (const e of data.entradas || []) {
+      if (costosKey(e.proveedor) !== pk) continue;
+      const mes = costosMes(e.fecha);
+      if (!mes || mes < r.desde || mes > r.hasta) continue;
+      if (!r.categoriasOrigen.includes(e.categoria)) continue;
+      const antes = e.categoria;
+      e.categoria = r.categoria;
+      const v = costosSubValidar(r.categoria, r.subcategoria || '', '');
+      e.subcategoria = v.subcategoria; e.subnivel = v.subnivel;
+      // Rastro para poder auditar de dónde salió cada documento.
+      e.reclasificadoDe = antes; e.reclasificadoPor = r.id;
+      movidas.push({ id: e.id, fecha: e.fecha, folio: e.folio || '', valor: e.valor, de: antes, cd: e.centroDistribucion || CD_DEFAULT });
+    }
+    data.migraciones[r.id] = { aplicadaEn: new Date().toISOString(), a: r.categoria, subcategoria: r.subcategoria || '', total: movidas.length, movidas };
+    cambio = true;
+    console.log(`[costos] reclasificación ${r.id}: ${movidas.length} documento(s) → ${r.categoria}`);
+  }
+  return cambio;
 }
 function costosSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTOS_FILE, JSON.stringify(d, null, 2)); }
 const costosMes = (fecha) => /^\d{4}-\d{2}/.test(String(fecha)) ? String(fecha).slice(0, 7) : '';
@@ -4807,6 +4855,9 @@ app.get('/admin/costos', requireAdmin, (req, res) => {
     entradas: entradas.map(e => { const sub = costosSubEfectiva(e); return { ...e, marca: e.marca || 'todas', subEfectiva: sub, subLabel: costosSubLabel(e.categoria, sub, e.subnivel), ncVinculadas: vinc[e.id] || [], ncDescuento: desc[e.id] || 0, neto: costosNetoEfectivo(e, desc), duplicada: esDup(e), inventarioRefs: Array.isArray(e.inventarioRefs) ? e.inventarioRefs : [] }; }),
     meses, mes, rango,
     resumen: costosResumen(entradas, desc),
+    // Reclasificaciones ya aplicadas por código: sirve para confirmar contra el
+    // server en vivo que la migración corrió y cuántos documentos movió.
+    migraciones: data.migraciones || {},
   });
 });
 // Buscador de documentos (costo/gasto) para vincular una nota de crédito. Cruza
