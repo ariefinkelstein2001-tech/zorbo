@@ -14481,6 +14481,15 @@
         "rendimiento": null,
         "volumen": 1,
         "ila": 0
+      },
+      {
+        "id": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+        "descripcion": "CERVEZA KAIROS",
+        "precioNeto": 2406,
+        "unidad": "litro",
+        "rendimiento": null,
+        "volumen": 1,
+        "ila": 0
       }
     ],
     "recetasBase": [
@@ -22270,6 +22279,231 @@
         ],
         "precioReal": null,
         "iva": false
+      },
+      {
+        "id": "4a68c9d8-849b-4a17-8acb-85be384dc6ab",
+        "nombre": "Imperio Perdido",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "e34e1e28-4c8c-4bea-92f9-7690cc81f398",
+        "nombre": "Secret Lab",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "0f4d0570-2c01-43ce-8d99-57c35b02cf04",
+        "nombre": "Alerta Roja",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "28a1954b-2fd9-43b8-8026-d9efb398bc26",
+        "nombre": "Galactic",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "12f3d518-4ada-4ddd-8997-98272fe44bd6",
+        "nombre": "Nada Personal",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "4de13809-53c3-4b62-be21-0172d7af5e7d",
+        "nombre": "Hoyo en Uno",
+        "categoria": "Colección de temporada (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "ea5bef44-6b9a-474f-ae5c-f4e3c8c544b2",
+        "nombre": "Ritual de la Banana",
+        "categoria": "Colección de temporada (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "708e4719-7c92-4f36-8833-6be5db535045",
+        "nombre": "Kenny Bell",
+        "categoria": "Colección de temporada (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "9658b9e2-b506-463e-9103-53c23f614033",
+        "nombre": "Obertura Stout",
+        "categoria": "Colección de temporada (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "27cb44e2-ceda-4395-8a56-1bf909a07a5d",
+        "nombre": "Samba",
+        "categoria": "Colección de temporada (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "f06b83bf-5ade-4d7b-af83-a1fa342b9cb0",
+        "nombre": "Good Bye My Lover",
+        "categoria": "Colección de artistas (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 4470,
+        "iva": false
+      },
+      {
+        "id": "4469eb07-c241-4c85-b8e5-dbacd2dc4947",
+        "nombre": "Valle Nevado",
+        "categoria": "Colección de artistas (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 4470,
+        "iva": false
+      },
+      {
+        "id": "17d18710-44e3-4cc4-a49b-7ec54b7a3396",
+        "nombre": "Goat Father",
+        "categoria": "Colección de artistas (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 4470,
+        "iva": false
+      },
+      {
+        "id": "90f0d7e2-f4a2-4ffc-8e00-e4de32da79ba",
+        "nombre": "Osagui",
+        "categoria": "Colección de artistas (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 4470,
+        "iva": false
+      },
+      {
+        "id": "5c9f846a-a4de-41a1-bca5-156a4f0a821f",
+        "nombre": "Firulais Chelada Craft Mix",
+        "categoria": "Firulais Craft Mix",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "e397f20e-0cc8-489a-9fb1-fee1a0d3010e",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
       }
     ],
     "categorias": [
@@ -29909,6 +30143,156 @@
           }
         ],
         "precioReal": null,
+        "iva": false
+      },
+      {
+        "id": "ca56dd9d-5a5b-40d4-8db4-32b7e64a0be3",
+        "nombre": "Nada Personal",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "31db1aae-514e-45fb-b90b-e08fe4c09f54",
+        "nombre": "Galactic",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "b1e65e1b-f5fd-4972-90e0-da5f7ece71dd",
+        "nombre": "Alerta Roja",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "9706a64f-bab3-4256-bdda-d3e8a160f2c7",
+        "nombre": "Secret Lab",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "1d29c3d1-bfd2-4a3a-9f47-1a40c0030829",
+        "nombre": "Imperio Perdido",
+        "categoria": "Colección de la casa (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "9f77a33c-ac20-42f5-b15a-063402e18f83",
+        "nombre": "Ritual de la Banana",
+        "categoria": "Colección de temporada (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "11758930-987e-4101-b8af-7d8b268ca7cc",
+        "nombre": "Samba",
+        "categoria": "Colección de temporada (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
+        "iva": false
+      },
+      {
+        "id": "acbe178c-30bf-46cb-8fc6-a4e1d1dd81aa",
+        "nombre": "Valle Nevado",
+        "categoria": "Colección de artistas (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 4470,
+        "iva": false
+      },
+      {
+        "id": "d33be89c-7310-4ecf-b36e-86a4b6560678",
+        "nombre": "Goat Father",
+        "categoria": "Colección de artistas (cervezas)",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 4470,
+        "iva": false
+      },
+      {
+        "id": "0d1773e7-a270-4a58-a5cb-98dbbcbb9ffb",
+        "nombre": "Firulais Chelada Craft Mix",
+        "categoria": "Firulais Craft Mix",
+        "margenPct": 30,
+        "lineas": [
+          {
+            "refType": "insumo",
+            "refId": "75a7a14f-7a35-40be-b73b-15542d591343",
+            "cantidad": 0.5
+          }
+        ],
+        "precioReal": 3770,
         "iva": false
       }
     ],
