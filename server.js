@@ -12787,7 +12787,8 @@ function costeoNormalizeCarta(c){
   const ckv = Number.isFinite(c.ckv) ? c.ckv : 0; // versión: cervezas Kairos de reventa → trago costeado
   const ckmv = Number.isFinite(c.ckmv) ? c.ckmv : 0; // versión: media pinta (250cc) de cada cerveza Kairos
   const blv = Number.isFinite(c.blv) ? c.blv : 0; // versión: Cortos/Botellas pasan de COCA COLA LATA CHICA a BEBIDA LATA (y botellas de 5 a 4 latas)
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, secciones, asignaciones };
+  const bvv = Number.isFinite(c.bvv) ? c.bvv : 0; // versión: la línea del espirituoso en Botellas usa el volumen real de CADA insumo, no un fijo de 750ml
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bvv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13242,11 +13243,11 @@ function costeoSeedBotellasBarra(doc, rest){
   if (bot && marcas.length) {
     const seccion = costeoStr(bot.seccion, 120) || 'Botellas';
     const sufijo = costeoStr(bot.sufijo, 40) || 'Botella';
-    const volumen = (Number(bot.volumen) > 0) ? Number(bot.volumen) : 0.75;
+    const volumen = (Number(bot.volumen) > 0) ? Number(bot.volumen) : 0.75; // fallback si el insumo no trae volumen propio
     const byName = new Map(); (doc.insumos || []).forEach(i => byName.set(costeoNorm(i.descripcion), i));
-    // La bebida es la misma lata del corto, solo que van 5.
+    // La bebida es la misma lata del corto, solo que van 4.
     const bebIns = costeoBarraBebidaIns(doc, byName, (bot.bebida || (seed.cortos && seed.cortos.bebida)));
-    const bebCant = (Number(bot.bebidas) > 0) ? Number(bot.bebidas) : 5;
+    const bebCant = (Number(bot.bebidas) > 0) ? Number(bot.bebidas) : 4;
     const platosPorNombre = new Set((doc.platos || []).map(p => costeoNorm(p.nombre)));
     const margenDef = (Number(bot.margenPct) > 0 && Number(bot.margenPct) <= 100) ? Number(bot.margenPct) : 30;
     marcas.forEach(cp => {
@@ -13256,7 +13257,10 @@ function costeoSeedBotellasBarra(doc, rest){
       const yaEsta = platosPorNombre.has(costeoNorm(nombre));
       const esp = costeoBarraEspirituosoIns(doc, byName, cp, !yaEsta);
       if (yaEsta || !esp) return;
-      const lineas = [{ refType: 'insumo', refId: esp.id, cantidad: volumen }];
+      // La botella se costea con el volumen REAL del insumo (ya cargado en
+      // Insumos); el fijo de seed.botellas.volumen es solo un fallback.
+      const volEsp = ((esp.unidad === 'litro' || esp.unidad === 'mililitro') && Number(esp.volumen) > 0) ? Number(esp.volumen) : volumen;
+      const lineas = [{ refType: 'insumo', refId: esp.id, cantidad: volEsp }];
       if (bebIns) lineas.push({ refType: 'insumo', refId: bebIns.id, cantidad: bebCant });
       doc.platos.push({ id: randomUUID(), nombre, categoria: seccion, margenPct: margenDef, lineas, precioReal: null, iva: false });
       platosPorNombre.add(costeoNorm(nombre));
@@ -13299,6 +13303,33 @@ function costeoFixBebidaLata(doc, rest){
     }
   }
   doc.carta.blv = BARRA_BEBIDA_LATA_V;
+  return true;
+}
+// Corrige la línea del espirituoso en cada plato de Botellas: se creó con un
+// volumen fijo (750 ml, el más común) para todas las marcas, pero no todas
+// vienen en botella de 750 — hay a 700 ml, 1 L, 1,5 L, etc. Cada insumo YA
+// tiene su volumen de botella real bien cargado (Nivel 1 · Insumos, no se
+// toca); esto solo hace que el plato "Botella" use ESE volumen en vez del
+// fijo. La línea de BEBIDA LATA no se toca. Corre una sola vez por doc de
+// barra (carta.bvv), después de costeoFixBebidaLata.
+const BARRA_BOTELLA_VOLUMEN_V = 1;
+function costeoFixBotellaVolumen(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.bvv >= BARRA_BOTELLA_VOLUMEN_V) return false;
+  const insById = new Map((doc.insumos || []).map(i => [i.id, i]));
+  const bebida = (doc.insumos || []).find(i => costeoNorm(i.descripcion) === costeoNorm('BEBIDA LATA'));
+  const bebidaId = bebida && bebida.id;
+  const botellasCat = costeoNorm('Botellas');
+  (doc.platos || []).forEach(p => {
+    if (costeoNorm(p.categoria) !== botellasCat) return;
+    (p.lineas || []).forEach(l => {
+      if (l.refType !== 'insumo' || l.refId === bebidaId) return;
+      const ins = insById.get(l.refId);
+      if (ins && (ins.unidad === 'litro' || ins.unidad === 'mililitro') && Number(ins.volumen) > 0) l.cantidad = Number(ins.volumen);
+    });
+  });
+  doc.carta.bvv = BARRA_BOTELLA_VOLUMEN_V;
   return true;
 }
 // ── Cervezas Kairos: de reventa a trago costeado ──
@@ -13412,6 +13443,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoSeedCortosBarra(all[key], rest)) ch = true;
     if (costeoSeedBotellasBarra(all[key], rest)) ch = true;
     if (costeoFixBebidaLata(all[key], rest)) ch = true;
+    if (costeoFixBotellaVolumen(all[key], rest)) ch = true;
     if (costeoCervezasKairos(all[key], rest)) ch = true;
     if (costeoCervezasKairosMediaPinta(all[key], rest)) ch = true;
   }
