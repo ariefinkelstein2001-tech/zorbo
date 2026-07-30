@@ -12551,7 +12551,8 @@ function costeoNormalizeCarta(c){
   const rvb = Number.isFinite(c.rvb) ? c.rvb : 0; // versión: sembrar productos de reventa de barra (destilados)
   const ctv = Number.isFinite(c.ctv) ? c.ctv : 0; // versión: sembrar los CORTOS de barra (espirituoso + lata chica)
   const btv = Number.isFinite(c.btv) ? c.btv : 0; // versión: sembrar las BOTELLAS de barra (botella + 5 latas chicas)
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, secciones, asignaciones };
+  const ckv = Number.isFinite(c.ckv) ? c.ckv : 0; // versión: cervezas Kairos de reventa → trago costeado
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13030,6 +13031,69 @@ function costeoSeedBotellasBarra(doc, rest){
   doc.carta.btv = BARRA_BOTELLAS_V;
   return true;
 }
+// ── Cervezas Kairos: de reventa a trago costeado ──
+// Las 4 categorías de cerveza propia (colecciones de la casa / temporada /
+// artistas y el Firulais Craft Mix) estaban cargadas como REVENTA: se veían en
+// Carta (resumen) con precio de compra a mano, sin insumo y sin aparecer en
+// Platos/Tragos. Como la cerveza la produce la casa, su costo sale del insumo
+// "CERVEZA KAIROS", así que cada producto pasa a ser un trago con esa única
+// línea y las secciones de reventa se eliminan (si no, quedarían duplicadas
+// abajo, en el bloque de reventa suelta).
+const CERVEZA_KAIROS_INS = 'CERVEZA KAIROS';
+// Servicio estándar = una pinta. La carta lo fija indirectamente: la Valle
+// Nevado "se sugiere en media pinta (250cc)" → la pinta entera es de 500 cc.
+const CERVEZA_KAIROS_LITROS = 0.5;
+// Insumo de Badass, que ya venía con la fusión de las cervezas a un solo insumo:
+// precio neto por litro + ILA de cerveza + despacho. Se usa para crear el insumo
+// en el restaurante que todavía no lo tenga.
+const CERVEZA_KAIROS_DEFAULT = { precioNeto: 1312, unidad: 'litro', volumen: 1, ila: 20.5, despacho: 868 };
+const CERVEZAS_KAIROS_SECCIONES = ['Colección de la casa', 'Colección de temporada', 'Colección de artistas', 'Firulais Craft Mix'];
+// Match laxo igual al de la pestaña Carta: ignora acentos, mayúsculas y el
+// paréntesis, para que "Colección de temporada" calce con la sección de carta
+// "Colección de temporada (cervezas)".
+const costeoNormSuelto = (s) => costeoNorm(String(s || '').replace(/\(.*?\)/g, ''));
+const CERVEZAS_KAIROS_V = 1;
+function costeoCervezasKairos(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.ckv >= CERVEZAS_KAIROS_V) return false;
+  // La reventa se siembra recién cuando se abre la pestaña; se fuerza acá para
+  // que no vuelva a plantar después las secciones que estamos por sacar.
+  costeoSeedReventa(doc, rest);
+  const objetivo = new Set(CERVEZAS_KAIROS_SECCIONES.map(costeoNormSuelto));
+  const secsRev = (doc.reventa.secciones || []).filter(s => objetivo.has(costeoNormSuelto(s.nombre)));
+  if (secsRev.length) {
+    // Insumo de la cerveza: el que ya esté cargado o uno nuevo con los valores de Badass.
+    let kairos = (doc.insumos || []).find(i => costeoNorm(i.descripcion) === costeoNorm(CERVEZA_KAIROS_INS));
+    if (!kairos) {
+      kairos = { id: randomUUID(), descripcion: CERVEZA_KAIROS_INS, rendimiento: null, ...CERVEZA_KAIROS_DEFAULT };
+      doc.insumos.push(kairos);
+    }
+    const platosPorNombre = new Set((doc.platos || []).map(p => costeoNorm(p.nombre)));
+    secsRev.forEach(sr => {
+      // La categoría del trago es la sección de la CARTA (con su "(cervezas)"),
+      // para que caiga en su sección y no en "Sin asignar".
+      const secCarta = (doc.carta.secciones || []).find(s => costeoNormSuelto(s.nombre) === costeoNormSuelto(sr.nombre));
+      const categoria = (secCarta && secCarta.nombre) || sr.nombre;
+      (sr.productos || []).forEach(pr => {
+        const nombre = costeoStr(pr.nombre, 200); if (!nombre) return;
+        if (platosPorNombre.has(costeoNorm(nombre))) return;
+        doc.platos.push({
+          id: randomUUID(), nombre, categoria, margenPct: 30, iva: false,
+          // El precio que ya estaba cargado como venta de reventa se conserva.
+          precioReal: costeoNumOrNull(pr.precioVenta),
+          lineas: [{ refType: 'insumo', refId: kairos.id, cantidad: CERVEZA_KAIROS_LITROS }],
+        });
+        platosPorNombre.add(costeoNorm(nombre));
+      });
+      if (!(doc.categorias || []).some(c => costeoNorm(c) === costeoNorm(categoria))) doc.categorias.push(categoria);
+    });
+    // Ya no son reventa: se sacan para que no se muestren dos veces.
+    doc.reventa.secciones = (doc.reventa.secciones || []).filter(s => !objetivo.has(costeoNormSuelto(s.nombre)));
+  }
+  doc.carta.ckv = CERVEZAS_KAIROS_V;
+  return true;
+}
 // Asegura los 2 docs de barra (garden_barra / badass_barra): los siembra desde el
 // Excel de barra si están vacíos y planta sus secciones de carta. Devuelve true si mutó.
 function costeoEnsureBarraDocs(all){
@@ -13044,6 +13108,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoSeedReventaBarra(all[key], rest)) ch = true;
     if (costeoSeedCortosBarra(all[key], rest)) ch = true;
     if (costeoSeedBotellasBarra(all[key], rest)) ch = true;
+    if (costeoCervezasKairos(all[key], rest)) ch = true;
   }
   return ch;
 }
