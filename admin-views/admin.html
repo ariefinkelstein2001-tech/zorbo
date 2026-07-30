@@ -713,6 +713,19 @@ body.chat-collapsed.admin-home .adm-chat-reopen,body.chat-collapsed.estado-activ
 .sio-canal-v{font-family:var(--display);font-size:1.35rem;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;margin:.2rem 0}
 .sio-canal-sub{font-family:var(--sans);font-size:.74rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .sio-canal-reason{font-family:var(--sans);font-size:.74rem;color:var(--muted);line-height:1.4}
+/* Detalle por SKU dentro de la tarjeta de canal (rotación del período). */
+.sio-sku-list{margin-top:.6rem;border-top:1px solid var(--border);padding-top:.45rem;max-height:15rem;overflow-y:auto}
+.sio-sku-h,.sio-sku-row{display:grid;grid-template-columns:1fr auto auto;gap:.5rem;align-items:baseline;font-family:var(--sans)}
+.sio-sku-h{font-size:.6rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding-bottom:.25rem}
+.sio-sku-h>div:not(:first-child){text-align:right;min-width:3.4rem}
+.sio-sku-row{font-size:.76rem;color:var(--text);padding:.2rem 0;border-top:1px solid var(--border)}
+.sio-sku-row:first-of-type{border-top:none}
+.sio-sku-n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sio-sku-fmt{color:var(--muted);font-size:.7rem;margin-left:.35rem}
+.sio-sku-l,.sio-sku-u{text-align:right;font-variant-numeric:tabular-nums;min-width:3.4rem}
+.sio-sku-l{font-weight:700}
+.sio-sku-u{color:var(--muted)}
+.sio-sku-nol{color:var(--muted);font-weight:400;font-size:.7rem}
 .sio-toggle{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:.4rem 0 .5rem}
 .sio-toggle button{
   border:0;background:var(--surface);color:var(--muted);font-family:var(--sans);font-size:.72rem;font-weight:700;
@@ -9646,12 +9659,36 @@ async function loadSellIn(){
     renderSellIn(d);
   } catch (e) { box.innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(e.message)}</div>`; }
 }
+// Detalle por SKU de un canal: qué estilo/formato se movió en el período. Es la
+// lectura de rotación — ordenado por litros, que es lo que se repone.
+function sioSkuList(c){
+  const skus = Array.isArray(c.skus) ? c.skus : [];
+  if (!skus.length) return '';
+  const rows = skus.map(s => {
+    const nombre = s.estilo || s.title || '(sin nombre)';
+    const fmt = s.formato ? `<span class="sio-sku-fmt">${escapeHtml(s.formato)}</span>` : '';
+    // Sin formato mapeado no se inventan litros: se muestran las unidades y se avisa.
+    const litros = s.sinFormato
+      ? `<span class="sio-sku-nol" title="Este formato no tiene equivalencia en litros cargada">s/ conversión</span>`
+      : fmtLitros(s.litros);
+    return `<div class="sio-sku-row">
+      <div class="sio-sku-n">${escapeHtml(nombre)}${fmt}</div>
+      <div class="sio-sku-l">${litros}</div>
+      <div class="sio-sku-u">${fmtUnid(s.unidades)}</div>
+    </div>`;
+  }).join('');
+  return `<div class="sio-sku-list">
+    <div class="sio-sku-h"><div>Estilo · formato</div><div>Litros</div><div>Unid.</div></div>
+    ${rows}
+  </div>`;
+}
 function sioCanalCard(label, c){
   if (!c || !c.available) return `<div class="sio-canal-card empty"><div class="sio-canal-k">${escapeHtml(label)}</div><div class="sio-canal-reason">${escapeHtml((c&&c.reason)||'Sin datos.')}</div></div>`;
   return `<div class="sio-canal-card">
     <div class="sio-canal-k">${escapeHtml(label)}</div>
     <div class="sio-canal-v">${fmtMoney(c.plata)}</div>
-    <div class="sio-canal-sub">${fmtLitros(c.litros)}</div>
+    <div class="sio-canal-sub">${fmtLitros(c.litros)} · ${fmtUnid(c.unidades||0)}</div>
+    ${sioSkuList(c)}
   </div>`;
 }
 function renderSellIn(d){

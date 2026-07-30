@@ -9693,6 +9693,123 @@ function sellinFormatoLabel(li, extras){
   return null;
 }
 const SELLIN_MARCAS = ['todas', 'kairos', 'firulais', 'banny'];
+// Nombre de estilo del diccionario de SKU (Golden, Pils, Apa…) para un producto.
+// Es el corte con el que se lee la rotación por canal: "qué estilo se movió".
+// Sale del estiloCodigo asignado en la ficha; si no está asignado, null (no se
+// adivina desde el título — para eso está el mapeo del diccionario).
+function sellinEstiloDeProducto(ex, estiloPorCodigo){
+  const cod = ex && ex.estiloCodigo;
+  return cod ? (estiloPorCodigo.get(String(cod)) || null) : null;
+}
+// Agregación de Sell In. Función pura sobre las órdenes ya filtradas por fecha:
+// mismo cálculo que antes vivía dentro de la ruta, extraído para poder correrlo
+// con datos de prueba sin depender de Shopify.
+function sellinAgregar(orders, { marca, extras, notes, customBrands, estiloPorCodigo }){
+  // Ancla de reconciliación: MISMO total que /admin/analytics/sales para el
+  // mismo rango (todas las marcas, todas las líneas mayoristas) — sirve
+  // para el QA "Sell In debe cuadrar con la fuente mayorista existente".
+  let checkRevenue = 0, checkOrders = 0;
+  for (const o of orders) {
+    const mayoLines = (o.lineItems || []).filter(isMayoristaLine);
+    if (!mayoLines.length) continue;
+    checkOrders++;
+    for (const li of mayoLines) checkRevenue += li.amount;
+  }
+
+  const canalVacio = () => ({ plata: 0, litros: 0, unidades: 0, litrosSinDatoQty: 0, lineas: 0 });
+  const porCanal = { horeca: canalVacio(), retail: canalVacio(), hospitality: canalVacio(), sin_canal: canalVacio() };
+  const byCliente = new Map();  // customerId → { id, name, plata, litros, canal }
+  const byProducto = new Map(); // productId  → { id, skuCode, title, plata, litros, canal, marca }
+  // Volumen por SKU DENTRO de cada canal: el corte que responde "qué estilo está
+  // rotando y qué falta potenciar". Se abre por producto Y formato, porque el
+  // pedido que se repone es de un formato concreto (barril 30L ≠ lata).
+  const bySku = new Map();      // canal|productId|formato → fila
+  let filtPlata = 0, filtLitros = 0, filtLitrosSinDatoQty = 0, filtUnidades = 0;
+
+  for (const o of orders) {
+    const mayoLines = (o.lineItems || []).filter(isMayoristaLine);
+    if (!mayoLines.length) continue;
+    const custName = [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim()
+      || o.shippingAddress?.company || o.customerEmail || '(cliente sin nombre)';
+    for (const li of mayoLines) {
+      const brandKey = brandFromProduct({ vendor: li.vendor, title: li.title, tags: li.tags }, customBrands);
+      if (marca !== 'todas' && brandKey !== marca) continue;
+
+      const canal = canalDeCliente(o.customerId, notes) || canalDeProductoSellin(li.productId, extras) || 'sin_canal';
+      const label = sellinFormatoLabel(li, extras);
+      const litrosUnidad = label != null ? skuFormatoLitros(label) : null;
+      const litrosLinea = litrosUnidad != null ? Math.round(litrosUnidad * li.qty * 1000) / 1000 : 0;
+      if (litrosUnidad == null) filtLitrosSinDatoQty += li.qty;
+
+      filtPlata += li.amount; filtLitros += litrosLinea; filtUnidades += li.qty;
+
+      const pc = porCanal[canal] || porCanal.sin_canal;
+      pc.plata += li.amount; pc.litros += litrosLinea; pc.unidades += li.qty; pc.lineas++;
+      if (litrosUnidad == null) pc.litrosSinDatoQty += li.qty;
+
+      const cid = o.customerId || ('sin-id:' + custName);
+      if (!byCliente.has(cid)) byCliente.set(cid, { id: o.customerId, name: custName, plata: 0, litros: 0, canal });
+      const bc = byCliente.get(cid);
+      bc.plata += li.amount; bc.litros += litrosLinea;
+
+      const pid = li.productId || ('sin-id:' + li.title);
+      const ex = li.productId ? extras.items[String(li.productId)] : null;
+      if (!byProducto.has(pid)) byProducto.set(pid, {
+        id: li.productId, skuCode: ex?.skuCode || null, title: li.title, plata: 0, litros: 0, canal, marca: brandKey,
+      });
+      const bp = byProducto.get(pid);
+      bp.plata += li.amount; bp.litros += litrosLinea;
+
+      const sKey = canal + '|' + pid + '|' + (label || '');
+      if (!bySku.has(sKey)) bySku.set(sKey, {
+        canal, id: li.productId, skuCode: ex?.skuCode || null, variantSku: li.variantSku || null,
+        title: li.title, estilo: sellinEstiloDeProducto(ex, estiloPorCodigo), formato: label,
+        marca: brandKey, plata: 0, litros: 0, unidades: 0, sinFormato: litrosUnidad == null,
+      });
+      const bs = bySku.get(sKey);
+      bs.plata += li.amount; bs.litros += litrosLinea; bs.unidades += li.qty;
+    }
+  }
+
+  for (const s of bySku.values()) {
+    const pc = porCanal[s.canal] || porCanal.sin_canal;
+    (pc.skus || (pc.skus = [])).push({ ...s, plata: Math.round(s.plata), litros: Math.round(s.litros * 1000) / 1000 });
+  }
+  for (const k of Object.keys(porCanal)) {
+    porCanal[k].plata = Math.round(porCanal[k].plata);
+    porCanal[k].litros = Math.round(porCanal[k].litros * 1000) / 1000;
+    porCanal[k].available = porCanal[k].lineas > 0;
+    // Por litros primero (es el volumen que se repone); la plata desempata, y
+    // así los formatos sin conversión a litros quedan ordenados entre ellos.
+    porCanal[k].skus = (porCanal[k].skus || []).sort((a, b) => (b.litros - a.litros) || (b.plata - a.plata));
+  }
+  porCanal.retail.reason = porCanal.retail.available ? null
+    : 'Sin datos: ningún cliente/producto mayorista de Shopify tiene canal Retail asignado en este período. Si Retail se abastece por otra vía (ej. Walmart, no facturado por Shopify), cárgalo en el Importador de Retail (Sell Out).';
+  porCanal.horeca.reason = porCanal.horeca.available ? null : 'Sin datos en este período.';
+  porCanal.hospitality.reason = porCanal.hospitality.available ? null : 'Sin datos en este período.';
+  porCanal.sin_canal.reason = porCanal.sin_canal.available ? 'Ventas mayoristas sin canal asignado al cliente ni al producto — asigná el canal para que salgan de este cajón.' : null;
+
+  const topClientes = [...byCliente.values()]
+    .map(x => ({ ...x, plata: Math.round(x.plata), litros: Math.round(x.litros * 1000) / 1000 }))
+    .sort((a, b) => b.plata - a.plata).slice(0, 10);
+  const topProductos = [...byProducto.values()]
+    .map(x => ({ ...x, plata: Math.round(x.plata), litros: Math.round(x.litros * 1000) / 1000 }))
+    .sort((a, b) => b.plata - a.plata).slice(0, 10);
+
+  return {
+    marca, marcas: SELLIN_MARCAS,
+    summary: {
+      revenue: Math.round(filtPlata),
+      litros: Math.round(filtLitros * 1000) / 1000,
+      unidades: filtUnidades,
+      litrosSinDatoQty: filtLitrosSinDatoQty,
+      litrosCobertura: filtUnidades > 0 ? Math.round((1 - filtLitrosSinDatoQty / filtUnidades) * 1000) / 1000 : null,
+    },
+    checkTotalMayorista: { revenue: Math.round(checkRevenue), orders: checkOrders },
+    porCanal,
+    topClientes, topProductos,
+  };
+}
 app.get('/admin/sellin', requireAdmin, async (req, res) => {
   const r = rangeFor(String(req.query.range || '30d'));
   const marca = SELLIN_MARCAS.includes(String(req.query.marca || 'todas')) ? String(req.query.marca || 'todas') : 'todas';
@@ -9703,98 +9820,13 @@ app.get('/admin/sellin', requireAdmin, async (req, res) => {
       const t = new Date(o.createdAt).getTime();
       return t >= r.from && t <= r.to;
     });
-    const extras = loadProductExtras();
-    const customBrands = getCustomBrands();
-    const notes = loadCustomerNotes();
-
-    // Ancla de reconciliación: MISMO total que /admin/analytics/sales para el
-    // mismo rango (todas las marcas, todas las líneas mayoristas) — sirve
-    // para el QA "Sell In debe cuadrar con la fuente mayorista existente".
-    let checkRevenue = 0, checkOrders = 0;
-    for (const o of orders) {
-      const mayoLines = (o.lineItems || []).filter(isMayoristaLine);
-      if (!mayoLines.length) continue;
-      checkOrders++;
-      for (const li of mayoLines) checkRevenue += li.amount;
-    }
-
-    const porCanal = {
-      horeca:      { plata: 0, litros: 0, litrosSinDatoQty: 0, lineas: 0 },
-      retail:      { plata: 0, litros: 0, litrosSinDatoQty: 0, lineas: 0 },
-      hospitality: { plata: 0, litros: 0, litrosSinDatoQty: 0, lineas: 0 },
-      sin_canal:   { plata: 0, litros: 0, litrosSinDatoQty: 0, lineas: 0 },
-    };
-    const byCliente = new Map();  // customerId → { id, name, plata, litros, canal }
-    const byProducto = new Map(); // productId  → { id, skuCode, title, plata, litros, canal, marca }
-    let filtPlata = 0, filtLitros = 0, filtLitrosSinDatoQty = 0, filtUnidades = 0;
-
-    for (const o of orders) {
-      const mayoLines = (o.lineItems || []).filter(isMayoristaLine);
-      if (!mayoLines.length) continue;
-      const custName = [o.customerFirstName, o.customerLastName].filter(Boolean).join(' ').trim()
-        || o.shippingAddress?.company || o.customerEmail || '(cliente sin nombre)';
-      for (const li of mayoLines) {
-        const brandKey = brandFromProduct({ vendor: li.vendor, title: li.title, tags: li.tags }, customBrands);
-        if (marca !== 'todas' && brandKey !== marca) continue;
-
-        const canal = canalDeCliente(o.customerId, notes) || canalDeProductoSellin(li.productId, extras) || 'sin_canal';
-        const label = sellinFormatoLabel(li, extras);
-        const litrosUnidad = label != null ? skuFormatoLitros(label) : null;
-        const litrosLinea = litrosUnidad != null ? Math.round(litrosUnidad * li.qty * 1000) / 1000 : 0;
-        if (litrosUnidad == null) filtLitrosSinDatoQty += li.qty;
-
-        filtPlata += li.amount; filtLitros += litrosLinea; filtUnidades += li.qty;
-
-        const pc = porCanal[canal] || porCanal.sin_canal;
-        pc.plata += li.amount; pc.litros += litrosLinea; pc.lineas++;
-        if (litrosUnidad == null) pc.litrosSinDatoQty += li.qty;
-
-        const cid = o.customerId || ('sin-id:' + custName);
-        if (!byCliente.has(cid)) byCliente.set(cid, { id: o.customerId, name: custName, plata: 0, litros: 0, canal });
-        const bc = byCliente.get(cid);
-        bc.plata += li.amount; bc.litros += litrosLinea;
-
-        const pid = li.productId || ('sin-id:' + li.title);
-        const ex = li.productId ? extras.items[String(li.productId)] : null;
-        if (!byProducto.has(pid)) byProducto.set(pid, {
-          id: li.productId, skuCode: ex?.skuCode || null, title: li.title, plata: 0, litros: 0, canal, marca: brandKey,
-        });
-        const bp = byProducto.get(pid);
-        bp.plata += li.amount; bp.litros += litrosLinea;
-      }
-    }
-
-    for (const k of Object.keys(porCanal)) {
-      porCanal[k].plata = Math.round(porCanal[k].plata);
-      porCanal[k].litros = Math.round(porCanal[k].litros * 1000) / 1000;
-      porCanal[k].available = porCanal[k].lineas > 0;
-    }
-    porCanal.retail.reason = porCanal.retail.available ? null
-      : 'Sin datos: ningún cliente/producto mayorista de Shopify tiene canal Retail asignado en este período. Si Retail se abastece por otra vía (ej. Walmart, no facturado por Shopify), cárgalo en el Importador de Retail (Sell Out).';
-    porCanal.horeca.reason = porCanal.horeca.available ? null : 'Sin datos en este período.';
-    porCanal.hospitality.reason = porCanal.hospitality.available ? null : 'Sin datos en este período.';
-    porCanal.sin_canal.reason = porCanal.sin_canal.available ? 'Ventas mayoristas sin canal asignado al cliente ni al producto — asigná el canal para que salgan de este cajón.' : null;
-
-    const topClientes = [...byCliente.values()]
-      .map(x => ({ ...x, plata: Math.round(x.plata), litros: Math.round(x.litros * 1000) / 1000 }))
-      .sort((a, b) => b.plata - a.plata).slice(0, 10);
-    const topProductos = [...byProducto.values()]
-      .map(x => ({ ...x, plata: Math.round(x.plata), litros: Math.round(x.litros * 1000) / 1000 }))
-      .sort((a, b) => b.plata - a.plata).slice(0, 10);
-
-    res.json({
-      available: true, range: r, marca, marcas: SELLIN_MARCAS,
-      summary: {
-        revenue: Math.round(filtPlata),
-        litros: Math.round(filtLitros * 1000) / 1000,
-        unidades: filtUnidades,
-        litrosSinDatoQty: filtLitrosSinDatoQty,
-        litrosCobertura: filtUnidades > 0 ? Math.round((1 - filtLitrosSinDatoQty / filtUnidades) * 1000) / 1000 : null,
-      },
-      checkTotalMayorista: { revenue: Math.round(checkRevenue), orders: checkOrders },
-      porCanal,
-      topClientes, topProductos,
+    const dicc = skuDiccLoad();
+    const estiloPorCodigo = new Map((dicc.estilos || []).map(e => [String(e.codigo), e.nombre]));
+    const agg = sellinAgregar(orders, {
+      marca, extras: loadProductExtras(), notes: loadCustomerNotes(),
+      customBrands: getCustomBrands(), estiloPorCodigo,
     });
+    res.json({ available: true, range: r, ...agg });
   } catch (e) {
     res.status(500).json({ error: 'Error en Sell In: ' + e.message });
   }
