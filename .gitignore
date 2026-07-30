@@ -24,5 +24,8 @@ prompts/puntos-ruta.json
 prompts/forecast-comercial.json
 prompts/comercial-resumen.json
 prompts/venta-historica-2025.json
+prompts/pyxis-cervezas.json
+prompts/pyxis-cervezas-resumen.json
+prompts/pyxis-cervezas-historia.json
 prompts/sku-diccionario.json
 public/uploads/

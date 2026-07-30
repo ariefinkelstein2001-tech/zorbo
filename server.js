@@ -7398,7 +7398,21 @@ const PYXIS_CERV_DEFAULT = {
   weakKw: ['\\bpils\\b', 'golden ale', 'stout', 'neipa', 'weizen', 'red ale', 'pale ale', '\\bipa\\b'],
   exclude: ['sour', 'pisco', 'mojito', 'margarita', '\\bgin\\b', 'tonic', 'spritz', 'sangria', 'sangrona', 'negroni', 'martini', 'martin', 'whisky', 'whiskey', 'vodka', '\\bron\\b', 'tequila', 'fernet', 'aperol', 'ramaz', 'piscol', 'don julio', 'johnnie', 'jack daniels', 'macallan', 'jager', 'tanqueray', 'grey goose', 'hendrick', 'st germain', 'amaretto', 'rumchata', 'carajillo', 'clericot', 'vaina', 'tom collins', 'moscow', 'paloma', 'mezcal', '\\bsake\\b', 'daiquiri', 'daikiri', 'caipir', 'cosmopol', 'chilcano', 'algarrobina', 'borgo'],
   overrides: {},   // { "Nombre exacto del producto": "kairos" | "otra" | "no" }
+  // Locales del grupo que son NUESTROS: adentro de ellos Kairos es la casa, así
+  // que inflan la participación y tapan cómo vamos en el resto de GMS. Se
+  // matchean por texto contenido en el nombre del local (sin acentos).
+  localesPropios: ['garden vespucio', 'garden antofagasta', 'badass'],
 };
+const pyxisNorm = (s) => String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+// ¿El local es de los nuestros? Match por contención sobre el nombre normalizado,
+// para que "Kairos Garden Vespucio" o "GARDEN VESPUCIO 2" también entren.
+function pyxisEsLocalPropio(nombreLocal, cfg){
+  const n = pyxisNorm(nombreLocal); if (!n) return false;
+  return (cfg.localesPropios || []).some(p => { const q = pyxisNorm(p); return q && n.includes(q); });
+}
+// Alcance del análisis: todo el grupo, el grupo SIN nuestros locales (la lectura
+// no sesgada) o solo nuestros locales.
+const PYXIS_ALCANCES = ['todos', 'sin_propios', 'solo_propios'];
 function pyxisCervCfgLoad(){ try { if (existsSync(PYXIS_CERV_FILE)) return { ...PYXIS_CERV_DEFAULT, ...JSON.parse(readFileSync(PYXIS_CERV_FILE, 'utf-8')) }; } catch (e) { console.warn('pyxis cerv cfg:', e.message); } return { ...PYXIS_CERV_DEFAULT, overrides: {} }; }
 function pyxisCervCfgSave(o){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(PYXIS_CERV_FILE, JSON.stringify(o, null, 2)); }
 // Clasifica un producto de "Con Alcohol": 'kairos' (marca propia), 'otra' (competencia)
@@ -7430,6 +7444,9 @@ async function pyxisVentasRows(grupo, force){
 const PYXIS_MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 // Los 3 períodos p1/p2/p3 son los últimos 3 meses (p3 = mes actual).
 function pyxisMesesLabels(){ const d = new Date(); const out = []; for (let i = 2; i >= 0; i--) { const dd = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - i, 1)); out.push(PYXIS_MESES[dd.getUTCMonth()] + ' ' + dd.getUTCFullYear()); } return out; }
+// Los mismos 3 períodos como clave estable "AAAA-MM", para indexar la historia.
+function pyxisMesesKeys(){ const d = new Date(); const out = []; for (let i = 2; i >= 0; i--) { const dd = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - i, 1)); out.push(dd.getUTCFullYear() + '-' + String(dd.getUTCMonth() + 1).padStart(2, '0')); } return out; }
+const pyxisMesLabel = (key) => { const [y, m] = String(key || '').split('-'); const i = Number(m) - 1; return (PYXIS_MESES[i] || '?') + ' ' + y; };
 async function pyxisCervezasResumen(grupo, opts){
   opts = opts || {};
   const rows = await pyxisVentasRows(grupo, opts.force);
@@ -7437,10 +7454,17 @@ async function pyxisCervezasResumen(grupo, opts){
   const num = x => { const n = Number(x); return Number.isFinite(n) ? n : 0; };
   const norm = s => String(s == null ? '' : s).trim();
   const fS = norm(opts.sector), fL = norm(opts.local), fM = norm(opts.marca);
+  const alcance = PYXIS_ALCANCES.includes(String(opts.alcance || '')) ? String(opts.alcance) : 'todos';
   const prod = new Map();      // nombre → { tipo, m:[3], q:[3], total, cant, locales:Map }
-  const localTot = new Map();  // local → { kairos, otras }
+  const localTot = new Map();  // local → { kairos, otras, kairosM[3], otrasM[3], propio }
   const sinClas = new Map();   // productos "Con Alcohol" no clasificados como cerveza
   const optS = new Set(), optL = new Set(), optM = new Set(); // opciones de filtro (de filas cerveza)
+  // Corte propios / resto de GMS: se agrega SIEMPRE con los mismos filtros de
+  // sector/marca pero ignorando el alcance, para poder mostrar los tres bloques
+  // comparados aunque estés viendo uno solo.
+  const grupoVacio = () => ({ kairos: 0, otras: 0, kairosM: [0, 0, 0], otrasM: [0, 0, 0] });
+  const porGrupo = { total: grupoVacio(), propios: grupoVacio(), resto: grupoVacio() };
+  const propiosDetalle = new Map(); // local propio → grupoVacio()
   for (const r of rows) {
     if (!/con\s*alcohol/i.test(String(r.familia || ''))) continue;
     const nombre = norm(r.nombreProducto); if (!nombre) continue;
@@ -7454,38 +7478,147 @@ async function pyxisCervezasResumen(grupo, opts){
     const m = [num(r.p1), num(r.p2), num(r.p3)]; const q = [num(r.q1), num(r.q2), num(r.q3)];
     const tot = m[0] + m[1] + m[2], can = q[0] + q[1] + q[2];
     if (!tipo) { const s = sinClas.get(nombre) || { total: 0 }; s.total += tot; sinClas.set(nombre, s); continue; }
+    const loc = norm(r.nombreLocal) || '—';
+    const propio = pyxisEsLocalPropio(loc, cfg);
+    // Comparativa propios vs resto: se llena antes de aplicar el alcance.
+    const campo = tipo === 'kairos' ? 'kairos' : 'otras';
+    for (const g of [porGrupo.total, propio ? porGrupo.propios : porGrupo.resto]) {
+      g[campo] += tot;
+      for (let i = 0; i < 3; i++) g[campo + 'M'][i] += m[i];
+    }
+    // Cada local propio por separado, sin importar el alcance elegido: es la
+    // comparación que se sigue mes a mes (Vespucio vs Antofagasta vs Badass).
+    if (propio) {
+      let dp = propiosDetalle.get(loc);
+      if (!dp) { dp = grupoVacio(); propiosDetalle.set(loc, dp); }
+      dp[campo] += tot;
+      for (let i = 0; i < 3; i++) dp[campo + 'M'][i] += m[i];
+    }
+    if (alcance === 'sin_propios' && propio) continue;
+    if (alcance === 'solo_propios' && !propio) continue;
     let p = prod.get(nombre);
     if (!p) { p = { nombre, tipo, m: [0, 0, 0], q: [0, 0, 0], total: 0, cant: 0, locales: new Map() }; prod.set(nombre, p); }
     for (let i = 0; i < 3; i++) { p.m[i] += m[i]; p.q[i] += q[i]; } p.total += tot; p.cant += can;
-    const loc = norm(r.nombreLocal) || '—'; p.locales.set(loc, (p.locales.get(loc) || 0) + tot);
-    const lt = localTot.get(loc) || { kairos: 0, otras: 0 }; lt[tipo === 'kairos' ? 'kairos' : 'otras'] += tot; localTot.set(loc, lt);
+    p.locales.set(loc, (p.locales.get(loc) || 0) + tot);
+    let lt = localTot.get(loc);
+    if (!lt) { lt = { kairos: 0, otras: 0, kairosM: [0, 0, 0], otrasM: [0, 0, 0], propio }; localTot.set(loc, lt); }
+    lt[campo] += tot;
+    for (let i = 0; i < 3; i++) lt[campo + 'M'][i] += m[i];
   }
   const arr = [...prod.values()].map(p => ({ nombre: p.nombre, tipo: p.tipo, m: p.m.map(Math.round), q: p.q, total: Math.round(p.total), cant: p.cant, topLocales: [...p.locales.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([l, v]) => ({ local: l, total: Math.round(v) })) }));
   const kairos = arr.filter(p => p.tipo === 'kairos').sort((a, b) => b.total - a.total);
   const otras = arr.filter(p => p.tipo === 'otra').sort((a, b) => b.total - a.total);
   const sum = a => a.reduce((s, p) => s + p.total, 0), sumC = a => a.reduce((s, p) => s + p.cant, 0);
   const kTot = sum(kairos), oTot = sum(otras), cTot = kTot + oTot;
-  const localesTop = [...localTot.entries()].map(([local, v]) => ({ local, kairos: Math.round(v.kairos), otras: Math.round(v.otras), total: Math.round(v.kairos + v.otras) })).sort((a, b) => b.kairos - a.kairos);
+  const localesTop = [...localTot.entries()].map(([local, v]) => ({ local, propio: !!v.propio, kairos: Math.round(v.kairos), otras: Math.round(v.otras), total: Math.round(v.kairos + v.otras) })).sort((a, b) => b.kairos - a.kairos);
+  // Bloque comparado + serie por mes de cada bloque. El share por mes es lo que
+  // se guarda en la historia: es la métrica que se sigue en el tiempo.
+  const cerrarGrupo = (g) => {
+    const cerv = g.kairos + g.otras;
+    return {
+      kairos: Math.round(g.kairos), otras: Math.round(g.otras), cervezas: Math.round(cerv),
+      shareKairos: cerv ? Math.round(g.kairos / cerv * 1000) / 10 : 0,
+      porMes: [0, 1, 2].map(i => {
+        const c = g.kairosM[i] + g.otrasM[i];
+        return { kairos: Math.round(g.kairosM[i]), otras: Math.round(g.otrasM[i]), cervezas: Math.round(c), shareKairos: c ? Math.round(g.kairosM[i] / c * 1000) / 10 : 0 };
+      }),
+    };
+  };
   return {
-    grupo, meses: pyxisMesesLabels(), generadoEn: new Date().toISOString(),
-    filtros: { sector: fS, local: fL, marca: fM },
+    grupo, meses: pyxisMesesLabels(), mesesKeys: pyxisMesesKeys(), generadoEn: new Date().toISOString(),
+    filtros: { sector: fS, local: fL, marca: fM }, alcance, alcances: PYXIS_ALCANCES,
     opciones: { sectores: [...optS].sort(), locales: [...optL].sort(), marcas: [...optM].sort() },
     totales: { kairos: kTot, otras: oTot, cervezas: cTot, shareKairos: cTot ? Math.round(kTot / cTot * 1000) / 10 : 0, kairosCant: sumC(kairos), otrasCant: sumC(otras), nKairos: kairos.length, nOtras: otras.length },
+    porGrupo: { total: cerrarGrupo(porGrupo.total), propios: cerrarGrupo(porGrupo.propios), resto: cerrarGrupo(porGrupo.resto) },
+    propiosDetalle: [...propiosDetalle.entries()].map(([local, g]) => ({ local, ...cerrarGrupo(g) })).sort((a, b) => b.cervezas - a.cervezas),
+    localesPropios: cfg.localesPropios || [],
     kairos, otras, localesTop: localesTop.slice(0, 15),
     sinClasificar: [...sinClas.entries()].map(([nombre, v]) => ({ nombre, total: Math.round(v.total) })).sort((a, b) => b.total - a.total).slice(0, 50),
   };
 }
-function pyxisCervOpts(req){ const g = req.query || req.body || {}; return { sector: g.sector, local: g.local, marca: g.marca }; }
+// ── Historia mes a mes de la participación de Kairos en GMS ──
+// Pyxis solo expone los últimos 3 meses (p1/p2/p3), así que la serie larga hay
+// que ir guardándola: cada lectura SIN filtros graba esos 3 meses. El mes en
+// curso se pisa en cada pasada (va incompleto hasta que cierra) y los meses
+// viejos quedan congelados aunque Pyxis ya no los devuelva.
+// Junto a la serie viven los HITOS (máquinas shoperas, Osagui, beer tour…), que
+// son los que permiten leer un salto de participación contra lo que se hizo.
+const PYXIS_CERV_HIST_FILE = join(PROMPTS_EFFECTIVE_DIR, 'pyxis-cervezas-historia.json');
+function pyxisHistLoad(){
+  try { if (existsSync(PYXIS_CERV_HIST_FILE)) { const h = JSON.parse(readFileSync(PYXIS_CERV_HIST_FILE, 'utf-8')); return { version: 1, meses: h.meses && typeof h.meses === 'object' ? h.meses : {}, hitos: Array.isArray(h.hitos) ? h.hitos : [] }; } }
+  catch (e) { console.warn('pyxis cerv historia:', e.message); }
+  return { version: 1, meses: {}, hitos: [] };
+}
+function pyxisHistSave(h){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(PYXIS_CERV_HIST_FILE, JSON.stringify(h, null, 2)); }
+// Graba los 3 meses del resumen. Solo se llama con el resumen SIN filtros: si no,
+// la serie mezclaría recortes distintos y dejaría de ser comparable mes a mes.
+function pyxisHistGuardar(d){
+  if (!d || !Array.isArray(d.mesesKeys)) return false;
+  const h = pyxisHistLoad();
+  const foto = (g, i) => ({ kairos: g.porMes[i].kairos, otras: g.porMes[i].otras, cervezas: g.porMes[i].cervezas, shareKairos: g.porMes[i].shareKairos });
+  let cambio = false;
+  d.mesesKeys.forEach((key, i) => {
+    const reg = {
+      mes: key, actualizadoEn: new Date().toISOString(),
+      total: foto(d.porGrupo.total, i), propios: foto(d.porGrupo.propios, i), resto: foto(d.porGrupo.resto, i),
+      locales: Object.fromEntries((d.propiosDetalle || []).map(p => [p.local, foto(p, i)])),
+    };
+    const ant = h.meses[key];
+    // Un mes sin venta (Pyxis todavía no lo cargó) no pisa un mes ya guardado.
+    if (!reg.total.cervezas && ant) return;
+    const igual = ant && JSON.stringify({ ...ant, actualizadoEn: 0 }) === JSON.stringify({ ...reg, actualizadoEn: 0 });
+    if (igual) return;
+    h.meses[key] = reg; cambio = true;
+  });
+  if (cambio) pyxisHistSave(h);
+  return cambio;
+}
+function pyxisHistSerie(){
+  const h = pyxisHistLoad();
+  const meses = Object.keys(h.meses).sort().map(k => ({ ...h.meses[k], mes: k, label: pyxisMesLabel(k) }));
+  const hitos = h.hitos.slice().sort((a, b) => String(a.mes).localeCompare(String(b.mes)));
+  // Locales propios que aparecen en algún mes, para armar las columnas.
+  const locales = [...new Set(meses.flatMap(m => Object.keys(m.locales || {})))].sort();
+  return { meses, hitos, locales };
+}
+function pyxisCervOpts(req){ const g = req.query || req.body || {}; return { sector: g.sector, local: g.local, marca: g.marca, alcance: g.alcance }; }
 app.get('/admin/pyxis/cervezas', requireAdmin, async (req, res) => {
-  try { const grupo = String(req.query.grupo || 2).replace(/[^0-9]/g, '') || '2'; res.json(await pyxisCervezasResumen(grupo, { ...pyxisCervOpts(req), force: req.query.force === '1' })); }
+  try {
+    const grupo = String(req.query.grupo || 2).replace(/[^0-9]/g, '') || '2';
+    const d = await pyxisCervezasResumen(grupo, { ...pyxisCervOpts(req), force: req.query.force === '1' });
+    // La historia se alimenta sola, pero solo con la vista completa del grupo.
+    if (!d.filtros.sector && !d.filtros.local && !d.filtros.marca) { try { pyxisHistGuardar(d); } catch (e) { console.warn('pyxis hist:', e.message); } }
+    res.json({ ...d, historia: pyxisHistSerie() });
+  }
   catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
+});
+app.get('/admin/pyxis/cervezas/historia', requireAdmin, (_req, res) => res.json(pyxisHistSerie()));
+// Hitos: qué se hizo y cuándo, para poder atribuir los saltos de participación.
+app.post('/admin/pyxis/cervezas/hitos', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const mes = String(b.mes || '').trim();
+  if (!/^\d{4}-\d{2}$/.test(mes)) return res.status(400).json({ error: 'Mes inválido (formato AAAA-MM).' });
+  const titulo = String(b.titulo || '').trim().slice(0, 120);
+  if (!titulo) return res.status(400).json({ error: 'Falta el título del hito.' });
+  const h = pyxisHistLoad();
+  h.hitos.push({ id: randomUUID(), mes, titulo, local: String(b.local || '').trim().slice(0, 120), nota: String(b.nota || '').trim().slice(0, 400) });
+  pyxisHistSave(h);
+  res.json(pyxisHistSerie());
+});
+app.delete('/admin/pyxis/cervezas/hitos/:id', requireAdmin, (req, res) => {
+  const h = pyxisHistLoad();
+  const id = String(req.params.id);
+  const n = h.hitos.length;
+  h.hitos = h.hitos.filter(x => x.id !== id);
+  if (h.hitos.length !== n) pyxisHistSave(h);
+  res.json(pyxisHistSerie());
 });
 app.get('/admin/pyxis/cervezas/config', requireAdmin, (_req, res) => res.json(pyxisCervCfgLoad()));
 app.put('/admin/pyxis/cervezas/config', requireAdmin, (req, res) => {
   const cur = pyxisCervCfgLoad(); const b = req.body || {};
   if (!cur.overrides) cur.overrides = {};
   if (b.overrides && typeof b.overrides === 'object') for (const [k, v] of Object.entries(b.overrides)) { if (v == null || v === '') delete cur.overrides[k]; else if (['kairos', 'otra', 'no'].includes(v)) cur.overrides[String(k).slice(0, 120)] = v; }
-  for (const key of ['kairosBrands', 'beerBrands', 'strongKw', 'weakKw', 'exclude']) if (Array.isArray(b[key])) cur[key] = b[key].map(s => String(s).slice(0, 60)).slice(0, 160);
+  for (const key of ['kairosBrands', 'beerBrands', 'strongKw', 'weakKw', 'exclude', 'localesPropios']) if (Array.isArray(b[key])) cur[key] = b[key].map(s => String(s).slice(0, 60)).slice(0, 160);
   pyxisCervCfgSave(cur); res.json(cur);
 });
 const PYXIS_CERV_RESUMEN_FILE = join(PROMPTS_EFFECTIVE_DIR, 'pyxis-cervezas-resumen.json');
@@ -7505,12 +7638,25 @@ app.post('/admin/pyxis/cervezas/resumen/generar', requireAdmin, async (req, res)
       `TOTAL cervezas: ${fmt(d.totales.cervezas)}.`,
       `Kairos (marcas propias): ${fmt(d.totales.kairos)} = ${d.totales.shareKairos}% del total, ${d.totales.kairosCant} unidades, ${d.totales.nKairos} productos.`,
       `Otras cervezas (competencia): ${fmt(d.totales.otras)} = ${Math.round((100 - d.totales.shareKairos) * 10) / 10}%, ${d.totales.otrasCant} unidades, ${d.totales.nOtras} productos.`,
+      ``,
+      `LECTURA SIN SESGO — el grupo incluye locales NUESTROS (${(d.localesPropios || []).join(', ') || 'ninguno configurado'}), donde Kairos es la cerveza de la casa:`,
+      `  · Resto de GMS (sin nuestros locales): ${fmt(d.porGrupo.resto.cervezas)} de cerveza, Kairos ${fmt(d.porGrupo.resto.kairos)} = ${d.porGrupo.resto.shareKairos}%. Esta es la participación real ganada afuera.`,
+      `  · Locales propios: ${fmt(d.porGrupo.propios.cervezas)} de cerveza, Kairos ${fmt(d.porGrupo.propios.kairos)} = ${d.porGrupo.propios.shareKairos}%.`,
+      ...(d.propiosDetalle || []).map(p => `      · ${p.local}: Kairos ${p.shareKairos}% (${fmt(p.kairos)} de ${fmt(p.cervezas)})`),
+      ...(() => {
+        // Serie mes a mes con los hitos, para que pueda hablar de evolución sin inventarla.
+        const H = pyxisHistSerie();
+        if (!H.meses.length) return [];
+        const hitosPorMes = {}; H.hitos.forEach(h => { (hitosPorMes[h.mes] = hitosPorMes[h.mes] || []).push(h.titulo + (h.local ? ' (' + h.local + ')' : '')); });
+        return ['', 'EVOLUCIÓN mes a mes de la participación de Kairos (guardada, incluye meses fuera del período de arriba):',
+          ...H.meses.map(m => `  · ${m.label}: resto de GMS ${m.resto.shareKairos}% · total GMS ${m.total.shareKairos}% · propios ${m.propios.shareKairos}%${hitosPorMes[m.mes] ? ' — HITOS ese mes: ' + hitosPorMes[m.mes].join('; ') : ''}`)];
+      })(),
       ``, `Top cervezas Kairos:`, top(d.kairos),
       ``, `Top cervezas competencia:`, top(d.otras),
       ``, `Locales por venta Kairos (Kairos $ / otras $):`,
       (d.localesTop.slice(0, 12).map(l => `  · ${l.local}: Kairos ${fmt(l.kairos)} / otras ${fmt(l.otras)}`).join('\n') || '  (sin datos)'),
     ].join('\n');
-    const sys = 'Sos analista comercial de Kairos (cervecería artesanal). Analizás las ventas de cervezas en los locales HORECA de Grupo Mil Sabores. Escribe en español chileno neutro (tuteo), claro y accionable, en 2 o 3 párrafos breves. Cubre: cómo venden las cervezas Kairos vs la competencia (participación), qué productos Kairos lideran, en qué locales pegan más y dónde hay oportunidad (locales donde la competencia domina y Kairos casi no vende). REGLA ABSOLUTA: usá ÚNICAMENTE los números que te paso abajo; NO inventes ni estimes NINGÚN número ni causa; si falta un dato, omitilo.';
+    const sys = 'Sos analista comercial de Kairos (cervecería artesanal). Analizás las ventas de cervezas en los locales HORECA de Grupo Mil Sabores. Escribe en español chileno neutro (tuteo), claro y accionable, en 2 o 3 párrafos breves. Cubre: cómo venden las cervezas Kairos vs la competencia (participación), qué productos Kairos lideran, en qué locales pegan más y dónde hay oportunidad (locales donde la competencia domina y Kairos casi no vende). IMPORTANTE: el grupo incluye locales propios de Kairos, donde la cerveza de la casa es Kairos; la participación que importa para medir cómo vamos afuera es la del RESTO de GMS, así que usá esa como cifra principal y mencioná la total solo como contexto. Si hay serie mes a mes, comentá la tendencia; si hay hitos marcados en un mes, podés señalar que coinciden en el tiempo con un cambio, pero NO afirmes que lo causaron. REGLA ABSOLUTA: usá ÚNICAMENTE los números que te paso abajo; NO inventes ni estimes NINGÚN número ni causa; si falta un dato, omitilo.';
     const msg = await client.messages.create({ model: 'claude-sonnet-4-6', max_tokens: 900, system: sys, messages: [{ role: 'user', content: 'Cifras reales (de Pyxis):\n' + datos }] });
     const texto = (msg.content || []).filter(c => c.type === 'text').map(c => c.text).join('').trim();
     const out = { texto, generadoEn: new Date().toISOString(), grupo, meses: d.meses };

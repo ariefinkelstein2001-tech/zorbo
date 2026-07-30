@@ -1366,6 +1366,11 @@ body.drawer-open{overflow:hidden}
 .adm-growth-tools select{max-width:200px}
 .adm-growth-count{font-family:var(--sans);font-size:.72rem;color:var(--muted);margin-bottom:.35rem}
 .adm-growth-sku{font-family:var(--mono);font-size:.68rem;color:var(--muted);margin-left:.4rem}
+/* Chips de hitos en la serie mes a mes de HORECA. */
+.hor-hito{display:inline-block;background:#fff4d6;border:1px solid #f2e3b8;color:#8a6d00;border-radius:999px;
+  font-family:var(--sans);font-size:.68rem;padding:.1rem .45rem;margin:.1rem .25rem .1rem 0}
+.hor-hito a{color:#b58a00;text-decoration:none;margin-left:.2rem;font-weight:700}
+.hor-hito a:hover{color:#c0392b}
 
 /* Mejores días del mes */
 .adm-bestdays{display:flex;flex-direction:column;gap:.55rem}
@@ -12755,10 +12760,12 @@ document.getElementById('ncReload').onclick=loadNotasCredito;
 finRangeWire('nc', loadNotasCredito);
 
 // ─── Ventas HORECA (Pyxis): cervezas Kairos vs competencia ─────────────────
-let horecaData=null, horecaResumen=null, horecaFiltros={sector:'',local:'',marca:''}, horecaTimer=null;
+let horecaData=null, horecaResumen=null, horecaFiltros={sector:'',local:'',marca:''}, horecaAlcance='todos', horecaTimer=null;
 const HORECA_AUTO_MS=120000; // auto-refresh cada 2 min (tiempo real)
 const hClp=n=>'$'+(Math.round(Number(n)||0)).toLocaleString('es-CL');
-function horecaQS(force){ const q=new URLSearchParams({grupo:'2'}); if(horecaFiltros.sector)q.set('sector',horecaFiltros.sector); if(horecaFiltros.local)q.set('local',horecaFiltros.local); if(horecaFiltros.marca)q.set('marca',horecaFiltros.marca); if(force)q.set('force','1'); return q.toString(); }
+// Alcance: GMS entero, GMS sin nuestros locales (la lectura no sesgada) o solo los nuestros.
+const HORECA_ALCANCE_LBL={todos:'Todo GMS', sin_propios:'GMS sin locales propios', solo_propios:'Solo locales propios'};
+function horecaQS(force){ const q=new URLSearchParams({grupo:'2'}); if(horecaFiltros.sector)q.set('sector',horecaFiltros.sector); if(horecaFiltros.local)q.set('local',horecaFiltros.local); if(horecaFiltros.marca)q.set('marca',horecaFiltros.marca); if(horecaAlcance&&horecaAlcance!=='todos')q.set('alcance',horecaAlcance); if(force)q.set('force','1'); return q.toString(); }
 function horecaAgenda(){ if(horecaTimer) clearTimeout(horecaTimer); horecaTimer=setTimeout(()=>{ const v=document.getElementById('horecaView'); if(v&&v.style.display!=='none') loadHoreca(true,true); }, HORECA_AUTO_MS); }
 async function loadHoreca(force,silent){
   const body=document.getElementById('horecaBody');
@@ -12793,8 +12800,13 @@ function renderHoreca(){
     <label class="cg-field" style="min-width:150px;flex:1"><span>Sector</span><select id="hfSector" class="costeo-svc">${opt(O.sectores,F.sector)}</select></label>
     <label class="cg-field" style="min-width:150px;flex:1"><span>Local</span><select id="hfLocal" class="costeo-svc">${opt(O.locales,F.local)}</select></label>
     <label class="cg-field" style="min-width:150px;flex:1"><span>Marca (local)</span><select id="hfMarca" class="costeo-svc">${opt(O.marcas,F.marca)}</select></label>
+    <label class="cg-field" style="min-width:180px;flex:1"><span>Alcance</span><select id="hfAlcance" class="costeo-svc">${(d.alcances||['todos']).map(a=>`<option value="${a}" ${a===d.alcance?'selected':''}>${escapeHtml(HORECA_ALCANCE_LBL[a]||a)}</option>`).join('')}</select></label>
     ${hayF?'<button class="adm-btn adm-btn-ghost" id="hfClear" type="button">✕ Limpiar</button>':''}
   </div>`;
+  const alcAviso = d.alcance==='todos' ? '' :
+    `<div class="est-note" style="margin:-.5rem 0 1rem;color:#8a6d00;background:#fff8e6;border:1px solid #f2e3b8;border-radius:10px;padding:.5rem .8rem">
+      Estás viendo <b>${escapeHtml(HORECA_ALCANCE_LBL[d.alcance])}</b> — los números de abajo (KPIs, productos y locales) excluyen el resto.
+    </div>`;
   const kpi=(label,val,sub,color)=>`<div style="flex:1;min-width:150px;background:#fff;border:1px solid #eef0f3;border-radius:12px;padding:.8rem 1rem;box-shadow:0 1px 3px rgba(0,0,0,.04)"><div style="font-size:.7rem;color:#7a8290;text-transform:uppercase;letter-spacing:.03em">${label}</div><div style="font-size:1.25rem;font-weight:800;color:${color||'#0b2a5e'};margin-top:.15rem">${val}</div><div style="font-size:.72rem;color:#7a8290;margin-top:.1rem">${sub||''}</div></div>`;
   const kpis=`<div style="display:flex;gap:.7rem;flex-wrap:wrap;margin-bottom:1rem">
     ${kpi('Total cervezas',hClp(T.cervezas),(T.nKairos+T.nOtras)+' productos · '+(T.kairosCant+T.otrasCant).toLocaleString('es-CL')+' u')}
@@ -12802,6 +12814,12 @@ function renderHoreca(){
     ${kpi('Otras cervezas',hClp(T.otras),(Math.round((100-T.shareKairos)*10)/10)+'% del total','#c1447e')}
     ${kpi('Participación Kairos',T.shareKairos+'%','de la venta de cerveza','#f5a623')}
   </div>`;
+  // Propios vs resto de GMS: el corte que saca el sesgo de nuestros propios
+  // locales, donde Kairos es la casa. Se muestra siempre completo, sin importar
+  // el alcance elegido arriba.
+  const cmp=horecaComparativa(d);
+  // Evolución mes a mes (serie guardada) + hitos.
+  const hist=horecaHistoriaBloque(d);
   // Resumen IA
   const R=horecaResumen;
   const iaTxt=R&&R.texto?`<div style="white-space:pre-wrap;line-height:1.5;font-size:.9rem">${escapeHtml(R.texto)}</div><div style="font-size:.7rem;color:#9098a3;margin-top:.4rem">Generado ${R.generadoEn?prodDT(R.generadoEn):''} · solo con cifras reales de Pyxis</div>`
@@ -12837,12 +12855,91 @@ function renderHoreca(){
     <div class="mun-wrap" style="margin-top:.4rem"><table class="mun-table"><thead><tr><th>Producto</th><th>Monto (excluido)</th><th>Reclasificar</th></tr></thead><tbody>
     ${sinC.map(s=>`<tr><td>${escapeHtml(s.nombre)}</td><td class="dist-num" style="color:#999">${hClp(s.total)}</td><td>${horecaOvSel(s.nombre,'')}</td></tr>`).join('')}
     </tbody></table></div></details>`;
-  document.getElementById('horecaBody').innerHTML=filtros+kpis+ia+kairosTbl+otrasTbl+locTbl+clasif;
+  document.getElementById('horecaBody').innerHTML=filtros+alcAviso+kpis+cmp+hist+ia+kairosTbl+otrasTbl+locTbl+clasif;
   // Wiring
   const iaBtn=document.getElementById('horecaIA'); if(iaBtn) iaBtn.onclick=horecaGenerarIA;
   document.querySelectorAll('[data-hov]').forEach(sel=>sel.onchange=()=>horecaReclasificar(sel.dataset.hov, sel.value));
   ['Sector','Local','Marca'].forEach(k=>{ const el=document.getElementById('hf'+k); if(el) el.onchange=()=>{ horecaFiltros[k.toLowerCase()]=el.value; loadHoreca(); }; });
+  const ha=document.getElementById('hfAlcance'); if(ha) ha.onchange=()=>{ horecaAlcance=ha.value; loadHoreca(); };
   const hc=document.getElementById('hfClear'); if(hc) hc.onclick=()=>{ horecaFiltros={sector:'',local:'',marca:''}; loadHoreca(); };
+  horecaWireHitos();
+}
+// Bloque comparado propios / resto / total, con el share de cada uno.
+function horecaComparativa(d){
+  const G=d.porGrupo; if(!G) return '';
+  const fila=(label,g,tone,nota)=>{
+    const sh=g.shareKairos;
+    return `<tr>
+      <td><b>${escapeHtml(label)}</b>${nota?`<div style="font-size:.7rem;color:#7a8290">${escapeHtml(nota)}</div>`:''}</td>
+      <td class="dist-num">${hClp(g.cervezas)}</td>
+      <td class="dist-num" style="color:#1f8a70;font-weight:700">${hClp(g.kairos)}</td>
+      <td class="dist-num" style="color:#c1447e">${hClp(g.otras)}</td>
+      <td class="dist-num" style="font-weight:800;color:${tone||'#0b2a5e'}">${sh}%</td>
+      <td><div style="background:#f0e3ee;border-radius:5px;height:10px;overflow:hidden"><div style="width:${Math.min(100,sh)}%;height:100%;background:${tone||'#1f8a70'}"></div></div></td>
+    </tr>`;
+  };
+  const delta=G.total.shareKairos-G.resto.shareKairos;
+  const detalle=(d.propiosDetalle||[]).map(p=>fila('　↳ '+p.local, p, '#7a8290')).join('');
+  return `<div class="cg-form-title" style="margin-top:.2rem">🎯 Kairos dentro de GMS — nuestros locales vs el resto</div>
+  <div class="est-note" style="margin:.2rem 0 .5rem;color:#666">En Garden y Badass la cerveza de la casa es Kairos, así que suben la participación del grupo. La fila <b>Resto de GMS</b> es la lectura sin ese sesgo${Math.abs(delta)>=0.1?` — hoy la diferencia es de <b>${(delta>0?'+':'')+(Math.round(delta*10)/10)} pts</b>`:''}.</div>
+  <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Bloque</th><th>Cerveza total</th><th>Kairos</th><th>Otras</th><th>% Kairos</th><th style="width:22%">Mix</th></tr></thead><tbody>
+    ${fila('Resto de GMS', G.resto, '#1f8a70', 'sin nuestros locales — la lectura no sesgada')}
+    ${fila('Locales propios', G.propios, '#f5a623', (d.localesPropios||[]).join(' · '))}
+    ${detalle}
+    ${fila('Total GMS', G.total, '#0b2a5e', 'todo el grupo, como lo reporta Pyxis')}
+  </tbody></table></div>`;
+}
+// Serie mes a mes guardada + hitos, para leer el efecto de lo que se fue haciendo.
+function horecaHistoriaBloque(d){
+  const H=d.historia||{meses:[],hitos:[],locales:[]};
+  const hitosPorMes={}; (H.hitos||[]).forEach(h=>{ (hitosPorMes[h.mes]=hitosPorMes[h.mes]||[]).push(h); });
+  const locs=H.locales||[];
+  const filas=(H.meses||[]).map(m=>{
+    const chips=(hitosPorMes[m.mes]||[]).map(h=>`<span class="hor-hito" title="${escapeAttr(h.nota||'')}">${escapeHtml(h.titulo)}${h.local?` · ${escapeHtml(h.local)}`:''} <a href="#" data-hitodel="${h.id}" title="Borrar">✕</a></span>`).join('');
+    return `<tr>
+      <td><b>${escapeHtml(m.label)}</b>${chips?`<div style="margin-top:.25rem">${chips}</div>`:''}</td>
+      <td class="dist-num" style="font-weight:800;color:#1f8a70">${m.resto.shareKairos}%</td>
+      <td class="dist-num">${m.total.shareKairos}%</td>
+      <td class="dist-num" style="color:#7a8290">${m.propios.shareKairos}%</td>
+      ${locs.map(l=>`<td class="dist-num" style="color:#7a8290">${m.locales&&m.locales[l]?m.locales[l].shareKairos+'%':'—'}</td>`).join('')}
+      <td class="dist-num" style="color:#7a8290">${hClp(m.total.cervezas)}</td>
+    </tr>`;
+  }).join('');
+  const mesesOpts=(H.meses||[]).map(m=>`<option value="${m.mes}">${escapeHtml(m.label)}</option>`).join('');
+  const form=`<div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-end;margin-top:.6rem">
+    <label class="cg-field" style="min-width:120px"><span>Mes</span><select id="hitoMes" class="costeo-svc">${mesesOpts}</select></label>
+    <label class="cg-field" style="min-width:200px;flex:1"><span>Qué se hizo</span><input type="text" id="hitoTitulo" placeholder="Máquinas shoperas, Osagui, beer tour…"></label>
+    <label class="cg-field" style="min-width:150px"><span>Local (opcional)</span><input type="text" id="hitoLocal" placeholder="Todos"></label>
+    <button class="adm-btn adm-btn-gold" id="hitoAdd" type="button">+ Hito</button>
+  </div>`;
+  const cuerpo=filas
+    ? `<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Mes</th><th>% Kairos<br><span style="font-weight:400;font-size:.68rem">resto de GMS</span></th><th>% total<br><span style="font-weight:400;font-size:.68rem">todo GMS</span></th><th>% propios</th>${locs.map(l=>`<th>${escapeHtml(l)}</th>`).join('')}<th>Cerveza total</th></tr></thead><tbody>${filas}</tbody></table></div>`
+    : '<div class="est-note" style="color:#666">Todavía no hay historia guardada. Se llena sola: cada vez que abrís esta pantalla se graban los 3 meses que devuelve Pyxis.</div>';
+  return `<div class="cg-form-title" style="margin-top:1rem">📈 Evolución mes a mes · participación de Kairos</div>
+  <div class="est-note" style="margin:.2rem 0 .5rem;color:#666">Pyxis solo devuelve los últimos 3 meses, así que la serie se va guardando acá. El mes en curso se actualiza en cada pasada; los cerrados quedan fijos. Marcá los <b>hitos</b> (máquinas shoperas, un estilo nuevo, beer tour) para poder atribuir los saltos.</div>
+  ${cuerpo}${form}`;
+}
+function horecaWireHitos(){
+  const add=document.getElementById('hitoAdd');
+  if(add) add.onclick=async()=>{
+    const mes=(document.getElementById('hitoMes')||{}).value, titulo=(document.getElementById('hitoTitulo')||{}).value;
+    if(!mes||!String(titulo||'').trim()){ alert('Elegí el mes y escribí qué se hizo.'); return; }
+    add.disabled=true;
+    try{
+      const r=await fetch('/admin/pyxis/cervezas/hitos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mes,titulo,local:(document.getElementById('hitoLocal')||{}).value||''})});
+      const h=await r.json(); if(!r.ok||h.error) throw new Error(h.error||'Error');
+      horecaData.historia=h; renderHoreca();
+    }catch(e){ alert('⚠ '+String(e.message||e)); add.disabled=false; }
+  };
+  document.querySelectorAll('[data-hitodel]').forEach(a=>a.onclick=async(ev)=>{
+    ev.preventDefault();
+    if(!confirm('¿Borrar este hito?')) return;
+    try{
+      const r=await fetch('/admin/pyxis/cervezas/hitos/'+encodeURIComponent(a.dataset.hitodel),{method:'DELETE'});
+      const h=await r.json(); if(!r.ok||h.error) throw new Error(h.error||'Error');
+      horecaData.historia=h; renderHoreca();
+    }catch(e){ alert('⚠ '+String(e.message||e)); }
+  });
 }
 async function horecaGenerarIA(){
   const btn=document.getElementById('horecaIA'); if(btn){ btn.disabled=true; btn.textContent='Generando…'; }
