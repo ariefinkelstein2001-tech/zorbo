@@ -12788,7 +12788,8 @@ function costeoNormalizeCarta(c){
   const ckmv = Number.isFinite(c.ckmv) ? c.ckmv : 0; // versión: media pinta (250cc) de cada cerveza Kairos
   const blv = Number.isFinite(c.blv) ? c.blv : 0; // versión: Cortos/Botellas pasan de COCA COLA LATA CHICA a BEBIDA LATA (y botellas de 5 a 4 latas)
   const bvv = Number.isFinite(c.bvv) ? c.bvv : 0; // versión: la línea del espirituoso en Botellas usa el volumen real de CADA insumo, no un fijo de 750ml
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bvv, secciones, asignaciones };
+  const glcv = Number.isFinite(c.glcv) ? c.glcv : 0; // versión: Garden — Ron/Pisco/Vodka/Whisky/Bourbon/Gin (+Botella) suman BEBIDA LATA CHICA
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bvv, glcv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13317,19 +13318,20 @@ function costeoFixBebidaLata(doc, rest){
 // solo "Botellas" (Badass) a cualquier categoría "*Botella*" (Garden por
 // familia también tenía el mismo problema, con 0,7 fijo). Corre una sola vez
 // por doc de barra (carta.bvv), después de costeoFixBebidaLata.
-const BARRA_BOTELLA_VOLUMEN_V = 2;
+const BARRA_BOTELLA_VOLUMEN_V = 3;
 function costeoFixBotellaVolumen(doc, rest){
   if (!doc) return false;
   doc.carta = costeoNormalizeCarta(doc.carta);
   if (doc.carta.bvv >= BARRA_BOTELLA_VOLUMEN_V) return false;
   const insById = new Map((doc.insumos || []).map(i => [i.id, i]));
-  const bebida = (doc.insumos || []).find(i => costeoNorm(i.descripcion) === costeoNorm('BEBIDA LATA'));
-  const bebidaId = bebida && bebida.id;
   (doc.platos || []).forEach(p => {
     if (!costeoNorm(p.categoria).includes('botella')) return;
     (p.lineas || []).forEach(l => {
-      if (l.refType !== 'insumo' || l.refId === bebidaId) return;
+      if (l.refType !== 'insumo') return;
       const ins = insById.get(l.refId);
+      // Excluye cualquier "bebida lata" (BEBIDA LATA de Badass, BEBIDA LATA
+      // CHICA de Garden): esa línea es un conteo de latas, no una botella.
+      if (ins && costeoNorm(ins.descripcion).includes('bebida lata')) return;
       if (ins && (ins.unidad === 'litro' || ins.unidad === 'mililitro') && Number(ins.volumen) > 0) l.cantidad = Number(ins.volumen);
     });
   });
@@ -13432,6 +13434,43 @@ function costeoCervezasKairosMediaPinta(doc, rest){
   doc.carta.ckmv = CERVEZAS_KAIROS_MEDIA_V;
   return true;
 }
+// Garden: los tragos "puros" por espirituoso (Ron, Pisco, Vodka, Whisky,
+// Bourbon, Gin — sin Licores ni Tequila) suman 1 unidad de BEBIDA LATA CHICA
+// a su receta, y sus Botellas (mismas familias, sin Licores/Tequila Botella
+// — Bourbon no tiene sección Botella) suman 5 unidades. BEBIDA LATA CHICA es
+// un insumo nuevo y genérico, aparte de COCA COLA LATA CHICA (que ya usa
+// Cortos). Solo aplica a Garden: Badass no tiene estas categorías por
+// espirituoso. Idempotente: si el plato ya tiene una línea con este insumo,
+// no se toca. Corre una sola vez por doc de barra (carta.glcv).
+const GARDEN_LATA_CHICA_CATS = ['Ron', 'Pisco', 'Vodka', 'Whisky', 'Bourbon', 'Gin'];
+const GARDEN_LATA_CHICA_BOTELLA_CATS = ['Ron Botella', 'Pisco Botella', 'Vodka Botella', 'Whisky Botella', 'Gin Botella'];
+const GARDEN_LATA_CHICA_INS = 'BEBIDA LATA CHICA';
+const GARDEN_LATA_CHICA_PRECIO_DEFAULT = 544;
+const GARDEN_LATA_CHICA_V = 1;
+function costeoGardenLataChica(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.glcv >= GARDEN_LATA_CHICA_V) return false;
+  if (costeoRestKey(rest) !== 'garden') { doc.carta.glcv = GARDEN_LATA_CHICA_V; return true; }
+  let lata = (doc.insumos || []).find(i => costeoNorm(i.descripcion) === costeoNorm(GARDEN_LATA_CHICA_INS));
+  if (!lata) {
+    const ref = (doc.insumos || []).find(i => costeoNorm(i.descripcion) === costeoNorm('COCA COLA LATA CHICA'));
+    lata = { id: randomUUID(), descripcion: GARDEN_LATA_CHICA_INS, precioNeto: (ref && Number(ref.precioNeto) > 0) ? ref.precioNeto : GARDEN_LATA_CHICA_PRECIO_DEFAULT, unidad: 'litro', volumen: 1, ila: 0, despacho: 0, rendimiento: null };
+    doc.insumos.push(lata);
+  }
+  const catsUnidad = new Set(GARDEN_LATA_CHICA_CATS.map(costeoNorm));
+  const catsBotella = new Set(GARDEN_LATA_CHICA_BOTELLA_CATS.map(costeoNorm));
+  (doc.platos || []).forEach(p => {
+    const cat = costeoNorm(p.categoria);
+    const esBotella = catsBotella.has(cat);
+    if (!catsUnidad.has(cat) && !esBotella) return;
+    const yaTiene = (p.lineas || []).some(l => l.refType === 'insumo' && l.refId === lata.id);
+    if (yaTiene) return;
+    p.lineas.push({ refType: 'insumo', refId: lata.id, cantidad: esBotella ? 5 : 1 });
+  });
+  doc.carta.glcv = GARDEN_LATA_CHICA_V;
+  return true;
+}
 // Asegura los 2 docs de barra (garden_barra / badass_barra): los siembra desde el
 // Excel de barra si están vacíos y planta sus secciones de carta. Devuelve true si mutó.
 function costeoEnsureBarraDocs(all){
@@ -13450,6 +13489,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoFixBotellaVolumen(all[key], rest)) ch = true;
     if (costeoCervezasKairos(all[key], rest)) ch = true;
     if (costeoCervezasKairosMediaPinta(all[key], rest)) ch = true;
+    if (costeoGardenLataChica(all[key], rest)) ch = true;
   }
   return ch;
 }
