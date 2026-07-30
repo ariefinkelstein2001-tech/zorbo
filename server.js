@@ -12640,7 +12640,8 @@ function costeoNormalizeCarta(c){
   const btv = Number.isFinite(c.btv) ? c.btv : 0; // versión: sembrar las BOTELLAS de barra (botella + 5 latas chicas)
   const ckv = Number.isFinite(c.ckv) ? c.ckv : 0; // versión: cervezas Kairos de reventa → trago costeado
   const ckmv = Number.isFinite(c.ckmv) ? c.ckmv : 0; // versión: media pinta (250cc) de cada cerveza Kairos
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, secciones, asignaciones };
+  const blv = Number.isFinite(c.blv) ? c.blv : 0; // versión: Cortos/Botellas pasan de COCA COLA LATA CHICA a BEBIDA LATA (y botellas de 5 a 4 latas)
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13119,6 +13120,41 @@ function costeoSeedBotellasBarra(doc, rest){
   doc.carta.btv = BARRA_BOTELLAS_V;
   return true;
 }
+// Corrige los Cortos/Botellas ya sembrados (con COCA COLA LATA CHICA, seed
+// viejo): la bebida pasa a ser el insumo genérico BEBIDA LATA (no es solo
+// Coca-Cola) y, en las Botellas, la cantidad baja de 5 a 4 latas + la botella
+// correspondiente. Repunta las líneas existentes en vez de recrear los
+// platos, así no se pierden precios reales ya cargados. Corre una sola vez
+// por doc de barra (carta.blv), después de costeoSeedBotellasBarra.
+const BARRA_BEBIDA_LATA_VIEJA = 'COCA COLA LATA CHICA';
+const BARRA_BOTELLA_LATAS_V2 = 4;
+const BARRA_BEBIDA_LATA_V = 1;
+function costeoFixBebidaLata(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.blv >= BARRA_BEBIDA_LATA_V) return false;
+  let seed; try { seed = JSON.parse(readFileSync(join(__dirname, costeoBarraSeedFile(rest)), 'utf-8')); } catch { seed = null; }
+  const bebCfg = seed && seed.cortos && seed.cortos.bebida;
+  const vieja = (doc.insumos || []).find(i => costeoNorm(i.descripcion) === costeoNorm(BARRA_BEBIDA_LATA_VIEJA));
+  if (bebCfg && vieja) {
+    const byName = new Map(); (doc.insumos || []).forEach(i => byName.set(costeoNorm(i.descripcion), i));
+    const nueva = costeoBarraBebidaIns(doc, byName, bebCfg);
+    if (nueva && nueva.id !== vieja.id) {
+      const cortosCat = costeoNorm('Cortos'), botellasCat = costeoNorm('Botellas');
+      (doc.platos || []).forEach(p => {
+        const cat = costeoNorm(p.categoria);
+        if (cat !== cortosCat && cat !== botellasCat) return;
+        (p.lineas || []).forEach(l => {
+          if (l.refType !== 'insumo' || l.refId !== vieja.id) return;
+          l.refId = nueva.id;
+          if (cat === botellasCat) l.cantidad = BARRA_BOTELLA_LATAS_V2;
+        });
+      });
+    }
+  }
+  doc.carta.blv = BARRA_BEBIDA_LATA_V;
+  return true;
+}
 // ── Cervezas Kairos: de reventa a trago costeado ──
 // Las 4 categorías de cerveza propia (colecciones de la casa / temporada /
 // artistas y el Firulais Craft Mix) estaban cargadas como REVENTA: se veían en
@@ -13229,6 +13265,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoSeedReventaBarra(all[key], rest)) ch = true;
     if (costeoSeedCortosBarra(all[key], rest)) ch = true;
     if (costeoSeedBotellasBarra(all[key], rest)) ch = true;
+    if (costeoFixBebidaLata(all[key], rest)) ch = true;
     if (costeoCervezasKairos(all[key], rest)) ch = true;
     if (costeoCervezasKairosMediaPinta(all[key], rest)) ch = true;
   }

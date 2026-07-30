@@ -4444,7 +4444,7 @@
  ],
  "cortos": {
   "bebida": {
-   "descripcion": "COCA COLA LATA CHICA",
+   "descripcion": "BEBIDA LATA",
    "precioNeto": 444,
    "volumen": 1,
    "unidad": "litro",
@@ -4995,7 +4995,7 @@
   "seccion": "Botellas",
   "sufijo": "Botella",
   "volumen": 0.75,
-  "bebidas": 5,
+  "bebidas": 4,
   "margenPct": 30
  }
 }
