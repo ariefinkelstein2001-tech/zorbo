@@ -1,0 +1,64 @@
+# Zorbo
+
+Server Express (`server.js`, ESM) + panel de administración (`admin-views/admin.html`).
+Cubre el costeo de carta, finanzas, inventario, comercial y el chatbot.
+
+- Arrancar: `npm start` (o `npm run dev`). Puerto: `PORT`, default 3000.
+- Sin dependencias de build ni tests: se prueba levantando el server y pegándole a los endpoints.
+- Para pegarle a `/admin/*` sin login: `ADMIN_AUTH_ENABLED=0`.
+
+## Regla de datos — leer antes de cualquier cambio de costeo, carta, insumos o precios
+
+**En producción los datos no viven en el repo.** El server corre en Railway con
+`DATA_DIR` seteado y lee/escribe `$DATA_DIR/prompts/*.json` en un volumen
+persistente. Los JSON del repo (`prompts/costeo.json` y compañía) son solo la
+semilla para cuando el disco está vacío.
+
+Editar esos archivos y pushear **no cambia nada en el sitio en vivo**: el deploy
+no toca el volumen. Si el diff de un cambio de datos toca únicamente
+`prompts/*.json`, casi seguro está mal.
+
+Entonces, cuando el pedido implique crear, modificar o borrar datos (tragos,
+platos, insumos, secciones, categorías, precios):
+
+1. **El entregable va en código, no en el JSON de datos.**
+2. Escribí una **migración versionada** en `server.js` con el patrón que ya usa
+   el costeo: una constante `ALGO_V`, un flag de versión en el doc
+   (`doc.carta.<xx>v`, declarado en `costeoNormalizeCarta`), una función que
+   muta el doc y devuelve `true` si cambió algo, y el llamado en el
+   `costeoEnsure*` que corresponda. Ver `costeoSeedCortosBarra`,
+   `costeoSeedBotellasBarra` o `costeoCervezasKairos` como referencia.
+3. Que sea **idempotente de verdad**: dedupe por nombre normalizado
+   (`costeoNorm`), no confíes solo en el flag de versión. Tiene que poder correr
+   dos veces sin duplicar nada.
+4. **No pises lo que carga el usuario** (precios, precios de venta, ediciones a
+   mano). Completá solo lo que esté vacío o roto, y decí en la respuesta lo que
+   decidiste no tocar.
+5. Si el cambio necesita datos nuevos (una lista, precios de un Excel), van en
+   un `*-seed*.json` y la migración los lee de ahí. Lógica en `server.js`, data
+   en el seed.
+6. **Probalo antes de pushear**: levantá el server con `DATA_DIR` apuntando a
+   una copia de los datos que simule producción — o sea, sin el cambio ya
+   aplicado a mano — corré la migración y verificá contra los endpoints. Corré
+   el arranque dos veces para confirmar que no duplica.
+7. Cerrá la respuesta diciendo **qué mirar para confirmar que llegó al server en
+   vivo**, no solo que el commit está pusheado.
+
+`GET /admin/costeo/_diag` devuelve el commit que está corriendo, si hay volumen
+persistente y los conteos por doc. Es la forma de confirmar un deploy de datos.
+
+## Costeo: cómo está armado
+
+Cuatro conjuntos independientes: `garden`, `badass` (comida) y `garden_barra`,
+`badass_barra` (barra), todos en un solo archivo `costeo.json`.
+
+- **Nivel 1 · Insumos** — precio de compra. En barra el precio es por litro
+  **neto**, con ILA y despacho aparte; el IVA se aplica a nivel de trago.
+- **Nivel 2 · Recetas base** — preparaciones que se usan en varios platos.
+- **Nivel 3 · Platos/Tragos** — la receta que se vende. Cadena de costo:
+  insumos → protección 10% → IVA 19% (salvo `iva: false`).
+- **Nivel 4 · Carta (resumen)** — secciones y orden del menú real, con el precio
+  de venta que se le cobra al público (`precioReal`) y el % de costo.
+- **Reventa** (solo barra) — productos que se compran hechos y se revenden, sin
+  receta: `{ nombre, precioVenta, precioCompra }`. Si una sección de carta tiene
+  platos costeados, esos ganan y la sección de reventa homónima no se muestra.
