@@ -726,6 +726,11 @@ body.chat-collapsed.admin-home .adm-chat-reopen,body.chat-collapsed.estado-activ
 .sio-sku-l{font-weight:700}
 .sio-sku-u{color:var(--muted)}
 .sio-sku-nol{color:var(--muted);font-weight:400;font-size:.7rem}
+/* Cajón "sin canal": misma lectura por SKU + a quién falta etiquetar. */
+.sio-sincanal{border:1px solid #f2e3b8;background:#fffdf6;border-radius:14px;padding:.85rem 1rem;margin-bottom:.8rem}
+.sio-sc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 1.4rem}
+.sio-sc-cli{margin-top:.6rem;border-top:1px solid var(--border);padding-top:.45rem;max-height:15rem;overflow-y:auto}
+.sio-sc-hint{font-family:var(--sans);font-size:.72rem;color:var(--muted);margin-top:.45rem;line-height:1.4}
 .sio-toggle{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:.4rem 0 .5rem}
 .sio-toggle button{
   border:0;background:var(--surface);color:var(--muted);font-family:var(--sans);font-size:.72rem;font-weight:700;
@@ -9767,6 +9772,27 @@ function sioSkuList(c){
     ${rows}
   </div>`;
 }
+// Cajón "sin canal": mientras la atribución esté incompleta, acá cae la venta
+// que no se puede leer por canal. Se abre con el mismo detalle por SKU (así el
+// volumen del mes se lee igual) y con los clientes que hay que etiquetar para
+// que esa plata pase a Horeca / Retail / Hospitality.
+function sioSinCanalBloque(d){
+  const c = d.porCanal && d.porCanal.sin_canal;
+  if (!c || !c.available) return '';
+  const pend = (d.topClientes || []).filter(x => x.canal === 'sin_canal');
+  const clientes = pend.length ? `<div class="sio-sc-cli">
+    <div class="sio-sku-h" style="grid-template-columns:1fr auto"><div>Clientes a etiquetar</div><div>Plata</div></div>
+    ${pend.map(x => `<div class="sio-sku-row" style="grid-template-columns:1fr auto"><div class="sio-sku-n">${escapeHtml(x.name)}</div><div class="sio-sku-l">${fmtMoney(x.plata)}</div></div>`).join('')}
+    <div class="sio-sc-hint">Asignales el canal en <b>Comercial → Puntos de venta</b> y su venta se reparte sola en las tarjetas de arriba.</div>
+  </div>` : '';
+  return `<div class="sio-sincanal">
+    <div class="sio-canal-k">⚠️ Sin canal asignado</div>
+    <div class="sio-canal-v">${fmtMoney(c.plata)}</div>
+    <div class="sio-canal-sub">${fmtLitros(c.litros)} · ${fmtUnid(c.unidades||0)}</div>
+    <div class="sio-canal-reason" style="margin:.3rem 0 .2rem">${escapeHtml(c.reason||'')}</div>
+    <div class="sio-sc-grid">${sioSkuList(c)}${clientes}</div>
+  </div>`;
+}
 function sioCanalCard(label, c){
   if (!c || !c.available) return `<div class="sio-canal-card empty"><div class="sio-canal-k">${escapeHtml(label)}</div><div class="sio-canal-reason">${escapeHtml((c&&c.reason)||'Sin datos.')}</div></div>`;
   return `<div class="sio-canal-card">
@@ -9791,7 +9817,7 @@ function renderSellIn(d){
       ${sioCanalCard('Retail', d.porCanal.retail)}
       ${sioCanalCard('Hospitality', d.porCanal.hospitality)}
     </div>
-    ${d.porCanal.sin_canal.available ? `<div class="sio-canal-reason" style="margin-bottom:.6rem">⚠️ ${escapeHtml(d.porCanal.sin_canal.reason)} — ${fmtMoney(d.porCanal.sin_canal.plata)} sin canal asignado.</div>` : ''}
+    ${sioSinCanalBloque(d)}
     <div class="sio-top-title">Top 10 clientes</div>
     <div class="sio-toggle" id="siToggleClientes"><button data-m="plata" class="on" type="button">Plata</button><button data-m="litros" type="button">Litros</button></div>
     <div id="siTopClientesBox"></div>
