@@ -227,9 +227,6 @@ body{ padding-left:var(--ks-side); }
   background:var(--surface,#fff);border:1px solid var(--border,#eee);border-radius:9px;padding:.44rem .6rem;
 }
 .ks-period-label{margin-left:auto;font-size:.72rem;color:var(--dim,#999);font-weight:700}
-/* Navegador de mes (Costos/Gastos): ‹ Julio 2026 › delante de los chips de período. */
-.cg-period-mesnav{display:flex;align-items:center;gap:.5rem}
-.cg-period-mes-label{font-size:.86rem;font-weight:700;color:var(--text,#111);min-width:9ch;text-align:center;font-variant-numeric:tabular-nums}
 /* Home densa: 3 columnas lado a lado (A gráfico · B ratios · C tabla), sin scroll. */
 .ks-dash .ks-hello{padding:15px 24px}
 .ks-dash .ks-hello h1{font-size:1.45rem;margin:.2rem 0 .25rem}
@@ -3213,21 +3210,18 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
       <div id="pnlBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
-    <!-- Notas de crédito: anular ventas por canal o corregir costos/gastos -->
+    <!-- Anulaciones y NC: anular ventas por canal o corregir costos/gastos -->
     <div class="adm-panel" id="notascreditoView" style="display:none">
       <div class="adm-panel-head">
         <div>
-          <div class="adm-panel-title">Notas de crédito</div>
+          <div class="adm-panel-title">Anulaciones y NC</div>
           <div class="adm-panel-meta">anula ventas por canal (resta ingresos) o corrige costos/gastos (suma) · impacta el Estado de Resultado</div>
         </div>
         <div class="adm-actions">
-          <label class="est-daterange">Desde <input type="date" id="ncFrom" class="est-date"></label>
-          <label class="est-daterange">Hasta <input type="date" id="ncTo" class="est-date"></label>
-          <button class="adm-btn adm-btn-ghost" id="ncMesAct" type="button">Mes actual</button>
-          <button class="adm-btn adm-btn-ghost" id="ncTodo" type="button">Todo</button>
           <button class="adm-btn adm-btn-ghost" id="ncReload" type="button">Recargar</button>
         </div>
       </div>
+      <div class="ks-period" id="ncPeriodBar"></div>
       <div id="ncBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
@@ -3986,7 +3980,7 @@ const BASE_SECCIONES = [
   { id:'costos',    kind:'costos',   label:'Costos', cat:'finanzas', desc:'registro de costos por proveedor · categoría · marca · folio · valor' },
   { id:'gastos',    kind:'gastos',   label:'Gastos', cat:'finanzas', desc:'registro de gastos por proveedor · categoría · marca · % del total · folio · valor' },
   { id:'pnl',       kind:'pnl',      label:'Estado de Resultado', cat:'finanzas', desc:'ingresos − costos y gastos · margen bruto · EBITDA mensual' },
-  { id:'notascredito', kind:'notascredito', label:'Notas de crédito', cat:'finanzas', desc:'anular ventas por canal o corregir costos/gastos · afecta el Estado de Resultado' },
+  { id:'notascredito', kind:'notascredito', label:'Anulaciones y NC', cat:'finanzas', desc:'anular ventas por canal o corregir costos/gastos · afecta el Estado de Resultado' },
   { id:'nomina',    kind:'nomina',   label:'Gestión de Personas', cat:'personas', desc:'nómina de trabajadores · costo empresa · descarga de Excel' },
   { id:'forecast',  kind:'forecast', label:'Forecast', cat:'herramientas', desc:'EERR proyectado · presupuestos por % · simulación del año' },
   { id:'forecast-comercial', kind:'forecastcomercial', label:'Forecast Comercial', cat:'herramientas', desc:'proyección canal × marca · meta +15% configurable · litros y plata' },
@@ -11698,34 +11692,37 @@ let costosSort={costo:{col:null,dir:null},gasto:{col:null,dir:null}};
 let costosData={costo:null,gasto:null};
 let costosForm={costo:cgBlankForm(),gasto:cgBlankForm()};
 function cgId(tipo,name){ return 'cg'+name+'_'+tipo; }
-// ── Selector de período de Costos/Gastos: vista principal = MES (con
-// navegación ‹ › + chips Mes actual/Mes anterior/Todo), y "Rango
-// personalizado" como opción secundaria que revela Desde/Hasta. Solo cambia
-// el FILTRO DE CONSULTA de la lista — el registro de un documento sigue
-// siendo por día exacto ("Fecha del documento" en el formulario, sin tocar).
-// #{prefix}From/#{prefix}To quedan siempre presentes en el DOM (ocultos en
-// modo mes/todo, visibles en modo rango) para que finRangeQS/finRangeLabel
-// —compartidos con Notas de crédito— sigan funcionando sin cambios.
+// ── Selector de período reutilizable (Costos, Gastos, Anulaciones y NC):
+// vista principal = MES, con selects de Mes + Año (mismo formato que
+// Finanzas › Estado de Resultado — más fácil de elegir que flechas), y chips
+// Mes actual/Mes anterior/Todo/Rango personalizado (secundario, revela
+// Desde/Hasta). Solo cambia el FILTRO DE CONSULTA de la lista — el registro
+// de un documento sigue siendo por día exacto ("Fecha del documento" en el
+// formulario, sin tocar). #{prefix}From/#{prefix}To quedan siempre presentes
+// en el DOM (ocultos en modo mes/todo, visibles en modo rango) para que
+// finRangeQS/finRangeLabel sigan funcionando sin cambios. Clave del estado =
+// prefix ('costos'/'gastos'/'nc'), no el tipo, así lo comparten las 3 vistas.
 let cgPeriodo={
-  costo:{ mode:'mes', anio:new Date().getFullYear(), mes:new Date().getMonth()+1, from:'', to:'' },
-  gasto:{ mode:'mes', anio:new Date().getFullYear(), mes:new Date().getMonth()+1, from:'', to:'' },
+  costos:{ mode:'mes', anio:new Date().getFullYear(), mes:new Date().getMonth()+1, from:'', to:'' },
+  gastos:{ mode:'mes', anio:new Date().getFullYear(), mes:new Date().getMonth()+1, from:'', to:'' },
+  nc:{ mode:'mes', anio:new Date().getFullYear(), mes:new Date().getMonth()+1, from:'', to:'' },
 };
 function cgUltimoDia(anio,mes){ return new Date(Date.UTC(anio,mes,0)).getUTCDate(); }
-// PNL_MESES: mismo array de nombres de mes en español ya usado por el
-// selector de período del Estado de Resultado (Finanzas › Estado de Resultado).
+// PNL_MESES/PNL_ANIO_MIN: mismos nombres de mes y piso de año (2025, el
+// histórico cargado) ya usados por el selector de período del Estado de
+// Resultado — mismo rango de años, para que el año dropdown se comporte igual.
 function cgMesLabel(anio,mes){ return PNL_MESES[mes-1]+' '+anio; }
 function cgRangoDeMes(anio,mes){ const mm=String(mes).padStart(2,'0'); return { from:`${anio}-${mm}-01`, to:`${anio}-${mm}-${String(cgUltimoDia(anio,mes)).padStart(2,'0')}` }; }
 function cgMesAnteriorAHoy(){ const d=new Date(); const pm=new Date(d.getFullYear(),d.getMonth()-1,1); return {anio:pm.getFullYear(), mes:pm.getMonth()+1}; }
-function cgPeriodoLabel(tipo){
-  const st=cgPeriodo[tipo];
+function cgPeriodoLabel(prefix){
+  const st=cgPeriodo[prefix];
   if(st.mode==='mes') return cgMesLabel(st.anio,st.mes);
   if(st.mode==='todo') return 'Todo el histórico';
-  return finRangeLabel(COSTOS_TIPO_CFG[tipo].prefix);
+  return finRangeLabel(prefix);
 }
-function cgPeriodBarRender(tipo){
-  const cfg=COSTOS_TIPO_CFG[tipo], prefix=cfg.prefix;
+function cgPeriodBarRender(prefix, onChange){
   const el=document.getElementById(prefix+'PeriodBar'); if(!el) return;
-  const st=cgPeriodo[tipo];
+  const st=cgPeriodo[prefix];
   const t=new Date(), curY=t.getFullYear(), curM=t.getMonth()+1, pm=cgMesAnteriorAHoy();
   const isMesActual=st.mode==='mes'&&st.anio===curY&&st.mes===curM;
   const isMesAnterior=st.mode==='mes'&&st.anio===pm.anio&&st.mes===pm.mes;
@@ -11735,14 +11732,14 @@ function cgPeriodBarRender(tipo){
     ['todo','Todo',st.mode==='todo'],
     ['rango','Rango personalizado',st.mode==='rango'],
   ];
-  const chipsHtml=chips.map(([id,lab,on])=>`<button type="button" class="ks-period-btn ${on?'on':''}" data-cgperiod="${id}" data-cgtipo="${tipo}">${lab}</button>`).join('');
+  const chipsHtml=chips.map(([id,lab,on])=>`<button type="button" class="ks-period-btn ${on?'on':''}" data-cgperiod="${id}">${lab}</button>`).join('');
   let navHtml='', rangeInputsHtml='';
   if(st.mode==='mes'){
-    navHtml=`<span class="cg-period-mesnav">
-      <button type="button" class="ks-medal-arrow" data-cgnav="prev" data-cgtipo="${tipo}" aria-label="Mes anterior">‹</button>
-      <span class="cg-period-mes-label">${escapeHtml(cgMesLabel(st.anio,st.mes))}</span>
-      <button type="button" class="ks-medal-arrow" data-cgnav="next" data-cgtipo="${tipo}" aria-label="Mes siguiente">›</button>
-    </span>`;
+    const anioMin=(typeof PNL_ANIO_MIN==='number')?PNL_ANIO_MIN:2025;
+    const anioOpts=[]; for(let y=anioMin;y<=Math.max(curY,st.anio);y++) anioOpts.push(y);
+    const mesOptsHtml=PNL_MESES.map((lab,i)=>`<option value="${i+1}" ${st.mes===i+1?'selected':''}>${lab}</option>`).join('');
+    const anioOptsHtml=anioOpts.map(y=>`<option value="${y}" ${st.anio===y?'selected':''}>${y}</option>`).join('');
+    navHtml=`<select class="costeo-svc" id="${prefix}MesSel" aria-label="Mes">${mesOptsHtml}</select><select class="costeo-svc" id="${prefix}AnioSel" aria-label="Año">${anioOptsHtml}</select>`;
     const r=cgRangoDeMes(st.anio,st.mes);
     rangeInputsHtml=`<input type="hidden" id="${prefix}From" value="${r.from}"><input type="hidden" id="${prefix}To" value="${r.to}">`;
   } else if(st.mode==='todo'){
@@ -11754,10 +11751,10 @@ function cgPeriodBarRender(tipo){
       <input type="date" id="${prefix}To" value="${escapeAttr(st.to||'')}" aria-label="Hasta">
     </span>`;
   }
-  el.innerHTML=`${navHtml}<div class="cg-period-chips">${chipsHtml}</div>${rangeInputsHtml}<span class="ks-period-label">${escapeHtml(cgPeriodoLabel(tipo))}</span>`;
+  el.innerHTML=`${navHtml}<div class="cg-period-chips">${chipsHtml}</div>${rangeInputsHtml}<span class="ks-period-label">${escapeHtml(cgPeriodoLabel(prefix))}</span>`;
   el.querySelectorAll('[data-cgperiod]').forEach(b=>{
     b.onclick=()=>{
-      const s=cgPeriodo[tipo], id=b.dataset.cgperiod;
+      const s=cgPeriodo[prefix], id=b.dataset.cgperiod;
       if(id==='mesActual'){ const n=new Date(); s.mode='mes'; s.anio=n.getFullYear(); s.mes=n.getMonth()+1; }
       else if(id==='mesAnterior'){ const p=cgMesAnteriorAHoy(); s.mode='mes'; s.anio=p.anio; s.mes=p.mes; }
       else if(id==='todo'){ s.mode='todo'; }
@@ -11765,25 +11762,21 @@ function cgPeriodBarRender(tipo){
         if(!s.from||!s.to){ const r=s.mode==='mes'?cgRangoDeMes(s.anio,s.mes):cgRangoDeMes(curY,curM); s.from=r.from; s.to=r.to; }
         s.mode='rango';
       }
-      loadCostos(tipo);
+      onChange();
     };
   });
-  el.querySelectorAll('[data-cgnav]').forEach(b=>{
-    b.onclick=()=>{
-      const s=cgPeriodo[tipo]; let y=s.anio, m=s.mes+(b.dataset.cgnav==='next'?1:-1);
-      if(m<1){ m=12; y--; } else if(m>12){ m=1; y++; }
-      s.anio=y; s.mes=m; loadCostos(tipo);
-    };
-  });
+  const mesSel=document.getElementById(prefix+'MesSel'), anioSel=document.getElementById(prefix+'AnioSel');
+  if(mesSel) mesSel.onchange=()=>{ st.mes=Number(mesSel.value); onChange(); };
+  if(anioSel) anioSel.onchange=()=>{ st.anio=Number(anioSel.value); onChange(); };
   if(st.mode==='rango'){
     const f=document.getElementById(prefix+'From'), tt=document.getElementById(prefix+'To');
-    const onChange=()=>{ st.from=f.value; st.to=tt.value; if(st.from&&st.to) loadCostos(tipo); };
-    if(f) f.onchange=onChange; if(tt) tt.onchange=onChange;
+    const onFromTo=()=>{ st.from=f.value; st.to=tt.value; if(st.from&&st.to) onChange(); };
+    if(f) f.onchange=onFromTo; if(tt) tt.onchange=onFromTo;
   }
 }
 async function loadCostos(tipo){
   const cfg=COSTOS_TIPO_CFG[tipo];
-  cgPeriodBarRender(tipo);
+  cgPeriodBarRender(cfg.prefix, ()=>loadCostos(tipo));
   const body=document.getElementById(cfg.bodyId); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   try{
     const cdSel=costosForm[tipo].centroDistribucion||CD_DEFAULT;
@@ -11849,7 +11842,7 @@ function renderCostos(tipo){
   const catFilterOpts=['<option value="">Todas las categorías</option>',...(a.categorias||[]).map(c=>`<option value="${c.id}" ${c.id===flt.cat?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
   const subFilterSubs=SUBMAP[flt.cat]||null;
   const subFilterOpts=subFilterSubs?['<option value="">Todas las subcategorías</option>',...subFilterSubs.map(s=>`<option value="${s.id}" ${s.id===flt.sub?'selected':''}>${escapeHtml(s.label)}</option>`)].join(''):'';
-  const filterBar=`<div class="cg-filters"><span class="cg-filters-l">📅 ${escapeHtml(cgPeriodoLabel(tipo))}</span><span style="color:#c9ccd1">·</span><input class="cg-search" id="${cgId(tipo,'FQ')}" type="search" placeholder="🔎 Buscar proveedor, folio o categoría…" value="${escapeAttr(flt.q||'')}"><span class="cg-filters-l">Filtrar</span><select id="${cgId(tipo,'FCat')}">${catFilterOpts}</select>${subFilterSubs?`<select id="${cgId(tipo,'FSub')}">${subFilterOpts}</select>`:''}${(flt.cat||flt.sub||flt.q)?`<button class="cg-filter-clear" id="${cgId(tipo,'FClear')}" type="button">✕ limpiar</button>`:''}<span class="cg-filters-n">${visibles.length} de ${(a.entradas||[]).length}</span></div>`;
+  const filterBar=`<div class="cg-filters"><span class="cg-filters-l">📅 ${escapeHtml(cgPeriodoLabel(cfg.prefix))}</span><span style="color:#c9ccd1">·</span><input class="cg-search" id="${cgId(tipo,'FQ')}" type="search" placeholder="🔎 Buscar proveedor, folio o categoría…" value="${escapeAttr(flt.q||'')}"><span class="cg-filters-l">Filtrar</span><select id="${cgId(tipo,'FCat')}">${catFilterOpts}</select>${subFilterSubs?`<select id="${cgId(tipo,'FSub')}">${subFilterOpts}</select>`:''}${(flt.cat||flt.sub||flt.q)?`<button class="cg-filter-clear" id="${cgId(tipo,'FClear')}" type="button">✕ limpiar</button>`:''}<span class="cg-filters-n">${visibles.length} de ${(a.entradas||[]).length}</span></div>`;
   // Orden (independiente del filtro de arriba): se aplica DESPUÉS de filtrar,
   // así el contador y el set de filas nunca cambian por ordenar.
   const catLabelOf=(e)=>((a.categorias||[]).find(c=>c.id===e.categoria)||{}).label || e.categoria;
@@ -12788,6 +12781,7 @@ function ncBlankForm(){ return {tipo:'',folio:'',fecha:'',monto:'',canal:'',cate
 function anulBlankForm(){ return {transaccion:'',canal:'',fecha:'',monto:'',anulaCompleta:false,motivo:''}; }
 let ncForm=ncBlankForm(), anulForm=anulBlankForm(), anulData={anulaciones:[]};
 async function loadNotasCredito(){
+  cgPeriodBarRender('nc', loadNotasCredito);
   const body=document.getElementById('ncBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   try{
     const qs=finRangeQS('nc'); const q=qs?('?'+qs):'';
@@ -12928,7 +12922,6 @@ async function ncAgregar(){
 }
 async function ncEliminar(id){ if(!confirm('Eliminar esta nota de crédito?')) return; try{ const r=await fetch('/admin/notas-credito/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadNotasCredito(); }catch(e){ alert(String(e.message||e)); } }
 document.getElementById('ncReload').onclick=loadNotasCredito;
-finRangeWire('nc', loadNotasCredito);
 
 // ─── Ventas HORECA (Pyxis): cervezas Kairos vs competencia ─────────────────
 let horecaData=null, horecaResumen=null, horecaFiltros={sector:'',local:'',marca:''}, horecaAlcance='todos', horecaTimer=null;
