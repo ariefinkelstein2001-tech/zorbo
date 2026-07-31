@@ -227,6 +227,9 @@ body{ padding-left:var(--ks-side); }
   background:var(--surface,#fff);border:1px solid var(--border,#eee);border-radius:9px;padding:.44rem .6rem;
 }
 .ks-period-label{margin-left:auto;font-size:.72rem;color:var(--dim,#999);font-weight:700}
+/* Navegador de mes (Costos/Gastos): ‹ Julio 2026 › delante de los chips de período. */
+.cg-period-mesnav{display:flex;align-items:center;gap:.5rem}
+.cg-period-mes-label{font-size:.86rem;font-weight:700;color:var(--text,#111);min-width:9ch;text-align:center;font-variant-numeric:tabular-nums}
 /* Home densa: 3 columnas lado a lado (A gráfico · B ratios · C tabla), sin scroll. */
 .ks-dash .ks-hello{padding:15px 24px}
 .ks-dash .ks-hello h1{font-size:1.45rem;margin:.2rem 0 .25rem}
@@ -3047,13 +3050,10 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
           <div class="adm-panel-meta">registra cada costo: proveedor · categoría · marca · fecha · folio · valor</div>
         </div>
         <div class="adm-actions">
-          <label class="est-daterange">Desde <input type="date" id="costosFrom" class="est-date"></label>
-          <label class="est-daterange">Hasta <input type="date" id="costosTo" class="est-date"></label>
-          <button class="adm-btn adm-btn-ghost" id="costosMesAct" type="button">Mes actual</button>
-          <button class="adm-btn adm-btn-ghost" id="costosTodo" type="button">Todo</button>
           <button class="adm-btn adm-btn-ghost" id="costosReload" type="button">Recargar</button>
         </div>
       </div>
+      <div class="ks-period" id="costosPeriodBar"></div>
       <div id="costosBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
@@ -3065,13 +3065,10 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
           <div class="adm-panel-meta">registra cada gasto: proveedor · categoría · marca · % del total (si la factura es compartida) · fecha · folio · valor</div>
         </div>
         <div class="adm-actions">
-          <label class="est-daterange">Desde <input type="date" id="gastosFrom" class="est-date"></label>
-          <label class="est-daterange">Hasta <input type="date" id="gastosTo" class="est-date"></label>
-          <button class="adm-btn adm-btn-ghost" id="gastosMesAct" type="button">Mes actual</button>
-          <button class="adm-btn adm-btn-ghost" id="gastosTodo" type="button">Todo</button>
           <button class="adm-btn adm-btn-ghost" id="gastosReload" type="button">Recargar</button>
         </div>
       </div>
+      <div class="ks-period" id="gastosPeriodBar"></div>
       <div id="gastosBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
@@ -11701,8 +11698,92 @@ let costosSort={costo:{col:null,dir:null},gasto:{col:null,dir:null}};
 let costosData={costo:null,gasto:null};
 let costosForm={costo:cgBlankForm(),gasto:cgBlankForm()};
 function cgId(tipo,name){ return 'cg'+name+'_'+tipo; }
+// ── Selector de período de Costos/Gastos: vista principal = MES (con
+// navegación ‹ › + chips Mes actual/Mes anterior/Todo), y "Rango
+// personalizado" como opción secundaria que revela Desde/Hasta. Solo cambia
+// el FILTRO DE CONSULTA de la lista — el registro de un documento sigue
+// siendo por día exacto ("Fecha del documento" en el formulario, sin tocar).
+// #{prefix}From/#{prefix}To quedan siempre presentes en el DOM (ocultos en
+// modo mes/todo, visibles en modo rango) para que finRangeQS/finRangeLabel
+// —compartidos con Notas de crédito— sigan funcionando sin cambios.
+let cgPeriodo={
+  costo:{ mode:'mes', anio:new Date().getFullYear(), mes:new Date().getMonth()+1, from:'', to:'' },
+  gasto:{ mode:'mes', anio:new Date().getFullYear(), mes:new Date().getMonth()+1, from:'', to:'' },
+};
+function cgUltimoDia(anio,mes){ return new Date(Date.UTC(anio,mes,0)).getUTCDate(); }
+// PNL_MESES: mismo array de nombres de mes en español ya usado por el
+// selector de período del Estado de Resultado (Finanzas › Estado de Resultado).
+function cgMesLabel(anio,mes){ return PNL_MESES[mes-1]+' '+anio; }
+function cgRangoDeMes(anio,mes){ const mm=String(mes).padStart(2,'0'); return { from:`${anio}-${mm}-01`, to:`${anio}-${mm}-${String(cgUltimoDia(anio,mes)).padStart(2,'0')}` }; }
+function cgMesAnteriorAHoy(){ const d=new Date(); const pm=new Date(d.getFullYear(),d.getMonth()-1,1); return {anio:pm.getFullYear(), mes:pm.getMonth()+1}; }
+function cgPeriodoLabel(tipo){
+  const st=cgPeriodo[tipo];
+  if(st.mode==='mes') return cgMesLabel(st.anio,st.mes);
+  if(st.mode==='todo') return 'Todo el histórico';
+  return finRangeLabel(COSTOS_TIPO_CFG[tipo].prefix);
+}
+function cgPeriodBarRender(tipo){
+  const cfg=COSTOS_TIPO_CFG[tipo], prefix=cfg.prefix;
+  const el=document.getElementById(prefix+'PeriodBar'); if(!el) return;
+  const st=cgPeriodo[tipo];
+  const t=new Date(), curY=t.getFullYear(), curM=t.getMonth()+1, pm=cgMesAnteriorAHoy();
+  const isMesActual=st.mode==='mes'&&st.anio===curY&&st.mes===curM;
+  const isMesAnterior=st.mode==='mes'&&st.anio===pm.anio&&st.mes===pm.mes;
+  const chips=[
+    ['mesActual','Mes actual',isMesActual],
+    ['mesAnterior','Mes anterior',isMesAnterior],
+    ['todo','Todo',st.mode==='todo'],
+    ['rango','Rango personalizado',st.mode==='rango'],
+  ];
+  const chipsHtml=chips.map(([id,lab,on])=>`<button type="button" class="ks-period-btn ${on?'on':''}" data-cgperiod="${id}" data-cgtipo="${tipo}">${lab}</button>`).join('');
+  let navHtml='', rangeInputsHtml='';
+  if(st.mode==='mes'){
+    navHtml=`<span class="cg-period-mesnav">
+      <button type="button" class="ks-medal-arrow" data-cgnav="prev" data-cgtipo="${tipo}" aria-label="Mes anterior">‹</button>
+      <span class="cg-period-mes-label">${escapeHtml(cgMesLabel(st.anio,st.mes))}</span>
+      <button type="button" class="ks-medal-arrow" data-cgnav="next" data-cgtipo="${tipo}" aria-label="Mes siguiente">›</button>
+    </span>`;
+    const r=cgRangoDeMes(st.anio,st.mes);
+    rangeInputsHtml=`<input type="hidden" id="${prefix}From" value="${r.from}"><input type="hidden" id="${prefix}To" value="${r.to}">`;
+  } else if(st.mode==='todo'){
+    rangeInputsHtml=`<input type="hidden" id="${prefix}From" value=""><input type="hidden" id="${prefix}To" value="">`;
+  } else { // rango personalizado
+    navHtml=`<span class="ks-period-custom">
+      <input type="date" id="${prefix}From" value="${escapeAttr(st.from||'')}" aria-label="Desde">
+      <span>–</span>
+      <input type="date" id="${prefix}To" value="${escapeAttr(st.to||'')}" aria-label="Hasta">
+    </span>`;
+  }
+  el.innerHTML=`${navHtml}<div class="cg-period-chips">${chipsHtml}</div>${rangeInputsHtml}<span class="ks-period-label">${escapeHtml(cgPeriodoLabel(tipo))}</span>`;
+  el.querySelectorAll('[data-cgperiod]').forEach(b=>{
+    b.onclick=()=>{
+      const s=cgPeriodo[tipo], id=b.dataset.cgperiod;
+      if(id==='mesActual'){ const n=new Date(); s.mode='mes'; s.anio=n.getFullYear(); s.mes=n.getMonth()+1; }
+      else if(id==='mesAnterior'){ const p=cgMesAnteriorAHoy(); s.mode='mes'; s.anio=p.anio; s.mes=p.mes; }
+      else if(id==='todo'){ s.mode='todo'; }
+      else if(id==='rango'){
+        if(!s.from||!s.to){ const r=s.mode==='mes'?cgRangoDeMes(s.anio,s.mes):cgRangoDeMes(curY,curM); s.from=r.from; s.to=r.to; }
+        s.mode='rango';
+      }
+      loadCostos(tipo);
+    };
+  });
+  el.querySelectorAll('[data-cgnav]').forEach(b=>{
+    b.onclick=()=>{
+      const s=cgPeriodo[tipo]; let y=s.anio, m=s.mes+(b.dataset.cgnav==='next'?1:-1);
+      if(m<1){ m=12; y--; } else if(m>12){ m=1; y++; }
+      s.anio=y; s.mes=m; loadCostos(tipo);
+    };
+  });
+  if(st.mode==='rango'){
+    const f=document.getElementById(prefix+'From'), tt=document.getElementById(prefix+'To');
+    const onChange=()=>{ st.from=f.value; st.to=tt.value; if(st.from&&st.to) loadCostos(tipo); };
+    if(f) f.onchange=onChange; if(tt) tt.onchange=onChange;
+  }
+}
 async function loadCostos(tipo){
   const cfg=COSTOS_TIPO_CFG[tipo];
+  cgPeriodBarRender(tipo);
   const body=document.getElementById(cfg.bodyId); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   try{
     const cdSel=costosForm[tipo].centroDistribucion||CD_DEFAULT;
@@ -11768,7 +11849,7 @@ function renderCostos(tipo){
   const catFilterOpts=['<option value="">Todas las categorías</option>',...(a.categorias||[]).map(c=>`<option value="${c.id}" ${c.id===flt.cat?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
   const subFilterSubs=SUBMAP[flt.cat]||null;
   const subFilterOpts=subFilterSubs?['<option value="">Todas las subcategorías</option>',...subFilterSubs.map(s=>`<option value="${s.id}" ${s.id===flt.sub?'selected':''}>${escapeHtml(s.label)}</option>`)].join(''):'';
-  const filterBar=`<div class="cg-filters"><span class="cg-filters-l">📅 ${escapeHtml(finRangeLabel(cfg.prefix))}</span><span style="color:#c9ccd1">·</span><input class="cg-search" id="${cgId(tipo,'FQ')}" type="search" placeholder="🔎 Buscar proveedor, folio o categoría…" value="${escapeAttr(flt.q||'')}"><span class="cg-filters-l">Filtrar</span><select id="${cgId(tipo,'FCat')}">${catFilterOpts}</select>${subFilterSubs?`<select id="${cgId(tipo,'FSub')}">${subFilterOpts}</select>`:''}${(flt.cat||flt.sub||flt.q)?`<button class="cg-filter-clear" id="${cgId(tipo,'FClear')}" type="button">✕ limpiar</button>`:''}<span class="cg-filters-n">${visibles.length} de ${(a.entradas||[]).length}</span></div>`;
+  const filterBar=`<div class="cg-filters"><span class="cg-filters-l">📅 ${escapeHtml(cgPeriodoLabel(tipo))}</span><span style="color:#c9ccd1">·</span><input class="cg-search" id="${cgId(tipo,'FQ')}" type="search" placeholder="🔎 Buscar proveedor, folio o categoría…" value="${escapeAttr(flt.q||'')}"><span class="cg-filters-l">Filtrar</span><select id="${cgId(tipo,'FCat')}">${catFilterOpts}</select>${subFilterSubs?`<select id="${cgId(tipo,'FSub')}">${subFilterOpts}</select>`:''}${(flt.cat||flt.sub||flt.q)?`<button class="cg-filter-clear" id="${cgId(tipo,'FClear')}" type="button">✕ limpiar</button>`:''}<span class="cg-filters-n">${visibles.length} de ${(a.entradas||[]).length}</span></div>`;
   // Orden (independiente del filtro de arriba): se aplica DESPUÉS de filtrar,
   // así el contador y el set de filas nunca cambian por ordenar.
   const catLabelOf=(e)=>((a.categorias||[]).find(c=>c.id===e.categoria)||{}).label || e.categoria;
@@ -11995,9 +12076,7 @@ async function costosReclasificar(tipo,id){
   catch(e){ alert(String(e.message||e)); }
 }
 document.getElementById('costosReload').onclick=()=>loadCostos('costo');
-finRangeWire('costos', ()=>loadCostos('costo'));
 document.getElementById('gastosReload').onclick=()=>loadCostos('gasto');
-finRangeWire('gastos', ()=>loadCostos('gasto'));
 
 // ─── Gestión de Personas (nómina) ───────────────────────────────────────────
 let nominaData=null, nominaEditId=null, nominaForm={rut:'',nombre:'',ingreso:'',cargo:'',jornada:'42',contrato:'Indefinido',centroCosto:'BEER GARDEN KAIROS',afp:'',salud:''};
