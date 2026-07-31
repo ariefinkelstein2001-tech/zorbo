@@ -3222,12 +3222,13 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
     <div class="adm-panel" id="notascreditoView" style="display:none">
       <div class="adm-panel-head">
         <div>
-          <div class="adm-panel-title">Notas de crédito</div>
+          <div class="adm-panel-title">Anulaciones y NC</div>
           <div class="adm-panel-meta">anula ventas por canal (resta ingresos) o corrige costos/gastos (suma) · impacta el Estado de Resultado</div>
         </div>
         <div class="adm-actions">
-          <label class="est-daterange">Desde <input type="date" id="ncFrom" class="est-date"></label>
-          <label class="est-daterange">Hasta <input type="date" id="ncTo" class="est-date"></label>
+          <span id="ncPeriodSel"></span>
+          <input type="hidden" id="ncFrom">
+          <input type="hidden" id="ncTo">
           <button class="adm-btn adm-btn-ghost" id="ncMesAct" type="button">Mes actual</button>
           <button class="adm-btn adm-btn-ghost" id="ncTodo" type="button">Todo</button>
           <button class="adm-btn adm-btn-ghost" id="ncReload" type="button">Recargar</button>
@@ -3991,7 +3992,7 @@ const BASE_SECCIONES = [
   { id:'costos',    kind:'costos',   label:'Costos', cat:'finanzas', desc:'registro de costos por proveedor · categoría · marca · folio · valor' },
   { id:'gastos',    kind:'gastos',   label:'Gastos', cat:'finanzas', desc:'registro de gastos por proveedor · categoría · marca · % del total · folio · valor' },
   { id:'pnl',       kind:'pnl',      label:'Estado de Resultado', cat:'finanzas', desc:'ingresos − costos y gastos · margen bruto · EBITDA mensual' },
-  { id:'notascredito', kind:'notascredito', label:'Notas de crédito', cat:'finanzas', desc:'anular ventas por canal o corregir costos/gastos · afecta el Estado de Resultado' },
+  { id:'notascredito', kind:'notascredito', label:'Anulaciones y NC', cat:'finanzas', desc:'anular ventas por canal o corregir costos/gastos · afecta el Estado de Resultado' },
   { id:'nomina',    kind:'nomina',   label:'Gestión de Personas', cat:'personas', desc:'nómina de trabajadores · costo empresa · descarga de Excel' },
   { id:'forecast',  kind:'forecast', label:'Forecast', cat:'herramientas', desc:'EERR proyectado · presupuestos por % · simulación del año' },
   { id:'forecast-comercial', kind:'forecastcomercial', label:'Forecast Comercial', cat:'herramientas', desc:'proyección canal × marca · meta +15% configurable · litros y plata' },
@@ -11099,6 +11100,33 @@ function finRangeWire(prefix, onChange){
   const act=document.getElementById(prefix+'MesAct'); if(act) act.onclick=()=>{ const r=finMonthRange(); f.value=r.from; t.value=r.to; onChange(); };
   const todo=document.getElementById(prefix+'Todo'); if(todo) todo.onclick=()=>{ f.value=''; t.value=''; onChange(); };
 }
+// ── Selector de período Mes + Año (dos listas desplegables) ──
+// Es el formato del Estado de Resultado, que resultó más cómodo que las
+// flechitas ‹ ›: se salta a cualquier mes de un toque en vez de ir de a uno.
+// Escribe el rango resuelto en los hidden #{prefix}From/#{prefix}To, así todo
+// lo que ya lee finRangeQS/finRangeLabel sigue funcionando igual.
+// Nota: no ofrece meses futuros del año en curso (no hay nada que ver ahí); si
+// algún documento quedó con fecha futura, aparece con "Todo".
+function finMesAnioTope(anio){ const t=new Date(); return anio===t.getFullYear() ? (t.getMonth()+1) : 12; }
+function finMesAnioHtml(prefix, anio, mes){
+  const nowY=new Date().getFullYear();
+  const years=[]; for(let y=PNL_ANIO_MIN;y<=nowY;y++) years.push(y);
+  if(!years.includes(anio)) years.unshift(anio); // no esconder un año ya elegido
+  const tope=finMesAnioTope(anio);
+  const mSel=Math.min(mes||tope, tope);
+  return `<select class="costeo-svc" id="${prefix}MesSel" aria-label="Mes">${
+    PNL_MESES.slice(0,tope).map((l,i)=>`<option value="${i+1}" ${i+1===mSel?'selected':''}>${l}</option>`).join('')
+  }</select><select class="costeo-svc" id="${prefix}AnioSel" aria-label="Año">${
+    years.map(y=>`<option value="${y}" ${y===anio?'selected':''}>${y}</option>`).join('')
+  }</select>`;
+}
+// onChange(anio, mes) — al cambiar el año se recorta la lista de meses si hace falta.
+function finMesAnioWire(prefix, onChange){
+  const m=document.getElementById(prefix+'MesSel'), y=document.getElementById(prefix+'AnioSel');
+  if(!m||!y) return;
+  m.onchange=()=>onChange(Number(y.value), Number(m.value));
+  y.onchange=()=>{ const anio=Number(y.value); onChange(anio, Math.min(Number(m.value), finMesAnioTope(anio))); };
+}
 async function estadoBoot(){
   const sel=document.getElementById('estadoMonth');
   let periodos=[]; try{ periodos=((await (await fetch('/admin/estado/periodos')).json()).periodos)||[]; }catch{}
@@ -11743,11 +11771,7 @@ function cgPeriodBarRender(tipo){
   const chipsHtml=chips.map(([id,lab,on])=>`<button type="button" class="ks-period-btn ${on?'on':''}" data-cgperiod="${id}" data-cgtipo="${tipo}">${lab}</button>`).join('');
   let navHtml='', rangeInputsHtml='';
   if(st.mode==='mes'){
-    navHtml=`<span class="cg-period-mesnav">
-      <button type="button" class="ks-medal-arrow" data-cgnav="prev" data-cgtipo="${tipo}" aria-label="Mes anterior">‹</button>
-      <span class="cg-period-mes-label">${escapeHtml(cgMesLabel(st.anio,st.mes))}</span>
-      <button type="button" class="ks-medal-arrow" data-cgnav="next" data-cgtipo="${tipo}" aria-label="Mes siguiente">›</button>
-    </span>`;
+    navHtml=`<span class="cg-period-mesnav">${finMesAnioHtml(prefix, st.anio, st.mes)}</span>`;
     const r=cgRangoDeMes(st.anio,st.mes);
     rangeInputsHtml=`<input type="hidden" id="${prefix}From" value="${r.from}"><input type="hidden" id="${prefix}To" value="${r.to}">`;
   } else if(st.mode==='todo'){
@@ -11773,13 +11797,7 @@ function cgPeriodBarRender(tipo){
       loadCostos(tipo);
     };
   });
-  el.querySelectorAll('[data-cgnav]').forEach(b=>{
-    b.onclick=()=>{
-      const s=cgPeriodo[tipo]; let y=s.anio, m=s.mes+(b.dataset.cgnav==='next'?1:-1);
-      if(m<1){ m=12; y--; } else if(m>12){ m=1; y++; }
-      s.anio=y; s.mes=m; loadCostos(tipo);
-    };
-  });
+  if(st.mode==='mes') finMesAnioWire(prefix, (anio,mes)=>{ const s=cgPeriodo[tipo]; s.anio=anio; s.mes=mes; loadCostos(tipo); });
   if(st.mode==='rango'){
     const f=document.getElementById(prefix+'From'), tt=document.getElementById(prefix+'To');
     const onChange=()=>{ st.from=f.value; st.to=tt.value; if(st.from&&st.to) loadCostos(tipo); };
@@ -12932,8 +12950,31 @@ async function ncAgregar(){
   catch(e){ if(err){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); } }
 }
 async function ncEliminar(id){ if(!confirm('Eliminar esta nota de crédito?')) return; try{ const r=await fetch('/admin/notas-credito/'+encodeURIComponent(id),{method:'DELETE'}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadNotasCredito(); }catch(e){ alert(String(e.message||e)); } }
+// Período de Anulaciones y NC: mismo selector Mes + Año que el Estado de
+// Resultado. "Todo" limpia el rango (modo histórico) y deja los selects en el
+// mes actual, listos para volver a acotar.
+let ncPeriodo={ mode:'mes', anio:new Date().getFullYear(), mes:new Date().getMonth()+1 };
+function ncPeriodRender(){
+  const cont=document.getElementById('ncPeriodSel'); if(!cont) return;
+  cont.innerHTML=finMesAnioHtml('nc', ncPeriodo.anio, ncPeriodo.mes);
+  finMesAnioWire('nc', (anio,mes)=>{ ncPeriodo={mode:'mes',anio,mes}; ncAplicarPeriodo(); loadNotasCredito(); });
+  const f=document.getElementById('ncFrom'), t=document.getElementById('ncTo');
+  const lbl=document.getElementById('ncPeriodLbl');
+  if(lbl) lbl.textContent = ncPeriodo.mode==='todo' ? 'Todo el histórico' : '';
+  if(f&&t&&ncPeriodo.mode==='todo'){ f.value=''; t.value=''; }
+}
+function ncAplicarPeriodo(){
+  const f=document.getElementById('ncFrom'), t=document.getElementById('ncTo'); if(!f||!t) return;
+  if(ncPeriodo.mode==='todo'){ f.value=''; t.value=''; return; }
+  const r=cgRangoDeMes(ncPeriodo.anio, ncPeriodo.mes);
+  // El mes en curso corta hoy, igual que el resto de Finanzas.
+  const hoy=finToday();
+  f.value=r.from; t.value=(r.to>hoy && r.from<=hoy) ? hoy : r.to;
+}
 document.getElementById('ncReload').onclick=loadNotasCredito;
-finRangeWire('nc', loadNotasCredito);
+document.getElementById('ncMesAct').onclick=()=>{ const n=new Date(); ncPeriodo={mode:'mes',anio:n.getFullYear(),mes:n.getMonth()+1}; ncPeriodRender(); ncAplicarPeriodo(); loadNotasCredito(); };
+document.getElementById('ncTodo').onclick=()=>{ ncPeriodo.mode='todo'; ncAplicarPeriodo(); ncPeriodRender(); loadNotasCredito(); };
+ncPeriodRender(); ncAplicarPeriodo();
 
 // ─── Ventas HORECA (Pyxis): cervezas Kairos vs competencia ─────────────────
 let horecaData=null, horecaResumen=null, horecaFiltros={sector:'',local:'',marca:''}, horecaAlcance='todos', horecaTimer=null;
