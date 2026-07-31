@@ -1379,6 +1379,11 @@ body.drawer-open{overflow:hidden}
   font-family:var(--sans);font-size:.68rem;padding:.1rem .45rem;margin:.1rem .25rem .1rem 0}
 .hor-hito a{color:#b58a00;text-decoration:none;margin-left:.2rem;font-weight:700}
 .hor-hito a:hover{color:#c0392b}
+/* Selector de locales propios dentro del grupo. */
+.hor-propios{margin-top:.6rem}
+.hor-propios>summary{cursor:pointer;font-weight:700;color:#5b6472;font-size:.85rem}
+.hor-propios-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.15rem .8rem;margin-top:.3rem}
+.hor-propios-grid label{display:flex;gap:.4rem;align-items:center;font-size:.8rem;color:var(--text);cursor:pointer;padding:.12rem 0}
 
 /* Mejores días del mes */
 .adm-bestdays{display:flex;flex-direction:column;gap:.55rem}
@@ -13033,6 +13038,7 @@ function renderHoreca(){
   ['Sector','Local','Marca'].forEach(k=>{ const el=document.getElementById('hf'+k); if(el) el.onchange=()=>{ horecaFiltros[k.toLowerCase()]=el.value; loadHoreca(); }; });
   const ha=document.getElementById('hfAlcance'); if(ha) ha.onchange=()=>{ horecaAlcance=ha.value; loadHoreca(); };
   const hc=document.getElementById('hfClear'); if(hc) hc.onclick=()=>{ horecaFiltros={sector:'',local:'',marca:''}; loadHoreca(); };
+  const hp=document.getElementById('hpSave'); if(hp) hp.onclick=horecaGuardarPropios;
   horecaWireHitos();
 }
 // Bloque comparado propios / resto / total, con el share de cada uno.
@@ -13051,14 +13057,42 @@ function horecaComparativa(d){
   };
   const delta=G.total.shareKairos-G.resto.shareKairos;
   const detalle=(d.propiosDetalle||[]).map(p=>fila('　↳ '+p.local, p, '#7a8290')).join('');
+  // Si no pescó ninguno, el nombre en Pyxis no calza con los patrones: se avisa
+  // fuerte, porque si no la fila "Resto de GMS" se lee como si no hubiera sesgo.
+  const sinPropios = !G.propios.cervezas;
+  const aviso = sinPropios
+    ? `<div class="est-note" style="margin:.2rem 0 .5rem;color:#8a6d00;background:#fff8e6;border:1px solid #f2e3b8;border-radius:10px;padding:.5rem .8rem">
+        ⚠️ <b>No se reconoció ningún local propio</b>, así que "Resto de GMS" está incluyendo Garden y Badass y el número está sesgado igual.
+        Marcalos abajo con su nombre exacto de Pyxis.</div>`
+    : '';
+  // Selector: todos los locales del grupo, tildando los que cuentan como propios.
+  const todos=d.localesTodos||[];
+  const selector=todos.length?`<details class="hor-propios" ${sinPropios?'open':''}>
+    <summary>⚙️ Elegir cuáles son nuestros locales (${todos.filter(l=>l.propio).length} de ${todos.length} marcados)</summary>
+    <div class="est-note" style="color:#666;margin:.35rem 0">Tildá los locales de K-BROS dentro del grupo. Se guarda por nombre exacto, así no depende de cómo se escriba.</div>
+    <div class="hor-propios-grid">${todos.map((l,i)=>`<label><input type="checkbox" data-propio="${i}" value="${escapeAttr(l.nombre)}" ${l.propio?'checked':''}> ${escapeHtml(l.nombre)}</label>`).join('')}</div>
+    <button class="adm-btn adm-btn-gold" id="hpSave" type="button" style="margin-top:.5rem">Guardar</button>
+  </details>`:'';
   return `<div class="cg-form-title" style="margin-top:.2rem">🎯 Kairos dentro de GMS — nuestros locales vs el resto</div>
-  <div class="est-note" style="margin:.2rem 0 .5rem;color:#666">En Garden y Badass la cerveza de la casa es Kairos, así que suben la participación del grupo. La fila <b>Resto de GMS</b> es la lectura sin ese sesgo${Math.abs(delta)>=0.1?` — hoy la diferencia es de <b>${(delta>0?'+':'')+(Math.round(delta*10)/10)} pts</b>`:''}.</div>
+  <div class="est-note" style="margin:.2rem 0 .5rem;color:#666">En Garden y Badass la cerveza de la casa es Kairos, así que suben la participación del grupo. La fila <b>Resto de GMS</b> es la lectura sin ese sesgo${!sinPropios&&Math.abs(delta)>=0.1?` — hoy la diferencia es de <b>${(delta>0?'+':'')+(Math.round(delta*10)/10)} pts</b>`:''}.</div>
+  ${aviso}
   <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Bloque</th><th>Cerveza total</th><th>Kairos</th><th>Otras</th><th>% Kairos</th><th style="width:22%">Mix</th></tr></thead><tbody>
-    ${fila('Resto de GMS', G.resto, '#1f8a70', 'sin nuestros locales — la lectura no sesgada')}
+    ${fila('Resto de GMS', G.resto, '#1f8a70', sinPropios?'⚠️ hoy incluye TODO el grupo':'sin nuestros locales — la lectura no sesgada')}
     ${fila('Locales propios', G.propios, '#f5a623', (d.localesPropios||[]).join(' · '))}
     ${detalle}
     ${fila('Total GMS', G.total, '#0b2a5e', 'todo el grupo, como lo reporta Pyxis')}
-  </tbody></table></div>`;
+  </tbody></table></div>
+  ${selector}`;
+}
+// Guarda a dedo qué locales son nuestros (nombre exacto de Pyxis) y recarga.
+async function horecaGuardarPropios(){
+  const btn=document.getElementById('hpSave'); if(btn){ btn.disabled=true; btn.textContent='Guardando…'; }
+  const sel=[...document.querySelectorAll('[data-propio]')].filter(c=>c.checked).map(c=>c.value);
+  try{
+    const r=await fetch('/admin/pyxis/cervezas/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({localesPropios:sel})});
+    if(!r.ok) throw new Error('No se pudo guardar');
+    loadHoreca();
+  }catch(e){ alert('⚠ '+String(e.message||e)); if(btn){ btn.disabled=false; btn.textContent='Guardar'; } }
 }
 // Serie mes a mes guardada + hitos, para leer el efecto de lo que se fue haciendo.
 function horecaHistoriaBloque(d){

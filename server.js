@@ -7452,14 +7452,22 @@ const PYXIS_CERV_DEFAULT = {
   // Locales del grupo que son NUESTROS: adentro de ellos Kairos es la casa, así
   // que inflan la participación y tapan cómo vamos en el resto de GMS. Se
   // matchean por texto contenido en el nombre del local (sin acentos).
-  localesPropios: ['garden vespucio', 'garden antofagasta', 'badass'],
+  // Se listan las variantes de escritura conocidas (Vespucio aparece abreviado
+  // como "VSP" en Pyxis). Igual se pueden elegir a dedo desde el panel.
+  localesPropios: ['garden vsp', 'garden vespucio', 'garden antofagasta', 'badass'],
 };
 const pyxisNorm = (s) => String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
-// ¿El local es de los nuestros? Match por contención sobre el nombre normalizado,
-// para que "Kairos Garden Vespucio" o "GARDEN VESPUCIO 2" también entren.
+// ¿El local es de los nuestros? Match por TOKENS: el patrón calza si todas sus
+// palabras están en el nombre del local, en cualquier orden y con lo que sea en
+// el medio. Así "garden vsp" agarra "KAIROS GARDEN VSP", "Garden - VSP" o
+// "Kairos Garden Plaza VSP" sin depender de cómo lo escriban en Pyxis.
 function pyxisEsLocalPropio(nombreLocal, cfg){
   const n = pyxisNorm(nombreLocal); if (!n) return false;
-  return (cfg.localesPropios || []).some(p => { const q = pyxisNorm(p); return q && n.includes(q); });
+  const palabras = new Set(n.split(' ').filter(Boolean));
+  return (cfg.localesPropios || []).some(p => {
+    const toks = pyxisNorm(p).split(' ').filter(Boolean);
+    return toks.length > 0 && toks.every(t => palabras.has(t));
+  });
 }
 // Alcance del análisis: todo el grupo, el grupo SIN nuestros locales (la lectura
 // no sesgada) o solo nuestros locales.
@@ -7583,6 +7591,10 @@ async function pyxisCervezasResumen(grupo, opts){
     porGrupo: { total: cerrarGrupo(porGrupo.total), propios: cerrarGrupo(porGrupo.propios), resto: cerrarGrupo(porGrupo.resto) },
     propiosDetalle: [...propiosDetalle.entries()].map(([local, g]) => ({ local, ...cerrarGrupo(g) })).sort((a, b) => b.cervezas - a.cervezas),
     localesPropios: cfg.localesPropios || [],
+    // Todos los locales del grupo con la marca de si hoy cuentan como propios:
+    // así se pueden tildar a dedo desde el panel cuando el match automático no
+    // pesca la forma en que Pyxis escribe el nombre.
+    localesTodos: [...optL].sort().map(nombre => ({ nombre, propio: pyxisEsLocalPropio(nombre, cfg) })),
     kairos, otras, localesTop: localesTop.slice(0, 15),
     sinClasificar: [...sinClas.entries()].map(([nombre, v]) => ({ nombre, total: Math.round(v.total) })).sort((a, b) => b.total - a.total).slice(0, 50),
   };
