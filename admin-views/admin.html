@@ -3199,8 +3199,10 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
         </div>
         <div class="adm-actions">
           <select id="pnlCd" class="costeo-svc"></select>
-          <label class="est-daterange">Desde <input type="date" id="pnlFrom" class="est-date"></label>
-          <label class="est-daterange">Hasta <input type="date" id="pnlTo" class="est-date"></label>
+          <select id="pnlMonthSel" class="costeo-svc" aria-label="Mes"></select>
+          <select id="pnlYearSel" class="costeo-svc" aria-label="Año"></select>
+          <input type="hidden" id="pnlFrom">
+          <input type="hidden" id="pnlTo">
           <button class="adm-btn adm-btn-ghost" id="pnlMesAct" type="button">Mes actual</button>
           <button class="adm-btn adm-btn-gold" id="pnlExcel" type="button">⬇ Descargar Excel</button>
           <button class="adm-btn adm-btn-ghost" id="pnlReload" type="button">Recargar</button>
@@ -12264,6 +12266,64 @@ let pnlData=null;
 let pnlProyectado=false; // toggle Real / Proyectado (simulación de solo lectura)
 // Mes (YYYY-MM) sobre el que se arma el P&L: el mes de la fecha "Desde" del rango.
 function pnlMesActual(){ const f=document.getElementById('pnlFrom'); return (f&&/^\d{4}-\d{2}-\d{2}$/.test(f.value))?f.value.slice(0,7):((typeof estadoMonth==='string'&&estadoMonth)||finMonthRange().from.slice(0,7)); }
+
+// El período del EERR es SIEMPRE un mes completo (01 → último día real del
+// mes), salvo el mes en curso (01 → hoy, todavía no cerrado). #pnlFrom/#pnlTo
+// quedan como inputs ocultos que loadPnl()/finRangeQS('pnl')/pnlExcel ya leían
+// — así el resto del wiring no cambia, solo cómo se llenan esos dos valores.
+const PNL_MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const PNL_ANIO_MIN = 2025; // arranca en el histórico cargado (carga manual 2025)
+function pnlUltimoDia(anio, mes){ return new Date(Date.UTC(anio, mes, 0)).getUTCDate(); } // mes: 1-12
+function pnlEsMesActual(anio, mes){ const t=new Date(); return anio===t.getFullYear() && mes===(t.getMonth()+1); }
+function pnlRangoDeMes(anio, mes){
+  const mm=String(mes).padStart(2,'0');
+  const from=`${anio}-${mm}-01`;
+  const to = pnlEsMesActual(anio, mes) ? finToday() : `${anio}-${mm}-${String(pnlUltimoDia(anio,mes)).padStart(2,'0')}`;
+  return { from, to };
+}
+function pnlRenderYearSelect(){
+  const ySel=document.getElementById('pnlYearSel'); if(!ySel || ySel.options.length) return;
+  const nowY=new Date().getFullYear();
+  const years=[]; for(let y=PNL_ANIO_MIN;y<=nowY;y++) years.push(y);
+  ySel.innerHTML = years.map(y=>`<option value="${y}">${y}</option>`).join('');
+}
+// Reconstruye las opciones de mes según el año elegido — nunca deja elegir un
+// mes futuro (tope: mes actual si el año elegido es el año en curso).
+function pnlRenderMesesParaAnio(anioSel, mesPreferido){
+  const mSel=document.getElementById('pnlMonthSel'); if(!mSel) return;
+  const t=new Date();
+  const tope = (anioSel===t.getFullYear()) ? (t.getMonth()+1) : 12;
+  mSel.innerHTML = PNL_MESES.slice(0,tope).map((l,i)=>`<option value="${i+1}">${l}</option>`).join('');
+  mSel.value = String(Math.min(mesPreferido||tope, tope));
+}
+function pnlSetPeriodo(anio, mes){
+  pnlRenderYearSelect();
+  document.getElementById('pnlYearSel').value = String(anio);
+  pnlRenderMesesParaAnio(anio, mes);
+  const r = pnlRangoDeMes(anio, Number(document.getElementById('pnlMonthSel').value));
+  document.getElementById('pnlFrom').value = r.from;
+  document.getElementById('pnlTo').value = r.to;
+}
+// Etiqueta legible del período — nunca un rango de fechas (reemplaza a
+// finRangeLabel('pnl') solo para este panel).
+function pnlPeriodoLabel(){
+  const mSel=document.getElementById('pnlMonthSel'), ySel=document.getElementById('pnlYearSel');
+  if(!mSel||!ySel||!mSel.value||!ySel.value) return '';
+  const mes=Number(mSel.value), anio=Number(ySel.value);
+  const nombre = PNL_MESES[mes-1] + ' ' + anio;
+  return pnlEsMesActual(anio, mes) ? (nombre + ' · mes en curso · al día de hoy') : nombre;
+}
+function pnlOnAnioChange(){
+  const anio=Number(document.getElementById('pnlYearSel').value);
+  pnlRenderMesesParaAnio(anio, Number(document.getElementById('pnlMonthSel').value));
+  pnlOnMesChange();
+}
+function pnlOnMesChange(){
+  const anio=Number(document.getElementById('pnlYearSel').value), mes=Number(document.getElementById('pnlMonthSel').value);
+  const r=pnlRangoDeMes(anio, mes);
+  document.getElementById('pnlFrom').value=r.from; document.getElementById('pnlTo').value=r.to;
+  loadPnl();
+}
 async function loadPnl(){
   const body=document.getElementById('pnlBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   const cdSel=document.getElementById('pnlCd');
@@ -12280,7 +12340,7 @@ async function loadPnl(){
 function renderPnl(){
   const a=pnlData, body=document.getElementById('pnlBody');
   const proy=!!a.proyectado;
-  document.getElementById('pnlMeta').textContent=(a.shopifyOk?'Shopify OK':'⚠️ Shopify no disponible')+' · '+finRangeLabel('pnl')+' · '+(CD_LBL[a.cd]||a.cd)+' · ingresos por venta − costos y gastos'+(proy?` · PROYECTADO según ${escapeHtml(a.mesReplicadoLabel||'')}`:'');
+  document.getElementById('pnlMeta').textContent=(a.shopifyOk?'Shopify OK':'⚠️ Shopify no disponible')+' · '+pnlPeriodoLabel()+' · '+(CD_LBL[a.cd]||a.cd)+' · ingresos por venta − costos y gastos'+(proy?` · PROYECTADO según ${escapeHtml(a.mesReplicadoLabel||'')}`:'');
   const ing=a.ingresos, co=a.costos, rt=a.ratios, dc=a.docs||{};
   const obj=a.objetivos||{};
   const pct=v=>`<span class="pnl-pct">${v}%</span>`;
@@ -12370,7 +12430,13 @@ async function pnlGuardarObjetivos(){
   catch(e){ if(msg){ msg.textContent='⚠ '+String(e.message||e); msg.className='pnl-obj-msg err'; } }
 }
 document.getElementById('pnlReload').onclick=loadPnl;
-finRangeWire('pnl', loadPnl);
+// Período = siempre un mes completo (selects de mes/año), nunca un rango de
+// días — semilla inicial: mes actual. #pnlFrom/#pnlTo quedan ocultos, los
+// llena pnlSetPeriodo()/pnlOnMesChange() para no tocar loadPnl()/finRangeQS().
+(function(){ const t=new Date(); pnlSetPeriodo(t.getFullYear(), t.getMonth()+1); })();
+document.getElementById('pnlYearSel').onchange=pnlOnAnioChange;
+document.getElementById('pnlMonthSel').onchange=pnlOnMesChange;
+document.getElementById('pnlMesAct').onclick=()=>{ const t=new Date(); pnlSetPeriodo(t.getFullYear(), t.getMonth()+1); loadPnl(); };
 document.getElementById('pnlCd').onchange=loadPnl;
 document.getElementById('pnlExcel').onclick=()=>{ const m=pnlMesActual(); const qs=finRangeQS('pnl'); const cd=(document.getElementById('pnlCd')||{}).value||''; window.open('/admin/pnl/export.xlsx?month='+m+(cd?'&cd='+cd:'')+(qs?'&'+qs:''),'_blank'); };
 
