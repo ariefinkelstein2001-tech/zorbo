@@ -230,6 +230,49 @@ body{ padding-left:var(--ks-side); }
 /* Navegador de mes (Costos/Gastos): ‹ Julio 2026 › delante de los chips de período. */
 .cg-period-mesnav{display:flex;align-items:center;gap:.5rem}
 .cg-period-mes-label{font-size:.86rem;font-weight:700;color:var(--text,#111);min-width:9ch;text-align:center;font-variant-numeric:tabular-nums}
+/* ── Selector de Centro de Costo: gate entre login y dashboard-hub ── */
+body.cc-gate-open{overflow:hidden}
+.cc-gate{
+  position:fixed;inset:0;z-index:10000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(185deg,var(--ks-b800),var(--ks-b900) 42%,var(--ks-b950));
+  overflow:auto;
+}
+.cc-gate-banner{width:100%;overflow:hidden;position:relative;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.15)}
+.cc-gate-track{display:flex;transition:transform .6s cubic-bezier(.65,0,.35,1)}
+@media (prefers-reduced-motion: reduce){ .cc-gate-track{transition:none} }
+.cc-slide{flex:0 0 100%;padding:1.1rem 1.5rem;display:flex;flex-direction:column;gap:.25rem;align-items:center;text-align:center}
+.cc-slide-eyebrow{font-family:var(--sans);font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.55)}
+.cc-slide-name{font-family:var(--display);font-size:1.35rem;color:#fff}
+.cc-slide-bebidas .cc-slide-eyebrow{color:var(--gold-bright,#ffb840)}
+.cc-slide-gastronomia .cc-slide-eyebrow{color:#9fc1ff}
+.cc-gate-dots{display:flex;justify-content:center;gap:.4rem;padding:0 0 .7rem}
+.cc-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.25)}
+.cc-dot.on{background:var(--gold,#f5a623)}
+.cc-gate-body{width:100%;max-width:820px;padding:2.2rem 1.5rem 2.8rem;display:flex;flex-direction:column;align-items:center;gap:1.6rem}
+.cc-gate-logo{height:34px;opacity:.92}
+.cc-gate-head{display:flex;flex-direction:column;align-items:center;gap:.6rem;text-align:center}
+.cc-gate-head h1{font-family:var(--display);font-size:1.7rem;color:#fff;margin:0;text-wrap:balance}
+.cc-gate-head p{font-family:var(--sans);font-size:.9rem;color:rgba(255,255,255,.7);margin:0;max-width:38ch}
+.cc-gate-cards{display:grid;grid-template-columns:1fr 1fr;gap:1rem;width:100%}
+@media (max-width:640px){ .cc-gate-cards{grid-template-columns:1fr} }
+.cc-card{
+  appearance:none;font-family:var(--sans);text-align:left;cursor:pointer;
+  border-radius:16px;padding:1.4rem 1.3rem;display:flex;flex-direction:column;gap:.5rem;
+  border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);
+  transition:border-color .15s,transform .15s,background .15s;
+}
+.cc-card:focus-visible{outline:2px solid var(--gold,#f5a623);outline-offset:2px}
+.cc-card-kairos{border-color:var(--gold-bd,#f1c97b);background:rgba(245,166,35,.08)}
+.cc-card-kairos:hover{border-color:var(--gold,#f5a623);transform:translateY(-2px)}
+.cc-card-eyebrow{font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.55)}
+.cc-card-kairos .cc-card-eyebrow{color:var(--gold-bright,#ffb840)}
+.cc-card-title{font-family:var(--display);font-size:1.3rem;color:#fff}
+.cc-card-desc{font-size:.82rem;color:rgba(255,255,255,.65);line-height:1.4}
+.cc-card-cta{margin-top:.3rem;font-weight:700;font-size:.85rem;color:var(--gold-bright,#ffb840)}
+.cc-card-gastro{cursor:not-allowed;opacity:.55}
+.cc-card-gastro:hover{transform:none;border-color:rgba(255,255,255,.12)}
+.cc-card-badge{margin-top:.3rem;align-self:flex-start;font-size:.7rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:.25rem .6rem;border-radius:999px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
 /* Home densa: 3 columnas lado a lado (A gráfico · B ratios · C tabla), sin scroll. */
 .ks-dash .ks-hello{padding:15px 24px}
 .ks-dash .ks-hello h1{font-size:1.45rem;margin:.2rem 0 .25rem}
@@ -2643,6 +2686,36 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
 </style>
 </head>
 <body>
+<!-- Selector de Centro de Costo: pantalla nueva entre el login y el dashboard-hub.
+     Aditiva — cubre todo el shell (fixed, z-index alto) hasta elegir "Kairos
+     Company"; no modifica showHome()/showView() ni ninguna de las 8 áreas. -->
+<div class="cc-gate" id="ccGate" role="dialog" aria-modal="true" aria-labelledby="ccGateTitle">
+  <div class="cc-gate-banner" id="ccBanner" aria-hidden="true">
+    <div class="cc-gate-track" id="ccBannerTrack"></div>
+    <div class="cc-gate-dots" id="ccBannerDots"></div>
+  </div>
+  <div class="cc-gate-body">
+    <img class="cc-gate-logo" src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Titulo_secundario-3.png?v=1779814975" alt="K-BROS">
+    <div class="cc-gate-head">
+      <h1 id="ccGateTitle">¿Con qué centro de costo querés trabajar?</h1>
+      <p>Elegí el mundo que querés administrar hoy.</p>
+    </div>
+    <div class="cc-gate-cards">
+      <button type="button" class="cc-card cc-card-kairos" id="ccEnterKairos">
+        <span class="cc-card-eyebrow">Comercialización · Distribución de bebidas</span>
+        <span class="cc-card-title">Kairos Company</span>
+        <span class="cc-card-desc">Costeo, finanzas, inventario, comercial y todo el ERP ya construido.</span>
+        <span class="cc-card-cta">Entrar →</span>
+      </button>
+      <button type="button" class="cc-card cc-card-gastro" disabled aria-label="Gastronomía — Próximamente, todavía no disponible">
+        <span class="cc-card-eyebrow">Restaurantes · Garden / Badass</span>
+        <span class="cc-card-title">Gastronomía</span>
+        <span class="cc-card-desc">Perfil autónomo para los locales — se construye en una etapa futura.</span>
+        <span class="cc-card-badge">Próximamente</span>
+      </button>
+    </div>
+  </div>
+</div>
 <aside class="ks-side" id="ksSide"></aside>
 <div class="ks-bd" id="ksBd"></div>
 
@@ -16016,6 +16089,73 @@ document.addEventListener('click', function(e){
   t.setAttribute('aria-expanded', String(willOpen));
 });
 
+// ── Selector de Centro de Costo: gate entre login y dashboard-hub ──────────
+// Aditivo: solo se superpone al shell hasta elegir "Kairos Company", que
+// simplemente continúa el flujo de siempre (loadCustomBrands + showHome).
+// No toca showHome()/showView() ni el sistema de navegación existente.
+const CC_SLIDES = [
+  { marca: 'Kairos Brewing', mundo: 'bebidas' },
+  { marca: 'Kairos Garden Vespucio', mundo: 'gastronomia' },
+  { marca: 'Banny', mundo: 'bebidas' },
+  { marca: 'Kairos Badass Parque Arauco', mundo: 'gastronomia' },
+  { marca: 'Firulais Craft Mix', mundo: 'bebidas' },
+  { marca: 'Kairos Garden Santiago', mundo: 'gastronomia' },
+];
+const CC_MUNDO_LBL = { bebidas: 'Comercialización de bebidas', gastronomia: 'Gastronomía · Restaurantes' };
+let ccGateIdx = 0, ccGateTimer = null;
+function ccGateBannerRender(){
+  const track = document.getElementById('ccBannerTrack'); if (!track) return;
+  track.innerHTML = CC_SLIDES.map(s => `<div class="cc-slide cc-slide-${s.mundo}"><span class="cc-slide-eyebrow">${escapeHtml(CC_MUNDO_LBL[s.mundo])}</span><span class="cc-slide-name">${escapeHtml(s.marca)}</span></div>`).join('');
+  const dots = document.getElementById('ccBannerDots');
+  if (dots) dots.innerHTML = CC_SLIDES.map((_, i) => `<span class="cc-dot${i === 0 ? ' on' : ''}"></span>`).join('');
+}
+function ccGateGoto(i){
+  ccGateIdx = (i + CC_SLIDES.length) % CC_SLIDES.length;
+  const track = document.getElementById('ccBannerTrack');
+  if (track) track.style.transform = `translateX(-${ccGateIdx * 100}%)`;
+  document.querySelectorAll('#ccBannerDots .cc-dot').forEach((el, j) => el.classList.toggle('on', j === ccGateIdx));
+}
+function ccGateStop(){ if (ccGateTimer) { clearInterval(ccGateTimer); ccGateTimer = null; } }
+function ccGateAutoplay(){
+  ccGateStop();
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; // respeta reduced-motion: no autoavanza
+  ccGateTimer = setInterval(() => ccGateGoto(ccGateIdx + 1), 4200);
+}
+// El banner no roba foco (no tiene elementos tabbables); lo que sí puede
+// robar foco por Tab es el shell de atrás (sidebar/header), invisible pero
+// presente bajo el overlay — inert lo saca del árbol de accesibilidad y del
+// tab order mientras el gate está abierto, sin necesidad de un focus-trap manual.
+function ccGateSetInert(on){
+  ['ksSide', 'ksBd'].forEach(id => { const el = document.getElementById(id); if (el) el.inert = on; });
+  document.querySelectorAll('.adm-header, main.adm-shell').forEach(el => { el.inert = on; });
+}
+function ccGateDismiss(){
+  ccGateStop();
+  ccGateSetInert(false);
+  const gate = document.getElementById('ccGate');
+  if (gate) gate.remove();
+  document.body.classList.remove('cc-gate-open');
+}
+function ccGateEnterKairos(){
+  // TODO: recordar último centro elegido (localStorage) — hoy el gate siempre
+  // se muestra tras login; cuando exista más de un centro real, guardar acá
+  // la elección y saltarse el gate si ya hay una preferencia guardada.
+  ccGateDismiss();
+  loadCustomBrands().then(() => showHome());
+}
+(function ccGateBoot(){
+  const gate = document.getElementById('ccGate'); if (!gate) return;
+  document.body.classList.add('cc-gate-open');
+  ccGateSetInert(true);
+  ccGateBannerRender();
+  ccGateGoto(0);
+  ccGateAutoplay();
+  const banner = document.getElementById('ccBanner');
+  if (banner) { banner.onmouseenter = ccGateStop; banner.onmouseleave = ccGateAutoplay; }
+  const enterBtn = document.getElementById('ccEnterKairos');
+  if (enterBtn) { enterBtn.onclick = ccGateEnterKairos; enterBtn.focus(); }
+})();
+
 fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
   if (d && d.username) document.getElementById('btnLogout').style.display = '';
   window.__adminUser = (d && d.username) || '';
@@ -16026,14 +16166,14 @@ fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
   renderSidebar();
   if (adminRole === 'costeo') {
     // Acceso limitado: directo a Costeo de carta, sin cargar el resto del panel.
+    // El selector de Centro de Costo no aplica a este rol — se salta.
+    ccGateDismiss();
     document.body.classList.add('role-costeo');
     // Arranca en el servicio que puede editar.
     if (adminCosteoSvc) { costeoSvc = adminCosteoSvc; const sel=document.getElementById('costeoSvc'); if(sel) sel.value=adminCosteoSvc; }
     selectSeccion('costeo');
-  } else {
-    loadCustomBrands().then(() => showHome());
   }
-}).catch(() => { renderSidebar(); loadCustomBrands().then(() => showHome()); });
+}).catch(() => { renderSidebar(); });
 </script>
 </body>
 </html>
