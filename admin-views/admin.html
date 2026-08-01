@@ -254,34 +254,39 @@ body{ padding-left:var(--ks-side); }
 body.cc-gate-open{overflow:hidden}
 .cc-gate{
   position:fixed;inset:0;z-index:10000;
-  display:flex;flex-direction:column;align-items:stretch;
+  display:flex;flex-direction:column;align-items:stretch;justify-content:center;
   background:linear-gradient(185deg,var(--ks-b800),var(--ks-b900) 42%,var(--ks-b950));
   overflow:auto;
 }
-/* flex-shrink:0 en las 3 secciones: .cc-gate es flex-column con overflow:auto
-   (scrollea si el contenido no entra) — sin esto, el banner (overflow:hidden,
+/* justify-content:center en .cc-gate: el conjunto (head+banner+foot) es más
+   bajo que el viewport en pantallas grandes — sin centrar, el flex-column
+   lo deja pegado arriba y el resto queda como una franja azul vacía abajo
+   (el "mar azul" a corregir). Centrado, ese sobrante se reparte arriba/abajo
+   en vez de colgar como vacío; si el contenido no entra, sigue scrolleando
+   igual gracias al overflow:auto de .cc-gate.
+   flex-shrink:0 en las 3 secciones: sin esto, el banner (overflow:hidden,
    min-height:auto -> 0 por spec) se aplasta a 0px cuando el resto del
    contenido no entra en el viewport (visto en mobile con las 3 unidades
    apiladas). */
-.cc-gate-head{flex-shrink:0;padding:1.5rem 1.5rem 1rem;display:flex;flex-direction:column;align-items:center;gap:.9rem}
+.cc-gate-head{flex-shrink:0;padding:1.3rem 1.5rem .8rem;display:flex;flex-direction:column;align-items:center;gap:.9rem}
 .cc-gate-brand{font-family:var(--display);font-size:1.5rem;letter-spacing:.09em;color:#fff}
 .cc-toggle{display:inline-flex;gap:.25rem;padding:.25rem;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
 .cc-toggle-btn{appearance:none;border:none;background:transparent;font-family:var(--sans);font-size:.83rem;font-weight:700;color:rgba(255,255,255,.68);padding:.48rem 1.2rem;border-radius:999px;cursor:pointer;transition:background .15s,color .15s}
 .cc-toggle-btn:hover{color:#fff}
 .cc-toggle-btn:focus-visible{outline:2px solid var(--gold,#f5a623);outline-offset:2px}
 .cc-toggle-btn.on{background:var(--gold,#f5a623);color:#1a1408}
-/* Banner delgado: franja hero fija (no aspect-ratio), para que quepan los
-   3 botones de unidades sin scroll en una pantalla estándar. */
-.cc-gate-banner{flex-shrink:0;width:100%;height:clamp(72px,10vh,130px);overflow:hidden;position:relative;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08)}
+/* Banner con presencia: ~1/3 del alto visible (30vh), con piso y techo para
+   que nunca vuelva a ser el hero gigante de antes ni una tira ilegible. */
+.cc-gate-banner{flex-shrink:0;width:100%;height:clamp(140px,30vh,260px);overflow:hidden;position:relative;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08)}
 .cc-gate-track{display:flex;height:100%;transition:transform .6s cubic-bezier(.65,0,.35,1)}
 @media (prefers-reduced-motion: reduce){ .cc-gate-track{transition:none} }
 .cc-slide{position:relative;flex:0 0 100%;height:100%}
 .cc-slide-img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
-.cc-slide-name{position:absolute;left:0;right:0;bottom:0;padding:.5rem 1.2rem;font-family:var(--display);font-size:.86rem;color:#fff;background:linear-gradient(0deg,rgba(0,0,0,.6),transparent)}
+.cc-slide-name{position:absolute;left:0;right:0;bottom:0;padding:.8rem 1.3rem;font-family:var(--display);font-size:1.05rem;color:#fff;background:linear-gradient(0deg,rgba(0,0,0,.6),transparent)}
 .cc-gate-dots{position:absolute;left:0;right:0;bottom:.35rem;display:flex;justify-content:center;gap:.35rem;pointer-events:none}
 .cc-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.4)}
 .cc-dot.on{background:var(--gold,#f5a623)}
-.cc-gate-foot{flex-shrink:0;padding:1.1rem 1.5rem 1.4rem;display:flex;flex-direction:column;align-items:center;gap:.7rem}
+.cc-gate-foot{flex-shrink:0;padding:.8rem 1.5rem 1.1rem;display:flex;flex-direction:column;align-items:center;gap:.6rem}
 .cc-units-eyebrow{font-family:var(--sans);font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5)}
 /* Botones horizontales parejos (hub Disney/Pixar/Marvel): fila, mismo
    tamaño, compactos — no bloques gigantes de color. */
