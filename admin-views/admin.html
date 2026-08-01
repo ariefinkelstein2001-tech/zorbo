@@ -16122,10 +16122,10 @@ document.addEventListener('click', function(e){
 // continúa el flujo de siempre (loadCustomBrands + showHome) — el ERP no se
 // modifica. No toca showHome()/showView() ni el sistema de navegación existente.
 //
-// Assets del banner: public/assets/centro-costo-banner/<código>.svg — hoy
-// son placeholders generados (mismo tamaño 1600×640 que va a tener la foto
-// real). Para reemplazar: subí la foto con el mismo nombre a esa carpeta;
-// si no es .svg, avisá para actualizar la extensión en ccSlideImgSrc().
+// Assets del banner: public/assets/centro-costo-banner/<código>.jpg — fotos
+// reales (1920×1080). Para reemplazar alguna: subí la foto nueva con el
+// mismo nombre a esa carpeta; si no es .jpg, avisá para actualizar la
+// extensión en ccSlideImgSrc().
 const CC_SLIDES = [
   { code: '1KB',  marca: 'Kairos Brewing' },
   { code: '2KGA', marca: 'Kairos Garden Antofagasta' },
@@ -16135,7 +16135,7 @@ const CC_SLIDES = [
   { code: '6KGV', marca: 'Kairos Garden Vespucio' },
   { code: '7BA',  marca: 'Banny' },
 ];
-function ccSlideImgSrc(code){ return `/assets/centro-costo-banner/${code}.svg`; }
+function ccSlideImgSrc(code){ return `/assets/centro-costo-banner/${code}.jpg`; }
 let ccGateIdx = 0, ccGateTimer = null;
 function ccGateBannerRender(){
   const track = document.getElementById('ccBannerTrack'); if (!track) return;
