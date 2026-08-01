@@ -10,10 +10,16 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{
-  --bg:#fff;
+  /* ── Refinamiento "mate" (acabado, no rediseño) ──────────────────────────
+     Neutros con leve tinte azulado (H222, la misma familia que --ks-b*) en
+     vez de gris puro — más cohesionado con la marca, más "caro". El dorado
+     de acento (--gold) NO se toca: sigue siendo #f5a623 en cada variante.
+     Cada texto/fondo verificado ≥4.5:1 (AA normal) — ver notas en los
+     semánticos más abajo para los que se ajustaron por eso. */
+  --bg:#f7f8f9;
   --surface:#fff;
-  --surface2:#fafafa;
-  --surface3:#f0f0f0;
+  --surface2:#f5f6f7;
+  --surface3:#eceef0;
   --gold:#f5a623;
   --gold-bright:#ffb840;
   --gold-deep:#a05f00;
@@ -22,12 +28,17 @@
   --gold-bd:#f1c97b;
   --gold-bd-h:#f5a623;
   --text:#111;
-  --muted:#666;
-  --dim:#999;
-  --border:#e5e5e5;
-  --green:#2e9c5a;
+  --muted:#555c6d;
+  --dim:#636b7e;
+  --border:#e2e3e7;
+  /* green/red/info: mismo hue, un toque más oscuros que antes — el valor
+     previo pasaba AA-normal (4.5:1) contra --surface pero NO contra su
+     propio *-dim (fondo de badges/chips), quedando en "solo AA-large"
+     (~4.0-4.3:1); con este ajuste ambas combinaciones (texto sobre
+     --surface y texto sobre su *-dim) llegan a ≥4.5:1. */
+  --green:#257c48;
   --green-dim:#e8f7ee;
-  --red:#d33;
+  --red:#d32323;
   --red-dim:#fdecec;
   --sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
   --display:'Syne',var(--sans);
@@ -47,10 +58,13 @@
   --radius-md:12px;
   --radius-lg:16px;
   --radius-full:999px;
-  /* Sombras: una sola convención de elevación sutil */
-  --shadow-sm:0 1px 2px rgba(17,17,17,.06);
-  --shadow-md:0 6px 18px rgba(17,17,17,.08);
-  --shadow-lg:0 16px 38px rgba(17,17,17,.10);
+  /* Sombras: una sola convención de elevación sutil — difusas, baja opacidad,
+     tintadas hacia el azul oscuro de marca (rgb del --ks-b950 refinado) en
+     vez de negro puro, para que la profundidad se sienta parte de la misma
+     paleta en vez de una sombra genérica. */
+  --shadow-sm:0 1px 3px rgba(10,24,51,.06);
+  --shadow-md:0 8px 24px rgba(10,24,51,.08);
+  --shadow-lg:0 20px 48px rgba(10,24,51,.10);
   /* Motion */
   --dur-fast:150ms;
   --dur-base:200ms;
@@ -59,7 +73,7 @@
      para "advertencia" en vez de inventar un color nuevo) */
   --warn:var(--gold-deep);
   --warn-dim:var(--gold-dim);
-  --info:#3b6fd1;
+  --info:#3369cf;
   --info-dim:#eaf1fb;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -133,7 +147,11 @@ body.estado-active .adm-chat{display:none}
 body.admin-home .adm-chat,body.admin-home .adm-chat-fab{display:none!important}
 
 /* ═══════════ K-BROS SHELL (sidebar + topbar + dashboard) ═══════════ */
-:root{ --ks-side:268px; --ks-b900:#0b2a5e; --ks-b800:#123a7a; --ks-b950:#071d40; }
+/* Azul K-BROS refinado: mismo hue (~H220), más profundo y menos saturado
+   (S~62-68% vs ~74-80% antes) — mate, no el azul-gris genérico de Disney.
+   Contraste con texto blanco sigue de sobra (12.7-17.6:1) y el dorado de
+   acento se lee mejor todavía sobre este azul más oscuro (7.6:1 vs 6.9:1). */
+:root{ --ks-side:268px; --ks-b900:#10234c; --ks-b800:#173163; --ks-b950:#0a1833; }
 body{ padding-left:var(--ks-side); }
 .adm-brand,.adm-pipe,.adm-sub{ display:none!important; } /* la marca ahora vive en el sidebar */
 #tabs{ display:none!important; }                          /* la navegación ahora vive en el sidebar */
@@ -245,45 +263,52 @@ body.cc-gate-open{overflow:hidden}
    min-height:auto -> 0 por spec) se aplasta a 0px cuando el resto del
    contenido no entra en el viewport (visto en mobile con las 3 unidades
    apiladas). */
-.cc-gate-head{flex-shrink:0;padding:2.4rem 1.5rem 1.6rem;display:flex;flex-direction:column;align-items:center;gap:1.3rem}
-.cc-gate-brand{font-family:var(--display);font-size:1.7rem;letter-spacing:.09em;color:#fff}
+.cc-gate-head{flex-shrink:0;padding:1.5rem 1.5rem 1rem;display:flex;flex-direction:column;align-items:center;gap:.9rem}
+.cc-gate-brand{font-family:var(--display);font-size:1.5rem;letter-spacing:.09em;color:#fff}
 .cc-toggle{display:inline-flex;gap:.25rem;padding:.25rem;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
-.cc-toggle-btn{appearance:none;border:none;background:transparent;font-family:var(--sans);font-size:.85rem;font-weight:700;color:rgba(255,255,255,.68);padding:.55rem 1.3rem;border-radius:999px;cursor:pointer;transition:background .15s,color .15s}
+.cc-toggle-btn{appearance:none;border:none;background:transparent;font-family:var(--sans);font-size:.83rem;font-weight:700;color:rgba(255,255,255,.68);padding:.48rem 1.2rem;border-radius:999px;cursor:pointer;transition:background .15s,color .15s}
 .cc-toggle-btn:hover{color:#fff}
 .cc-toggle-btn:focus-visible{outline:2px solid var(--gold,#f5a623);outline-offset:2px}
 .cc-toggle-btn.on{background:var(--gold,#f5a623);color:#1a1408}
-.cc-gate-banner{flex-shrink:0;width:100%;overflow:hidden;position:relative;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08)}
-.cc-gate-track{display:flex;transition:transform .6s cubic-bezier(.65,0,.35,1)}
+/* Banner delgado: franja hero fija (no aspect-ratio), para que quepan los
+   3 botones de unidades sin scroll en una pantalla estándar. */
+.cc-gate-banner{flex-shrink:0;width:100%;height:clamp(72px,10vh,130px);overflow:hidden;position:relative;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08)}
+.cc-gate-track{display:flex;height:100%;transition:transform .6s cubic-bezier(.65,0,.35,1)}
 @media (prefers-reduced-motion: reduce){ .cc-gate-track{transition:none} }
-.cc-slide{position:relative;flex:0 0 100%;aspect-ratio:1600/640}
+.cc-slide{position:relative;flex:0 0 100%;height:100%}
 .cc-slide-img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
-.cc-slide-name{position:absolute;left:0;right:0;bottom:0;padding:.9rem 1.4rem;font-family:var(--display);font-size:1.1rem;color:#fff;background:linear-gradient(0deg,rgba(0,0,0,.62),transparent)}
-.cc-gate-dots{position:absolute;left:0;right:0;bottom:.5rem;display:flex;justify-content:center;gap:.4rem;pointer-events:none}
-.cc-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.4)}
+.cc-slide-name{position:absolute;left:0;right:0;bottom:0;padding:.5rem 1.2rem;font-family:var(--display);font-size:.86rem;color:#fff;background:linear-gradient(0deg,rgba(0,0,0,.6),transparent)}
+.cc-gate-dots{position:absolute;left:0;right:0;bottom:.35rem;display:flex;justify-content:center;gap:.35rem;pointer-events:none}
+.cc-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.4)}
 .cc-dot.on{background:var(--gold,#f5a623)}
-.cc-gate-foot{flex-shrink:0;padding:1.9rem 1.5rem 3rem;display:flex;flex-direction:column;align-items:center;gap:1rem}
-.cc-units-eyebrow{font-family:var(--sans);font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5)}
-.cc-units{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.1rem;width:100%;max-width:1040px}
-@media (max-width:820px){ .cc-units{grid-template-columns:1fr;max-width:420px} }
+.cc-gate-foot{flex-shrink:0;padding:1.1rem 1.5rem 1.4rem;display:flex;flex-direction:column;align-items:center;gap:.7rem}
+.cc-units-eyebrow{font-family:var(--sans);font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+/* Botones horizontales parejos (hub Disney/Pixar/Marvel): fila, mismo
+   tamaño, compactos — no bloques gigantes de color. */
+.cc-units{display:flex;gap:.7rem;width:100%;max-width:860px}
 .cc-unit{
-  appearance:none;position:relative;overflow:hidden;border-radius:18px;aspect-ratio:4/3;
-  border:1px solid rgba(255,255,255,.14);cursor:pointer;padding:0;text-align:left;
+  appearance:none;flex:1 1 0;min-width:0;height:64px;
+  display:flex;align-items:center;gap:.65rem;padding:0 .9rem;text-align:left;
+  border-radius:var(--radius-md,12px);border:1px solid rgba(255,255,255,.14);
+  background:rgba(255,255,255,.05);cursor:pointer;
+  transition:border-color .15s,background .15s,transform .15s;
 }
-.cc-unit:focus-visible{outline:2px solid var(--gold,#f5a623);outline-offset:3px}
-.cc-unit-zorbo{background:linear-gradient(150deg,#4a3406,var(--gold-deep,#a05f00) 60%,var(--gold,#f5a623))}
-.cc-unit-hospitality{background:linear-gradient(150deg,#3a1a12,#8a4128 60%,#e07a5f)}
-.cc-unit-secretlab{background:linear-gradient(150deg,#071d40,var(--ks-b900) 55%,var(--ks-b800))}
-.cc-unit-face{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:1.2rem 1.3rem;transition:opacity .2s}
-.cc-unit-name{font-family:var(--display);font-size:1.3rem;color:#fff;letter-spacing:.02em}
-.cc-unit-sub{font-family:var(--sans);font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.7);margin-top:.15rem}
-.cc-unit-desc{
-  position:absolute;inset:0;padding:1.3rem;display:flex;align-items:center;
-  font-family:var(--sans);font-size:.83rem;line-height:1.5;color:#fff;
-  background:rgba(6,14,32,.94);opacity:0;transition:opacity .2s;
+.cc-unit:hover,.cc-unit:focus-visible,.cc-unit.cc-unit-open{border-color:var(--gold,#f5a623);background:rgba(245,166,35,.1);transform:translateY(-1px)}
+.cc-unit:focus-visible{outline:2px solid var(--gold,#f5a623);outline-offset:2px}
+.cc-unit-img{width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;background:rgba(255,255,255,.08)}
+.cc-unit-txt{min-width:0;display:flex;flex-direction:column;gap:.1rem}
+.cc-unit-name{font-family:var(--display);font-size:.86rem;color:#fff;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cc-unit-sub{font-family:var(--sans);font-size:.62rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:640px){ .cc-unit-sub{display:none} }
+/* Panel de descripción compartido, debajo de la fila — altura fija para que
+   mostrar/ocultar el texto (hover o tap) no mueva el layout ni provoque scroll. */
+.cc-unit-desc-panel{
+  width:100%;max-width:640px;height:2.8rem;display:flex;align-items:center;justify-content:center;
+  font-family:var(--sans);font-size:.78rem;line-height:1.4;color:rgba(255,255,255,.82);
+  text-align:center;opacity:0;transition:opacity .15s;
 }
-.cc-unit:hover .cc-unit-desc,.cc-unit:focus-visible .cc-unit-desc,.cc-unit.cc-unit-open .cc-unit-desc{opacity:1}
-.cc-unit:hover .cc-unit-face,.cc-unit:focus-visible .cc-unit-face,.cc-unit.cc-unit-open .cc-unit-face{opacity:0}
-.cc-units-note{font-family:var(--sans);font-size:.76rem;color:rgba(255,255,255,.45)}
+.cc-unit-desc-panel.show{opacity:1}
+.cc-units-note{font-family:var(--sans);font-size:.72rem;color:rgba(255,255,255,.4)}
 /* Home densa: 3 columnas lado a lado (A gráfico · B ratios · C tabla), sin scroll. */
 .ks-dash .ks-hello{padding:15px 24px}
 .ks-dash .ks-hello h1{font-size:1.45rem;margin:.2rem 0 .25rem}
@@ -2717,29 +2742,25 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
   </div>
   <div class="cc-gate-foot">
     <div class="cc-units-eyebrow">Unidades del holding</div>
+    <!-- Botones horizontales parejos (hub Disney/Pixar/Marvel): mismo
+         tamaño, imagen + nombre. El texto descriptivo de cada uno aparece
+         en el panel de abajo al hover (desktop) o tap (mobile) — no
+         adentro del botón, que se mantiene chico y parejo. -->
     <div class="cc-units" id="ccUnits">
-      <button type="button" class="cc-unit cc-unit-zorbo" data-unit="zorbo">
-        <span class="cc-unit-face">
-          <span class="cc-unit-name">ZORBO</span>
-          <span class="cc-unit-sub">Commerce &amp; Distribution</span>
-        </span>
-        <span class="cc-unit-desc">Conectamos nuestras marcas con sus mercados a través de estrategias comerciales, distribución, logística y desarrollo de canales de venta, impulsando su crecimiento y presencia en cada punto de contacto.</span>
+      <button type="button" class="cc-unit" data-unit="zorbo" data-desc="Conectamos nuestras marcas con sus mercados a través de estrategias comerciales, distribución, logística y desarrollo de canales de venta, impulsando su crecimiento y presencia en cada punto de contacto.">
+        <img class="cc-unit-img" src="/assets/centro-costo-banner/ZOR.svg" alt="" draggable="false">
+        <span class="cc-unit-txt"><span class="cc-unit-name">ZORBO</span><span class="cc-unit-sub">Commerce &amp; Distribution</span></span>
       </button>
-      <button type="button" class="cc-unit cc-unit-hospitality" data-unit="hospitality">
-        <span class="cc-unit-face">
-          <span class="cc-unit-name">HOSPITALITY</span>
-          <span class="cc-unit-sub">Food &amp; Experiences</span>
-        </span>
-        <span class="cc-unit-desc">Creamos experiencias gastronómicas memorables mediante conceptos innovadores de restaurantes, bares y entretenimiento, donde la calidad, el servicio y la experiencia del cliente son el centro de todo lo que hacemos.</span>
+      <button type="button" class="cc-unit" data-unit="hospitality" data-desc="Creamos experiencias gastronómicas memorables mediante conceptos innovadores de restaurantes, bares y entretenimiento, donde la calidad, el servicio y la experiencia del cliente son el centro de todo lo que hacemos.">
+        <img class="cc-unit-img" src="/assets/centro-costo-banner/HOS.svg" alt="" draggable="false">
+        <span class="cc-unit-txt"><span class="cc-unit-name">HOSPITALITY</span><span class="cc-unit-sub">Food &amp; Experiences</span></span>
       </button>
-      <button type="button" class="cc-unit cc-unit-secretlab" data-unit="secretlab">
-        <span class="cc-unit-face">
-          <span class="cc-unit-name">SECRET LAB</span>
-          <span class="cc-unit-sub">Production &amp; I+D</span>
-        </span>
-        <span class="cc-unit-desc">Desarrollamos, producimos e innovamos con bebidas de alta calidad, combinando creatividad, excelencia operacional y mejora continua para dar vida a productos únicos que impulsan el crecimiento de nuestras marcas.</span>
+      <button type="button" class="cc-unit" data-unit="secretlab" data-desc="Desarrollamos, producimos e innovamos con bebidas de alta calidad, combinando creatividad, excelencia operacional y mejora continua para dar vida a productos únicos que impulsan el crecimiento de nuestras marcas.">
+        <img class="cc-unit-img" src="/assets/centro-costo-banner/SEC.svg" alt="" draggable="false">
+        <span class="cc-unit-txt"><span class="cc-unit-name">SECRET LAB</span><span class="cc-unit-sub">Production &amp; I+D</span></span>
       </button>
     </div>
+    <div class="cc-unit-desc-panel" id="ccUnitDescPanel" aria-live="polite"></div>
     <div class="cc-units-note">En construcción — todavía no llevan a ninguna parte.</div>
   </div>
 </div>
@@ -16186,15 +16207,32 @@ function ccToggleSet(active){
   if (tabKairos) { tabKairos.classList.toggle('on', active === 'kairos'); tabKairos.setAttribute('aria-pressed', String(active === 'kairos')); }
   if (tabParaTi) { tabParaTi.classList.toggle('on', active === 'paraTi'); tabParaTi.setAttribute('aria-pressed', String(active === 'paraTi')); }
 }
-// Las 3 unidades del holding están "en construcción": no navegan. En
-// desktop el texto se ve con :hover (CSS); en mobile (sin hover real) el
-// primer tap lo revela acá — ver spec del selector de Centro de Costo.
+// Las 3 unidades del holding están "en construcción": no navegan. Los
+// botones son chicos y parejos (hub Disney/Pixar/Marvel), así que el texto
+// descriptivo vive en un panel compartido debajo de la fila — se llena y se
+// muestra al hover (desktop) o al tap (mobile, que "pega" la selección
+// hasta tocar otra unidad, ya que no hay :hover real).
+let ccUnitSticky = null;
+function ccUnitDescShow(btn){
+  const panel = document.getElementById('ccUnitDescPanel'); if (!panel) return;
+  panel.textContent = btn.dataset.desc || '';
+  panel.classList.add('show');
+}
+function ccUnitDescRevert(){
+  const panel = document.getElementById('ccUnitDescPanel'); if (!panel) return;
+  if (ccUnitSticky) { ccUnitDescShow(ccUnitSticky); return; }
+  panel.classList.remove('show');
+}
 function ccUnitsWire(){
   document.querySelectorAll('.cc-unit').forEach(btn => {
+    btn.addEventListener('mouseenter', () => ccUnitDescShow(btn));
+    btn.addEventListener('mouseleave', ccUnitDescRevert);
+    btn.addEventListener('focus', () => ccUnitDescShow(btn));
+    btn.addEventListener('blur', ccUnitDescRevert);
     btn.onclick = () => {
-      const already = btn.classList.contains('cc-unit-open');
       document.querySelectorAll('.cc-unit.cc-unit-open').forEach(o => o.classList.remove('cc-unit-open'));
-      if (!already) btn.classList.add('cc-unit-open');
+      if (ccUnitSticky === btn) { ccUnitSticky = null; ccUnitDescRevert(); }
+      else { ccUnitSticky = btn; btn.classList.add('cc-unit-open'); ccUnitDescShow(btn); }
     };
   });
 }
