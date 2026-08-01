@@ -254,30 +254,31 @@ body{ padding-left:var(--ks-side); }
 body.cc-gate-open{overflow:hidden}
 .cc-gate{
   position:fixed;inset:0;z-index:10000;
-  display:flex;flex-direction:column;align-items:stretch;justify-content:center;
+  display:flex;flex-direction:column;align-items:stretch;
   background:linear-gradient(185deg,var(--ks-b800),var(--ks-b900) 42%,var(--ks-b950));
   overflow:auto;
 }
-/* justify-content:center en .cc-gate: el conjunto (head+banner+foot) es más
-   bajo que el viewport en pantallas grandes — sin centrar, el flex-column
-   lo deja pegado arriba y el resto queda como una franja azul vacía abajo
-   (el "mar azul" a corregir). Centrado, ese sobrante se reparte arriba/abajo
-   en vez de colgar como vacío; si el contenido no entra, sigue scrolleando
-   igual gracias al overflow:auto de .cc-gate.
-   flex-shrink:0 en las 3 secciones: sin esto, el banner (overflow:hidden,
-   min-height:auto -> 0 por spec) se aplasta a 0px cuando el resto del
-   contenido no entra en el viewport (visto en mobile con las 3 unidades
-   apiladas). */
-.cc-gate-head{flex-shrink:0;padding:1.3rem 1.5rem .8rem;display:flex;flex-direction:column;align-items:center;gap:.9rem}
+/* Anclado arriba (sin justify-content:center): head y foot miden lo que su
+   contenido necesita y el banner (flex:1 1 0 más abajo) se estira para
+   absorber TODO el espacio sobrante entre ambos. Así no queda franja azul
+   vacía ni arriba ni abajo — el sobrante se convierte en banner, no en
+   fondo muerto. Si el contenido no entra igual (pantallas muy bajas),
+   sigue scrolleando gracias al overflow:auto de .cc-gate.
+   flex-shrink:0 en head/foot: para que no se compriman cuando el banner
+   crece a costa de ellos. */
+.cc-gate-head{flex-shrink:0;padding:1rem 1.5rem .6rem;display:flex;flex-direction:column;align-items:center;gap:.7rem}
 .cc-gate-brand{font-family:var(--display);font-size:1.5rem;letter-spacing:.09em;color:#fff}
 .cc-toggle{display:inline-flex;gap:.25rem;padding:.25rem;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
 .cc-toggle-btn{appearance:none;border:none;background:transparent;font-family:var(--sans);font-size:.83rem;font-weight:700;color:rgba(255,255,255,.68);padding:.48rem 1.2rem;border-radius:999px;cursor:pointer;transition:background .15s,color .15s}
 .cc-toggle-btn:hover{color:#fff}
 .cc-toggle-btn:focus-visible{outline:2px solid var(--gold,#f5a623);outline-offset:2px}
 .cc-toggle-btn.on{background:var(--gold,#f5a623);color:#1a1408}
-/* Banner con presencia: ~1/3 del alto visible (30vh), con piso y techo para
-   que nunca vuelva a ser el hero gigante de antes ni una tira ilegible. */
-.cc-gate-banner{flex-shrink:0;width:100%;height:clamp(140px,30vh,260px);overflow:hidden;position:relative;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08)}
+/* Banner protagonista: flex:1 1 0 (basis 0, ignora el tamaño intrínseco de
+   las imágenes) hace que se estire y ocupe exactamente el espacio libre
+   entre el head y el foot — ancho y notoriamente más alto que la franja
+   fija anterior, sin dejar sobrante azul. min-height es solo un piso de
+   seguridad para pantallas extremadamente bajas. */
+.cc-gate-banner{flex:1 1 0;min-height:190px;width:100%;overflow:hidden;position:relative;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08)}
 .cc-gate-track{display:flex;height:100%;transition:transform .6s cubic-bezier(.65,0,.35,1)}
 @media (prefers-reduced-motion: reduce){ .cc-gate-track{transition:none} }
 .cc-slide{position:relative;flex:0 0 100%;height:100%}
@@ -286,7 +287,7 @@ body.cc-gate-open{overflow:hidden}
 .cc-gate-dots{position:absolute;left:0;right:0;bottom:.35rem;display:flex;justify-content:center;gap:.35rem;pointer-events:none}
 .cc-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.4)}
 .cc-dot.on{background:var(--gold,#f5a623)}
-.cc-gate-foot{flex-shrink:0;padding:.8rem 1.5rem 1.1rem;display:flex;flex-direction:column;align-items:center;gap:.6rem}
+.cc-gate-foot{flex-shrink:0;padding:.6rem 1.5rem .8rem;display:flex;flex-direction:column;align-items:center;gap:.5rem}
 .cc-units-eyebrow{font-family:var(--sans);font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5)}
 /* Botones horizontales parejos (hub Disney/Pixar/Marvel): fila, mismo
    tamaño, compactos — no bloques gigantes de color. */
