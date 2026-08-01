@@ -230,49 +230,60 @@ body{ padding-left:var(--ks-side); }
 /* Navegador de mes (Costos/Gastos): ‹ Julio 2026 › delante de los chips de período. */
 .cg-period-mesnav{display:flex;align-items:center;gap:.5rem}
 .cg-period-mes-label{font-size:.86rem;font-weight:700;color:var(--text,#111);min-width:9ch;text-align:center;font-variant-numeric:tabular-nums}
-/* ── Selector de Centro de Costo: gate entre login y dashboard-hub ── */
+/* ── Selector de Centro de Costo (patrón Disney+): gate entre login y
+   dashboard-hub. K-BROS arriba + toggle Kairos Company/Para ti; Kairos
+   Company muestra el banner de marcas + las 3 unidades del holding. ── */
 body.cc-gate-open{overflow:hidden}
 .cc-gate{
   position:fixed;inset:0;z-index:10000;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  display:flex;flex-direction:column;align-items:stretch;
   background:linear-gradient(185deg,var(--ks-b800),var(--ks-b900) 42%,var(--ks-b950));
   overflow:auto;
 }
-.cc-gate-banner{width:100%;overflow:hidden;position:relative;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.15)}
+/* flex-shrink:0 en las 3 secciones: .cc-gate es flex-column con overflow:auto
+   (scrollea si el contenido no entra) — sin esto, el banner (overflow:hidden,
+   min-height:auto -> 0 por spec) se aplasta a 0px cuando el resto del
+   contenido no entra en el viewport (visto en mobile con las 3 unidades
+   apiladas). */
+.cc-gate-head{flex-shrink:0;padding:2.4rem 1.5rem 1.6rem;display:flex;flex-direction:column;align-items:center;gap:1.3rem}
+.cc-gate-brand{font-family:var(--display);font-size:1.7rem;letter-spacing:.09em;color:#fff}
+.cc-toggle{display:inline-flex;gap:.25rem;padding:.25rem;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+.cc-toggle-btn{appearance:none;border:none;background:transparent;font-family:var(--sans);font-size:.85rem;font-weight:700;color:rgba(255,255,255,.68);padding:.55rem 1.3rem;border-radius:999px;cursor:pointer;transition:background .15s,color .15s}
+.cc-toggle-btn:hover{color:#fff}
+.cc-toggle-btn:focus-visible{outline:2px solid var(--gold,#f5a623);outline-offset:2px}
+.cc-toggle-btn.on{background:var(--gold,#f5a623);color:#1a1408}
+.cc-gate-banner{flex-shrink:0;width:100%;overflow:hidden;position:relative;border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08)}
 .cc-gate-track{display:flex;transition:transform .6s cubic-bezier(.65,0,.35,1)}
 @media (prefers-reduced-motion: reduce){ .cc-gate-track{transition:none} }
-.cc-slide{flex:0 0 100%;padding:1.1rem 1.5rem;display:flex;flex-direction:column;gap:.25rem;align-items:center;text-align:center}
-.cc-slide-eyebrow{font-family:var(--sans);font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.55)}
-.cc-slide-name{font-family:var(--display);font-size:1.35rem;color:#fff}
-.cc-slide-bebidas .cc-slide-eyebrow{color:var(--gold-bright,#ffb840)}
-.cc-slide-gastronomia .cc-slide-eyebrow{color:#9fc1ff}
-.cc-gate-dots{display:flex;justify-content:center;gap:.4rem;padding:0 0 .7rem}
-.cc-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.25)}
+.cc-slide{position:relative;flex:0 0 100%;aspect-ratio:1600/640}
+.cc-slide-img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
+.cc-slide-name{position:absolute;left:0;right:0;bottom:0;padding:.9rem 1.4rem;font-family:var(--display);font-size:1.1rem;color:#fff;background:linear-gradient(0deg,rgba(0,0,0,.62),transparent)}
+.cc-gate-dots{position:absolute;left:0;right:0;bottom:.5rem;display:flex;justify-content:center;gap:.4rem;pointer-events:none}
+.cc-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.4)}
 .cc-dot.on{background:var(--gold,#f5a623)}
-.cc-gate-body{width:100%;max-width:820px;padding:2.2rem 1.5rem 2.8rem;display:flex;flex-direction:column;align-items:center;gap:1.6rem}
-.cc-gate-logo{height:34px;opacity:.92}
-.cc-gate-head{display:flex;flex-direction:column;align-items:center;gap:.6rem;text-align:center}
-.cc-gate-head h1{font-family:var(--display);font-size:1.7rem;color:#fff;margin:0;text-wrap:balance}
-.cc-gate-head p{font-family:var(--sans);font-size:.9rem;color:rgba(255,255,255,.7);margin:0;max-width:38ch}
-.cc-gate-cards{display:grid;grid-template-columns:1fr 1fr;gap:1rem;width:100%}
-@media (max-width:640px){ .cc-gate-cards{grid-template-columns:1fr} }
-.cc-card{
-  appearance:none;font-family:var(--sans);text-align:left;cursor:pointer;
-  border-radius:16px;padding:1.4rem 1.3rem;display:flex;flex-direction:column;gap:.5rem;
-  border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);
-  transition:border-color .15s,transform .15s,background .15s;
+.cc-gate-foot{flex-shrink:0;padding:1.9rem 1.5rem 3rem;display:flex;flex-direction:column;align-items:center;gap:1rem}
+.cc-units-eyebrow{font-family:var(--sans);font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+.cc-units{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.1rem;width:100%;max-width:1040px}
+@media (max-width:820px){ .cc-units{grid-template-columns:1fr;max-width:420px} }
+.cc-unit{
+  appearance:none;position:relative;overflow:hidden;border-radius:18px;aspect-ratio:4/3;
+  border:1px solid rgba(255,255,255,.14);cursor:pointer;padding:0;text-align:left;
 }
-.cc-card:focus-visible{outline:2px solid var(--gold,#f5a623);outline-offset:2px}
-.cc-card-kairos{border-color:var(--gold-bd,#f1c97b);background:rgba(245,166,35,.08)}
-.cc-card-kairos:hover{border-color:var(--gold,#f5a623);transform:translateY(-2px)}
-.cc-card-eyebrow{font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(255,255,255,.55)}
-.cc-card-kairos .cc-card-eyebrow{color:var(--gold-bright,#ffb840)}
-.cc-card-title{font-family:var(--display);font-size:1.3rem;color:#fff}
-.cc-card-desc{font-size:.82rem;color:rgba(255,255,255,.65);line-height:1.4}
-.cc-card-cta{margin-top:.3rem;font-weight:700;font-size:.85rem;color:var(--gold-bright,#ffb840)}
-.cc-card-gastro{cursor:not-allowed;opacity:.55}
-.cc-card-gastro:hover{transform:none;border-color:rgba(255,255,255,.12)}
-.cc-card-badge{margin-top:.3rem;align-self:flex-start;font-size:.7rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:.25rem .6rem;border-radius:999px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.8)}
+.cc-unit:focus-visible{outline:2px solid var(--gold,#f5a623);outline-offset:3px}
+.cc-unit-zorbo{background:linear-gradient(150deg,#4a3406,var(--gold-deep,#a05f00) 60%,var(--gold,#f5a623))}
+.cc-unit-hospitality{background:linear-gradient(150deg,#3a1a12,#8a4128 60%,#e07a5f)}
+.cc-unit-secretlab{background:linear-gradient(150deg,#071d40,var(--ks-b900) 55%,var(--ks-b800))}
+.cc-unit-face{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:1.2rem 1.3rem;transition:opacity .2s}
+.cc-unit-name{font-family:var(--display);font-size:1.3rem;color:#fff;letter-spacing:.02em}
+.cc-unit-sub{font-family:var(--sans);font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:rgba(255,255,255,.7);margin-top:.15rem}
+.cc-unit-desc{
+  position:absolute;inset:0;padding:1.3rem;display:flex;align-items:center;
+  font-family:var(--sans);font-size:.83rem;line-height:1.5;color:#fff;
+  background:rgba(6,14,32,.94);opacity:0;transition:opacity .2s;
+}
+.cc-unit:hover .cc-unit-desc,.cc-unit:focus-visible .cc-unit-desc,.cc-unit.cc-unit-open .cc-unit-desc{opacity:1}
+.cc-unit:hover .cc-unit-face,.cc-unit:focus-visible .cc-unit-face,.cc-unit.cc-unit-open .cc-unit-face{opacity:0}
+.cc-units-note{font-family:var(--sans);font-size:.76rem;color:rgba(255,255,255,.45)}
 /* Home densa: 3 columnas lado a lado (A gráfico · B ratios · C tabla), sin scroll. */
 .ks-dash .ks-hello{padding:15px 24px}
 .ks-dash .ks-hello h1{font-size:1.45rem;margin:.2rem 0 .25rem}
@@ -2686,34 +2697,50 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
 </style>
 </head>
 <body>
-<!-- Selector de Centro de Costo: pantalla nueva entre el login y el dashboard-hub.
-     Aditiva — cubre todo el shell (fixed, z-index alto) hasta elegir "Kairos
-     Company"; no modifica showHome()/showView() ni ninguna de las 8 áreas. -->
-<div class="cc-gate" id="ccGate" role="dialog" aria-modal="true" aria-labelledby="ccGateTitle">
+<!-- Selector de Centro de Costo (patrón Disney+): pantalla nueva entre el
+     login y el dashboard-hub. Aditiva — cubre todo el shell (fixed, z-index
+     alto) hasta elegir "Para ti"; no modifica showHome()/showView() ni
+     ninguna de las 8 áreas. "Kairos Company" es la vista exploradora
+     (banner + unidades del holding, ninguna navega todavía); "Para ti" es
+     la puerta al ERP completo ya construido. -->
+<div class="cc-gate" id="ccGate" role="dialog" aria-modal="true" aria-label="Selector de Centro de Costo">
+  <div class="cc-gate-head">
+    <div class="cc-gate-brand">K-BROS</div>
+    <div class="cc-toggle" role="group" aria-label="Selector de vista">
+      <button type="button" class="cc-toggle-btn on" id="ccTabKairos" aria-pressed="true">Kairos Company</button>
+      <button type="button" class="cc-toggle-btn" id="ccTabParaTi" aria-pressed="false">Para ti</button>
+    </div>
+  </div>
   <div class="cc-gate-banner" id="ccBanner" aria-hidden="true">
     <div class="cc-gate-track" id="ccBannerTrack"></div>
     <div class="cc-gate-dots" id="ccBannerDots"></div>
   </div>
-  <div class="cc-gate-body">
-    <img class="cc-gate-logo" src="https://cdn.shopify.com/s/files/1/0668/0081/2327/files/Titulo_secundario-3.png?v=1779814975" alt="K-BROS">
-    <div class="cc-gate-head">
-      <h1 id="ccGateTitle">¿Con qué centro de costo querés trabajar?</h1>
-      <p>Elegí el mundo que querés administrar hoy.</p>
-    </div>
-    <div class="cc-gate-cards">
-      <button type="button" class="cc-card cc-card-kairos" id="ccEnterKairos">
-        <span class="cc-card-eyebrow">Comercialización · Distribución de bebidas</span>
-        <span class="cc-card-title">Kairos Company</span>
-        <span class="cc-card-desc">Costeo, finanzas, inventario, comercial y todo el ERP ya construido.</span>
-        <span class="cc-card-cta">Entrar →</span>
+  <div class="cc-gate-foot">
+    <div class="cc-units-eyebrow">Unidades del holding</div>
+    <div class="cc-units" id="ccUnits">
+      <button type="button" class="cc-unit cc-unit-zorbo" data-unit="zorbo">
+        <span class="cc-unit-face">
+          <span class="cc-unit-name">ZORBO</span>
+          <span class="cc-unit-sub">Commerce &amp; Distribution</span>
+        </span>
+        <span class="cc-unit-desc">Conectamos nuestras marcas con sus mercados a través de estrategias comerciales, distribución, logística y desarrollo de canales de venta, impulsando su crecimiento y presencia en cada punto de contacto.</span>
       </button>
-      <button type="button" class="cc-card cc-card-gastro" disabled aria-label="Gastronomía — Próximamente, todavía no disponible">
-        <span class="cc-card-eyebrow">Restaurantes · Garden / Badass</span>
-        <span class="cc-card-title">Gastronomía</span>
-        <span class="cc-card-desc">Perfil autónomo para los locales — se construye en una etapa futura.</span>
-        <span class="cc-card-badge">Próximamente</span>
+      <button type="button" class="cc-unit cc-unit-hospitality" data-unit="hospitality">
+        <span class="cc-unit-face">
+          <span class="cc-unit-name">HOSPITALITY</span>
+          <span class="cc-unit-sub">Food &amp; Experiences</span>
+        </span>
+        <span class="cc-unit-desc">Creamos experiencias gastronómicas memorables mediante conceptos innovadores de restaurantes, bares y entretenimiento, donde la calidad, el servicio y la experiencia del cliente son el centro de todo lo que hacemos.</span>
+      </button>
+      <button type="button" class="cc-unit cc-unit-secretlab" data-unit="secretlab">
+        <span class="cc-unit-face">
+          <span class="cc-unit-name">SECRET LAB</span>
+          <span class="cc-unit-sub">Production &amp; I+D</span>
+        </span>
+        <span class="cc-unit-desc">Desarrollamos, producimos e innovamos con bebidas de alta calidad, combinando creatividad, excelencia operacional y mejora continua para dar vida a productos únicos que impulsan el crecimiento de nuestras marcas.</span>
       </button>
     </div>
+    <div class="cc-units-note">En construcción — todavía no llevan a ninguna parte.</div>
   </div>
 </div>
 <aside class="ks-side" id="ksSide"></aside>
@@ -16089,23 +16116,30 @@ document.addEventListener('click', function(e){
   t.setAttribute('aria-expanded', String(willOpen));
 });
 
-// ── Selector de Centro de Costo: gate entre login y dashboard-hub ──────────
-// Aditivo: solo se superpone al shell hasta elegir "Kairos Company", que
-// simplemente continúa el flujo de siempre (loadCustomBrands + showHome).
-// No toca showHome()/showView() ni el sistema de navegación existente.
+// ── Selector de Centro de Costo (patrón Disney+): gate entre login y
+// dashboard-hub. Aditivo: "Kairos Company" es la vista exploradora (banner +
+// unidades del holding, ninguna navega todavía); "Para ti" simplemente
+// continúa el flujo de siempre (loadCustomBrands + showHome) — el ERP no se
+// modifica. No toca showHome()/showView() ni el sistema de navegación existente.
+//
+// Assets del banner: public/assets/centro-costo-banner/<código>.svg — hoy
+// son placeholders generados (mismo tamaño 1600×640 que va a tener la foto
+// real). Para reemplazar: subí la foto con el mismo nombre a esa carpeta;
+// si no es .svg, avisá para actualizar la extensión en ccSlideImgSrc().
 const CC_SLIDES = [
-  { marca: 'Kairos Brewing', mundo: 'bebidas' },
-  { marca: 'Kairos Garden Vespucio', mundo: 'gastronomia' },
-  { marca: 'Banny', mundo: 'bebidas' },
-  { marca: 'Kairos Badass Parque Arauco', mundo: 'gastronomia' },
-  { marca: 'Firulais Craft Mix', mundo: 'bebidas' },
-  { marca: 'Kairos Garden Santiago', mundo: 'gastronomia' },
+  { code: '1KB',  marca: 'Kairos Brewing' },
+  { code: '2KGA', marca: 'Kairos Garden Antofagasta' },
+  { code: '2Z',   marca: 'Zorbo.cl' },
+  { code: '4BAD', marca: 'Badass Parque Arauco' },
+  { code: '5FI',  marca: 'Firulais Craft Mix' },
+  { code: '6KGV', marca: 'Kairos Garden Vespucio' },
+  { code: '7BA',  marca: 'Banny' },
 ];
-const CC_MUNDO_LBL = { bebidas: 'Comercialización de bebidas', gastronomia: 'Gastronomía · Restaurantes' };
+function ccSlideImgSrc(code){ return `/assets/centro-costo-banner/${code}.svg`; }
 let ccGateIdx = 0, ccGateTimer = null;
 function ccGateBannerRender(){
   const track = document.getElementById('ccBannerTrack'); if (!track) return;
-  track.innerHTML = CC_SLIDES.map(s => `<div class="cc-slide cc-slide-${s.mundo}"><span class="cc-slide-eyebrow">${escapeHtml(CC_MUNDO_LBL[s.mundo])}</span><span class="cc-slide-name">${escapeHtml(s.marca)}</span></div>`).join('');
+  track.innerHTML = CC_SLIDES.map(s => `<div class="cc-slide"><img class="cc-slide-img" src="${ccSlideImgSrc(s.code)}" alt="${escapeAttr(s.marca)}" draggable="false"><span class="cc-slide-name">${escapeHtml(s.marca)}</span></div>`).join('');
   const dots = document.getElementById('ccBannerDots');
   if (dots) dots.innerHTML = CC_SLIDES.map((_, i) => `<span class="cc-dot${i === 0 ? ' on' : ''}"></span>`).join('');
 }
@@ -16136,12 +16170,33 @@ function ccGateDismiss(){
   if (gate) gate.remove();
   document.body.classList.remove('cc-gate-open');
 }
-function ccGateEnterKairos(){
+// "Para ti" → el ERP completo (perfil madre hoy; personalizado por área más
+// adelante). Sigue siendo el mismo flujo de siempre, sin tocar nada del ERP.
+function ccGateEnterERP(){
   // TODO: recordar último centro elegido (localStorage) — hoy el gate siempre
   // se muestra tras login; cuando exista más de un centro real, guardar acá
   // la elección y saltarse el gate si ya hay una preferencia guardada.
+  // TODO: "Para ti" hoy es el perfil madre completo — a futuro se ajusta el
+  // ERP que se muestra según el área/rol del colaborador.
   ccGateDismiss();
   loadCustomBrands().then(() => showHome());
+}
+function ccToggleSet(active){
+  const tabKairos = document.getElementById('ccTabKairos'), tabParaTi = document.getElementById('ccTabParaTi');
+  if (tabKairos) { tabKairos.classList.toggle('on', active === 'kairos'); tabKairos.setAttribute('aria-pressed', String(active === 'kairos')); }
+  if (tabParaTi) { tabParaTi.classList.toggle('on', active === 'paraTi'); tabParaTi.setAttribute('aria-pressed', String(active === 'paraTi')); }
+}
+// Las 3 unidades del holding están "en construcción": no navegan. En
+// desktop el texto se ve con :hover (CSS); en mobile (sin hover real) el
+// primer tap lo revela acá — ver spec del selector de Centro de Costo.
+function ccUnitsWire(){
+  document.querySelectorAll('.cc-unit').forEach(btn => {
+    btn.onclick = () => {
+      const already = btn.classList.contains('cc-unit-open');
+      document.querySelectorAll('.cc-unit.cc-unit-open').forEach(o => o.classList.remove('cc-unit-open'));
+      if (!already) btn.classList.add('cc-unit-open');
+    };
+  });
 }
 (function ccGateBoot(){
   const gate = document.getElementById('ccGate'); if (!gate) return;
@@ -16150,10 +16205,13 @@ function ccGateEnterKairos(){
   ccGateBannerRender();
   ccGateGoto(0);
   ccGateAutoplay();
+  ccUnitsWire();
   const banner = document.getElementById('ccBanner');
   if (banner) { banner.onmouseenter = ccGateStop; banner.onmouseleave = ccGateAutoplay; }
-  const enterBtn = document.getElementById('ccEnterKairos');
-  if (enterBtn) { enterBtn.onclick = ccGateEnterKairos; enterBtn.focus(); }
+  const tabKairos = document.getElementById('ccTabKairos'), tabParaTi = document.getElementById('ccTabParaTi');
+  if (tabKairos) tabKairos.onclick = () => ccToggleSet('kairos'); // ya es la vista activa; no navega
+  if (tabParaTi) tabParaTi.onclick = () => { ccToggleSet('paraTi'); ccGateEnterERP(); };
+  if (tabKairos) tabKairos.focus();
 })();
 
 fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
