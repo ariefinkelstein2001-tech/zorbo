@@ -12977,7 +12977,8 @@ function costeoNormalizeCarta(c){
   const bav = Number.isFinite(c.bav) ? c.bav : 0; // versión: adopción de las líneas de botella (marca de valor automático)
   const bvv = Number.isFinite(c.bvv) ? c.bvv : 0; // versión: la línea del espirituoso en Botellas usa el volumen real de CADA insumo, no un fijo de 750ml
   const glcv = Number.isFinite(c.glcv) ? c.glcv : 0; // versión: Garden — Ron/Pisco/Vodka/Whisky/Bourbon/Gin (+Botella) suman BEBIDA LATA CHICA
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, secciones, asignaciones };
+  const pcbv = Number.isFinite(c.pcbv) ? c.pcbv : 0; // versión: sembrado de precios reales de Cortos/Botellas de Badass (lista del dueño)
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13567,6 +13568,57 @@ function costeoFixBotellaVolumen(doc, rest){
   doc.carta.bvv = BARRA_BOTELLA_VOLUMEN_V;
   return true;
 }
+// Precios reales de Cortos/Botellas de Badass, sacados de la lista de precios
+// de venta que pasó el dueño (capturas de pantalla). Match por nombre exacto
+// del plato ("<Marca> Corto" / "<Marca> Botella"); NO pisa un precio que el
+// usuario ya haya cargado. Quedaron afuera a propósito (no estaban en la
+// lista, o el nombre no calzaba con ninguna marca de Cortos/Botellas de forma
+// no ambigua): "Banny" y "Tanqueray" (sin especificar cuál) del lado Cortos;
+// "Apaltagua CH" y "Undurraga ESP" (son vino, van en otra sección) y
+// "Bacardi 8 Años" (no existe esa marca en el catálogo) del lado Botellas.
+const PRECIO_CORTOS_BOTELLAS_V = 1;
+const PRECIO_CORTOS_BOTELLAS_BADASS = {
+  'Alto Del Carmen 35° Corto': 4770, 'Alto Del Carmen 40° Corto': 4770,
+  'Alto Del Carmen Etiqueta Negra Corto': 5470, 'Mistral 35° Corto': 5470,
+  'Tanqueray Ten Corto': 11990, 'Tanqueray London Dry Corto': 8490,
+  'Jack Daniels Gentleman Corto': 12990,
+  'Johnnie Walker Red Corto': 7490, 'Johnnie Walker Black Corto': 9990,
+  'Johnnie Walker Double Black Corto': 14990, 'Johnnie Walker Gold Corto': 19900,
+  'Mistral 40° Corto': 5970, 'Chivas Regal 12 Corto': 9990, 'Mistral Nobel Corto': 7470,
+  'Tanqueray Sevilla Corto': 8490, 'Tanqueray Royale Corto': 8490,
+  'Hendricks Corto': 9990, 'Citadelle Corto': 9490, 'Bombay Corto': 9490,
+  'Fernet Branca Corto': 5970, 'Martini Fiero Corto': 5970,
+  'Baileys Corto': 4970, 'Jose Cuervo Reposado Corto': 6970,
+  'Herradura Silver Corto': 9490, 'Herradura Reposado Corto': 9990,
+  'Olmeca Reposado Corto': 5970, 'Olmeca Silver Corto': 5970,
+  'Jose Cuervo Silver Corto': 6970, 'Chivas Regal 18 Corto': 14990,
+  'Glenfiddich 12 Corto': 16990, 'Bulliet Bourbon Corto': 9990,
+  'Jack Daniels Old 7 Corto': 8990, 'Jack Daniels Apple Corto': 8990, 'Jack Daniels Honey Corto': 8990,
+  'Bacardi Carta De Oro Corto': 6990, 'Zacapa 23 Corto': 13990,
+  'Bombay Botella': 85000, 'Hendricks Botella': 95000, 'Fernet Branca Botella': 55000,
+  'Johnnie Walker Red Botella': 49700, 'Johnnie Walker Black Botella': 65700,
+  'Johnnie Walker Double Black Botella': 88700, 'Johnnie Walker Gold Botella': 125000,
+  'Chivas Regal 12 Botella': 49700, 'Chivas Regal 18 Botella': 88700,
+  'Jack Daniels Old 7 Botella': 49700, 'Jack Daniels Apple Botella': 49700, 'Jack Daniels Honey Botella': 49700,
+  'Bacardi Carta De Oro Botella': 49700,
+};
+function costeoSeedPreciosCortosBotellas(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.pcbv >= PRECIO_CORTOS_BOTELLAS_V) return false;
+  if (costeoRestKey(rest) !== 'badass') { doc.carta.pcbv = PRECIO_CORTOS_BOTELLAS_V; return true; }
+  const entries = Object.entries(PRECIO_CORTOS_BOTELLAS_BADASS).map(([n, price]) => ({ norm: costeoNormLoose(n), price }));
+  (doc.platos || []).forEach(p => {
+    if (p.precioReal != null) return; // no pisar lo que el usuario ya cargó
+    const cat = costeoNorm(p.categoria);
+    if (cat !== costeoNorm('Cortos') && !cat.includes('botella')) return;
+    const pn = costeoNormLoose(p.nombre);
+    const e = entries.find(x => x.norm === pn);
+    if (e) p.precioReal = e.price;
+  });
+  doc.carta.pcbv = PRECIO_CORTOS_BOTELLAS_V;
+  return true;
+}
 // ── Cervezas Kairos: de reventa a trago costeado ──
 // Las 4 categorías de cerveza propia (colecciones de la casa / temporada /
 // artistas y el Firulais Craft Mix) estaban cargadas como REVENTA: se veían en
@@ -13720,6 +13772,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoCervezasKairos(all[key], rest)) ch = true;
     if (costeoCervezasKairosMediaPinta(all[key], rest)) ch = true;
     if (costeoGardenLataChica(all[key], rest)) ch = true;
+    if (costeoSeedPreciosCortosBotellas(all[key], rest)) ch = true;
   }
   return ch;
 }
