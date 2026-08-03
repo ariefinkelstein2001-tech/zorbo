@@ -381,6 +381,12 @@ function historyAdd(registro, pending){
 /* ═══════════════════ Navegación ═══════════════════ */
 // Pasos del wizard "por lote" (después de local+PIN, que no se re-piden).
 const LOOP_STEPS = ['operario', 'tipo', 'corte', 'origen', 'proveedor', 'factura', 'peso_bruto', 'peso_util', 'peso_sub', 'desecho', 'confirm'];
+// El orden del wizard vive SOLO en LOOP_STEPS: el paso siguiente y el número
+// que se muestra se derivan de ahí. Antes cada pantalla tenía hardcodeado a
+// quién saltaba y qué número era, y al reordenar los pasos quedó saltando del 1
+// al 4.
+const pasoSiguiente = (id) => LOOP_STEPS[LOOP_STEPS.indexOf(id) + 1] || 'confirm';
+const pasoNum = (id) => LOOP_STEPS.indexOf(id) + 1;
 const STEP_LABELS = {
   operario: '¿Quién eres?', tipo: 'Tipo de proteína', corte: 'Corte', origen: 'País de origen',
   proveedor: 'Proveedor', factura: 'Factura / folio', peso_bruto: 'Peso bruto', peso_util: 'Peso útil',
@@ -535,7 +541,7 @@ function screenOperario(body){
         <input class="hz-textbox" id="hzOpNewInput" placeholder="Tu nombre" maxlength="40" autocomplete="off">
         <button class="hz-btn primary" id="hzOpNewGo" style="margin-top:12px">Continuar</button>
       </div>`;
-      c.querySelectorAll('.hz-card[data-op]').forEach(b => b.onclick = () => { pressFx(b); S.rec.operario = b.dataset.op; setTimeout(() => goto('origen'), 90); });
+      c.querySelectorAll('.hz-card[data-op]').forEach(b => b.onclick = () => { pressFx(b); S.rec.operario = b.dataset.op; setTimeout(() => goto(pasoSiguiente('operario')), 90); });
       $('#hzOpNew').onclick = () => { $('#hzOpNewBox').style.display = 'block'; $('#hzOpNewInput').focus(); };
       $('#hzOpNewGo').onclick = async () => {
         const nombre = $('#hzOpNewInput').value.trim();
@@ -543,7 +549,7 @@ function screenOperario(body){
         const r = await api('/rendimientos/operarios', { method: 'POST', body: JSON.stringify({ nombre }) });
         if (r.ok) S.operarios = r.data.operarios;
         S.rec.operario = nombre;
-        goto('origen');
+        goto(pasoSiguiente('operario'));
       };
     },
   });
@@ -554,7 +560,7 @@ const ORIGEN_FLAG = { Chile: '🇨🇱', Brasil: '🇧🇷', USA: '🇺🇸', Pa
 function screenOrigen(body){
   const origenes = (S.cfg && S.cfg.origenes) || [];
   screenShell(body, {
-    eyebrow: 'Paso 4', title: 'País de origen',
+    eyebrow: `Paso ${pasoNum('origen')}`, title: 'País de origen',
     content: (c) => {
       c.innerHTML = `<div class="hz-grid">${origenes.map(o => `
         <button class="hz-card" data-o="${escapeHtml(o)}"><span class="ic">${ORIGEN_FLAG[o] || (o === 'Otro' ? '✏️' : '🌎')}</span><span class="lb">${escapeHtml(o)}</span></button>
@@ -567,7 +573,7 @@ function screenOrigen(body){
         pressFx(b);
         if (b.dataset.o === 'Otro') { $('#hzOrigBox').style.display = 'block'; $('#hzOrigInput').focus(); return; }
         S.rec.origen = b.dataset.o; S.rec.origenOtro = '';
-        setTimeout(() => goto('proveedor'), 90);
+        setTimeout(() => goto(pasoSiguiente('origen')), 90);
       });
       const go = $('#hzOrigGo');
       if (go) go.onclick = () => {
@@ -575,7 +581,7 @@ function screenOrigen(body){
         if (!v) { $('#hzOrigInput').focus(); return; }
         // Igual que el corte: el país escrito se suma a la lista en el server.
         S.rec.origen = 'Otro'; S.rec.origenOtro = v;
-        goto('proveedor');
+        goto(pasoSiguiente('origen'));
       };
     },
   });
@@ -584,7 +590,7 @@ function screenOrigen(body){
 /* ═══════════════════ Paso 2 — Tipo de proteína ═══════════════════ */
 function screenTipo(body){
   screenShell(body, {
-    eyebrow: 'Paso 2', title: '¿Carne, pescado o pollo?',
+    eyebrow: `Paso ${pasoNum('tipo')}`, title: '¿Carne, pescado o pollo?',
     content: (c) => {
       c.innerHTML = `<div class="hz-tiles">
         <button class="hz-tile carne" data-t="carne"><span class="ic">🥩</span><span class="lb">Carne</span></button>
@@ -596,7 +602,7 @@ function screenTipo(body){
         // Cambiar de tipo invalida el corte elegido: cada tipo tiene su lista.
         if (S.rec.tipo !== b.dataset.t) { S.rec.corte = null; S.rec.corteOtro = ''; }
         S.rec.tipo = b.dataset.t;
-        setTimeout(() => goto('corte'), 90);
+        setTimeout(() => goto(pasoSiguiente('tipo')), 90);
       });
     },
   });
@@ -607,7 +613,7 @@ const TIPO_LABEL = { carne: 'Carne', pescado: 'Pescado', pollo: 'Pollo' };
 function screenCorte(body){
   const cortes = (S.cfg && S.cfg.cortes && S.cfg.cortes[S.rec.tipo]) || ['Otro'];
   screenShell(body, {
-    eyebrow: 'Paso 3', title: 'Tipo de corte',
+    eyebrow: `Paso ${pasoNum('corte')}`, title: 'Tipo de corte',
     sub: TIPO_LABEL[S.rec.tipo] || '',
     content: (c) => {
       c.innerHTML = `<div class="hz-grid cols2">${cortes.map(co => `
@@ -621,7 +627,7 @@ function screenCorte(body){
         pressFx(b);
         if (b.dataset.c === 'Otro') { $('#hzOtroBox').style.display = 'block'; $('#hzOtroInput').focus(); return; }
         S.rec.corte = b.dataset.c; S.rec.corteOtro = '';
-        setTimeout(() => goto('origen'), 90);
+        setTimeout(() => goto(pasoSiguiente('corte')), 90);
       });
       const go = $('#hzOtroGo');
       if (go) go.onclick = () => {
@@ -630,7 +636,7 @@ function screenCorte(body){
         // El corte escrito se manda aparte: el server lo valida y lo suma a la
         // lista del tipo, así la próxima vez ya está disponible de un toque.
         S.rec.corte = 'Otro'; S.rec.corteOtro = v;
-        goto('origen');
+        goto(pasoSiguiente('corte'));
       };
     },
   });
@@ -639,7 +645,7 @@ function screenCorte(body){
 /* ═══════════════════ Paso 5 — Proveedor ═══════════════════ */
 function screenProveedor(body){
   screenShell(body, {
-    eyebrow: 'Paso 5 · Opcional', title: 'Proveedor',
+    eyebrow: `Paso ${pasoNum('proveedor')} · Opcional`, title: 'Proveedor',
     sub: 'Podés saltar este paso.',
     content: (c) => {
       c.innerHTML = `<div class="hz-grid" id="hzProvGrid">
@@ -648,14 +654,14 @@ function screenProveedor(body){
       <div style="margin-top:14px">
         <input class="hz-textbox" id="hzProvInput" placeholder="Escribir proveedor" maxlength="80" autocomplete="off" value="${escapeHtml(S.rec.proveedorLote || '')}">
       </div>`;
-      c.querySelectorAll('#hzProvGrid .hz-card').forEach(b => b.onclick = () => { pressFx(b); S.rec.proveedorLote = b.dataset.p; setTimeout(() => goto('factura'), 90); });
+      c.querySelectorAll('#hzProvGrid .hz-card').forEach(b => b.onclick = () => { pressFx(b); S.rec.proveedorLote = b.dataset.p; setTimeout(() => goto(pasoSiguiente('proveedor')), 90); });
     },
     footer: (f) => {
       f.innerHTML = `<div style="display:flex;gap:10px">
         <button class="hz-btn ghost" id="hzProvSkip" style="flex:1">Saltar</button>
         <button class="hz-btn primary" id="hzProvGo" style="flex:1.4">Continuar</button>
       </div>`;
-      $('#hzProvSkip').onclick = () => { S.rec.proveedorLote = ''; goto('factura'); };
+      $('#hzProvSkip').onclick = () => { S.rec.proveedorLote = ''; goto(pasoSiguiente('proveedor')); };
       $('#hzProvGo').onclick = async () => {
         const v = $('#hzProvInput').value.trim();
         S.rec.proveedorLote = v;
@@ -663,7 +669,7 @@ function screenProveedor(body){
           const r = await api('/rendimientos/proveedores', { method: 'POST', body: JSON.stringify({ nombre: v }) });
           if (r.ok) S.proveedores = r.data.proveedores;
         }
-        goto('factura');
+        goto(pasoSiguiente('proveedor'));
       };
     },
   });
@@ -674,7 +680,7 @@ function screenProveedor(body){
 // compra cuando un rendimiento sale raro.
 function screenFactura(body){
   screenShell(body, {
-    eyebrow: 'Paso 6 · Opcional', title: 'Factura o folio',
+    eyebrow: `Paso ${pasoNum('factura')} · Opcional`, title: 'Factura o folio',
     sub: 'El número del documento con el que llegó la proteína.',
     content: (c) => {
       c.innerHTML = `<div style="margin-top:4px">
@@ -687,17 +693,17 @@ function screenFactura(body){
         <button class="hz-btn ghost" id="hzFactSkip" style="flex:1">Saltar</button>
         <button class="hz-btn primary" id="hzFactGo" style="flex:1.4">Continuar</button>
       </div>`;
-      $('#hzFactSkip').onclick = () => { S.rec.factura = ''; goto('peso_bruto'); };
-      $('#hzFactGo').onclick = () => { S.rec.factura = $('#hzFactInput').value.trim(); goto('peso_bruto'); };
+      $('#hzFactSkip').onclick = () => { S.rec.factura = ''; goto(pasoSiguiente('factura')); };
+      $('#hzFactGo').onclick = () => { S.rec.factura = $('#hzFactInput').value.trim(); goto(pasoSiguiente('factura')); };
     },
   });
 }
 
 /* ═══════════════════ Pasos 7-9 — Pesos ═══════════════════ */
 const PESO_CFG = {
-  peso_bruto: { key: 'pesoBrutoKg', label: 'Peso bruto', hint: 'La proteína tal como llega, sin procesar.', icon: '⚖️', next: 'peso_util' },
-  peso_util:  { key: 'pesoUtilKg', label: 'Peso útil', hint: 'Lo que queda listo para usar.', icon: '✅', next: 'peso_sub' },
-  peso_sub:   { key: 'subproductoKg', label: 'Subproducto aprovechable', hint: 'Recortes, huesos para fondo, etc.', icon: '♻️', next: 'desecho' },
+  peso_bruto: { key: 'pesoBrutoKg', label: 'Peso bruto', hint: 'La proteína tal como llega, sin procesar.', icon: '⚖️' },
+  peso_util:  { key: 'pesoUtilKg', label: 'Peso útil', hint: 'Lo que queda listo para usar.', icon: '✅' },
+  peso_sub:   { key: 'subproductoKg', label: 'Subproducto aprovechable', hint: 'Recortes, huesos para fondo, etc.', icon: '♻️' },
 };
 // Destinos del subproducto. "Otro" abre un campo para escribirlo.
 const SUB_DESTINOS = ['Carne molida', 'Otro'];
@@ -742,7 +748,7 @@ function screenPeso(body, stepId){
     if (oi) oi.oninput = () => { S.rec.subproductoDestinoOtro = oi.value; updateVal(); };
   }
   screenShell(body, {
-    eyebrow: `${cfg.icon} Paso ${LOOP_STEPS.indexOf(stepId) + 1}`, title: cfg.label, sub: cfg.hint,
+    eyebrow: `${cfg.icon} Paso ${pasoNum(stepId)}`, title: cfg.label, sub: cfg.hint,
     content: (c) => {
       c.innerHTML = `
         <div class="hz-weight-display">
@@ -765,7 +771,7 @@ function screenPeso(body, stepId){
         const n = num();
         if (!(n >= 0) || !destinoOk()) return;
         S.rec[cfg.key] = n;
-        goto(cfg.next);
+        goto(pasoSiguiente(stepId));
       };
       updateVal(); // sincroniza el estado inicial del botón (importante si val ya viene precargado, ej. al "Revisar pesos")
     },
@@ -787,7 +793,7 @@ function screenDesecho(body){
   const { bruto, util, sub, desecho } = hospDesechoCalc();
   const negativo = desecho < -0.001;
   screenShell(body, {
-    eyebrow: '🗑️ Paso 10', title: 'Desecho',
+    eyebrow: `🗑️ Paso ${pasoNum('desecho')}`, title: 'Desecho',
     sub: 'Se calcula solo con los pesos que cargaste.',
     content: (c) => {
       c.innerHTML = `
@@ -804,7 +810,7 @@ function screenDesecho(body){
       $('#hzDesGo').onclick = () => {
         if (negativo) return;
         S.rec.desechoKg = desecho;
-        goto('confirm');
+        goto(pasoSiguiente('desecho'));
       };
     },
   });
@@ -820,7 +826,7 @@ function screenConfirm(body){
   const destino = S.rec.subproductoDestino === 'Otro' ? (S.rec.subproductoDestinoOtro || 'Otro') : S.rec.subproductoDestino;
   const fila = (ic, k, v) => `<div class="hz-sum-row"><span class="ic">${ic}</span><span><span class="k">${k}</span><br><span class="v">${v}</span></span></div>`;
   screenShell(body, {
-    eyebrow: 'Paso 11 · Último', title: 'Resumen del lote',
+    eyebrow: `Paso ${pasoNum('confirm')} · Último`, title: 'Resumen del lote',
     content: (c) => {
       c.innerHTML = `
         <div class="hz-sum-pct"><div class="big">${pct.toFixed(1)}%</div><div class="lb">Rendimiento</div></div>
