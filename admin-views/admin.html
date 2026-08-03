@@ -291,21 +291,22 @@ body.cc-gate-open{overflow:hidden}
 .cc-units-eyebrow{font-family:var(--sans);font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.5)}
 /* Botones horizontales parejos (hub Disney/Pixar/Marvel): fila, mismo
    tamaño, compactos — no bloques gigantes de color. */
-.cc-units{display:flex;gap:.7rem;width:100%;max-width:860px}
+.cc-units{display:flex;gap:.9rem;width:100%;max-width:860px;justify-content:center}
+/* El botón ES la foto: sin texto adentro. El nombre vive en el aria-label
+   (lectores de pantalla) y la descripción sigue apareciendo en el panel de
+   abajo al hover o al tap. */
 .cc-unit{
-  appearance:none;flex:1 1 0;min-width:0;height:64px;
-  display:flex;align-items:center;gap:.65rem;padding:0 .9rem;text-align:left;
+  /* Las imágenes son íconos cuadrados (tipo app), así que el tile es cuadrado:
+     se ven completos, sin recorte ni márgenes muertos a los costados. */
+  appearance:none;flex:0 1 132px;min-width:0;aspect-ratio:1/1;
+  display:block;padding:0;overflow:hidden;
   border-radius:var(--radius-md,12px);border:1px solid rgba(255,255,255,.14);
   background:rgba(255,255,255,.05);cursor:pointer;
-  transition:border-color .15s,background .15s,transform .15s;
+  transition:border-color .15s,transform .15s,box-shadow .15s;
 }
-.cc-unit:hover,.cc-unit:focus-visible,.cc-unit.cc-unit-open{border-color:var(--gold,#f5a623);background:rgba(245,166,35,.1);transform:translateY(-1px)}
+.cc-unit:hover,.cc-unit:focus-visible,.cc-unit.cc-unit-open{border-color:var(--gold,#f5a623);transform:translateY(-2px);box-shadow:0 8px 22px rgba(0,0,0,.35)}
 .cc-unit:focus-visible{outline:2px solid var(--gold,#f5a623);outline-offset:2px}
-.cc-unit-img{width:36px;height:36px;border-radius:8px;object-fit:cover;flex-shrink:0;background:rgba(255,255,255,.08)}
-.cc-unit-txt{min-width:0;display:flex;flex-direction:column;gap:.1rem}
-.cc-unit-name{font-family:var(--display);font-size:.86rem;color:#fff;letter-spacing:.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cc-unit-sub{font-family:var(--sans);font-size:.62rem;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-@media (max-width:640px){ .cc-unit-sub{display:none} }
+.cc-unit-img{display:block;width:100%;height:100%;object-fit:cover;background:rgba(255,255,255,.08)}
 /* Panel de descripción compartido, debajo de la fila — altura fija para que
    mostrar/ocultar el texto (hover o tap) no mueva el layout ni provoque scroll. */
 .cc-unit-desc-panel{
@@ -2823,18 +2824,9 @@ body.hosp-open{overflow:hidden}
          en el panel de abajo al hover (desktop) o tap (mobile) — no
          adentro del botón, que se mantiene chico y parejo. -->
     <div class="cc-units" id="ccUnits">
-      <button type="button" class="cc-unit" data-unit="zorbo" data-desc="Conectamos nuestras marcas con sus mercados a través de estrategias comerciales, distribución, logística y desarrollo de canales de venta, impulsando su crecimiento y presencia en cada punto de contacto.">
-        <img class="cc-unit-img" src="/assets/centro-costo-banner/ZOR.png" alt="" draggable="false">
-        <span class="cc-unit-txt"><span class="cc-unit-name">ZORBO</span><span class="cc-unit-sub">Commerce &amp; Distribution</span></span>
-      </button>
-      <button type="button" class="cc-unit" data-unit="hospitality" data-desc="Creamos experiencias gastronómicas memorables mediante conceptos innovadores de restaurantes, bares y entretenimiento, donde la calidad, el servicio y la experiencia del cliente son el centro de todo lo que hacemos.">
-        <img class="cc-unit-img" src="/assets/centro-costo-banner/HOS.png" alt="" draggable="false">
-        <span class="cc-unit-txt"><span class="cc-unit-name">HOSPITALITY</span><span class="cc-unit-sub">Food &amp; Experiences</span></span>
-      </button>
-      <button type="button" class="cc-unit" data-unit="secretlab" data-desc="Desarrollamos, producimos e innovamos con bebidas de alta calidad, combinando creatividad, excelencia operacional y mejora continua para dar vida a productos únicos que impulsan el crecimiento de nuestras marcas.">
-        <img class="cc-unit-img" src="/assets/centro-costo-banner/SEC.png" alt="" draggable="false">
-        <span class="cc-unit-txt"><span class="cc-unit-name">SECRET LAB</span><span class="cc-unit-sub">Production &amp; I+D</span></span>
-      </button>
+      <button type="button" class="cc-unit" data-unit="zorbo" data-desc="Conectamos nuestras marcas con sus mercados a través de estrategias comerciales, distribución, logística y desarrollo de canales de venta, impulsando su crecimiento y presencia en cada punto de contacto." aria-label="ZORBO — Commerce &amp; Distribution" title="ZORBO"><img class="cc-unit-img" src="/assets/centro-costo-banner/ZOR.png" alt="ZORBO" draggable="false"></button>
+      <button type="button" class="cc-unit" data-unit="hospitality" data-desc="Creamos experiencias gastronómicas memorables mediante conceptos innovadores de restaurantes, bares y entretenimiento, donde la calidad, el servicio y la experiencia del cliente son el centro de todo lo que hacemos." aria-label="HOSPITALITY — Food &amp; Experiences" title="HOSPITALITY"><img class="cc-unit-img" src="/assets/centro-costo-banner/HOS.png" alt="HOSPITALITY" draggable="false"></button>
+      <button type="button" class="cc-unit" data-unit="secretlab" data-desc="Desarrollamos, producimos e innovamos con bebidas de alta calidad, combinando creatividad, excelencia operacional y mejora continua para dar vida a productos únicos que impulsan el crecimiento de nuestras marcas." aria-label="SECRET LAB — Production &amp; I+D" title="SECRET LAB"><img class="cc-unit-img" src="/assets/centro-costo-banner/SEC.png" alt="SECRET LAB" draggable="false"></button>
     </div>
     <div class="cc-unit-desc-panel" id="ccUnitDescPanel" aria-live="polite"></div>
     <div class="cc-units-note">En construcción — todavía no llevan a ninguna parte.</div>
@@ -2873,6 +2865,7 @@ body.hosp-open{overflow:hidden}
   <span class="adm-pipe"></span>
   <span class="adm-sub">Admin</span>
   <div class="adm-tag" id="tagBuild" style="display:none">cargando…</div>
+  <button type="button" class="adm-out" id="ccVolver" title="Volver al selector de Centro de Costo" style="display:none">⌂ Centros</button>
   <button type="button" class="adm-out" id="btnLogout" title="Cerrar sesión" style="display:none">Salir</button>
 </header>
 
@@ -16342,9 +16335,29 @@ function ccGateSetInert(on){
 function ccGateDismiss(){
   ccGateStop();
   ccGateSetInert(false);
+  // Se oculta en vez de destruirse: desde el ERP se puede volver al selector
+  // (botón "Centros" del encabezado) sin recargar la página.
   const gate = document.getElementById('ccGate');
-  if (gate) gate.remove();
+  if (gate) gate.style.display = 'none';
   document.body.classList.remove('cc-gate-open');
+  const volver = document.getElementById('ccVolver');
+  if (volver) volver.style.display = '';
+}
+// Vuelve al selector de Centro de Costo desde el ERP.
+function ccGateAbrir(){
+  const gate = document.getElementById('ccGate');
+  if (!gate) { location.reload(); return; } // rol acotado: el gate no se montó
+  gate.style.display = '';
+  document.body.classList.add('cc-gate-open');
+  ccGateSetInert(true);
+  ccToggleSet('kairos');
+  ccUnitSticky = null;
+  const panel = document.getElementById('ccUnitDescPanel');
+  if (panel) { panel.textContent = ''; panel.classList.remove('show'); }
+  document.querySelectorAll('.cc-unit.cc-unit-open').forEach(o => o.classList.remove('cc-unit-open'));
+  ccGateAutoplay();
+  const volver = document.getElementById('ccVolver');
+  if (volver) volver.style.display = 'none';
 }
 // "Para ti" → el ERP completo (perfil madre hoy; personalizado por área más
 // adelante). Sigue siendo el mismo flujo de siempre, sin tocar nada del ERP.
@@ -16711,6 +16724,7 @@ function hospRendWire(){
   ccGateGoto(0);
   ccGateAutoplay();
   ccUnitsWire();
+  const ccV = document.getElementById('ccVolver'); if (ccV) ccV.onclick = ccGateAbrir;
   const banner = document.getElementById('ccBanner');
   if (banner) { banner.onmouseenter = ccGateStop; banner.onmouseleave = ccGateAutoplay; }
   const tabKairos = document.getElementById('ccTabKairos'), tabParaTi = document.getElementById('ccTabParaTi');
