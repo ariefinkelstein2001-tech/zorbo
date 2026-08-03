@@ -13386,6 +13386,22 @@ async function horecaGuardarPropios(){
   }catch(e){ alert('⚠ '+String(e.message||e)); if(btn){ btn.disabled=false; btn.textContent='Guardar'; } }
 }
 // Serie mes a mes guardada + hitos, para leer el efecto de lo que se fue haciendo.
+// La clave de cada local propio es "MARCA · Recinto". Cuando la marca ya está
+// contenida en el nombre del recinto (KAIROS · Kairos Vespucio) se muestra solo
+// el recinto: repetirlo no aporta y hace la columna larguísima.
+function horecaLocalLbl(clave){
+  const partes = String(clave || '').split('·').map(x => x.trim()).filter(Boolean);
+  if (partes.length !== 2) return clave || '—';
+  const tok = x => new Set(String(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').split(/[^a-z0-9]+/).filter(Boolean));
+  const [marca, recinto] = partes;
+  const tm = tok(marca), tr = tok(recinto);
+  if ([...tm].every(t => tr.has(t))) return recinto;
+  if ([...tr].every(t => tm.has(t))) return marca;
+  return marca + ' · ' + recinto;
+}
+// Un mes guardado antes del corte por marca no tiene split propios/resto (ver
+// PYXIS_HIST_V en el server): se muestra "—" en vez de un número que estaría mal.
+const horecaPct = (g) => (g && g.shareKairos != null) ? g.shareKairos + '%' : '—';
 function horecaHistoriaBloque(d){
   const H=d.historia||{meses:[],hitos:[],locales:[]};
   const hitosPorMes={}; (H.hitos||[]).forEach(h=>{ (hitosPorMes[h.mes]=hitosPorMes[h.mes]||[]).push(h); });
@@ -13394,11 +13410,11 @@ function horecaHistoriaBloque(d){
     const chips=(hitosPorMes[m.mes]||[]).map(h=>`<span class="hor-hito" title="${escapeAttr(h.nota||'')}">${escapeHtml(h.titulo)}${h.local?` · ${escapeHtml(h.local)}`:''} <a href="#" data-hitodel="${h.id}" title="Borrar">✕</a></span>`).join('');
     return `<tr>
       <td><b>${escapeHtml(m.label)}</b>${chips?`<div style="margin-top:.25rem">${chips}</div>`:''}</td>
-      <td class="dist-num" style="font-weight:800;color:#1f8a70">${m.resto.shareKairos}%</td>
-      <td class="dist-num">${m.total.shareKairos}%</td>
-      <td class="dist-num" style="color:#7a8290">${m.propios.shareKairos}%</td>
-      ${locs.map(l=>`<td class="dist-num" style="color:#7a8290">${m.locales&&m.locales[l]?m.locales[l].shareKairos+'%':'—'}</td>`).join('')}
-      <td class="dist-num" style="color:#7a8290">${hClp(m.total.cervezas)}</td>
+      <td class="dist-num" style="font-weight:800;color:#1f8a70">${horecaPct(m.resto)}</td>
+      <td class="dist-num">${horecaPct(m.total)}</td>
+      <td class="dist-num" style="color:#7a8290">${horecaPct(m.propios)}</td>
+      ${locs.map(l=>`<td class="dist-num" style="color:#7a8290">${horecaPct(m.locales&&m.locales[l])}</td>`).join('')}
+      <td class="dist-num" style="color:#7a8290">${m.total?hClp(m.total.cervezas):'—'}</td>
     </tr>`;
   }).join('');
   const mesesOpts=(H.meses||[]).map(m=>`<option value="${m.mes}">${escapeHtml(m.label)}</option>`).join('');
@@ -13408,12 +13424,14 @@ function horecaHistoriaBloque(d){
     <label class="cg-field" style="min-width:150px"><span>Local (opcional)</span><input type="text" id="hitoLocal" placeholder="Todos"></label>
     <button class="adm-btn adm-btn-gold" id="hitoAdd" type="button">+ Hito</button>
   </div>`;
+  const sinCorte=(H.meses||[]).filter(m=>!m.resto).map(m=>m.label);
+  const notaVieja=sinCorte.length?`<div class="est-note" style="color:#8a6d00;background:#fff8e6;border:1px solid #f2e3b8;border-radius:10px;padding:.5rem .8rem;margin:.2rem 0 .5rem">Los meses ${escapeHtml(sinCorte.join(', '))} se guardaron antes de que el corte reconociera nuestras marcas dentro de cada recinto, así que su split propios/resto estaba mal y se limpió. El total del grupo sí es correcto. Se recalculan solos si Pyxis vuelve a devolver esos meses.</div>`:'';
   const cuerpo=filas
-    ? `<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Mes</th><th>% Kairos<br><span style="font-weight:400;font-size:.68rem">resto de GMS</span></th><th>% total<br><span style="font-weight:400;font-size:.68rem">todo GMS</span></th><th>% propios</th>${locs.map(l=>`<th>${escapeHtml(l)}</th>`).join('')}<th>Cerveza total</th></tr></thead><tbody>${filas}</tbody></table></div>`
+    ? `<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Mes</th><th>% Kairos<br><span style="font-weight:400;font-size:.68rem">resto de GMS</span></th><th>% total<br><span style="font-weight:400;font-size:.68rem">todo GMS</span></th><th>% propios</th>${locs.map(l=>`<th>${escapeHtml(horecaLocalLbl(l))}</th>`).join('')}<th>Cerveza total</th></tr></thead><tbody>${filas}</tbody></table></div>`
     : '<div class="est-note" style="color:#666">Todavía no hay historia guardada. Se llena sola: cada vez que abrís esta pantalla se graban los 3 meses que devuelve Pyxis.</div>';
   return `<div class="cg-form-title" style="margin-top:1rem">📈 Evolución mes a mes · participación de Kairos</div>
   <div class="est-note" style="margin:.2rem 0 .5rem;color:#666">Pyxis solo devuelve los últimos 3 meses, así que la serie se va guardando acá. El mes en curso se actualiza en cada pasada; los cerrados quedan fijos. Marcá los <b>hitos</b> (máquinas shoperas, un estilo nuevo, beer tour) para poder atribuir los saltos.</div>
-  ${cuerpo}${form}`;
+  ${notaVieja}${cuerpo}${form}`;
 }
 function horecaWireHitos(){
   const add=document.getElementById('hitoAdd');

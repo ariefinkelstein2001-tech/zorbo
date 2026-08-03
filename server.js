@@ -7630,8 +7630,34 @@ async function pyxisCervezasResumen(grupo, opts){
 // Junto a la serie viven los HITOS (máquinas shoperas, Osagui, beer tour…), que
 // son los que permiten leer un salto de participación contra lo que se hizo.
 const PYXIS_CERV_HIST_FILE = join(PROMPTS_EFFECTIVE_DIR, 'pyxis-cervezas-historia.json');
+// Versión del CORTE con el que se calculó cada mes guardado.
+//  1 = propios detectados solo por local (no veía Kairos Antofagasta, que es una
+//      marca dentro del recinto "Antofagasta") y el detalle se guardaba con el
+//      nombre del recinto.
+//  2 = propios por marca + recinto, con la clave "MARCA · Recinto".
+// Los meses en v1 tienen el split propios/resto mal y las claves del detalle en
+// otro formato: si se mezclan con los nuevos, el mismo local aparece dos veces
+// con nombres distintos. Se les limpia el corte y queda solo el total, que sí
+// es correcto (no depende de qué se considere propio).
+const PYXIS_HIST_V = 2;
+function pyxisHistNormalizar(h){
+  let cambio = false;
+  for (const [key, m] of Object.entries(h.meses || {})) {
+    if (Number(m && m.v) >= PYXIS_HIST_V) continue;
+    h.meses[key] = { mes: key, actualizadoEn: m && m.actualizadoEn, v: PYXIS_HIST_V, total: (m && m.total) || null, propios: null, resto: null, locales: {} };
+    cambio = true;
+  }
+  return cambio;
+}
 function pyxisHistLoad(){
-  try { if (existsSync(PYXIS_CERV_HIST_FILE)) { const h = JSON.parse(readFileSync(PYXIS_CERV_HIST_FILE, 'utf-8')); return { version: 1, meses: h.meses && typeof h.meses === 'object' ? h.meses : {}, hitos: Array.isArray(h.hitos) ? h.hitos : [] }; } }
+  try {
+    if (existsSync(PYXIS_CERV_HIST_FILE)) {
+      const p = JSON.parse(readFileSync(PYXIS_CERV_HIST_FILE, 'utf-8'));
+      const h = { version: 1, meses: p.meses && typeof p.meses === 'object' ? p.meses : {}, hitos: Array.isArray(p.hitos) ? p.hitos : [] };
+      if (pyxisHistNormalizar(h)) pyxisHistSave(h);
+      return h;
+    }
+  }
   catch (e) { console.warn('pyxis cerv historia:', e.message); }
   return { version: 1, meses: {}, hitos: [] };
 }
@@ -7645,7 +7671,7 @@ function pyxisHistGuardar(d){
   let cambio = false;
   d.mesesKeys.forEach((key, i) => {
     const reg = {
-      mes: key, actualizadoEn: new Date().toISOString(),
+      mes: key, actualizadoEn: new Date().toISOString(), v: PYXIS_HIST_V,
       total: foto(d.porGrupo.total, i), propios: foto(d.porGrupo.propios, i), resto: foto(d.porGrupo.resto, i),
       locales: Object.fromEntries((d.propiosDetalle || []).map(p => [p.local, foto(p, i)])),
     };
