@@ -10444,7 +10444,7 @@ function lineRendCell(l, idx, pfx){
   return `<div class="ren-cell"><input type="text" inputmode="numeric" class="ren-inp${l.rend!=null?' on':''}" data-${pfx}ren="${idx}" value="${cur}" placeholder="${ph}" title="Rendimiento de esta línea (hereda ${ph}% del insumo). Vacío = heredado."><span class="ren-pct">%</span>
     <button type="button" class="ren-nm" data-${pfx}nm="${idx}" title="Sin merma = 100%">💯</button>${chip}</div>`;
 }
-function costeoResetState(){ rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch=''; platoEditing=null; platoDraft=[]; platoSearch=''; platoCatFilter=''; cartaSearch=''; cartaCatFilter=''; }
+function costeoResetState(){ rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch=''; platoEditing=null; platoDraft=[]; platoSearch=''; platoCatFilter=''; cartaSearch=''; cartaCatFilter=''; cartaDescuento=false; }
 
 // ── Costeo: pestañas de área (Gastronomía = herramienta real de siempre, sin
 // tocar; Productora y Comercialización y Distribución todavía sin info). ──
@@ -11037,8 +11037,12 @@ async function platoDelete(id){
 // El precio mostrado SIEMPRE es el sugerido por el costeo (no el de la carta
 // pública). La carta pública solo aporta el orden y las secciones.
 let cartaData = null;
-let cartaSearch = '', cartaCatFilter = '';
+let cartaSearch = '', cartaCatFilter = '', cartaDescuento = false;
 const REST_LABEL = { garden:'Kairos Garden', badass:'Badass' };
+// Vista "con descuento" de Carta (resumen): solo Badass. Muestra el precio de
+// venta con un 40% de descuento aplicado y el % de costo recalculado contra
+// ese precio con descuento — solo de vista, no toca el precio real guardado.
+const CARTA_DESCUENTO_PCT = 40;
 const ctSearchNorm = (s) => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 async function renderCosteoCarta(){
   const body=document.getElementById('costeoBody');
@@ -11057,10 +11061,18 @@ function cartaSecSelect(pid, currentSecId, isSinAsignar){
     <option value="" ${isSinAsignar?'selected':''}>— Sin asignar —</option></select>`;
 }
 function cartaRow(p, secId, isSinAsignar){
-  const real = p.precioReal, pct = p.pctCosto; // pctCosto acá = % de costo REAL (o null)
+  const conDesc = cartaDescuento && costeoRest==='badass';
+  const realBase = p.precioReal;
+  const real = conDesc && realBase!=null ? Math.round(realBase*(1-CARTA_DESCUENTO_PCT/100)) : realBase;
+  const pct = conDesc
+    ? (real!=null && real>0 ? Math.round((p.costo/real)*1000)/10 : null)
+    : p.pctCosto;
+  const precioCell = conDesc
+    ? `<b>${real!=null?cMoney(real):'sin precio'}</b>`
+    : `<input class="ct-real" data-pid="${p.id}" type="text" inputmode="numeric" value="${real!=null?real:''}" placeholder="sin precio">`;
   return `<tr>
     <td><b>${escapeHtml(p.nombre)}</b>${isSinAsignar?` <span class="mun-bk">${escapeHtml(p.categoria)}</span>`:''}</td>
-    <td class="dist-num"><input class="ct-real" data-pid="${p.id}" type="text" inputmode="numeric" value="${real!=null?real:''}" placeholder="sin precio"></td>
+    <td class="dist-num">${precioCell}</td>
     <td class="dist-num">${cMoney(p.costo)}</td>
     <td class="dist-num"><span class="pl-pct ${pct!=null&&pct>40?'hi':''}" data-pct>${pct!=null?pct+'%':'—'}</span></td>
     <td class="dist-num">${cartaSecSelect(p.id, secId, isSinAsignar)}</td>
@@ -11133,6 +11145,16 @@ function drawCarta(){
     ...((isBarra() && reventaData && reventaData.secciones) ? reventaData.secciones.filter(s=>!usedRev.has(s.id)).map(s=>({v:s.nombre,l:s.nombre})) : []),
   ];
   const noResults = q && !secBlocks && !saBlock && !revBlock;
+  const conDesc = cartaDescuento && costeoRest==='badass';
+  const descuentoToggle = costeoRest==='badass' ? `
+    <div class="tc-search" style="display:flex;gap:.5rem;align-items:center">
+      <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#666">Ver precios</span>
+      <div style="display:flex;gap:.4rem">
+        <button type="button" class="adm-btn ${conDesc?'':'adm-btn-gold'}" id="ctDescOff">Sin descuento</button>
+        <button type="button" class="adm-btn ${conDesc?'adm-btn-gold':''}" id="ctDescOn">Con descuento (${CARTA_DESCUENTO_PCT}%)</button>
+      </div>
+      ${conDesc?'<span class="ct-toolbar-info" style="margin:0">Precio y % de costo con el descuento aplicado — el precio real guardado no cambia.</span>':''}
+    </div>` : '';
   document.getElementById('costeoBody').innerHTML = `
     <div class="ct-toolbar">
       <div class="ct-toolbar-info"><b>Precio de venta REAL</b> (el que cobrás al público, editable acá). El <b>% de costo</b> es contra ese precio real; el <b>costo</b> sale del costeo. ${c.meta.totalSecciones} secciones · ${c.meta.totalPlatos} platos.</div>
@@ -11143,6 +11165,7 @@ function drawCarta(){
         <button class="adm-btn adm-btn-gold" id="ctPdfBtn" type="button">PDF</button>
       </div>
     </div>
+    ${descuentoToggle}
     <div class="tc-search" style="display:flex;gap:.5rem;flex-wrap:wrap">
       <input type="text" id="ctSearchInp" placeholder="Buscar producto…" value="${escapeAttr(cartaSearch)}" style="flex:1;min-width:180px">
       <select id="ctCatFilter" style="max-width:260px"><option value="">Todas las categorías</option>${catOptions.map(o=>`<option value="${escapeAttr(o.v)}" ${catF===o.v?'selected':''}>${escapeHtml(o.l)}</option>`).join('')}</select>
@@ -11155,6 +11178,9 @@ function drawCarta(){
   document.querySelectorAll('#costeoBody .ct-real').forEach(inp=>{ inp.onchange=()=>cartaSaveReal(inp); });
   document.getElementById('ctXlBtn').onclick=cartaExcel;
   document.getElementById('ctPdfBtn').onclick=cartaPdf;
+  { const off=document.getElementById('ctDescOff'); const on=document.getElementById('ctDescOn');
+    if(off) off.onclick=()=>{ cartaDescuento=false; drawCarta(); };
+    if(on) on.onclick=()=>{ cartaDescuento=true; drawCarta(); }; }
   const csi=document.getElementById('ctSearchInp');
   csi.oninput=()=>{ cartaSearch=csi.value; const p=csi.selectionStart; drawCarta(); const n=document.getElementById('ctSearchInp'); if(n){ n.focus(); try{n.setSelectionRange(p,p);}catch{} } };
   document.getElementById('ctCatFilter').onchange=(e)=>{ cartaCatFilter=e.target.value; drawCarta(); };
@@ -11218,14 +11244,25 @@ let reventaData = null;
 function ctLooseNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\(.*?\)/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
 // Solo la tabla de productos de una sección de reventa (sin encabezado de sección).
 function reventaTableHtml(s){
-  const rows=s.productos.map(p=>`
+  const conDesc = cartaDescuento && costeoRest==='badass';
+  const rows=s.productos.map(p=>{
+    const ventaBase = p.precioVenta;
+    const venta = conDesc && ventaBase!=null ? Math.round(ventaBase*(1-CARTA_DESCUENTO_PCT/100)) : ventaBase;
+    const pct = conDesc
+      ? (venta>0 && p.precioCompra!=null ? Math.round((p.precioCompra/venta)*1000)/10 : null)
+      : p.pctCosto;
+    const ventaCell = conDesc
+      ? `<b>${venta!=null?cMoney(venta):'—'}</b>`
+      : `<input type="text" inputmode="decimal" class="rv-inp dist-num" data-f="precioVenta" value="${venta!=null?venta:''}" placeholder="—" style="width:95px">`;
+    return `
     <tr data-rvp="${p.id}">
       <td>${escapeHtml(p.nombre)}</td>
-      <td class="dist-num"><input type="text" inputmode="decimal" class="rv-inp dist-num" data-f="precioVenta" value="${p.precioVenta!=null?p.precioVenta:''}" placeholder="—" style="width:95px"></td>
+      <td class="dist-num">${ventaCell}</td>
       <td class="dist-num"><input type="text" inputmode="decimal" class="rv-inp dist-num" data-f="precioCompra" value="${p.precioCompra!=null?p.precioCompra:''}" placeholder="cargar" style="width:95px"></td>
-      <td class="dist-num"><span class="pl-pct ${p.pctCosto!=null&&p.pctCosto>40?'hi':''}" data-rvpct>${p.pctCosto!=null?p.pctCosto+'%':'—'}</span></td>
+      <td class="dist-num"><span class="pl-pct ${pct!=null&&pct>40?'hi':''}" data-rvpct>${pct!=null?pct+'%':'—'}</span></td>
       <td><button class="pv-del" data-rvdel="${p.id}">✕</button> <span class="dist-status" data-rvst></span></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   return `<div class="mun-wrap"><table class="mun-table">
       <thead><tr><th>Producto</th><th style="text-align:right">Precio venta</th><th style="text-align:right">Precio compra</th><th style="text-align:right">% costo</th><th></th></tr></thead>
       <tbody>${rows}
