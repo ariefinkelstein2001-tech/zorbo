@@ -15038,12 +15038,35 @@ app.post('/admin/hospitality/rendimientos', requireAdminOrHospPortal, (req, res)
 const HOSP_PORTAL_COOKIE = 'hosprend';
 const HOSP_PORTAL_TTL_MS = 12 * 60 * 60 * 1000; // 12h: alcanza un turno largo sin re-pedir PIN
 const HOSP_PORTAL_SESSIONS = new Map(); // token → { restauranteId, expiresAt }
+// La sesión del portal se PERSISTE en disco. Es una tablet en la cocina que
+// nadie mira: si las sesiones vivieran solo en memoria, cada deploy o reinicio
+// del server la dejaría con 401 y los lotes cargados se quedarían colgados en
+// "Sincronizando…" sin que nadie se entere. Con esto un reinicio es
+// transparente para el que está pesando.
+const HOSP_PORTAL_SESS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'hosp-portal-sesiones.json');
+function hospPortalSessionsLoad(){
+  try {
+    if (!existsSync(HOSP_PORTAL_SESS_FILE)) return;
+    const arr = JSON.parse(readFileSync(HOSP_PORTAL_SESS_FILE, 'utf-8'));
+    const now = Date.now();
+    for (const s of (Array.isArray(arr) ? arr : [])) {
+      if (s && s.token && s.restauranteId && Number(s.expiresAt) > now) HOSP_PORTAL_SESSIONS.set(s.token, { restauranteId: s.restauranteId, expiresAt: Number(s.expiresAt) });
+    }
+  } catch (e) { console.warn('hosp portal sesiones:', e.message); }
+}
+function hospPortalSessionsSave(){
+  try {
+    if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true });
+    writeFileSync(HOSP_PORTAL_SESS_FILE, JSON.stringify([...HOSP_PORTAL_SESSIONS].map(([token, s]) => ({ token, ...s }))));
+  } catch (e) { console.warn('hosp portal sesiones (save):', e.message); }
+}
+hospPortalSessionsLoad();
 function hospPortalSessionFor(req){
   const token = parseCookies(req)[HOSP_PORTAL_COOKIE];
   if (!token) return null;
   const s = HOSP_PORTAL_SESSIONS.get(token);
   if (!s) return null;
-  if (s.expiresAt < Date.now()) { HOSP_PORTAL_SESSIONS.delete(token); return null; }
+  if (s.expiresAt < Date.now()) { HOSP_PORTAL_SESSIONS.delete(token); hospPortalSessionsSave(); return null; }
   return { token, ...s };
 }
 function requireHospPortal(req, res, next){
@@ -15055,15 +15078,20 @@ function requireHospPortal(req, res, next){
 // Acepta admin O portal — usada solo en el POST de arriba (el GET del
 // dashboard sigue siendo admin-only: expone TODOS los locales/registros).
 function requireAdminOrHospPortal(req, res, next){
-  if (process.env.ADMIN_AUTH_ENABLED === '0') return next();
-  if (adminSessionFor(req)) return next();
+  // La sesión del portal se resuelve SIEMPRE primero: de ella sale el local al
+  // que se imputa el registro. Si se saltara con el bypass de auth, el POST
+  // llegaría sin restaurante y se rechazaría por "Restaurante inválido".
   const sess = hospPortalSessionFor(req);
   if (sess) { req.hospPortalSess = sess; return next(); }
+  if (process.env.ADMIN_AUTH_ENABLED === '0') return next();
+  if (adminSessionFor(req)) return next();
   return res.status(401).json({ error: 'No autorizado.' });
 }
 setInterval(() => {
   const now = Date.now();
-  for (const [t, s] of HOSP_PORTAL_SESSIONS) if (s.expiresAt < now) HOSP_PORTAL_SESSIONS.delete(t);
+  let purgadas = false;
+  for (const [t, s] of HOSP_PORTAL_SESSIONS) if (s.expiresAt < now) { HOSP_PORTAL_SESSIONS.delete(t); purgadas = true; }
+  if (purgadas) hospPortalSessionsSave();
 }, 60 * 60 * 1000).unref?.();
 
 // La app en sí — HTML/CSS/JS autocontenido, sin build, mobile-first.
@@ -15089,6 +15117,7 @@ app.post('/rendimientos/pin', async (req, res) => {
   const token = randomBytes(32).toString('hex');
   const expiresAt = Date.now() + HOSP_PORTAL_TTL_MS;
   HOSP_PORTAL_SESSIONS.set(token, { restauranteId: restaurante, expiresAt });
+  hospPortalSessionsSave();
   const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
   const parts = [`${HOSP_PORTAL_COOKIE}=${encodeURIComponent(token)}`, 'HttpOnly', 'Path=/', 'SameSite=Lax', `Max-Age=${Math.floor(HOSP_PORTAL_TTL_MS / 1000)}`];
   if (secure) parts.push('Secure');
@@ -15097,7 +15126,7 @@ app.post('/rendimientos/pin', async (req, res) => {
 });
 app.post('/rendimientos/salir', (req, res) => {
   const sess = hospPortalSessionFor(req);
-  if (sess) HOSP_PORTAL_SESSIONS.delete(sess.token);
+  if (sess) { HOSP_PORTAL_SESSIONS.delete(sess.token); hospPortalSessionsSave(); }
   res.setHeader('Set-Cookie', `${HOSP_PORTAL_COOKIE}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`);
   res.json({ ok: true });
 });

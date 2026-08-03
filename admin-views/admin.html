@@ -16426,19 +16426,39 @@ function hospSelectSeccion(id){
 let hospRendData = null; // { config, registros } tal como los devuelve el server
 let hospRendFiltro = { restaurante: '', tipo: '', corte: '', origen: '', from: '', to: '' };
 let hospRendSort = { col: null, dir: null };
-async function hospRendLoad(){
+// Auto-refresco: lo que carga el operario desde /rendimientos tiene que
+// aparecer acá solo, sin recargar ni volver a entrar a la sección. El polling
+// corre únicamente mientras la vista está a la vista (y la pestaña activa), y
+// en modo silencioso no pisa la pantalla con "Cargando…" ni resetea filtros.
+let hospRendTimer = null;
+const HOSP_REND_POLL_MS = 10000;
+function hospRendVisible(){
+  const v = document.getElementById('hospRendimientosView');
+  return !!v && v.offsetParent !== null && hospActiveSeccion === 'rendimientos' && !document.hidden;
+}
+function hospRendAgenda(){
+  if (hospRendTimer) clearTimeout(hospRendTimer);
+  hospRendTimer = setTimeout(() => { if (hospRendVisible()) hospRendLoad(true); else hospRendAgenda(); }, HOSP_REND_POLL_MS);
+}
+async function hospRendLoad(silent){
   const view = document.getElementById('hospRendimientosView'); if (!view) return;
-  view.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  if (!silent) view.innerHTML = '<div class="adm-loading">Cargando…</div>';
   try {
     const r = await fetch('/admin/hospitality/rendimientos');
     const d = await r.json();
     if (d.error) throw new Error(d.error);
+    // En silencioso, si no cambió nada no se vuelve a dibujar: así no se pierde
+    // el scroll ni se cierra un desplegable mientras alguien está mirando.
+    const igual = silent && hospRendData && JSON.stringify(hospRendData.registros) === JSON.stringify(d.registros);
     hospRendData = d;
-    hospRendRender();
+    if (!igual) hospRendRender();
   } catch (e) {
-    view.innerHTML = `<div class="adm-empty">Error cargando rendimientos: ${escapeHtml(String(e.message || e))}</div>`;
+    if (!silent) view.innerHTML = `<div class="adm-empty">Error cargando rendimientos: ${escapeHtml(String(e.message || e))}</div>`;
   }
+  hospRendAgenda();
 }
+// Al volver a la pestaña se refresca ya, sin esperar el próximo tick.
+document.addEventListener('visibilitychange', () => { if (!document.hidden && hospRendVisible()) hospRendLoad(true); });
 function hospRendEmptyState(){
   return `<div class="adm-panel"><div class="adm-empty-card">
     <div class="adm-empty-ico">📋</div>

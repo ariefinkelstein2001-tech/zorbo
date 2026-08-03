@@ -267,6 +267,10 @@ async function boot(){
   }
   setInterval(flushQueue, 8000);
   window.addEventListener('online', flushQueue);
+  // La tablet queda con la pantalla apagada entre lote y lote: al volver hay
+  // que reintentar ya, sin esperar el próximo tick.
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) flushQueue(); });
+  window.addEventListener('focus', flushQueue);
 }
 
 async function afterLogin(){
@@ -289,27 +293,45 @@ async function flushQueue(){
   if (S.flushing || !S.restaurante || !S.queue.length) { updateSyncBadge(); return; }
   S.flushing = true;
   updateSyncBadge();
-  const stillPending = [];
-  for (const item of S.queue) {
+  const pendientes = [];
+  let sesionVencida = false;
+  const cola = S.queue.slice();
+  for (let i = 0; i < cola.length; i++) {
+    const item = cola[i];
+    // Sesión de local vencida: no tiene sentido seguir intentando con el resto
+    // de la cola. Se corta acá, lo no intentado se conserva y se manda a
+    // re-ingresar el PIN — antes esto quedaba en silencio y los lotes se
+    // acumulaban en "Sincronizando…" sin que nadie supiera por qué.
+    if (sesionVencida) { pendientes.push(item); continue; }
     try {
       const r = await api('/admin/hospitality/rendimientos', { method: 'POST', body: JSON.stringify(item.payload) });
-      if (r.status === 401) { stillPending.push(item); continue; } // sesión vencida: reintenta cuando vuelva a entrar
+      if (r.status === 401) { pendientes.push(item); sesionVencida = true; continue; }
       if (r.ok) {
         historyAdd(r.data.registro, false);
       } else {
+        // Error de validación: se reintenta, pero nunca se borra solo — queda
+        // visible en el historial para que alguien lo mire.
         item.tries = (item.tries || 0) + 1;
-        if (item.tries < 8) stillPending.push(item); // error de validación persistente: no lo reintenta para siempre, pero no lo borra tampoco (queda visible)
-        else stillPending.push(item);
+        item.ultimoError = (r.data && r.data.error) || ('Error ' + r.status);
+        pendientes.push(item);
       }
     } catch (e) {
-      stillPending.push(item); // sin red: se reintenta solo
+      pendientes.push(item); // sin red: se reintenta solo
     }
   }
-  S.queue = stillPending;
+  S.queue = pendientes;
   saveLocal('queue', S.queue);
   S.flushing = false;
   updateSyncBadge();
   if (S.screen === 'operario' || S.screen === 'confirm') renderHistorySheetIfOpen();
+  if (sesionVencida) pedirPinDeNuevo();
+}
+// La sesión del local venció (o el server se reinició): se avisa y se vuelve a
+// la pantalla de PIN. La cola queda intacta y se vacía sola apenas se entra.
+function pedirPinDeNuevo(){
+  if (S.screen === 'pin' || S.screen === 'restaurante') return;
+  S.pinError = 'La sesión del local venció. Ingresá el PIN para guardar lo que quedó pendiente.';
+  goto('pin', { replace: true });
 }
 function updateSyncBadge(){
   const badge = $('#hzSyncBadge'); if (!badge) return;
@@ -741,13 +763,13 @@ $('#hzSheetBd').onclick = closeHistorySheet;
 $('#hzSheetClose').onclick = closeHistorySheet;
 function renderHistorySheetIfOpen(){
   const list = $('#hzSheetList'); if (!list || !$('#hzSheet').classList.contains('show')) return;
-  const pendingRows = S.queue.map(q => ({ hora: '—', tipo: q.payload.tipo, corte: q.payload.corte, pct: null, pending: true }));
+  const pendingRows = S.queue.map(q => ({ hora: '—', tipo: q.payload.tipo, corte: q.payload.corte, pct: null, pending: true, error: q.ultimoError || '' }));
   const rows = [...pendingRows, ...S.history];
   if (!rows.length) { list.innerHTML = '<div class="hz-hist-empty">Todavía no cargaste nada en este turno.</div>'; return; }
   list.innerHTML = rows.map(r => `
     <div class="hz-hist-row${r.pending ? ' pending' : ''}">
       <span class="ic">${r.tipo === 'pescado' ? '🐟' : '🥩'}</span>
-      <span><span class="t1">${escapeHtml(r.corte || '—')}</span><br><span class="t2">${r.pending ? 'Sincronizando…' : r.hora}</span></span>
+      <span><span class="t1">${escapeHtml(r.corte || '—')}</span><br><span class="t2">${r.pending ? (r.error ? '⚠ ' + escapeHtml(r.error) : 'Sincronizando…') : r.hora}</span></span>
       <span class="pct">${r.pct != null ? r.pct.toFixed(1) + '%' : '⏳'}</span>
     </div>
   `).join('');
