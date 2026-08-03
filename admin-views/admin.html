@@ -1459,6 +1459,14 @@ body.drawer-open{overflow:hidden}
 .adm-growth-tools select{max-width:200px}
 .adm-growth-count{font-family:var(--sans);font-size:.72rem;color:var(--muted);margin-bottom:.35rem}
 .adm-growth-sku{font-family:var(--mono);font-size:.68rem;color:var(--muted);margin-left:.4rem}
+/* Aviso fijo de almacenamiento efímero: tiene que verse desde cualquier sección. */
+.adm-storage-warn{
+  position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;
+  background:#7a1c1c;color:#fff;border:1px solid #a83232;border-radius:12px;
+  padding:.7rem 1rem;font-family:var(--sans);font-size:.82rem;line-height:1.45;
+  box-shadow:0 8px 28px rgba(0,0,0,.35)
+}
+.adm-storage-warn code{background:rgba(255,255,255,.16);border-radius:4px;padding:.05rem .3rem}
 /* Chips de hitos en la serie mes a mes de HORECA. */
 .hor-hito{display:inline-block;background:#fff4d6;border:1px solid #f2e3b8;color:#8a6d00;border-radius:999px;
   font-family:var(--sans);font-size:.68rem;padding:.1rem .45rem;margin:.1rem .25rem .1rem 0}
@@ -16729,6 +16737,21 @@ fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
     selectSeccion('costeo');
   }
 }).catch(() => { renderSidebar(); });
+
+// ── Aviso de almacenamiento efímero ──────────────────────────────────────────
+// Si el server corre SIN volumen persistente, todo lo que se cargue a mano se
+// borra en el próximo deploy. Es un problema de configuración del entorno, no
+// del código, así que lo único que puede hacer el panel es no dejar que nadie
+// cargue datos sin saberlo.
+fetch('/admin/_diag/almacenamiento').then(r => r.ok ? r.json() : null).then(d => {
+  if (!d || !d.riesgoDePerderDatos) return;
+  const b = document.createElement('div');
+  b.className = 'adm-storage-warn';
+  b.innerHTML = `<b>⚠️ Este servidor no tiene volumen persistente.</b>
+    Todo lo que cargues a mano (costos, gastos, notas de crédito, rendimientos…) se va a borrar en el próximo deploy.
+    Hay que montar un volumen en Railway y apuntar <code>DATA_DIR</code> a él. Mientras tanto hay respaldos diarios en <code>${d.backupsDir}</code>.`;
+  document.body.appendChild(b);
+}).catch(() => {});
 </script>
 </body>
 </html>

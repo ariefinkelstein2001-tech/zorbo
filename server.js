@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import Anthropic from '@anthropic-ai/sdk';
-import { readFileSync, existsSync, mkdirSync, writeFileSync, unlinkSync } from 'fs';
+import { readFileSync, existsSync, mkdirSync, writeFileSync, unlinkSync, readdirSync, statSync, copyFileSync, rmSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID, createHmac, timingSafeEqual, randomBytes, scryptSync, createHash } from 'crypto';
@@ -42,6 +42,72 @@ const MUNDIAL_BACKUP_FILE = join(LOGS_DIR, 'mundial-backup.json');
 // si DATA_DIR está seteado; servidos en /uploads.
 const UPLOADS_DIR = DATA_DIR ? join(DATA_DIR, 'uploads') : join(__dirname, 'public', 'uploads');
 
+// ─── Respaldo automático de los datos cargados a mano ───────────────────────
+// Todo lo que se carga desde el panel (costos, gastos, notas de crédito,
+// rendimientos, objetivos, hitos…) vive en $DATA_DIR/prompts. Un deploy no
+// debería tocarlo, pero si el entorno NO tiene volumen persistente, o si una
+// migración con el flag mal guardado vuelve a correr, ese trabajo se pierde y
+// no hay vuelta atrás. Estas copias son ese "atrás": una carpeta por día con
+// todos los .json, dentro del mismo volumen.
+const BACKUPS_DIR = DATA_DIR ? join(DATA_DIR, 'backups') : join(__dirname, 'logs', 'backups');
+const BACKUPS_DIAS = 14;
+const hoyISO = () => new Date().toISOString().slice(0, 10);
+function backupDatos(){
+  try {
+    const origen = PROMPTS_EFFECTIVE_DIR;
+    if (!existsSync(origen)) return null;
+    const archivos = readdirSync(origen).filter(f => f.endsWith('.json'));
+    if (!archivos.length) return null;
+    const destino = join(BACKUPS_DIR, hoyISO());
+    if (!existsSync(destino)) mkdirSync(destino, { recursive: true });
+    let n = 0, bytes = 0;
+    for (const f of archivos) {
+      const src = join(origen, f);
+      try {
+        // Dentro de un día NUNCA se pisa: la primera copia gana. Cada carpeta es
+        // una foto real del estado con el que arrancó ese día. Si se pisara, un
+        // arranque posterior a que algo corrompiera los datos reemplazaría la
+        // copia buena por la mala — que es justo de lo que hay que protegerse.
+        const dst = join(destino, f);
+        if (existsSync(dst)) continue;
+        const st = statSync(src);
+        copyFileSync(src, dst); n++; bytes += st.size;
+      } catch {}
+    }
+    // Rotación: se conservan los últimos BACKUPS_DIAS días.
+    try {
+      const dias = readdirSync(BACKUPS_DIR).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+      for (const d of dias.slice(0, Math.max(0, dias.length - BACKUPS_DIAS))) rmSync(join(BACKUPS_DIR, d), { recursive: true, force: true });
+    } catch {}
+    return { dia: hoyISO(), copiados: n, bytes };
+  } catch (e) { console.warn('[backup]', e.message); return null; }
+}
+// Estado del almacenamiento: responde de una si los datos cargados a mano están
+// a salvo de un deploy o no. Es lo primero que hay que mirar si "se borró algo".
+function diagAlmacenamiento(){
+  const archivos = [];
+  try {
+    for (const f of readdirSync(PROMPTS_EFFECTIVE_DIR).filter(x => x.endsWith('.json'))) {
+      try { const st = statSync(join(PROMPTS_EFFECTIVE_DIR, f)); archivos.push({ archivo: f, bytes: st.size, modificado: st.mtime.toISOString() }); } catch {}
+    }
+  } catch {}
+  archivos.sort((a, b) => b.bytes - a.bytes);
+  let backups = [];
+  try { backups = readdirSync(BACKUPS_DIR).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort().reverse(); } catch {}
+  return {
+    dataDirEnv: DATA_DIR || null,
+    usandoVolumenPersistente: !!DATA_DIR,
+    // Sin volumen, el disco del contenedor se recrea en cada deploy: TODO lo
+    // cargado a mano se pierde. No es algo que el código pueda evitar.
+    riesgoDePerderDatos: !DATA_DIR,
+    diagnostico: DATA_DIR
+      ? 'Los datos viven en el volumen persistente: un deploy no los toca.'
+      : 'ATENCIÓN: no hay volumen persistente. Todo lo que se cargue a mano se borra en el próximo deploy. Hay que montar un volumen en Railway y apuntar DATA_DIR a él.',
+    directorioDatos: PROMPTS_EFFECTIVE_DIR,
+    gitCommit: process.env.RAILWAY_GIT_COMMIT_SHA || null,
+    archivos, backupsDir: BACKUPS_DIR, backups,
+  };
+}
 function initLogs() {
   if (!existsSync(LOGS_DIR))   mkdirSync(LOGS_DIR, { recursive: true });
   if (!existsSync(UPLOADS_DIR)) mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -52,7 +118,16 @@ function initLogs() {
   if (!existsSync(ERR_LOG))    writeFileSync(ERR_LOG,   '[]');
   if (!existsSync(GAMES_LOG))  writeFileSync(GAMES_LOG, '[]');
   if (!existsSync(LEADS_LOG))  writeFileSync(LEADS_LOG, '[]');
+  if (!existsSync(BACKUPS_DIR)) mkdirSync(BACKUPS_DIR, { recursive: true });
   console.log('[storage] DATA_DIR=' + (DATA_DIR || '(no seteado · efímero)'));
+  if (!DATA_DIR) {
+    console.warn('[storage] ⚠️  SIN VOLUMEN PERSISTENTE — todo lo que se cargue a mano se pierde en el próximo deploy.');
+    console.warn('[storage]     Montá un volumen en Railway y seteá DATA_DIR apuntando a él.');
+  }
+  // Respaldo al arrancar (justo después de un deploy) y una vez por día.
+  const b0 = backupDatos();
+  if (b0) console.log(`[backup] ${b0.copiados} archivo(s) respaldados en ${BACKUPS_DIR}/${b0.dia}`);
+  setInterval(backupDatos, 24 * 60 * 60 * 1000).unref?.();
 }
 
 // Lee un prompt: prioriza el override del volumen; si no, usa el del repo.
@@ -13775,6 +13850,38 @@ function resolveCosteo(d){
 // si el sitio en vivo está corriendo el código/commit esperado y si sus datos
 // viven en el disco efímero (se resetean con cada deploy) o en un volumen
 // persistente aparte (DATA_DIR), que no se actualiza con los pushes a git.
+// Estado del almacenamiento + respaldos. Es lo primero que hay que mirar cuando
+// "se borró lo que cargué a mano".
+app.get('/admin/_diag/almacenamiento', requireAdmin, (_req, res) => res.json(diagAlmacenamiento()));
+// Fuerza un respaldo ahora (por ejemplo, antes de un deploy con migraciones).
+app.post('/admin/_diag/respaldar', requireAdmin, (_req, res) => {
+  const r = backupDatos();
+  res.json({ ok: !!r, ...(r || {}), ...diagAlmacenamiento() });
+});
+// Restaura UN archivo desde el respaldo de un día. No borra nada: antes de
+// pisar, deja el archivo actual en el respaldo de hoy, así el paso también se
+// puede deshacer.
+app.post('/admin/_diag/restaurar', requireAdmin, (req, res) => {
+  const dia = String((req.body || {}).dia || '');
+  const archivo = String((req.body || {}).archivo || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia)) return res.status(400).json({ error: 'Día inválido (AAAA-MM-DD).' });
+  if (!/^[\w.-]+\.json$/.test(archivo)) return res.status(400).json({ error: 'Archivo inválido.' });
+  const src = join(BACKUPS_DIR, dia, archivo);
+  if (!existsSync(src)) return res.status(404).json({ error: 'Ese respaldo no existe.' });
+  // Red de seguridad: lo que hay AHORA se guarda aparte antes de pisarlo, en su
+  // propia carpeta — no en la del día, para no tocar las fotos diarias.
+  try {
+    const previo = join(BACKUPS_DIR, '_previo');
+    if (!existsSync(previo)) mkdirSync(previo, { recursive: true });
+    const actual = join(PROMPTS_EFFECTIVE_DIR, archivo);
+    if (existsSync(actual)) copyFileSync(actual, join(previo, archivo));
+  } catch {}
+  try {
+    if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true });
+    copyFileSync(src, join(PROMPTS_EFFECTIVE_DIR, archivo));
+  } catch (e) { return res.status(500).json({ error: 'No se pudo restaurar: ' + e.message }); }
+  res.json({ ok: true, restaurado: archivo, desde: dia, nota: 'El server lee el archivo en cada request, no hace falta reiniciar.' });
+});
 app.get('/admin/costeo/_diag', requireAdmin, (req, res) => {
   const all = loadCosteoAll();
   const counts = {};

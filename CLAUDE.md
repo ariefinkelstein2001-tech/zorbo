@@ -47,6 +47,28 @@ platos, insumos, secciones, categorías, precios):
 `GET /admin/costeo/_diag` devuelve el commit que está corriendo, si hay volumen
 persistente y los conteos por doc. Es la forma de confirmar un deploy de datos.
 
+## No borrar lo que se carga a mano
+
+Casi todo lo del panel se carga a mano: costos, gastos, notas de crédito,
+rendimientos, objetivos, hitos, precios, reclasificaciones. Un deploy no puede
+hacer desaparecer nada de eso. La trampa clásica:
+
+- Una migración con **flag de versión que no se persiste o no se relee** vuelve a
+  correr en cada arranque y pisa lo que el usuario corrigió a mano. Ya pasó:
+  `costosLoad` no leía `data.migraciones`, así que la reclasificación se
+  reaplicaba en cada boot. Si escribís un flag, **verificá que la función de load
+  lo devuelva** — muchas arman el objeto con una lista fija de campos y silenciosamente
+  descartan el resto.
+- Lo mismo con las siembras: completar solo lo vacío, nunca sobrescribir.
+- **Probalo siempre con dos arranques seguidos** contra los mismos datos, con un
+  cambio hecho "a mano" en el medio: si el segundo arranque lo revierte, está mal.
+
+`GET /admin/_diag/almacenamiento` dice si el entorno tiene volumen persistente,
+lista los archivos de datos con su tamaño y fecha, y muestra los respaldos.
+Hay respaldo diario automático en `$DATA_DIR/backups/<AAAA-MM-DD>/` (la primera
+copia del día gana, así un arranque posterior no pisa la foto buena), y
+`POST /admin/_diag/restaurar` con `{dia, archivo}` recupera un archivo puntual.
+
 ## Costeo: cómo está armado
 
 Cuatro conjuntos independientes: `garden`, `badass` (comida) y `garden_barra`,
