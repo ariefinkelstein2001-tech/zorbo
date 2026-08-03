@@ -92,6 +92,32 @@ h1,h2,h3{font-family:var(--display);margin:0}
 .hz-tile.pescado{background:linear-gradient(155deg,var(--pescado2),var(--pescado1))}
 .hz-tile .ic{font-size:2.6rem}
 .hz-tile .lb{font-family:var(--display);font-weight:800;font-size:1.15rem;letter-spacing:.02em}
+/* Pollo va en una tercera fila a lo ancho: entra sin apretar las otras dos. */
+.hz-tile.pollo{grid-column:1/-1;min-height:118px;background:linear-gradient(155deg,#e0a03a,#f7cf6b);color:#2a1c00}
+.hz-tile.pollo .ic{font-size:2.2rem}
+
+/* Destino del subproducto (¿para qué es?) */
+.hz-dest{margin:0 auto 16px;max-width:340px}
+.hz-dest-tit{font-size:.8rem;font-weight:800;color:var(--dim);margin-bottom:8px;text-align:center}
+.hz-dest-chips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.hz-dest-chip{
+  border:1.5px solid rgba(255,255,255,.14);background:var(--card);color:#fff;border-radius:99px;
+  padding:9px 16px;font-size:.86rem;font-weight:700;cursor:pointer;transition:background .15s,border-color .15s,transform .1s;
+}
+.hz-dest-chip:active{transform:scale(.95)}
+.hz-dest-chip.on{background:var(--gold);border-color:var(--gold);color:#1a1408}
+
+/* Desglose del desecho calculado */
+.hz-calc{background:var(--card);border-radius:18px;padding:6px 16px;margin-top:4px}
+.hz-calc-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+.hz-calc-row:last-child{border-bottom:none}
+.hz-calc-row .k{color:var(--dim);font-size:.92rem;font-weight:600}
+.hz-calc-row .v{font-family:var(--display);font-weight:800;font-size:1.06rem;font-variant-numeric:tabular-nums}
+.hz-calc-row.total{border-top:2px solid rgba(255,255,255,.16);margin-top:2px}
+.hz-calc-row.total .k{color:#fff;font-weight:800}
+.hz-calc-row.total .v{color:var(--gold);font-size:1.5rem}
+.hz-calc-row.total.bad .v{color:var(--danger)}
+.hz-calc-warn{margin-top:14px;background:var(--danger-dim);border:1px solid rgba(255,92,92,.35);color:#ffb4b4;border-radius:14px;padding:12px 14px;font-size:.86rem;line-height:1.45}
 
 /* ── PIN / peso keypad ── */
 .hz-pin-dots{display:flex;justify-content:center;gap:14px;margin:18px 0 8px}
@@ -229,7 +255,6 @@ const S = {
   restaurante: null,         // {id,label}
   operarios: [], proveedores: [],
   rec: {},                   // registro en construcción
-  otroCorteTexto: '',
   history: [],               // guardados esta sesión (persistido por local)
   queue: [],                 // pendientes de sincronizar (persistido por local)
   pin: '',
@@ -355,11 +380,11 @@ function historyAdd(registro, pending){
 
 /* ═══════════════════ Navegación ═══════════════════ */
 // Pasos del wizard "por lote" (después de local+PIN, que no se re-piden).
-const LOOP_STEPS = ['operario', 'origen', 'tipo', 'corte', 'proveedor', 'peso_bruto', 'peso_util', 'peso_sub', 'peso_desecho', 'confirm'];
+const LOOP_STEPS = ['operario', 'tipo', 'corte', 'origen', 'proveedor', 'factura', 'peso_bruto', 'peso_util', 'peso_sub', 'desecho', 'confirm'];
 const STEP_LABELS = {
-  operario: '¿Quién eres?', origen: 'Origen', tipo: 'Carne o pescado', corte: 'Corte',
-  proveedor: 'Proveedor / lote', peso_bruto: 'Peso bruto', peso_util: 'Peso útil',
-  peso_sub: 'Subproducto', peso_desecho: 'Desecho', confirm: 'Confirmar',
+  operario: '¿Quién eres?', tipo: 'Tipo de proteína', corte: 'Corte', origen: 'País de origen',
+  proveedor: 'Proveedor', factura: 'Factura / folio', peso_bruto: 'Peso bruto', peso_util: 'Peso útil',
+  peso_sub: 'Subproducto', desecho: 'Desecho', confirm: 'Resumen',
 };
 let history_stack = [];
 function goto(screen, opts){
@@ -529,81 +554,108 @@ const ORIGEN_FLAG = { Chile: '🇨🇱', Brasil: '🇧🇷', USA: '🇺🇸', Pa
 function screenOrigen(body){
   const origenes = (S.cfg && S.cfg.origenes) || [];
   screenShell(body, {
-    eyebrow: 'Paso 2', title: 'País de origen',
+    eyebrow: 'Paso 4', title: 'País de origen',
     content: (c) => {
       c.innerHTML = `<div class="hz-grid">${origenes.map(o => `
-        <button class="hz-card" data-o="${escapeHtml(o)}"><span class="ic">${ORIGEN_FLAG[o] || '🌎'}</span><span class="lb">${escapeHtml(o)}</span></button>
-      `).join('')}</div>`;
-      c.querySelectorAll('.hz-card').forEach(b => b.onclick = () => { pressFx(b); S.rec.origen = b.dataset.o; setTimeout(() => goto('tipo'), 90); });
-    },
-  });
-}
-
-/* ═══════════════════ Pantalla 3 — Tipo ═══════════════════ */
-function screenTipo(body){
-  screenShell(body, {
-    eyebrow: 'Paso 3', title: '¿Carne o pescado?',
-    content: (c) => {
-      c.innerHTML = `<div class="hz-tiles">
-        <button class="hz-tile carne" data-t="carne"><span class="ic">🥩</span><span class="lb">Carne</span></button>
-        <button class="hz-tile pescado" data-t="pescado"><span class="ic">🐟</span><span class="lb">Pescado</span></button>
-      </div>`;
-      c.querySelectorAll('.hz-tile').forEach(b => b.onclick = () => { pressFx(b); S.rec.tipo = b.dataset.t; S.rec.corte = null; setTimeout(() => goto('corte'), 90); });
-    },
-  });
-}
-
-/* ═══════════════════ Pantalla 4 — Corte ═══════════════════ */
-function screenCorte(body){
-  const cortes = (S.cfg && S.cfg.cortes && S.cfg.cortes[S.rec.tipo]) || [];
-  screenShell(body, {
-    eyebrow: 'Paso 4', title: 'Corte',
-    sub: S.rec.tipo === 'pescado' ? 'Pescado' : 'Carne',
-    content: (c) => {
-      c.innerHTML = `<div class="hz-grid cols2">${cortes.map(co => `
-        <button class="hz-card" data-c="${escapeHtml(co)}"><span class="lb">${escapeHtml(co)}</span></button>
+        <button class="hz-card" data-o="${escapeHtml(o)}"><span class="ic">${ORIGEN_FLAG[o] || (o === 'Otro' ? '✏️' : '🌎')}</span><span class="lb">${escapeHtml(o)}</span></button>
       `).join('')}</div>
-      <div id="hzOtroBox" style="display:none;margin-top:14px">
-        <input class="hz-textbox" id="hzOtroInput" placeholder="¿Qué corte es?" maxlength="60" autocomplete="off">
-        <button class="hz-btn primary" id="hzOtroGo" style="margin-top:12px">Continuar</button>
+      <div id="hzOrigBox" style="display:none;margin-top:14px">
+        <input class="hz-textbox" id="hzOrigInput" placeholder="¿De qué país?" maxlength="60" autocomplete="off" value="${escapeHtml(S.rec.origenOtro || '')}">
+        <button class="hz-btn primary" id="hzOrigGo" style="margin-top:12px">Continuar</button>
       </div>`;
       c.querySelectorAll('.hz-card').forEach(b => b.onclick = () => {
         pressFx(b);
-        if (b.dataset.c === 'Otro') { $('#hzOtroBox').style.display = 'block'; $('#hzOtroInput').focus(); return; }
-        S.rec.corte = b.dataset.c; S.otroCorteTexto = '';
+        if (b.dataset.o === 'Otro') { $('#hzOrigBox').style.display = 'block'; $('#hzOrigInput').focus(); return; }
+        S.rec.origen = b.dataset.o; S.rec.origenOtro = '';
         setTimeout(() => goto('proveedor'), 90);
       });
-      const go = $('#hzOtroGo');
+      const go = $('#hzOrigGo');
       if (go) go.onclick = () => {
-        S.rec.corte = 'Otro';
-        S.otroCorteTexto = $('#hzOtroInput').value.trim();
+        const v = $('#hzOrigInput').value.trim();
+        if (!v) { $('#hzOrigInput').focus(); return; }
+        // Igual que el corte: el país escrito se suma a la lista en el server.
+        S.rec.origen = 'Otro'; S.rec.origenOtro = v;
         goto('proveedor');
       };
     },
   });
 }
 
-/* ═══════════════════ Pantalla 5 — Proveedor / lote ═══════════════════ */
+/* ═══════════════════ Paso 2 — Tipo de proteína ═══════════════════ */
+function screenTipo(body){
+  screenShell(body, {
+    eyebrow: 'Paso 2', title: '¿Carne, pescado o pollo?',
+    content: (c) => {
+      c.innerHTML = `<div class="hz-tiles">
+        <button class="hz-tile carne" data-t="carne"><span class="ic">🥩</span><span class="lb">Carne</span></button>
+        <button class="hz-tile pescado" data-t="pescado"><span class="ic">🐟</span><span class="lb">Pescado</span></button>
+        <button class="hz-tile pollo" data-t="pollo"><span class="ic">🍗</span><span class="lb">Pollo</span></button>
+      </div>`;
+      c.querySelectorAll('.hz-tile').forEach(b => b.onclick = () => {
+        pressFx(b);
+        // Cambiar de tipo invalida el corte elegido: cada tipo tiene su lista.
+        if (S.rec.tipo !== b.dataset.t) { S.rec.corte = null; S.rec.corteOtro = ''; }
+        S.rec.tipo = b.dataset.t;
+        setTimeout(() => goto('corte'), 90);
+      });
+    },
+  });
+}
+
+/* ═══════════════════ Paso 3 — Corte ═══════════════════ */
+const TIPO_LABEL = { carne: 'Carne', pescado: 'Pescado', pollo: 'Pollo' };
+function screenCorte(body){
+  const cortes = (S.cfg && S.cfg.cortes && S.cfg.cortes[S.rec.tipo]) || ['Otro'];
+  screenShell(body, {
+    eyebrow: 'Paso 3', title: 'Tipo de corte',
+    sub: TIPO_LABEL[S.rec.tipo] || '',
+    content: (c) => {
+      c.innerHTML = `<div class="hz-grid cols2">${cortes.map(co => `
+        <button class="hz-card" data-c="${escapeHtml(co)}"><span class="lb">${escapeHtml(co)}</span></button>
+      `).join('')}</div>
+      <div id="hzOtroBox" style="display:none;margin-top:14px">
+        <input class="hz-textbox" id="hzOtroInput" placeholder="¿Qué corte es?" maxlength="60" autocomplete="off" value="${escapeHtml(S.rec.corteOtro || '')}">
+        <button class="hz-btn primary" id="hzOtroGo" style="margin-top:12px">Continuar</button>
+      </div>`;
+      c.querySelectorAll('.hz-card').forEach(b => b.onclick = () => {
+        pressFx(b);
+        if (b.dataset.c === 'Otro') { $('#hzOtroBox').style.display = 'block'; $('#hzOtroInput').focus(); return; }
+        S.rec.corte = b.dataset.c; S.rec.corteOtro = '';
+        setTimeout(() => goto('origen'), 90);
+      });
+      const go = $('#hzOtroGo');
+      if (go) go.onclick = () => {
+        const v = $('#hzOtroInput').value.trim();
+        if (!v) { $('#hzOtroInput').focus(); return; }
+        // El corte escrito se manda aparte: el server lo valida y lo suma a la
+        // lista del tipo, así la próxima vez ya está disponible de un toque.
+        S.rec.corte = 'Otro'; S.rec.corteOtro = v;
+        goto('origen');
+      };
+    },
+  });
+}
+
+/* ═══════════════════ Paso 5 — Proveedor ═══════════════════ */
 function screenProveedor(body){
   screenShell(body, {
-    eyebrow: 'Paso 5 · Opcional', title: 'Proveedor o lote',
+    eyebrow: 'Paso 5 · Opcional', title: 'Proveedor',
     sub: 'Podés saltar este paso.',
     content: (c) => {
-      const prefill = S.rec.corte === 'Otro' && S.otroCorteTexto ? `Corte: ${S.otroCorteTexto}` : '';
       c.innerHTML = `<div class="hz-grid" id="hzProvGrid">
         ${S.proveedores.map(p => `<button class="hz-card" data-p="${escapeHtml(p)}"><span class="ic">🚚</span><span class="lb">${escapeHtml(p)}</span></button>`).join('')}
       </div>
       <div style="margin-top:14px">
-        <input class="hz-textbox" id="hzProvInput" placeholder="Escribir proveedor o nº de lote" maxlength="80" autocomplete="off" value="${escapeHtml(prefill)}">
+        <input class="hz-textbox" id="hzProvInput" placeholder="Escribir proveedor" maxlength="80" autocomplete="off" value="${escapeHtml(S.rec.proveedorLote || '')}">
       </div>`;
-      c.querySelectorAll('#hzProvGrid .hz-card').forEach(b => b.onclick = () => { pressFx(b); S.rec.proveedorLote = b.dataset.p; setTimeout(() => goto('peso_bruto'), 90); });
+      c.querySelectorAll('#hzProvGrid .hz-card').forEach(b => b.onclick = () => { pressFx(b); S.rec.proveedorLote = b.dataset.p; setTimeout(() => goto('factura'), 90); });
     },
     footer: (f) => {
       f.innerHTML = `<div style="display:flex;gap:10px">
         <button class="hz-btn ghost" id="hzProvSkip" style="flex:1">Saltar</button>
         <button class="hz-btn primary" id="hzProvGo" style="flex:1.4">Continuar</button>
       </div>`;
-      $('#hzProvSkip').onclick = () => { S.rec.proveedorLote = ''; goto('peso_bruto'); };
+      $('#hzProvSkip').onclick = () => { S.rec.proveedorLote = ''; goto('factura'); };
       $('#hzProvGo').onclick = async () => {
         const v = $('#hzProvInput').value.trim();
         S.rec.proveedorLote = v;
@@ -611,35 +663,83 @@ function screenProveedor(body){
           const r = await api('/rendimientos/proveedores', { method: 'POST', body: JSON.stringify({ nombre: v }) });
           if (r.ok) S.proveedores = r.data.proveedores;
         }
-        goto('peso_bruto');
+        goto('factura');
       };
     },
   });
 }
 
-/* ═══════════════════ Pantalla 6 — Pesos (4 sub-pantallas) ═══════════════════ */
+/* ═══════════════════ Paso 6 — Factura / folio ═══════════════════ */
+// El documento con el que llegó la proteína: permite rastrear el lote hasta la
+// compra cuando un rendimiento sale raro.
+function screenFactura(body){
+  screenShell(body, {
+    eyebrow: 'Paso 6 · Opcional', title: 'Factura o folio',
+    sub: 'El número del documento con el que llegó la proteína.',
+    content: (c) => {
+      c.innerHTML = `<div style="margin-top:4px">
+        <input class="hz-textbox" id="hzFactInput" placeholder="Ej: 46211" maxlength="80" autocomplete="off" inputmode="text" value="${escapeHtml(S.rec.factura || '')}">
+      </div>`;
+      const inp = $('#hzFactInput'); if (inp) setTimeout(() => inp.focus(), 120);
+    },
+    footer: (f) => {
+      f.innerHTML = `<div style="display:flex;gap:10px">
+        <button class="hz-btn ghost" id="hzFactSkip" style="flex:1">Saltar</button>
+        <button class="hz-btn primary" id="hzFactGo" style="flex:1.4">Continuar</button>
+      </div>`;
+      $('#hzFactSkip').onclick = () => { S.rec.factura = ''; goto('peso_bruto'); };
+      $('#hzFactGo').onclick = () => { S.rec.factura = $('#hzFactInput').value.trim(); goto('peso_bruto'); };
+    },
+  });
+}
+
+/* ═══════════════════ Pasos 7-9 — Pesos ═══════════════════ */
 const PESO_CFG = {
-  peso_bruto:   { key: 'pesoBrutoKg', label: 'Peso bruto', hint: 'La proteína tal como llega, sin procesar.', icon: '⚖️', next: 'peso_util' },
-  peso_util:    { key: 'pesoUtilKg', label: 'Peso útil', hint: 'Lo que queda listo para usar.', icon: '✅', next: 'peso_sub' },
-  peso_sub:     { key: 'subproductoKg', label: 'Subproducto aprovechable', hint: 'Recortes, huesos para fondo, etc.', icon: '♻️', next: 'peso_desecho' },
-  peso_desecho: { key: 'desechoKg', label: 'Desecho', hint: 'Lo que se descarta.', icon: '🗑️', next: 'confirm' },
+  peso_bruto: { key: 'pesoBrutoKg', label: 'Peso bruto', hint: 'La proteína tal como llega, sin procesar.', icon: '⚖️', next: 'peso_util' },
+  peso_util:  { key: 'pesoUtilKg', label: 'Peso útil', hint: 'Lo que queda listo para usar.', icon: '✅', next: 'peso_sub' },
+  peso_sub:   { key: 'subproductoKg', label: 'Subproducto aprovechable', hint: 'Recortes, huesos para fondo, etc.', icon: '♻️', next: 'desecho' },
 };
+// Destinos del subproducto. "Otro" abre un campo para escribirlo.
+const SUB_DESTINOS = ['Carne molida', 'Otro'];
 function screenPeso(body, stepId){
   const cfg = PESO_CFG[stepId];
   let val = S.rec[cfg.key] != null ? String(S.rec[cfg.key]).replace('.', ',') : '';
-  // updateVal() vive en el scope de screenPeso (no anidada en content) porque
-  // la llaman tanto content() como footer() — content() se renderiza primero
-  // y footer() (donde vive #hzGo) todavía no existe en esa primera pasada.
+  const esSub = stepId === 'peso_sub';
+  const num = () => parseFloat((val || '').replace(',', '.'));
+  // El destino solo se exige si efectivamente hay subproducto que aprovechar.
+  function destinoOk(){
+    if (!esSub) return true;
+    if (!(num() > 0)) return true;
+    if (S.rec.subproductoDestino === 'Otro') return !!(S.rec.subproductoDestinoOtro || '').trim();
+    return !!S.rec.subproductoDestino;
+  }
   function updateVal(){
-    const num = $('#hzWNum'); if (num) num.innerHTML = (val || '0') + '<span class="unit">kg</span>';
+    const n = $('#hzWNum'); if (n) n.innerHTML = (val || '0') + '<span class="unit">kg</span>';
     const goBtn = $('#hzGo');
-    if (goBtn) goBtn.disabled = !(parseFloat(val.replace(',', '.')) >= 0 && val !== '' && val !== ',');
+    if (goBtn) goBtn.disabled = !(num() >= 0 && val !== '' && val !== ',') || !destinoOk();
     if (stepId === 'peso_util') {
       const bruto = Number(S.rec.pesoBrutoKg) || 0;
-      const util = parseFloat((val || '0').replace(',', '.')) || 0;
+      const util = num() || 0;
       const box = $('#hzLivePct');
       if (box) box.innerHTML = bruto > 0 ? `<div class="hz-live-pct">Rendimiento en vivo · <span class="v">${((util / bruto) * 100).toFixed(1)}%</span></div>` : '';
     }
+    const dw = $('#hzDestWrap');
+    if (dw) dw.style.display = (num() > 0) ? 'block' : 'none';
+  }
+  function renderDestino(c){
+    const box = c.querySelector('#hzDestWrap'); if (!box) return;
+    box.innerHTML = `<div class="hz-dest-tit">¿Para qué es?</div>
+      <div class="hz-dest-chips">${SUB_DESTINOS.map(d => `<button class="hz-dest-chip${S.rec.subproductoDestino === d ? ' on' : ''}" data-d="${escapeHtml(d)}">${escapeHtml(d)}</button>`).join('')}</div>
+      <input class="hz-textbox" id="hzDestOtro" placeholder="¿Para qué se usa?" maxlength="80" autocomplete="off"
+        style="margin-top:10px;display:${S.rec.subproductoDestino === 'Otro' ? 'block' : 'none'}" value="${escapeHtml(S.rec.subproductoDestinoOtro || '')}">`;
+    box.querySelectorAll('.hz-dest-chip').forEach(b => b.onclick = () => {
+      S.rec.subproductoDestino = b.dataset.d;
+      if (b.dataset.d !== 'Otro') S.rec.subproductoDestinoOtro = '';
+      renderDestino(c); updateVal();
+      if (b.dataset.d === 'Otro') { const i = $('#hzDestOtro'); if (i) i.focus(); }
+    });
+    const oi = box.querySelector('#hzDestOtro');
+    if (oi) oi.oninput = () => { S.rec.subproductoDestinoOtro = oi.value; updateVal(); };
   }
   screenShell(body, {
     eyebrow: `${cfg.icon} Paso ${LOOP_STEPS.indexOf(stepId) + 1}`, title: cfg.label, sub: cfg.hint,
@@ -649,8 +749,10 @@ function screenPeso(body, stepId){
           <span class="hz-weight-num" id="hzWNum">${val || '0'}<span class="unit">kg</span></span>
           ${stepId === 'peso_util' ? '<div id="hzLivePct"></div>' : ''}
         </div>
+        ${esSub ? '<div id="hzDestWrap" class="hz-dest" style="display:none"></div>' : ''}
         <div class="hz-keypad" id="hzWPad"></div>
       `;
+      if (esSub) renderDestino(c);
       renderKeypad($('#hzWPad'), { decimal: true }, (k) => {
         if (k === ',') { if (val.includes(',') || !val) { if (!val) val = '0'; if (val.includes(',')) return; } val += ','; }
         else { if (val === '0') val = k; else val += k; }
@@ -660,64 +762,103 @@ function screenPeso(body, stepId){
     footer: (f) => {
       f.innerHTML = `<button class="hz-btn primary" id="hzGo" disabled>Continuar</button>`;
       $('#hzGo').onclick = () => {
-        const num = parseFloat(val.replace(',', '.'));
-        if (!(num >= 0)) return;
-        S.rec[cfg.key] = num;
-        if (stepId === 'peso_desecho') { checkBalanceThenConfirm(); return; }
+        const n = num();
+        if (!(n >= 0) || !destinoOk()) return;
+        S.rec[cfg.key] = n;
         goto(cfg.next);
       };
       updateVal(); // sincroniza el estado inicial del botón (importante si val ya viene precargado, ej. al "Revisar pesos")
     },
   });
 }
-function checkBalanceThenConfirm(){
+
+/* ═══════════════════ Paso 10 — Desecho (calculado) ═══════════════════ */
+// No se tipea: sale del balance de masa. Se muestra la resta completa para que
+// se entienda de dónde sale, y no se puede editar — si el número no cierra, lo
+// que hay que corregir es alguno de los pesos, no el desecho.
+function hospDesechoCalc(){
   const bruto = Number(S.rec.pesoBrutoKg) || 0;
   const util = Number(S.rec.pesoUtilKg) || 0;
   const sub = Number(S.rec.subproductoKg) || 0;
-  const desecho = Number(S.rec.desechoKg) || 0;
-  const balance = Math.round((bruto - (util + sub + desecho)) * 1000) / 1000;
-  S.rec.__balance = balance;
-  goto('confirm');
+  return { bruto, util, sub, desecho: Math.round((bruto - util - sub) * 1000) / 1000 };
+}
+const kg = n => (Math.round(n * 1000) / 1000).toString().replace('.', ',') + ' kg';
+function screenDesecho(body){
+  const { bruto, util, sub, desecho } = hospDesechoCalc();
+  const negativo = desecho < -0.001;
+  screenShell(body, {
+    eyebrow: '🗑️ Paso 10', title: 'Desecho',
+    sub: 'Se calcula solo con los pesos que cargaste.',
+    content: (c) => {
+      c.innerHTML = `
+        <div class="hz-calc">
+          <div class="hz-calc-row"><span class="k">⚖️ Peso bruto</span><span class="v">${kg(bruto)}</span></div>
+          <div class="hz-calc-row"><span class="k">− ✅ Peso útil</span><span class="v">${kg(util)}</span></div>
+          <div class="hz-calc-row"><span class="k">− ♻️ Subproducto</span><span class="v">${kg(sub)}</span></div>
+          <div class="hz-calc-row total${negativo ? ' bad' : ''}"><span class="k">= 🗑️ Desecho</span><span class="v">${kg(desecho)}</span></div>
+        </div>
+        ${negativo ? `<div class="hz-calc-warn">El peso útil más el subproducto se pasan del bruto. Volvé atrás y revisá los pesos.</div>` : ''}`;
+    },
+    footer: (f) => {
+      f.innerHTML = `<button class="hz-btn primary" id="hzDesGo"${negativo ? ' disabled' : ''}>Confirmar</button>`;
+      $('#hzDesGo').onclick = () => {
+        if (negativo) return;
+        S.rec.desechoKg = desecho;
+        goto('confirm');
+      };
+    },
+  });
 }
 
-/* ═══════════════════ Pantalla 7 — Confirmar ═══════════════════ */
+/* ═══════════════════ Paso 11 — Resumen ═══════════════════ */
+const TIPO_ICON = { carne: '🥩', pescado: '🐟', pollo: '🍗' };
 function screenConfirm(body){
-  const bruto = Number(S.rec.pesoBrutoKg) || 0;
-  const util = Number(S.rec.pesoUtilKg) || 0;
+  const { bruto, util, sub, desecho } = hospDesechoCalc();
   const pct = bruto > 0 ? (util / bruto) * 100 : 0;
-  const balOff = Math.abs(S.rec.__balance || 0) > 0.01;
+  const corte = S.rec.corte === 'Otro' ? (S.rec.corteOtro || 'Otro') : (S.rec.corte || '—');
+  const origen = S.rec.origen === 'Otro' ? (S.rec.origenOtro || 'Otro') : (S.rec.origen || '—');
+  const destino = S.rec.subproductoDestino === 'Otro' ? (S.rec.subproductoDestinoOtro || 'Otro') : S.rec.subproductoDestino;
+  const fila = (ic, k, v) => `<div class="hz-sum-row"><span class="ic">${ic}</span><span><span class="k">${k}</span><br><span class="v">${v}</span></span></div>`;
   screenShell(body, {
-    eyebrow: 'Último paso', title: 'Confirmá el lote',
+    eyebrow: 'Paso 11 · Último', title: 'Resumen del lote',
     content: (c) => {
       c.innerHTML = `
         <div class="hz-sum-pct"><div class="big">${pct.toFixed(1)}%</div><div class="lb">Rendimiento</div></div>
         <div class="hz-sum">
-          <div class="hz-sum-row"><span class="ic">👤</span><span><span class="k">Operario</span><br><span class="v">${escapeHtml(S.rec.operario || '—')}</span></span></div>
-          <div class="hz-sum-row"><span class="ic">${ORIGEN_FLAG[S.rec.origen] || '🌎'}</span><span><span class="k">Origen</span><br><span class="v">${escapeHtml(S.rec.origen || '—')}</span></span></div>
-          <div class="hz-sum-row"><span class="ic">${S.rec.tipo === 'pescado' ? '🐟' : '🥩'}</span><span><span class="k">Corte</span><br><span class="v">${escapeHtml(S.rec.corte || '—')}${S.rec.corte === 'Otro' && S.otroCorteTexto ? ' — ' + escapeHtml(S.otroCorteTexto) : ''}</span></span></div>
-          ${S.rec.proveedorLote ? `<div class="hz-sum-row"><span class="ic">🚚</span><span><span class="k">Proveedor / lote</span><br><span class="v">${escapeHtml(S.rec.proveedorLote)}</span></span></div>` : ''}
-          <div class="hz-sum-row"><span class="ic">⚖️</span><span><span class="k">Bruto / útil</span><br><span class="v">${bruto} kg → ${util} kg</span></span></div>
-          <div class="hz-sum-row"><span class="ic">♻️</span><span><span class="k">Subproducto / desecho</span><br><span class="v">${S.rec.subproductoKg || 0} kg / ${S.rec.desechoKg || 0} kg</span></span></div>
+          ${fila('👤', 'Operario', escapeHtml(S.rec.operario || '—'))}
+          ${fila(TIPO_ICON[S.rec.tipo] || '🥩', 'Tipo', escapeHtml(TIPO_LABEL[S.rec.tipo] || '—'))}
+          ${fila('🔪', 'Corte', escapeHtml(corte))}
+          ${fila(ORIGEN_FLAG[origen] || '🌎', 'País de origen', escapeHtml(origen))}
+          ${fila('🚚', 'Proveedor', escapeHtml(S.rec.proveedorLote || '—'))}
+          ${fila('🧾', 'Factura / folio', escapeHtml(S.rec.factura || '—'))}
+          ${fila('⚖️', 'Peso bruto', kg(bruto))}
+          ${fila('✅', 'Peso útil', kg(util))}
+          ${fila('♻️', 'Subproducto', kg(sub) + (destino ? ' · ' + escapeHtml(destino) : ''))}
+          ${fila('🗑️', 'Desecho (calculado)', kg(desecho))}
         </div>
-        ${balOff ? `<div class="hz-balance-warn">⚠️ Los pesos no cuadran del todo (diferencia de ${Math.abs(S.rec.__balance).toFixed(2)} kg). Podés revisar o guardar igual — el gerente lo va a ver marcado.</div>` : ''}
       `;
     },
     footer: (f) => {
       f.innerHTML = `
-        ${balOff ? `<button class="hz-btn ghost sm" id="hzRevisar" style="margin-bottom:10px">Revisar pesos</button>` : ''}
+        <button class="hz-btn ghost sm" id="hzRevisar" style="margin-bottom:10px">Revisar pesos</button>
         <button class="hz-btn primary" id="hzGuardar">✓ Guardar</button>
       `;
-      if (balOff) $('#hzRevisar').onclick = () => goto('peso_bruto');
+      $('#hzRevisar').onclick = () => goto('peso_bruto');
       $('#hzGuardar').onclick = guardarRegistro;
     },
   });
 }
 
 async function guardarRegistro(){
+  // El desecho NO se manda: lo calcula el server con los tres pesos, para que
+  // no dependa de la versión de la app que tenga cacheada la tablet.
   const payload = {
-    operario: S.rec.operario, origen: S.rec.origen, tipo: S.rec.tipo, corte: S.rec.corte,
-    proveedorLote: S.rec.proveedorLote || '', pesoBrutoKg: S.rec.pesoBrutoKg, pesoUtilKg: S.rec.pesoUtilKg,
-    subproductoKg: S.rec.subproductoKg, desechoKg: S.rec.desechoKg,
+    operario: S.rec.operario, tipo: S.rec.tipo,
+    corte: S.rec.corte, corteOtro: S.rec.corteOtro || '',
+    origen: S.rec.origen, origenOtro: S.rec.origenOtro || '',
+    proveedorLote: S.rec.proveedorLote || '', factura: S.rec.factura || '',
+    pesoBrutoKg: S.rec.pesoBrutoKg, pesoUtilKg: S.rec.pesoUtilKg, subproductoKg: S.rec.subproductoKg,
+    subproductoDestino: S.rec.subproductoDestino === 'Otro' ? (S.rec.subproductoDestinoOtro || '') : (S.rec.subproductoDestino || ''),
   };
   showSuccessOverlay(); // optimista: la persona no espera la red
   // No hace falta un historyAdd() optimista acá: renderHistorySheetIfOpen()
@@ -784,10 +925,11 @@ const SCREENS = {
   tipo: screenTipo,
   corte: screenCorte,
   proveedor: screenProveedor,
+  factura: screenFactura,
   peso_bruto: (b) => screenPeso(b, 'peso_bruto'),
   peso_util: (b) => screenPeso(b, 'peso_util'),
   peso_sub: (b) => screenPeso(b, 'peso_sub'),
-  peso_desecho: (b) => screenPeso(b, 'peso_desecho'),
+  desecho: screenDesecho,
   confirm: screenConfirm,
 };
 

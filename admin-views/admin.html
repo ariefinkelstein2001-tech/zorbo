@@ -16513,7 +16513,7 @@ function hospRendKpisHtml(rows){
   const pctDesecho = bruto > 0 ? (desecho / bruto * 100) : 0;
   const alertas = rows.filter(r => Math.abs(Number(r.balanceKg) || 0) > 0.01).length;
   const cfg = hospRendData.config;
-  const porTipo = hospGroupBy(rows, 'tipo', t => t === 'pescado' ? 'Pescado' : 'Carne');
+  const porTipo = hospGroupBy(rows, 'tipo', hospTipoLbl);
   const porCorte = hospGroupBy(rows, 'corte', c => c || '—');
   return `<div class="adm-stats">
     <div class="adm-stat tone-gold"><div class="adm-stat-k">RENDIMIENTO PROM.</div><div class="adm-stat-v">${pct.toFixed(1)}%</div><div class="adm-stat-s">útil / bruto, ponderado</div></div>
@@ -16530,8 +16530,8 @@ function hospRendFiltersHtml(){
   const cfg = hospRendData.config, f = hospRendFiltro;
   const opt = (v, l, cur) => `<option value="${escapeAttr(v)}" ${v === cur ? 'selected' : ''}>${escapeHtml(l)}</option>`;
   const restOpts = '<option value="">Todos los locales</option>' + cfg.restaurantes.map(r => opt(r.id, r.label, f.restaurante)).join('');
-  const tipoOpts = '<option value="">Carne y pescado</option>' + cfg.tipos.map(t => opt(t.id, t.label, f.tipo)).join('');
-  const cortesForTipo = f.tipo ? (cfg.cortes[f.tipo] || []) : [...new Set([...(cfg.cortes.carne || []), ...(cfg.cortes.pescado || [])])];
+  const tipoOpts = '<option value="">Todos los tipos</option>' + cfg.tipos.map(t => opt(t.id, t.label, f.tipo)).join('');
+  const cortesForTipo = f.tipo ? (cfg.cortes[f.tipo] || []) : [...new Set(Object.values(cfg.cortes || {}).flat())];
   const corteOpts = '<option value="">Todos los cortes</option>' + cortesForTipo.map(c => opt(c, c, f.corte)).join('');
   const origenOpts = '<option value="">Todos los orígenes</option>' + cfg.origenes.map(o => opt(o, o, f.origen)).join('');
   const hasFilter = f.restaurante || f.tipo || f.corte || f.origen || f.from || f.to;
@@ -16571,10 +16571,17 @@ function hospPctChart(elId, serie){
   let xlab = ''; for (let i = 0; i < n; i += step) xlab += `<text x="${X(i).toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="10" fill="#9a9aa2">${dashFmtDate(serie[i].fecha)}</text>`;
   el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Tendencia de rendimiento en el período">${grid}<polyline fill="none" stroke="#f5a623" stroke-width="2.5" points="${pts}"/>${xlab}</svg>`;
 }
+// Etiqueta del tipo desde la config del server, para que un tipo nuevo (pollo)
+// no caiga en el "todo lo que no es pescado es carne" que había antes.
+function hospTipoLbl(t){
+  const cfg = hospRendData && hospRendData.config;
+  const f = cfg && (cfg.tipos || []).find(x => x.id === t);
+  return f ? f.label : (t || '—');
+}
 function hospRendTableHtml(rows){
   const cfg = hospRendData.config;
   const restLbl = id => (cfg.restaurantes.find(r => r.id === id) || {}).label || id;
-  const tipoLbl = t => t === 'pescado' ? 'Pescado' : 'Carne';
+  const tipoLbl = hospTipoLbl;
   const keyFns = {
     fecha: r => (r.fecha || '') + ' ' + (r.hora || ''),
     restaurante: r => restLbl(r.restaurante),
@@ -16582,12 +16589,15 @@ function hospRendTableHtml(rows){
     tipo: r => tipoLbl(r.tipo),
     corte: r => r.corte || '',
     origen: r => r.origen || '',
+    factura: r => r.factura || '',
     bruto: r => Number(r.pesoBrutoKg) || 0,
+    sub: r => Number(r.subproductoKg) || 0,
+    desecho: r => Number(r.desechoKg) || 0,
     util: r => Number(r.pesoUtilKg) || 0,
     pct: r => Number(r.rendimientoPct) || 0,
     balance: r => Number(r.balanceKg) || 0,
   };
-  const sorted = sortableApply(rows, hospRendSort, keyFns, new Set(['bruto', 'util', 'pct', 'balance']));
+  const sorted = sortableApply(rows, hospRendSort, keyFns, new Set(['bruto', 'util', 'sub', 'desecho', 'pct', 'balance']));
   const trs = sorted.map(r => {
     const balOff = Math.abs(Number(r.balanceKg) || 0) > 0.01;
     return `<tr>
@@ -16597,8 +16607,11 @@ function hospRendTableHtml(rows){
       <td>${escapeHtml(tipoLbl(r.tipo))}</td>
       <td>${escapeHtml(r.corte || '—')}</td>
       <td>${escapeHtml(r.origen || '—')}</td>
+      <td>${escapeHtml(r.factura || '—')}</td>
       <td style="text-align:right">${(Number(r.pesoBrutoKg) || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 })}</td>
       <td style="text-align:right">${(Number(r.pesoUtilKg) || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 })}</td>
+      <td style="text-align:right">${(Number(r.subproductoKg) || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 })}${r.subproductoDestino ? `<div class="cg-pct-note">${escapeHtml(r.subproductoDestino)}</div>` : ''}</td>
+      <td style="text-align:right">${(Number(r.desechoKg) || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 })}</td>
       <td style="text-align:right"><b>${(Number(r.rendimientoPct) || 0).toFixed(1)}%</b></td>
       <td style="text-align:right" class="${balOff ? 'hosp-balance-off' : ''}">${(Number(r.balanceKg) || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 })}</td>
     </tr>`;
@@ -16610,11 +16623,14 @@ function hospRendTableHtml(rows){
     ${sortableTableHeader('Tipo', 'tipo', hospRendSort)}
     ${sortableTableHeader('Corte', 'corte', hospRendSort)}
     ${sortableTableHeader('Origen', 'origen', hospRendSort)}
+    ${sortableTableHeader('Factura', 'factura', hospRendSort)}
     ${sortableTableHeader('Bruto (kg)', 'bruto', hospRendSort, ' style="text-align:right"')}
     ${sortableTableHeader('Útil (kg)', 'util', hospRendSort, ' style="text-align:right"')}
+    ${sortableTableHeader('Subprod. (kg)', 'sub', hospRendSort, ' style="text-align:right"')}
+    ${sortableTableHeader('Desecho (kg)', 'desecho', hospRendSort, ' style="text-align:right"')}
     ${sortableTableHeader('Rendimiento', 'pct', hospRendSort, ' style="text-align:right"')}
     ${sortableTableHeader('Balance (kg)', 'balance', hospRendSort, ' style="text-align:right"')}
-  </tr></thead><tbody>${trs || '<tr><td colspan="10" style="text-align:center;color:var(--dim);padding:.8rem">Sin registros para este filtro.</td></tr>'}</tbody></table></div>`;
+  </tr></thead><tbody>${trs || '<tr><td colspan="13" style="text-align:center;color:var(--dim);padding:.8rem">Sin registros para este filtro.</td></tr>'}</tbody></table></div>`;
 }
 function hospRendRender(){
   const view = document.getElementById('hospRendimientosView'); if (!view) return;

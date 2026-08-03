@@ -14890,14 +14890,50 @@ const HOSP_RESTAURANTES = [
 ];
 const HOSP_RESTAURANTE_IDS = new Set(HOSP_RESTAURANTES.map(r => r.id));
 const HOSP_ORIGENES = ['Chile', 'Brasil', 'USA', 'Paraguay', 'Argentina'];
-const HOSP_TIPOS = [{ id: 'carne', label: 'Carne' }, { id: 'pescado', label: 'Pescado' }];
+const HOSP_TIPOS = [{ id: 'carne', label: 'Carne' }, { id: 'pescado', label: 'Pescado' }, { id: 'pollo', label: 'Pollo' }];
 const HOSP_TIPO_IDS = new Set(HOSP_TIPOS.map(t => t.id));
 // Cortes por tipo: configurables (viven en el archivo de datos, no hardcodeados
 // en el frontend) — arrancan con estos valores por defecto la primera vez.
+// Pollo arranca solo con "Otro" a propósito: no se inventan cortes que nadie
+// pidió. La lista se llena sola — lo que se escribe en "Otro" se agrega, igual
+// que ya pasa con operarios y proveedores.
 const HOSP_CORTES_DEFAULT = {
-  carne:   ['Lomo', 'Asado', 'Entraña', 'Molido', 'Costilla', 'Otro'],
+  carne:   ['Lomo', 'Entraña', 'Posta rosada', 'Tapapecho', 'Sobrecostilla', 'Churrasco', 'Otro'],
   pescado: ['Salmón', 'Merluza', 'Reineta', 'Congrio', 'Atún', 'Otro'],
+  pollo:   ['Otro'],
 };
+const hospNormTxt = (s) => String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
+// Deja "Otro" siempre al final de la lista de cortes.
+function hospOrdenarCortes(arr){
+  const otros = arr.filter(c => hospNormTxt(c) === 'otro');
+  const resto = arr.filter(c => hospNormTxt(c) !== 'otro');
+  return [...resto, ...(otros.length ? ['Otro'] : [])];
+}
+// Agrega un valor a una lista si no está (comparando normalizado). Es lo que
+// hace que las listas de cortes y orígenes crezcan con el uso.
+function hospAgregarSiFalta(arr, valor){
+  const v = String(valor || '').trim().slice(0, 60);
+  if (!v || hospNormTxt(v) === 'otro') return false;
+  if (arr.some(x => hospNormTxt(x) === hospNormTxt(v))) return false;
+  arr.push(v);
+  return true;
+}
+// Migración de las listas de cortes (dato persistido, así que va versionada).
+// v2: operación pidió sacar Asado / Molido / Costilla de carne, sumar los
+// cortes que sí usan, y habilitar pollo. NO toca los cortes que el equipo haya
+// agregado por su cuenta desde la app.
+const HOSP_CORTES_V = 2;
+const HOSP_CORTES_V2_QUITAR = ['asado', 'molido', 'costilla'];
+function hospMigrarCortes(data){
+  if (Number(data.cortesV) >= HOSP_CORTES_V) return false;
+  const quitar = new Set(HOSP_CORTES_V2_QUITAR.map(hospNormTxt));
+  data.cortes.carne = (data.cortes.carne || []).filter(c => !quitar.has(hospNormTxt(c)));
+  for (const c of HOSP_CORTES_DEFAULT.carne) hospAgregarSiFalta(data.cortes.carne, c);
+  data.cortes.carne = hospOrdenarCortes([...data.cortes.carne, 'Otro']);
+  if (!Array.isArray(data.cortes.pollo) || !data.cortes.pollo.length) data.cortes.pollo = HOSP_CORTES_DEFAULT.pollo.slice();
+  data.cortesV = HOSP_CORTES_V;
+  return true;
+}
 // PINs por local: gate liviano de acceso público para la app del operario (no
 // es una contraseña por persona — filtra que sea alguien del local, nada más).
 // Defaults de arranque, cambiables desde el ERP vía PUT /admin/hospitality/
@@ -14905,25 +14941,31 @@ const HOSP_CORTES_DEFAULT = {
 const HOSP_PIN_DEFAULT = { kg_antofagasta: '1111', kg_vespucio: '2222', badass_parque_arauco: '3333' };
 function hospLoad(){
   let data = {
-    cortes: { carne: HOSP_CORTES_DEFAULT.carne.slice(), pescado: HOSP_CORTES_DEFAULT.pescado.slice() },
+    cortes: { carne: HOSP_CORTES_DEFAULT.carne.slice(), pescado: HOSP_CORTES_DEFAULT.pescado.slice(), pollo: HOSP_CORTES_DEFAULT.pollo.slice() },
+    cortesV: HOSP_CORTES_V,
+    origenes: [...HOSP_ORIGENES],  // también se llena sola con lo que se cargue en "Otro"
     registros: [],
     pins: { ...HOSP_PIN_DEFAULT },
     operarios: {},           // { restauranteId: [nombre, ...] } — arranca vacío, se llena solo (sin inventar personal)
     proveedoresFrecuentes: [], // lista global (compartida entre locales), también se llena sola
   };
+  let migrado = false;
   try {
     if (existsSync(HOSP_RENDIMIENTOS_FILE)) {
       const p = JSON.parse(readFileSync(HOSP_RENDIMIENTOS_FILE, 'utf-8'));
       if (p && p.cortes && typeof p.cortes === 'object') {
-        if (Array.isArray(p.cortes.carne) && p.cortes.carne.length) data.cortes.carne = p.cortes.carne;
-        if (Array.isArray(p.cortes.pescado) && p.cortes.pescado.length) data.cortes.pescado = p.cortes.pescado;
+        for (const t of ['carne', 'pescado', 'pollo']) if (Array.isArray(p.cortes[t]) && p.cortes[t].length) data.cortes[t] = p.cortes[t];
       }
+      data.cortesV = Number(p && p.cortesV) || 0;
+      if (p && Array.isArray(p.origenes) && p.origenes.length) data.origenes = p.origenes;
       if (p && Array.isArray(p.registros)) data.registros = p.registros;
       if (p && p.pins && typeof p.pins === 'object') data.pins = { ...data.pins, ...p.pins };
       if (p && p.operarios && typeof p.operarios === 'object') data.operarios = p.operarios;
       if (p && Array.isArray(p.proveedoresFrecuentes)) data.proveedoresFrecuentes = p.proveedoresFrecuentes;
+      if (hospMigrarCortes(data)) migrado = true;
     }
   } catch (e) { console.warn('hosp load:', e.message); }
+  if (migrado) hospSave(data);
   return data;
 }
 function hospSave(d){
@@ -14956,8 +14998,10 @@ function hospDecorar(r){
 }
 // pins solo se agrega cuando lo pide el admin (nunca al público — ver
 // GET /rendimientos/config más abajo, que llama esta misma función sin pins).
-function hospConfig(cortes, pins){
-  const cfg = { restaurantes: HOSP_RESTAURANTES, origenes: HOSP_ORIGENES, tipos: HOSP_TIPOS, cortes, turnos: ['mañana', 'tarde', 'noche'] };
+function hospConfig(cortes, pins, origenes){
+  // "Otro" siempre al final del selector de origen (la app lo abre como texto libre).
+  const orig = [...(Array.isArray(origenes) && origenes.length ? origenes : HOSP_ORIGENES), 'Otro'];
+  const cfg = { restaurantes: HOSP_RESTAURANTES, origenes: orig, tipos: HOSP_TIPOS, cortes, turnos: ['mañana', 'tarde', 'noche'] };
   if (pins) cfg.pins = pins;
   return cfg;
 }
@@ -14967,7 +15011,7 @@ function hospConfig(cortes, pins){
 // local) no justifica duplicar esa lógica en un endpoint de agregación aparte.
 app.get('/admin/hospitality/rendimientos', requireAdmin, (_req, res) => {
   const data = hospLoad();
-  res.json({ config: hospConfig(data.cortes, data.pins), registros: data.registros.map(hospDecorar) });
+  res.json({ config: hospConfig(data.cortes, data.pins, data.origenes), registros: data.registros.map(hospDecorar) });
 });
 
 // Cambiar el PIN de un local (el equipo lo hace desde el ERP, sin redeploy).
@@ -14981,6 +15025,12 @@ app.put('/admin/hospitality/config/pin', requireAdmin, (req, res) => {
   res.json({ ok: true, pins: data.pins });
 });
 
+// Desecho = bruto − útil − subproducto. Nunca negativo: si los pesos no cuadran
+// el POST se rechaza antes (ver validación), esto es solo el redondeo final.
+function hospDesecho(b){
+  const d = (Number(b.pesoBrutoKg) || 0) - (Number(b.pesoUtilKg) || 0) - (Number(b.subproductoKg) || 0);
+  return Math.max(0, Math.round(d * 1000) / 1000);
+}
 function hospCrearRegistroDesdeBody(b, data){
   const now = new Date();
   const fecha = /^\d{4}-\d{2}-\d{2}$/.test(b.fecha) ? b.fecha : now.toISOString().slice(0, 10);
@@ -14993,10 +15043,17 @@ function hospCrearRegistroDesdeBody(b, data){
     tipo: b.tipo,
     corte: b.corte,
     proveedorLote: String(b.proveedorLote || '').trim(),
+    // Factura / folio del documento con el que llegó la proteína.
+    factura: String(b.factura || '').trim().slice(0, 80),
     pesoBrutoKg: Number(b.pesoBrutoKg),
     pesoUtilKg: Number(b.pesoUtilKg),
     subproductoKg: Number(b.subproductoKg),
-    desechoKg: Number(b.desechoKg),
+    // Para qué se va a usar el subproducto (carne molida, fondo, etc.).
+    subproductoDestino: String(b.subproductoDestino || '').trim().slice(0, 80),
+    // El desecho NO lo tipea nadie: es lo que sobra del balance de masa. Se
+    // calcula acá, no en el cliente, para que el número no dependa de qué
+    // versión de la app haya quedado cacheada en la tablet.
+    desechoKg: hospDesecho(b),
     fecha, hora,
     turno: hospTurnoDeHora(hora),
     creadoEn: now.toISOString(),
@@ -15017,12 +15074,28 @@ app.post('/admin/hospitality/rendimientos', requireAdminOrHospPortal, (req, res)
   const data = hospLoad();
   if (!HOSP_RESTAURANTE_IDS.has(b.restaurante)) return res.status(400).json({ error: 'Restaurante inválido.' });
   if (!HOSP_TIPO_IDS.has(b.tipo)) return res.status(400).json({ error: 'Tipo inválido (carne o pescado).' });
-  const cortesValidos = new Set(data.cortes[b.tipo] || []);
-  if (!b.corte || !cortesValidos.has(b.corte)) return res.status(400).json({ error: 'Corte inválido para ese tipo.' });
-  if (b.origen && !HOSP_ORIGENES.includes(b.origen)) return res.status(400).json({ error: 'Origen inválido.' });
-  for (const k of ['pesoBrutoKg', 'pesoUtilKg', 'subproductoKg', 'desechoKg']) {
+  // Corte: el de la lista, o uno nuevo escrito en "Otro" — en ese caso se suma
+  // a la lista del tipo para que la próxima vez esté disponible de un toque.
+  data.cortes[b.tipo] = Array.isArray(data.cortes[b.tipo]) ? data.cortes[b.tipo] : ['Otro'];
+  const corteLibre = String(b.corteOtro || '').trim().slice(0, 60);
+  if (hospNormTxt(b.corte) === 'otro' && corteLibre) {
+    b.corte = corteLibre;
+    if (hospAgregarSiFalta(data.cortes[b.tipo], corteLibre)) data.cortes[b.tipo] = hospOrdenarCortes(data.cortes[b.tipo]);
+  }
+  const cortesValidos = new Set((data.cortes[b.tipo] || []).map(hospNormTxt));
+  if (!b.corte || !cortesValidos.has(hospNormTxt(b.corte))) return res.status(400).json({ error: 'Corte inválido para ese tipo.' });
+  // Origen: idem, la lista crece con lo que se cargue en "Otro".
+  data.origenes = Array.isArray(data.origenes) && data.origenes.length ? data.origenes : [...HOSP_ORIGENES];
+  const origenLibre = String(b.origenOtro || '').trim().slice(0, 60);
+  if (hospNormTxt(b.origen) === 'otro' && origenLibre) { b.origen = origenLibre; hospAgregarSiFalta(data.origenes, origenLibre); }
+  if (b.origen && !data.origenes.some(o => hospNormTxt(o) === hospNormTxt(b.origen))) return res.status(400).json({ error: 'Origen inválido.' });
+  for (const k of ['pesoBrutoKg', 'pesoUtilKg', 'subproductoKg']) {
     if (b[k] == null || !Number.isFinite(Number(b[k])) || Number(b[k]) < 0) return res.status(400).json({ error: `Falta o es inválido: ${k}.` });
   }
+  // El desecho sale del balance, así que útil + subproducto no puede pasarse del
+  // bruto: si se pasa, algún peso está mal cargado y hay que revisarlo.
+  const sobra = (Number(b.pesoBrutoKg) || 0) - (Number(b.pesoUtilKg) || 0) - (Number(b.subproductoKg) || 0);
+  if (sobra < -0.001) return res.status(400).json({ error: 'Peso útil + subproducto supera el peso bruto. Revisá los pesos.' });
   const registro = hospCrearRegistroDesdeBody(b, data);
   hospSave(data);
   res.json({ ok: true, registro: hospDecorar(registro) });
@@ -15103,7 +15176,7 @@ app.get('/rendimientos', (_req, res) => {
 // mismos valores exactos que usa el dashboard del gerente, para que crucen.
 app.get('/rendimientos/config', (_req, res) => {
   const data = hospLoad();
-  res.json(hospConfig(data.cortes));
+  res.json(hospConfig(data.cortes, null, data.origenes));
 });
 
 app.post('/rendimientos/pin', async (req, res) => {
