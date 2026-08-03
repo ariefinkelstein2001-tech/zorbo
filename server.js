@@ -12974,9 +12974,10 @@ function costeoNormalizeCarta(c){
   const ckv = Number.isFinite(c.ckv) ? c.ckv : 0; // versión: cervezas Kairos de reventa → trago costeado
   const ckmv = Number.isFinite(c.ckmv) ? c.ckmv : 0; // versión: media pinta (250cc) de cada cerveza Kairos
   const blv = Number.isFinite(c.blv) ? c.blv : 0; // versión: Cortos/Botellas pasan de COCA COLA LATA CHICA a BEBIDA LATA (y botellas de 5 a 4 latas)
+  const bav = Number.isFinite(c.bav) ? c.bav : 0; // versión: adopción de las líneas de botella (marca de valor automático)
   const bvv = Number.isFinite(c.bvv) ? c.bvv : 0; // versión: la línea del espirituoso en Botellas usa el volumen real de CADA insumo, no un fijo de 750ml
   const glcv = Number.isFinite(c.glcv) ? c.glcv : 0; // versión: Garden — Ron/Pisco/Vodka/Whisky/Bourbon/Gin (+Botella) suman BEBIDA LATA CHICA
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bvv, glcv, secciones, asignaciones };
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13505,6 +13506,47 @@ function costeoFixBebidaLata(doc, rest){
 // solo "Botellas" (Badass) a cualquier categoría "*Botella*" (Garden por
 // familia también tenía el mismo problema, con 0,7 fijo). Corre una sola vez
 // por doc de barra (carta.bvv), después de costeoFixBebidaLata.
+// ── No pisar lo que se editó a mano ──────────────────────────────────────────
+// Una migración que asigna un valor a un campo que el usuario TAMBIÉN puede
+// editar tiene que poder distinguir "esto lo puse yo la vez pasada" de "esto lo
+// corrigió alguien". Se guarda junto al valor una marca con lo último que
+// escribió la migración:
+//   marca ausente        → o es dato viejo, o lo guardó una persona desde el
+//                          panel (el PUT reconstruye la línea y la marca se
+//                          pierde) → NO se toca.
+//   marca == valor actual → lo escribió la migración y nadie lo movió → se puede
+//                          actualizar.
+//   marca != valor actual → alguien lo cambió a mano → NO se toca.
+function costeoSetAuto(obj, campo, valor){
+  const marca = '_auto_' + campo;
+  if (obj[marca] === undefined) return false;
+  if (obj[campo] !== obj[marca]) return false;
+  obj[campo] = valor; obj[marca] = valor;
+  return true;
+}
+// Estampa la marca con el valor actual, sin cambiar nada. Es el punto de partida
+// para los datos que ya existían antes de que hubiera marcas.
+function costeoAdoptarAuto(obj, campo){
+  const marca = '_auto_' + campo;
+  if (obj[marca] !== undefined) return false;
+  obj[marca] = obj[campo];
+  return true;
+}
+// Adopta las líneas de "botella" con su valor actual: a partir de acá, un bump
+// de costeoFixBotellaVolumen solo va a tocar las que siga manejando la
+// migración, y va a respetar cualquier corrección hecha a mano.
+const BARRA_BOTELLA_ADOPT_V = 1;
+function costeoAdoptarBotellaVolumen(doc){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.bav >= BARRA_BOTELLA_ADOPT_V) return false;
+  (doc.platos || []).forEach(p => {
+    if (!costeoNorm(p.categoria).includes('botella')) return;
+    (p.lineas || []).forEach(l => { if (l.refType === 'insumo') costeoAdoptarAuto(l, 'cantidad'); });
+  });
+  doc.carta.bav = BARRA_BOTELLA_ADOPT_V;
+  return true;
+}
 const BARRA_BOTELLA_VOLUMEN_V = 3;
 function costeoFixBotellaVolumen(doc, rest){
   if (!doc) return false;
@@ -13519,7 +13561,7 @@ function costeoFixBotellaVolumen(doc, rest){
       // Excluye cualquier "bebida lata" (BEBIDA LATA de Badass, BEBIDA LATA
       // CHICA de Garden): esa línea es un conteo de latas, no una botella.
       if (ins && costeoNorm(ins.descripcion).includes('bebida lata')) return;
-      if (ins && (ins.unidad === 'litro' || ins.unidad === 'mililitro') && Number(ins.volumen) > 0) l.cantidad = Number(ins.volumen);
+      if (ins && (ins.unidad === 'litro' || ins.unidad === 'mililitro') && Number(ins.volumen) > 0) costeoSetAuto(l, 'cantidad', Number(ins.volumen));
     });
   });
   doc.carta.bvv = BARRA_BOTELLA_VOLUMEN_V;
@@ -13673,6 +13715,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoSeedCortosBarra(all[key], rest)) ch = true;
     if (costeoSeedBotellasBarra(all[key], rest)) ch = true;
     if (costeoFixBebidaLata(all[key], rest)) ch = true;
+    if (costeoAdoptarBotellaVolumen(all[key])) ch = true;
     if (costeoFixBotellaVolumen(all[key], rest)) ch = true;
     if (costeoCervezasKairos(all[key], rest)) ch = true;
     if (costeoCervezasKairosMediaPinta(all[key], rest)) ch = true;

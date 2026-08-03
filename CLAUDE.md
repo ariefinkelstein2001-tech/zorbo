@@ -60,6 +60,12 @@ hacer desaparecer nada de eso. La trampa clásica:
   lo devuelva** — muchas arman el objeto con una lista fija de campos y silenciosamente
   descartan el resto.
 - Lo mismo con las siembras: completar solo lo vacío, nunca sobrescribir.
+- Si una migración **asigna un valor a un campo que el usuario también edita**
+  (cantidades de receta, precios), no alcanza el flag de versión: cada bump lo
+  vuelve a pisar. Usá `costeoSetAuto(obj, campo, valor)`, que solo escribe si el
+  valor sigue siendo el que dejó la migración. Ya pasó con
+  `costeoFixBotellaVolumen`, que iba por su tercera versión reescribiendo la
+  cantidad de las 76 botellas en cada bump.
 - **Probalo siempre con dos arranques seguidos** contra los mismos datos, con un
   cambio hecho "a mano" en el medio: si el segundo arranque lo revierte, está mal.
 
