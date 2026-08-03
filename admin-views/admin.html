@@ -1469,6 +1469,7 @@ body.drawer-open{overflow:hidden}
 .hor-propios>summary{cursor:pointer;font-weight:700;color:#5b6472;font-size:.85rem}
 .hor-propios-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.15rem .8rem;margin-top:.3rem}
 .hor-propios-grid label{display:flex;gap:.4rem;align-items:center;font-size:.8rem;color:var(--text);cursor:pointer;padding:.12rem 0}
+.hor-propios-tit{font-family:var(--sans);font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:.6rem 0 .1rem}
 
 /* Mejores días del mes */
 .adm-bestdays{display:flex;flex-direction:column;gap:.55rem}
@@ -13312,15 +13313,18 @@ function horecaComparativa(d){
   const sinPropios = !G.propios.cervezas;
   const aviso = sinPropios
     ? `<div class="est-note" style="margin:.2rem 0 .5rem;color:#8a6d00;background:#fff8e6;border:1px solid #f2e3b8;border-radius:10px;padding:.5rem .8rem">
-        ⚠️ <b>No se reconoció ningún local propio</b>, así que "Resto de GMS" está incluyendo Garden y Badass y el número está sesgado igual.
-        Marcalos abajo con su nombre exacto de Pyxis.</div>`
+        ⚠️ <b>No se reconoció ningún local propio</b>, así que "Resto de GMS" está incluyendo nuestros locales y el número está sesgado igual.
+        Marcalos abajo — en Pyxis un local es el recinto y adentro hay muchas marcas, así que lo que casi siempre corresponde tildar es la <b>marca</b>.</div>`
     : '';
-  // Selector: todos los locales del grupo, tildando los que cuentan como propios.
-  const todos=d.localesTodos||[];
-  const selector=todos.length?`<details class="hor-propios" ${sinPropios?'open':''}>
-    <summary>⚙️ Elegir cuáles son nuestros locales (${todos.filter(l=>l.propio).length} de ${todos.length} marcados)</summary>
-    <div class="est-note" style="color:#666;margin:.35rem 0">Tildá los locales de K-BROS dentro del grupo. Se guarda por nombre exacto, así no depende de cómo se escriba.</div>
-    <div class="hor-propios-grid">${todos.map((l,i)=>`<label><input type="checkbox" data-propio="${i}" value="${escapeAttr(l.nombre)}" ${l.propio?'checked':''}> ${escapeHtml(l.nombre)}</label>`).join('')}</div>
+  // Selector: marcas y recintos del grupo, tildando los que cuentan como propios.
+  const marcas=d.marcasTodas||[], locales=d.localesTodos||[];
+  const grid=(arr,attr)=>`<div class="hor-propios-grid">${arr.map((x,i)=>`<label><input type="checkbox" data-${attr}="${i}" value="${escapeAttr(x.nombre)}" ${x.propio?'checked':''}> ${escapeHtml(x.nombre)}</label>`).join('')}</div>`;
+  const nMarcadas=marcas.filter(x=>x.propio).length+locales.filter(x=>x.propio).length;
+  const selector=(marcas.length||locales.length)?`<details class="hor-propios" ${sinPropios?'open':''}>
+    <summary>⚙️ Elegir qué es nuestro dentro del grupo (${nMarcadas} marcado${nMarcadas===1?'':'s'})</summary>
+    <div class="est-note" style="color:#666;margin:.35rem 0">En Pyxis el <b>local</b> es el recinto (ej: Antofagasta) y adentro conviven las <b>marcas</b> de cada restaurante del grupo. Como en varios recintos somos una marca más, lo que hay que tildar normalmente son las marcas. Se guarda por nombre exacto.</div>
+    ${marcas.length?`<div class="hor-propios-tit">Marcas (restaurantes del grupo)</div>${grid(marcas,'propiomarca')}`:''}
+    ${locales.length?`<div class="hor-propios-tit">Recintos — tildá solo los que son enteramente nuestros</div>${grid(locales,'propio')}`:''}
     <button class="adm-btn adm-btn-gold" id="hpSave" type="button" style="margin-top:.5rem">Guardar</button>
   </details>`:'';
   return `<div class="cg-form-title" style="margin-top:.2rem">🎯 Kairos dentro de GMS — nuestros locales vs el resto</div>
@@ -13328,7 +13332,7 @@ function horecaComparativa(d){
   ${aviso}
   <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Bloque</th><th>Cerveza total</th><th>Kairos</th><th>Otras</th><th>% Kairos</th><th style="width:22%">Mix</th></tr></thead><tbody>
     ${fila('Resto de GMS', G.resto, '#1f8a70', sinPropios?'⚠️ hoy incluye TODO el grupo':'sin nuestros locales — la lectura no sesgada')}
-    ${fila('Locales propios', G.propios, '#f5a623', (d.localesPropios||[]).join(' · '))}
+    ${fila('Locales propios', G.propios, '#f5a623', [...(d.marcasPropias||[]),...(d.localesPropios||[])].join(' · '))}
     ${detalle}
     ${fila('Total GMS', G.total, '#0b2a5e', 'todo el grupo, como lo reporta Pyxis')}
   </tbody></table></div>
@@ -13337,9 +13341,9 @@ function horecaComparativa(d){
 // Guarda a dedo qué locales son nuestros (nombre exacto de Pyxis) y recarga.
 async function horecaGuardarPropios(){
   const btn=document.getElementById('hpSave'); if(btn){ btn.disabled=true; btn.textContent='Guardando…'; }
-  const sel=[...document.querySelectorAll('[data-propio]')].filter(c=>c.checked).map(c=>c.value);
+  const pick=attr=>[...document.querySelectorAll('['+attr+']')].filter(c=>c.checked).map(c=>c.value);
   try{
-    const r=await fetch('/admin/pyxis/cervezas/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({localesPropios:sel})});
+    const r=await fetch('/admin/pyxis/cervezas/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({localesPropios:pick('data-propio'),marcasPropias:pick('data-propiomarca')})});
     if(!r.ok) throw new Error('No se pudo guardar');
     loadHoreca();
   }catch(e){ alert('⚠ '+String(e.message||e)); if(btn){ btn.disabled=false; btn.textContent='Guardar'; } }

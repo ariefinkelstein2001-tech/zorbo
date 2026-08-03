@@ -7455,6 +7455,12 @@ const PYXIS_CERV_DEFAULT = {
   // Se listan las variantes de escritura conocidas (Vespucio aparece abreviado
   // como "VSP" en Pyxis). Igual se pueden elegir a dedo desde el panel.
   localesPropios: ['garden vsp', 'garden vespucio', 'garden antofagasta', 'badass'],
+  // En Pyxis un "local" es el RECINTO (Antofagasta, Kairos Vespucio) y adentro
+  // conviven muchas MARCAS (cada restaurante del grupo). Nuestros locales no
+  // siempre tienen local propio — en Antofagasta somos una marca dentro del
+  // recinto — así que la identidad real es la marca. Match exacto: la lista de
+  // marcas de Pyxis es cerrada y "KAIROS CD" no es un local que venda al público.
+  marcasPropias: ['KAIROS', 'KAIROS BADASS'],
 };
 const pyxisNorm = (s) => String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 // ¿El local es de los nuestros? Match por TOKENS: el patrón calza si todas sus
@@ -7469,6 +7475,20 @@ function pyxisEsLocalPropio(nombreLocal, cfg){
     return toks.length > 0 && toks.every(t => palabras.has(t));
   });
 }
+// Marca propia: match EXACTO sobre el nombre normalizado. A diferencia de los
+// locales, acá no se usan tokens: "KAIROS" por tokens también agarraría
+// "KAIROS CD", que es el centro de distribución y no un local que venda cerveza
+// al público — contarlo volvería a inflar la participación.
+function pyxisEsMarcaPropia(nombreMarca, cfg){
+  const n = pyxisNorm(nombreMarca); if (!n) return false;
+  return (cfg.marcasPropias || []).some(m => pyxisNorm(m) === n);
+}
+// Una fila es de un local nuestro si lo es su recinto O su marca.
+const pyxisFilaPropia = (local, marca, cfg) => pyxisEsLocalPropio(local, cfg) || pyxisEsMarcaPropia(marca, cfg);
+// Nombre con el que se sigue cada local propio. Como en un mismo recinto puede
+// haber más de una marca nuestra (y una marca nuestra puede estar en varios
+// recintos), la identidad es marca + recinto: "KAIROS · Antofagasta".
+const pyxisNombrePropio = (local, marca) => (marca && local) ? (marca + ' · ' + local) : (marca || local || '—');
 // Alcance del análisis: todo el grupo, el grupo SIN nuestros locales (la lectura
 // no sesgada) o solo nuestros locales.
 const PYXIS_ALCANCES = ['todos', 'sin_propios', 'solo_propios'];
@@ -7538,7 +7558,8 @@ async function pyxisCervezasResumen(grupo, opts){
     const tot = m[0] + m[1] + m[2], can = q[0] + q[1] + q[2];
     if (!tipo) { const s = sinClas.get(nombre) || { total: 0 }; s.total += tot; sinClas.set(nombre, s); continue; }
     const loc = norm(r.nombreLocal) || '—';
-    const propio = pyxisEsLocalPropio(loc, cfg);
+    const mkt = norm(r.nombreMarca);
+    const propio = pyxisFilaPropia(loc, mkt, cfg);
     // Comparativa propios vs resto: se llena antes de aplicar el alcance.
     const campo = tipo === 'kairos' ? 'kairos' : 'otras';
     for (const g of [porGrupo.total, propio ? porGrupo.propios : porGrupo.resto]) {
@@ -7548,8 +7569,9 @@ async function pyxisCervezasResumen(grupo, opts){
     // Cada local propio por separado, sin importar el alcance elegido: es la
     // comparación que se sigue mes a mes (Vespucio vs Antofagasta vs Badass).
     if (propio) {
-      let dp = propiosDetalle.get(loc);
-      if (!dp) { dp = grupoVacio(); propiosDetalle.set(loc, dp); }
+      const clave = pyxisNombrePropio(loc, mkt);
+      let dp = propiosDetalle.get(clave);
+      if (!dp) { dp = grupoVacio(); propiosDetalle.set(clave, dp); }
       dp[campo] += tot;
       for (let i = 0; i < 3; i++) dp[campo + 'M'][i] += m[i];
     }
@@ -7590,11 +7612,12 @@ async function pyxisCervezasResumen(grupo, opts){
     totales: { kairos: kTot, otras: oTot, cervezas: cTot, shareKairos: cTot ? Math.round(kTot / cTot * 1000) / 10 : 0, kairosCant: sumC(kairos), otrasCant: sumC(otras), nKairos: kairos.length, nOtras: otras.length },
     porGrupo: { total: cerrarGrupo(porGrupo.total), propios: cerrarGrupo(porGrupo.propios), resto: cerrarGrupo(porGrupo.resto) },
     propiosDetalle: [...propiosDetalle.entries()].map(([local, g]) => ({ local, ...cerrarGrupo(g) })).sort((a, b) => b.cervezas - a.cervezas),
-    localesPropios: cfg.localesPropios || [],
-    // Todos los locales del grupo con la marca de si hoy cuentan como propios:
-    // así se pueden tildar a dedo desde el panel cuando el match automático no
-    // pesca la forma en que Pyxis escribe el nombre.
+    localesPropios: cfg.localesPropios || [], marcasPropias: cfg.marcasPropias || [],
+    // Locales y marcas del grupo con la marca de si hoy cuentan como propios:
+    // así se pueden tildar a dedo desde el panel. La lista de MARCAS es la que
+    // importa cuando compartimos recinto con otros restaurantes del grupo.
     localesTodos: [...optL].sort().map(nombre => ({ nombre, propio: pyxisEsLocalPropio(nombre, cfg) })),
+    marcasTodas: [...optM].sort().map(nombre => ({ nombre, propio: pyxisEsMarcaPropia(nombre, cfg) })),
     kairos, otras, localesTop: localesTop.slice(0, 15),
     sinClasificar: [...sinClas.entries()].map(([nombre, v]) => ({ nombre, total: Math.round(v.total) })).sort((a, b) => b.total - a.total).slice(0, 50),
   };
@@ -7681,7 +7704,7 @@ app.put('/admin/pyxis/cervezas/config', requireAdmin, (req, res) => {
   const cur = pyxisCervCfgLoad(); const b = req.body || {};
   if (!cur.overrides) cur.overrides = {};
   if (b.overrides && typeof b.overrides === 'object') for (const [k, v] of Object.entries(b.overrides)) { if (v == null || v === '') delete cur.overrides[k]; else if (['kairos', 'otra', 'no'].includes(v)) cur.overrides[String(k).slice(0, 120)] = v; }
-  for (const key of ['kairosBrands', 'beerBrands', 'strongKw', 'weakKw', 'exclude', 'localesPropios']) if (Array.isArray(b[key])) cur[key] = b[key].map(s => String(s).slice(0, 60)).slice(0, 160);
+  for (const key of ['kairosBrands', 'beerBrands', 'strongKw', 'weakKw', 'exclude', 'localesPropios', 'marcasPropias']) if (Array.isArray(b[key])) cur[key] = b[key].map(s => String(s).slice(0, 60)).slice(0, 160);
   pyxisCervCfgSave(cur); res.json(cur);
 });
 const PYXIS_CERV_RESUMEN_FILE = join(PROMPTS_EFFECTIVE_DIR, 'pyxis-cervezas-resumen.json');
