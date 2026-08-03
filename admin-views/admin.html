@@ -2725,6 +2725,67 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
 .ads-ia-list li{font-size:.86rem;line-height:1.5;color:var(--text,#333);margin-bottom:.35rem}
 .ads-ia-none{font-size:.84rem;color:var(--dim,#999)}
 .ads-ia-foot{font-size:.74rem;color:var(--dim,#999);margin-top:1.2rem;line-height:1.5}
+
+/* ── Perfil HOSPITALITY (restaurantes): shell propio, hermano del perfil
+   madre "Para ti". Overlay fixed independiente que no toca .ks-side/.adm-shell
+   — se abre encima del ERP (que queda inert) y "← Kairos Company" lo devuelve
+   al selector sin recargar ni perder sesión. Mismos tokens del perfil madre
+   (azul K-BROS, dorado, superficies) para que se sienta la misma familia. */
+body.hosp-open{overflow:hidden}
+.hosp-shell{position:fixed;inset:0;z-index:9500;display:flex;background:var(--bg)}
+.hosp-side{width:var(--ks-side);flex:0 0 auto;display:flex;flex-direction:column;background:linear-gradient(185deg,var(--ks-b800),var(--ks-b900) 42%,var(--ks-b950));position:relative;overflow:hidden}
+.hosp-side::before{content:"";position:absolute;inset:0;background:radial-gradient(70% 30% at 20% 0%,rgba(245,166,35,.14),transparent 70%);pointer-events:none}
+.hosp-back{align-self:flex-start;margin:14px 14px 0;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#dfe6f2;border-radius:9px;padding:.4rem .7rem;font-family:var(--sans);font-size:.7rem;font-weight:700;cursor:pointer;transition:background .15s;position:relative}
+.hosp-back:hover{background:rgba(255,255,255,.15)}
+.hosp-brand{padding:16px 16px 4px;position:relative}
+.hosp-brand b{display:block;font-family:var(--display);font-weight:800;font-size:1.15rem;color:#fff;letter-spacing:.03em}
+.hosp-brand span{display:block;font-family:var(--sans);font-size:.62rem;font-weight:700;letter-spacing:.14em;color:var(--gold,#f5a623);text-transform:uppercase;margin-top:2px}
+.hosp-nav{flex:1;overflow-y:auto;padding:10px 10px 12px;position:relative}
+.hosp-nav-i{display:flex;align-items:center;gap:.6rem;width:100%;text-align:left;padding:.6rem .65rem;border-radius:10px;cursor:pointer;color:#cdd8ec;font-size:.85rem;font-weight:600;background:none;border:0;font-family:inherit;position:relative;transition:background .2s,color .2s}
+.hosp-nav-i .ni{font-size:.95rem;width:1.2rem;text-align:center;opacity:.9}
+.hosp-nav-i:hover{background:rgba(255,255,255,.07);color:#fff}
+.hosp-nav-i.on{background:rgba(245,166,35,.14);color:#fff}
+.hosp-nav-i.on::before{content:"";position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:4px;height:60%;border-radius:0 4px 4px 0;background:linear-gradient(var(--gold,#f5a623),var(--gold-deep,#d98c00))}
+.hosp-nav-soon{padding:1rem .65rem .3rem;font-family:var(--sans);font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.35)}
+.hosp-side-foot{padding:12px 14px;border-top:1px solid rgba(255,255,255,.08)}
+.hosp-out{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#dfe6f2;border-radius:9px;padding:.5rem .6rem;font:inherit;font-size:.76rem;font-weight:700;cursor:pointer}
+.hosp-out:hover{background:rgba(255,255,255,.15)}
+.hosp-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow-y:auto}
+.hosp-header{display:flex;align-items:center;gap:1rem;padding:.85rem 1.4rem;border-bottom:1px solid var(--border);background:rgba(255,255,255,.92);backdrop-filter:blur(14px);position:sticky;top:0;z-index:5}
+.hosp-crumb{display:flex;align-items:center;gap:.5rem;color:var(--dim);font-size:.86rem;font-weight:600}
+.hosp-crumb b{color:var(--text);font-family:var(--display);font-weight:800}
+.hosp-crumb .sep{opacity:.5}
+.hosp-content{flex:1;padding:1.4rem;max-width:1480px;margin:0 auto;width:100%}
+@media(max-width:900px){
+  .hosp-shell{flex-direction:column}
+  .hosp-side{width:100%;flex:0 0 auto;max-height:36vh}
+  .hosp-content{padding:1rem}
+}
+/* KPI rojo (alertas de balance de masa) — mismo patrón que tone-gold/green/purple. */
+.adm-stat.tone-red{border-color:rgba(211,35,35,.3)}
+.adm-stat.tone-red .adm-stat-v{color:var(--red)}
+/* Comparativas (por local/operario/proveedor) y desglose por corte/proteína:
+   barras horizontales compactas, mismo lenguaje visual que el resto del ERP. */
+.hosp-comp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+@media(max-width:900px){.hosp-comp-grid{grid-template-columns:1fr}}
+.hosp-comp-col{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem}
+.hosp-mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-top:1rem}
+@media(max-width:700px){.hosp-mini-grid{grid-template-columns:1fr}}
+.hosp-mini-list{display:flex;flex-direction:column;gap:.5rem}
+.hosp-mini-row{display:grid;grid-template-columns:minmax(70px,1fr) minmax(50px,2fr) 44px;gap:.55rem;align-items:center;font-size:.78rem}
+.hosp-mini-lb{color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hosp-mini-bar{height:7px;border-radius:5px;background:var(--surface3);overflow:hidden}
+.hosp-mini-fill{display:block;height:100%;background:linear-gradient(90deg,var(--gold-deep,#a05f00),var(--gold,#f5a623));border-radius:5px}
+.hosp-mini-pct{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:var(--text)}
+/* Variante apilada (nombre completo arriba, barra+% abajo) para etiquetas
+   largas que no entran en una fila sin volverse ambiguas al truncar (ej. dos
+   locales "Kairos Garden ..." que se ven idénticos con ellipsis). */
+.hosp-mini-row-stack{display:flex;flex-direction:column;gap:.25rem;font-size:.78rem}
+.hosp-mini-row-stack .hosp-mini-lb{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25}
+.hosp-mini-row-stack .hosp-mini-bw{display:flex;align-items:center;gap:.5rem}
+.hosp-mini-row-stack .hosp-mini-bar{flex:1}
+.hosp-mini-row-stack .hosp-mini-pct{width:44px;flex-shrink:0}
+.hosp-balance-off{color:var(--red);font-weight:800}
 </style>
 </head>
 <body>
@@ -2768,6 +2829,27 @@ body.finhome-active .adm-shell{grid-template-columns:1fr}
     </div>
     <div class="cc-unit-desc-panel" id="ccUnitDescPanel" aria-live="polite"></div>
     <div class="cc-units-note">En construcción — todavía no llevan a ninguna parte.</div>
+  </div>
+</div>
+<!-- Perfil HOSPITALITY: esqueleto propio (sidebar + header + contenido),
+     hermano del perfil madre "Para ti". Se abre al elegir "Hospitality" en
+     Kairos Company; "← Kairos Company" vuelve al selector sin recargar ni
+     perder sesión. Solo existe "Rendimientos" por ahora — la nav está lista
+     para sumar más secciones después. No toca showHome()/showView()/
+     selectSeccion() del ERP madre: es un overlay aparte que lo deja inert
+     mientras está abierto (mismo ccGateSetInert que usa el gate). -->
+<div class="hosp-shell" id="hospShell" style="display:none" role="region" aria-label="Perfil Hospitality">
+  <aside class="hosp-side">
+    <button type="button" class="hosp-back" id="hospBack">← Kairos Company</button>
+    <div class="hosp-brand"><b>K-BROS</b><span>Hospitality</span></div>
+    <nav class="hosp-nav" id="hospNav"></nav>
+    <div class="hosp-side-foot"><button type="button" class="hosp-out" id="hospOut">Salir</button></div>
+  </aside>
+  <div class="hosp-main">
+    <header class="hosp-header"><div class="hosp-crumb"><b>Hospitality</b><span class="sep">›</span><span id="hospCrumb">Rendimientos</span></div></header>
+    <main class="hosp-content">
+      <div id="hospRendimientosView"></div>
+    </main>
   </div>
 </div>
 <aside class="ks-side" id="ksSide"></aside>
@@ -16235,12 +16317,288 @@ function ccUnitsWire(){
     btn.addEventListener('mouseleave', ccUnitDescRevert);
     btn.addEventListener('focus', () => ccUnitDescShow(btn));
     btn.addEventListener('blur', ccUnitDescRevert);
+    // HOSPITALITY ya tiene perfil propio: clickearlo navega (como "Para ti"),
+    // en vez de solo pegar la descripción como hacen ZORBO/SECRET LAB (todavía
+    // "en construcción"). El hover sigue mostrando la descripción igual que a
+    // las otras dos, así que el mouseenter de arriba no se toca.
+    if (btn.dataset.unit === 'hospitality') { btn.onclick = () => hospEnter(); return; }
     btn.onclick = () => {
       document.querySelectorAll('.cc-unit.cc-unit-open').forEach(o => o.classList.remove('cc-unit-open'));
       if (ccUnitSticky === btn) { ccUnitSticky = null; ccUnitDescRevert(); }
       else { ccUnitSticky = btn; btn.classList.add('cc-unit-open'); ccUnitDescShow(btn); }
     };
   });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PERFIL HOSPITALITY — esqueleto propio + Rendimientos (aprovechamiento de
+// proteínas). Overlay fixed (#hospShell) que se abre encima del ERP madre sin
+// tocarlo: reusa ccGateStop()/ccGateSetInert() (ya genéricos) para dejar el
+// shell madre inert mientras está abierto, y "← Kairos Company" lo revierte
+// sin recargar la página (la sesión sigue siendo la misma cookie de siempre).
+// ═══════════════════════════════════════════════════════════════════════════
+const HOSP_NAV = [
+  { id: 'rendimientos', label: 'Rendimientos', icon: '🥩' },
+  // Próximas secciones de Hospitality van acá — la nav ya está lista para sumarlas.
+];
+let hospActiveSeccion = 'rendimientos';
+let hospBooted = false;
+function hospEnter(){
+  ccGateStop();
+  const gate = document.getElementById('ccGate');
+  if (gate) gate.style.display = 'none';
+  ccGateSetInert(true);
+  document.body.classList.add('hosp-open');
+  const shell = document.getElementById('hospShell');
+  if (shell) shell.style.display = '';
+  if (!hospBooted) { hospRenderSidebar(); hospWireShell(); hospBooted = true; }
+  hospSelectSeccion(hospActiveSeccion);
+}
+function hospBackToGate(){
+  const shell = document.getElementById('hospShell');
+  if (shell) shell.style.display = 'none';
+  document.body.classList.remove('hosp-open');
+  const gate = document.getElementById('ccGate');
+  if (gate) { gate.style.display = ''; ccGateGoto(ccGateIdx); ccGateAutoplay(); ccToggleSet('kairos'); }
+}
+function hospWireShell(){
+  const back = document.getElementById('hospBack'); if (back) back.onclick = hospBackToGate;
+  const out = document.getElementById('hospOut');
+  if (out) out.onclick = () => { const b = document.getElementById('btnLogout'); if (b && b.onclick) b.onclick(); };
+}
+function hospRenderSidebar(){
+  const nav = document.getElementById('hospNav'); if (!nav) return;
+  nav.innerHTML = HOSP_NAV.map(s => `<button type="button" class="hosp-nav-i${s.id === hospActiveSeccion ? ' on' : ''}" data-id="${s.id}"><span class="ni">${s.icon}</span><span class="lb">${escapeHtml(s.label)}</span></button>`).join('');
+  nav.querySelectorAll('.hosp-nav-i').forEach(b => { b.onclick = () => hospSelectSeccion(b.dataset.id); });
+}
+function hospSelectSeccion(id){
+  hospActiveSeccion = id;
+  document.querySelectorAll('#hospNav .hosp-nav-i').forEach(b => b.classList.toggle('on', b.dataset.id === id));
+  const crumb = document.getElementById('hospCrumb');
+  const sec = HOSP_NAV.find(s => s.id === id);
+  if (crumb) crumb.textContent = sec ? sec.label : '';
+  if (id === 'rendimientos') hospRendLoad();
+}
+
+// ── Rendimientos: modelo de datos en server.js (GET/POST /admin/hospitality/
+// rendimientos). Esta vista solo LEE — filtra/agrupa/ordena en el cliente. ──
+let hospRendData = null; // { config, registros } tal como los devuelve el server
+let hospRendFiltro = { restaurante: '', tipo: '', corte: '', origen: '', from: '', to: '' };
+let hospRendSort = { col: null, dir: null };
+async function hospRendLoad(){
+  const view = document.getElementById('hospRendimientosView'); if (!view) return;
+  view.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const r = await fetch('/admin/hospitality/rendimientos');
+    const d = await r.json();
+    if (d.error) throw new Error(d.error);
+    hospRendData = d;
+    hospRendRender();
+  } catch (e) {
+    view.innerHTML = `<div class="adm-empty">Error cargando rendimientos: ${escapeHtml(String(e.message || e))}</div>`;
+  }
+}
+function hospRendEmptyState(){
+  return `<div class="adm-panel"><div class="adm-empty-card">
+    <div class="adm-empty-ico">📋</div>
+    <div class="adm-empty-title">Sin datos aún</div>
+    <div class="adm-empty-text">Los registros aparecerán cuando el equipo empiece a cargar rendimientos desde la app.</div>
+  </div></div>`;
+}
+function hospRendFiltered(){
+  let rows = hospRendData.registros;
+  const f = hospRendFiltro;
+  if (f.restaurante) rows = rows.filter(r => r.restaurante === f.restaurante);
+  if (f.tipo) rows = rows.filter(r => r.tipo === f.tipo);
+  if (f.corte) rows = rows.filter(r => r.corte === f.corte);
+  if (f.origen) rows = rows.filter(r => r.origen === f.origen);
+  if (f.from) rows = rows.filter(r => r.fecha >= f.from);
+  if (f.to) rows = rows.filter(r => r.fecha <= f.to);
+  return rows;
+}
+// Agrupa filas por `key` sumando bruto/útil y calculando el % ponderado
+// (más correcto que promediar porcentajes cuando los lotes tienen tamaños
+// distintos). Orden ascendente por rendimiento: peor primero, así salta a la
+// vista dónde se está perdiendo más — que es justo lo que este cuadro busca.
+function hospGroupBy(rows, key, labelFn){
+  const map = new Map();
+  rows.forEach(r => {
+    const k = r[key] || '';
+    if (!map.has(k)) map.set(k, { bruto: 0, util: 0, count: 0 });
+    const g = map.get(k);
+    g.bruto += Number(r.pesoBrutoKg) || 0;
+    g.util += Number(r.pesoUtilKg) || 0;
+    g.count++;
+  });
+  return [...map.entries()]
+    .map(([k, g]) => ({ key: k, label: labelFn(k), bruto: g.bruto, util: g.util, count: g.count, pct: g.bruto > 0 ? (g.util / g.bruto * 100) : 0 }))
+    .sort((a, b) => a.pct - b.pct);
+}
+function hospMiniList(groups, stacked){
+  if (!groups.length) return '<div class="ks-nodata">Sin datos.</div>';
+  const bar = g => `<span class="hosp-mini-bar"><span class="hosp-mini-fill" style="width:${Math.max(2, Math.min(100, g.pct))}%"></span></span><span class="hosp-mini-pct">${g.pct.toFixed(1)}%</span>`;
+  // stacked: nombre completo en su propia línea (ver comentario CSS de
+  // .hosp-mini-row-stack) — evita que dos etiquetas largas distintas (ej. dos
+  // locales "Kairos Garden ...") se vean idénticas al truncar con ellipsis.
+  if (stacked) {
+    return `<div class="hosp-mini-list">${groups.map(g => `<div class="hosp-mini-row-stack"><span class="hosp-mini-lb">${escapeHtml(g.label)}</span><span class="hosp-mini-bw">${bar(g)}</span></div>`).join('')}</div>`;
+  }
+  return `<div class="hosp-mini-list">${groups.map(g => `<div class="hosp-mini-row"><span class="hosp-mini-lb" title="${escapeAttr(g.label)}">${escapeHtml(g.label)}</span>${bar(g)}</div>`).join('')}</div>`;
+}
+function hospRendKpisHtml(rows){
+  const sum = k => rows.reduce((s, r) => s + (Number(r[k]) || 0), 0);
+  const bruto = sum('pesoBrutoKg'), util = sum('pesoUtilKg'), desecho = sum('desechoKg');
+  const pct = bruto > 0 ? (util / bruto * 100) : 0;
+  const pctDesecho = bruto > 0 ? (desecho / bruto * 100) : 0;
+  const alertas = rows.filter(r => Math.abs(Number(r.balanceKg) || 0) > 0.01).length;
+  const cfg = hospRendData.config;
+  const porTipo = hospGroupBy(rows, 'tipo', t => t === 'pescado' ? 'Pescado' : 'Carne');
+  const porCorte = hospGroupBy(rows, 'corte', c => c || '—');
+  return `<div class="adm-stats">
+    <div class="adm-stat tone-gold"><div class="adm-stat-k">RENDIMIENTO PROM.</div><div class="adm-stat-v">${pct.toFixed(1)}%</div><div class="adm-stat-s">útil / bruto, ponderado</div></div>
+    <div class="adm-stat"><div class="adm-stat-k">KG PROCESADOS</div><div class="adm-stat-v">${bruto.toLocaleString('es-CL', { maximumFractionDigits: 1 })}</div><div class="adm-stat-s">peso bruto total</div></div>
+    <div class="adm-stat"><div class="adm-stat-k">% DESECHO</div><div class="adm-stat-v">${pctDesecho.toFixed(1)}%</div><div class="adm-stat-s">${desecho.toLocaleString('es-CL', { maximumFractionDigits: 1 })} kg</div></div>
+    <div class="adm-stat${alertas ? ' tone-red' : ''}"><div class="adm-stat-k">ALERTAS BALANCE</div><div class="adm-stat-v">${alertas}</div><div class="adm-stat-s">registros que no cuadran</div></div>
+  </div>
+  <div class="hosp-mini-grid">
+    <div><div class="adm-panel-title" style="font-size:.86rem;margin-bottom:.5rem">Rendimiento por proteína</div>${hospMiniList(porTipo)}</div>
+    <div><div class="adm-panel-title" style="font-size:.86rem;margin-bottom:.5rem">Rendimiento por corte</div>${hospMiniList(porCorte)}</div>
+  </div>`;
+}
+function hospRendFiltersHtml(){
+  const cfg = hospRendData.config, f = hospRendFiltro;
+  const opt = (v, l, cur) => `<option value="${escapeAttr(v)}" ${v === cur ? 'selected' : ''}>${escapeHtml(l)}</option>`;
+  const restOpts = '<option value="">Todos los locales</option>' + cfg.restaurantes.map(r => opt(r.id, r.label, f.restaurante)).join('');
+  const tipoOpts = '<option value="">Carne y pescado</option>' + cfg.tipos.map(t => opt(t.id, t.label, f.tipo)).join('');
+  const cortesForTipo = f.tipo ? (cfg.cortes[f.tipo] || []) : [...new Set([...(cfg.cortes.carne || []), ...(cfg.cortes.pescado || [])])];
+  const corteOpts = '<option value="">Todos los cortes</option>' + cortesForTipo.map(c => opt(c, c, f.corte)).join('');
+  const origenOpts = '<option value="">Todos los orígenes</option>' + cfg.origenes.map(o => opt(o, o, f.origen)).join('');
+  const hasFilter = f.restaurante || f.tipo || f.corte || f.origen || f.from || f.to;
+  return `<div class="adm-filters">
+    <div class="adm-filter"><label>Restaurante</label><select class="adm-select" id="hospFRest">${restOpts}</select></div>
+    <div class="adm-filter"><label>Tipo</label><select class="adm-select" id="hospFTipo">${tipoOpts}</select></div>
+    <div class="adm-filter"><label>Corte</label><select class="adm-select" id="hospFCorte">${corteOpts}</select></div>
+    <div class="adm-filter"><label>Origen</label><select class="adm-select" id="hospFOrigen">${origenOpts}</select></div>
+    <div class="adm-filter"><label>Desde</label><input class="adm-input" type="date" id="hospFFrom" value="${escapeAttr(f.from)}"></div>
+    <div class="adm-filter"><label>Hasta</label><input class="adm-input" type="date" id="hospFTo" value="${escapeAttr(f.to)}"></div>
+    ${hasFilter ? '<div class="adm-filter"><label>&nbsp;</label><button type="button" class="adm-btn adm-btn-ghost" id="hospFClear">✕ Limpiar filtros</button></div>' : ''}
+  </div>`;
+}
+function hospTrendSerie(rows){
+  const map = new Map();
+  rows.forEach(r => {
+    const k = r.fecha || '—';
+    if (!map.has(k)) map.set(k, { bruto: 0, util: 0 });
+    const g = map.get(k); g.bruto += Number(r.pesoBrutoKg) || 0; g.util += Number(r.pesoUtilKg) || 0;
+  });
+  return [...map.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1).map(([fecha, g]) => ({ fecha, pct: g.bruto > 0 ? (g.util / g.bruto * 100) : 0 }));
+}
+// Línea simple de rendimiento % en el tiempo (escala fija 0-100%) — no reusa
+// dashDrawChartAxes porque esa función formatea el eje en $ (ventas); acá el
+// eje es un porcentaje, así que es más simple tener su propio SVG chico.
+function hospPctChart(elId, serie){
+  const el = document.getElementById(elId); if (!el) return;
+  if (!serie.length) { el.innerHTML = '<div class="ks-nodata">Sin datos para este período.</div>'; return; }
+  const W = el.clientWidth || 600, H = el.clientHeight || 180;
+  const padL = 38, padR = 10, padT = 10, padB = 20, plotW = W - padL - padR, plotH = H - padT - padB;
+  const n = serie.length;
+  const X = i => n <= 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW;
+  const Y = v => padT + plotH - (Math.max(0, Math.min(100, v)) / 100) * plotH;
+  const pts = serie.map((d, i) => X(i).toFixed(1) + ',' + Y(d.pct).toFixed(1)).join(' ');
+  const grid = [0, 25, 50, 75, 100].map(t => { const y = Y(t).toFixed(1); return `<line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}" stroke="rgba(17,17,17,.07)"/><text x="${padL - 6}" y="${(+y + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="#9a9aa2">${t}%</text>`; }).join('');
+  const step = Math.max(1, Math.floor(n / 6));
+  let xlab = ''; for (let i = 0; i < n; i += step) xlab += `<text x="${X(i).toFixed(1)}" y="${H - 4}" text-anchor="middle" font-size="10" fill="#9a9aa2">${dashFmtDate(serie[i].fecha)}</text>`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Tendencia de rendimiento en el período">${grid}<polyline fill="none" stroke="#f5a623" stroke-width="2.5" points="${pts}"/>${xlab}</svg>`;
+}
+function hospRendTableHtml(rows){
+  const cfg = hospRendData.config;
+  const restLbl = id => (cfg.restaurantes.find(r => r.id === id) || {}).label || id;
+  const tipoLbl = t => t === 'pescado' ? 'Pescado' : 'Carne';
+  const keyFns = {
+    fecha: r => (r.fecha || '') + ' ' + (r.hora || ''),
+    restaurante: r => restLbl(r.restaurante),
+    operario: r => r.operario || '',
+    tipo: r => tipoLbl(r.tipo),
+    corte: r => r.corte || '',
+    origen: r => r.origen || '',
+    bruto: r => Number(r.pesoBrutoKg) || 0,
+    util: r => Number(r.pesoUtilKg) || 0,
+    pct: r => Number(r.rendimientoPct) || 0,
+    balance: r => Number(r.balanceKg) || 0,
+  };
+  const sorted = sortableApply(rows, hospRendSort, keyFns, new Set(['bruto', 'util', 'pct', 'balance']));
+  const trs = sorted.map(r => {
+    const balOff = Math.abs(Number(r.balanceKg) || 0) > 0.01;
+    return `<tr>
+      <td>${escapeHtml(r.fecha || '—')}${r.hora ? ' ' + escapeHtml(r.hora) : ''}${r.turno ? `<div class="cg-pct-note">${escapeHtml(r.turno)}</div>` : ''}</td>
+      <td>${escapeHtml(restLbl(r.restaurante))}</td>
+      <td>${escapeHtml(r.operario || '—')}</td>
+      <td>${escapeHtml(tipoLbl(r.tipo))}</td>
+      <td>${escapeHtml(r.corte || '—')}</td>
+      <td>${escapeHtml(r.origen || '—')}</td>
+      <td style="text-align:right">${(Number(r.pesoBrutoKg) || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 })}</td>
+      <td style="text-align:right">${(Number(r.pesoUtilKg) || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 })}</td>
+      <td style="text-align:right"><b>${(Number(r.rendimientoPct) || 0).toFixed(1)}%</b></td>
+      <td style="text-align:right" class="${balOff ? 'hosp-balance-off' : ''}">${(Number(r.balanceKg) || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 })}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="mun-wrap"><table class="mun-table" id="hospRendTable"><thead><tr>
+    ${sortableTableHeader('Fecha', 'fecha', hospRendSort)}
+    ${sortableTableHeader('Local', 'restaurante', hospRendSort)}
+    ${sortableTableHeader('Operario', 'operario', hospRendSort)}
+    ${sortableTableHeader('Tipo', 'tipo', hospRendSort)}
+    ${sortableTableHeader('Corte', 'corte', hospRendSort)}
+    ${sortableTableHeader('Origen', 'origen', hospRendSort)}
+    ${sortableTableHeader('Bruto (kg)', 'bruto', hospRendSort, ' style="text-align:right"')}
+    ${sortableTableHeader('Útil (kg)', 'util', hospRendSort, ' style="text-align:right"')}
+    ${sortableTableHeader('Rendimiento', 'pct', hospRendSort, ' style="text-align:right"')}
+    ${sortableTableHeader('Balance (kg)', 'balance', hospRendSort, ' style="text-align:right"')}
+  </tr></thead><tbody>${trs || '<tr><td colspan="10" style="text-align:center;color:var(--dim);padding:.8rem">Sin registros para este filtro.</td></tr>'}</tbody></table></div>`;
+}
+function hospRendRender(){
+  const view = document.getElementById('hospRendimientosView'); if (!view) return;
+  const total = hospRendData.registros.length;
+  if (total === 0) { view.innerHTML = hospRendEmptyState(); return; }
+  const filtered = hospRendFiltered();
+  view.innerHTML = `
+    <div class="adm-panel">
+      <div class="adm-panel-head"><div><div class="adm-panel-title">Rendimientos</div><div class="adm-panel-meta">Aprovechamiento de proteínas por local, corte y proveedor — foco en los cortes más caros</div></div></div>
+      ${hospRendFiltersHtml()}
+      ${filtered.length ? hospRendKpisHtml(filtered) : '<div class="adm-empty">Sin registros para este filtro.</div>'}
+    </div>
+    ${filtered.length ? `
+    <div class="adm-panel">
+      <div class="adm-panel-head"><div><div class="adm-panel-title" style="font-size:1.05rem">Comparativas</div><div class="adm-panel-meta">dónde se pierde más rendimiento — peor primero</div></div></div>
+      <div class="hosp-comp-grid">
+        <div class="hosp-comp-col"><div class="adm-panel-title" style="font-size:.86rem;margin-bottom:.5rem">Por local</div>${hospMiniList(hospGroupBy(filtered, 'restaurante', id => (hospRendData.config.restaurantes.find(r => r.id === id) || {}).label || id || '—'), true)}</div>
+        <div class="hosp-comp-col"><div class="adm-panel-title" style="font-size:.86rem;margin-bottom:.5rem">Por operario</div>${hospMiniList(hospGroupBy(filtered, 'operario', v => v || 'Sin registrar'))}</div>
+        <div class="hosp-comp-col"><div class="adm-panel-title" style="font-size:.86rem;margin-bottom:.5rem">Por proveedor/origen</div>${hospMiniList(hospGroupBy(filtered, 'origen', v => v || 'Sin registrar'))}</div>
+      </div>
+    </div>
+    <div class="adm-panel">
+      <div class="adm-panel-head"><div><div class="adm-panel-title" style="font-size:1.05rem">Tendencia</div><div class="adm-panel-meta">rendimiento % en el tiempo, según el filtro elegido</div></div></div>
+      <div class="adm-chart-canvas-wrap" id="hospTrendChart" style="height:180px"></div>
+    </div>
+    <div class="adm-panel">
+      <div class="adm-panel-head"><div><div class="adm-panel-title" style="font-size:1.05rem">Registros</div><div class="adm-panel-meta">${filtered.length} de ${total} — balance de masa resaltado en rojo cuando no cuadra</div></div></div>
+      ${hospRendTableHtml(filtered)}
+    </div>` : ''}
+  `;
+  hospRendWire();
+  if (filtered.length) hospPctChart('hospTrendChart', hospTrendSerie(filtered));
+}
+function hospRendWire(){
+  const byId = id => document.getElementById(id);
+  const rest = byId('hospFRest'), tipo = byId('hospFTipo'), corte = byId('hospFCorte'), origen = byId('hospFOrigen'), from = byId('hospFFrom'), to = byId('hospFTo'), clear = byId('hospFClear');
+  if (rest) rest.onchange = () => { hospRendFiltro.restaurante = rest.value; hospRendRender(); };
+  if (tipo) tipo.onchange = () => { hospRendFiltro.tipo = tipo.value; hospRendFiltro.corte = ''; hospRendRender(); };
+  if (corte) corte.onchange = () => { hospRendFiltro.corte = corte.value; hospRendRender(); };
+  if (origen) origen.onchange = () => { hospRendFiltro.origen = origen.value; hospRendRender(); };
+  if (from) from.onchange = () => { hospRendFiltro.from = from.value; hospRendRender(); };
+  if (to) to.onchange = () => { hospRendFiltro.to = to.value; hospRendRender(); };
+  if (clear) clear.onclick = () => { hospRendFiltro = { restaurante: '', tipo: '', corte: '', origen: '', from: '', to: '' }; hospRendRender(); };
+  const tbl = document.getElementById('hospRendTable');
+  if (tbl) sortableWireHeaders(tbl, hospRendSort, hospRendRender);
 }
 (function ccGateBoot(){
   const gate = document.getElementById('ccGate'); if (!gate) return;

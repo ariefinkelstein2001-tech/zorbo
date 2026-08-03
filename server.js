@@ -14850,6 +14850,124 @@ app.put('/admin/customers/:id/channels', requireAdmin, (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// HOSPITALITY — perfil propio (unidad de negocio de restaurantes), separado
+// del perfil madre. Primera sección: Rendimientos (aprovechamiento de
+// proteínas por local/corte/proveedor). Esta etapa construye el modelo de
+// datos y el dashboard de lectura del gerente; la app del operario que
+// escribe estos registros (QR + PIN por restaurante, wizard mobile) es una
+// etapa posterior — el POST de abajo ya es el contrato de datos funcional
+// para que esa app se conecte sin fricción cuando se construya.
+// ═══════════════════════════════════════════════════════════════════════════
+const HOSP_RENDIMIENTOS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'hosp-rendimientos.json');
+const HOSP_RESTAURANTES = [
+  { id: 'kg_antofagasta',       label: 'Kairos Garden Antofagasta' },
+  { id: 'kg_vespucio',          label: 'Kairos Garden Vespucio' },
+  { id: 'badass_parque_arauco', label: 'Badass Parque Arauco' },
+];
+const HOSP_RESTAURANTE_IDS = new Set(HOSP_RESTAURANTES.map(r => r.id));
+const HOSP_ORIGENES = ['Chile', 'Brasil', 'USA', 'Paraguay', 'Argentina'];
+const HOSP_TIPOS = [{ id: 'carne', label: 'Carne' }, { id: 'pescado', label: 'Pescado' }];
+const HOSP_TIPO_IDS = new Set(HOSP_TIPOS.map(t => t.id));
+// Cortes por tipo: configurables (viven en el archivo de datos, no hardcodeados
+// en el frontend) — arrancan con estos valores por defecto la primera vez.
+const HOSP_CORTES_DEFAULT = {
+  carne:   ['Lomo', 'Asado', 'Entraña', 'Molido', 'Costilla', 'Otro'],
+  pescado: ['Salmón', 'Merluza', 'Reineta', 'Congrio', 'Atún', 'Otro'],
+};
+function hospLoad(){
+  let data = { cortes: { carne: HOSP_CORTES_DEFAULT.carne.slice(), pescado: HOSP_CORTES_DEFAULT.pescado.slice() }, registros: [] };
+  try {
+    if (existsSync(HOSP_RENDIMIENTOS_FILE)) {
+      const p = JSON.parse(readFileSync(HOSP_RENDIMIENTOS_FILE, 'utf-8'));
+      if (p && p.cortes && typeof p.cortes === 'object') {
+        if (Array.isArray(p.cortes.carne) && p.cortes.carne.length) data.cortes.carne = p.cortes.carne;
+        if (Array.isArray(p.cortes.pescado) && p.cortes.pescado.length) data.cortes.pescado = p.cortes.pescado;
+      }
+      if (p && Array.isArray(p.registros)) data.registros = p.registros;
+    }
+  } catch (e) { console.warn('hosp load:', e.message); }
+  return data;
+}
+function hospSave(d){
+  if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true });
+  writeFileSync(HOSP_RENDIMIENTOS_FILE, JSON.stringify(d, null, 2));
+}
+let HOSP_ID_SEQ = 0;
+function hospNewId(){ HOSP_ID_SEQ = (HOSP_ID_SEQ + 1) % 100000; return 'hr_' + Date.now().toString(36) + '_' + HOSP_ID_SEQ.toString(36); }
+// Turno derivado de la hora (HH:MM) — no lo tipea el operario, se calcula solo.
+function hospTurnoDeHora(hora){
+  const h = parseInt(String(hora || '').slice(0, 2), 10);
+  if (!Number.isFinite(h)) return '';
+  if (h >= 6 && h < 12) return 'mañana';
+  if (h >= 12 && h < 19) return 'tarde';
+  return 'noche';
+}
+// Rendimiento % y balance de masa se calculan siempre desde los pesos crudos
+// (no se guardan aparte) para que nunca queden desincronizados si un registro
+// se edita más adelante.
+function hospDecorar(r){
+  const bruto = Number(r.pesoBrutoKg) || 0;
+  const util = Number(r.pesoUtilKg) || 0;
+  const sub = Number(r.subproductoKg) || 0;
+  const desecho = Number(r.desechoKg) || 0;
+  return {
+    ...r,
+    rendimientoPct: bruto > 0 ? Math.round((util / bruto) * 1000) / 10 : 0,
+    balanceKg: Math.round((bruto - (util + sub + desecho)) * 1000) / 1000,
+  };
+}
+function hospConfig(cortes){
+  return { restaurantes: HOSP_RESTAURANTES, origenes: HOSP_ORIGENES, tipos: HOSP_TIPOS, cortes, turnos: ['mañana', 'tarde', 'noche'] };
+}
+
+// GET: config + todos los registros (decorados). El dashboard del gerente
+// filtra/agrupa en el cliente — el volumen esperado (lotes procesados por
+// local) no justifica duplicar esa lógica en un endpoint de agregación aparte.
+app.get('/admin/hospitality/rendimientos', requireAdmin, (_req, res) => {
+  const data = hospLoad();
+  res.json({ config: hospConfig(data.cortes), registros: data.registros.map(hospDecorar) });
+});
+
+// POST: acá es donde va a escribir la futura app del operario. Hoy protegido
+// con el mismo login de admin que el resto del panel — cuando exista esa app
+// con su propio PIN por restaurante, este es el endpoint a adaptar para
+// aceptar esa sesión liviana en vez de requireAdmin.
+app.post('/admin/hospitality/rendimientos', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const data = hospLoad();
+  if (!HOSP_RESTAURANTE_IDS.has(b.restaurante)) return res.status(400).json({ error: 'Restaurante inválido.' });
+  if (!HOSP_TIPO_IDS.has(b.tipo)) return res.status(400).json({ error: 'Tipo inválido (carne o pescado).' });
+  const cortesValidos = new Set(data.cortes[b.tipo] || []);
+  if (!b.corte || !cortesValidos.has(b.corte)) return res.status(400).json({ error: 'Corte inválido para ese tipo.' });
+  if (b.origen && !HOSP_ORIGENES.includes(b.origen)) return res.status(400).json({ error: 'Origen inválido.' });
+  for (const k of ['pesoBrutoKg', 'pesoUtilKg', 'subproductoKg', 'desechoKg']) {
+    if (b[k] == null || !Number.isFinite(Number(b[k])) || Number(b[k]) < 0) return res.status(400).json({ error: `Falta o es inválido: ${k}.` });
+  }
+  const now = new Date();
+  const fecha = /^\d{4}-\d{2}-\d{2}$/.test(b.fecha) ? b.fecha : now.toISOString().slice(0, 10);
+  const hora = /^\d{2}:\d{2}$/.test(b.hora) ? b.hora : now.toTimeString().slice(0, 5);
+  const registro = {
+    id: hospNewId(),
+    restaurante: b.restaurante,
+    operario: String(b.operario || '').trim(),
+    origen: b.origen || '',
+    tipo: b.tipo,
+    corte: b.corte,
+    proveedorLote: String(b.proveedorLote || '').trim(),
+    pesoBrutoKg: Number(b.pesoBrutoKg),
+    pesoUtilKg: Number(b.pesoUtilKg),
+    subproductoKg: Number(b.subproductoKg),
+    desechoKg: Number(b.desechoKg),
+    fecha, hora,
+    turno: hospTurnoDeHora(hora),
+    creadoEn: now.toISOString(),
+  };
+  data.registros.push(registro);
+  hospSave(data);
+  res.json({ ok: true, registro: hospDecorar(registro) });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Asistente del admin por ÁREA (Motor A). Chat propio del panel (distinto al bot
 // público /chat): sabe en qué área está el usuario y responde/ genera entregables
