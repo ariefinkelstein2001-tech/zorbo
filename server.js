@@ -14875,8 +14875,19 @@ const HOSP_CORTES_DEFAULT = {
   carne:   ['Lomo', 'Asado', 'Entraña', 'Molido', 'Costilla', 'Otro'],
   pescado: ['Salmón', 'Merluza', 'Reineta', 'Congrio', 'Atún', 'Otro'],
 };
+// PINs por local: gate liviano de acceso público para la app del operario (no
+// es una contraseña por persona — filtra que sea alguien del local, nada más).
+// Defaults de arranque, cambiables desde el ERP vía PUT /admin/hospitality/
+// config/pin sin tocar código.
+const HOSP_PIN_DEFAULT = { kg_antofagasta: '1111', kg_vespucio: '2222', badass_parque_arauco: '3333' };
 function hospLoad(){
-  let data = { cortes: { carne: HOSP_CORTES_DEFAULT.carne.slice(), pescado: HOSP_CORTES_DEFAULT.pescado.slice() }, registros: [] };
+  let data = {
+    cortes: { carne: HOSP_CORTES_DEFAULT.carne.slice(), pescado: HOSP_CORTES_DEFAULT.pescado.slice() },
+    registros: [],
+    pins: { ...HOSP_PIN_DEFAULT },
+    operarios: {},           // { restauranteId: [nombre, ...] } — arranca vacío, se llena solo (sin inventar personal)
+    proveedoresFrecuentes: [], // lista global (compartida entre locales), también se llena sola
+  };
   try {
     if (existsSync(HOSP_RENDIMIENTOS_FILE)) {
       const p = JSON.parse(readFileSync(HOSP_RENDIMIENTOS_FILE, 'utf-8'));
@@ -14885,6 +14896,9 @@ function hospLoad(){
         if (Array.isArray(p.cortes.pescado) && p.cortes.pescado.length) data.cortes.pescado = p.cortes.pescado;
       }
       if (p && Array.isArray(p.registros)) data.registros = p.registros;
+      if (p && p.pins && typeof p.pins === 'object') data.pins = { ...data.pins, ...p.pins };
+      if (p && p.operarios && typeof p.operarios === 'object') data.operarios = p.operarios;
+      if (p && Array.isArray(p.proveedoresFrecuentes)) data.proveedoresFrecuentes = p.proveedoresFrecuentes;
     }
   } catch (e) { console.warn('hosp load:', e.message); }
   return data;
@@ -14917,8 +14931,12 @@ function hospDecorar(r){
     balanceKg: Math.round((bruto - (util + sub + desecho)) * 1000) / 1000,
   };
 }
-function hospConfig(cortes){
-  return { restaurantes: HOSP_RESTAURANTES, origenes: HOSP_ORIGENES, tipos: HOSP_TIPOS, cortes, turnos: ['mañana', 'tarde', 'noche'] };
+// pins solo se agrega cuando lo pide el admin (nunca al público — ver
+// GET /rendimientos/config más abajo, que llama esta misma función sin pins).
+function hospConfig(cortes, pins){
+  const cfg = { restaurantes: HOSP_RESTAURANTES, origenes: HOSP_ORIGENES, tipos: HOSP_TIPOS, cortes, turnos: ['mañana', 'tarde', 'noche'] };
+  if (pins) cfg.pins = pins;
+  return cfg;
 }
 
 // GET: config + todos los registros (decorados). El dashboard del gerente
@@ -14926,24 +14944,21 @@ function hospConfig(cortes){
 // local) no justifica duplicar esa lógica en un endpoint de agregación aparte.
 app.get('/admin/hospitality/rendimientos', requireAdmin, (_req, res) => {
   const data = hospLoad();
-  res.json({ config: hospConfig(data.cortes), registros: data.registros.map(hospDecorar) });
+  res.json({ config: hospConfig(data.cortes, data.pins), registros: data.registros.map(hospDecorar) });
 });
 
-// POST: acá es donde va a escribir la futura app del operario. Hoy protegido
-// con el mismo login de admin que el resto del panel — cuando exista esa app
-// con su propio PIN por restaurante, este es el endpoint a adaptar para
-// aceptar esa sesión liviana en vez de requireAdmin.
-app.post('/admin/hospitality/rendimientos', requireAdmin, (req, res) => {
-  const b = req.body || {};
+// Cambiar el PIN de un local (el equipo lo hace desde el ERP, sin redeploy).
+app.put('/admin/hospitality/config/pin', requireAdmin, (req, res) => {
+  const { restaurante, pin } = req.body || {};
+  if (!HOSP_RESTAURANTE_IDS.has(restaurante)) return res.status(400).json({ error: 'Restaurante inválido.' });
+  if (typeof pin !== 'string' || !/^\d{4,6}$/.test(pin)) return res.status(400).json({ error: 'El PIN debe ser numérico, de 4 a 6 dígitos.' });
   const data = hospLoad();
-  if (!HOSP_RESTAURANTE_IDS.has(b.restaurante)) return res.status(400).json({ error: 'Restaurante inválido.' });
-  if (!HOSP_TIPO_IDS.has(b.tipo)) return res.status(400).json({ error: 'Tipo inválido (carne o pescado).' });
-  const cortesValidos = new Set(data.cortes[b.tipo] || []);
-  if (!b.corte || !cortesValidos.has(b.corte)) return res.status(400).json({ error: 'Corte inválido para ese tipo.' });
-  if (b.origen && !HOSP_ORIGENES.includes(b.origen)) return res.status(400).json({ error: 'Origen inválido.' });
-  for (const k of ['pesoBrutoKg', 'pesoUtilKg', 'subproductoKg', 'desechoKg']) {
-    if (b[k] == null || !Number.isFinite(Number(b[k])) || Number(b[k]) < 0) return res.status(400).json({ error: `Falta o es inválido: ${k}.` });
-  }
+  data.pins[restaurante] = pin;
+  hospSave(data);
+  res.json({ ok: true, pins: data.pins });
+});
+
+function hospCrearRegistroDesdeBody(b, data){
   const now = new Date();
   const fecha = /^\d{4}-\d{2}-\d{2}$/.test(b.fecha) ? b.fecha : now.toISOString().slice(0, 10);
   const hora = /^\d{2}:\d{2}$/.test(b.hora) ? b.hora : now.toTimeString().slice(0, 5);
@@ -14964,8 +14979,145 @@ app.post('/admin/hospitality/rendimientos', requireAdmin, (req, res) => {
     creadoEn: now.toISOString(),
   };
   data.registros.push(registro);
+  return registro;
+}
+
+// POST: acá escribe la app del operario (junto con el propio ERP, si algún
+// día hace falta cargar un registro a mano). requireAdminOrHospPortal acepta
+// la sesión de admin de siempre O la sesión liviana por PIN de local que abre
+// la app pública (ver más abajo) — en ese segundo caso el restaurante queda
+// fijo al del PIN usado, nunca al que mande el body, así nadie carga a
+// nombre de otro local sin su PIN.
+app.post('/admin/hospitality/rendimientos', requireAdminOrHospPortal, (req, res) => {
+  const b = { ...(req.body || {}) };
+  if (req.hospPortalSess) b.restaurante = req.hospPortalSess.restauranteId;
+  const data = hospLoad();
+  if (!HOSP_RESTAURANTE_IDS.has(b.restaurante)) return res.status(400).json({ error: 'Restaurante inválido.' });
+  if (!HOSP_TIPO_IDS.has(b.tipo)) return res.status(400).json({ error: 'Tipo inválido (carne o pescado).' });
+  const cortesValidos = new Set(data.cortes[b.tipo] || []);
+  if (!b.corte || !cortesValidos.has(b.corte)) return res.status(400).json({ error: 'Corte inválido para ese tipo.' });
+  if (b.origen && !HOSP_ORIGENES.includes(b.origen)) return res.status(400).json({ error: 'Origen inválido.' });
+  for (const k of ['pesoBrutoKg', 'pesoUtilKg', 'subproductoKg', 'desechoKg']) {
+    if (b[k] == null || !Number.isFinite(Number(b[k])) || Number(b[k]) < 0) return res.status(400).json({ error: `Falta o es inválido: ${k}.` });
+  }
+  const registro = hospCrearRegistroDesdeBody(b, data);
   hospSave(data);
   res.json({ ok: true, registro: hospDecorar(registro) });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// APP DEL OPERARIO — portal público (sin login de admin) para cargar
+// rendimientos desde el piso, con acceso filtrado por PIN de local. Mismo
+// patrón que /proveedores (portal-views, cookie propia, sesión en memoria) —
+// ver requirePortal/PORTAL_SESSIONS más abajo en el archivo para la
+// referencia que se siguió acá.
+// ═══════════════════════════════════════════════════════════════════════════
+const HOSP_PORTAL_COOKIE = 'hosprend';
+const HOSP_PORTAL_TTL_MS = 12 * 60 * 60 * 1000; // 12h: alcanza un turno largo sin re-pedir PIN
+const HOSP_PORTAL_SESSIONS = new Map(); // token → { restauranteId, expiresAt }
+function hospPortalSessionFor(req){
+  const token = parseCookies(req)[HOSP_PORTAL_COOKIE];
+  if (!token) return null;
+  const s = HOSP_PORTAL_SESSIONS.get(token);
+  if (!s) return null;
+  if (s.expiresAt < Date.now()) { HOSP_PORTAL_SESSIONS.delete(token); return null; }
+  return { token, ...s };
+}
+function requireHospPortal(req, res, next){
+  const sess = hospPortalSessionFor(req);
+  if (!sess) return res.status(401).json({ error: 'Sesión de local vencida. Ingresá el PIN de nuevo.' });
+  req.hospPortalSess = sess;
+  next();
+}
+// Acepta admin O portal — usada solo en el POST de arriba (el GET del
+// dashboard sigue siendo admin-only: expone TODOS los locales/registros).
+function requireAdminOrHospPortal(req, res, next){
+  if (process.env.ADMIN_AUTH_ENABLED === '0') return next();
+  if (adminSessionFor(req)) return next();
+  const sess = hospPortalSessionFor(req);
+  if (sess) { req.hospPortalSess = sess; return next(); }
+  return res.status(401).json({ error: 'No autorizado.' });
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [t, s] of HOSP_PORTAL_SESSIONS) if (s.expiresAt < now) HOSP_PORTAL_SESSIONS.delete(t);
+}, 60 * 60 * 1000).unref?.();
+
+// La app en sí — HTML/CSS/JS autocontenido, sin build, mobile-first.
+app.get('/rendimientos', (_req, res) => {
+  res.sendFile(join(__dirname, 'portal-views', 'rendimientos-app.html'));
+});
+
+// Config pública (sin pines): restaurantes, tipos, orígenes, cortes. Los
+// mismos valores exactos que usa el dashboard del gerente, para que crucen.
+app.get('/rendimientos/config', (_req, res) => {
+  const data = hospLoad();
+  res.json(hospConfig(data.cortes));
+});
+
+app.post('/rendimientos/pin', async (req, res) => {
+  const { restaurante, pin } = req.body || {};
+  if (!HOSP_RESTAURANTE_IDS.has(restaurante)) return res.status(400).json({ error: 'Restaurante inválido.' });
+  await new Promise(r => setTimeout(r, 200)); // anti fuerza bruta, mismo patrón que /proveedores/login
+  const data = hospLoad();
+  const real = (data.pins && data.pins[restaurante]) || '';
+  const ok = typeof pin === 'string' && pin.length > 0 && real && pin === real;
+  if (!ok) return res.status(401).json({ error: 'PIN incorrecto.' });
+  const token = randomBytes(32).toString('hex');
+  const expiresAt = Date.now() + HOSP_PORTAL_TTL_MS;
+  HOSP_PORTAL_SESSIONS.set(token, { restauranteId: restaurante, expiresAt });
+  const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  const parts = [`${HOSP_PORTAL_COOKIE}=${encodeURIComponent(token)}`, 'HttpOnly', 'Path=/', 'SameSite=Lax', `Max-Age=${Math.floor(HOSP_PORTAL_TTL_MS / 1000)}`];
+  if (secure) parts.push('Secure');
+  res.setHeader('Set-Cookie', parts.join('; '));
+  res.json({ ok: true, restaurante: HOSP_RESTAURANTES.find(r => r.id === restaurante) });
+});
+app.post('/rendimientos/salir', (req, res) => {
+  const sess = hospPortalSessionFor(req);
+  if (sess) HOSP_PORTAL_SESSIONS.delete(sess.token);
+  res.setHeader('Set-Cookie', `${HOSP_PORTAL_COOKIE}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`);
+  res.json({ ok: true });
+});
+app.get('/rendimientos/me', requireHospPortal, (req, res) => {
+  res.json({ restaurante: HOSP_RESTAURANTES.find(r => r.id === req.hospPortalSess.restauranteId) });
+});
+
+// Roster de operarios del local: arranca vacío (no se inventa personal) y se
+// completa solo — cada operario nuevo se agrega la primera vez que entra.
+const hospNorm = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+app.get('/rendimientos/operarios', requireHospPortal, (req, res) => {
+  const data = hospLoad();
+  res.json({ operarios: (data.operarios && data.operarios[req.hospPortalSess.restauranteId]) || [] });
+});
+app.post('/rendimientos/operarios', requireHospPortal, (req, res) => {
+  const nombre = String((req.body || {}).nombre || '').trim();
+  if (!nombre) return res.status(400).json({ error: 'Falta el nombre.' });
+  const data = hospLoad();
+  const restId = req.hospPortalSess.restauranteId;
+  if (!data.operarios[restId]) data.operarios[restId] = [];
+  if (!data.operarios[restId].some(o => hospNorm(o) === hospNorm(nombre))) {
+    data.operarios[restId].push(nombre);
+    hospSave(data);
+  }
+  res.json({ ok: true, operarios: data.operarios[restId] });
+});
+
+// Proveedores frecuentes: lista global (un proveedor de carne puede surtir a
+// varios locales), mismo patrón de autocompletado por uso que los operarios.
+app.get('/rendimientos/proveedores', requireHospPortal, (_req, res) => {
+  const data = hospLoad();
+  res.json({ proveedores: data.proveedoresFrecuentes || [] });
+});
+app.post('/rendimientos/proveedores', requireHospPortal, (req, res) => {
+  const nombre = String((req.body || {}).nombre || '').trim();
+  if (!nombre) return res.status(400).json({ error: 'Falta el nombre.' });
+  const data = hospLoad();
+  if (!Array.isArray(data.proveedoresFrecuentes)) data.proveedoresFrecuentes = [];
+  if (!data.proveedoresFrecuentes.some(p => hospNorm(p) === hospNorm(nombre))) {
+    data.proveedoresFrecuentes.push(nombre);
+    hospSave(data);
+  }
+  res.json({ ok: true, proveedores: data.proveedoresFrecuentes });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
