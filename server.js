@@ -5244,8 +5244,12 @@ async function pnlCompute(month, rango, cdSel){
   const gastosOper = catTot('gastos_operativos'), gastosAdmin = catTot('gastos_admin_venta');
   const gastosMarketing = catTot('marketing_publicidad'), activos = catTot('activos_fijos');
   const gastoPersonal = nominaCostoEmpresaMes(month, rango); // costo empresa del mes/rango (Gestión de Personas)
+  // Royalty que CD Kairos le cobra a este restaurante (Otros Egresos, negativo)
+  // — solo aplica a los 3 restaurantes, nunca a CD Kairos mismo (para CD Kairos
+  // el royalty es INGRESO y se muestra en el EERR industrial, no acá).
+  const royaltyEgreso = cdFiltro === CD_DEFAULT ? 0 : (royaltyDelPeriodo(month, rango)[cdFiltro] || 0);
   const margenBruto = ingresos - costoDirecto - costoIndirecto;
-  const ebitda = margenBruto - gastosOper - gastosAdmin - gastosMarketing - gastoPersonal;
+  const ebitda = margenBruto - gastosOper - gastosAdmin - gastosMarketing - gastoPersonal - royaltyEgreso;
   const ratio = (v) => ingresos ? Math.round((v / ingresos) * 1000) / 10 : 0;
   const i = est.ingresos;
   return {
@@ -5262,14 +5266,14 @@ async function pnlCompute(month, rango, cdSel){
         retail: (i.retail != null ? i.retail : 0),
         hospitality: i.hospitality.total,
       } },
-    costos: { costoDirecto, costoIndirecto, gastosOper, gastosAdmin, gastosMarketing, gastoPersonal, activos },
+    costos: { costoDirecto, costoIndirecto, gastosOper, gastosAdmin, gastosMarketing, gastoPersonal, activos, royaltyEgreso },
     docs: Object.fromEntries(Object.entries(rs.porCategoria).map(([k, v]) => [k, v.n])),
     ajustes: { ncIngreso: nc.ingreso || 0, ncCosto: nc.costo, boletas: bol, anulaciones: anul.ingreso || 0 }, // NC + boletas + anulaciones de transacción
     margenBruto, ebitda,
     ratios: {
       costoDirecto: ratio(costoDirecto), costoIndirecto: ratio(costoIndirecto),
       gastosOper: ratio(gastosOper), gastosAdmin: ratio(gastosAdmin), gastosMarketing: ratio(gastosMarketing), gastoPersonal: ratio(gastoPersonal),
-      margenBruto: ratio(margenBruto), ebitda: ratio(ebitda), activos: ratio(activos),
+      margenBruto: ratio(margenBruto), ebitda: ratio(ebitda), activos: ratio(activos), royaltyEgreso: ratio(royaltyEgreso),
     },
   };
 }
@@ -5301,6 +5305,7 @@ function pnlSheetRows(data, month){
   rows.push([T('Gastos de administración y venta'), PCT(-rt.gastosAdmin), M(-co.gastosAdmin)]);
   rows.push([T('Marketing y publicidad'), PCT(-rt.gastosMarketing), M(-co.gastosMarketing)]);
   rows.push([T('Gasto de personal (nómina)'), PCT(-rt.gastoPersonal), M(-co.gastoPersonal)]);
+  if (co.royaltyEgreso) rows.push([T('Royalty CD Kairos'), PCT(-rt.royaltyEgreso), M(-co.royaltyEgreso)]);
   rows.push([SEC('EBITDA · RESULTADO OPERATIVO'), SPCT(rt.ebitda), SM(data.ebitda)]);
   blank();
   rows.push([T('Activos fijos'), T(''), M(co.activos)]);
@@ -5486,6 +5491,104 @@ app.get('/admin/pnl', requireAdmin, async (req, res) => {
     res.json(data);
   }
   catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 200) }); }
+});
+
+// ── EERR INDUSTRIAL DE CD KAIROS (formato benchmark, ver eerrindustrialcdkairos.md) ──
+// Aplica SOLO a CD Kairos. Los restaurantes (garden_vespucio/antofagasta/badass)
+// siguen con el EERR genérico de pnlCompute — el royalty que le pagan a CD Kairos
+// ya se les inyecta ahí como Otros Egresos (ver royaltyEgreso más arriba).
+// Cada peso de Gastos Operativos cae en UN solo bloque:
+//   Mantención + OPEX → antes iban a Costo de Ventas; a pedido del usuario, OPEX
+//   quedó como línea autónoma separada (no se mide junto a Costo de Ventas).
+//   Transporte + Almacenamiento → Costos de Distribución.
+//   Arriendo → Gastos de Administración y Venta.
+//   General → Otros Egresos.
+// La nómina de CD Kairos se reparte por etiqueta (nominaCostoPorEtiqueta): MO
+// Directa → Costo de Ventas, Distribución → Costos de Distribución,
+// Administración → Gastos de Adm. y Venta, Comercial y Marketing → Otros Egresos.
+// Depreciación: no se mide todavía en ningún módulo — no se inventa, no aparece.
+async function pnlIndustrialCompute(month, rango){
+  const est = await estadoResolve(month, rango);
+  const cgData = costosLoad();
+  const entradasCd = cgData.entradas.filter(e => (e.centroDistribucion || CD_DEFAULT) === CD_DEFAULT);
+  const entradas = (rango && rango.from && rango.to)
+    ? costosEnRango(entradasCd, rango.from, rango.to)
+    : entradasCd.filter(e => costosMes(e.fecha) === month);
+  const desc = ncDescuentosPorDoc();
+  const rs = costosResumen(entradas, desc);
+  const bol = nominaBoletasDelMes(month, rango);
+  const nc = notasCreditoDelMes(month, rango);
+  const anul = anulacionesDelMes(month, rango);
+  const catTot = (id) => ((rs.porCategoria[id] || { total: 0 }).total) + (bol[id] || 0) + (nc.costo[id] || 0);
+  const ingresos = est.totalIngresos - (nc.ingreso || 0) - (anul.ingreso || 0);
+
+  // Gastos operativos por subcategoría. Boletas y NC sueltas imputadas a
+  // "gastos_operativos" no traen subcategoría propia → caen en General (mismo
+  // criterio que costosSubEfectiva usa para documentos sin subcategoría).
+  const bySub = {};
+  for (const e of entradas.filter(e => e.categoria === 'gastos_operativos')) {
+    const v = costosNetoEfectivo(e, desc); const sub = costosSubEfectiva(e);
+    bySub[sub] = (bySub[sub] || 0) + v;
+  }
+  bySub.general = (bySub.general || 0) + (bol['gastos_operativos'] || 0) + (nc.costo['gastos_operativos'] || 0);
+  const subMantencion = bySub.mantencion || 0, subOpex = bySub.opex || 0, subTransporte = bySub.transporte || 0;
+  const subAlmacenamiento = bySub.almacenamiento || 0, subArriendo = bySub.arriendo || 0, subGeneral = bySub.general || 0;
+
+  const costoDirecto = catTot('costo_directo'), costoIndirecto = catTot('costo_indirecto');
+  const gastosAdminVentaCat = catTot('gastos_admin_venta'), gastosMarketingCat = catTot('marketing_publicidad');
+
+  const nomina = nominaCostoPorEtiqueta();
+  const moDirecta = nomina.porEtiqueta.mo_directa, distribucionPersonal = nomina.porEtiqueta.distribucion;
+  const administracionPersonal = nomina.porEtiqueta.administracion, comercialMktPersonal = nomina.porEtiqueta.comercial_mkt;
+
+  const costoVentas = costoDirecto + costoIndirecto + moDirecta + subMantencion;
+  const margenBruto = ingresos - costoVentas;
+  const opex = subOpex;
+  const costosDistribucion = subTransporte + subAlmacenamiento + distribucionPersonal;
+  const gastosAdmVenta = subArriendo + administracionPersonal + gastosAdminVentaCat;
+  const resultadoOperacional = margenBruto - opex - costosDistribucion - gastosAdmVenta;
+  const otrosIngresos = royaltyTotalCdKairos(month, rango);
+  const otrosEgresos = subGeneral + comercialMktPersonal + gastosMarketingCat;
+  const ebitda = resultadoOperacional + otrosIngresos - otrosEgresos;
+  const ratio = (v) => ingresos ? Math.round((v / ingresos) * 1000) / 10 : 0;
+
+  return {
+    month, shopifyOk: est.shopifyOk, cd: CD_DEFAULT,
+    ingresos: { total: ingresos },
+    bloques: {
+      costoVentas: { label: 'Costo de Ventas', total: costoVentas, pct: ratio(costoVentas), objetivo: 60,
+        detalle: { costoDirecto, costoIndirecto, moDirecta, mantencion: subMantencion } },
+      margenBruto: { label: 'Margen Bruto Operacional', total: margenBruto, pct: ratio(margenBruto) },
+      opex: { label: 'OPEX', total: opex, pct: ratio(opex), objetivo: null },
+      costosDistribucion: { label: 'Costos de Distribución', total: costosDistribucion, pct: ratio(costosDistribucion), objetivo: 9,
+        detalle: { transporte: subTransporte, almacenamiento: subAlmacenamiento, personal: distribucionPersonal } },
+      gastosAdmVenta: { label: 'Gastos de Administración y Venta', total: gastosAdmVenta, pct: ratio(gastosAdmVenta), objetivo: 15,
+        detalle: { arriendo: subArriendo, personal: administracionPersonal, adminVenta: gastosAdminVentaCat } },
+      resultadoOperacional: { label: 'Resultado Operacional', total: resultadoOperacional, pct: ratio(resultadoOperacional) },
+      otrosIngresos: { label: 'Otros Ingresos', total: otrosIngresos, pct: ratio(otrosIngresos), detalle: { royalty: otrosIngresos } },
+      otrosEgresos: { label: 'Otros Egresos', total: otrosEgresos, pct: ratio(otrosEgresos),
+        detalle: { general: subGeneral, personal: comercialMktPersonal, marketing: gastosMarketingCat } },
+    },
+    ebitda: { total: ebitda, pct: ratio(ebitda), objetivo: 15 },
+    nominaPendiente: nomina.pendientes,
+    nominaPorEtiqueta: nomina.porEtiqueta,
+    royalty: royaltyDelPeriodo(month, rango),
+    // Valor EXACTO del mes (sin proratear) — es lo que el formulario de carga
+    // debe mostrar/editar. `royalty` de arriba puede venir prorateado por días
+    // si el período es un rango parcial (ej. "mes en curso, hasta hoy"); si el
+    // formulario mostrara ese prorateo, guardar sin tocar nada pisaría el
+    // monto real del mes con la fracción de días — bug real que se detectó
+    // probando el flujo completo antes de mergear.
+    royaltyMes: royaltyMesExacto(month),
+    royaltyCds: CD_LIST.filter(c => c.id !== CD_DEFAULT),
+    ajustes: { ncIngreso: nc.ingreso || 0, anulaciones: anul.ingreso || 0 },
+  };
+}
+app.get('/admin/pnl/industrial', requireAdmin, async (req, res) => {
+  const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
+  if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
+  try { res.json(await pnlIndustrialCompute(month, estadoRangeFromReq(req))); }
+  catch (e) { res.status(500).json({ error: 'Error: ' + String(e.message || e).slice(0, 300) }); }
 });
 // ══ Inicio del área FINANZAS: 3 cuadros (datos reales) + resumen IA cacheado ══
 function finYearAgo(month){ const [y, mo] = String(month).split('-').map(Number); return (y - 1) + '-' + String(mo).padStart(2, '0'); }
@@ -6113,6 +6216,17 @@ const NOMINA_SEED = [
   { rut: '', nombre: 'Fernandez Zuñiga Vicente', ingreso: '2026-04-01', cargo: 'ENCARGADO DE VENTAS', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'modelo', salud: 'fonasa' },
   { rut: '', nombre: 'Finkelstein Dorfman Arie Jean', ingreso: '2025-12-04', cargo: 'ACCOUNT MANAGER', jornada: '42', contrato: 'Indefinido', centroCosto: 'BEER GARDEN KAIROS', afp: 'uno', salud: 'Masvida' },
 ];
+// Etiqueta de destino en el EERR industrial de CD Kairos (ver eerrindustrialcdkairos.md).
+// Las 4 etiquetas deben cubrir el 100% de la nómina de CD Kairos: si a alguien
+// le falta la etiqueta o el costo mensual, su plata no aparece en el EERR — por
+// eso nominaCostoPorEtiqueta() más abajo devuelve también quién quedó pendiente.
+const NOMINA_ETIQUETAS = [
+  { id: 'mo_directa', label: 'Mano de Obra Directa' },
+  { id: 'distribucion', label: 'Operación y Logística' },
+  { id: 'administracion', label: 'Administración' },
+  { id: 'comercial_mkt', label: 'Comercial y Marketing' },
+];
+const NOMINA_ETIQUETA_IDS = NOMINA_ETIQUETAS.map(e => e.id);
 function nominaPersonaNorm(p, id){
   return {
     id: id || costosNewId('per'),
@@ -6120,7 +6234,29 @@ function nominaPersonaNorm(p, id){
     cargo: costosStr(p.cargo, 80), jornada: costosStr(p.jornada, 20),
     contrato: NOMINA_CONTRATOS.includes(costosStr(p.contrato, 40)) ? costosStr(p.contrato, 40) : 'Indefinido',
     centroCosto: costosStr(p.centroCosto, 80), afp: costosStr(p.afp, 40), salud: costosStr(p.salud, 40),
+    etiqueta: NOMINA_ETIQUETA_IDS.includes(costosStr(p.etiqueta, 40)) ? costosStr(p.etiqueta, 40) : '',
+    costoMensual: costosNum(p.costoMensual),
   };
+}
+// Costo de personal de CD Kairos agrupado por etiqueta del EERR industrial, a
+// partir del costo mensual cargado persona por persona (roster actual, sin
+// historia mes a mes — igual de simple que el resto de Gestión de Personas).
+// "Pendiente" = sin etiqueta y/o sin costo cargado (costoMensual <= 0, un sueldo
+// real nunca es $0) — esa gente NO se suma a ningún bloque, por eso se alerta.
+function nominaCostoPorEtiqueta(){
+  const personas = nominaLoad().personas || [];
+  const porEtiqueta = {}; NOMINA_ETIQUETAS.forEach(e => porEtiqueta[e.id] = 0);
+  const pendientes = [];
+  for (const p of personas) {
+    const etiqueta = NOMINA_ETIQUETA_IDS.includes(p.etiqueta) ? p.etiqueta : '';
+    const costo = Number(p.costoMensual) || 0;
+    if (!etiqueta || costo <= 0) {
+      pendientes.push({ id: p.id, nombre: p.nombre, faltaEtiqueta: !etiqueta, faltaCosto: costo <= 0 });
+      continue;
+    }
+    porEtiqueta[etiqueta] += costo;
+  }
+  return { porEtiqueta, pendientes, total: Object.values(porEtiqueta).reduce((a, b) => a + b, 0) };
 }
 // Categorías del EERR a las que puede imputar una boleta de honorarios.
 const NOMINA_BOLETA_CATS = [
@@ -6176,7 +6312,12 @@ function nominaCostoEmpresaMes(month, rango){
 function nominaBoletasDelMes(month, rango){ const d = nominaLoad(); const out = {}; for (const b of (d.boletas || [])) { if (!finEnPeriodo(b.fecha, month, rango)) continue; out[b.categoria] = (out[b.categoria] || 0) + (Number(b.monto) || 0); } return out; }
 app.get('/admin/nomina', requireAdmin, (req, res) => {
   const d = nominaLoad();
-  res.json({ costoEmpresa: d.costoEmpresa, costoEmpresaPorMes: d.costoEmpresaPorMes || {}, personas: d.personas, boletas: d.boletas || [], contratos: NOMINA_CONTRATOS, boletaCats: NOMINA_BOLETA_CATS });
+  const porEtiqueta = nominaCostoPorEtiqueta();
+  res.json({
+    costoEmpresa: d.costoEmpresa, costoEmpresaPorMes: d.costoEmpresaPorMes || {}, personas: d.personas, boletas: d.boletas || [],
+    contratos: NOMINA_CONTRATOS, boletaCats: NOMINA_BOLETA_CATS,
+    etiquetas: NOMINA_ETIQUETAS, costoPorEtiqueta: porEtiqueta.porEtiqueta, nominaPendiente: porEtiqueta.pendientes,
+  });
 });
 app.put('/admin/nomina/costo', requireAdmin, (req, res) => {
   const v = costosNum(req.body && req.body.costoEmpresa);
@@ -6248,6 +6389,63 @@ app.get('/admin/nomina/export.xlsx', requireAdmin, (req, res) => {
     const buf = xlsxPackage([{ name: 'PROCESO DE SUELDOS', rows: nominaSheetRows(d) }]);
     sendXlsx(res, buf, 'Proceso_de_sueldos_KAIROS.xlsx');
   } catch (e) { res.status(500).send('Error: ' + String(e.message || e).slice(0, 200)); }
+});
+
+// ─── ROYALTY (CD Kairos ↔ restaurantes) ─────────────────────────────────────
+// CD Kairos le cobra royalty a cada restaurante (Garden Antofagasta, Garden
+// Vespucio, Badass). Carga manual por local y mes — sin fórmula de prorrateo
+// inventada, el monto real que se cobra puede variar mes a mes por local.
+// La plata de CD Kairos ("Otros Ingresos · Royalty") es la SUMA de los 3
+// locales, así no hay que cargarla dos veces. El egreso espejo de cada
+// restaurante lo inyecta pnlCompute directo desde acá (ver más abajo).
+const ROYALTY_FILE = join(PROMPTS_EFFECTIVE_DIR, 'royalty.json');
+const ROYALTY_CD_IDS = CD_IDS.filter(id => id !== CD_DEFAULT);
+function royaltyLoad(){
+  try { if (existsSync(ROYALTY_FILE)) { const p = JSON.parse(readFileSync(ROYALTY_FILE, 'utf-8')); if (p && p.porMes && typeof p.porMes === 'object') return { porMes: p.porMes }; } }
+  catch (e) { console.warn('royalty load:', e.message); }
+  return { porMes: {} };
+}
+function royaltySave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(ROYALTY_FILE, JSON.stringify(d, null, 2)); }
+// Monto por CD para un mes exacto (sin prorrateo — el valor cargado ES el del mes).
+function royaltyMesExacto(month){
+  const d = royaltyLoad(); const m = d.porMes[month] || {};
+  const out = {}; ROYALTY_CD_IDS.forEach(id => out[id] = Number(m[id]) || 0);
+  return out;
+}
+// Con rango exacto (from/to) prorratea cada mes involucrado por los días cubiertos,
+// mismo patrón que nominaCostoEmpresaMes.
+function royaltyDelPeriodo(month, rango){
+  if (!rango || !rango.from || !rango.to) return royaltyMesExacto(month);
+  const [fy, fm, fd] = rango.from.split('-').map(Number), [ty, tm, td] = rango.to.split('-').map(Number);
+  const from = Date.UTC(fy, fm - 1, fd), to = Date.UTC(ty, tm - 1, td);
+  const out = {}; ROYALTY_CD_IDS.forEach(id => out[id] = 0);
+  let y = fy, mo = fm - 1;
+  while (Date.UTC(y, mo, 1) <= to) {
+    const dim = new Date(Date.UTC(y, mo + 1, 0)).getUTCDate();
+    const mStart = Date.UTC(y, mo, 1), mEnd = Date.UTC(y, mo, dim);
+    const s = Math.max(from, mStart), e = Math.min(to, mEnd);
+    const dias = Math.round((e - s) / 86400000) + 1;
+    if (dias > 0) { const mm = royaltyMesExacto(y + '-' + String(mo + 1).padStart(2, '0')); ROYALTY_CD_IDS.forEach(id => out[id] += mm[id] * dias / dim); }
+    mo++; if (mo > 11) { mo = 0; y++; }
+  }
+  ROYALTY_CD_IDS.forEach(id => out[id] = Math.round(out[id]));
+  return out;
+}
+function royaltyTotalCdKairos(month, rango){ const p = royaltyDelPeriodo(month, rango); return Object.values(p).reduce((a, b) => a + b, 0); }
+app.get('/admin/royalty', requireAdmin, (req, res) => {
+  const month = /^\d{4}-\d{2}$/.test(String(req.query.month)) ? String(req.query.month) : null;
+  if (!month) return res.status(400).json({ error: 'Falta el mes (YYYY-MM).' });
+  const d = royaltyLoad();
+  res.json({ month, montos: d.porMes[month] || {}, cds: CD_LIST.filter(c => c.id !== CD_DEFAULT) });
+});
+app.put('/admin/royalty', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const month = /^\d{4}-\d{2}$/.test(String(b.month)) ? String(b.month) : null;
+  if (!month) return res.status(400).json({ error: 'Falta el mes.' });
+  const d = royaltyLoad(); d.porMes[month] = d.porMes[month] || {};
+  for (const id of ROYALTY_CD_IDS) if (b.montos && b.montos[id] != null) d.porMes[month][id] = Math.max(0, costosNum(b.montos[id]));
+  royaltySave(d);
+  res.json({ ok: true, month, montos: d.porMes[month] });
 });
 
 // ─── PRODUCCIÓN & OEE (Fase 1: núcleo de registro) ──────────────────────────
