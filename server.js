@@ -13008,7 +13008,8 @@ function costeoNormalizeCarta(c){
   const rlv = Number.isFinite(c.rlv) ? c.rlv : 0; // versión: Badass — se limpia la Reventa suelta, dejando solo Vino/Espumantes/Gaseosas
   const grlv = Number.isFinite(c.grlv) ? c.grlv : 0; // versión: Garden — se sacan de la Reventa suelta las categorías que ya están duplicadas como plato costeado
   const gav = Number.isFinite(c.gav) ? c.gav : 0; // versión: Badass — Gaseosas pasa de reventa a trago costeado (insumo propio)
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, gav, secciones, asignaciones };
+  const gtv = Number.isFinite(c.gtv) ? c.gtv : 0; // versión: Badass — los tragos de Gaseosas se recategorizan a "Para Tomar 0.0" (la categoría "Gaseosas" no tenía sección propia en Carta resumen y quedaban en "sin asignar")
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, gav, gtv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13910,6 +13911,30 @@ function costeoBadassGaseosas(doc, rest){
   doc.carta.gav = BADASS_GASEOSAS_V;
   return true;
 }
+// Badass: los tragos de Gaseosas (recién creados por costeoBadassGaseosas) quedaron
+// con categoria "Gaseosas", pero Carta (resumen) para barra usa como secciones las
+// categorías que YA existían cuando se sembró el doc (costeoEnsureBarraCarta) —
+// "Gaseosas" nunca fue una sección ahí, así que esos 19 tragos caían en "sin
+// asignar". Se recategorizan a la sección que ya existe para bebidas sin alcohol,
+// "Para Tomar 0.0" (a pedido del dueño). Busca la sección existente por nombre
+// normalizado en vez de asumir el string exacto, por si difiere entre restaurantes.
+// Corre una sola vez por doc de barra (carta.gtv), solo Badass.
+const BADASS_GASEOSAS_PARA_TOMAR_V = 1;
+function costeoBadassGaseosasParaTomar(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.gtv >= BADASS_GASEOSAS_PARA_TOMAR_V) return false;
+  if (costeoRestKey(rest) !== 'badass') { doc.carta.gtv = BADASS_GASEOSAS_PARA_TOMAR_V; return true; }
+  const destinoSec = (doc.carta.secciones || []).find(s => costeoNorm(s.nombre).includes('para tomar'));
+  const destino = (destinoSec && destinoSec.nombre) || 'Para Tomar 0.0';
+  (doc.platos || []).forEach(p => {
+    if (costeoNorm(p.categoria) === costeoNorm('Gaseosas')) p.categoria = destino;
+  });
+  if (!(doc.categorias || []).some(c => costeoNorm(c) === costeoNorm(destino))) doc.categorias.push(destino);
+  doc.categorias = (doc.categorias || []).filter(c => costeoNorm(c) !== costeoNorm('Gaseosas'));
+  doc.carta.gtv = BADASS_GASEOSAS_PARA_TOMAR_V;
+  return true;
+}
 // Badass: se limpia la Reventa suelta de Carta (resumen) a pedido del dueño,
 // dejando SOLO Vino, Espumantes y Gaseosas. El resto (Especial Chelas, Copas,
 // Ron/Pisco/Vodka/Whisky/Bourbon/Gin/Licores/Tequila con bebida o botella,
@@ -14017,6 +14042,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoBadassReventaAInsumo(all[key], rest)) ch = true;
     if (costeoBadassKombuchaChelaUnidad(all[key], rest)) ch = true;
     if (costeoBadassGaseosas(all[key], rest)) ch = true;
+    if (costeoBadassGaseosasParaTomar(all[key], rest)) ch = true;
     if (costeoBadassReventaLimpia(all[key], rest)) ch = true;
     if (costeoGardenReventaLimpia(all[key], rest)) ch = true;
     if (costeoGardenLataChica(all[key], rest)) ch = true;
