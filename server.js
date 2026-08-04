@@ -13007,7 +13007,8 @@ function costeoNormalizeCarta(c){
   const kuv = Number.isFinite(c.kuv) ? c.kuv : 0; // versión: insumos de Kombucha/Chelas sin alcohol pasan de litro a "unidad" (se venden por botella, no por volumen)
   const rlv = Number.isFinite(c.rlv) ? c.rlv : 0; // versión: Badass — se limpia la Reventa suelta, dejando solo Vino/Espumantes/Gaseosas
   const grlv = Number.isFinite(c.grlv) ? c.grlv : 0; // versión: Garden — se sacan de la Reventa suelta las categorías que ya están duplicadas como plato costeado
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, secciones, asignaciones };
+  const gav = Number.isFinite(c.gav) ? c.gav : 0; // versión: Badass — Gaseosas pasa de reventa a trago costeado (insumo propio)
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, gav, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13827,6 +13828,88 @@ function costeoBadassKombuchaChelaUnidad(doc, rest){
   doc.carta.kuv = BADASS_KOMBUCHA_CHELA_UNIDAD_V;
   return true;
 }
+// Badass: Gaseosas pasa de reventa (precio de compra manual) a trago costeado,
+// asociando cada producto a su insumo real de barra (mismo criterio que Kombucha/
+// Chelas sin alcohol). Fanta/Fanta Zero/Sprite/Sprite Zero/Coca Cola/Coca Cola Zero/
+// Coca Cola Light comparten el mismo costo real (a pedido del dueño), así que se
+// crea un insumo nuevo "COCA COLA LATA" (precio = el de COCA COLA ORIGINAL LATA) y
+// los 7 apuntan ahí en vez de a los insumos individuales que ya existían. Monster
+// Tropical/Tradicional también comparten costo (MONSTER RIPPER). Red Bull Tropical
+// usa RED BULL YELLOW (edición amarilla/tropical); Vital sin gas usa AGUA S/GAS (no
+// hay insumo de agua sin gas de marca Vital) — ambas son inferencias, no vinieron
+// confirmadas por el dueño. La cantidad de la línea es el volumen real del insumo
+// (no siempre 1: MONSTER RIPPER está cargado como precio por litro con volumen real
+// 0,473 = una lata), mismo criterio que se usó para corregir las Botellas. Si algún
+// producto no tiene insumo mapeado, se deja en reventa (no se inventa nada). Corre
+// una sola vez por doc de barra (carta.gav), solo Badass.
+const BADASS_GASEOSAS_SECCION = 'Gaseosas';
+const BADASS_GASEOSAS_INSUMO = {
+  'Monster Tropical': 'MONSTER RIPPER',
+  'Monster Tradicional': 'MONSTER RIPPER',
+  'Fever Tree Pink Grapefruit': 'PINK GRAPEFRUIT FEVER TREE',
+  'Fever Tree Ginger Ale': 'GINGER ALE FEVER TREE',
+  'Fever Tree Agua Tónica': 'AGUA TONICA FEVER TREE',
+  'Red Bull Tropical': 'RED BULL YELLOW',
+  'Red Bull Tradicional': 'RED BULL',
+  'Agua con Gas 330cc': 'AGUA C/GAS',
+  'Schweppes Zero': 'GINGER ALE ZERO SCHWEPPES',
+  'Schweppes': 'GINGER ALE SCHWEPPES',
+  'Fanta Zero': 'COCA COLA LATA',
+  'Fanta': 'COCA COLA LATA',
+  'Sprite Zero': 'COCA COLA LATA',
+  'Sprite': 'COCA COLA LATA',
+  'Coca Cola Light': 'COCA COLA LATA',
+  'Coca Cola Zero': 'COCA COLA LATA',
+  'Coca Cola': 'COCA COLA LATA',
+  'Vital sin gas': 'AGUA S/GAS',
+  'Vital con gas': 'AGUA C/GAS VITAL',
+};
+const BADASS_GASEOSAS_NUEVO_INSUMO = 'COCA COLA LATA';
+const BADASS_GASEOSAS_NUEVO_INSUMO_REF = 'COCA COLA ORIGINAL LATA';
+const BADASS_GASEOSAS_V = 1;
+function costeoBadassGaseosas(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.gav >= BADASS_GASEOSAS_V) return false;
+  if (costeoRestKey(rest) !== 'badass') { doc.carta.gav = BADASS_GASEOSAS_V; return true; }
+  costeoSeedReventa(doc, rest);
+  let cocaLata = (doc.insumos || []).find(i => costeoNorm(i.descripcion) === costeoNorm(BADASS_GASEOSAS_NUEVO_INSUMO));
+  if (!cocaLata) {
+    const ref = (doc.insumos || []).find(i => costeoNorm(i.descripcion) === costeoNorm(BADASS_GASEOSAS_NUEVO_INSUMO_REF));
+    cocaLata = { id: randomUUID(), descripcion: BADASS_GASEOSAS_NUEVO_INSUMO, precioNeto: (ref && Number(ref.precioNeto) > 0) ? ref.precioNeto : 706, unidad: 'litro', volumen: 1, ila: 0, despacho: 0, rendimiento: null };
+    doc.insumos.push(cocaLata);
+  }
+  const objetivo = costeoNorm(BADASS_GASEOSAS_SECCION);
+  const secRev = (doc.reventa.secciones || []).find(s => costeoNorm(s.nombre) === objetivo);
+  if (secRev) {
+    const mapaPorNombre = new Map(Object.entries(BADASS_GASEOSAS_INSUMO).map(([k, v]) => [costeoNorm(k), v]));
+    const insByName = new Map((doc.insumos || []).map(i => [costeoNorm(i.descripcion), i]));
+    const platosPorNombre = new Set((doc.platos || []).map(p => costeoNorm(p.nombre)));
+    const secCarta = (doc.carta.secciones || []).find(s => costeoNorm(s.nombre) === objetivo);
+    const categoria = (secCarta && secCarta.nombre) || secRev.nombre;
+    const migrados = new Set();
+    (secRev.productos || []).forEach(pr => {
+      const nombre = costeoStr(pr.nombre, 200); if (!nombre) return;
+      const insNombre = mapaPorNombre.get(costeoNorm(nombre));
+      const ins = insNombre && insByName.get(costeoNorm(insNombre));
+      if (!ins) return; // sin mapeo o insumo no encontrado: se deja en reventa, no se inventa nada
+      if (!platosPorNombre.has(costeoNorm(nombre))) {
+        doc.platos.push({
+          id: randomUUID(), nombre, categoria, margenPct: 30, iva: false,
+          precioReal: costeoNumOrNull(pr.precioVenta),
+          lineas: [{ refType: 'insumo', refId: ins.id, cantidad: (Number(ins.volumen) > 0) ? Number(ins.volumen) : 1 }],
+        });
+        platosPorNombre.add(costeoNorm(nombre));
+      }
+      migrados.add(costeoNorm(nombre));
+    });
+    if (!(doc.categorias || []).some(c => costeoNorm(c) === costeoNorm(categoria))) doc.categorias.push(categoria);
+    secRev.productos = (secRev.productos || []).filter(p => !migrados.has(costeoNorm(p.nombre)));
+    doc.reventa.secciones = (doc.reventa.secciones || []).filter(s => s !== secRev || s.productos.length);
+  }
+  doc.carta.gav = BADASS_GASEOSAS_V;
+  return true;
+}
 // Badass: se limpia la Reventa suelta de Carta (resumen) a pedido del dueño,
 // dejando SOLO Vino, Espumantes y Gaseosas. El resto (Especial Chelas, Copas,
 // Ron/Pisco/Vodka/Whisky/Bourbon/Gin/Licores/Tequila con bebida o botella,
@@ -13933,6 +14016,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoCervezasKairosMediaPinta(all[key], rest)) ch = true;
     if (costeoBadassReventaAInsumo(all[key], rest)) ch = true;
     if (costeoBadassKombuchaChelaUnidad(all[key], rest)) ch = true;
+    if (costeoBadassGaseosas(all[key], rest)) ch = true;
     if (costeoBadassReventaLimpia(all[key], rest)) ch = true;
     if (costeoGardenReventaLimpia(all[key], rest)) ch = true;
     if (costeoGardenLataChica(all[key], rest)) ch = true;
