@@ -12990,7 +12990,8 @@ function costeoNormalizeCarta(c){
   const glcv = Number.isFinite(c.glcv) ? c.glcv : 0; // versión: Garden — Ron/Pisco/Vodka/Whisky/Bourbon/Gin (+Botella) suman BEBIDA LATA CHICA
   const pcbv = Number.isFinite(c.pcbv) ? c.pcbv : 0; // versión: sembrado de precios reales de Cortos/Botellas de Badass (lista del dueño)
   const rai = Number.isFinite(c.rai) ? c.rai : 0; // versión: Badass — Kombucha y Chelas sin alcohol pasan de reventa a trago costeado (insumo propio)
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, secciones, asignaciones };
+  const kuv = Number.isFinite(c.kuv) ? c.kuv : 0; // versión: insumos de Kombucha/Chelas sin alcohol pasan de litro a "unidad" (se venden por botella, no por volumen)
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13786,6 +13787,30 @@ function costeoBadassReventaAInsumo(doc, rest){
   doc.carta.rai = BADASS_REVENTA_A_INSUMO_V;
   return true;
 }
+// Los 5 insumos de Kombucha/Chelas sin alcohol (recién pasados a trago por
+// costeoBadassReventaAInsumo) estaban cargados con unidad "litro" y un
+// volumen de botella — el costo del trago se calculaba como precio por
+// litro × cantidad, en vez de precio por botella directo. Se venden por
+// unidad (una botella/lata), no por volumen, así que pasan a unidad
+// "unidad" sin volumen (el campo que activa la fórmula de litro en el
+// servidor); el precio neto no se toca. Corre una sola vez por doc de barra
+// (carta.kuv), solo Badass.
+const BADASS_KOMBUCHA_CHELA_INSUMOS = ['KOMBUCHA ZEN', 'KOMBUCHA ELIXIR', 'KOMBUCHA MOMENTUN', 'HEINEKEN S/ALCOHOL', 'PAULANER S/ALCOHOL'];
+const BADASS_KOMBUCHA_CHELA_UNIDAD_V = 1;
+function costeoBadassKombuchaChelaUnidad(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.kuv >= BADASS_KOMBUCHA_CHELA_UNIDAD_V) return false;
+  if (costeoRestKey(rest) !== 'badass') { doc.carta.kuv = BADASS_KOMBUCHA_CHELA_UNIDAD_V; return true; }
+  const objetivo = new Set(BADASS_KOMBUCHA_CHELA_INSUMOS.map(costeoNorm));
+  (doc.insumos || []).forEach(i => {
+    if (!objetivo.has(costeoNorm(i.descripcion))) return;
+    i.unidad = 'unidad';
+    i.volumen = null;
+  });
+  doc.carta.kuv = BADASS_KOMBUCHA_CHELA_UNIDAD_V;
+  return true;
+}
 // Garden: los tragos "puros" por espirituoso (Ron, Pisco, Vodka, Whisky,
 // Bourbon, Gin — sin Licores ni Tequila) suman 1 unidad de BEBIDA LATA CHICA
 // a su receta, y sus Botellas (mismas familias, sin Licores/Tequila Botella
@@ -13843,6 +13868,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoCervezasKairos(all[key], rest)) ch = true;
     if (costeoCervezasKairosMediaPinta(all[key], rest)) ch = true;
     if (costeoBadassReventaAInsumo(all[key], rest)) ch = true;
+    if (costeoBadassKombuchaChelaUnidad(all[key], rest)) ch = true;
     if (costeoGardenLataChica(all[key], rest)) ch = true;
     if (costeoSeedPreciosCortosBotellas(all[key], rest)) ch = true;
   }
