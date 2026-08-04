@@ -7879,12 +7879,17 @@ function pyxisHospCfgLoad(){
       const p = JSON.parse(readFileSync(PYXIS_HOSP_FILE, 'utf-8'));
       return {
         locales: Array.isArray(p.locales) ? p.locales : [],
+        // En Pyxis el "local" es el RECINTO y adentro conviven las marcas de
+        // cada restaurante del grupo. Kairos Antofagasta no tiene local propio:
+        // es la marca KAIROS dentro del recinto "Antofagasta". Sin poder elegir
+        // por marca, o se deja afuera o se arrastra todo el recinto ajeno.
+        marcas: Array.isArray(p.marcas) ? p.marcas : [],
         familiaComida: Array.isArray(p.familiaComida) ? p.familiaComida : [],
         familiaBarra: Array.isArray(p.familiaBarra) ? p.familiaBarra : [],
       };
     }
   } catch (e) { console.warn('pyxis hosp cfg:', e.message); }
-  return { locales: [], familiaComida: [], familiaBarra: [] };
+  return { locales: [], marcas: [], familiaComida: [], familiaBarra: [] };
 }
 function pyxisHospCfgSave(o){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(PYXIS_HOSP_FILE, JSON.stringify(o, null, 2)); }
 
@@ -7898,16 +7903,18 @@ async function pyxisHospitalidadResumen(grupo, opts){
   // Pyxis para este grupo (para que la config se llene eligiendo de una
   // lista real, nunca escribiendo a mano un nombre adivinado).
   const localesDisponibles = [...new Set(rows.map(r => norm(r.nombreLocal)).filter(Boolean))].sort();
+  const marcasDisponibles = [...new Set(rows.map(r => norm(r.nombreMarca)).filter(Boolean))].sort();
   const familiasDisponibles = [...new Set(rows.map(r => norm(r.familia)).filter(Boolean))].sort();
 
-  if (!cfg.locales.length) {
+  if (!cfg.locales.length && !cfg.marcas.length) {
     return {
       available: false,
-      reason: 'Sin datos: no hay locales de Hospitality configurados todavía. Elegí en ⚙️ cuáles de estos locales de Pyxis son Kairos Garden/Badass.',
-      config: cfg, localesDisponibles, familiasDisponibles,
+      reason: 'Sin datos: no hay locales ni marcas de Hospitality configurados todavía. Elegí en ⚙️ qué es Kairos Garden/Badass — normalmente la MARCA, porque compartimos recinto con el resto del grupo.',
+      config: cfg, localesDisponibles, marcasDisponibles, familiasDisponibles,
     };
   }
   const localesSet = new Set(cfg.locales.map(norm));
+  const marcasSet = new Set((cfg.marcas || []).map(norm));
   const comidaSet = new Set(cfg.familiaComida.map(norm));
   const barraSet = new Set(cfg.familiaBarra.map(norm));
 
@@ -7923,7 +7930,9 @@ async function pyxisHospitalidadResumen(grupo, opts){
 
   for (const r of rows) {
     const local = norm(r.nombreLocal);
-    if (!localesSet.has(local)) continue;
+    const marca = norm(r.nombreMarca);
+    // Es nuestro si lo es el recinto entero O la marca dentro del recinto.
+    if (!localesSet.has(local) && !marcasSet.has(marca)) continue;
     const fam = norm(r.familia);
     const tipo = comidaSet.has(fam) ? 'comida' : (barraSet.has(fam) ? 'barra' : null);
     const meses3 = [num(r.p1), num(r.p2), num(r.p3)];
@@ -7939,8 +7948,11 @@ async function pyxisHospitalidadResumen(grupo, opts){
     const m = prodByTipo[tipo];
     const p = m.get(key) || { nombre, total: 0, cant: 0 };
     p.total += total; p.cant += cant; m.set(key, p);
-    const lt = porLocal.get(local) || { comida: 0, barra: 0 };
-    lt[tipo] += total; porLocal.set(local, lt);
+    // Se identifica por marca + recinto: una marca nuestra puede estar en
+    // varios recintos y un recinto puede tener más de una marca nuestra.
+    const claveLocal = pyxisNombrePropio(local, marca);
+    const lt = porLocal.get(claveLocal) || { comida: 0, barra: 0 };
+    lt[tipo] += total; porLocal.set(claveLocal, lt);
     const mensualArr = tipo === 'comida' ? mensualComida : mensualBarra;
     for (let i = 0; i < 3; i++) mensualArr[i] += meses3[i];
     if (tipo === 'comida') { totalComida += total; cantComida += cant; }
@@ -7953,7 +7965,7 @@ async function pyxisHospitalidadResumen(grupo, opts){
   return {
     available: true,
     grupo, meses: pyxisMesesLabels(), generadoEn: new Date().toISOString(),
-    config: cfg, localesDisponibles, familiasDisponibles,
+    config: cfg, localesDisponibles, marcasDisponibles, familiasDisponibles,
     totales: {
       comida: Math.round(totalComida), barra: Math.round(totalBarra), cantComida, cantBarra, total: Math.round(totalComida + totalBarra),
       mensual: { comida: mensualComida.map(Math.round), barra: mensualBarra.map(Math.round) },
@@ -7975,6 +7987,7 @@ app.get('/admin/pyxis/hospitalidad/config', requireAdmin, async (req, res) => {
     res.json({
       config: pyxisHospCfgLoad(),
       localesDisponibles: [...new Set(rows.map(r => norm(r.nombreLocal)).filter(Boolean))].sort(),
+      marcasDisponibles: [...new Set(rows.map(r => norm(r.nombreMarca)).filter(Boolean))].sort(),
       familiasDisponibles: [...new Set(rows.map(r => norm(r.familia)).filter(Boolean))].sort(),
     });
   } catch (e) { res.status(500).json({ error: String(e.message || e).slice(0, 200) }); }
@@ -7984,6 +7997,7 @@ app.put('/admin/pyxis/hospitalidad/config', requireAdmin, (req, res) => {
   const cur = pyxisHospCfgLoad();
   const arr = (v, max) => Array.isArray(v) ? v.map(s => String(s).trim().slice(0, 120)).filter(Boolean).slice(0, max) : null;
   const locales = arr(b.locales, 40); if (locales) cur.locales = locales;
+  const marcas = arr(b.marcas, 60); if (marcas) cur.marcas = marcas;
   const familiaComida = arr(b.familiaComida, 20); if (familiaComida) cur.familiaComida = familiaComida;
   const familiaBarra = arr(b.familiaBarra, 20); if (familiaBarra) cur.familiaBarra = familiaBarra;
   pyxisHospCfgSave(cur);

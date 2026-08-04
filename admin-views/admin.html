@@ -10201,10 +10201,15 @@ async function loadHospCfg(){
 }
 function renderHospCfg(d){
   const box = document.getElementById('hospCfgBody');
-  const cfg = d.config || { locales:[], familiaComida:[], familiaBarra:[] };
+  const cfg = d.config || { locales:[], marcas:[], familiaComida:[], familiaBarra:[] };
+  cfg.marcas = cfg.marcas || [];
   const chip = (val, selected, attr) => `<button class="sku-chan${selected?' on':''}" data-${attr}="${escapeAttr(val)}" type="button" style="padding:.45rem .75rem;font-size:.76rem">${escapeHtml(val)}</button>`;
   box.innerHTML = `
-    <div class="sio-top-title" style="margin-top:0">Locales que son Hospitality (Kairos Garden / Badass)</div>
+    <div class="sio-top-title" style="margin-top:0">Marcas que son Hospitality (Kairos Garden / Badass)</div>
+    <div class="est-note" style="color:#666;margin:.1rem 0 .4rem">En Pyxis el <b>local</b> es el recinto y adentro conviven las marcas de cada restaurante del grupo — en Antofagasta somos una marca más, no un local aparte. Normalmente hay que tildar acá, en <b>marcas</b>.</div>
+    <div class="sku-chan-filters" id="hospMarcasPick">${(d.marcasDisponibles||[]).map(m=>chip(m, cfg.marcas.includes(m), 'hospmar')).join('') || '<div class="adm-empty">Pyxis todavía no entregó marcas.</div>'}</div>
+    <div class="sio-top-title">Recintos enteramente nuestros (opcional)</div>
+    <div class="est-note" style="color:#666;margin:.1rem 0 .4rem">Solo si TODO el recinto es de Kairos. Si compartís el recinto con otras marcas del grupo, no lo tildes acá — te trae la venta ajena.</div>
     <div class="sku-chan-filters" id="hospLocalesPick">${(d.localesDisponibles||[]).map(l=>chip(l, cfg.locales.includes(l), 'hosploc')).join('') || '<div class="adm-empty">Pyxis todavía no entregó locales.</div>'}</div>
     <div class="sio-top-title">Categorías de Pyxis que cuentan como Comida</div>
     <div class="sku-chan-filters" id="hospComidaPick">${(d.familiasDisponibles||[]).map(f=>chip(f, cfg.familiaComida.includes(f), 'hospcom')).join('') || '<div class="adm-empty">Sin categorías detectadas todavía.</div>'}</div>
@@ -10212,16 +10217,18 @@ function renderHospCfg(d){
     <div class="sku-chan-filters" id="hospBarraPick">${(d.familiasDisponibles||[]).map(f=>chip(f, cfg.familiaBarra.includes(f), 'hospbar')).join('') || '<div class="adm-empty">Sin categorías detectadas todavía.</div>'}</div>
     <div class="adm-fb-acts" style="margin-top:.7rem"><button class="adm-btn adm-btn-gold" id="hospCfgSave" type="button">Guardar configuración</button></div>
   `;
+  document.querySelectorAll('#hospMarcasPick .sku-chan').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
   document.querySelectorAll('#hospLocalesPick .sku-chan').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
   document.querySelectorAll('#hospComidaPick .sku-chan').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
   document.querySelectorAll('#hospBarraPick .sku-chan').forEach(b=>b.onclick=()=>b.classList.toggle('on'));
   document.getElementById('hospCfgSave').onclick = async () => {
     const locales = [...document.querySelectorAll('#hospLocalesPick .sku-chan.on')].map(b=>b.dataset.hosploc);
+    const marcas = [...document.querySelectorAll('#hospMarcasPick .sku-chan.on')].map(b=>b.dataset.hospmar);
     const familiaComida = [...document.querySelectorAll('#hospComidaPick .sku-chan.on')].map(b=>b.dataset.hospcom);
     const familiaBarra = [...document.querySelectorAll('#hospBarraPick .sku-chan.on')].map(b=>b.dataset.hospbar);
     const btn = document.getElementById('hospCfgSave'); btn.disabled = true; const o = btn.textContent; btn.textContent = 'Guardando…';
     try {
-      const r = await fetch('/admin/pyxis/hospitalidad/config', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ locales, familiaComida, familiaBarra }) });
+      const r = await fetch('/admin/pyxis/hospitalidad/config', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ locales, marcas, familiaComida, familiaBarra }) });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || 'HTTP '+r.status);
       showToast('Configuración guardada ✓', 'ok');
