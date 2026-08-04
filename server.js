@@ -13010,7 +13010,9 @@ function costeoNormalizeCarta(c){
   const gav = Number.isFinite(c.gav) ? c.gav : 0; // versión: Badass — Gaseosas pasa de reventa a trago costeado (insumo propio)
   const gtv = Number.isFinite(c.gtv) ? c.gtv : 0; // versión: Badass — los tragos de Gaseosas se recategorizan a "Para Tomar 0.0" (la categoría "Gaseosas" no tenía sección propia en Carta resumen y quedaban en "sin asignar")
   const cbfv = Number.isFinite(c.cbfv) ? c.cbfv : 0; // versión: Badass — Cortos/Botellas se recategorizan por familia de espirituoso (Ron/Pisco/Vodka/Whisky/Bourbon/Gin/Licores/Tequila), igual que Garden
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, gav, gtv, cbfv, secciones, asignaciones };
+  const cbev = Number.isFinite(c.cbev) ? c.cbev : 0; // versión: Badass — se eliminan las secciones "Cortos"/"Botellas" de Carta (resumen), ya vacías tras cbfv
+  const bciv = Number.isFinite(c.bciv) ? c.bciv : 0; // versión: Badass — "Cervezas Invitadas" pasa de categoría vacía en Carta (resumen) a sección de Reventa suelta
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13707,6 +13709,66 @@ function costeoBadassCortosBotellasPorFamilia(doc, rest){
   doc.carta.cbfv = BADASS_CORTOS_BOTELLAS_FAMILIA_V;
   return true;
 }
+// Badass: tras costeoBadassCortosBotellasPorFamilia, las secciones genéricas
+// "Cortos"/"Botellas" quedaron sin ningún plato (todos se recategorizaron por
+// familia de espirituoso). A pedido del dueño se eliminan de Carta (resumen).
+// Por seguridad, solo borra cada una si de verdad tiene 0 platos —si algo
+// quedó ahí sin recategorizar (nombre que no matcheó ninguna marca del seed),
+// la sección se deja para no esconder ese plato. Corre una sola vez por doc
+// de barra (carta.cbev), solo Badass.
+const BADASS_CORTOS_BOTELLAS_VACIAS = ['Cortos', 'Botellas'];
+const BADASS_CORTOS_BOTELLAS_VACIAS_V = 1;
+function costeoBadassEliminarCortosBotellasVacios(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.cbev >= BADASS_CORTOS_BOTELLAS_VACIAS_V) return false;
+  if (costeoRestKey(rest) !== 'badass') { doc.carta.cbev = BADASS_CORTOS_BOTELLAS_VACIAS_V; return true; }
+  const objetivo = new Set(BADASS_CORTOS_BOTELLAS_VACIAS.map(costeoNorm));
+  const conPlatos = new Set((doc.platos || []).filter(p => objetivo.has(costeoNorm(p.categoria))).map(p => costeoNorm(p.categoria)));
+  const aBorrar = new Set([...objetivo].filter(n => !conPlatos.has(n)));
+  if (aBorrar.size) {
+    doc.carta.secciones = (doc.carta.secciones || []).filter(s => !aBorrar.has(costeoNorm(s.nombre)));
+    doc.categorias = (doc.categorias || []).filter(c => !aBorrar.has(costeoNorm(c)));
+  }
+  doc.carta.cbev = BADASS_CORTOS_BOTELLAS_VACIAS_V;
+  return true;
+}
+// Badass: "Cervezas Invitadas" no tiene ningún plato costeado (nunca se cargó
+// receta/insumo para las cervezas de terceros que rotan) — la categoría vive
+// vacía en Carta (resumen) desde el Nivel 3. A pedido del dueño se mueve a la
+// Reventa suelta (precio de compra manual, como el resto de lo que no se
+// costea), sacándola del Nivel 3/4. costeoBadassReventaLimpia ya había
+// eliminado esta misma sección de Reventa (no estaba en el keep list), así
+// que se reconstruye leyendo el seed original de reventa. Por seguridad, si
+// ya hubiera algún plato costeado con esta categoría, no se toca ninguna de
+// las dos partes (para no perder ni esconder ese plato). Corre una sola vez
+// por doc de barra (carta.bciv), solo Badass.
+const BADASS_CERVEZAS_INVITADAS_SECCION = 'Cervezas Invitadas';
+const BADASS_CERVEZAS_INVITADAS_REVENTA_V = 1;
+function costeoBadassCervezasInvitadasAReventa(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.bciv >= BADASS_CERVEZAS_INVITADAS_REVENTA_V) return false;
+  if (costeoRestKey(rest) !== 'badass') { doc.carta.bciv = BADASS_CERVEZAS_INVITADAS_REVENTA_V; return true; }
+  const objetivo = costeoNorm(BADASS_CERVEZAS_INVITADAS_SECCION);
+  const tienePlatos = (doc.platos || []).some(p => costeoNorm(p.categoria) === objetivo);
+  if (!tienePlatos) {
+    doc.reventa = costeoNormalizeReventa(doc.reventa);
+    const yaEnReventa = (doc.reventa.secciones || []).some(s => costeoNorm(s.nombre) === objetivo);
+    if (!yaEnReventa) {
+      let seed; try { seed = JSON.parse(readFileSync(join(__dirname, reventaSeedFile(rest)), 'utf-8')); } catch { seed = null; }
+      const secSeed = seed && Array.isArray(seed.secciones) && seed.secciones.find(s => costeoNorm(s.nombre) === objetivo);
+      if (secSeed) {
+        const productos = (secSeed.productos || []).map(p => ({ id: randomUUID(), nombre: costeoStr(p.nombre, 200) || 'Producto', precioVenta: costeoNumOrNull(p.precioVenta), precioCompra: costeoNumOrNull(p.precioCompra) }));
+        doc.reventa.secciones.push({ id: randomUUID(), nombre: costeoStr(secSeed.nombre, 120) || BADASS_CERVEZAS_INVITADAS_SECCION, productos });
+      }
+    }
+    doc.carta.secciones = (doc.carta.secciones || []).filter(s => costeoNorm(s.nombre) !== objetivo);
+    doc.categorias = (doc.categorias || []).filter(c => costeoNorm(c) !== objetivo);
+  }
+  doc.carta.bciv = BADASS_CERVEZAS_INVITADAS_REVENTA_V;
+  return true;
+}
 // ── Cervezas Kairos: de reventa a trago costeado ──
 // Las 4 categorías de cerveza propia (colecciones de la casa / temporada /
 // artistas y el Firulais Craft Mix) estaban cargadas como REVENTA: se veían en
@@ -14105,6 +14167,8 @@ function costeoEnsureBarraDocs(all){
     if (costeoGardenLataChica(all[key], rest)) ch = true;
     if (costeoSeedPreciosCortosBotellas(all[key], rest)) ch = true;
     if (costeoBadassCortosBotellasPorFamilia(all[key], rest)) ch = true;
+    if (costeoBadassEliminarCortosBotellasVacios(all[key], rest)) ch = true;
+    if (costeoBadassCervezasInvitadasAReventa(all[key], rest)) ch = true;
   }
   return ch;
 }
