@@ -1468,6 +1468,8 @@ body.drawer-open{overflow:hidden}
   box-shadow:0 8px 28px rgba(0,0,0,.35)
 }
 .adm-storage-warn code{background:rgba(255,255,255,.16);border-radius:4px;padding:.05rem .3rem}
+/* Inputs del cierre de caja (Hospitality › Ingresos). */
+.hi-in{width:110px;text-align:right;font-variant-numeric:tabular-nums}
 /* Chips de hitos en la serie mes a mes de HORECA. */
 .hor-hito{display:inline-block;background:#fff4d6;border:1px solid #f2e3b8;color:#8a6d00;border-radius:999px;
   font-family:var(--sans);font-size:.68rem;padding:.1rem .45rem;margin:.1rem .25rem .1rem 0}
@@ -2848,8 +2850,9 @@ body.hosp-open{overflow:hidden}
   </aside>
   <div class="hosp-main">
     <header class="hosp-header"><div class="hosp-crumb"><b>Hospitality</b><span class="sep">›</span><span id="hospCrumb">Rendimientos</span></div></header>
-    <main class="hosp-content">
+    <main class="hosp-content" id="hospContent">
       <div id="hospRendimientosView"></div>
+      <div id="hospIngresosView" style="display:none"></div>
     </main>
   </div>
 </div>
@@ -11831,12 +11834,19 @@ const COSTOS_MARCAS_LBL={kairos:'Kairos',banny:'Banny',firulais:'Firulais'};
 // factura?" (ahí se excluye el CD elegido como principal del documento).
 const CD_LBL={cd_kairos:'CD KAIROS',garden_vespucio:'CD Kairos Garden Vespucio',garden_antofagasta:'CD Kairos Garden Antofagasta',badass:'CD Kairos Badass'};
 const CD_IDS=Object.keys(CD_LBL);
+// Perfil Hospitality: los selectores de centro solo ofrecen los 3 restaurantes.
+// Es un recorte de la LISTA que se muestra — la maquinaria de Costos/Gastos/EERR
+// es exactamente la misma del perfil madre.
+const CD_HOSPITALITY=['garden_antofagasta','garden_vespucio','badass'];
+let cdScope=null;                       // null = todos (perfil madre)
+const cdList=()=>cdScope||CD_IDS;
+const cdEnAlcance=(c)=>cdList().includes(c);
 const CD_DEFAULT='cd_kairos';
 const COSTOS_TIPO_CFG={
   costo:{ bodyId:'costosBody', prefix:'costos', reloadId:'costosReload', pctTotal:true, vacio:'Todavía no hay costos registrados', nombre:'costo' },
   gasto:{ bodyId:'gastosBody', prefix:'gastos', reloadId:'gastosReload', pctTotal:true,  vacio:'Todavía no hay gastos registrados', nombre:'gasto' },
 };
-function cgBlankForm(){ return { editId:null, centroDistribucion:CD_DEFAULT, proveedor:'', categoria:'', subcategoria:'', subnivel:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'', centrosCosto:[] }; }
+function cgBlankForm(){ return { editId:null, centroDistribucion:cdList()[0], proveedor:'', categoria:'', subcategoria:'', subnivel:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'', centrosCosto:[] }; }
 // Carga un documento existente al formulario para editarlo (reusa todo el form).
 function costosEditar(tipo,id){
   const a=costosData[tipo]; const e=(a.entradas||[]).find(x=>x.id===id); if(!e) return;
@@ -11849,7 +11859,7 @@ function costosEditar(tipo,id){
   renderCostos(tipo);
   const body=document.getElementById(COSTOS_TIPO_CFG[tipo].bodyId); if(body) body.scrollIntoView({behavior:'smooth',block:'start'});
 }
-function costosCancelarEdicion(tipo){ costosForm[tipo]=cgBlankForm(); costosForm[tipo].centroDistribucion=(costosData[tipo]&&costosData[tipo].cd)||CD_DEFAULT; renderCostos(tipo); }
+function costosCancelarEdicion(tipo){ costosForm[tipo]=cgBlankForm(); costosForm[tipo].centroDistribucion=(costosData[tipo]&&cdEnAlcance(costosData[tipo].cd)?costosData[tipo].cd:cdList()[0]); renderCostos(tipo); }
 // ── Inventariar un documento de Costos/Gastos ──────────────────────────────
 // Abre un modal que registra la factura como ítem de Inventario (Producción),
 // guardando el vínculo con el documento. Según la sección elegida, cambian los
@@ -12057,7 +12067,7 @@ async function loadCostos(tipo){
   cgPeriodBarRender(tipo);
   const body=document.getElementById(cfg.bodyId); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   try{
-    const cdSel=costosForm[tipo].centroDistribucion||CD_DEFAULT;
+    const cdSel=cdEnAlcance(costosForm[tipo].centroDistribucion)?costosForm[tipo].centroDistribucion:cdList()[0];
     const qs=finRangeQS(cfg.prefix);
     const r=await fetch('/admin/costos?tipo='+tipo+'&cd='+cdSel+(qs?'&'+qs:'')); const d=await r.json();
     if(d.error) throw new Error(d.error);
@@ -12165,7 +12175,7 @@ function renderCostos(tipo){
       <td>${e.adjunto&&e.adjunto.url?`<a class="cg-doc-link" href="${escapeAttr(e.adjunto.url)}" target="_blank" title="${escapeAttr(e.adjunto.name||'documento')}">📎 ver</a>`:'<span style="color:#ccc">—</span>'}</td>
       <td style="white-space:nowrap">${e.origenId?'':`<button class="pv-edit" data-cginv="${e.id}" data-cgtipo="${tipo}" title="Inventariar este documento">📦</button><button class="pv-edit" data-cgedit="${e.id}" data-cgtipo="${tipo}" title="Editar">✏️</button>`}<button class="pv-del" data-cgdel="${e.id}" data-cgtipo="${tipo}" title="Eliminar">✕</button></td>
     </tr>`;}).join('');
-  const cdOpts=CD_IDS.map(c=>`<option value="${c}" ${f.centroDistribucion===c?'selected':''}>${escapeHtml(CD_LBL[c])}</option>`).join('');
+  const cdOpts=cdList().map(c=>`<option value="${c}" ${f.centroDistribucion===c?'selected':''}>${escapeHtml(CD_LBL[c])}</option>`).join('');
   body.innerHTML=`
     <div class="cg-form cg-cd-bar">
       <label class="cg-field"><span>Centro de Distribución</span><select id="${cgId(tipo,'CD')}">${cdOpts}</select></label>
@@ -12188,7 +12198,7 @@ function renderCostos(tipo){
         <label class="cg-field"><span>Valor ($)</span><input type="text" inputmode="numeric" id="${cgId(tipo,'Valor')}" value="${escapeAttr(f.valor)}" placeholder="0"></label>
         ${cfg.pctTotal?`<label class="cg-field"><span>Porcentaje del total (opcional)</span><input type="number" min="1" max="100" step="0.1" id="${cgId(tipo,'PctTotal')}" value="${escapeAttr(f.pctTotal)}" placeholder="Ej: 60 si la factura es compartida"></label>`:''}
         ${cfg.pctTotal?(()=>{
-          const otrosCd=CD_IDS.filter(c=>c!==f.centroDistribucion);
+          const otrosCd=cdList().filter(c=>c!==f.centroDistribucion);
           const restante=f.pctTotal?Math.round((100-Number(f.pctTotal))*10)/10:null;
           const porCada=(restante!=null&&f.centrosCosto.length)?Math.round(restante/f.centrosCosto.length*10)/10:null;
           const hint=porCada!=null?`El ${restante}% restante se registra solo, automáticamente, en los libros de cada CD marcada (${porCada}% cada una si marcás más de una) — no hace falta cargar el documento de nuevo ahí.`:'';
@@ -12305,7 +12315,7 @@ async function costosAgregar(tipo){
     try{
       const r=await fetch('/admin/costos/entrada/'+encodeURIComponent(f.editId),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
       const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
-      costosForm[tipo]=cgBlankForm(); costosForm[tipo].centroDistribucion=(costosData[tipo]&&costosData[tipo].cd)||CD_DEFAULT;
+      costosForm[tipo]=cgBlankForm(); costosForm[tipo].centroDistribucion=(costosData[tipo]&&cdEnAlcance(costosData[tipo].cd)?costosData[tipo].cd:cdList()[0]);
       await loadCostos(tipo); showToast('Cambios guardados ✓','ok');
     }catch(err){ costosShowErr(tipo,String(err.message||err)); }
     return;
@@ -12704,7 +12714,7 @@ async function loadPnl(){
   const body=document.getElementById('pnlBody'); body.innerHTML='<div class="adm-loading">Cargando…</div>';
   const cdSel=document.getElementById('pnlCd');
   try{
-    if(cdSel && !cdSel.options.length) cdSel.innerHTML=CD_IDS.map(c=>`<option value="${c}">${escapeHtml(CD_LBL[c])}</option>`).join('');
+    if(cdSel && cdSel.dataset.scope!==String(cdScope)) { cdSel.innerHTML=cdList().map(c=>`<option value="${c}">${escapeHtml(CD_LBL[c])}</option>`).join(''); cdSel.dataset.scope=String(cdScope); if(!cdEnAlcance(cdSel.value)) cdSel.value=cdList()[0]; }
     const f=document.getElementById('pnlFrom'), t=document.getElementById('pnlTo');
     if(f&&t&&!f.value&&!t.value){ const r=finMonthRange(); f.value=r.from; t.value=r.to; }
     const mes=pnlMesActual(); const qs=finRangeQS('pnl'); const cd=(cdSel&&cdSel.value)||CD_DEFAULT;
@@ -12762,7 +12772,10 @@ function renderPnl(){
     <div class="pnl-topbar">${toggle}${proy?`<span class="pnl-proj-note">Simulación: los gastos estructurales replican el total de <b>${escapeHtml(a.mesReplicadoLabel||'')}</b>. No modifica datos guardados.</span>`:''}</div>
     <div class="est-top">
       <div class="est-total-box ${a.ebitda>=0?'':'pnl-box-red'} ${proy?'pnl-proj-box':''}"><div class="est-total-l">Resultado del mes (EBITDA)${proy?' '+PROJTAG:''}</div><div class="est-total-v">${eM(a.ebitda)}</div><div class="est-delta">${rt.ebitda}% sobre ventas</div></div>
-      <div class="est-note">Se calcula con los <b>ingresos por venta</b> automáticos de Shopify menos los <b>costos y gastos</b> registrados en Costos y en Gastos, imputados por categoría. Los porcentajes son sobre la venta total.</div>
+      <div class="est-note">${a.ingresosDeCaja
+        ? 'Se calcula con los <b>ingresos por venta</b> de los <b>cierres de caja</b> cargados en Hospitality › Ingresos, menos los <b>costos y gastos</b> registrados en Costos y en Gastos para este centro. Los porcentajes son sobre la venta total.'
+        : 'Se calcula con los <b>ingresos por venta</b> automáticos de Shopify menos los <b>costos y gastos</b> registrados en Costos y en Gastos, imputados por categoría. Los porcentajes son sobre la venta total.'}</div>
+      ${a.ingresosDeCaja ? '<div class="est-note" style="color:#8a6d00;background:#fff8e6;border:1px solid #f2e3b8;border-radius:10px;padding:.5rem .8rem;margin-top:.4rem">⚠️ El <b>gasto de personal</b> viene de Gestión de Personas y todavía no está repartido por centro: se muestra el total de la empresa, así que el EBITDA de este restaurante no es comparable hasta que se impute la nómina por CD.</div>' : ''}
     </div>
     <div class="mun-wrap"><table class="mun-table pnl-table"><tbody>
       ${line('INGRESOS POR VENTA', ing.total, {pctv:100})}
@@ -16417,10 +16430,171 @@ function ccUnitsWire(){
 // shell madre inert mientras está abierto, y "← Kairos Company" lo revierte
 // sin recargar la página (la sesión sigue siendo la misma cookie de siempre).
 // ═══════════════════════════════════════════════════════════════════════════
+// Las secciones de Finanzas NO se reconstruyen: son los MISMOS paneles del
+// perfil madre (#costosView, #gastosView, #pnlView). Se los toma prestados
+// moviendo el nodo al área de Hospitality y se devuelven al salir, así toda la
+// lógica que ya existía (proyección, objetivos, Excel, período) sigue igual —
+// lo único que cambia es que el selector de centro se acota a los 3
+// restaurantes (cdScope).
 const HOSP_NAV = [
   { id: 'rendimientos', label: 'Rendimientos', icon: '🥩' },
-  // Próximas secciones de Hospitality van acá — la nav ya está lista para sumarlas.
+  { id: 'ingresos', label: 'Ingresos', icon: '💰' },
+  { id: 'costos', label: 'Costos', icon: '🌱', vista: 'costosView', abrir: () => loadCostos('costo') },
+  { id: 'gastos', label: 'Gastos', icon: '🧾', vista: 'gastosView', abrir: () => loadCostos('gasto') },
+  { id: 'eerr', label: 'Estado de Resultado', icon: '📈', vista: 'pnlView', abrir: () => loadPnl() },
 ];
+// ── Hospitality › Ingresos (cierre de caja) ──────────────────────────────────
+// Carga manual: un cierre por local y día, con el desglose por forma de pago.
+// El TOTAL no se digita — se suma solo de las filas. Ese total es el que toma
+// el Estado de Resultado de ese centro como ingreso del período.
+let hospIngData = null;
+let hospIngForm = { editId: null, restaurante: '', fecha: '', montos: {}, trans: {} };
+async function hospIngLoad(){
+  const box = document.getElementById('hospIngresosView'); if (!box) return;
+  if (!hospIngData) box.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const r = await fetch('/admin/hospitality/ingresos');
+    const d = await r.json(); if (d.error) throw new Error(d.error);
+    hospIngData = d;
+    if (!hospIngForm.restaurante) hospIngForm.restaurante = (d.cds[0] || {}).id || '';
+    hospIngRender();
+  } catch (e) { box.innerHTML = `<div class="adm-empty">Error: ${escapeHtml(String(e.message || e))}</div>`; }
+}
+const hospIngTotal = () => (hospIngData ? hospIngData.formasPago : []).reduce((a, f) => a + (Number(hospIngForm.montos[f]) || 0), 0);
+const hospIngTrans = () => (hospIngData ? hospIngData.formasPago : []).reduce((a, f) => a + (Number(hospIngForm.trans[f]) || 0), 0);
+function hospIngRender(){
+  const box = document.getElementById('hospIngresosView'); if (!box || !hospIngData) return;
+  const d = hospIngData, f = hospIngForm;
+  const cdOpts = d.cds.map(c => `<option value="${c.id}" ${f.restaurante === c.id ? 'selected' : ''}>${escapeHtml(c.label)}</option>`).join('');
+  const filas = d.formasPago.map(fp => `<tr>
+    <td>${escapeHtml(fp)}</td>
+    <td class="dist-num"><input class="hi-in" data-hitr="${escapeAttr(fp)}" inputmode="numeric" value="${escapeAttr(f.trans[fp] != null ? f.trans[fp] : '')}" placeholder="0"></td>
+    <td class="dist-num"><input class="hi-in" data-himo="${escapeAttr(fp)}" inputmode="numeric" value="${escapeAttr(f.montos[fp] != null ? f.montos[fp] : '')}" placeholder="0"></td>
+  </tr>`).join('');
+  const editando = !!f.editId;
+  const rows = (d.cierres || []).map(c => `<tr>
+    <td>${escapeHtml(c.fecha)}</td>
+    <td>${escapeHtml((d.cds.find(x => x.id === c.restaurante) || {}).label || c.restaurante)}</td>
+    <td class="dist-num">${(c.transacciones || 0).toLocaleString('es-CL')}</td>
+    <td class="dist-num"><b>${eM(c.total)}</b></td>
+    <td style="font-size:.72rem;color:var(--muted)">${(c.formas || []).map(x => escapeHtml(x.forma) + ' ' + eM(x.monto)).join(' · ')}</td>
+    <td style="font-size:.7rem;color:var(--muted)">${escapeHtml(c.creadoPor || '—')}<div>${c.actualizadoEn ? escapeHtml(new Date(c.actualizadoEn).toLocaleString('es-CL')) : ''}</div></td>
+    <td><button class="adm-btn adm-btn-ghost" data-hiedit="${c.id}" type="button" style="font-size:.7rem">Editar</button>
+        <button class="adm-btn adm-btn-ghost" data-hidel="${c.id}" type="button" style="font-size:.7rem">✕</button></td>
+  </tr>`).join('');
+  box.innerHTML = `
+  <div class="adm-panel">
+    <div class="adm-panel-head"><div>
+      <div class="adm-panel-title">Ingresos · Cierre de caja</div>
+      <div class="adm-panel-meta">carga manual por local y día · el total alimenta el Estado de Resultado de ese centro</div>
+    </div></div>
+    <div class="cg-form-title">${editando ? 'Editando el cierre' : 'Registrar cierre'}</div>
+    <div style="display:flex;gap:.7rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:.6rem">
+      <label class="cg-field" style="min-width:230px"><span>Restaurante</span><select id="hiCd" class="costeo-svc">${cdOpts}</select></label>
+      <label class="cg-field" style="min-width:160px"><span>Fecha del cierre</span><input type="date" id="hiFecha" value="${escapeAttr(f.fecha)}"></label>
+    </div>
+    <div class="mun-wrap" style="max-width:560px"><table class="mun-table">
+      <thead><tr><th>Forma de pago</th><th style="text-align:right">Transacciones</th><th style="text-align:right">Monto ($)</th></tr></thead>
+      <tbody>${filas}</tbody>
+      <tfoot><tr>
+        <td><b>TOTAL</b><div style="font-size:.7rem;color:var(--muted)">se calcula solo</div></td>
+        <td class="dist-num"><b id="hiTotTr">${hospIngTrans().toLocaleString('es-CL')}</b></td>
+        <td class="dist-num"><b id="hiTot" style="font-size:1.05rem">${eM(hospIngTotal())}</b></td>
+      </tr></tfoot>
+    </table></div>
+    <div style="display:flex;gap:.6rem;margin-top:.7rem;flex-wrap:wrap">
+      <button class="adm-btn adm-btn-gold" id="hiSave" type="button">${editando ? 'Guardar cambios' : 'Guardar cierre'}</button>
+      ${editando ? '<button class="adm-btn adm-btn-ghost" id="hiCancel" type="button">Cancelar</button>' : ''}
+      <button class="adm-btn adm-btn-ghost" id="hiFormas" type="button">⚙️ Formas de pago</button>
+    </div>
+    <div class="est-note" id="hiMsg" style="margin-top:.5rem"></div>
+  </div>
+  <div class="adm-panel">
+    <div class="adm-panel-head"><div><div class="adm-panel-title" style="font-size:1.05rem">Cierres cargados</div>
+      <div class="adm-panel-meta">${(d.cierres || []).length} cierre${(d.cierres || []).length === 1 ? '' : 's'} · total ${eM(d.total)}</div></div></div>
+    ${rows ? `<div class="mun-wrap"><table class="mun-table"><thead><tr><th>Fecha</th><th>Restaurante</th><th style="text-align:right">Trans.</th><th style="text-align:right">Total</th><th>Desglose</th><th>Cargado por</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+      : '<div class="adm-empty">Todavía no hay cierres cargados.</div>'}
+  </div>`;
+  const g = id => document.getElementById(id);
+  g('hiCd').onchange = () => { f.restaurante = g('hiCd').value; };
+  g('hiFecha').onchange = () => { f.fecha = g('hiFecha').value; };
+  box.querySelectorAll('[data-himo]').forEach(i => i.oninput = () => { f.montos[i.dataset.himo] = i.value.replace(/[^\d]/g, ''); i.value = f.montos[i.dataset.himo]; hospIngTotales(); });
+  box.querySelectorAll('[data-hitr]').forEach(i => i.oninput = () => { f.trans[i.dataset.hitr] = i.value.replace(/[^\d]/g, ''); i.value = f.trans[i.dataset.hitr]; hospIngTotales(); });
+  g('hiSave').onclick = hospIngGuardar;
+  if (g('hiCancel')) g('hiCancel').onclick = () => { hospIngForm = { editId: null, restaurante: f.restaurante, fecha: '', montos: {}, trans: {} }; hospIngRender(); };
+  g('hiFormas').onclick = hospIngConfigFormas;
+  box.querySelectorAll('[data-hiedit]').forEach(b => b.onclick = () => hospIngEditar(b.dataset.hiedit));
+  box.querySelectorAll('[data-hidel]').forEach(b => b.onclick = () => hospIngBorrar(b.dataset.hidel));
+}
+function hospIngTotales(){
+  const t = document.getElementById('hiTot'); if (t) t.textContent = eM(hospIngTotal());
+  const tr = document.getElementById('hiTotTr'); if (tr) tr.textContent = hospIngTrans().toLocaleString('es-CL');
+}
+function hospIngEditar(id){
+  const c = (hospIngData.cierres || []).find(x => x.id === id); if (!c) return;
+  hospIngForm = { editId: c.id, restaurante: c.restaurante, fecha: c.fecha, montos: {}, trans: {} };
+  (c.formas || []).forEach(x => { hospIngForm.montos[x.forma] = String(x.monto); hospIngForm.trans[x.forma] = String(x.transacciones); });
+  hospIngRender();
+  document.getElementById('hospIngresosView').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+async function hospIngBorrar(id){
+  if (!confirm('¿Borrar este cierre de caja? El ingreso deja de contar en el Estado de Resultado.')) return;
+  const r = await fetch('/admin/hospitality/ingresos/' + encodeURIComponent(id), { method: 'DELETE' });
+  if (!r.ok) { alert('No se pudo borrar.'); return; }
+  hospIngData = null; hospIngLoad();
+}
+async function hospIngGuardar(){
+  const f = hospIngForm, msg = document.getElementById('hiMsg');
+  const formas = (hospIngData.formasPago || []).map(fp => ({ forma: fp, monto: Number(f.montos[fp]) || 0, transacciones: Number(f.trans[fp]) || 0 }));
+  const payload = { restaurante: f.restaurante || document.getElementById('hiCd').value, fecha: f.fecha || document.getElementById('hiFecha').value, formas };
+  if (!payload.fecha) { msg.innerHTML = '<span style="color:#c0392b">Elegí la fecha del cierre.</span>'; return; }
+  const url = f.editId ? '/admin/hospitality/ingresos/' + encodeURIComponent(f.editId) : '/admin/hospitality/ingresos';
+  const r = await fetch(url, { method: f.editId ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  const d = await r.json().catch(() => ({}));
+  if (r.status === 409 && d.existente) {
+    // Candado anti-duplicado: en vez de crear otro, se abre el que ya existe.
+    hospIngData.cierres = hospIngData.cierres.some(x => x.id === d.existente.id) ? hospIngData.cierres : [d.existente, ...hospIngData.cierres];
+    hospIngEditar(d.existente.id);
+    // El aviso va DESPUÉS del re-render: hospIngEditar() redibuja el panel y se
+    // llevaba puesto el mensaje.
+    const m = document.getElementById('hiMsg');
+    if (m) m.innerHTML = `<span style="color:#8a6d00">⚠ ${escapeHtml(d.error)} Se abrió para editarlo — corregí y guardá los cambios.</span>`;
+    return;
+  }
+  if (!r.ok || d.error) { msg.innerHTML = `<span style="color:#c0392b">${escapeHtml(d.error || 'No se pudo guardar.')}</span>`; return; }
+  hospIngForm = { editId: null, restaurante: payload.restaurante, fecha: '', montos: {}, trans: {} };
+  hospIngData = null;
+  await hospIngLoad();
+  const m2 = document.getElementById('hiMsg'); if (m2) m2.innerHTML = '<span style="color:#1f8a70">✓ Cierre guardado. Ya cuenta como ingreso en el Estado de Resultado de ese centro.</span>';
+}
+async function hospIngConfigFormas(){
+  const actual = (hospIngData.formasPago || []).join(', ');
+  const v = prompt('Formas de pago, separadas por coma:', actual);
+  if (v == null) return;
+  const formasPago = v.split(',').map(x => x.trim()).filter(Boolean);
+  const r = await fetch('/admin/hospitality/ingresos/config/formas', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ formasPago }) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || d.error) { alert(d.error || 'No se pudo guardar.'); return; }
+  hospIngData = null; hospIngLoad();
+}
+// Panel del perfil madre tomado prestado: se guarda de dónde salió para poder
+// devolverlo exactamente al mismo lugar.
+let hospPrestado = null;
+function hospDevolverPanel(){
+  if (!hospPrestado) return;
+  const { node, parent, next } = hospPrestado;
+  node.style.display = 'none';
+  try { parent.insertBefore(node, next); } catch { parent.appendChild(node); }
+  hospPrestado = null;
+}
+function hospTomarPanel(id){
+  hospDevolverPanel();
+  const node = document.getElementById(id); if (!node) return null;
+  hospPrestado = { node, parent: node.parentNode, next: node.nextSibling };
+  document.getElementById('hospContent').appendChild(node);
+  node.style.display = '';
+  return node;
+}
 let hospActiveSeccion = 'rendimientos';
 let hospBooted = false;
 function hospEnter(){
@@ -16429,12 +16603,15 @@ function hospEnter(){
   if (gate) gate.style.display = 'none';
   ccGateSetInert(true);
   document.body.classList.add('hosp-open');
+  cdScope = CD_HOSPITALITY; // los selectores de centro se acotan a los 3 restaurantes
   const shell = document.getElementById('hospShell');
   if (shell) shell.style.display = '';
   if (!hospBooted) { hospRenderSidebar(); hospWireShell(); hospBooted = true; }
   hospSelectSeccion(hospActiveSeccion);
 }
 function hospBackToGate(){
+  hospDevolverPanel();       // los paneles prestados vuelven al perfil madre
+  cdScope = null;            // y el selector de centro vuelve a ofrecer todos
   const shell = document.getElementById('hospShell');
   if (shell) shell.style.display = 'none';
   document.body.classList.remove('hosp-open');
@@ -16454,10 +16631,14 @@ function hospRenderSidebar(){
 function hospSelectSeccion(id){
   hospActiveSeccion = id;
   document.querySelectorAll('#hospNav .hosp-nav-i').forEach(b => b.classList.toggle('on', b.dataset.id === id));
-  const crumb = document.getElementById('hospCrumb');
   const sec = HOSP_NAV.find(s => s.id === id);
+  const crumb = document.getElementById('hospCrumb');
   if (crumb) crumb.textContent = sec ? sec.label : '';
-  if (id === 'rendimientos') hospRendLoad();
+  hospDevolverPanel();
+  ['hospRendimientosView', 'hospIngresosView'].forEach(v => { const el = document.getElementById(v); if (el) el.style.display = 'none'; });
+  if (sec && sec.vista) { hospTomarPanel(sec.vista); sec.abrir(); return; }
+  if (id === 'rendimientos') { const el = document.getElementById('hospRendimientosView'); if (el) el.style.display = ''; hospRendLoad(); return; }
+  if (id === 'ingresos') { const el = document.getElementById('hospIngresosView'); if (el) el.style.display = ''; hospIngLoad(); }
 }
 
 // ── Rendimientos: modelo de datos en server.js (GET/POST /admin/hospitality/

@@ -5234,7 +5234,12 @@ async function pnlCompute(month, rango, cdSel){
   const nc = notasCreditoDelMes(month, rango);
   const anul = anulacionesDelMes(month, rango);
   const catTot = (id) => ((rs.porCategoria[id] || { total: 0 }).total) + (bol[id] || 0) + (nc.costo[id] || 0);
-  const ingresos = est.totalIngresos - (nc.ingreso || 0) - (anul.ingreso || 0);
+  // Ingresos del centro. Los 3 CD de restaurante NO venden por Shopify: su
+  // ingreso son los cierres de caja cargados a mano (Hospitality › Ingresos).
+  // Para el resto (cd_kairos) queda exactamente como estaba.
+  const esHosp = esCdHospitality(cdFiltro);
+  const ingresosBrutos = esHosp ? hospIngresosPeriodo(cdFiltro, month, rango) : est.totalIngresos;
+  const ingresos = ingresosBrutos - (nc.ingreso || 0) - (anul.ingreso || 0);
   const costoDirecto = catTot('costo_directo'), costoIndirecto = catTot('costo_indirecto');
   const gastosOper = catTot('gastos_operativos'), gastosAdmin = catTot('gastos_admin_venta');
   const gastosMarketing = catTot('marketing_publicidad'), activos = catTot('activos_fijos');
@@ -5244,13 +5249,19 @@ async function pnlCompute(month, rango, cdSel){
   const ratio = (v) => ingresos ? Math.round((v / ingresos) * 1000) / 10 : 0;
   const i = est.ingresos;
   return {
-    month, shopifyOk: est.shopifyOk, cd: cdFiltro, ingresosSegmentados: cdFiltro === CD_DEFAULT,
-    ingresos: { total: ingresos, canales: {
-      horeca: i.horeca.total,
-      online: i.ventas_web.cobrado,
-      retail: (i.retail != null ? i.retail : 0),
-      hospitality: i.hospitality.total,
-    } },
+    month, shopifyOk: est.shopifyOk, cd: cdFiltro,
+    // Con cierres de caja el ingreso SÍ es el de este centro; para los demás CD
+    // que no son cd_kairos sigue sin estar segmentado.
+    ingresosSegmentados: cdFiltro === CD_DEFAULT || esHosp,
+    ingresosDeCaja: esHosp,
+    ingresos: { total: ingresos, canales: esHosp
+      ? { horeca: 0, online: 0, retail: 0, hospitality: ingresosBrutos }
+      : {
+        horeca: i.horeca.total,
+        online: i.ventas_web.cobrado,
+        retail: (i.retail != null ? i.retail : 0),
+        hospitality: i.hospitality.total,
+      } },
     costos: { costoDirecto, costoIndirecto, gastosOper, gastosAdmin, gastosMarketing, gastoPersonal, activos },
     docs: Object.fromEntries(Object.entries(rs.porCategoria).map(([k, v]) => [k, v.n])),
     ajustes: { ncIngreso: nc.ingreso || 0, ncCosto: nc.costo, boletas: bol, anulaciones: anul.ingreso || 0 }, // NC + boletas + anulaciones de transacción
@@ -15111,6 +15122,137 @@ app.put('/admin/customers/:id/channels', requireAdmin, (req, res) => {
 // etapa posterior — el POST de abajo ya es el contrato de datos funcional
 // para que esa app se conecte sin fricción cuando se construya.
 // ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// HOSPITALITY · INGRESOS por cierre de caja
+// Los restaurantes venden en caja, no por Shopify, así que el ingreso se carga
+// a mano: un cierre por local y día, con el desglose por forma de pago. El
+// TOTAL nunca se digita — se suma de las formas de pago.
+// El total de estos cierres es lo que consume el Estado de Resultado como
+// "ingresos" de ese centro (ver pnlCompute): mismo mecanismo que ya existía,
+// solo cambia de dónde sale la cifra para estos 3 CD.
+// ═══════════════════════════════════════════════════════════════════════════
+// Los 3 centros de restaurante. cd_kairos NO está: el perfil madre queda igual.
+const HOSP_CD_IDS = ['garden_antofagasta', 'garden_vespucio', 'badass'];
+const esCdHospitality = (cd) => HOSP_CD_IDS.includes(String(cd || ''));
+const HOSP_INGRESOS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'hosp-ingresos.json');
+const HOSP_FORMAS_PAGO_DEFAULT = ['CMR', 'Débito', 'Crédito', 'Efectivo'];
+function hospIngLoad(){
+  let d = { formasPago: [...HOSP_FORMAS_PAGO_DEFAULT], cierres: [] };
+  try {
+    if (existsSync(HOSP_INGRESOS_FILE)) {
+      const p = JSON.parse(readFileSync(HOSP_INGRESOS_FILE, 'utf-8'));
+      if (Array.isArray(p.formasPago) && p.formasPago.length) d.formasPago = p.formasPago;
+      if (Array.isArray(p.cierres)) d.cierres = p.cierres;
+    }
+  } catch (e) { console.warn('hosp ingresos load:', e.message); }
+  return d;
+}
+function hospIngSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(HOSP_INGRESOS_FILE, JSON.stringify(d, null, 2)); }
+const hospIngUsuario = (req) => { const s = adminSessionFor(req); return (s && s.username) || 'sin sesión'; };
+// Normaliza el desglose y calcula el total. El total SIEMPRE sale de acá: si el
+// cliente manda uno, se ignora.
+function hospIngNormalizarFormas(raw){
+  const out = [];
+  for (const f of (Array.isArray(raw) ? raw : [])) {
+    const forma = String((f && f.forma) || '').trim().slice(0, 40);
+    if (!forma) continue;
+    const monto = Math.round(Number((f && f.monto) || 0));
+    const transacciones = Math.round(Number((f && f.transacciones) || 0));
+    if (!Number.isFinite(monto) || monto < 0) return { error: `Monto inválido en "${forma}".` };
+    if (!Number.isFinite(transacciones) || transacciones < 0) return { error: `Cantidad de transacciones inválida en "${forma}".` };
+    if (!monto && !transacciones) continue; // fila vacía: se ignora
+    out.push({ forma, transacciones, monto });
+  }
+  if (!out.length) return { error: 'Cargá al menos una forma de pago con monto.' };
+  return { formas: out, total: out.reduce((a, f) => a + f.monto, 0), transacciones: out.reduce((a, f) => a + f.transacciones, 0) };
+}
+// Candado anti-duplicado: un solo cierre por (restaurante + fecha).
+const hospIngExistente = (d, cd, fecha, exceptoId) => (d.cierres || []).find(c => c.restaurante === cd && c.fecha === fecha && c.id !== exceptoId);
+// Total de cierres de un CD en un mes o rango — lo que consume el EERR.
+function hospIngresosPeriodo(cd, month, rango){
+  const d = hospIngLoad();
+  return (d.cierres || [])
+    .filter(c => c.restaurante === cd)
+    .filter(c => (rango && rango.from && rango.to) ? (c.fecha >= rango.from && c.fecha <= rango.to) : (String(c.fecha).slice(0, 7) === month))
+    .reduce((a, c) => a + (Number(c.total) || 0), 0);
+}
+app.get('/admin/hospitality/ingresos', requireAdmin, (req, res) => {
+  const d = hospIngLoad();
+  const cd = esCdHospitality(req.query.cd) ? String(req.query.cd) : null;
+  const mes = /^\d{4}-\d{2}$/.test(String(req.query.mes)) ? String(req.query.mes) : null;
+  let cierres = d.cierres.slice();
+  if (cd) cierres = cierres.filter(c => c.restaurante === cd);
+  if (mes) cierres = cierres.filter(c => String(c.fecha).slice(0, 7) === mes);
+  cierres.sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+  res.json({
+    formasPago: d.formasPago, cds: CD_LIST.filter(c => esCdHospitality(c.id)),
+    cierres, total: cierres.reduce((a, c) => a + (Number(c.total) || 0), 0),
+    meses: [...new Set(d.cierres.map(c => String(c.fecha).slice(0, 7)))].sort().reverse(),
+  });
+});
+app.post('/admin/hospitality/ingresos', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  if (!esCdHospitality(b.restaurante)) return res.status(400).json({ error: 'Elegí un restaurante.' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(b.fecha || ''))) return res.status(400).json({ error: 'Elegí la fecha del cierre.' });
+  const n = hospIngNormalizarFormas(b.formas);
+  if (n.error) return res.status(400).json({ error: n.error });
+  const d = hospIngLoad();
+  const ya = hospIngExistente(d, b.restaurante, b.fecha);
+  // No se crea un segundo cierre para el mismo día y local: duplicaría el
+  // ingreso en el EERR. Se devuelve el que ya existe para que se edite.
+  if (ya) return res.status(409).json({ error: 'Ya hay un cierre de caja para ese local y esa fecha.', existente: ya });
+  const ahora = new Date().toISOString(), quien = hospIngUsuario(req);
+  const cierre = {
+    id: 'hi_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7),
+    restaurante: b.restaurante, fecha: String(b.fecha),
+    formas: n.formas, total: n.total, transacciones: n.transacciones,
+    origen: 'manual', creadoPor: quien, creadoEn: ahora, actualizadoPor: quien, actualizadoEn: ahora,
+  };
+  d.cierres.push(cierre); hospIngSave(d);
+  res.json({ ok: true, cierre });
+});
+app.put('/admin/hospitality/ingresos/:id', requireAdmin, (req, res) => {
+  const d = hospIngLoad();
+  const c = d.cierres.find(x => x.id === String(req.params.id));
+  if (!c) return res.status(404).json({ error: 'Cierre no encontrado.' });
+  const b = req.body || {};
+  if (b.restaurante !== undefined && !esCdHospitality(b.restaurante)) return res.status(400).json({ error: 'Restaurante inválido.' });
+  const cd = b.restaurante || c.restaurante;
+  const fecha = b.fecha || c.fecha;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(fecha))) return res.status(400).json({ error: 'Fecha inválida.' });
+  if (hospIngExistente(d, cd, fecha, c.id)) return res.status(409).json({ error: 'Ya hay otro cierre para ese local y esa fecha.' });
+  if (b.formas !== undefined) {
+    const n = hospIngNormalizarFormas(b.formas);
+    if (n.error) return res.status(400).json({ error: n.error });
+    c.formas = n.formas; c.total = n.total; c.transacciones = n.transacciones;
+  }
+  c.restaurante = cd; c.fecha = String(fecha);
+  c.actualizadoPor = hospIngUsuario(req); c.actualizadoEn = new Date().toISOString();
+  hospIngSave(d);
+  res.json({ ok: true, cierre: c });
+});
+app.delete('/admin/hospitality/ingresos/:id', requireAdmin, (req, res) => {
+  const d = hospIngLoad();
+  const n = d.cierres.length;
+  d.cierres = d.cierres.filter(x => x.id !== String(req.params.id));
+  if (d.cierres.length === n) return res.status(404).json({ error: 'Cierre no encontrado.' });
+  hospIngSave(d); res.json({ ok: true });
+});
+// Formas de pago configurables (agregar transferencia, delivery, etc.).
+app.put('/admin/hospitality/ingresos/config/formas', requireAdmin, (req, res) => {
+  const arr = Array.isArray((req.body || {}).formasPago) ? req.body.formasPago : null;
+  if (!arr) return res.status(400).json({ error: 'formasPago tiene que ser una lista.' });
+  const vistas = new Set(); const limpio = [];
+  for (const f of arr) {
+    const v = String(f || '').trim().slice(0, 40);
+    if (!v || vistas.has(v.toLowerCase())) continue;
+    vistas.add(v.toLowerCase()); limpio.push(v);
+  }
+  if (!limpio.length) return res.status(400).json({ error: 'Dejá al menos una forma de pago.' });
+  const d = hospIngLoad(); d.formasPago = limpio; hospIngSave(d);
+  res.json({ ok: true, formasPago: limpio });
+});
+
 const HOSP_RENDIMIENTOS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'hosp-rendimientos.json');
 const HOSP_RESTAURANTES = [
   { id: 'kg_antofagasta',       label: 'Kairos Garden Antofagasta' },
