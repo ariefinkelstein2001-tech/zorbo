@@ -15260,6 +15260,17 @@ function hospDesecho(b){
   const d = (Number(b.pesoBrutoKg) || 0) - (Number(b.pesoUtilKg) || 0) - (Number(b.subproductoKg) || 0);
   return Math.max(0, Math.round(d * 1000) / 1000);
 }
+// Detalle de reparto del subproducto por destino (solo lo manda la app para
+// Pescado, cuando el operario asignó al menos un destino). Se sanea acá en
+// vez de confiar en el body: filas sin "uso" o con "kg" inválido se
+// descuelgan solas en vez de tirar abajo el guardado de todo el registro.
+function hospSanitizeDestinos(arr){
+  if (!Array.isArray(arr)) return undefined;
+  const out = arr
+    .map(d => ({ uso: String((d && d.uso) || '').trim(), kg: Number(d && d.kg) }))
+    .filter(d => d.uso && Number.isFinite(d.kg) && d.kg >= 0);
+  return out.length ? out : undefined;
+}
 function hospCrearRegistroDesdeBody(b, data){
   const now = new Date();
   const fecha = /^\d{4}-\d{2}-\d{2}$/.test(b.fecha) ? b.fecha : now.toISOString().slice(0, 10);
@@ -15277,7 +15288,9 @@ function hospCrearRegistroDesdeBody(b, data){
     pesoBrutoKg: Number(b.pesoBrutoKg),
     pesoUtilKg: Number(b.pesoUtilKg),
     subproductoKg: Number(b.subproductoKg),
-    // Para qué se va a usar el subproducto (carne molida, fondo, etc.).
+    // Para qué se va a usar el subproducto (carne molida, fondo, etc.) — en
+    // Pescado, la app manda acá un resumen legible del reparto ("Tártar 3kg,
+    // Relleno 2kg") para que el panel siga mostrando algo sin cambios ahí.
     subproductoDestino: String(b.subproductoDestino || '').trim().slice(0, 80),
     // El desecho NO lo tipea nadie: es lo que sobra del balance de masa. Se
     // calcula acá, no en el cliente, para que el número no dependa de qué
@@ -15287,6 +15300,14 @@ function hospCrearRegistroDesdeBody(b, data){
     turno: hospTurnoDeHora(hora),
     creadoEn: now.toISOString(),
   };
+  // Detalle estructurado del reparto (hoy solo Pescado) — opcional, no
+  // reemplaza subproductoKg/subproductoDestino de arriba, que son los que ya
+  // usan el balance de masa y el panel.
+  if (b.subproducto_total_kg != null && Number.isFinite(Number(b.subproducto_total_kg))) {
+    registro.subproducto_total_kg = Number(b.subproducto_total_kg);
+  }
+  const destinos = hospSanitizeDestinos(b.subproducto_destinos);
+  if (destinos) registro.subproducto_destinos = destinos;
   data.registros.push(registro);
   return registro;
 }
