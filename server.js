@@ -12989,7 +12989,8 @@ function costeoNormalizeCarta(c){
   const bvv = Number.isFinite(c.bvv) ? c.bvv : 0; // versión: la línea del espirituoso en Botellas usa el volumen real de CADA insumo, no un fijo de 750ml
   const glcv = Number.isFinite(c.glcv) ? c.glcv : 0; // versión: Garden — Ron/Pisco/Vodka/Whisky/Bourbon/Gin (+Botella) suman BEBIDA LATA CHICA
   const pcbv = Number.isFinite(c.pcbv) ? c.pcbv : 0; // versión: sembrado de precios reales de Cortos/Botellas de Badass (lista del dueño)
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, secciones, asignaciones };
+  const rai = Number.isFinite(c.rai) ? c.rai : 0; // versión: Badass — Kombucha y Chelas sin alcohol pasan de reventa a trago costeado (insumo propio)
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13726,6 +13727,65 @@ function costeoCervezasKairosMediaPinta(doc, rest){
   doc.carta.ckmv = CERVEZAS_KAIROS_MEDIA_V;
   return true;
 }
+// Badass: Kombucha y Chelas sin alcohol pasan de reventa (precio de compra a
+// mano) a trago costeado, igual que se hizo con las cervezas Kairos — estos
+// productos YA existen como insumo propio con su precio cargado, así que el
+// costo sale de ahí en vez de pedir un precio de compra aparte. Los nombres
+// del insumo no calzan exacto con los del producto de reventa (ej: producto
+// "Kombucha Biloba Zen" → insumo "KOMBUCHA ZEN"; "PAULANER S/ALCOHOL" trae
+// hasta un typo, "MOMENTUN"), por eso el mapeo es explícito por nombre en vez
+// de buscar por coincidencia. Si algún producto no tiene insumo mapeado o no
+// se encuentra, se deja como estaba (no se inventa nada).
+const BADASS_REVENTA_A_INSUMO_SECCIONES = ['Kombucha', 'Chelas sin alcohol'];
+const BADASS_REVENTA_A_INSUMO = {
+  'Kombucha Biloba Zen': 'KOMBUCHA ZEN',
+  'Kombucha Biloba Elixir': 'KOMBUCHA ELIXIR',
+  'Kombucha Biloba Momentum': 'KOMBUCHA MOMENTUN',
+  'Heineken Cero°': 'HEINEKEN S/ALCOHOL',
+  'Weissbier 0,0% Paulaner': 'PAULANER S/ALCOHOL',
+};
+const BADASS_REVENTA_A_INSUMO_V = 1;
+function costeoBadassReventaAInsumo(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.rai >= BADASS_REVENTA_A_INSUMO_V) return false;
+  if (costeoRestKey(rest) !== 'badass') { doc.carta.rai = BADASS_REVENTA_A_INSUMO_V; return true; }
+  costeoSeedReventa(doc, rest);
+  const objetivo = new Set(BADASS_REVENTA_A_INSUMO_SECCIONES.map(costeoNorm));
+  const secsRev = (doc.reventa.secciones || []).filter(s => objetivo.has(costeoNorm(s.nombre)));
+  if (secsRev.length) {
+    const mapaPorNombre = new Map(Object.entries(BADASS_REVENTA_A_INSUMO).map(([k, v]) => [costeoNorm(k), v]));
+    const insByName = new Map((doc.insumos || []).map(i => [costeoNorm(i.descripcion), i]));
+    const platosPorNombre = new Set((doc.platos || []).map(p => costeoNorm(p.nombre)));
+    secsRev.forEach(sr => {
+      const secCarta = (doc.carta.secciones || []).find(s => costeoNorm(s.nombre) === costeoNorm(sr.nombre));
+      const categoria = (secCarta && secCarta.nombre) || sr.nombre;
+      const migrados = new Set();
+      (sr.productos || []).forEach(pr => {
+        const nombre = costeoStr(pr.nombre, 200); if (!nombre) return;
+        const insNombre = mapaPorNombre.get(costeoNorm(nombre));
+        const ins = insNombre && insByName.get(costeoNorm(insNombre));
+        if (!ins) return; // sin mapeo o insumo no encontrado: se deja en reventa, no se inventa nada
+        if (!platosPorNombre.has(costeoNorm(nombre))) {
+          doc.platos.push({
+            id: randomUUID(), nombre, categoria, margenPct: 30, iva: false,
+            precioReal: costeoNumOrNull(pr.precioVenta),
+            lineas: [{ refType: 'insumo', refId: ins.id, cantidad: 1 }],
+          });
+          platosPorNombre.add(costeoNorm(nombre));
+        }
+        migrados.add(costeoNorm(nombre));
+      });
+      if (!(doc.categorias || []).some(c => costeoNorm(c) === costeoNorm(categoria))) doc.categorias.push(categoria);
+      // Solo saca de reventa los productos que sí migraron; si alguno se quedó
+      // sin insumo mapeado, la sección sigue mostrando ESE en reventa.
+      sr.productos = (sr.productos || []).filter(p => !migrados.has(costeoNorm(p.nombre)));
+    });
+    doc.reventa.secciones = (doc.reventa.secciones || []).filter(s => !objetivo.has(costeoNorm(s.nombre)) || s.productos.length);
+  }
+  doc.carta.rai = BADASS_REVENTA_A_INSUMO_V;
+  return true;
+}
 // Garden: los tragos "puros" por espirituoso (Ron, Pisco, Vodka, Whisky,
 // Bourbon, Gin — sin Licores ni Tequila) suman 1 unidad de BEBIDA LATA CHICA
 // a su receta, y sus Botellas (mismas familias, sin Licores/Tequila Botella
@@ -13782,6 +13842,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoFixBotellaVolumen(all[key], rest)) ch = true;
     if (costeoCervezasKairos(all[key], rest)) ch = true;
     if (costeoCervezasKairosMediaPinta(all[key], rest)) ch = true;
+    if (costeoBadassReventaAInsumo(all[key], rest)) ch = true;
     if (costeoGardenLataChica(all[key], rest)) ch = true;
     if (costeoSeedPreciosCortosBotellas(all[key], rest)) ch = true;
   }
