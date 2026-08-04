@@ -3709,7 +3709,7 @@ const CD_EXCEL_REF = {
 const ESTADO_MESES = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const estadoMonthLabel = (m) => { const [y, mo] = String(m).split('-'); return (ESTADO_MESES[+mo] || m) + ' ' + y; };
 // Códigos de descuento con que se marcan las transferencias 100% off.
-const CD_TRANSFER_CODES = { PEDIDOGARDENVSP: 'garden', PEDIDOSBADASSPA: 'badass' };
+const CD_TRANSFER_CODES = { PEDIDOGARDENVSP: 'garden', PEDIDOSBADASSPA: 'badass', PEDIDOSANTOFAGASTA: 'antofagasta' };
 // Diccionario DEFINITIVO código→bucket. Match EXACTO (===), nunca substring:
 // "PEDIDOGARDENVSP" contiene "VSP" pero NO es "PEDIDOSVSP" (Vespucio), y
 // "PEDIDOSBADASSPA" contiene "PA" pero NO es "PEDIDOSPA" (Parque Arauco).
@@ -3718,6 +3718,8 @@ const CD_CODE_MAP = {
   // Transferencias (locales propios)
   PEDIDOGARDENVSP: { bucket: 'transfer', loc: 'garden' },
   PEDIDOSBADASSPA: { bucket: 'transfer', loc: 'badass' },
+  // Kairos Garden Antofagasta: local propio, igual que los otros dos.
+  PEDIDOSANTOFAGASTA: { bucket: 'transfer', loc: 'antofagasta' },
   // Ventas Cruzada (500 Sabores)
   PEDIDOSTOBALABA: { bucket: 'cruzada', pdv: 'Plaza Tobalaba' },
   PEDIDOSVSP: { bucket: 'cruzada', pdv: 'Plaza Vespucio' },
@@ -4100,7 +4102,8 @@ async function cdShopifyMonth(month, precios, rango){
   const estiloUnmapped = new Map();
   const litrosByEstiloGrupo = {};
   const addLitros = (g, e, t, lt) => { litrosByEstiloGrupo[g] = litrosByEstiloGrupo[g] || {}; const k = e + '|' + t; litrosByEstiloGrupo[g][k] = (litrosByEstiloGrupo[g][k] || 0) + lt; };
-  const transfers = { garden: { litros: 0, valor: 0, ordenes: 0, porCodigo: 0, porCliente: 0, pedidos: [] }, badass: { litros: 0, valor: 0, ordenes: 0, porCodigo: 0, porCliente: 0, pedidos: [] } };
+  const tVacio = () => ({ litros: 0, valor: 0, ordenes: 0, porCodigo: 0, porCliente: 0, pedidos: [] });
+  const transfers = { garden: tVacio(), badass: tVacio(), antofagasta: tVacio() };
   const bucket = {
     transferencias: { n: 0, cobrado: 0, original: 0, usa: 'revaluado', pedidos: [] },
     ventas_cruzada: { n: 0, cobrado: 0, original: 0, usa: 'original', pedidos: [] },
@@ -4122,7 +4125,9 @@ async function cdShopifyMonth(month, precios, rango){
     codes.forEach(c => { codesHist[c] = (codesHist[c] || 0) + 1; });
     const cm = cdBucketForCodes(codes);
     const cn = cdNorm(o.customer && o.customer.displayName);
-    const byCust = /kairos garden/.test(cn) ? 'garden' : /badass/.test(cn) ? 'badass' : null;
+    // Antofagasta se evalúa ANTES que el 'kairos garden' genérico: si no, un
+    // cliente "Kairos Garden Antofagasta" caería en Vespucio.
+    const byCust = /antofagasta/.test(cn) ? 'antofagasta' : /kairos garden/.test(cn) ? 'garden' : /badass/.test(cn) ? 'badass' : null;
     let bucketName, transferLocal = null;
     if (cm && cm.bucket === 'transfer') { transferLocal = cm.loc; bucketName = 'transferencias'; transfers[transferLocal].porCodigo++; }
     else if (byCust && !(cm && cm.bucket && cm.bucket !== 'codigo_nuevo')) { transferLocal = byCust; bucketName = 'transferencias'; transfers[transferLocal].porCliente++; }
@@ -4377,18 +4382,35 @@ async function estadoResolve(month, rango){
   const mkTabla = (t) => (t && t.porEstilo || []).map(e => ({ estilo: e.estilo, tipo: e.tipo, precioLt: precios[e.tipo] || precios.cerveza, despachoLt: precios.despacho, litros: e.litros, valor: Math.round(e.litros * (precios[e.tipo] || precios.cerveza) + precios.despacho * e.litros), pct: t.litros ? Math.round((e.litros / t.litros) * 1000) / 10 : 0 }));
   // Seed de transferencias históricas a Garden Antofagasta (pre-Shopify): se suma
   // al garden como si fueran pedidos de Shopify (litros + valor revaluado).
-  const gardenSeed = CD_GARDEN_SEED[month] || [];
+  // Dedupe: si Shopify YA devolvió ese mismo pedido (por número), el seed no se
+  // suma — si no, el mismo despacho contaría dos veces. Importa ahora que
+  // Antofagasta tiene bucket propio: el pedido podía entrar por Shopify a
+  // 'antofagasta' y por el seed a 'garden' sin que se notara.
+  const pedidosShopify = new Set(shOk
+    ? Object.values(sh.transfers).flatMap(t => (t.pedidos || []).map(p => String(p.pedido || '').trim()).filter(Boolean))
+    : []);
+  const gardenSeed = (CD_GARDEN_SEED[month] || []).filter(p => !pedidosShopify.has(String(p.pedido || '').trim()));
   const seedLitros = gardenSeed.reduce((a, p) => a + (p.lineas || []).reduce((s, l) => s + (Number(l.litros) || 0), 0), 0);
   const seedValor = gardenSeed.reduce((a, p) => a + (p.lineas || []).reduce((s, l) => s + (Number(l.litros) || 0) * ((precios[l.tipo] || precios.cerveza) + precios.despacho), 0), 0);
   const gardenValor = (shOk ? sh.transfers.garden.valor : 0) + Math.round(seedValor);
   const badassValor = shOk ? sh.transfers.badass.valor : 0;
   const garden = { litros: cdR3((shOk ? sh.transfers.garden.litros : 0) + seedLitros), valor: gardenValor, tabla: shOk ? mkTabla(sh.transfers.garden) : [], pedidos: [...(shOk ? sh.transfers.garden.pedidos : []), ...gardenSeed] };
   const badass = { litros: shOk ? sh.transfers.badass.litros : 0, valor: badassValor, tabla: shOk ? mkTabla(sh.transfers.badass) : [], pedidos: shOk ? sh.transfers.badass.pedidos : [] };
-  const antofagasta = { litros: antoLitros, valor: antoValor, tabla: antoTabla, manual: per.antofagasta };
+  // Antofagasta: los pedidos que Shopify marca con PEDIDOSANTOFAGASTA, más las
+  // líneas cargadas a mano en el período (la tabla manual que ya existía y hasta
+  // ahora no sumaba a ningún lado).
+  const antoShopifyValor = shOk ? sh.transfers.antofagasta.valor : 0;
+  const antofagasta = {
+    litros: cdR3((shOk ? sh.transfers.antofagasta.litros : 0) + antoLitros),
+    valor: antoShopifyValor + antoValor,
+    tabla: [...(shOk ? mkTabla(sh.transfers.antofagasta) : []), ...antoTabla],
+    pedidos: shOk ? sh.transfers.antofagasta.pedidos : [],
+    manual: per.antofagasta,
+  };
   // 100% automático de Shopify: sin líneas manuales.
   const cdNeto = shCd;
   const cruzTotal = shCruz;
-  const hospitalityTotal = gardenValor + badassValor;
+  const hospitalityTotal = gardenValor + badassValor + antofagasta.valor;
   // ③ Retail = Walmart, 100% automático de Shopify (código PEDIDOSWALMART) +
   // pedidos históricos puntuales inyectados como si vinieran de Shopify.
   const walmartSeed = CD_WALMART_SEED[month] || [];
@@ -4440,7 +4462,7 @@ async function estadoResolve(month, rango){
     cd_kairos: { shopify: shCd, neto: cdNeto, pedidos: shOk ? sh.bucket.cd_kairos_mall.pedidos : [] },
     ventas_cruzada: { shopify: shCruz, total: cruzTotal, pedidos: shOk ? sh.bucket.ventas_cruzada.pedidos : [] },
     horeca,
-    hospitality: { garden, badass, total: hospitalityTotal },
+    hospitality: { garden, badass, antofagasta, total: hospitalityTotal },
     ventas_web: { cobrado: shWeb, n: shOk ? sh.bucket.retail.n : 0, pedidos: webPedidos, porProveedor: webPorProv, proveedores: provKeys, detalleEntrega: !!(cdOrdersTier && cdOrdersTier.key !== 'base'), origenDespacho: !!(cdOrdersTier && (cdOrdersTier.key === 'full' || cdOrdersTier.key === 'loc')) },
     retail,
     walmart: { total: retail, n: walmartPedidos.length, pedidos: walmartPedidos, porProveedor: walmartPorProv, proveedores: wmProvKeys },
@@ -4468,8 +4490,11 @@ async function estadoResolve(month, rango){
   if (histMes && rangoRepresentaElMes) {
     ingresos.horeca = { total: histMes.horeca, milSabores: 0, otros: histMes.horeca, pedidos: [] };
     ingresos.hospitality = {
-      garden: { litros: 0, valor: histMes.hospitalidadDetalle.vespucio + histMes.hospitalidadDetalle.antofagasta, tabla: [], pedidos: [] },
+      garden: { litros: 0, valor: histMes.hospitalidadDetalle.vespucio, tabla: [], pedidos: [] },
       badass: { litros: 0, valor: histMes.hospitalidadDetalle.badass, tabla: [], pedidos: [] },
+      // El histórico ya traía Antofagasta separado; antes se sumaba a Vespucio
+      // porque no había dónde ponerlo.
+      antofagasta: { litros: 0, valor: histMes.hospitalidadDetalle.antofagasta, tabla: [], pedidos: [] },
       total: histMes.hospitalidadTotal,
     };
     ingresos.retail = histMes.retail;
@@ -4609,6 +4634,7 @@ function estadoSheetRows(data, month){
   // ④ Hospitality (locales propios)
   rows.push([SEC('④ HOSPITALITY (locales propios)'), SEC(''), SEC(''), SEC(''), SEC(''), SM(hospitality)]);
   transTable('Garden Vespucio (auto)', i.hospitality.garden);
+  transTable('Garden Antofagasta (auto)', i.hospitality.antofagasta);
   transTable('Badass (auto)', i.hospitality.badass);
   rows.push([SEC('TOTAL INGRESOS'), SEC(''), SEC(''), SEC(''), SEC(''), SM(data.totalIngresos)]);
   if (data.excelRef && data.excelRef.ingresos_total) {
@@ -5952,6 +5978,7 @@ async function opLitrosPorEstiloMes(month, rango){
   try {
     const est = await estadoResolve(month, rango || null);
     (est.ingresos.hospitality.garden.tabla || []).forEach(r => add(r.estilo, r.litros));
+    ((est.ingresos.hospitality.antofagasta || {}).tabla || []).forEach(r => add(r.estilo, r.litros));
     (est.ingresos.hospitality.badass.tabla || []).forEach(r => add(r.estilo, r.litros));
     (est.ingresos.horeca.pedidos || []).forEach(p => (p.detalle || []).forEach(d => add(d.estilo, d.litros)));
   } catch (e) { /* mes sin datos de Shopify: litros quedan en 0 */ }
@@ -6046,6 +6073,7 @@ async function opLitrosPorDiaMarca(month, rango, opEstilos){
     const est = await estadoResolve(month, rango || null);
     (est.ingresos.horeca.pedidos || []).forEach(p => (p.detalle || []).forEach(d => add(p.fecha, d.estilo, d.litros)));
     (est.ingresos.hospitality.garden.pedidos || []).forEach(p => (p.lineas || []).forEach(l => add(p.fecha, l.estilo, l.litros)));
+    (((est.ingresos.hospitality.antofagasta || {}).pedidos) || []).forEach(p => (p.lineas || []).forEach(l => add(p.fecha, l.estilo, l.litros)));
     (est.ingresos.hospitality.badass.pedidos || []).forEach(p => (p.lineas || []).forEach(l => add(p.fecha, l.estilo, l.litros)));
   } catch (e) { /* mes sin datos de Shopify: serie queda vacía */ }
   return serieDia;
@@ -6143,7 +6171,7 @@ async function dashboardCompute(periodo, marcaFiltro){
     const lt = Number(l.litros) || 0;
     ventaPorMarca[m] += lt * (est.precios[l.tipo] || est.precios.cerveza) + est.precios.despacho * lt;
   }));
-  addHospPedidos(est.ingresos.hospitality.garden.pedidos); addHospPedidos(est.ingresos.hospitality.badass.pedidos);
+  addHospPedidos(est.ingresos.hospitality.garden.pedidos); addHospPedidos((est.ingresos.hospitality.antofagasta || {}).pedidos); addHospPedidos(est.ingresos.hospitality.badass.pedidos);
   // Litros por marca (HORECA + Hospitality): se suma directamente la serie diaria ya
   // calculada (misma fuente pedido a pedido, incluye seeds pre-Shopify).
   const litrosPorMarca = { kairos: 0, banny: 0, firulais: 0, sinMapear: 0 };
