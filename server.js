@@ -13009,7 +13009,8 @@ function costeoNormalizeCarta(c){
   const grlv = Number.isFinite(c.grlv) ? c.grlv : 0; // versión: Garden — se sacan de la Reventa suelta las categorías que ya están duplicadas como plato costeado
   const gav = Number.isFinite(c.gav) ? c.gav : 0; // versión: Badass — Gaseosas pasa de reventa a trago costeado (insumo propio)
   const gtv = Number.isFinite(c.gtv) ? c.gtv : 0; // versión: Badass — los tragos de Gaseosas se recategorizan a "Para Tomar 0.0" (la categoría "Gaseosas" no tenía sección propia en Carta resumen y quedaban en "sin asignar")
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, gav, gtv, secciones, asignaciones };
+  const cbfv = Number.isFinite(c.cbfv) ? c.cbfv : 0; // versión: Badass — Cortos/Botellas se recategorizan por familia de espirituoso (Ron/Pisco/Vodka/Whisky/Bourbon/Gin/Licores/Tequila), igual que Garden
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, gav, gtv, cbfv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13650,6 +13651,62 @@ function costeoSeedPreciosCortosBotellas(doc, rest){
   doc.carta.pcbv = PRECIO_CORTOS_BOTELLAS_V;
   return true;
 }
+// Badass: Cortos y Botellas estaban en un solo bucket genérico por sección
+// ("Cortos"/"Botellas"), sin separar por tipo de espirituoso — a diferencia de
+// Garden, que ya traía esa separación desde el Excel original (Ron/Pisco/
+// Vodka/Whisky/Bourbon/Gin/Licores/Tequila, y sus "* Botella"). A pedido del
+// dueño (prefiere el estilo de Garden), Badass se recategoriza igual: cada
+// Corto pasa de "Cortos" a la categoría de su familia, y cada Botella de
+// "Botellas" a "<Familia> Botella". La familia sale del campo "familia" que
+// YA viene en costeo-barra-seed-badass.json (el mismo dato que
+// costeoSeedCortosBarra usa para el insumo, hasta ahora sin usar para
+// categorizar). El seed de Badass junta Whisky+Bourbon en una sola familia
+// "Whisky" (19 marcas); Garden sí los separa, así que las mismas 6 marcas que
+// Garden clasifica como Bourbon (los 4 Jack Daniels, Jim Beam Bourbon,
+// Bulliet Bourbon) se separan también acá para quedar igual. Las secciones
+// "Cortos"/"Botellas" NO se borran (podrían tener una reasignación manual
+// apuntando a esos ids); quedan vacías, sin platos. Corre una sola vez por
+// doc de barra (carta.cbfv), solo Badass.
+const BADASS_CORTO_BOURBON_REFS = new Set([
+  'JACK DANIELS GENTLEMAN', 'JACK DANIELS OLD 7', 'JACK DANIELS HONEY', 'JACK DANIELS APPLE',
+  'JIM BEAM BOURBON', 'BULLIET BOURBON',
+].map(costeoNorm));
+const BADASS_CORTOS_BOTELLAS_FAMILIA_V = 1;
+function costeoBadassCortosBotellasPorFamilia(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.cbfv >= BADASS_CORTOS_BOTELLAS_FAMILIA_V) return false;
+  if (costeoRestKey(rest) !== 'badass') { doc.carta.cbfv = BADASS_CORTOS_BOTELLAS_FAMILIA_V; return true; }
+  let seed; try { seed = JSON.parse(readFileSync(join(__dirname, costeoBarraSeedFile(rest)), 'utf-8')); } catch { seed = null; }
+  const productos = (seed && seed.cortos && Array.isArray(seed.cortos.productos)) ? seed.cortos.productos : [];
+  if (!productos.length) { doc.carta.cbfv = BADASS_CORTOS_BOTELLAS_FAMILIA_V; return true; }
+  const familiaPorMarca = new Map();
+  productos.forEach(cp => {
+    const nombreCorto = costeoStr(cp.nombre, 200); if (!nombreCorto) return;
+    const marca = nombreCorto.replace(/\s+corto\s*$/i, '');
+    let fam = costeoStr(cp.familia, 60) || 'Otros';
+    if (fam === 'Whisky' && BADASS_CORTO_BOURBON_REFS.has(costeoNorm(cp.ref || ''))) fam = 'Bourbon';
+    familiaPorMarca.set(costeoNorm(marca), fam);
+  });
+  const familiasUsadasCorto = new Set();
+  const familiasUsadasBotella = new Set();
+  (doc.platos || []).forEach(p => {
+    const cat = costeoNorm(p.categoria);
+    if (cat === costeoNorm('Cortos')) {
+      const marca = costeoStr(p.nombre, 200).replace(/\s+corto\s*$/i, '');
+      const fam = familiaPorMarca.get(costeoNorm(marca));
+      if (fam) { p.categoria = fam; familiasUsadasCorto.add(fam); }
+    } else if (cat === costeoNorm('Botellas')) {
+      const marca = costeoStr(p.nombre, 200).replace(/\s+botella\s*$/i, '');
+      const fam = familiaPorMarca.get(costeoNorm(marca));
+      if (fam) { const catBot = fam + ' Botella'; p.categoria = catBot; familiasUsadasBotella.add(catBot); }
+    }
+  });
+  [...familiasUsadasCorto].forEach((fam, idx) => costeoBarraAsegurarSeccion(doc, rest, fam, `familia-${idx}`));
+  [...familiasUsadasBotella].forEach((fam, idx) => costeoBarraAsegurarSeccion(doc, rest, fam, `familia-bot-${idx}`));
+  doc.carta.cbfv = BADASS_CORTOS_BOTELLAS_FAMILIA_V;
+  return true;
+}
 // ── Cervezas Kairos: de reventa a trago costeado ──
 // Las 4 categorías de cerveza propia (colecciones de la casa / temporada /
 // artistas y el Firulais Craft Mix) estaban cargadas como REVENTA: se veían en
@@ -14047,6 +14104,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoGardenReventaLimpia(all[key], rest)) ch = true;
     if (costeoGardenLataChica(all[key], rest)) ch = true;
     if (costeoSeedPreciosCortosBotellas(all[key], rest)) ch = true;
+    if (costeoBadassCortosBotellasPorFamilia(all[key], rest)) ch = true;
   }
   return ch;
 }
