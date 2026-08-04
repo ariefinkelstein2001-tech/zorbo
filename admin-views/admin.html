@@ -12350,7 +12350,7 @@ document.getElementById('costosReload').onclick=()=>loadCostos('costo');
 document.getElementById('gastosReload').onclick=()=>loadCostos('gasto');
 
 // ─── Gestión de Personas (nómina) ───────────────────────────────────────────
-let nominaData=null, nominaEditId=null, nominaForm={rut:'',nombre:'',ingreso:'',cargo:'',jornada:'42',contrato:'Indefinido',centroCosto:'BEER GARDEN KAIROS',afp:'',salud:''};
+let nominaData=null, nominaEditId=null, nominaForm={rut:'',nombre:'',ingreso:'',cargo:'',jornada:'42',contrato:'Indefinido',centroCosto:'BEER GARDEN KAIROS',afp:'',salud:'',etiqueta:'',costoMensual:''};
 let nominaCostoMes=''; // mes seleccionado para el costo empresa (por mes)
 let nominaBoletaForm={rut:'',nombre:'',folio:'',fecha:'',monto:'',categoria:''};
 function nomMesesOpts(sel){ const d=new Date(); let o=''; for(let i=0;i<18;i++){ const dt=new Date(d.getFullYear(),d.getMonth()-i,1); const m=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0'); o+=`<option value="${m}" ${m===sel?'selected':''}>${escapeHtml(estMonthLabel(m))}</option>`; } return o; }
@@ -12363,6 +12363,14 @@ function renderNomina(){
   const a=nominaData, body=document.getElementById('nominaBody'), f=nominaForm;
   const contratoOpts=(a.contratos||['Indefinido','Plazo fijo']).map(c=>`<option ${c===f.contrato?'selected':''}>${escapeHtml(c)}</option>`).join('');
   const contratoSel=(cur)=>(a.contratos||['Indefinido','Plazo fijo']).map(c=>`<option ${c===cur?'selected':''}>${escapeHtml(c)}</option>`).join('');
+  // Etiqueta de destino en el EERR industrial de CD Kairos — reparte el costo de
+  // personal entre Costo de Ventas / Costos de Distribución / Gastos de Adm. y
+  // Venta / Otros Egresos. Sin etiqueta o sin costo mensual = no se suma a nada.
+  const etiquetas=a.etiquetas||[];
+  const etiquetaSel=(cur)=>['<option value="">— Sin clasificar —</option>',...etiquetas.map(e=>`<option value="${e.id}" ${e.id===cur?'selected':''}>${escapeHtml(e.label)}</option>`)].join('');
+  const etiquetaLbl=(id)=>(etiquetas.find(e=>e.id===id)||{}).label;
+  const pendientes=a.nominaPendiente||[];
+  const bannerPendientes=pendientes.length?`<div class="oee-warn">⚠ Faltan clasificar ${pendientes.length} persona(s) de la nómina para el EERR industrial de CD Kairos — sin etiqueta y/o sin costo mensual, su plata no aparece en ningún bloque: ${pendientes.slice(0,6).map(p=>escapeHtml(p.nombre)).join(', ')}${pendientes.length>6?` y ${pendientes.length-6} más`:''}.</div>`:'';
   // Costo empresa POR MES (permite cargar meses anteriores)
   const nowMes=(new Date().getFullYear())+'-'+String(new Date().getMonth()+1).padStart(2,'0');
   const mesSel=nominaCostoMes||nowMes;
@@ -12383,18 +12391,24 @@ function renderNomina(){
         <td>${inp('cargo')}</td><td>${inp('jornada')}</td>
         <td><select class="nom-edit-inp" data-ef="contrato">${contratoSel(p.contrato)}</select></td>
         <td>${inp('centroCosto')}</td><td>${inp('afp')}</td><td>${inp('salud')}</td>
+        <td><select class="nom-edit-inp" data-ef="etiqueta">${etiquetaSel(p.etiqueta)}</select></td>
+        <td>${inp('costoMensual','0')}</td>
         <td style="white-space:nowrap"><button class="dist-portal-link" data-persave="${p.id}" title="Guardar">✓</button> <button class="dist-portal-link" data-percancel title="Cancelar">✕</button></td>
       </tr>`;
     }
+    const pend=pendientes.some(x=>x.id===p.id);
     return `<tr>
       <td>${escapeHtml(p.rut||'—')}</td><td>${escapeHtml(p.nombre)}</td><td>${escapeHtml(p.ingreso||'—')}</td>
       <td>${escapeHtml(p.cargo||'—')}</td><td class="dist-num">${escapeHtml(p.jornada||'—')}</td>
       <td>${escapeHtml(p.contrato||'—')}</td><td>${escapeHtml(p.centroCosto||'—')}</td>
       <td>${escapeHtml(p.afp||'—')}</td><td>${escapeHtml(p.salud||'—')}</td>
+      <td>${p.etiqueta?`<span class="cg-tag">${escapeHtml(etiquetaLbl(p.etiqueta))}</span>`:(pend?'<span class="cg-tag" style="background:rgba(232,161,58,.18);color:#8a6d1f">Sin clasificar</span>':'—')}</td>
+      <td class="dist-num">${p.costoMensual?('$'+Number(p.costoMensual).toLocaleString('es-CL')):(pend?'<span style="color:#8a6d1f">falta cargar</span>':'—')}</td>
       <td style="white-space:nowrap"><button class="pv-del nom-edit-btn" data-peredit="${p.id}" title="Editar">✎</button> <button class="pv-del" data-perdel="${p.id}" title="Eliminar">✕</button></td>
     </tr>`;
   }).join('');
   body.innerHTML=`
+    ${bannerPendientes}
     <div class="nom-costo">
       <div class="nom-costo-l">Costo empresa de la nómina <span>(resta al Estado de Resultado como gasto de personal · por mes)</span></div>
       <div class="nom-costo-edit"><select id="nomCostoMes" class="costeo-svc">${nomMesesOpts(mesSel)}</select><span class="nom-costo-sign">$</span><input type="text" inputmode="numeric" id="nomCosto" value="${costoMes.toLocaleString('es-CL')}"><button class="adm-btn adm-btn-gold" id="nomCostoSave" type="button">Guardar mes</button></div>
@@ -12412,11 +12426,13 @@ function renderNomina(){
         <label class="cg-field"><span>Centro de costos</span><input type="text" id="nmCC" value="${escapeAttr(f.centroCosto)}" placeholder="BEER GARDEN KAIROS"></label>
         <label class="cg-field"><span>AFP</span><input type="text" id="nmAfp" value="${escapeAttr(f.afp)}" placeholder="Ej: modelo"></label>
         <label class="cg-field"><span>Salud</span><input type="text" id="nmSalud" value="${escapeAttr(f.salud)}" placeholder="Ej: fonasa"></label>
+        <label class="cg-field"><span>Etiqueta EERR (CD Kairos)</span><select id="nmEtiqueta">${etiquetaSel(f.etiqueta)}</select></label>
+        <label class="cg-field"><span>Costo mensual ($)</span><input type="text" inputmode="numeric" id="nmCosto" value="${escapeAttr(f.costoMensual)}" placeholder="0"></label>
         <div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="nmAdd" type="button">+ Agregar</button></div>
       </div>
       <div class="cg-err" id="nmErr"></div>
     </div>
-    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>RUT</th><th>Nombre</th><th>Ingreso</th><th>Cargo</th><th>Jornada</th><th>Contrato</th><th>Centro de costos</th><th>AFP</th><th>Salud</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="10" style="text-align:center;color:#999;padding:.8rem">Sin personas en la nómina</td></tr>'}</tbody></table></div>
+    <div class="mun-wrap"><table class="mun-table cg-table"><thead><tr><th>RUT</th><th>Nombre</th><th>Ingreso</th><th>Cargo</th><th>Jornada</th><th>Contrato</th><th>Centro de costos</th><th>AFP</th><th>Salud</th><th>Etiqueta EERR</th><th style="text-align:right">Costo mensual</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="12" style="text-align:center;color:#999;padding:.8rem">Sin personas en la nómina</td></tr>'}</tbody></table></div>
 
     <div class="cg-form" style="margin-top:1.4rem">
       <div class="cg-form-title">Boletas de honorarios</div>
@@ -12450,7 +12466,7 @@ function wireNomina(){
   Object.entries(bbind).forEach(([id,k])=>{ const el=g(id); if(el){ const ev=el.tagName==='SELECT'||el.type==='date'?'onchange':'oninput'; el[ev]=()=>nominaBoletaForm[k]=el.value; } });
   const bhAdd=g('bhAdd'); if(bhAdd) bhAdd.onclick=nominaBoletaAgregar;
   document.querySelectorAll('[data-boldel]').forEach(b=>b.onclick=()=>nominaBoletaEliminar(b.dataset.boldel));
-  const bind={nmRut:'rut',nmNombre:'nombre',nmIngreso:'ingreso',nmCargo:'cargo',nmJornada:'jornada',nmContrato:'contrato',nmCC:'centroCosto',nmAfp:'afp',nmSalud:'salud'};
+  const bind={nmRut:'rut',nmNombre:'nombre',nmIngreso:'ingreso',nmCargo:'cargo',nmJornada:'jornada',nmContrato:'contrato',nmCC:'centroCosto',nmAfp:'afp',nmSalud:'salud',nmEtiqueta:'etiqueta',nmCosto:'costoMensual'};
   Object.entries(bind).forEach(([id,k])=>{ const el=g(id); if(el){ const ev=el.tagName==='SELECT'?'onchange':'oninput'; el[ev]=()=>nominaForm[k]=el.value; } });
   g('nmAdd').onclick=nominaAgregar;
   document.querySelectorAll('[data-perdel]').forEach(b=>b.onclick=()=>nominaEliminar(b.dataset.perdel));
@@ -12471,7 +12487,7 @@ async function nominaAgregar(){
   try{
     const r=await fetch('/admin/nomina/persona',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(nominaForm)}); const d=await r.json();
     if(!r.ok) throw new Error(d.error||'Error');
-    nominaForm={rut:'',nombre:'',ingreso:'',cargo:'',jornada:'42',contrato:'Indefinido',centroCosto:'BEER GARDEN KAIROS',afp:'',salud:''};
+    nominaForm={rut:'',nombre:'',ingreso:'',cargo:'',jornada:'42',contrato:'Indefinido',centroCosto:'BEER GARDEN KAIROS',afp:'',salud:'',etiqueta:'',costoMensual:''};
     await loadNomina();
   }catch(e){ err.textContent='⚠ '+String(e.message||e); err.classList.add('show'); }
 }
@@ -12708,6 +12724,9 @@ async function loadPnl(){
     const f=document.getElementById('pnlFrom'), t=document.getElementById('pnlTo');
     if(f&&t&&!f.value&&!t.value){ const r=finMonthRange(); f.value=r.from; t.value=r.to; }
     const mes=pnlMesActual(); const qs=finRangeQS('pnl'); const cd=(cdSel&&cdSel.value)||CD_DEFAULT;
+    // CD Kairos usa el EERR industrial (formato benchmark, ver eerrindustrialcdkairos.md).
+    // Los 3 restaurantes mantienen el EERR genérico de siempre.
+    if(cd===CD_DEFAULT){ await loadPnlIndustrial(mes, qs); return; }
     const r=await fetch('/admin/pnl?month='+mes+'&cd='+cd+(qs?'&'+qs:'')+(pnlProyectado?'&proyectar=1':'')); pnlData=await r.json();
     if(pnlData.error) throw new Error(pnlData.error);
     renderPnl();
@@ -12754,6 +12773,7 @@ function renderPnl(){
         ${line('Gastos operativos', co.gastosOper, {neg:true, doc:dc.gastos_operativos||0})}
         ${line('Gastos de administración y venta', co.gastosAdmin, {neg:true, doc:dc.gastos_admin_venta||0})}
         ${line('Marketing y publicidad', co.gastosMarketing, {neg:true, doc:dc.marketing_publicidad||0})}
+        ${co.royaltyEgreso?line('Royalty CD Kairos', co.royaltyEgreso, {neg:true}):''}
       </tbody></table></div>
       <div class="pnl-activos"><span>Activos fijos <span style="font-size:.78rem;color:var(--dim,#999)">inversión, no afecta el resultado operativo</span></span><b>${eM(co.activos)}</b> <span class="pnl-doc">${dc.activos_fijos||0} doc${(dc.activos_fijos||0)===1?'':'s'}</span></div>`;
     return;
@@ -12797,6 +12817,94 @@ function renderPnl(){
   if(bProy) bProy.onclick=()=>{ if(!pnlProyectado){ pnlProyectado=true; loadPnl(); } };
   const save=document.getElementById('objSave');
   if(save) save.onclick=pnlGuardarObjetivos;
+}
+// ── EERR industrial de CD Kairos (formato benchmark) ─────────────────────────
+// Costo de Ventas → Margen Bruto → OPEX (línea propia) → Costos de Distribución
+// → Gastos de Administración y Venta → Resultado Operacional → Otros Ingresos
+// (Royalty) − Otros Egresos → EBITDA. Solo para CD Kairos — los 3 restaurantes
+// siguen con renderPnl() de siempre (con la línea de Royalty egreso agregada).
+let pnlIndData=null;
+async function loadPnlIndustrial(mes, qs){
+  const body=document.getElementById('pnlBody');
+  try{
+    const r=await fetch('/admin/pnl/industrial?month='+mes+(qs?'&'+qs:'')); pnlIndData=await r.json();
+    if(pnlIndData.error) throw new Error(pnlIndData.error);
+    renderPnlIndustrial();
+  }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function renderPnlIndustrial(){
+  const a=pnlIndData, body=document.getElementById('pnlBody'); if(!a) return;
+  document.getElementById('pnlMeta').textContent=(a.shopifyOk?'Shopify OK':'⚠️ Shopify no disponible')+' · '+pnlPeriodoLabel()+' · CD KAIROS · EERR industrial';
+  const b=a.bloques;
+  const pct=v=>`<span class="pnl-pct">${v}%</span>`;
+  const money=(v,neg)=>`<b class="${neg?'pnl-neg':''}">${neg&&v>0?'-':''}${eM(v)}</b>`;
+  const objChip=(real,meta,lowerBetter)=>{
+    if(meta==null) return '';
+    const dif=Math.round((real-meta)*10)/10;
+    const good=lowerBetter?(real<=meta):(real>=meta);
+    const arrow=dif>0?'▲':(dif<0?'▼':'=');
+    const sign=dif>0?'+':'';
+    return `<span class="pnl-obj ${good?'ok':'bad'}" title="Meta ${meta}% · real ${real}%">meta ${meta}% <span class="pnl-obj-dev">${arrow} ${sign}${dif} pts</span></span>`;
+  };
+  const line=(label,val,{neg,pctv,sub,chip}={})=>`<tr class="${sub?'pnl-sub':''}"><td>${escapeHtml(label)}${chip?' '+chip:''}</td><td class="dist-num">${pctv!=null?pct(pctv):''}</td><td class="dist-num">${money(val,neg)}</td></tr>`;
+  const res=(label,val,pctv,cls,{chip}={})=>`<tr class="pnl-res ${cls||''}"><td>${escapeHtml(label)}${chip?' '+chip:''}</td><td class="dist-num">${pct(pctv)}</td><td class="dist-num">${eM(val)}</td></tr>`;
+  const resNeg=(label,val,pctv,{chip}={})=>`<tr class="pnl-res"><td>${escapeHtml(label)}${chip?' '+chip:''}</td><td class="dist-num">${pct(pctv)}</td><td class="dist-num">${money(val,true)}</td></tr>`;
+  const ebitdaCls=a.ebitda.total>=0?'pnl-pos':'pnl-red';
+  const pendientes=a.nominaPendiente||[];
+  const bannerPendientes=pendientes.length?`<div class="oee-warn">⚠ ${pendientes.length} persona(s) de la nómina de CD Kairos sin etiqueta y/o costo mensual cargado — su plata no entra en este EERR. Cargalo en <b>Gestión de Personas</b>: ${pendientes.slice(0,6).map(p=>escapeHtml(p.nombre)).join(', ')}${pendientes.length>6?` y ${pendientes.length-6} más`:''}.</div>`:'';
+  // El formulario edita el monto EXACTO del mes (royaltyMes), nunca el
+  // prorateado por días (a.royalty) que usa el cálculo del EERR cuando el
+  // período es un rango parcial (ej. "mes en curso, hasta hoy") — si mostrara
+  // el prorateo, guardar sin tocar nada pisaría el monto real con la fracción.
+  const royaltyInputs=(a.royaltyCds||[]).map(c=>`<label class="cg-field"><span>${escapeHtml(c.label)}</span><input type="text" inputmode="numeric" class="pnl-roy-inp" data-roy="${c.id}" value="${(a.royaltyMes&&a.royaltyMes[c.id])?Number(a.royaltyMes[c.id]).toLocaleString('es-CL'):''}" placeholder="0"></label>`).join('');
+  body.innerHTML=`
+    ${bannerPendientes}
+    <div class="est-top">
+      <div class="est-total-box ${a.ebitda.total>=0?'':'pnl-box-red'}"><div class="est-total-l">Resultado del mes (EBITDA)</div><div class="est-total-v">${eM(a.ebitda.total)}</div><div class="est-delta">${a.ebitda.pct}% sobre ventas</div></div>
+      <div class="est-note">Formato industrial de CD Kairos: Costo de Ventas → Margen Bruto → OPEX → Costos de Distribución → Gastos de Administración y Venta → Resultado Operacional → Otros Ingresos/Egresos → EBITDA.</div>
+    </div>
+    <div class="mun-wrap"><table class="mun-table pnl-table"><tbody>
+      ${line('INGRESO POR VENTA', a.ingresos.total, {pctv:100})}
+      ${line('Costo directo', b.costoVentas.detalle.costoDirecto, {neg:true, sub:true})}
+      ${line('Costo indirecto', b.costoVentas.detalle.costoIndirecto, {neg:true, sub:true})}
+      ${line('Mano de Obra Directa', b.costoVentas.detalle.moDirecta, {neg:true, sub:true})}
+      ${line('Mantención y reparación de equipos', b.costoVentas.detalle.mantencion, {neg:true, sub:true})}
+      ${resNeg('COSTO DE VENTAS', b.costoVentas.total, b.costoVentas.pct, {chip:objChip(b.costoVentas.pct,b.costoVentas.objetivo,true)})}
+      ${res('MARGEN BRUTO OPERACIONAL', b.margenBruto.total, b.margenBruto.pct, b.margenBruto.total>=0?'pnl-pos':'pnl-red')}
+      ${line('OPEX', b.opex.total, {neg:true, pctv:b.opex.pct})}
+      ${line('Transporte', b.costosDistribucion.detalle.transporte, {neg:true, sub:true})}
+      ${line('Almacenamiento', b.costosDistribucion.detalle.almacenamiento, {neg:true, sub:true})}
+      ${line('Personal de Operación y Logística', b.costosDistribucion.detalle.personal, {neg:true, sub:true})}
+      ${resNeg('COSTOS DE DISTRIBUCIÓN', b.costosDistribucion.total, b.costosDistribucion.pct, {chip:objChip(b.costosDistribucion.pct,b.costosDistribucion.objetivo,true)})}
+      ${line('Arriendo y/o Gasto Común', b.gastosAdmVenta.detalle.arriendo, {neg:true, sub:true})}
+      ${line('Personal de Administración', b.gastosAdmVenta.detalle.personal, {neg:true, sub:true})}
+      ${line('Administración y venta', b.gastosAdmVenta.detalle.adminVenta, {neg:true, sub:true})}
+      ${resNeg('GASTOS DE ADMINISTRACIÓN Y VENTA', b.gastosAdmVenta.total, b.gastosAdmVenta.pct, {chip:objChip(b.gastosAdmVenta.pct,b.gastosAdmVenta.objetivo,true)})}
+      ${res('RESULTADO OPERACIONAL', b.resultadoOperacional.total, b.resultadoOperacional.pct, b.resultadoOperacional.total>=0?'pnl-pos':'pnl-red')}
+      ${res('OTROS INGRESOS · ROYALTY', b.otrosIngresos.total, b.otrosIngresos.pct, 'pnl-pos')}
+      ${line('General', b.otrosEgresos.detalle.general, {neg:true, sub:true})}
+      ${line('Personal Comercial y Marketing', b.otrosEgresos.detalle.personal, {neg:true, sub:true})}
+      ${line('Marketing y publicidad', b.otrosEgresos.detalle.marketing, {neg:true, sub:true})}
+      ${resNeg('OTROS EGRESOS', b.otrosEgresos.total, b.otrosEgresos.pct)}
+      ${res('EBITDA', a.ebitda.total, a.ebitda.pct, ebitdaCls, {chip:objChip(a.ebitda.pct,a.ebitda.objetivo,false)})}
+    </tbody></table></div>
+    <div class="cg-form" style="margin-top:1.2rem">
+      <div class="cg-form-title">Royalty cobrado a los restaurantes — ${escapeHtml(pnlPeriodoLabel())}</div>
+      <div class="cg-form-grid nom-grid">${royaltyInputs}<div class="cg-field cg-field-btn"><button class="adm-btn adm-btn-gold" id="pnlRoyaltySave" type="button">Guardar</button></div></div>
+      <div class="cg-err" id="pnlRoyaltyMsg"></div>
+      <div class="est-note" style="margin-top:.4rem">Carga manual por local y mes, sin fórmula de prorrateo. El total de arriba (Otros Ingresos) es la suma de los 3 locales. A cada restaurante se le resta como Otros Egresos en su propio Estado de Resultado.</div>
+    </div>
+    <div class="est-note" style="margin-top:.8rem">Para cargar o editar los costos y gastos, ve a <b>Costos</b> o <b>Gastos</b>. Para clasificar a las personas de la nómina, ve a <b>Gestión de Personas</b>.</div>`;
+  const save=document.getElementById('pnlRoyaltySave');
+  if(save) save.onclick=pnlGuardarRoyalty;
+}
+async function pnlGuardarRoyalty(){
+  const msg=document.getElementById('pnlRoyaltyMsg');
+  const montos={}; document.querySelectorAll('.pnl-roy-inp').forEach(el=>montos[el.dataset.roy]=cNum(el.value));
+  const mes=pnlMesActual();
+  if(msg){ msg.textContent='Guardando…'; msg.classList.remove('show'); }
+  try{ const r=await fetch('/admin/royalty',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({month:mes,montos})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); await loadPnl(); }
+  catch(e){ if(msg){ msg.textContent='⚠ '+String(e.message||e); msg.classList.add('show'); } }
 }
 async function pnlGuardarObjetivos(){
   const g=id=>document.getElementById(id);
