@@ -11462,7 +11462,9 @@ function estCompute(){
   const S=arr=>(arr||[]).reduce((s,x)=>s+(Number(x.monto)||0),0);
   // 100% automático de Shopify: sin líneas manuales.
   const shCd=a.ingresos.cd_kairos.shopify, shCruz=a.ingresos.ventas_cruzada.shopify, shWeb=a.ingresos.ventas_web.cobrado;
-  const gardenValor=a.ingresos.hospitality.garden.valor, badassValor=a.ingresos.hospitality.badass.valor;
+  // Antofagasta es Kairos Garden Antofagasta: suma dentro de Garden.
+  const antoValor=(a.ingresos.hospitality.antofagasta||{}).valor||0;
+  const gardenValor=a.ingresos.hospitality.garden.valor+antoValor, badassValor=a.ingresos.hospitality.badass.valor;
   const cdNeto=shCd, cruzTotal=shCruz;
   const retail=a.ingresos.retail!=null?a.ingresos.retail:0; // Walmart 100% auto (Shopify)
   const hospitality=gardenValor+badassValor;
@@ -11471,7 +11473,7 @@ function estCompute(){
   const horeca=a.ingresos.horeca.total, online=shWeb;
   const total=horeca+online+retail+hospitality;
   const pctOf=v=>total?Math.round(v/total*1000)/10:0;
-  return {shCd,shCruz,shWeb,cdNeto,cruzTotal,gardenValor,badassValor,retail,hospitality,horeca,online,total,
+  return {shCd,shCruz,shWeb,cdNeto,cruzTotal,gardenValor,antoValor,badassValor,retail,hospitality,horeca,online,total,
     pctHoreca:pctOf(horeca),pctOnline:pctOf(online),pctRetail:pctOf(retail),pctHospitality:pctOf(hospitality)};
 }
 const eM=(n)=>'$'+(Math.round(Number(n)||0)).toLocaleString('es-CL');
@@ -11572,8 +11574,8 @@ function renderEstado(){
     <div class="est-group">④ Hospitality <span>· locales propios · Kairos Garden · Badass</span><b id="estHospitalityG">${eM(c.hospitality)}</b></div>
     <div class="est-line est-auto-line">
       <div class="est-hchans">
-        <button class="est-hchan" data-hospchan="todos"><b>Todos</b><span>${eM(hi.total)} · ${((hi.garden.pedidos||[]).length+(hi.badass.pedidos||[]).length)} pedidos</span></button>
-        <button class="est-hchan" data-hospchan="garden"><b>Kairos Garden</b><span>${eM(hi.garden.valor)} · ${(hi.garden.pedidos||[]).length} pedidos</span></button>
+        <button class="est-hchan" data-hospchan="todos"><b>Todos</b><span>${eM(hi.total)} · ${((hi.garden.pedidos||[]).length+(((hi.antofagasta||{}).pedidos)||[]).length+(hi.badass.pedidos||[]).length)} pedidos</span></button>
+        <button class="est-hchan" data-hospchan="garden"><b>Kairos Garden</b><span>${eM(hi.garden.valor+(((hi.antofagasta||{}).valor)||0))} · ${((hi.garden.pedidos||[]).length+(((hi.antofagasta||{}).pedidos)||[]).length)} pedidos</span></button>
         <button class="est-hchan" data-hospchan="badass"><b>Badass</b><span>${eM(hi.badass.valor)} · ${(hi.badass.pedidos||[]).length} pedidos</span></button>
       </div>
       <div id="estHospPanel"></div>
@@ -11609,8 +11611,11 @@ function estHospOpen(chan){
   document.querySelectorAll('[data-hospchan]').forEach(b=>b.classList.toggle('on', b.dataset.hospchan===estHospChan));
   estHospDrawPanel();
 }
-// ¿Un pedido de Garden es de Antofagasta? (por el nombre del cliente / código)
-function estEsAntofa(p){ return /antofa/i.test((p.cliente||'')+' '+(p.codigo||'')); }
+// Antofagasta ya viene en su propio bucket desde el server (código
+// PEDIDOSANTOFAGASTA), así que se marca la bandera al mapear en vez de
+// adivinarla del nombre del cliente. El regex queda solo de respaldo para los
+// pedidos viejos que estén en el bucket de Garden sin código.
+function estEsAntofa(p){ return p._anto === true || (p._anto === undefined && /antofa/i.test((p.cliente||'')+' '+(p.codigo||''))); }
 // Valor revaluado de un pedido (litros × precio de transferencia) desde sus líneas.
 function estPedValor(p,precios){ return Math.round((p.lineas||[]).reduce((a,l)=>{const pr=precios[l.tipo]||precios.cerveza;return a+(l.litros||0)*pr+precios.despacho*(l.litros||0);},0)); }
 function estPedLitros(p){ return Math.round((p.lineas||[]).reduce((a,l)=>a+(l.litros||0),0)*1000)/1000; }
@@ -11618,7 +11623,11 @@ function estHospDrawPanel(){
   const panel=document.getElementById('estHospPanel'); if(!panel) return;
   if(!estHospChan){ panel.innerHTML=''; return; }
   const a=estadoData, hi=a.ingresos.hospitality, precios=a.precios||{cerveza:1830,gin:7447,ron:6617,despacho:1033};
-  const gPeds=(hi.garden.pedidos||[]).map(p=>({...p,local:'Kairos Garden'+(estEsAntofa(p)?' Antofagasta':' Vespucio')}));
+  // Kairos Garden = Vespucio + Antofagasta (son el mismo local propio, en dos
+  // ciudades): se juntan acá y el sub-filtro los separa.
+  const gVsp=(hi.garden.pedidos||[]).map(p=>({...p,_anto:estEsAntofa(p),local:'Kairos Garden'+(estEsAntofa(p)?' Antofagasta':' Vespucio')}));
+  const gAnt=(((hi.antofagasta||{}).pedidos)||[]).map(p=>({...p,_anto:true,local:'Kairos Garden Antofagasta'}));
+  const gPeds=[...gVsp,...gAnt];
   const bPeds=(hi.badass.pedidos||[]).map(p=>({...p,local:'Badass'}));
   let all, titulo;
   if(estHospChan==='todos'){ all=[...gPeds,...bPeds]; titulo='Todos'; }
@@ -11775,7 +11784,7 @@ function estHorecaDrawPanel(){
 }
 function estDrill(which){
   const a=estadoData;
-  const map={ cd:a.ingresos.cd_kairos.pedidos, cruz:a.ingresos.ventas_cruzada.pedidos, web:a.ingresos.ventas_web.pedidos, walmart:(a.ingresos.walmart&&a.ingresos.walmart.pedidos)||[], garden:a.ingresos.hospitality.garden.pedidos, badass:a.ingresos.hospitality.badass.pedidos };
+  const map={ cd:a.ingresos.cd_kairos.pedidos, cruz:a.ingresos.ventas_cruzada.pedidos, web:a.ingresos.ventas_web.pedidos, walmart:(a.ingresos.walmart&&a.ingresos.walmart.pedidos)||[], garden:[...(a.ingresos.hospitality.garden.pedidos||[]),...(((a.ingresos.hospitality.antofagasta||{}).pedidos)||[])], badass:a.ingresos.hospitality.badass.pedidos };
   const box=document.getElementById('estDrill_'+which); if(!box) return;
   if(box.innerHTML){ box.innerHTML=''; return; } // toggle: segundo click cierra
   const peds=estByFechaDesc(map[which]||[]); const isTransfer=(which==='garden'||which==='badass');
