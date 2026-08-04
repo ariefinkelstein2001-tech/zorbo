@@ -111,6 +111,24 @@ h1,h2,h3{font-family:var(--display);margin:0}
 }
 .hz-live-pct .v{font-family:var(--display);color:var(--gold)}
 
+/* ── Subproducto (Pescado): reparto multi-destino ── */
+.hz-weight-num-tap{cursor:pointer}
+.hz-weight-num.hz-active-field{color:var(--gold)}
+.hz-sub-hint{font-size:.72rem;color:var(--dim);margin-top:4px}
+.hz-sub-recon{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:14px;margin:14px 0 12px;font-size:.83rem;font-weight:700;background:var(--card2);color:#fff}
+.hz-sub-recon.warn{background:rgba(245,166,35,.14);color:#ffcf7a}
+.hz-sub-recon.bad{background:var(--danger-dim);color:var(--danger)}
+.hz-sub-recon.ok{background:rgba(51,209,122,.14);color:var(--success)}
+.hz-sub-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.hz-sub-row{display:flex;align-items:center;gap:10px;background:var(--card);border:1.5px solid rgba(255,255,255,.06);border-radius:14px;padding:11px 12px;cursor:pointer;transition:border-color .15s,background .15s}
+.hz-sub-row.active{border-color:var(--gold);background:var(--card2)}
+.hz-sub-row .nm{flex:1;font-weight:700;font-size:.9rem;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hz-sub-row .kg{font-family:var(--display);font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums;flex:0 0 auto}
+.hz-sub-row .rm{width:30px;height:30px;border-radius:50%;border:none;background:rgba(255,255,255,.08);color:var(--dim);font-size:.82rem;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;justify-content:center}
+.hz-sub-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+.hz-chip{background:transparent;border:1.5px dashed rgba(255,255,255,.22);color:#fff;border-radius:12px;padding:9px 14px;font-size:.82rem;font-weight:700;cursor:pointer;transition:border-color .15s,background .15s}
+.hz-chip:active,.hz-chip.pressed{background:var(--card2);border-color:var(--gold)}
+
 .hz-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:340px;margin:0 auto;width:100%}
 .hz-key{
   height:64px;border-radius:16px;border:none;background:var(--card);color:#fff;font-size:1.5rem;font-weight:700;
@@ -222,6 +240,21 @@ h1,h2,h3{font-family:var(--display);margin:0}
 <script>
 'use strict';
 
+/* ═══════════════════ Destinos de subproducto por especie (solo Pescado) ═══
+   Paso "Subproducto aprovechable": para pescado, los destinos posibles
+   dependen de la especie elegida en el Paso de Corte. Fácil de editar: cada
+   especie es una key con su lista de destinos; "Otro" siempre está al final
+   y abre un campo de texto libre. La key "Otro" es el fallback para cuando
+   el operario escribió la especie a mano (corte === 'Otro'). ═══════════════ */
+const destinosPorEspecie = {
+  'Salmón':  ['Tártar', 'Relleno', 'Otro'],
+  'Atún':    ['Tártar', 'Relleno', 'Otro'],
+  'Merluza': ['Relleno', 'Fondo/Caldillo', 'Otro'],
+  'Reineta': ['Relleno', 'Fondo/Caldillo', 'Otro'],
+  'Congrio': ['Relleno', 'Fondo/Caldillo', 'Otro'],
+  'Otro':    ['Relleno', 'Fondo/Caldillo', 'Otro'],
+};
+
 /* ═══════════════════ Estado ═══════════════════ */
 const S = {
   screen: 'boot',
@@ -240,6 +273,7 @@ const S = {
 const $ = (sel, root) => (root || document).querySelector(sel);
 const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
 const escapeHtml = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const escapeAttr = escapeHtml;
 
 /* ═══════════════════ Persistencia local (por restaurante) ═══════════════════ */
 function lsKey(kind){ return 'hosprend_' + kind + '_' + (S.restaurante ? S.restaurante.id : 'x'); }
@@ -648,6 +682,169 @@ function screenPeso(body, stepId){
     },
   });
 }
+// Subproducto para PESCADO: mismo paso, pero el total se reparte entre
+// destinos que dependen de la especie (S.rec.corte, ver destinosPorEspecie
+// al inicio del archivo). Carne/pollo NO pasan por acá — siguen usando el
+// screenPeso genérico de arriba, sin cambios.
+function screenPesoSubPescado(body){
+  const cfg = PESO_CFG.peso_sub;
+  if (!Array.isArray(S.rec.subDestinos)) S.rec.subDestinos = [];
+  if (S.rec.__subActive == null) S.rec.__subActive = 'total'; // qué campo controla el teclado ahora mismo: 'total' o el índice de un destino
+  const opciones = destinosPorEspecie[S.rec.corte] || destinosPorEspecie.Otro;
+
+  function activeStoredVal(){
+    if (S.rec.__subActive === 'total') return S.rec.subproductoKg != null ? String(S.rec.subproductoKg) : '';
+    const d = S.rec.subDestinos[S.rec.__subActive];
+    return d && d.kg != null ? String(d.kg) : '';
+  }
+  let val = activeStoredVal().replace('.', ',');
+
+  function commit(){
+    const num = parseFloat((val || '0').replace(',', '.'));
+    const n = Number.isFinite(num) ? num : 0;
+    if (S.rec.__subActive === 'total') S.rec.subproductoKg = n;
+    else { const d = S.rec.subDestinos[S.rec.__subActive]; if (d) d.kg = n; }
+  }
+  function totalAsignado(){
+    return S.rec.subDestinos.reduce((s, d) => s + (Number(d.kg) || 0), 0);
+  }
+  function reconOk(){
+    return Math.abs(totalAsignado() - (Number(S.rec.subproductoKg) || 0)) < 0.01;
+  }
+
+  function selectTarget(target){
+    commit();
+    S.rec.__subActive = target;
+    val = activeStoredVal().replace('.', ',');
+    renderContent();
+    syncFooter();
+  }
+  function addDestino(uso){
+    const iExist = S.rec.subDestinos.findIndex(d => d.uso.toLowerCase() === uso.toLowerCase());
+    if (iExist >= 0) { selectTarget(iExist); return; }
+    commit();
+    S.rec.subDestinos.push({ uso, kg: 0 });
+    S.rec.__subActive = S.rec.subDestinos.length - 1;
+    val = '0';
+    renderContent();
+    syncFooter();
+  }
+  function removeDestino(idx){
+    S.rec.subDestinos.splice(idx, 1);
+    S.rec.__subActive = 'total'; // evita drift de índices tras borrar; foco vuelve al total, simple y predecible
+    val = activeStoredVal().replace('.', ',');
+    renderContent();
+    syncFooter();
+  }
+
+  function renderRecon(){
+    const el = $('#hzSubRecon'); if (!el) return;
+    const total = Number(S.rec.subproductoKg) || 0;
+    const asignado = Math.round(totalAsignado() * 100) / 100;
+    const diff = Math.round((asignado - total) * 100) / 100;
+    let cls = 'ok', icon = '✅', msg = `Asignado: ${asignado} / ${total} kg`;
+    if (diff < -0.009) { cls = 'warn'; icon = '⚠️'; msg += ` — faltan ${Math.abs(diff)} kg`; }
+    else if (diff > 0.009) { cls = 'bad'; icon = '⛔'; msg += ` — te pasaste ${diff} kg`; }
+    el.className = 'hz-sub-recon ' + cls;
+    el.innerHTML = `<span class="ic">${icon}</span><span>${escapeHtml(msg)}</span>`;
+  }
+  function renderRows(){
+    const el = $('#hzSubRows'); if (!el) return;
+    el.innerHTML = S.rec.subDestinos.map((d, i) => `
+      <div class="hz-sub-row${S.rec.__subActive === i ? ' active' : ''}" data-idx="${i}">
+        <span class="nm">${escapeHtml(d.uso)}</span>
+        <span class="kg">${S.rec.__subActive === i ? (val || '0') : (d.kg || 0)} kg</span>
+        <button type="button" class="rm" data-rm="${i}" aria-label="Quitar ${escapeAttr(d.uso)}">✕</button>
+      </div>
+    `).join('');
+    el.querySelectorAll('.hz-sub-row').forEach(row => row.addEventListener('click', (ev) => {
+      if (ev.target.closest('.rm')) return;
+      selectTarget(Number(row.dataset.idx));
+    }));
+    el.querySelectorAll('.rm').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); removeDestino(Number(b.dataset.rm)); });
+  }
+  function syncFooter(){
+    const btn = $('#hzGo'); if (btn) btn.disabled = !reconOk();
+  }
+  function renderContent(){
+    const c = $('#hzBodyInner'); if (!c) return;
+    const total = Number(S.rec.subproductoKg) || 0;
+    const disponibles = opciones.filter(o => o === 'Otro' || !S.rec.subDestinos.some(d => d.uso === o));
+    c.innerHTML = `
+      <div class="hz-weight-display">
+        <span class="hz-weight-num hz-weight-num-tap${S.rec.__subActive === 'total' ? ' hz-active-field' : ''}" id="hzSubTotalNum">${S.rec.__subActive === 'total' ? (val || '0') : total}<span class="unit">kg</span></span>
+        <div class="hz-sub-hint">Total subproducto (tocá para editarlo de nuevo)</div>
+      </div>
+      ${total > 0 ? `
+        <div class="hz-sub-recon" id="hzSubRecon"></div>
+        <div class="hz-sub-rows" id="hzSubRows"></div>
+        <div class="hz-sub-chips" id="hzSubChips">${disponibles.map(o => `<button type="button" class="hz-chip" data-add="${escapeAttr(o)}">+ ${escapeHtml(o)}</button>`).join('')}</div>
+        <div id="hzSubOtroBox" style="display:none;margin-top:10px">
+          <input class="hz-textbox" id="hzSubOtroInput" placeholder="¿A dónde va?" maxlength="40" autocomplete="off">
+          <button class="hz-btn primary sm" id="hzSubOtroGo" style="margin-top:10px">Agregar</button>
+        </div>
+      ` : ''}
+      <div class="hz-keypad" id="hzWPad" style="margin-top:16px"></div>
+    `;
+    renderRows();
+    renderRecon();
+    renderKeypad($('#hzWPad'), { decimal: true }, (k) => {
+      if (k === ',') { if (val.includes(',') || !val) { if (!val) val = '0'; if (val.includes(',')) return; } val += ','; }
+      else { if (val === '0') val = k; else val += k; }
+      onDigitOrBackspace();
+    }, () => {
+      val = val.slice(0, -1);
+      onDigitOrBackspace();
+    });
+    // Editar el TOTAL puede cruzar el umbral de 0 -> >0 (o volver a 0), que es
+    // justo lo que decide si las secciones de reparto (chips/filas/recon)
+    // existen en el DOM — por eso ahí se reconstruye toda la pantalla en cada
+    // tecla. Editar un destino ya existente no cambia esa estructura, así que
+    // se actualiza liviano (mismo criterio de fluidez que el resto de la app).
+    function onDigitOrBackspace(){
+      commit();
+      if (S.rec.__subActive === 'total') { renderContent(); syncFooter(); return; }
+      syncActiveDisplay(); renderRecon(); syncFooter();
+    }
+    const totalEl = $('#hzSubTotalNum'); if (totalEl) totalEl.onclick = () => selectTarget('total');
+    c.querySelectorAll('#hzSubChips .hz-chip').forEach(b => b.onclick = () => {
+      pressFx(b);
+      const uso = b.dataset.add;
+      if (uso === 'Otro') { $('#hzSubOtroBox').style.display = 'block'; $('#hzSubOtroInput').focus(); return; }
+      addDestino(uso);
+    });
+    const otroGo = $('#hzSubOtroGo');
+    if (otroGo) otroGo.onclick = () => {
+      const nombre = $('#hzSubOtroInput').value.trim();
+      if (!nombre) return;
+      addDestino(nombre);
+    };
+  }
+  // Solo el campo activo se actualiza en vivo mientras se tipea (sin
+  // reconstruir toda la pantalla) — mismo criterio de fluidez que el resto
+  // de las pantallas de peso.
+  function syncActiveDisplay(){
+    if (S.rec.__subActive === 'total') {
+      const el = $('#hzSubTotalNum'); if (el) el.innerHTML = (val || '0') + '<span class="unit">kg</span>';
+    } else {
+      const row = $(`.hz-sub-row[data-idx="${S.rec.__subActive}"] .kg`); if (row) row.textContent = (val || '0') + ' kg';
+    }
+  }
+
+  screenShell(body, {
+    eyebrow: `${cfg.icon} Paso ${LOOP_STEPS.indexOf('peso_sub') + 1}`, title: cfg.label,
+    sub: 'Cuánto se puede aprovechar, y en qué se usa cada parte.',
+    content: () => { renderContent(); },
+    footer: (f) => {
+      f.innerHTML = `<button class="hz-btn primary" id="hzGo" ${reconOk() ? '' : 'disabled'}>Continuar</button>`;
+      $('#hzGo').onclick = () => {
+        if (!reconOk()) return;
+        S.rec.subproductoKg = Number(S.rec.subproductoKg) || 0;
+        goto(cfg.next); // 'peso_desecho' — sigue el mismo flujo de siempre, no se saltea nada
+      };
+    },
+  });
+}
 function checkBalanceThenConfirm(){
   const bruto = Number(S.rec.pesoBrutoKg) || 0;
   const util = Number(S.rec.pesoUtilKg) || 0;
@@ -697,6 +894,13 @@ async function guardarRegistro(){
     proveedorLote: S.rec.proveedorLote || '', pesoBrutoKg: S.rec.pesoBrutoKg, pesoUtilKg: S.rec.pesoUtilKg,
     subproductoKg: S.rec.subproductoKg, desechoKg: S.rec.desechoKg,
   };
+  // Detalle de reparto (solo Pescado, solo si se asignó algún destino) — no
+  // toca subproductoKg (el total sigue siendo ese campo de siempre, usado
+  // por el balance de masa y por el dashboard tal cual ya funcionaba).
+  if (S.rec.tipo === 'pescado' && Array.isArray(S.rec.subDestinos) && S.rec.subDestinos.length) {
+    payload.subproducto_total_kg = S.rec.subproductoKg;
+    payload.subproducto_destinos = S.rec.subDestinos.map(d => ({ uso: d.uso, kg: Number(d.kg) || 0 }));
+  }
   showSuccessOverlay(); // optimista: la persona no espera la red
   // No hace falta un historyAdd() optimista acá: renderHistorySheetIfOpen()
   // ya sintetiza filas "pendiente" directo desde S.queue (ver más abajo). El
@@ -764,7 +968,7 @@ const SCREENS = {
   proveedor: screenProveedor,
   peso_bruto: (b) => screenPeso(b, 'peso_bruto'),
   peso_util: (b) => screenPeso(b, 'peso_util'),
-  peso_sub: (b) => screenPeso(b, 'peso_sub'),
+  peso_sub: (b) => (S.rec.tipo === 'pescado' ? screenPesoSubPescado(b) : screenPeso(b, 'peso_sub')),
   peso_desecho: (b) => screenPeso(b, 'peso_desecho'),
   confirm: screenConfirm,
 };
