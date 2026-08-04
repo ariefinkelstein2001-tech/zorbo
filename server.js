@@ -13006,7 +13006,8 @@ function costeoNormalizeCarta(c){
   const rai = Number.isFinite(c.rai) ? c.rai : 0; // versión: Badass — Kombucha y Chelas sin alcohol pasan de reventa a trago costeado (insumo propio)
   const kuv = Number.isFinite(c.kuv) ? c.kuv : 0; // versión: insumos de Kombucha/Chelas sin alcohol pasan de litro a "unidad" (se venden por botella, no por volumen)
   const rlv = Number.isFinite(c.rlv) ? c.rlv : 0; // versión: Badass — se limpia la Reventa suelta, dejando solo Vino/Espumantes/Gaseosas
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, secciones, asignaciones };
+  const grlv = Number.isFinite(c.grlv) ? c.grlv : 0; // versión: Garden — se sacan de la Reventa suelta las categorías que ya están duplicadas como plato costeado
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13847,6 +13848,33 @@ function costeoBadassReventaLimpia(doc, rest){
   doc.carta.rlv = BADASS_REVENTA_LIMPIA_V;
   return true;
 }
+// Garden: a diferencia de Badass, en Garden NO todo lo de la Reventa suelta
+// está duplicado — Especial Chelas, Copas, Shots, Vino, Espumantes, Chelas
+// sin alcohol, Kombucha, Gaseosas, Jugos e Ice Tea no tienen ningún plato
+// costeado equivalente, así que se dejan. Solo se sacan las categorías que sí
+// están duplicadas como plato real (Colección/Firulais y cada espirituoso
+// con su Botella, que ya existen costeados en Ron/Pisco/Vodka/Whisky/
+// Bourbon/Gin/Licores/Tequila y sus "* Botella"). Corre una sola vez por doc
+// de barra (carta.grlv), solo Garden.
+const GARDEN_REVENTA_LIMPIA_SECCIONES = [
+  'Colección de la casa (cervezas)', 'Colección de temporada', 'Colección de artistas', 'Firulais Craft Mix',
+  'Ron (con bebida 220ml)', 'Pisco (con bebida 220ml)', 'Vodka (con bebida 220ml)', 'Whisky (con bebida 220ml)',
+  'Bourbon (con bebida 220ml)', 'Gin (con bebida 220ml)', 'Licores', 'Tequila (con limón y sal)',
+  'Ron botella', 'Pisco botella', 'Vodka botella', 'Whisky botella', 'Gin botella',
+  'Tequila botella (con limón y sal)', 'Licores botella',
+];
+const GARDEN_REVENTA_LIMPIA_V = 1;
+function costeoGardenReventaLimpia(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.grlv >= GARDEN_REVENTA_LIMPIA_V) return false;
+  if (costeoRestKey(rest) !== 'garden') { doc.carta.grlv = GARDEN_REVENTA_LIMPIA_V; return true; }
+  costeoSeedReventa(doc, rest);
+  const quitar = new Set(GARDEN_REVENTA_LIMPIA_SECCIONES.map(costeoNormSuelto));
+  doc.reventa.secciones = (doc.reventa.secciones || []).filter(s => !quitar.has(costeoNormSuelto(s.nombre)));
+  doc.carta.grlv = GARDEN_REVENTA_LIMPIA_V;
+  return true;
+}
 // Garden: los tragos "puros" por espirituoso (Ron, Pisco, Vodka, Whisky,
 // Bourbon, Gin — sin Licores ni Tequila) suman 1 unidad de BEBIDA LATA CHICA
 // a su receta, y sus Botellas (mismas familias, sin Licores/Tequila Botella
@@ -13906,6 +13934,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoBadassReventaAInsumo(all[key], rest)) ch = true;
     if (costeoBadassKombuchaChelaUnidad(all[key], rest)) ch = true;
     if (costeoBadassReventaLimpia(all[key], rest)) ch = true;
+    if (costeoGardenReventaLimpia(all[key], rest)) ch = true;
     if (costeoGardenLataChica(all[key], rest)) ch = true;
     if (costeoSeedPreciosCortosBotellas(all[key], rest)) ch = true;
   }
