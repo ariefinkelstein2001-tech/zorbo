@@ -14471,7 +14471,8 @@ function costeoNormalizeCarta(c){
   const pcb2v = Number.isFinite(c.pcb2v) ? c.pcb2v : 0; // versión: Badass barra — ronda 2 de precios reales de Cortos/Botellas, desde el Informe Artículos del POS
   const esv = Number.isFinite(c.esv) ? c.esv : 0; // versión: Badass comida — saca de Carta (resumen) los ítems de platos que ya no se sirven y renombra las Ensaladas al nombre oficial de la carta
   const ptv = Number.isFinite(c.ptv) ? c.ptv : 0; // versión: Badass comida — se elimina la sección "Para Tomar 0.0" de Carta (resumen): es de Barra, no de alimentos
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, wlv, dsv, pcb2v, esv, ptv, secciones, asignaciones };
+  const cbdv = Number.isFinite(c.cbdv) ? c.cbdv : 0; // versión: Badass barra — se eliminan 64 Cortos/Botellas puntuales a pedido del dueño
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, wlv, dsv, pcb2v, esv, ptv, cbdv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -15411,6 +15412,47 @@ function costeoSeedPreciosCortosBotellas2(doc, rest){
   doc.carta.pcb2v = PRECIO_CORTOS_BOTELLAS_V2;
   return true;
 }
+// Badass barra: a pedido del dueño se eliminan puntualmente 64 Cortos/Botellas
+// (marcas que no se van a vender o no corresponden) de las categorías de
+// espirituoso. Elimina el plato completo — sale de "Tragos" y, como Carta
+// (resumen) arma sus secciones a partir de la categoría del plato, también
+// sale de ahí solo con esto, sin un paso aparte. Match por nombre EXACTO
+// (normalizado) dentro de las categorías de Cortos/Botellas, no por
+// substring, para no borrar de más por coincidencia parcial. Corre una sola
+// vez (carta.cbdv), solo Badass.
+const BADASS_CORTOS_BOTELLAS_ELIMINAR = [
+  'Flor De Caña 12 Corto', 'Bacardi Carta Blanca Corto', 'Havana Club Especial Corto',
+  'Pampero Aniversario Botella', 'Flor De Caña 12 Botella', 'Bacardi Carta Blanca Botella',
+  'Bacardi Añejo Botella', 'Havana Club Especial Botella', 'Zacapa 23 Botella',
+  'Pampero Especial Botella', 'Ron Rey De Copas Botella', 'Cuatro Gallos Italia Corto',
+  'Alto Del Carmen Transparente 40° Corto', 'Mistral Nobel Honey Corto', 'Mistral Nobel Apple Corto',
+  'Cuatro Gallos Italia Botella', 'Alto Del Carmen Transparente 40° Botella', 'Mistral Nobel Honey Botella',
+  'Mistral Nobel Apple Botella', 'Absolute Vainilla Corto', 'Belvedere Corto', 'Absolute Vainilla Botella',
+  'Absolute Botella', 'Belvedere Botella', 'Johnnie Walker Blue Corto', 'Ballantines Corto',
+  'Ballantines Blended 7 Años Corto', 'Buchanan´S 12 Corto', 'Johnnie Walker Blonde Corto',
+  'Johnnie Walker Blue Botella', 'Ballantines Botella', 'Ballantines Blended 7 Años Botella',
+  'Buchanan´S 12 Botella', 'Glenfiddich 12 Botella', 'The Singleton 12 Botella',
+  'Johnnie Walker Blonde Botella', 'Jack Daniels Gentleman Botella', 'Bulliet Bourbon Botella',
+  'Gin Mare Corto', 'Republica Amazonica Corto', 'Beefeter Corto', 'Beefeter Pink Corto',
+  'Tanqueray London Dry Botella', 'Tanqueray Sevilla Botella', 'Tanqueray Royale Botella',
+  'Gin Mare Botella', 'Republica Amazonica Botella', 'Beefeter Botella', 'Beefeter Pink Botella',
+  'Gin Banny Botella', 'Pobre Vermouth Rosso Corto', 'Pobre Vermouth Blanco Corto',
+  'Pobre Vermouth Rosso Botella', 'Pobre Vermouth Blanco Botella', 'Baileys Botella',
+  'Martini Fiero Botella', 'Drambui Botella', 'Campari Botella', 'Herradura Silver Botella',
+  'Herradura Reposado Botella', 'Olmeca Silver Botella', 'Olmeca Reposado Botella',
+  'Jose Cuervo Silver Botella', 'Jose Cuervo Reposado Botella',
+];
+const BADASS_CORTOS_BOTELLAS_ELIMINAR_V = 1;
+function costeoBadassEliminarCortosBotellas(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.cbdv >= BADASS_CORTOS_BOTELLAS_ELIMINAR_V) return false;
+  if (costeoRestKey(rest) !== 'badass') { doc.carta.cbdv = BADASS_CORTOS_BOTELLAS_ELIMINAR_V; return true; }
+  const quitar = new Set(BADASS_CORTOS_BOTELLAS_ELIMINAR.map(costeoNorm));
+  doc.platos = (doc.platos || []).filter(p => !(BADASS_FAMILIAS_CB_CATS.has(costeoNorm(p.categoria)) && quitar.has(costeoNorm(p.nombre))));
+  doc.carta.cbdv = BADASS_CORTOS_BOTELLAS_ELIMINAR_V;
+  return true;
+}
 // ── Cervezas Kairos: de reventa a trago costeado ──
 // Las 4 categorías de cerveza propia (colecciones de la casa / temporada /
 // artistas y el Firulais Craft Mix) estaban cargadas como REVENTA: se veían en
@@ -15812,6 +15854,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoBadassEliminarCortosBotellasVacios(all[key], rest)) ch = true;
     if (costeoBadassCervezasInvitadasAReventa(all[key], rest)) ch = true;
     if (costeoSeedPreciosCortosBotellas2(all[key], rest)) ch = true;
+    if (costeoBadassEliminarCortosBotellas(all[key], rest)) ch = true;
   }
   return ch;
 }
