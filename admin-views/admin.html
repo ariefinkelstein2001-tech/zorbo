@@ -11697,10 +11697,20 @@ const CT_THEAD = '<thead><tr><th>Plato</th><th style="text-align:right">Precio d
 // servicio elegidos arriba) — solo platos con precio real cargado (si no, no
 // hay % de costo que promediar) y solo platos costeados de verdad, nunca los
 // ítems de Reventa (esos tienen su propio % compra/venta, otra cosa).
-function cartaAvgPct(c){
-  const platos = [...(c.secciones||[]).flatMap(s=>s.platos||[]), ...(c.sinAsignar||[])].filter(p=>p.pctCosto!=null);
-  if (!platos.length) return { pct: null, n: 0 };
-  return { pct: Math.round(platos.reduce((s,p)=>s+p.pctCosto,0)/platos.length*10)/10, n: platos.length };
+// conDesc: mismo criterio que cartaRow — con descuento, el % de cada plato se
+// recalcula contra el precio con el 40% aplicado (nunca contra el pctCosto que
+// manda el server, que es siempre sin descuento). Sin esto el promedio quedaba
+// pegado al valor "sin descuento" aunque la vista mostrara los precios rebajados.
+function cartaAvgPct(c, conDesc){
+  const platos = [...(c.secciones||[]).flatMap(s=>s.platos||[]), ...(c.sinAsignar||[])];
+  const pcts = platos.map(p => {
+    if (!conDesc) return p.pctCosto;
+    if (p.precioReal == null) return null;
+    const real = Math.round(p.precioReal * (1 - CARTA_DESCUENTO_PCT/100));
+    return real > 0 ? Math.round((p.costo/real)*1000)/10 : null;
+  }).filter(pct => pct != null);
+  if (!pcts.length) return { pct: null, n: 0 };
+  return { pct: Math.round(pcts.reduce((s,x)=>s+x,0)/pcts.length*10)/10, n: pcts.length };
 }
 function drawCarta(){
   const c=cartaData;
@@ -11778,7 +11788,7 @@ function drawCarta(){
       </div>
       ${conDesc?'<span class="ct-toolbar-info" style="margin:0">Precio y % de costo con el descuento aplicado — el precio real guardado no cambia.</span>':''}
     </div>` : '';
-  const avg = cartaAvgPct(c);
+  const avg = cartaAvgPct(c, conDesc);
   const avgTone = avg.pct==null ? '' : (avg.pct>40 ? 'tone-red' : 'tone-green');
   const avgBlock = `
     <div class="adm-stats" style="margin-bottom:.7rem">
