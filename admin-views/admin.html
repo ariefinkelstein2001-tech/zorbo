@@ -16618,12 +16618,23 @@ function ccUnitsWire(){
 // lógica que ya existía (proyección, objetivos, Excel, período) sigue igual —
 // lo único que cambia es que el selector de centro se acota a los 3
 // restaurantes (cdScope).
+// 'costeo' y 'sku' NO son herramientas propias de Hospitality: son las MISMAS
+// de "Para ti" (#costeoView/#productsView), tomadas prestadas con
+// hospTomarPanel() como ya hace costos/gastos/eerr — mismo componente, mismo
+// endpoint, una sola verdad del dato. Lo único que cambia es el estado
+// inicial del filtro (pestaña/canal), nunca la fuente de datos.
 const HOSP_NAV = [
   { id: 'rendimientos', label: 'Rendimientos', icon: '🥩' },
   { id: 'ingresos', label: 'Ingresos', icon: '💰' },
   { id: 'costos', label: 'Costos', icon: '🌱', vista: 'costosView', abrir: () => loadCostos('costo') },
   { id: 'gastos', label: 'Gastos', icon: '🧾', vista: 'gastosView', abrir: () => loadCostos('gasto') },
   { id: 'eerr', label: 'Estado de Resultado', icon: '📈', vista: 'pnlView', abrir: () => loadPnl() },
+  { id: 'costeo', label: 'Costeo', icon: '🧮', vista: 'costeoView', abrir: () => { costeoAreaGo('gastronomia'); loadCosteo(); } },
+  { id: 'sku', label: 'SKU / Carta', icon: '🏷️', vista: 'productsView', abrir: () => {
+    activeSkuChan = 'hospitality';
+    document.querySelectorAll('#skuChanFilters .sku-chan').forEach(x => x.classList.toggle('on', x.dataset.chan === 'hospitality'));
+    loadProductos().then(applySkuChannel);
+  } },
 ];
 // ── Hospitality › Ingresos (cierre de caja) ──────────────────────────────────
 // Carga manual: un cierre por local y día, con el desglose por forma de pago.
@@ -16794,6 +16805,18 @@ function hospEnter(){
 function hospBackToGate(){
   hospDevolverPanel();       // los paneles prestados vuelven al perfil madre
   cdScope = null;            // y el selector de centro vuelve a ofrecer todos
+  // Costeo/SKU quedan con el filtro completo de siempre — el pre-filtrado de
+  // Hospitality (Gastronomía / canal Hospitality) es solo el estado inicial
+  // con el que se ENTRA desde Hospitality, nunca debe quedarse pegado en
+  // "Para ti".
+  costeoAreaGo('gastronomia');
+  activeSkuChan = 'todas';
+  document.querySelectorAll('#skuChanFilters .sku-chan').forEach(x => x.classList.toggle('on', x.dataset.chan === 'todas'));
+  // El cambio de chip no solo es visual: applySkuChannel() es lo que en
+  // realidad esconde/muestra #productGrid vs #hospCartaWrap — sin este
+  // llamado, la carta de Hospitality quedaba pegada aunque el chip mostrara
+  // "Todas" (bug real encontrado probando el flujo completo antes de commitear).
+  applySkuChannel();
   const shell = document.getElementById('hospShell');
   if (shell) shell.style.display = 'none';
   document.body.classList.remove('hosp-open');
