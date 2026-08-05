@@ -2139,6 +2139,20 @@ body.drawer-open{overflow:hidden}
 .ct-mix-preview{font-size:.82rem;color:var(--muted,#777)}
 .ct-combo-group{margin-bottom:1.6rem}
 .ct-combo-h{font-family:var(--display,inherit);font-size:1.2rem;font-weight:800;color:var(--text,#111);margin-bottom:.7rem;padding-bottom:.4rem;border-bottom:3px solid var(--gold,#f5a623)}
+/* Candado: pesos que no suman 100% o secciones sin asignar a un grupo — el
+   ponderado no se da por válido hasta que esto quede en blanco. */
+.ct-candado{display:flex;align-items:flex-start;gap:.5rem;margin-top:.6rem;padding:.6rem .8rem;border-radius:8px;background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.3);color:#a83226;font-size:.8rem;font-weight:600;line-height:1.4}
+.ct-grupo-detail{display:flex;flex-direction:column;gap:.3rem}
+.ct-grupo-row{display:flex;align-items:baseline;gap:.6rem;font-size:.82rem;padding:.15rem 0}
+.ct-grupo-row>span:first-child{flex:0 0 150px;font-weight:700;color:var(--text,#111)}
+.ct-grupo-row>b{flex:0 0 55px;color:var(--gold-deep,#a05f00)}
+.ct-grupo-avg{color:var(--muted,#777)}
+.ct-grupo-pesos{display:flex;flex-wrap:wrap;gap:.7rem}
+.ct-grupo-pesos .cg-field input{width:80px}
+.ct-grupo-suma{font-size:.8rem;font-weight:700;margin-top:.4rem;color:var(--text-2,#52525b)}
+.ct-grupo-suma.err{color:#c0392b}
+.ct-grupo-suma.ok{color:#2f8a4e}
+.ct-grupo-sec-tbl select{width:100%;max-width:220px}
 .rv-new{border:1px solid var(--line,#ddd);border-radius:7px;padding:.35rem .5rem;font-size:.82rem;background:var(--surface,#fff);color:var(--text,#111)}
 .rv-inp{border:1px solid var(--line,#e2e2e2);border-radius:var(--radius-sm,7px);padding:.35rem .5rem;background:var(--surface,#fff);color:var(--text,#111);text-align:right;font-weight:600}
 .rv-inp:focus,.rv-new:focus{outline:none;border-color:var(--gold,#f5a623);box-shadow:0 0 0 2px rgba(245,166,35,.18)}
@@ -11772,7 +11786,7 @@ async function renderCosteoCarta(){
 // edición inline (precio real / mover de sección): para editar se elige
 // Comida o Barra en el selector de Servicio, así nunca hay ambigüedad de a
 // qué servicio pertenece la fila que se está tocando.
-let cartaCombinadaData = null; // {comida:{carta,reventa}, barra:{carta,reventa}, mix}
+let cartaCombinadaData = null; // {comida:{carta,reventa}, barra:{carta,reventa}, mix, ponderado}
 const cRestSvc = (url, svc) => url + (url.includes('?') ? '&' : '?') + 'rest=' + costeoRest + '&svc=' + svc;
 async function costeoFetchCartaFor(svc){
   const carta = await (await fetch(cRestSvc('/admin/costeo/carta', svc))).json();
@@ -11783,71 +11797,75 @@ async function costeoFetchCartaFor(svc){
 async function renderCosteoCartaCombinada(){
   const body=document.getElementById('costeoBody');
   body.innerHTML='<div class="adm-loading">Cargando carta combinada…</div>';
+  const conDesc = cartaDescuento && costeoRest==='badass';
   try{
-    const [comida, barra, mix] = await Promise.all([
+    const [comida, barra, mix, ponderado] = await Promise.all([
       costeoFetchCartaFor('comida'),
       costeoFetchCartaFor('barra'),
       fetch('/admin/costeo/mix?rest='+encodeURIComponent(costeoRest)).then(r=>r.json()),
+      fetch(`/admin/costeo/ponderado?rest=${encodeURIComponent(costeoRest)}&conDesc=${conDesc?'1':'0'}`).then(r=>r.json()),
     ]);
-    cartaCombinadaData = { comida, barra, mix };
+    cartaCombinadaData = { comida, barra, mix, ponderado };
   }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
   drawCartaCombinada();
 }
-// Promedio simple del % de costo YA calculado por cada plato/producto — no
-// recalcula ningún % individual, solo promedia lo que el costeo ya entrega.
-function cartaComboAvgPct(carta, reventa){
-  const vals = [];
-  (carta.secciones||[]).forEach(s=>(s.platos||[]).forEach(p=>{ if(p.pctCosto!=null) vals.push(p.pctCosto); }));
-  (carta.sinAsignar||[]).forEach(p=>{ if(p.pctCosto!=null) vals.push(p.pctCosto); });
-  if (reventa && reventa.secciones) reventa.secciones.forEach(s=>(s.productos||[]).forEach(p=>{ if(p.pctCosto!=null) vals.push(p.pctCosto); }));
-  return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
-}
 // Fila de solo lectura para la vista combinada — igual que cartaRow() pero sin
-// input de precio ni <select> de sección (ver comentario más arriba).
-function cartaRowRO(p){
-  const pct = p.pctCosto;
+// input de precio ni <select> de sección (ver comentario más arriba). conDesc:
+// mismo criterio que cartaRow — con descuento, precio y % se recalculan
+// contra el precio con el 40% aplicado (el costo nunca cambia).
+function cartaRowRO(p, conDesc){
+  const real = conDesc && p.precioReal!=null ? Math.round(p.precioReal*(1-CARTA_DESCUENTO_PCT/100)) : p.precioReal;
+  const pct = conDesc
+    ? (real!=null && real>0 ? Math.round((p.costo/real)*1000)/10 : null)
+    : p.pctCosto;
   return `<tr>
     <td><b>${escapeHtml(p.nombre)}</b></td>
-    <td class="dist-num">${p.precioReal!=null?cMoney(p.precioReal):'<span style="color:#bbb">sin precio</span>'}</td>
+    <td class="dist-num">${real!=null?cMoney(real):'<span style="color:#bbb">sin precio</span>'}</td>
     <td class="dist-num">${cMoney(p.costo)}</td>
     <td class="dist-num"><span class="pl-pct ${pct!=null&&pct>40?'hi':''}">${pct!=null?pct+'%':'—'}</span></td>
     <td class="dist-num">${escapeHtml(p.__seccion||'—')}</td>
   </tr>`;
 }
-function cartaSeccionesHtmlRO(carta){
+function cartaSeccionesHtmlRO(carta, conDesc){
   const secBlocks = (carta.secciones||[]).filter(s=>s.platos&&s.platos.length).map(s=>{
-    const rows = s.platos.map(p=>cartaRowRO({...p, __seccion:s.nombre})).join('');
+    const rows = s.platos.map(p=>cartaRowRO({...p, __seccion:s.nombre}, conDesc)).join('');
     return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.platos.length})</span></div><div class="mun-wrap"><table class="mun-table">${ctThead(false)}<tbody>${rows}</tbody></table></div></div>`;
   }).join('');
   const sa = carta.sinAsignar||[];
-  const saBlock = sa.length ? `<div class="ct-sec ct-sec-sa"><div class="ct-sec-h">Sin asignar <span>(${sa.length})</span></div><div class="mun-wrap"><table class="mun-table">${ctThead(false)}<tbody>${sa.map(p=>cartaRowRO({...p,__seccion:'—'})).join('')}</tbody></table></div></div>` : '';
+  const saBlock = sa.length ? `<div class="ct-sec ct-sec-sa"><div class="ct-sec-h">Sin asignar <span>(${sa.length})</span></div><div class="mun-wrap"><table class="mun-table">${ctThead(false)}<tbody>${sa.map(p=>cartaRowRO({...p,__seccion:'—'}, conDesc)).join('')}</tbody></table></div></div>` : '';
   return secBlocks + saBlock;
 }
-function cartaReventaHtmlRO(reventa){
+function cartaReventaHtmlRO(reventa, conDesc){
   if (!reventa || !reventa.secciones || !reventa.secciones.length) return '';
   const blocks = reventa.secciones.filter(s=>s.productos&&s.productos.length).map(s=>{
-    const rows = s.productos.map(p=>cartaRowRO({ nombre:p.nombre, precioReal:p.precioVenta, costo:p.precioCompra, pctCosto:p.pctCosto, __seccion:s.nombre })).join('');
+    const rows = s.productos.map(p=>cartaRowRO({ nombre:p.nombre, precioReal:p.precioVenta, costo:p.precioCompra, pctCosto:p.pctCosto, __seccion:s.nombre }, conDesc)).join('');
     return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.productos.length})</span></div><div class="mun-wrap"><table class="mun-table">${ctThead(false)}<tbody>${rows}</tbody></table></div></div>`;
   }).join('');
   return blocks ? `<div class="ct-rev-head"><div class="ct-sec-h" style="border:none">Reventa · destilados y bebidas <span>(venta directa)</span></div></div>${blocks}` : '';
 }
 function drawCartaCombinada(){
-  const { comida, barra, mix } = cartaCombinadaData;
-  const comidaAvg = cartaComboAvgPct(comida.carta, null);
-  const barraAvg = cartaComboAvgPct(barra.carta, barra.reventa);
+  const { comida, barra, mix, ponderado } = cartaCombinadaData;
+  const conDesc = cartaDescuento && costeoRest==='badass';
   const mComida = Number(mix.comida)||0, mBarra = Math.round((100-mComida)*10)/10;
-  // Ponderado por mix de ingresos (no promedio simple) — si a un servicio le
-  // falta info, cae de vuelta al promedio del que sí tiene, en vez de romper.
-  let weighted = null;
-  if (comidaAvg!=null && barraAvg!=null) weighted = (comidaAvg*mComida + barraAvg*mBarra)/100;
-  else if (comidaAvg!=null) weighted = comidaAvg;
-  else if (barraAvg!=null) weighted = barraAvg;
   const fmt1 = (v) => v==null ? '—' : (Math.round(v*10)/10)+'%';
+  const barraPond = ponderado.barra;
+  const candado = ctGrupoCandadoHtml(barraPond);
+  const motivo = ponderado.motivoInvalido ? `<div class="ct-candado">⚠️ Sin ponderado combinado todavía: ${escapeHtml(ponderado.motivoInvalido)}</div>` : '';
+  const grupoRows = barraPond.detalle.map(d=>`<div class="ct-grupo-row"><span>${escapeHtml(d.label)}</span><b>${d.peso}%</b><span class="ct-grupo-avg">${d.avgPct!=null?fmt1(d.avgPct):'sin datos'}</span></div>`).join('');
+  const descuentoToggle = costeoRest==='badass' ? `
+    <div class="tc-search" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.8rem">
+      <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#666">Ver precios</span>
+      <div style="display:flex;gap:.4rem">
+        <button type="button" class="adm-btn ${conDesc?'':'adm-btn-gold'}" id="ctDescOff">Sin descuento</button>
+        <button type="button" class="adm-btn ${conDesc?'adm-btn-gold':''}" id="ctDescOn">Con descuento (${CARTA_DESCUENTO_PCT}%)</button>
+      </div>
+    </div>` : '';
   const mixBox = `
     <div class="ct-mix-box">
-      <div class="ct-mix-pct ${weighted!=null&&weighted>40?'hi':''}">${fmt1(weighted)}<small>% de costo promedio ponderado</small></div>
+      <div class="ct-mix-pct ${ponderado.combinado!=null&&ponderado.combinado>40?'hi':''}">${fmt1(ponderado.combinado)}<small>% de costo promedio ponderado${conDesc?' · con descuento 40%':''}</small></div>
+      ${motivo}
       <div class="ct-mix-detail">
-        <span>ponderado por <b>${mComida}% Comida</b> / <b>${mBarra}% Barra</b> · Comida ${fmt1(comidaAvg)} · Barra ${fmt1(barraAvg)}</span>
+        <span>ponderado por <b>${mComida}% Comida</b> / <b>${mBarra}% Barra</b> · Comida ${fmt1(ponderado.comida.pct)} · Barra ${barraPond.valido?fmt1(barraPond.pct):'—'}</span>
         <button class="adm-btn adm-btn-ghost" id="ctMixEditBtn" type="button">✎ Editar mix</button>
       </div>
       <div class="ct-mix-edit" id="ctMixEdit" style="display:none">
@@ -11856,16 +11874,23 @@ function drawCartaCombinada(){
         <button class="adm-btn adm-btn-gold" id="ctMixSaveBtn" type="button">Guardar mix</button>
         <span class="dist-status" id="ctMixSt"></span>
       </div>
+      <div class="ct-toolbar-info" style="margin:.7rem 0 0">Barra se pondera por sus 5 grupos de ingresos (no promedio simple) — <b>${candado?'hay que asignar/ajustar pesos':'ver detalle'}</b>: cambiá el Servicio a "🍸 Barra" para editarlos.</div>
+      ${candado}
+      <div class="ct-grupo-detail" style="margin-top:.4rem">${grupoRows}</div>
     </div>`;
-  const comidaHtml = cartaSeccionesHtmlRO(comida.carta);
-  const barraHtml = cartaSeccionesHtmlRO(barra.carta) + cartaReventaHtmlRO(barra.reventa);
+  const comidaHtml = cartaSeccionesHtmlRO(comida.carta, conDesc);
+  const barraHtml = cartaSeccionesHtmlRO(barra.carta, conDesc) + cartaReventaHtmlRO(barra.reventa, conDesc);
   document.getElementById('costeoBody').innerHTML = `
     <div class="ct-toolbar">
       <div class="ct-toolbar-info"><b>Comida y Barra combinadas</b> · vista de solo lectura — para editar precios o mover de sección, elegí Comida o Barra en el selector de Servicio. ${comida.carta.meta.totalPlatos} platos de Comida · ${barra.carta.meta.totalPlatos} tragos de Barra.</div>
     </div>
+    ${descuentoToggle}
     ${mixBox}
     <div class="ct-combo-group"><div class="ct-combo-h">🍽️ Comida</div>${comidaHtml||'<div class="dist-empty">Sin platos costeados.</div>'}</div>
     <div class="ct-combo-group"><div class="ct-combo-h">🍸 Barra</div>${barraHtml||'<div class="dist-empty">Sin tragos costeados.</div>'}</div>`;
+  { const off=document.getElementById('ctDescOff'); const on=document.getElementById('ctDescOn');
+    if(off) off.onclick=()=>{ cartaDescuento=false; renderCosteoCartaCombinada(); };
+    if(on) on.onclick=()=>{ cartaDescuento=true; renderCosteoCartaCombinada(); }; }
   const editBtn=document.getElementById('ctMixEditBtn'), editBox=document.getElementById('ctMixEdit');
   if (editBtn) editBtn.onclick=()=>{ editBox.style.display = editBox.style.display==='none' ? '' : 'none'; };
   const inp=document.getElementById('ctMixComidaInp'), prev=document.getElementById('ctMixBarraPreview');
@@ -11923,6 +11948,94 @@ function ctThead(editable){
     + '</tr></thead>';
 }
 const CT_THEAD = ctThead(true);
+// ── % de costo promedio PONDERADO de Barra, por los 5 grupos de ingresos ──
+// (NUEVO — reemplaza, solo para Barra, el promedio simple de arriba por uno
+// que pesa cada grupo por su % de ingresos, en vez de tratar un cóctel caro
+// igual que una cerveza barata). Se pide async porque necesita los pesos y el
+// mapeo sección→grupo guardados en el server — se dibuja en un placeholder
+// aparte, sin bloquear el resto de la pantalla.
+let barraGruposData = null; // último GET /admin/costeo/grupos-barra
+async function renderBarraGrupoPonderado(conDesc){
+  const box = document.getElementById('ctGrupoPonderado');
+  if (!box) return;
+  try{
+    const r = await fetch(`/admin/costeo/grupos-barra?rest=${encodeURIComponent(costeoRest)}&conDesc=${conDesc?'1':'0'}`);
+    barraGruposData = await r.json();
+  }catch(e){ box.innerHTML = `<div class="dist-empty">Error cargando el ponderado por grupos: ${escapeHtml(String(e.message||e))}</div>`; return; }
+  drawBarraGrupoPonderado();
+}
+function ctGrupoCandadoHtml(pond){
+  const msgs = [];
+  if (!pond.pesosValidos) msgs.push(`Los 5 pesos suman ${pond.sumaPesos}% — tienen que sumar 100% para que el ponderado sea válido.`);
+  if (!pond.seccionesValidas) msgs.push(`Faltan asignar ${pond.sinAsignar.length} sección(es) a un grupo: ${pond.sinAsignar.map(n=>escapeHtml(n)).join(', ')}.`);
+  return msgs.length ? `<div class="ct-candado">⚠️ ${msgs.join(' ')}</div>` : '';
+}
+function ctGrupoEditHtml(){
+  const { pesos, seccionesTodas, grupos } = barraGruposData;
+  const pesoInputs = grupos.map(g=>`<label class="cg-field"><span>${escapeHtml(g.label)}</span><input type="text" inputmode="decimal" class="ct-grupo-peso" data-g="${g.key}" value="${pesos[g.key]}"></label>`).join('');
+  const secRows = (seccionesTodas||[]).map(s=>`
+    <tr><td>${escapeHtml(s.nombre)} <span class="mun-bk">${s.nPlatos}</span></td>
+    <td class="ct-grupo-sec-tbl"><select class="ct-grupo-sec" data-k="${escapeAttr(s.key)}">
+      <option value="">— Sin asignar —</option>
+      ${grupos.map(g=>`<option value="${g.key}" ${s.grupo===g.key?'selected':''}>${escapeHtml(g.label)}</option>`).join('')}
+    </select></td></tr>`).join('');
+  return `
+    <div class="ct-grupo-pesos">${pesoInputs}</div>
+    <div class="ct-grupo-suma" id="ctGrupoSumaSt"></div>
+    <div class="ct-toolbar-info" style="margin:.5rem 0">Qué grupo le corresponde a cada sección de la carta/reventa de Barra — las que ya vienen precargadas calzaron por nombre; el resto se asigna a mano.</div>
+    <div class="mun-wrap"><table class="mun-table"><thead><tr><th>Sección de Barra</th><th>Grupo</th></tr></thead><tbody>${secRows}</tbody></table></div>
+    <button class="adm-btn adm-btn-gold" id="ctGrupoSaveBtn" type="button" style="margin-top:.6rem">Guardar pesos y secciones</button>
+    <span class="dist-status" id="ctGrupoSt"></span>`;
+}
+function ctGrupoSumaPesos(){
+  let suma = 0;
+  document.querySelectorAll('.ct-grupo-peso').forEach(inp=>{ suma += cNum(inp.value)||0; });
+  return Math.round(suma*100)/100;
+}
+function ctGrupoActualizarSuma(){
+  const st = document.getElementById('ctGrupoSumaSt');
+  if (!st) return;
+  const suma = ctGrupoSumaPesos();
+  const ok = Math.abs(suma-100) < 0.05;
+  st.className = 'ct-grupo-suma ' + (ok?'ok':'err');
+  st.textContent = ok ? `Suman ${suma}% ✓` : `Suman ${suma}% — tienen que sumar 100%.`;
+}
+function drawBarraGrupoPonderado(){
+  const box = document.getElementById('ctGrupoPonderado');
+  if (!box || !barraGruposData) return;
+  const pond = barraGruposData.ponderado;
+  const fmt1 = v=>v==null?'—':(Math.round(v*10)/10)+'%';
+  const detailRows = pond.detalle.map(d=>`<div class="ct-grupo-row"><span>${escapeHtml(d.label)}</span><b>${d.peso}%</b><span class="ct-grupo-avg">${d.avgPct!=null?fmt1(d.avgPct)+' · '+d.n+' con precio cargado':'sin tragos con precio cargado'}</span></div>`).join('');
+  box.className = 'ct-mix-box';
+  box.innerHTML = `
+    <div class="ct-mix-pct ${pond.valido&&pond.pct!=null&&pond.pct>40?'hi':''}">${pond.valido?fmt1(pond.pct):'—'}<small>% de costo promedio ponderado de Barra${pond.conDesc?' · con descuento 40%':''}</small></div>
+    ${ctGrupoCandadoHtml(pond)}
+    <div class="ct-mix-detail">
+      <span>ponderado por 5 grupos de ingresos (no promedio simple)</span>
+      <button class="adm-btn adm-btn-ghost" id="ctGrupoEditBtn" type="button">✎ Editar pesos y secciones</button>
+    </div>
+    <div class="ct-grupo-detail" style="margin-top:.5rem">${detailRows}</div>
+    <div class="ct-mix-edit" id="ctGrupoEdit" style="display:none;flex-direction:column;align-items:stretch">${ctGrupoEditHtml()}</div>`;
+  const editBtn = document.getElementById('ctGrupoEditBtn'), editBox = document.getElementById('ctGrupoEdit');
+  if (editBtn) editBtn.onclick = () => { editBox.style.display = editBox.style.display==='none' ? 'flex' : 'none'; if (editBox.style.display==='flex') ctGrupoActualizarSuma(); };
+  document.querySelectorAll('.ct-grupo-peso').forEach(inp=>{ inp.oninput = ctGrupoActualizarSuma; });
+  const saveBtn = document.getElementById('ctGrupoSaveBtn');
+  if (saveBtn) saveBtn.onclick = async () => {
+    const st = document.getElementById('ctGrupoSt');
+    const pesos = {};
+    document.querySelectorAll('.ct-grupo-peso').forEach(inp=>{ pesos[inp.dataset.g] = cNum(inp.value)||0; });
+    const secciones = {};
+    document.querySelectorAll('.ct-grupo-sec').forEach(sel=>{ if (sel.value) secciones[sel.dataset.k] = sel.value; });
+    st.className = 'dist-status'; st.textContent = 'Guardando…';
+    try{
+      const r = await fetch(`/admin/costeo/grupos-barra?rest=${encodeURIComponent(costeoRest)}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ pesos, secciones }) });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.error||'Error'); }
+      const conDesc = cartaDescuento && costeoRest==='badass';
+      await renderBarraGrupoPonderado(conDesc);
+      if (costeoSvc==='ambos') await renderCosteoCartaCombinada();
+    }catch(e){ st.className = 'dist-status err'; st.textContent = e.message; }
+  };
+}
 // % de costo promedio de lo que se está viendo ahora mismo (restaurante +
 // servicio elegidos arriba) — solo platos con precio real cargado (si no, no
 // hay % de costo que promediar) y solo platos costeados de verdad, nunca los
@@ -12028,8 +12141,10 @@ function drawCarta(){
         <div class="adm-stat-s">${escapeHtml(REST_LABEL[costeoRest]||costeoRest)} · ${isBarra()?'Barra':'Comida'} · ${avg.n?avg.n+' platos con precio cargado':'sin platos con precio real cargado todavía'}${conDesc?' · con descuento':''}</div>
       </div>
     </div>`;
+  const grupoPonderadoBox = isBarra() ? `<div id="ctGrupoPonderado" class="ct-mix-box">Cargando % de costo ponderado por grupos…</div>` : '';
   document.getElementById('costeoBody').innerHTML = `
     ${avgBlock}
+    ${grupoPonderadoBox}
     <div class="ct-toolbar">
       <div class="ct-toolbar-info"><b>Precio de venta REAL</b> (el que cobrás al público, editable acá). El <b>% de costo</b> es contra ese precio real; el <b>costo</b> sale del costeo. ${c.meta.totalSecciones} secciones · ${c.meta.totalPlatos} platos.</div>
       <div class="ct-pdf">
@@ -12059,6 +12174,7 @@ function drawCarta(){
   csi.oninput=()=>{ cartaSearch=csi.value; const p=csi.selectionStart; drawCarta(); const n=document.getElementById('ctSearchInp'); if(n){ n.focus(); try{n.setSelectionRange(p,p);}catch{} } };
   document.getElementById('ctCatFilter').onchange=(e)=>{ cartaCatFilter=e.target.value; drawCarta(); };
   if (isBarra() && reventaData) wireReventaHandlers();
+  if (isBarra()) renderBarraGrupoPonderado(conDesc);
   costeoLockView();
 }
 async function cartaMove(pid, seccionId){
