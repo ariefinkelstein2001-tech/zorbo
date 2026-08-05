@@ -13248,7 +13248,8 @@ function costeoNormalizeCarta(c){
   const bciv = Number.isFinite(c.bciv) ? c.bciv : 0; // versión: Badass — "Cervezas Invitadas" pasa de categoría vacía en Carta (resumen) a sección de Reventa suelta
   const wlv = Number.isFinite(c.wlv) ? c.wlv : 0; // versión: Badass comida — se elimina la sección "Wild Lunch (12:30-16:00)" de Carta (resumen), sin platos costeados
   const dsv = Number.isFinite(c.dsv) ? c.dsv : 0; // versión: Badass comida — cada hamburguesa de "Entre panes (Burgers)" se duplica en su versión "Doble" (2 smash)
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, wlv, dsv, secciones, asignaciones };
+  const pcb2v = Number.isFinite(c.pcb2v) ? c.pcb2v : 0; // versión: Badass barra — ronda 2 de precios reales de Cortos/Botellas, desde el Informe Artículos del POS
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, wlv, dsv, pcb2v, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -14067,6 +14068,55 @@ function costeoBadassCervezasInvitadasAReventa(doc, rest){
   doc.carta.bciv = BADASS_CERVEZAS_INVITADAS_REVENTA_V;
   return true;
 }
+// Precios reales de Cortos/Botellas de Badass, ronda 2 — "Informe Artículos"
+// (reporte del POS) que pasó el dueño. Solo llena lo que sigue vacío después
+// de la primera ronda (PRECIO_CORTOS_BOTELLAS_BADASS); no pisa nada ya
+// cargado. Match por nombre exacto del plato dentro de las categorías de
+// espirituoso (Ron/Pisco/Vodka/Whisky/Bourbon/Gin/Licores/Tequila y sus "*
+// Botella"). Confirmado con el dueño antes de aplicar: "Bot. Alto del Carmen
+// Envejecido" → Alto Del Carmen Etiqueta Negra Botella; "Amaretto" → Disaronno
+// Corto. "Bot. Bacardi 8 Años" del informe se deja afuera a propósito: no
+// existe ese producto en el catálogo de Badass. Nombres con variante de
+// ortografía frente al informe (Jagermeister/Jaggermeister, Absolute/Absolut)
+// son la misma marca, sin otro candidato posible.
+const PRECIO_CORTOS_BOTELLAS_V2 = 1;
+const PRECIO_CORTOS_BOTELLAS_BADASS_2 = {
+  'Havana Club Selección De Maestros Corto': 18990,
+  'Alto Del Carmen Etiqueta Negra Botella': 55000,
+  'Alto Del Carmen 40° Botella': 45000,
+  'Alto Del Carmen 35° Botella': 35000,
+  'Mistral Nobel Botella': 60000,
+  'Mistral 40° Botella': 45000,
+  'Mistral 35° Botella': 35000,
+  'Absolute Corto': 6990,
+  'Grey Goose Botella': 75000,
+  'The Singleton 12 Corto': 12990,
+  'Gin Banny Corto': 5470,
+  'Frangelico Corto': 6970,
+  'Jagermeister Corto': 6970,
+  'Disaronno Corto': 6970,
+  'Jagermeister Botella': 50000,
+  'Don Julio Blanco Corto': 10970,
+  'Don Julio Reposado Corto': 10970,
+};
+const BADASS_FAMILIAS_CB = ['Ron', 'Pisco', 'Vodka', 'Whisky', 'Bourbon', 'Gin', 'Licores', 'Tequila'];
+const BADASS_FAMILIAS_CB_CATS = new Set([...BADASS_FAMILIAS_CB, ...BADASS_FAMILIAS_CB.map(f => f + ' Botella')].map(costeoNorm));
+function costeoSeedPreciosCortosBotellas2(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.pcb2v >= PRECIO_CORTOS_BOTELLAS_V2) return false;
+  if (costeoRestKey(rest) !== 'badass') { doc.carta.pcb2v = PRECIO_CORTOS_BOTELLAS_V2; return true; }
+  const entries = Object.entries(PRECIO_CORTOS_BOTELLAS_BADASS_2).map(([n, price]) => ({ norm: costeoNormLoose(n), price }));
+  (doc.platos || []).forEach(p => {
+    if (p.precioReal != null) return; // no pisar lo que el usuario ya cargó
+    if (!BADASS_FAMILIAS_CB_CATS.has(costeoNorm(p.categoria))) return;
+    const pn = costeoNormLoose(p.nombre);
+    const e = entries.find(x => x.norm === pn);
+    if (e) p.precioReal = e.price;
+  });
+  doc.carta.pcb2v = PRECIO_CORTOS_BOTELLAS_V2;
+  return true;
+}
 // ── Cervezas Kairos: de reventa a trago costeado ──
 // Las 4 categorías de cerveza propia (colecciones de la casa / temporada /
 // artistas y el Firulais Craft Mix) estaban cargadas como REVENTA: se veían en
@@ -14467,6 +14517,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoBadassCortosBotellasPorFamilia(all[key], rest)) ch = true;
     if (costeoBadassEliminarCortosBotellasVacios(all[key], rest)) ch = true;
     if (costeoBadassCervezasInvitadasAReventa(all[key], rest)) ch = true;
+    if (costeoSeedPreciosCortosBotellas2(all[key], rest)) ch = true;
   }
   return ch;
 }
