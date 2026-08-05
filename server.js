@@ -14886,6 +14886,40 @@ app.put('/admin/costeo/carta/secciones', requireAdmin, (req, res) => {
   saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
 });
 
+// ── Mix de ingresos Comida/Barra por restaurante (NUEVO — capa de presentación) ──
+// Parámetro editable y persistente: qué % de los ingresos de cada restaurante
+// aporta Comida vs Barra. Se usa SOLO para ponderar el "% de costo promedio" en
+// la vista combinada "Comida y Barra" de Carta (resumen) — no toca ningún dato
+// ni cálculo del costeo (insumos/recetas/platos/precios quedan intactos).
+const COSTEO_MIX_FILE = join(PROMPTS_EFFECTIVE_DIR, 'costeo-mix.json');
+const COSTEO_MIX_DEFAULT = { garden: 44, badass: 63 }; // % que aporta Comida; Barra = 100 − esto
+function costeoMixLoad(){
+  try { if (existsSync(COSTEO_MIX_FILE)) { const p = JSON.parse(readFileSync(COSTEO_MIX_FILE, 'utf-8')); if (p && typeof p === 'object') return p; } }
+  catch (e) { console.warn('costeo-mix load:', e.message); }
+  return {};
+}
+function costeoMixSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTEO_MIX_FILE, JSON.stringify(d, null, 2)); }
+function costeoMixComida(rest){
+  const d = costeoMixLoad();
+  const v = Number(d[rest]);
+  if (Number.isFinite(v) && v >= 0 && v <= 100) return v;
+  return COSTEO_MIX_DEFAULT[rest] != null ? COSTEO_MIX_DEFAULT[rest] : 50;
+}
+app.get('/admin/costeo/mix', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest);
+  const comida = costeoMixComida(rest);
+  res.json({ rest, comida, barra: Math.round((100 - comida) * 10) / 10 });
+});
+app.put('/admin/costeo/mix', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest);
+  const comida = Number(req.body && req.body.comida);
+  if (!Number.isFinite(comida) || comida < 0 || comida > 100) return res.status(400).json({ error: 'El % de Comida tiene que ser un número entre 0 y 100.' });
+  const d = costeoMixLoad();
+  d[rest] = Math.round(comida * 10) / 10;
+  costeoMixSave(d);
+  res.json({ rest, comida: d[rest], barra: Math.round((100 - d[rest]) * 10) / 10 });
+});
+
 // ── Export de la Carta a Excel (.xlsx) ──────────────────────────────────────
 // Genera un .xlsx real (OOXML) SIN dependencias: arma el ZIP a mano con entradas
 // STORE (sin compresión) + las partes XML mínimas. Una hoja por restaurante, con
