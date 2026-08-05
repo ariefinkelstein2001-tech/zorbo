@@ -1470,6 +1470,21 @@ body.drawer-open{overflow:hidden}
 .adm-storage-warn code{background:rgba(255,255,255,.16);border-radius:4px;padding:.05rem .3rem}
 /* Inputs del cierre de caja (Hospitality › Ingresos). */
 .hi-in{width:110px;text-align:right;font-variant-numeric:tabular-nums}
+/* Combobox con buscador (proveedor de Costos/Gastos). */
+.cg-combo{position:relative}
+.cg-combo-in{width:100%}
+.cg-combo-list{
+  position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:60;
+  background:var(--surface,#fff);border:1px solid var(--border,#e3e6ea);border-radius:10px;
+  max-height:16rem;overflow-y:auto;box-shadow:0 10px 28px rgba(0,0,0,.14);padding:.2rem
+}
+.cg-combo-op{
+  display:block;width:100%;text-align:left;border:none;background:transparent;cursor:pointer;
+  font-family:var(--sans);font-size:.84rem;color:var(--text,#111);padding:.42rem .55rem;border-radius:7px
+}
+.cg-combo-op:hover,.cg-combo-op.on{background:var(--gold-dim,#fdf1d8)}
+.cg-combo-new{color:var(--gold-deep,#a05f00);font-weight:700;border-top:1px solid var(--border,#e3e6ea);margin-top:.15rem;border-radius:0 0 7px 7px}
+.cg-combo-empty{padding:.5rem .55rem;font-family:var(--sans);font-size:.8rem;color:var(--muted,#777)}
 /* Chips de hitos en la serie mes a mes de HORECA. */
 .hor-hito{display:inline-block;background:#fff4d6;border:1px solid #f2e3b8;color:#8a6d00;border-radius:999px;
   font-family:var(--sans);font-size:.68rem;padding:.1rem .45rem;margin:.1rem .25rem .1rem 0}
@@ -11862,6 +11877,49 @@ const COSTOS_TIPO_CFG={
   costo:{ bodyId:'costosBody', prefix:'costos', reloadId:'costosReload', pctTotal:true, vacio:'Todavía no hay costos registrados', nombre:'costo' },
   gasto:{ bodyId:'gastosBody', prefix:'gastos', reloadId:'gastosReload', pctTotal:true,  vacio:'Todavía no hay gastos registrados', nombre:'gasto' },
 };
+// Combobox de proveedor: input que filtra la lista mientras escribís, con
+// teclado (↑ ↓ Enter Esc) y la opción de crear uno nuevo con lo tipeado. El
+// valor "de verdad" vive en f.proveedor — el input es solo la vista, y si al
+// salir el texto no calza con ningún proveedor se revierte, para no guardar un
+// nombre a medio escribir.
+const cgNorm=(x)=>String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+function cgWireProvCombo(tipo, inp, f, data){
+  if(!inp) return;
+  const list=document.getElementById(cgId(tipo,'ProvList'));
+  const todos=(data.proveedores||[]).map(p=>p.nombre);
+  let idx=-1, abierto=false;
+  const exacto=(txt)=>todos.find(n=>cgNorm(n)===cgNorm(txt));
+  const filtrar=()=>{ const q=cgNorm(inp.value); return q?todos.filter(n=>cgNorm(n).includes(q)):todos; };
+  function pintar(){
+    const items=filtrar();
+    const txt=inp.value.trim();
+    const crear=(txt && !exacto(txt)) ? `<button type="button" class="cg-combo-op cg-combo-new" data-crear="1">+ Crear «${escapeHtml(txt)}»</button>` : '';
+    list.innerHTML=(items.length?items.map((n,i)=>`<button type="button" class="cg-combo-op${i===idx?' on':''}" data-prov="${escapeAttr(n)}">${escapeHtml(n)}</button>`).join('')
+      :'<div class="cg-combo-empty">Sin coincidencias</div>')+crear;
+    list.querySelectorAll('[data-prov]').forEach(b=>b.onmousedown=(e)=>{ e.preventDefault(); elegir(b.dataset.prov); });
+    const nb=list.querySelector('[data-crear]'); if(nb) nb.onmousedown=(e)=>{ e.preventDefault(); crearProveedor(txt); };
+  }
+  function abrir(){ abierto=true; list.hidden=false; inp.setAttribute('aria-expanded','true'); idx=-1; pintar(); }
+  function cerrar(){ abierto=false; list.hidden=true; inp.setAttribute('aria-expanded','false'); }
+  function elegir(nombre){ f.proveedor=nombre; inp.value=nombre; cerrar(); }
+  async function crearProveedor(nombre){
+    if(!nombre) return;
+    try{
+      const r=await fetch('/admin/costos/proveedor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre})});
+      const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error');
+      f.proveedor=d.proveedor.nombre; await loadCostos(tipo);
+    }catch(e){ costosShowErr(tipo,String(e.message||e)); inp.value=f.proveedor||''; cerrar(); }
+  }
+  inp.onfocus=abrir;
+  inp.oninput=()=>{ if(!abierto) abrir(); else { idx=-1; pintar(); } };
+  inp.onblur=()=>{ setTimeout(()=>{ cerrar(); const m=exacto(inp.value); inp.value=m||f.proveedor||''; if(m) f.proveedor=m; },120); };
+  inp.onkeydown=(e)=>{
+    const items=filtrar();
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); if(!abierto) abrir(); idx=Math.max(0,Math.min(items.length-1, idx+(e.key==='ArrowDown'?1:-1))); pintar(); const on=list.querySelector('.cg-combo-op.on'); if(on) on.scrollIntoView({block:'nearest'}); return; }
+    if(e.key==='Enter'){ e.preventDefault(); if(idx>=0&&items[idx]) elegir(items[idx]); else { const m=exacto(inp.value); if(m) elegir(m); else if(inp.value.trim()) crearProveedor(inp.value.trim()); } return; }
+    if(e.key==='Escape'){ inp.value=f.proveedor||''; cerrar(); }
+  };
+}
 function cgBlankForm(){ return { editId:null, centroDistribucion:cdList()[0], proveedor:'', categoria:'', subcategoria:'', subnivel:'', fecha:'', folio:'', valor:'', adjunto:null, marca:'', marcaSel:{kairos:false,banny:false,firulais:false}, marcaPct:{kairos:'',banny:'',firulais:''}, pctTotal:'', centrosCosto:[] }; }
 // Carga un documento existente al formulario para editarlo (reusa todo el form).
 function costosEditar(tipo,id){
@@ -12110,7 +12168,13 @@ function cgMarcaTotalUpdate(tipo){
 function renderCostos(tipo){
   const cfg=COSTOS_TIPO_CFG[tipo];
   const a=costosData[tipo], body=document.getElementById(cfg.bodyId); const f=costosForm[tipo];
-  const provOpts=['<option value="">— Elige un proveedor —</option>',...(a.proveedores||[]).map(p=>`<option value="${escapeAttr(p.nombre)}" ${p.nombre===f.proveedor?'selected':''}>${escapeHtml(p.nombre)}</option>`),'<option value="__nuevo__">+ Crear nuevo proveedor…</option>'].join('');
+  // Proveedor: combobox con buscador. La lista pasó los 100 nombres y en un
+  // <select> nativo había que scrollear a ciegas.
+  const provCombo=`<div class="cg-combo">
+      <input id="${cgId(tipo,'Prov')}" class="cg-combo-in" type="text" autocomplete="off" role="combobox" aria-expanded="false" aria-autocomplete="list"
+        placeholder="Buscar proveedor…" value="${escapeAttr(f.proveedor||'')}">
+      <div class="cg-combo-list" id="${cgId(tipo,'ProvList')}" role="listbox" hidden></div>
+    </div>`;
   const catOpts=['<option value="">— Elige una categoría —</option>',...(a.categorias||[]).map(c=>`<option value="${c.id}" ${c.id===f.categoria?'selected':''}>${escapeHtml(c.label)}</option>`)].join('');
   // Subcategoría (2º nivel) + subnivel (3º, solo Transporte). Encadenados: aparecen según la selección.
   const SUBMAP=a.subcategorias||{};
@@ -12200,7 +12264,7 @@ function renderCostos(tipo){
     <div class="cg-form${f.editId?' cg-form-edit':''}">
       <div class="cg-form-title">${f.editId?('✏️ Editar '+cfg.nombre):('Registrar '+cfg.nombre)}</div>
       <div class="cg-form-grid">
-        <label class="cg-field"><span>Proveedor</span><select id="${cgId(tipo,'Prov')}">${provOpts}</select></label>
+        <label class="cg-field"><span>Proveedor</span>${provCombo}</label>
         <label class="cg-field"><span>Categoría (Estado de Resultado)</span><select id="${cgId(tipo,'Cat')}">${catOpts}</select></label>
         ${subsForm?`<label class="cg-field"><span>Subcategoría</span><select id="${cgId(tipo,'Sub')}">${subFormOpts}</select></label>`:''}
         ${subnivelForm?`<label class="cg-field"><span>Tipo de ${escapeHtml(subDefForm.label)}</span><select id="${cgId(tipo,'Subnivel')}">${subnivelFormOpts}</select></label>`:''}
@@ -12245,14 +12309,7 @@ function wireCostos(tipo){
   if(cdSel) cdSel.onchange=async()=>{ f.centroDistribucion=cdSel.value; f.centrosCosto=[]; await loadCostos(tipo); };
   const prov=document.getElementById(cgId(tipo,'Prov')), cat=document.getElementById(cgId(tipo,'Cat')), marca=document.getElementById(cgId(tipo,'Marca'));
   const fecha=document.getElementById(cgId(tipo,'Fecha')), folio=document.getElementById(cgId(tipo,'Folio')), valor=document.getElementById(cgId(tipo,'Valor'));
-  prov.onchange=async()=>{
-    if(prov.value==='__nuevo__'){
-      const nombre=(window.prompt('Nombre del nuevo proveedor:')||'').trim();
-      if(!nombre){ prov.value=f.proveedor; return; }
-      try{ const r=await fetch('/admin/costos/proveedor',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nombre})}); const d=await r.json(); if(!r.ok) throw new Error(d.error||'Error'); f.proveedor=d.proveedor.nombre; await loadCostos(tipo); }
-      catch(e){ costosShowErr(tipo,String(e.message||e)); prov.value=f.proveedor; }
-    } else f.proveedor=prov.value;
-  };
+  cgWireProvCombo(tipo, prov, f, costosData[tipo]||{});
   // Categoría → resetea subcategoría/subnivel y re-renderiza para mostrar el selector encadenado.
   cat.onchange=()=>{ f.categoria=cat.value; f.subcategoria=''; f.subnivel=''; renderCostos(tipo); };
   const sub=document.getElementById(cgId(tipo,'Sub'));
