@@ -6,6 +6,7 @@ import { readFileSync, existsSync, mkdirSync, writeFileSync, unlinkSync, readdir
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID, createHmac, timingSafeEqual, randomBytes, scryptSync, createHash } from 'crypto';
+import { deflateRawSync } from 'zlib';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -82,6 +83,123 @@ function backupDatos(){
     return { dia: hoyISO(), copiados: n, bytes };
   } catch (e) { console.warn('[backup]', e.message); return null; }
 }
+// ─── Respaldo descargable (.zip) ─────────────────────────────────────────────
+// Las copias diarias viven DENTRO del mismo volumen: sirven contra un bug o un
+// borrado, no contra perder el volumen entero. Esto arma un .zip al vuelo para
+// bajarlo y guardarlo afuera (Drive, disco, lo que sea).
+//
+// Se escribe el ZIP a mano con zlib (que ya viene en Node) en vez de sumar una
+// dependencia: el proyecto no tiene paso de build y no vale la pena estrenarlo
+// por un formato de 20 líneas de cabeceras.
+let ZIP_CRC_TABLA = null;
+function zipCrc32(buf){
+  if (!ZIP_CRC_TABLA) {
+    ZIP_CRC_TABLA = new Int32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      ZIP_CRC_TABLA[n] = c;
+    }
+  }
+  let c = -1;
+  for (let i = 0; i < buf.length; i++) c = (c >>> 8) ^ ZIP_CRC_TABLA[(c ^ buf[i]) & 0xFF];
+  return (c ^ -1) >>> 0;
+}
+// Fecha/hora en formato DOS, que es lo que guarda el ZIP.
+function zipFechaDos(d){
+  return {
+    hora: ((d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds() / 2)) & 0xFFFF,
+    fecha: (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF,
+  };
+}
+// Escribe el zip directo a la respuesta, archivo por archivo, llevando la
+// cuenta de los offsets para el directorio central. Así no hay que tener el
+// paquete entero en memoria: `leer()` devuelve un archivo por vez.
+function zipEscribir(res, entradas){
+  const central = [];
+  let offset = 0;
+  const escribir = (b) => { res.write(b); offset += b.length; };
+  const { hora, fecha } = zipFechaDos(new Date());
+  for (const e of entradas) {
+    let cuerpo;
+    try { cuerpo = e.buf != null ? e.buf : e.leer(); } catch { continue; } // un archivo ilegible no tumba el respaldo
+    if (!cuerpo) continue;
+    const nombre = Buffer.from(e.nombre, 'utf-8');
+    const crc = zipCrc32(cuerpo);
+    const comp = deflateRawSync(cuerpo, { level: 6 });
+    // Si comprimir no achica (imágenes ya comprimidas), se guarda tal cual.
+    const deflate = comp.length < cuerpo.length;
+    const datos = deflate ? comp : cuerpo;
+    const metodo = deflate ? 8 : 0;
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0);
+    local.writeUInt16LE(20, 4);
+    local.writeUInt16LE(0x0800, 6);        // bit 11: nombres en UTF-8
+    local.writeUInt16LE(metodo, 8);
+    local.writeUInt16LE(hora, 10);
+    local.writeUInt16LE(fecha, 12);
+    local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(datos.length, 18);
+    local.writeUInt32LE(cuerpo.length, 22);
+    local.writeUInt16LE(nombre.length, 26);
+    local.writeUInt16LE(0, 28);
+    const desde = offset;
+    escribir(local); escribir(nombre); escribir(datos);
+    const cen = Buffer.alloc(46);
+    cen.writeUInt32LE(0x02014b50, 0);
+    cen.writeUInt16LE(20, 4); cen.writeUInt16LE(20, 6);
+    cen.writeUInt16LE(0x0800, 8);
+    cen.writeUInt16LE(metodo, 10);
+    cen.writeUInt16LE(hora, 12);
+    cen.writeUInt16LE(fecha, 14);
+    cen.writeUInt32LE(crc, 16);
+    cen.writeUInt32LE(datos.length, 20);
+    cen.writeUInt32LE(cuerpo.length, 24);
+    cen.writeUInt16LE(nombre.length, 28);
+    cen.writeUInt16LE(0, 30); cen.writeUInt16LE(0, 32); cen.writeUInt16LE(0, 34);
+    cen.writeUInt16LE(0, 36); cen.writeUInt32LE(0, 38);
+    cen.writeUInt32LE(desde, 42);
+    central.push(Buffer.concat([cen, nombre]));
+  }
+  const inicioCentral = offset;
+  for (const c of central) escribir(c);
+  const fin = Buffer.alloc(22);
+  fin.writeUInt32LE(0x06054b50, 0);
+  fin.writeUInt16LE(0, 4); fin.writeUInt16LE(0, 6);
+  fin.writeUInt16LE(central.length, 8);
+  fin.writeUInt16LE(central.length, 10);
+  fin.writeUInt32LE(offset - inicioCentral, 12);
+  fin.writeUInt32LE(inicioCentral, 16);
+  fin.writeUInt16LE(0, 20);
+  escribir(fin);
+  res.end();
+}
+// Qué entra en el respaldo: los .json de datos + las fotos subidas. Las copias
+// diarias NO se incluyen (son fotos viejas de lo mismo y multiplicarían el peso).
+function respaldoEntradas(){
+  const entradas = [];
+  let jsons = 0, fotos = 0, bytes = 0;
+  try {
+    for (const f of readdirSync(PROMPTS_EFFECTIVE_DIR).filter(x => x.endsWith('.json')).sort()) {
+      const ruta = join(PROMPTS_EFFECTIVE_DIR, f);
+      try { bytes += statSync(ruta).size; } catch {}
+      entradas.push({ nombre: 'datos/' + f, leer: () => readFileSync(ruta) });
+      jsons++;
+    }
+  } catch {}
+  try {
+    for (const f of readdirSync(UPLOADS_DIR).sort()) {
+      const ruta = join(UPLOADS_DIR, f);
+      let st; try { st = statSync(ruta); } catch { continue; }
+      if (!st.isFile()) continue;
+      bytes += st.size;
+      entradas.push({ nombre: 'uploads/' + f, leer: () => readFileSync(ruta) });
+      fotos++;
+    }
+  } catch {}
+  return { entradas, jsons, fotos, bytes };
+}
+
 // Estado del almacenamiento: responde de una si los datos cargados a mano están
 // a salvo de un deploy o no. Es lo primero que hay que mirar si "se borró algo".
 function diagAlmacenamiento(){
@@ -106,6 +224,9 @@ function diagAlmacenamiento(){
     directorioDatos: PROMPTS_EFFECTIVE_DIR,
     gitCommit: process.env.RAILWAY_GIT_COMMIT_SHA || null,
     archivos, backupsDir: BACKUPS_DIR, backups,
+    // Qué pesaría el .zip descargable, para poder avisarlo antes de bajarlo.
+    respaldo: (() => { const r = respaldoEntradas(); return { jsons: r.jsons, fotos: r.fotos, bytes: r.bytes }; })(),
+    uploadsDir: UPLOADS_DIR,
   };
 }
 function initLogs() {
@@ -15610,6 +15731,41 @@ function resolveCosteo(d){
 // Estado del almacenamiento + respaldos. Es lo primero que hay que mirar cuando
 // "se borró lo que cargué a mano".
 app.get('/admin/_diag/almacenamiento', requireAdmin, (_req, res) => res.json(diagAlmacenamiento()));
+// Respaldo completo descargable: todos los .json de datos + las fotos subidas.
+// Es la única copia que queda FUERA del volumen — las diarias viven adentro y
+// se irían con él. Solo admin: adentro va todo el ERP, incluidas las finanzas.
+app.get('/admin/_diag/respaldo.zip', requireAdmin, (_req, res) => {
+  const { entradas, jsons, fotos } = respaldoEntradas();
+  const sello = new Date().toISOString();
+  entradas.unshift({
+    nombre: 'LEEME.txt',
+    buf: Buffer.from([
+      'Respaldo del panel K-BROS',
+      'Generado: ' + sello,
+      'Commit: ' + (process.env.RAILWAY_GIT_COMMIT_SHA || '(desconocido)'),
+      'Directorio de datos: ' + PROMPTS_EFFECTIVE_DIR,
+      '',
+      'Contenido:',
+      '  datos/*.json  — ' + jsons + ' archivos: tareas, chat, calendario, cuentas,',
+      '                  costeo, costos, gastos, estado de resultado y todo lo que',
+      '                  se carga a mano desde el panel.',
+      '  uploads/*     — ' + fotos + ' archivos: fotos de perfil e imágenes subidas.',
+      '',
+      'Para restaurar: copiar el contenido de datos/ a $DATA_DIR/prompts/ y el de',
+      'uploads/ a $DATA_DIR/uploads/. El server relee los archivos en cada request,',
+      'no hace falta reiniciarlo.',
+      '',
+      'Guardalo fuera de Railway. Los respaldos diarios automáticos viven dentro',
+      'del mismo volumen que los datos: no sirven si se pierde el volumen.',
+    ].join('\n'), 'utf-8'),
+  });
+  const nombre = 'k-bros-respaldo-' + sello.slice(0, 10) + '.zip';
+  res.setHeader('Content-Type', 'application/zip');
+  res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+  res.setHeader('Cache-Control', 'no-store');
+  try { zipEscribir(res, entradas); }
+  catch (e) { console.warn('[respaldo.zip]', e.message); try { res.end(); } catch {} }
+});
 // Fuerza un respaldo ahora (por ejemplo, antes de un deploy con migraciones).
 app.post('/admin/_diag/respaldar', requireAdmin, (_req, res) => {
   const r = backupDatos();

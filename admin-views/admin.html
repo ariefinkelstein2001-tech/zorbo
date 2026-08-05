@@ -2976,6 +2976,33 @@ body.hosp-open{overflow:hidden}
 .ws-ev-meta .l span:first-child{opacity:.7;flex:0 0 1.1rem}
 .ws-ev-meta a{color:#2c6bb5;word-break:break-all}
 
+/* ── Respaldo de datos ── */
+.rsp-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:1rem;align-items:start}
+@media(max-width:900px){.rsp-grid{grid-template-columns:1fr}}
+.rsp-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1rem}
+.rsp-card h4{font-family:var(--display);font-size:.95rem;font-weight:800;color:var(--text);margin:0 0 .15rem}
+.rsp-card p{font-size:.78rem;color:var(--dim);margin:0 0 .7rem;line-height:1.5}
+.rsp-estado{display:flex;align-items:flex-start;gap:.7rem;border-radius:14px;padding:.85rem 1rem;margin-bottom:1rem}
+.rsp-estado.ok{background:var(--green-dim);border:1px solid #bfe3cd}
+.rsp-estado.mal{background:var(--red-dim);border:1px solid #f3c9c9}
+.rsp-estado .ic{font-size:1.3rem;line-height:1}
+.rsp-estado b{display:block;font-size:.9rem;color:var(--text);font-family:var(--display);font-weight:800}
+.rsp-estado span{font-size:.79rem;color:var(--muted);line-height:1.5}
+.rsp-descargar{display:inline-flex;align-items:center;gap:.5rem;background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623));border:0;color:#241a05;font:inherit;font-size:.86rem;font-weight:800;border-radius:12px;padding:.6rem 1.1rem;cursor:pointer;text-decoration:none;box-shadow:0 3px 14px rgba(245,166,35,.35)}
+.rsp-descargar:hover{filter:brightness(1.04)}
+.rsp-nums{display:flex;gap:1.3rem;margin:.2rem 0 .8rem;flex-wrap:wrap}
+.rsp-num b{display:block;font-family:var(--display);font-size:1.25rem;font-weight:800;color:var(--text);line-height:1.1}
+.rsp-num span{font-size:.68rem;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.rsp-tabla{width:100%;border-collapse:separate;border-spacing:0;font-size:.78rem}
+.rsp-tabla th{text-align:left;font-size:.64rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--dim);padding:.35rem .5rem;border-bottom:1px solid var(--border)}
+.rsp-tabla td{padding:.35rem .5rem;border-bottom:1px solid var(--border);color:var(--text)}
+.rsp-tabla tr:last-child td{border-bottom:0}
+.rsp-tabla td.n{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+.rsp-scroll{max-height:270px;overflow-y:auto}
+.rsp-dias{display:flex;flex-wrap:wrap;gap:.3rem}
+.rsp-dia{font-size:.72rem;font-weight:700;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:.15rem .5rem;font-variant-numeric:tabular-nums}
+.rsp-dia.hoy{background:var(--gold-dim);border-color:var(--gold-bd);color:var(--gold-deep)}
+
 /* ── Chat interno ── */
 /* Dos paneles: canales a la izquierda, conversación a la derecha. Alto fijo al
    viewport para que el scroll viva adentro del hilo y no en la página. */
@@ -3669,6 +3696,20 @@ body.hosp-open{overflow:hidden}
         </div>
       </div>
       <div id="teamBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
+    <!-- Respaldo de datos: estado del almacenamiento + copia descargable -->
+    <div class="adm-panel" id="respaldoView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Respaldo de datos</div>
+          <div class="adm-panel-meta">todo lo que se carga a mano en el panel · una copia fuera de Railway por si algo falla</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="rspReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div id="rspBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
     <!-- ═══ ESPACIO DE TRABAJO ═══
@@ -4691,6 +4732,7 @@ const BASE_SECCIONES = [
   { id:'forecast',  kind:'forecast', label:'Forecast', cat:'herramientas', desc:'EERR proyectado · presupuestos por % · simulación del año' },
   { id:'forecast-comercial', kind:'forecastcomercial', label:'Forecast Comercial', cat:'herramientas', desc:'proyección canal × marca · meta +15% configurable · litros y plata' },
   { id:'equipo',    kind:'equipo',   label:'Cuentas del equipo', cat:'herramientas', desc:'altas y ediciones de cuentas individuales · nombre · apodo · acceso' },
+  { id:'respaldo',  kind:'respaldo', label:'Respaldo de datos', cat:'herramientas', desc:'estado del almacenamiento · descargar una copia completa (.json + fotos) para guardarla fuera de Railway' },
   // Espacio de trabajo: cinco entradas de sidebar que abren la MISMA vista
   // (#workspaceView) y solo cambian la pestaña interna — ver wsTabDe().
   { id:'ws-tablero',   kind:'workspace', label:'Tablero',    cat:'espacio', desc:'kanban del equipo · arrastrá las tarjetas entre Por hacer, Haciendo y Listo' },
@@ -5087,6 +5129,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'equipo') {
     showView('equipo');
     await loadEquipo();
+  } else if (sec.kind === 'respaldo') {
+    showView('respaldo');
+    await loadRespaldo();
   } else if (sec.kind === 'workspace') {
     showView('workspace');
     await wsAbrir(sec.id);
@@ -5196,6 +5241,7 @@ function showView(kind){
   document.getElementById('gastosView').style.display     = kind === 'gastos'     ? '' : 'none';
   document.getElementById('nominaView').style.display     = kind === 'nomina'     ? '' : 'none';
   document.getElementById('equipoView').style.display     = kind === 'equipo'     ? '' : 'none';
+  document.getElementById('respaldoView').style.display    = kind === 'respaldo'   ? '' : 'none';
   document.getElementById('workspaceView').style.display  = kind === 'workspace'  ? '' : 'none';
   document.getElementById('produccionView').style.display = kind === 'produccion' ? '' : 'none';
   document.getElementById('finhomeView').style.display    = kind === 'finhome'    ? '' : 'none';
@@ -16642,7 +16688,7 @@ const KS_ICON = {
   general:'⚙️', kairos:'🍺', firulais:'🐶', banny:'🥃', mayorista:'🤝',
   productos:'🏷️', puntos:'📍', analisisdatos:'🧭', horeca:'🍺', pyxisdocs:'🧾', analiticacomercial:'⭐',
   distribuidora:'🚚', rutas:'🗺️', mantenimiento:'🔧',
-  costeo:'🧾', oee:'📊', calidad:'🏅', inventarios:'🗃', estado:'💰', costos:'💸', gastos:'🧮', nomina:'👥', equipo:'🪪', pnl:'📈', forecast:'🔮',
+  costeo:'🧾', oee:'📊', calidad:'🏅', inventarios:'🗃', estado:'💰', costos:'💸', gastos:'🧮', nomina:'👥', equipo:'🪪', respaldo:'💾', pnl:'📈', forecast:'🔮',
   produccion:'🏭',
   'ws-tablero':'🗂️', 'ws-lista':'✅', 'ws-mias':'🎯', 'ws-calendario':'📅', 'ws-chat':'💬', 'ws-proyectos':'📁', 'ws-equipo':'👤'
 };
@@ -17681,6 +17727,86 @@ function hospRendWire(){
   if (tabParaTi) tabParaTi.onclick = () => { ccToggleSet('paraTi'); ccGateEnterERP(); };
   if (tabKairos) tabKairos.focus();
 })();
+
+// ─── Respaldo de datos ───────────────────────────────────────────────────────
+// Las copias diarias automáticas viven DENTRO del volumen: sirven contra un bug
+// o un borrado, no contra perder el volumen. Esta pantalla es para bajarse una
+// copia y guardarla afuera.
+function rspPeso(b){
+  if (!b || !isFinite(b)) return '0 KB';
+  if (b < 1024*1024) return Math.max(1, Math.round(b/1024)) + ' KB';
+  return (b/1024/1024).toFixed(b < 10*1024*1024 ? 1 : 0) + ' MB';
+}
+async function loadRespaldo(){
+  const body = document.getElementById('rspBody');
+  body.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const r = await fetch('/admin/_diag/almacenamiento');
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    renderRespaldo(d);
+  } catch(e){ body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function renderRespaldo(d){
+  const rr = d.respaldo || { jsons:0, fotos:0, bytes:0 };
+  const hoy = new Date().toISOString().slice(0,10);
+  const estado = d.riesgoDePerderDatos
+    ? `<div class="rsp-estado mal"><span class="ic">⚠️</span><div><b>Este servidor no tiene volumen persistente</b>
+        <span>Todo lo que se carga a mano se borra en el próximo deploy. Hay que montar un volumen en Railway y apuntar <code>DATA_DIR</code> a él.
+        Mientras tanto, bajá el respaldo seguido.</span></div></div>`
+    : `<div class="rsp-estado ok"><span class="ic">✅</span><div><b>Los datos están en un volumen persistente</b>
+        <span>Un deploy no los toca. Se guardan en <code>${escapeHtml(d.directorioDatos||'')}</code>.
+        Igual conviene bajar una copia cada tanto: los respaldos diarios viven en el mismo volumen y se irían con él.</span></div></div>`;
+  const archivos = (d.archivos||[]).map(a => `<tr><td>${escapeHtml(a.archivo)}</td>
+      <td class="n">${escapeHtml(rspPeso(a.bytes))}</td>
+      <td class="n">${escapeHtml(String(a.modificado||'').slice(0,10))}</td></tr>`).join('');
+  const dias = (d.backups||[]).map(x => `<span class="rsp-dia${x===hoy?' hoy':''}">${escapeHtml(x)}</span>`).join('') ||
+    '<span style="font-size:.76rem;color:var(--dim)">Todavía no hay copias diarias.</span>';
+  document.getElementById('rspBody').innerHTML = `
+    ${estado}
+    <div class="rsp-grid">
+      <div class="rsp-card">
+        <h4>Descargar una copia completa</h4>
+        <p>Un <b>.zip</b> con todos los datos del panel y las fotos subidas. Guardalo en tu Drive:
+        es la única copia que queda fuera de Railway.</p>
+        <div class="rsp-nums">
+          <div class="rsp-num"><b>${rr.jsons}</b><span>archivos de datos</span></div>
+          <div class="rsp-num"><b>${rr.fotos}</b><span>fotos</span></div>
+          <div class="rsp-num"><b>${escapeHtml(rspPeso(rr.bytes))}</b><span>sin comprimir</span></div>
+        </div>
+        <a class="rsp-descargar" id="rspZip" href="/admin/_diag/respaldo.zip" download>⬇ Descargar respaldo (.zip)</a>
+        <p style="margin:.7rem 0 0">Adentro va un <code>LEEME.txt</code> con la fecha, el commit y cómo restaurarlo.</p>
+      </div>
+      <div class="rsp-card">
+        <h4>Copias diarias automáticas</h4>
+        <p>Se hace una en cada arranque del server, y se conservan 14 días. Viven en el volumen
+        (<code>${escapeHtml(d.backupsDir||'')}</code>), así que <b>no reemplazan</b> a la descarga de al lado.</p>
+        <div class="rsp-dias">${dias}</div>
+        <div style="margin-top:.8rem"><button class="adm-btn adm-btn-ghost" id="rspAhora" type="button">Respaldar ahora</button></div>
+        <p style="margin:.6rem 0 0">Útil antes de un deploy con cambios de datos.</p>
+      </div>
+    </div>
+    <div class="rsp-card" style="margin-top:1rem">
+      <h4>Qué hay guardado hoy</h4>
+      <p>Archivos de datos en <code>${escapeHtml(d.directorioDatos||'')}</code>. Las fotos van aparte, en <code>${escapeHtml(d.uploadsDir||'')}</code>.</p>
+      <div class="rsp-scroll"><table class="rsp-tabla"><thead><tr><th>Archivo</th><th class="n">Tamaño</th><th class="n">Modificado</th></tr></thead>
+      <tbody>${archivos || '<tr><td colspan="3" style="text-align:center;color:#999;padding:.8rem">Sin archivos todavía</td></tr>'}</tbody></table></div>
+    </div>`;
+  const zip = document.getElementById('rspZip');
+  if (zip) zip.onclick = () => showToast('Preparando el .zip… puede tardar unos segundos', 'ok');
+  const ahora = document.getElementById('rspAhora');
+  if (ahora) ahora.onclick = async () => {
+    ahora.disabled = true; ahora.textContent = 'Respaldando…';
+    try {
+      const r = await fetch('/admin/_diag/respaldar', { method:'POST' });
+      const x = await r.json();
+      if (!r.ok) throw new Error(x.error || 'Error');
+      showToast(`Respaldo hecho ✓ — ${x.copiados||0} archivo${(x.copiados||0)===1?'':'s'}`, 'ok');
+      renderRespaldo(x);
+    } catch(e){ showToast(String(e.message||e), 'err'); ahora.disabled = false; ahora.textContent = 'Respaldar ahora'; }
+  };
+}
+document.getElementById('rspReload').onclick = loadRespaldo;
 
 // ════════════════════════════════════════════════════════════════════════════
 // ESPACIO DE TRABAJO — tablero, lista, mis tareas, proyectos, equipo

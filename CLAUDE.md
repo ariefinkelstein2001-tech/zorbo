@@ -75,6 +75,15 @@ Hay respaldo diario automático en `$DATA_DIR/backups/<AAAA-MM-DD>/` (la primera
 copia del día gana, así un arranque posterior no pisa la foto buena), y
 `POST /admin/_diag/restaurar` con `{dia, archivo}` recupera un archivo puntual.
 
+Las copias diarias viven **dentro del mismo volumen**: sirven contra un bug o un
+borrado, no contra perder el volumen. Para eso está Herramientas › **Respaldo de
+datos**, que baja un `.zip` con `datos/*.json` + `uploads/*` y un `LEEME.txt`
+(`GET /admin/_diag/respaldo.zip`). Es la única copia que queda afuera. El zip se
+arma a mano con `zlib` — el proyecto no tiene paso de build y no vale la pena
+estrenar una dependencia por 20 líneas de cabeceras. Si tocás `zipEscribir`,
+probá el resultado con `unzip -t`: un offset mal escrito da un archivo que abre
+en algunos programas y en otros no.
+
 ## Costeo: cómo está armado
 
 Cuatro conjuntos independientes: `garden`, `badass` (comida) y `garden_barra`,
