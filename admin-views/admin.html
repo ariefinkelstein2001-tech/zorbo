@@ -3003,6 +3003,38 @@ body.hosp-open{overflow:hidden}
 .rsp-dia{font-size:.72rem;font-weight:700;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:.15rem .5rem;font-variant-numeric:tabular-nums}
 .rsp-dia.hoy{background:var(--gold-dim);border-color:var(--gold-bd);color:var(--gold-deep)}
 
+/* ── Metas personales ── */
+.ws-metas{display:grid;grid-template-columns:1.25fr 1fr;gap:1rem;align-items:start}
+@media(max-width:900px){.ws-metas{grid-template-columns:1fr}}
+.ws-meta-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1rem}
+.ws-meta-card h4{font-family:var(--display);font-size:.95rem;font-weight:800;color:var(--text);margin:0 0 .1rem}
+.ws-meta-card p.sub{font-size:.76rem;color:var(--dim);margin:0 0 .8rem}
+.ws-meta-prog{display:flex;align-items:center;gap:.7rem;margin-bottom:.9rem}
+.ws-meta-anillo{--p:0;width:56px;height:56px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+  background:conic-gradient(var(--green) calc(var(--p)*1%),var(--surface3) 0)}
+.ws-meta-anillo i{width:44px;height:44px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;
+  font-style:normal;font-family:var(--display);font-weight:800;font-size:.82rem;color:var(--text)}
+.ws-meta-prog .tx b{display:block;font-family:var(--display);font-size:1.05rem;font-weight:800;color:var(--text)}
+.ws-meta-prog .tx span{font-size:.76rem;color:var(--dim)}
+.ws-meta-lista{display:flex;flex-direction:column;gap:.35rem}
+.ws-meta{display:flex;align-items:flex-start;gap:.55rem;border:1px solid var(--border);border-radius:11px;padding:.5rem .6rem;background:var(--surface)}
+.ws-meta:hover{border-color:#d3d6de}
+.ws-meta.ok{background:var(--green-dim);border-color:#bfe3cd}
+.ws-meta .cuerpo{flex:1;min-width:0}
+.ws-meta .tt{font-size:.85rem;color:var(--text);line-height:1.35;word-break:break-word}
+.ws-meta.ok .tt{text-decoration:line-through;color:var(--muted)}
+.ws-meta .de{font-size:.72rem;color:var(--dim);margin-top:.1rem}
+.ws-meta .acc{display:flex;gap:.2rem;flex:0 0 auto}
+.ws-meta .acc button{background:none;border:0;cursor:pointer;font-size:.82rem;color:var(--dim);padding:.1rem .25rem;border-radius:6px}
+.ws-meta .acc button:hover{color:var(--text);background:var(--surface2)}
+.ws-meta .acc button.rm:hover{color:var(--red);background:var(--red-dim)}
+.ws-meta .comp{font-size:.62rem;font-weight:800;color:var(--gold-deep);background:var(--gold-dim);border-radius:20px;padding:.05rem .4rem;white-space:nowrap}
+.ws-meta-add{display:flex;gap:.4rem;margin-top:.7rem}
+.ws-meta-add input{flex:1;font:inherit;font-size:.84rem;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:.5rem .65rem}
+.ws-meta-add input:focus{outline:none;border-color:var(--gold);background:var(--surface)}
+.ws-meta-persona{display:flex;align-items:center;gap:.4rem;font-size:.72rem;font-weight:800;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin:.7rem 0 .3rem}
+.ws-meta-persona:first-child{margin-top:0}
+
 /* ── Chat interno ── */
 /* Dos paneles: canales a la izquierda, conversación a la derecha. Alto fijo al
    viewport para que el scroll viva adentro del hilo y no en la página. */
@@ -4740,6 +4772,7 @@ const BASE_SECCIONES = [
   { id:'ws-mias',      kind:'workspace', label:'Mis tareas', cat:'espacio', desc:'lo que te asignaron a vos, en un solo lugar' },
   { id:'ws-calendario',kind:'workspace', label:'Calendario', cat:'espacio', desc:'mes y semana · fechas límite de tareas + reuniones del equipo · exportable a Google Calendar' },
   { id:'ws-chat',      kind:'workspace', label:'Chat',       cat:'espacio', desc:'canales por tema y mensajes directos · @menciones, buscador y referencias a tareas' },
+  { id:'ws-metas',     kind:'workspace', label:'Mis metas',  cat:'espacio', desc:'objetivos del mes con barra de avance · privadas salvo que las compartas' },
   { id:'ws-proyectos', kind:'workspace', label:'Proyectos',  cat:'espacio', desc:'agrupá las tareas por área · color, ícono y responsable de cada proyecto' },
   { id:'ws-equipo',    kind:'workspace', label:'Equipo',     cat:'espacio', desc:'quiénes entran al panel · rol, avatar y color de cada persona' },
   { id:'produccion',kind:'produccion',label:'Centro de Producción', cat:'produccion', desc:'tanques · cocción · recetas · envasado · limpiezas · paradas' },
@@ -16720,7 +16753,7 @@ const KS_ICON = {
   distribuidora:'🚚', rutas:'🗺️', mantenimiento:'🔧',
   costeo:'🧾', oee:'📊', calidad:'🏅', inventarios:'🗃', estado:'💰', costos:'💸', gastos:'🧮', nomina:'👥', equipo:'🪪', respaldo:'💾', pnl:'📈', forecast:'🔮',
   produccion:'🏭',
-  'ws-tablero':'🗂️', 'ws-lista':'✅', 'ws-mias':'🎯', 'ws-calendario':'📅', 'ws-chat':'💬', 'ws-proyectos':'📁', 'ws-equipo':'👤'
+  'ws-tablero':'🗂️', 'ws-lista':'✅', 'ws-mias':'🎯', 'ws-calendario':'📅', 'ws-chat':'💬', 'ws-metas':'🎖️', 'ws-proyectos':'📁', 'ws-equipo':'👤'
 };
 
 // Sincroniza el item activo del sidebar + el breadcrumb del topbar con la sección actual.
@@ -17849,7 +17882,7 @@ let wsTab = 'tablero';
 let wsCargando = null;        // promesa en vuelo (evita dobles fetch)
 const wsFil = { proyecto: '', persona: '', q: '', orden: 'prioridad' };
 
-const WS_TAB_DE = { 'ws-tablero':'tablero', 'ws-lista':'lista', 'ws-mias':'mias', 'ws-calendario':'calendario', 'ws-chat':'chat', 'ws-proyectos':'proyectos', 'ws-equipo':'equipo' };
+const WS_TAB_DE = { 'ws-tablero':'tablero', 'ws-lista':'lista', 'ws-mias':'mias', 'ws-calendario':'calendario', 'ws-chat':'chat', 'ws-metas':'metas', 'ws-proyectos':'proyectos', 'ws-equipo':'equipo' };
 const WS_PRI_LB = { baja:'Baja', media:'Media', alta:'Alta', urgente:'Urgente' };
 const WS_PRI_PESO = { urgente:0, alta:1, media:2, baja:3 };
 const WS_PALETA = ['#f5a623','#2e9c5a','#4a90d9','#c1447e','#7c6bb8','#1f8a70','#d9534f','#b87333','#5b6472','#0ea5a5'];
@@ -17936,7 +17969,7 @@ async function wsRecargar(){
 function wsBarraHtml(){
   const tabs = [
     ['tablero','🗂️','Tablero'], ['lista','✅','Lista'], ['mias','🎯','Mis tareas'],
-    ['calendario','📅','Calendario'], ['chat','💬','Chat'], ['proyectos','📁','Proyectos'], ['equipo','👤','Equipo'],
+    ['calendario','📅','Calendario'], ['chat','💬','Chat'], ['metas','🎖️','Mis metas'], ['proyectos','📁','Proyectos'], ['equipo','👤','Equipo'],
   ];
   const mias = (wsData.tareas||[]).filter(t => (t.asignados||[]).some(wsSoyYo) && t.estado !== 'listo').length;
   const btns = tabs.map(([id,ic,lb]) => {
@@ -17960,7 +17993,8 @@ function wsBarraHtml(){
         <option value="fecha"${wsFil.orden==='fecha'?' selected':''}>Por fecha límite</option>
         <option value="proyecto"${wsFil.orden==='proyecto'?' selected':''}>Por proyecto</option>
         <option value="responsable"${wsFil.orden==='responsable'?' selected':''}>Por responsable</option>
-      </select></span>` : ''}`;
+      </select></span>` : ''}
+      ${wsTab==='tablero' && wsEsAdmin() ? `<button type="button" class="ws-btn" id="wsEscanear" title="Buscar alertas en el resto del ERP y crear las tareas que correspondan">⚡ Buscar alertas</button>` : ''}`;
   } else if (wsTab === 'calendario') {
     const proyOps = ['<option value="">Todos los proyectos</option>']
       .concat((wsData.proyectos||[]).filter(p => !p.archivado).map(p => `<option value="${escapeAttr(p.id)}"${wsFil.proyecto===p.id?' selected':''}>${escapeHtml((p.emoji||'')+' '+p.nombre)}</option>`)).join('');
@@ -18001,6 +18035,7 @@ function wsRender(){
     mias:'lo que te asignaron a vos',
     calendario:'fechas límite de tareas + reuniones del equipo · exportable a Google Calendar',
     chat:'canales por tema y mensajes directos del equipo',
+    metas:'tus objetivos del mes · privados salvo que los compartas con el equipo',
     proyectos:'agrupá las tareas por área de trabajo',
     equipo:'quiénes entran al panel y con qué rol',
   };
@@ -18011,6 +18046,7 @@ function wsRender(){
   else if (wsTab === 'lista' || wsTab === 'mias') html += wsListaHtml();
   else if (wsTab === 'calendario') html += wsCalendarioHtml();
   else if (wsTab === 'chat') html += wsChatHtml();
+  else if (wsTab === 'metas') html += wsMetasHtml();
   else if (wsTab === 'proyectos') html += wsProyectosHtml();
   else html += wsEquipoHtml();
   body.innerHTML = `<div class="ws-wrap">${html}</div>`;
@@ -18220,6 +18256,141 @@ function wsCalSemanaHtml(){
   }
   return `<div class="ws-sem">${cols}</div>
   <div style="font-size:.72rem;color:var(--dim)">Tocá un día para agregar una tarea o una reunión.</div>`;
+}
+
+// ── Tareas automáticas ───────────────────────────────────────────────────────
+// Dispara el escaneo de los otros módulos. Corre solo cada 6 h en el server;
+// este botón es para no tener que esperar.
+async function wsEscanearAlertas(){
+  const b = document.getElementById('wsEscanear'); if (!b) return;
+  b.disabled = true; b.textContent = '⚡ Buscando…';
+  try {
+    const d = await wsApi('/admin/ws/auto/escanear', { method:'POST' });
+    await wsCargar();               // pueden haber entrado tareas nuevas
+    wsRender();
+    const partes = [];
+    for (const [id, r] of Object.entries(d.porDetector || {})) {
+      if (r.error) { partes.push(`${id}: no se pudo revisar`); continue; }
+      partes.push(`${r.label || id}: ${r.creadas} nueva${r.creadas===1?'':'s'}${r.topeAlcanzado ? ' (hay más, se cargan al cerrar las abiertas)' : ''}`);
+    }
+    showToast(d.creadas ? `${d.creadas} tarea${d.creadas===1?'':'s'} creada${d.creadas===1?'':'s'} ✓` : 'Sin alertas nuevas', 'ok');
+    if (partes.length) console.log('[alertas]', partes.join(' · '));
+    // El detalle se muestra completo: un resumen que esconde lo omitido se lee
+    // como "no hay nada más".
+    alert('Revisión terminada.\n\n' + partes.join('\n') + (d.errores && d.errores.length
+      ? '\n\nNo se pudo revisar: ' + d.errores.map(e => e.detector + ' (' + e.error + ')').join(', ') : ''));
+  } catch(e){ showToast(String(e.message||e), 'err'); }
+  finally { const b2 = document.getElementById('wsEscanear'); if (b2){ b2.disabled = false; b2.textContent = '⚡ Buscar alertas'; } }
+}
+
+// ── Metas personales ─────────────────────────────────────────────────────────
+// Objetivos del mes. El server ya filtra lo ajeno: acá solo llega lo propio y
+// lo que alguien decidió compartir.
+const wsMetas = { periodo: '', mias: [], compartidas: [], cargando: false };
+const wsPeriodoActualCl = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'); };
+function wsPeriodoSumar(per, n){
+  const [a, m] = per.split('-').map(Number);
+  const t = new Date(Date.UTC(a, m - 1 + n, 1));
+  return t.getUTCFullYear() + '-' + String(t.getUTCMonth()+1).padStart(2,'0');
+}
+const wsPeriodoLindo = (per) => { const [a, m] = per.split('-').map(Number); return WS_MESES[m-1] + ' ' + a; };
+
+function wsMetasHtml(){
+  if (!wsMetas.periodo) wsMetas.periodo = wsPeriodoActualCl();
+  const total = wsMetas.mias.length, hechas = wsMetas.mias.filter(m => m.hecho).length;
+  const pct = total ? Math.round(hechas / total * 100) : 0;
+  const mias = wsMetas.mias.map(m => `<div class="ws-meta${m.hecho?' ok':''}">
+      <button class="ws-check${m.hecho?' on':''}" type="button" data-wsmeta="${escapeAttr(m.id)}" title="${m.hecho?'Desmarcar':'Marcar cumplida'}">✓</button>
+      <div class="cuerpo"><div class="tt">${escapeHtml(m.titulo)}</div>
+        ${m.descripcion ? `<div class="de">${escapeHtml(m.descripcion)}</div>` : ''}</div>
+      ${m.compartida ? '<span class="comp">compartida</span>' : ''}
+      <div class="acc">
+        <button type="button" data-wsmetacomp="${escapeAttr(m.id)}" title="${m.compartida?'Volverla privada':'Compartirla con el equipo'}">${m.compartida?'👁':'🔒'}</button>
+        <button type="button" class="rm" data-wsmetadel="${escapeAttr(m.id)}" title="Eliminar">✕</button>
+      </div></div>`).join('');
+  // Las compartidas se agrupan por persona.
+  let compartidas = '', personaActual = '';
+  for (const m of wsMetas.compartidas) {
+    if (m.autor !== personaActual) {
+      personaActual = m.autor;
+      compartidas += `<div class="ws-meta-persona">${wsAvatarHtml(m.username,'ws-av-sm')}${escapeHtml(m.autor)}</div>`;
+    }
+    compartidas += `<div class="ws-meta${m.hecho?' ok':''}">
+      <span class="ws-check${m.hecho?' on':''}" style="cursor:default">✓</span>
+      <div class="cuerpo"><div class="tt">${escapeHtml(m.titulo)}</div></div></div>`;
+  }
+  return `<div class="ws-cal-bar" style="margin-bottom:.2rem">
+      <div class="ws-cal-nav">
+        <button type="button" id="wsMetaPrev" title="Mes anterior">‹</button>
+        <button type="button" id="wsMetaNext" title="Mes siguiente">›</button>
+      </div>
+      <span class="ws-cal-titulo">${escapeHtml(wsPeriodoLindo(wsMetas.periodo))}</span>
+    </div>
+    <div class="ws-metas">
+      <div class="ws-meta-card">
+        <h4>Mis metas del mes</h4>
+        <p class="sub">Privadas. El candado 🔒 las comparte con el equipo cuando vos quieras.</p>
+        <div class="ws-meta-prog">
+          <div class="ws-meta-anillo" style="--p:${pct}"><i>${pct}%</i></div>
+          <div class="tx"><b>${hechas} de ${total} cumplida${hechas===1?'':'s'}</b>
+          <span>${total ? (hechas===total ? '¡Mes completo! 🎉' : `Te faltan ${total-hechas}`) : 'Todavía no cargaste ninguna'}</span></div>
+        </div>
+        <div class="ws-meta-lista">${mias || '<div class="ws-cal-vacio">Sin metas para este mes.</div>'}</div>
+        <div class="ws-meta-add">
+          <input type="text" id="wsMetaNueva" maxlength="200" placeholder="Agregar una meta y Enter…">
+          <button type="button" class="ws-btn ws-btn-gold" id="wsMetaAdd">Agregar</button>
+        </div>
+      </div>
+      <div class="ws-meta-card">
+        <h4>Compartidas por el equipo</h4>
+        <p class="sub">Lo que cada uno decidió mostrar de su mes.</p>
+        ${compartidas || '<div class="ws-cal-vacio">Nadie compartió metas este mes.</div>'}
+      </div>
+    </div>`;
+}
+async function wsMetasCargar(){
+  if (!wsMetas.periodo) wsMetas.periodo = wsPeriodoActualCl();
+  try {
+    const d = await wsApi('/admin/ws/metas?periodo=' + encodeURIComponent(wsMetas.periodo));
+    wsMetas.mias = d.mias || []; wsMetas.compartidas = d.compartidas || [];
+  } catch(e){ wsMetas.mias = []; wsMetas.compartidas = []; showToast(String(e.message||e), 'err'); }
+  if (wsTab === 'metas') wsRender();
+}
+function wsWireMetas(){
+  const prev = document.getElementById('wsMetaPrev');
+  if (prev) prev.onclick = () => { wsMetas.periodo = wsPeriodoSumar(wsMetas.periodo, -1); wsMetasCargar(); };
+  const next = document.getElementById('wsMetaNext');
+  if (next) next.onclick = () => { wsMetas.periodo = wsPeriodoSumar(wsMetas.periodo, 1); wsMetasCargar(); };
+  const inp = document.getElementById('wsMetaNueva');
+  const agregar = async () => {
+    const titulo = (inp.value || '').trim(); if (!titulo) return;
+    inp.value = '';
+    try { const d = await wsApi('/admin/ws/metas', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ titulo, periodo: wsMetas.periodo }) });
+      wsMetas.mias.push(d.meta); wsRender(); const i2 = document.getElementById('wsMetaNueva'); if (i2) i2.focus();
+    } catch(e){ inp.value = titulo; showToast(String(e.message||e), 'err'); }
+  };
+  if (inp) inp.onkeydown = (e) => { if (e.key === 'Enter'){ e.preventDefault(); agregar(); } };
+  const add = document.getElementById('wsMetaAdd'); if (add) add.onclick = agregar;
+  document.querySelectorAll('[data-wsmeta]').forEach(b => b.onclick = async () => {
+    const m = wsMetas.mias.find(x => x.id === b.dataset.wsmeta); if (!m) return;
+    const antes = m.hecho; m.hecho = !antes; wsRender();   // optimista
+    try { await wsApi('/admin/ws/metas/'+encodeURIComponent(m.id), { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ hecho: m.hecho }) }); }
+    catch(e){ m.hecho = antes; wsRender(); showToast(String(e.message||e), 'err'); }
+  });
+  document.querySelectorAll('[data-wsmetacomp]').forEach(b => b.onclick = async () => {
+    const m = wsMetas.mias.find(x => x.id === b.dataset.wsmetacomp); if (!m) return;
+    const antes = m.compartida; m.compartida = !antes; wsRender();
+    try { await wsApi('/admin/ws/metas/'+encodeURIComponent(m.id), { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ compartida: m.compartida }) });
+      showToast(m.compartida ? 'Ahora el equipo la ve' : 'Volvió a ser privada', 'ok');
+    } catch(e){ m.compartida = antes; wsRender(); showToast(String(e.message||e), 'err'); }
+  });
+  document.querySelectorAll('[data-wsmetadel]').forEach(b => b.onclick = async () => {
+    const m = wsMetas.mias.find(x => x.id === b.dataset.wsmetadel); if (!m) return;
+    if (!confirm('Eliminar «' + m.titulo + '»?')) return;
+    try { await wsApi('/admin/ws/metas/'+encodeURIComponent(m.id), { method:'DELETE' });
+      wsMetas.mias = wsMetas.mias.filter(x => x.id !== m.id); wsRender();
+    } catch(e){ showToast(String(e.message||e), 'err'); }
+  });
 }
 
 // ── Chat interno ─────────────────────────────────────────────────────────────
@@ -18639,6 +18810,13 @@ function wsWire(){
   const nu = document.getElementById('wsNuevoUser'); if (nu) nu.onclick = () => wsUserModal(null);
   const ne = document.getElementById('wsNuevoEv'); if (ne) ne.onclick = () => wsEvModal(null, { fecha: wsHoyISO() });
   if (wsTab === 'calendario') wsWireCalendario();
+  if (wsTab === 'metas') {
+    wsWireMetas();
+    // Primera entrada: se piden los datos del mes y se vuelve a pintar.
+    if (!wsMetas.cargado) { wsMetas.cargado = true; wsMetasCargar(); }
+  }
+  const esc = document.getElementById('wsEscanear');
+  if (esc) esc.onclick = wsEscanearAlertas;
   // El sondeo del chat solo corre con la pestaña Chat abierta.
   if (wsTab === 'chat') {
     const q = document.getElementById('wsChatQ');

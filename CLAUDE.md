@@ -168,3 +168,37 @@ módulo existente.
   persona estaba leyendo hacia arriba, ni se pierde lo que venía escribiendo.
 - Los mensajes se recortan a `WS_MSJ_MAX` por canal: `wsLoad()` relee el doc
   entero en cada request, así que no puede crecer sin techo.
+
+### Metas personales
+
+Objetivos del mes por persona (`d.metas`, clave `periodo` = `YYYY-MM`). Son
+**privadas**: el filtro lo hace el server, no el front. Una meta ajena no se
+puede editar ni borrar **ni siendo admin** — el dueño es el único, a propósito.
+
+### Tareas automáticas (alertas del sistema)
+
+`WS_AUTO_DETECTORES` es la lista de detectores. Cada uno devuelve "hallazgos"
+con una **clave estable** y el espacio los convierte en tareas del proyecto
+"Alertas del sistema", asignadas a la cuenta admin más antigua.
+
+Tres reglas que hacen que esto no se vuelva insoportable — si tocás esto, no las
+saques:
+
+1. **Dedupe por clave, para siempre.** Si ya se creó la tarea de un hallazgo no
+   se vuelve a crear, ni aunque la hayan completado. Una tarea que reaparece
+   después de resolverla es la forma más rápida de que dejen de mirar el módulo.
+2. **Techo de tareas ABIERTAS por detector** (`WS_AUTO_MAX_ABIERTAS`). El primer
+   escaneo sobre datos viejos encuentra decenas de cosas; sin techo entierra el
+   tablero. Lo que no entró se informa en `omitidos`/`topeAlcanzado` — un tope
+   silencioso se lee como "no hay nada más".
+3. **Un detector que falla no tumba el escaneo.** Se salta y los demás siguen,
+   y el error viaja en la respuesta.
+
+Los detectores leen **datos reales, nunca inventados**: si la fuente no está
+disponible (Shopify caído), devuelven vacío en vez de fabricar alertas. El
+criterio de cada detector va en una función pura aparte (ver
+`wsAutoHallazgosCodigos`) para poder probarlo sin la API remota.
+
+El umbral de costeo se compara contra el `margenPct` que el usuario le puso a
+cada plato, más `WS_AUTO_COSTEO_HOLGURA` puntos de tolerancia. No hay un número
+"de costo alto" inventado en el código: el objetivo lo define el usuario.

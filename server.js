@@ -3031,6 +3031,242 @@ app.delete('/admin/ws/canales/:id', requireAdmin, (req, res) => {
   res.json({ ok: true, archivado: false });
 });
 
+// ── Metas personales ─────────────────────────────────────────────────────────
+// Objetivos del mes de cada persona. Son PRIVADAS salvo que el dueño las marque
+// como compartidas: el filtro se hace en el server, nunca mandando todo y
+// escondiendo en el front.
+const WS_METAS_MAX = 40;   // por persona y mes
+const wsPeriodoActual = () => new Intl.DateTimeFormat('en-CA', { timeZone: WS_TZ, year: 'numeric', month: '2-digit' }).format(new Date()).slice(0, 7);
+const wsPeriodo = (v) => /^\d{4}-(0[1-9]|1[0-2])$/.test(String(v || '')) ? String(v) : wsPeriodoActual();
+
+app.get('/admin/ws/metas', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const yo = wsActor(req);
+  const periodo = wsPeriodo(req.query.periodo);
+  const usuarios = wsUsuarios(req);
+  const delMes = d.metas.filter(m => m.periodo === periodo);
+  const mias = delMes.filter(m => m.username === yo.username).sort((a, b) => (a.orden || 0) - (b.orden || 0));
+  const compartidas = delMes.filter(m => m.username !== yo.username && m.compartida)
+    .map(m => ({ ...m, autor: wsNombreUsuario(usuarios, m.username) }))
+    .sort((a, b) => String(a.autor).localeCompare(String(b.autor), 'es') || (a.orden || 0) - (b.orden || 0));
+  res.json({ periodo, mias, compartidas, cumplidas: mias.filter(m => m.hecho).length, total: mias.length });
+});
+app.post('/admin/ws/metas', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const yo = wsActor(req);
+  const b = req.body || {};
+  const titulo = wsStr(b.titulo, 200);
+  if (!titulo) return res.status(400).json({ error: 'Escribí la meta.' });
+  const periodo = wsPeriodo(b.periodo);
+  const mias = d.metas.filter(m => m.username === yo.username && m.periodo === periodo);
+  if (mias.length >= WS_METAS_MAX) return res.status(400).json({ error: `Máximo ${WS_METAS_MAX} metas por mes.` });
+  const meta = {
+    id: wsNewId('mt'), username: yo.username, periodo, titulo,
+    descripcion: wsStr(b.descripcion, 600), hecho: false, compartida: !!b.compartida,
+    orden: (mias.length + 1) * 10, createdAt: Date.now(), completadaAt: null,
+  };
+  d.metas.push(meta); wsSave(d);
+  res.json({ ok: true, meta });
+});
+app.put('/admin/ws/metas/:id', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const yo = wsActor(req);
+  const m = d.metas.find(x => x.id === req.params.id);
+  if (!m) return res.status(404).json({ error: 'No se encontró la meta.' });
+  // Solo el dueño. Una meta ajena no se toca ni siendo admin: son personales.
+  if (m.username !== yo.username) return res.status(403).json({ error: 'Esa meta es de otra persona.' });
+  const b = req.body || {};
+  if (b.titulo != null) { const t = wsStr(b.titulo, 200); if (!t) return res.status(400).json({ error: 'Escribí la meta.' }); m.titulo = t; }
+  if (b.descripcion != null) m.descripcion = wsStr(b.descripcion, 600);
+  if (b.compartida != null) m.compartida = !!b.compartida;
+  if (b.hecho != null) { m.hecho = !!b.hecho; m.completadaAt = m.hecho ? Date.now() : null; }
+  wsSave(d);
+  res.json({ ok: true, meta: m });
+});
+app.delete('/admin/ws/metas/:id', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const yo = wsActor(req);
+  const m = d.metas.find(x => x.id === req.params.id);
+  if (!m) return res.status(404).json({ error: 'No se encontró la meta.' });
+  if (m.username !== yo.username) return res.status(403).json({ error: 'Esa meta es de otra persona.' });
+  d.metas = d.metas.filter(x => x.id !== m.id); wsSave(d);
+  res.json({ ok: true });
+});
+
+// ── Tareas automáticas desde los otros módulos ───────────────────────────────
+// El ERP ya sabe cuándo algo necesita atención; lo que faltaba era que eso
+// llegara a la lista de alguien en vez de quedar en un cartelito que se mira
+// una vez. Cada detector devuelve "hallazgos" con una CLAVE estable, y el
+// espacio los convierte en tareas.
+//
+// Tres reglas que hacen que esto no se vuelva insoportable:
+//  1. Dedupe por clave, para siempre. Si ya se creó la tarea de un hallazgo, no
+//     se vuelve a crear — ni aunque la hayan completado. Nada peor que una
+//     tarea que reaparece después de resolverla.
+//  2. Techo de tareas ABIERTAS por detector. Si hay 10 sin atender, no se
+//     agregan más hasta que se cierren algunas: evita que el primer escaneo
+//     sobre datos viejos entierre el tablero.
+//  3. Si un detector falla (Shopify caído, un archivo raro), se salta ese y los
+//     demás siguen. Un módulo roto no puede tumbar el escaneo entero.
+const WS_AUTO_PROYECTO = 'Alertas del sistema';
+const WS_AUTO_MAX_ABIERTAS = 10;
+// Cuánto puede pasarse un plato de su propio objetivo de costo antes de que
+// valga la pena avisar. Es tolerancia para no hacer ruido por redondeos: el
+// objetivo de cada plato ya lo define el usuario en `margenPct`.
+const WS_AUTO_COSTEO_HOLGURA = 5;
+
+function wsAutoProyectoId(d){
+  let p = d.proyectos.find(x => wsStr(x.nombre).toLowerCase() === WS_AUTO_PROYECTO.toLowerCase());
+  if (!p) {
+    p = { id: wsNewId('pr'), nombre: WS_AUTO_PROYECTO, color: '#d9534f', emoji: '🔔',
+      descripcion: 'Tareas que genera solo el ERP cuando detecta algo que revisar.',
+      responsable: '', archivado: false, createdAt: Date.now() };
+    d.proyectos.push(p);
+  }
+  if (p.archivado) p.archivado = false;   // si vuelve a haber alertas, se desarchiva
+  return p.id;
+}
+// A quién se le asignan: la cuenta admin más antigua, que es la dueña del
+// panel. Si el hallazgo sugiere otra persona, gana esa.
+function wsAutoResponsable(){
+  const admins = teamLoad().members.filter(m => teamRol(m.role) === 'admin')
+    .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  return admins.length ? admins[0].username : '';
+}
+
+// Códigos → hallazgos. Aparte del detector para poder probarlo sin depender de
+// que Shopify conteste: la lectura remota es una línea, el criterio es esto.
+function wsAutoHallazgosCodigos(codigos){
+  const vistos = new Set();
+  const out = [];
+  for (const raw of wsArr(codigos)) {
+    const code = wsStr(raw, 80).toUpperCase();
+    if (!code || vistos.has(code)) continue;   // el mismo código en varios pedidos es UNA alerta
+    vistos.add(code);
+    out.push({
+      clave: 'codigo:' + code,
+      titulo: `Clasificar código ${code}`,
+      prioridad: 'alta',
+      etiquetas: ['ingresos'],
+      descripcion: `El Estado de Resultado encontró pedidos con el código de descuento «${code}» y no sabe a qué canal imputarlos.\n\n`
+        + `Mientras no esté clasificado, esas ventas no se suman al canal que corresponde. Hay que mapearlo indicando canal, local y razón social.`,
+    });
+  }
+  return out;
+}
+
+const WS_AUTO_DETECTORES = [
+  {
+    id: 'codigos_nuevos',
+    label: 'Códigos de descuento sin clasificar',
+    // Ingreso por Venta ya detecta los códigos que no están en el diccionario;
+    // hasta ahora eso solo salía como aviso en pantalla.
+    async hallazgos(){
+      const est = await estadoResolve(wsPeriodoActual(), null);
+      // Si Shopify no responde, `codigosNuevos` viene vacío: no se inventan
+      // alertas cuando la fuente no está disponible.
+      return wsAutoHallazgosCodigos((est && est.alertas && est.alertas.codigosNuevos) || []);
+    },
+  },
+  {
+    id: 'costeo_rojo',
+    label: 'Platos vendiéndose por encima de su objetivo de costo',
+    // Se compara el % de costo REAL (contra el precio que se cobra) con el
+    // objetivo que el propio usuario le puso a ese plato — no contra un número
+    // inventado acá.
+    async hallazgos(){
+      const all = loadCosteoAll();
+      const nombres = { garden: 'Garden · comida', badass: 'Badass · comida', garden_barra: 'Garden · barra', badass_barra: 'Badass · barra' };
+      const out = [];
+      for (const set of ['garden', 'badass', 'garden_barra', 'badass_barra']) {
+        const doc = all[set];
+        if (!doc) continue;
+        let platos = [];
+        try { platos = resolveCosteo(doc).platos || []; } catch { continue; }
+        for (const p of platos) {
+          if (p.pctCostoReal == null || !p.precioReal) continue;      // sin precio cargado no hay nada que comparar
+          const objetivo = Number(p.margenPct) || 30;
+          const exceso = p.pctCostoReal - objetivo;
+          if (exceso < WS_AUTO_COSTEO_HOLGURA) continue;
+          out.push({
+            clave: `costeo:${set}:${p.id}`,
+            titulo: `Revisar costeo de ${p.nombre}`,
+            prioridad: exceso >= 20 ? 'urgente' : 'alta',
+            etiquetas: ['costeo'],
+            _peso: exceso,
+            descripcion: `${nombres[set] || set} · ${p.categoria || 'Sin categoría'}\n\n`
+              + `Cuesta ${p.pctCostoReal}% de lo que se cobra, y el objetivo de este plato es ${objetivo}%: se está pasando por ${Math.round(exceso * 10) / 10} puntos.\n\n`
+              + `Costo final $${(p.costoFinal || 0).toLocaleString('es-CL')} · precio de venta $${(p.precioReal || 0).toLocaleString('es-CL')}.\n\n`
+              + `Puede ser precio desactualizado de un insumo, una receta cargada de más o un precio de venta que quedó viejo.`,
+          });
+        }
+      }
+      // Los peores primero: si hay techo, que entren los que más duelen.
+      return out.sort((a, b) => b._peso - a._peso);
+    },
+  },
+  // Falta el tercero del pedido original (proveedor sugiere un punto de venta):
+  // el portal de proveedores todavía no tiene esa función, así que no hay dato
+  // real que leer. Cuando exista, es agregar un objeto más a esta lista.
+];
+
+async function wsAutoEscanear(){
+  const resumen = { creadas: 0, porDetector: {}, errores: [] };
+  let d = wsLoad();
+  const responsable = wsAutoResponsable();
+  for (const det of WS_AUTO_DETECTORES) {
+    let hallazgos = [];
+    try { hallazgos = await det.hallazgos(); }
+    catch (e) { resumen.errores.push({ detector: det.id, error: e.message }); resumen.porDetector[det.id] = { creadas: 0, error: e.message }; continue; }
+    // Releer: un detector puede tardar (Shopify) y mientras tanto alguien pudo
+    // haber tocado el doc. Sin esto le pisaríamos los cambios.
+    d = wsLoad();
+    const proyectoId = wsAutoProyectoId(d);
+    const yaVistas = new Set(d.tareas.filter(t => t.fuente && t.fuente.clave).map(t => t.fuente.clave));
+    const abiertas = d.tareas.filter(t => t.auto && t.fuente && t.fuente.detector === det.id && t.estado !== 'listo').length;
+    let cupo = Math.max(0, WS_AUTO_MAX_ABIERTAS - abiertas);
+    let creadas = 0;
+    for (const h of hallazgos) {
+      if (cupo <= 0) break;
+      if (yaVistas.has(h.clave)) continue;
+      const ahora = Date.now();
+      d.tareas.push({
+        id: wsNewId('tk'), titulo: h.titulo, descripcion: h.descripcion || '',
+        proyectoId, asignados: (h.asignados && h.asignados.length) ? h.asignados : (responsable ? [responsable] : []),
+        estado: (d.estados[0] || {}).id || 'por_hacer', prioridad: h.prioridad || 'media',
+        vence: h.vence || '', etiquetas: h.etiquetas || [], checklist: [], comentarios: [],
+        orden: ahora, auto: true, fuente: { detector: det.id, clave: h.clave },
+        creadoPor: 'sistema', createdAt: ahora, updatedAt: ahora, completadaAt: null,
+      });
+      const t = d.tareas[d.tareas.length - 1];
+      wsNotificar(d, t.asignados, { tipo: 'auto', de: '', tareaId: t.id, texto: `El sistema detectó algo: “${t.titulo}”` });
+      yaVistas.add(h.clave); creadas++; cupo--;
+    }
+    resumen.porDetector[det.id] = {
+      label: det.label, encontrados: hallazgos.length, creadas,
+      abiertas: abiertas + creadas,
+      // Si hay hallazgos que no entraron, decirlo: un techo silencioso se lee
+      // como "no hay nada más".
+      omitidos: Math.max(0, hallazgos.filter(h => !yaVistas.has(h.clave)).length),
+      topeAlcanzado: cupo <= 0 && hallazgos.length > creadas,
+    };
+    resumen.creadas += creadas;
+    if (creadas) wsSave(d);
+  }
+  return resumen;
+}
+
+app.post('/admin/ws/auto/escanear', requireAdmin, async (req, res) => {
+  if (!wsSoloAdmin(req, res)) return;
+  try { res.json({ ok: true, ...(await wsAutoEscanear()) }); }
+  catch (e) { res.status(500).json({ error: 'No se pudo escanear: ' + e.message }); }
+});
+
+// Escaneo periódico. Arranca despegado del boot para no competir con la carga
+// inicial, y después cada 6 h. `unref` para que no sostenga el proceso.
+setTimeout(() => { wsAutoEscanear().then(r => { if (r.creadas) console.log('[ws-auto] tareas creadas:', r.creadas); }).catch(e => console.warn('[ws-auto]', e.message)); }, 90 * 1000).unref?.();
+setInterval(() => { wsAutoEscanear().catch(e => console.warn('[ws-auto]', e.message)); }, 6 * 60 * 60 * 1000).unref?.();
+
 // ── Notificaciones ──
 app.get('/admin/ws/notificaciones', requireAdmin, (req, res) => {
   const d = wsLoad();
