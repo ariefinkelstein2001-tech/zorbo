@@ -16915,6 +16915,10 @@ const HOSP_NAV = [
   { id: 'sku', label: 'SKU / Carta', icon: '🏷️', vista: 'productsView', abrir: () => {
     activeSkuChan = 'hospitality';
     document.querySelectorAll('#skuChanFilters .sku-chan').forEach(x => x.classList.toggle('on', x.dataset.chan === 'hospitality'));
+    // Dentro de Hospitality el canal queda fijo: no tiene sentido ofrecer
+    // Todas/Horeca y Retail/Venta Online (esos SKU no son de este perfil), así
+    // que el selector de canal se esconde entero. hospBackToGate() lo revierte.
+    const chanBar = document.getElementById('skuChanFilters'); if (chanBar) chanBar.style.display = 'none';
     loadProductos().then(applySkuChannel);
   } },
 ];
@@ -17094,6 +17098,9 @@ function hospBackToGate(){
   costeoAreaGo('gastronomia');
   activeSkuChan = 'todas';
   document.querySelectorAll('#skuChanFilters .sku-chan').forEach(x => x.classList.toggle('on', x.dataset.chan === 'todas'));
+  // El selector de canal se había escondido entero al entrar a Hospitality
+  // (ver HOSP_NAV 'sku'.abrir) — en "Para ti" vuelve a mostrarse completo.
+  const chanBar = document.getElementById('skuChanFilters'); if (chanBar) chanBar.style.display = '';
   // El cambio de chip no solo es visual: applySkuChannel() es lo que en
   // realidad esconde/muestra #productGrid vs #hospCartaWrap — sin este
   // llamado, la carta de Hospitality quedaba pegada aunque el chip mostrara
