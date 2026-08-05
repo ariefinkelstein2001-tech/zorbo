@@ -2235,13 +2235,13 @@ const wsNombreUsuario = (usuarios, username) => {
 
 // Notificar (campanita). destinos = usernames; nunca se notifica a quien hizo la
 // acción — que te avise de lo que acabás de hacer vos es solo ruido.
-function wsNotificar(d, destinos, { tipo, texto, tareaId = null, de = '' }){
+function wsNotificar(d, destinos, { tipo, texto, tareaId = null, eventoId = null, de = '' }){
   const vistos = new Set();
   for (const raw of wsArr(destinos)) {
     const u = String(raw || '').toLowerCase();
     if (!u || u === String(de || '').toLowerCase() || vistos.has(u)) continue;
     vistos.add(u);
-    d.notificaciones.push({ id: wsNewId('nt'), username: u, tipo, texto: wsStr(texto, 300), tareaId, de: String(de || ''), ts: Date.now(), leida: false });
+    d.notificaciones.push({ id: wsNewId('nt'), username: u, tipo, texto: wsStr(texto, 300), tareaId, eventoId, de: String(de || ''), ts: Date.now(), leida: false });
   }
   // Techo por persona: la campanita es un aviso, no un historial. Sin esto el
   // doc crece para siempre.
@@ -2325,7 +2325,7 @@ app.get('/admin/ws/bootstrap', requireAdmin, (req, res) => {
   const yo = wsActor(req);
   res.json({
     me: yo, usuarios: wsUsuarios(req), estados: d.estados,
-    proyectos: d.proyectos, tareas: d.tareas, prioridades: WS_PRIORIDADES,
+    proyectos: d.proyectos, tareas: d.tareas, eventos: d.eventos, prioridades: WS_PRIORIDADES,
     notificaciones: d.notificaciones.filter(n => n.username === yo.username).sort((a, b) => b.ts - a.ts).slice(0, 60),
   });
 });
@@ -2452,6 +2452,204 @@ app.delete('/admin/ws/tareas/:id', requireAdmin, (req, res) => {
   d.notificaciones = d.notificaciones.filter(x => x.tareaId !== req.params.id);
   wsSave(d);
   res.json({ ok: true });
+});
+
+// ── Calendario: eventos y reuniones ──────────────────────────────────────────
+// Un evento es una fecha del calendario con hora opcional. `tipo` distingue una
+// reunión (con participantes y link) de un hito suelto, pero el modelo es el
+// mismo: no vale la pena partirlo en dos.
+const WS_EVENTO_TIPOS = ['reunion', 'evento'];
+const WS_TZ = 'America/Santiago';
+// "HH:MM" en 24h, o vacío.
+const wsHora = (v) => /^([01]\d|2[0-3]):([0-5]\d)$/.test(String(v || '')) ? String(v) : '';
+
+function wsEvento(d, b, prev, actor){
+  const e = prev || { id: wsNewId('ev'), createdAt: Date.now(), creadoPor: actor.username, participantes: [] };
+  if (b.titulo != null) e.titulo = wsStr(b.titulo, 200);
+  if (b.tipo != null) e.tipo = WS_EVENTO_TIPOS.includes(String(b.tipo)) ? String(b.tipo) : 'reunion';
+  if (b.fecha != null) e.fecha = wsFecha(b.fecha);
+  if (b.todoElDia != null) e.todoElDia = !!b.todoElDia;
+  if (b.horaInicio != null) e.horaInicio = wsHora(b.horaInicio);
+  if (b.horaFin != null) e.horaFin = wsHora(b.horaFin);
+  if (b.lugar != null) e.lugar = wsStr(b.lugar, 200);
+  if (b.link != null) {
+    // Solo http(s): un javascript: acá terminaría siendo un enlace clickeable
+    // para todo el equipo.
+    const u = wsStr(b.link, 500);
+    e.link = /^https?:\/\//i.test(u) ? u : '';
+  }
+  if (b.descripcion != null) e.descripcion = wsStr(b.descripcion, 4000);
+  if (b.color != null) e.color = teamColor(b.color, e.titulo || e.id);
+  if (b.participantes != null) {
+    const validos = new Set(teamLoad().members.map(m => (m.username || '').toLowerCase()));
+    e.participantes = [...new Set(wsArr(b.participantes).map(x => wsStr(x, 120).toLowerCase()).filter(Boolean))]
+      .filter(u => validos.has(u) || u === actor.username).slice(0, 40);
+  }
+  if (e.tipo == null) e.tipo = 'reunion';
+  if (e.todoElDia == null) e.todoElDia = false;
+  if (e.horaInicio == null) e.horaInicio = '';
+  if (e.horaFin == null) e.horaFin = '';
+  if (e.lugar == null) e.lugar = '';
+  if (e.link == null) e.link = '';
+  if (e.descripcion == null) e.descripcion = '';
+  if (!e.color) e.color = e.tipo === 'reunion' ? '#4a90d9' : '#f5a623';
+  // Sin hora de inicio no hay franja horaria que mostrar: es de día completo.
+  if (!e.horaInicio) { e.todoElDia = true; e.horaFin = ''; }
+  // Fin antes que inicio no significa nada; se descarta en vez de guardar basura.
+  if (e.horaFin && e.horaFin <= e.horaInicio) e.horaFin = '';
+  e.updatedAt = Date.now();
+  return e;
+}
+
+// Cuándo empieza/termina un evento, en formato lindo para el aviso.
+function wsEventoCuando(e){
+  const [a, m, dd] = String(e.fecha || '').split('-');
+  const dia = (dd && m) ? `${dd}/${m}` : '';
+  if (e.todoElDia || !e.horaInicio) return dia;
+  return dia + ' a las ' + e.horaInicio;
+}
+
+app.post('/admin/ws/eventos', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const actor = wsActor(req);
+  const e = wsEvento(d, req.body || {}, null, actor);
+  if (!e.titulo) return res.status(400).json({ error: 'Ponele un título a la reunión.' });
+  if (!e.fecha) return res.status(400).json({ error: 'Elegí una fecha.' });
+  d.eventos.push(e);
+  const usuarios = wsUsuarios(req);
+  wsNotificar(d, e.participantes, {
+    tipo: 'invitacion', de: actor.username, eventoId: e.id,
+    texto: `${actor.nombre} te invitó a “${e.titulo}” · ${wsEventoCuando(e)}`,
+  });
+  wsSave(d);
+  res.json({ ok: true, evento: e, invitados: e.participantes.filter(u => u !== actor.username).map(u => wsNombreUsuario(usuarios, u)) });
+});
+app.put('/admin/ws/eventos/:id', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const e = d.eventos.find(x => x.id === req.params.id);
+  if (!e) return res.status(404).json({ error: 'No se encontró el evento.' });
+  const actor = wsActor(req);
+  const antes = { participantes: (e.participantes || []).slice(), fecha: e.fecha, horaInicio: e.horaInicio };
+  wsEvento(d, req.body || {}, e, actor);
+  if (!e.titulo) return res.status(400).json({ error: 'Ponele un título a la reunión.' });
+  if (!e.fecha) return res.status(400).json({ error: 'Elegí una fecha.' });
+  // A los nuevos, invitación. A los que ya estaban, aviso SOLO si se movió el
+  // día o la hora — que es lo único que les cambia la agenda.
+  const nuevos = (e.participantes || []).filter(u => !antes.participantes.includes(u));
+  if (nuevos.length) wsNotificar(d, nuevos, { tipo: 'invitacion', de: actor.username, eventoId: e.id, texto: `${actor.nombre} te invitó a “${e.titulo}” · ${wsEventoCuando(e)}` });
+  if (antes.fecha !== e.fecha || antes.horaInicio !== e.horaInicio) {
+    const viejos = (e.participantes || []).filter(u => antes.participantes.includes(u));
+    if (viejos.length) wsNotificar(d, viejos, { tipo: 'reagendada', de: actor.username, eventoId: e.id, texto: `${actor.nombre} movió “${e.titulo}” a ${wsEventoCuando(e)}` });
+  }
+  wsSave(d);
+  res.json({ ok: true, evento: e });
+});
+app.delete('/admin/ws/eventos/:id', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const e = d.eventos.find(x => x.id === req.params.id);
+  if (!e) return res.status(404).json({ error: 'No se encontró el evento.' });
+  const actor = wsActor(req);
+  d.eventos = d.eventos.filter(x => x.id !== e.id);
+  wsNotificar(d, e.participantes, { tipo: 'cancelada', de: actor.username, texto: `${actor.nombre} canceló “${e.titulo}” (${wsEventoCuando(e)})` });
+  d.notificaciones = d.notificaciones.filter(x => x.eventoId !== e.id);
+  wsSave(d);
+  res.json({ ok: true });
+});
+
+// ── Exportar a Google Calendar (.ics) ────────────────────────────────────────
+// Se emite en UTC (sufijo Z) en vez de TZID+VTIMEZONE: es lo que interpreta
+// igual cualquier cliente, sin depender de que traiga la definición de la zona.
+// Chile cambia de huso dos veces al año, así que el offset se resuelve con Intl
+// para la fecha concreta del evento — no con una constante.
+function wsOffsetMin(tz, fecha){
+  const p = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour12: false, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit' })
+    .formatToParts(fecha).reduce((a, x) => (a[x.type] = x.value, a), {});
+  const comoUTC = Date.UTC(+p.year, +p.month - 1, +p.day, (+p.hour) % 24, +p.minute, +p.second);
+  return (comoUTC - fecha.getTime()) / 60000;
+}
+function wsLocalAUTC(tz, iso, hhmm){
+  const [a, m, d] = iso.split('-').map(Number);
+  const [h, mi] = String(hhmm || '00:00').split(':').map(Number);
+  const base = Date.UTC(a, m - 1, d, h, mi, 0);
+  let ts = base;
+  // Dos pasadas alcanzan salvo en el salto de horario, donde la tercera cierra.
+  for (let i = 0; i < 3; i++) {
+    const sig = base - wsOffsetMin(tz, new Date(ts)) * 60000;
+    if (sig === ts) break;
+    ts = sig;
+  }
+  return new Date(ts);
+}
+const wsIcsUTC = (dt) => dt.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+const wsIcsFecha = (iso) => String(iso || '').replace(/-/g, '');
+const wsIcsTexto = (s) => String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+// Plegado a 75 octetos, como pide el RFC 5545: sin esto, una descripción larga
+// rompe el archivo en algunos clientes.
+function wsIcsFold(linea){
+  const b = Buffer.from(linea, 'utf-8');
+  if (b.length <= 75) return linea;
+  const out = []; let i = 0;
+  while (i < b.length) {
+    let n = Math.min(i === 0 ? 75 : 74, b.length - i);
+    // No cortar en medio de un carácter multibyte.
+    while (n > 1 && (b[i + n] & 0xc0) === 0x80) n--;
+    out.push((i === 0 ? '' : ' ') + b.slice(i, i + n).toString('utf-8'));
+    i += n;
+  }
+  return out.join('\r\n');
+}
+function wsEventoIcs(e, usuarios){
+  const L = ['BEGIN:VEVENT', 'UID:' + e.id + '@k-bros.cl', 'DTSTAMP:' + wsIcsUTC(new Date())];
+  if (e.todoElDia || !e.horaInicio) {
+    const fin = new Date(wsLocalAUTC('UTC', e.fecha, '00:00').getTime() + 86400000);
+    L.push('DTSTART;VALUE=DATE:' + wsIcsFecha(e.fecha));
+    L.push('DTEND;VALUE=DATE:' + wsIcsFecha(fin.toISOString().slice(0, 10)));
+  } else {
+    const ini = wsLocalAUTC(WS_TZ, e.fecha, e.horaInicio);
+    // Sin hora de fin se asume una hora, que es lo que espera cualquier agenda.
+    const fin = e.horaFin ? wsLocalAUTC(WS_TZ, e.fecha, e.horaFin) : new Date(ini.getTime() + 3600000);
+    L.push('DTSTART:' + wsIcsUTC(ini));
+    L.push('DTEND:' + wsIcsUTC(fin));
+  }
+  L.push('SUMMARY:' + wsIcsTexto(e.titulo));
+  const cuerpo = [e.descripcion, e.link ? 'Link: ' + e.link : ''].filter(Boolean).join('\n');
+  if (cuerpo) L.push('DESCRIPTION:' + wsIcsTexto(cuerpo));
+  // Google muestra el link de videollamada si viene en LOCATION.
+  const donde = e.lugar || e.link;
+  if (donde) L.push('LOCATION:' + wsIcsTexto(donde));
+  const org = usuarios.find(u => (u.username || '').toLowerCase() === String(e.creadoPor || '').toLowerCase());
+  if (org) L.push('ORGANIZER;CN=' + wsIcsTexto(org.apodo || org.nombre || org.username) + ':mailto:' + (org.email || org.username));
+  for (const p of (e.participantes || [])) {
+    const u = usuarios.find(x => (x.username || '').toLowerCase() === p);
+    L.push('ATTENDEE;CN=' + wsIcsTexto(u ? (u.apodo || u.nombre || u.username) : p) + ';RSVP=TRUE:mailto:' + ((u && u.email) || p));
+  }
+  L.push('END:VEVENT');
+  return L;
+}
+function wsIcsDoc(eventos, usuarios){
+  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//K-BROS//Espacio de trabajo//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+  for (const e of eventos) L.push(...wsEventoIcs(e, usuarios));
+  L.push('END:VCALENDAR');
+  return L.map(wsIcsFold).join('\r\n') + '\r\n';
+}
+const wsIcsNombre = (s) => (String(s || 'evento').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'evento');
+
+app.get('/admin/ws/eventos/:id/ics', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const e = d.eventos.find(x => x.id === req.params.id);
+  if (!e) return res.status(404).json({ error: 'No se encontró el evento.' });
+  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${wsIcsNombre(e.titulo)}.ics"`);
+  res.send(wsIcsDoc([e], wsUsuarios(req)));
+});
+// Todo mi calendario en un archivo, para importarlo de una a Google.
+app.get('/admin/ws/calendario.ics', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const yo = wsActor(req);
+  const mios = d.eventos.filter(e => (e.participantes || []).includes(yo.username) || e.creadoPor === yo.username);
+  res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="k-bros-calendario.ics"');
+  res.send(wsIcsDoc(mios, wsUsuarios(req)));
 });
 
 // ── Notificaciones ──

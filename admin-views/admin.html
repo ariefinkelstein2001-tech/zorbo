@@ -2925,6 +2925,55 @@ body.hosp-open{overflow:hidden}
 .ws-sw{width:25px;height:25px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
 .ws-sw.on{border-color:var(--text);box-shadow:0 0 0 2px var(--surface) inset}
 
+/* ── Calendario ── */
+.ws-cal-bar{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.ws-cal-nav{display:inline-flex;align-items:center;gap:2px}
+.ws-cal-nav button{border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;font-size:.85rem;font-weight:700;width:30px;height:30px;border-radius:9px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.ws-cal-nav button:hover{border-color:var(--gold-bd-h);background:var(--gold-glow)}
+/* Solo la primera letra: `capitalize` dejaría "3 – 9 De Agosto 2026". */
+.ws-cal-titulo{font-family:var(--display);font-size:1.02rem;font-weight:800;color:var(--text);min-width:11rem}
+.ws-cal-titulo::first-letter{text-transform:uppercase}
+.ws-cal{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.ws-cal-dow{display:grid;grid-template-columns:repeat(7,1fr);background:var(--surface2);border-bottom:1px solid var(--border)}
+.ws-cal-dow span{padding:.45rem .5rem;font-size:.64rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);text-align:center}
+.ws-cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.ws-dia{min-height:104px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:.3rem .35rem;display:flex;flex-direction:column;gap:2px;cursor:pointer;transition:background .15s}
+.ws-dia:nth-child(7n){border-right:0}
+.ws-dia:hover{background:var(--gold-glow)}
+.ws-dia.fuera{background:var(--surface2)}
+.ws-dia.fuera .ws-dia-n{color:#b3b9c4}
+.ws-dia.finde{background:rgba(16,35,76,.022)}
+.ws-dia-n{font-size:.74rem;font-weight:700;color:var(--muted);width:1.42rem;height:1.42rem;display:flex;align-items:center;justify-content:center;border-radius:50%;flex:0 0 auto}
+.ws-dia.hoy .ws-dia-n{background:var(--gold);color:#241a05;font-weight:800}
+/* El tinte sale del color del evento. La primera declaración es el respaldo
+   para navegadores sin color-mix(). */
+.ws-ev{display:flex;align-items:center;gap:.25rem;font-size:.68rem;line-height:1.25;border-radius:6px;padding:.13rem .3rem;cursor:pointer;background:var(--surface2);background:color-mix(in srgb,var(--ec,#4a90d9) 14%,transparent);border-left:3px solid var(--ec,#4a90d9);color:var(--text);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ws-ev:hover{filter:brightness(.97);box-shadow:0 1px 4px rgba(16,35,76,.14)}
+.ws-ev b{font-weight:800;font-variant-numeric:tabular-nums;flex:0 0 auto}
+.ws-ev .tt{overflow:hidden;text-overflow:ellipsis}
+.ws-ev-tarea{background:var(--surface2);border-left-color:var(--ec,#5b6472)}
+.ws-ev-tarea.done .tt{text-decoration:line-through;color:var(--dim)}
+.ws-mas{font-size:.63rem;font-weight:700;color:var(--dim);padding-left:.3rem}
+.ws-mas:hover{color:var(--gold-deep);text-decoration:underline}
+/* Semana: una columna por día, en modo agenda. Un cuadriculado por hora no se
+   puede usar en un celular, y acá lo que se necesita es leer qué hay cada día. */
+.ws-sem{display:grid;grid-template-columns:repeat(7,1fr);gap:.5rem}
+.ws-semcol{background:var(--surface);border:1px solid var(--border);border-radius:13px;display:flex;flex-direction:column;min-height:130px;overflow:hidden}
+.ws-semcol.hoy{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold-glow)}
+.ws-semcol-h{padding:.45rem .5rem;border-bottom:1px solid var(--border);background:var(--surface2);text-align:center}
+.ws-semcol-h .d{font-size:.6rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--dim)}
+.ws-semcol-h .n{font-family:var(--display);font-size:1.02rem;font-weight:800;color:var(--text)}
+.ws-semcol.hoy .ws-semcol-h .n{color:var(--gold-deep)}
+.ws-semcol-b{flex:1;display:flex;flex-direction:column;gap:3px;padding:.35rem;cursor:pointer}
+.ws-semcol-b .ws-ev{white-space:normal;font-size:.7rem;padding:.22rem .35rem}
+.ws-semcol-b .ws-ev .tt{white-space:normal}
+.ws-cal-vacio{font-size:.66rem;color:#b3b9c4;text-align:center;padding:.5rem .2rem}
+/* Detalle de un evento dentro del modal */
+.ws-ev-meta{display:flex;flex-direction:column;gap:.3rem;font-size:.82rem;color:var(--text)}
+.ws-ev-meta .l{display:flex;align-items:flex-start;gap:.45rem}
+.ws-ev-meta .l span:first-child{opacity:.7;flex:0 0 1.1rem}
+.ws-ev-meta a{color:#2c6bb5;word-break:break-all}
+
 /* ── Modal ── */
 .ws-modal{position:fixed;inset:0;z-index:120;display:none;align-items:flex-start;justify-content:center;padding:2.4rem 1rem;overflow-y:auto;background:rgba(10,24,51,.5);backdrop-filter:blur(3px)}
 .ws-modal.open{display:flex}
@@ -2995,6 +3044,19 @@ body.hosp-open{overflow:hidden}
   .ws-grid{grid-template-columns:1fr}
   .ws-modal{padding:0}
   .ws-modal-box{max-width:none;border-radius:0;min-height:100%}
+  /* Calendario en celular: el mes se sigue viendo como grilla (achicada, con
+     puntitos en vez de títulos) y la semana pasa a lista vertical. */
+  .ws-dia{min-height:62px;padding:.2rem}
+  .ws-dia-n{font-size:.68rem;width:1.25rem;height:1.25rem}
+  .ws-ev{font-size:0;padding:0;height:5px;border-radius:3px;border-left:0;background:var(--ec,#4a90d9);margin-top:1px}
+  .ws-ev b,.ws-ev .tt{display:none}
+  .ws-mas{font-size:.55rem}
+  .ws-sem{grid-template-columns:1fr;gap:.4rem}
+  .ws-semcol{min-height:0}
+  .ws-semcol-h{display:flex;align-items:baseline;gap:.4rem;text-align:left}
+  .ws-semcol-b .ws-ev{font-size:.75rem;height:auto;padding:.28rem .4rem;border-radius:7px;border-left:3px solid var(--ec,#4a90d9);background:var(--surface2)}
+  .ws-semcol-b .ws-ev b,.ws-semcol-b .ws-ev .tt{display:inline}
+  .ws-cal-titulo{min-width:0;font-size:.94rem}
 }
 </style>
 </head>
@@ -3575,6 +3637,38 @@ body.hosp-open{overflow:hidden}
           <span class="ws-spacer"></span>
           <button type="button" class="ws-btn" data-wsclose="wsProyModal">Cancelar</button>
           <button type="button" class="ws-btn ws-btn-gold" id="wsPmSave">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de evento / reunión -->
+    <div class="ws-modal" id="wsEvModal" aria-hidden="true">
+      <div class="ws-modal-box" role="dialog" aria-modal="true" aria-labelledby="wsEmTitle">
+        <div class="ws-modal-h">
+          <div><h3 id="wsEmTitle">Nueva reunión</h3><p id="wsEmSub">Cuándo, con quiénes y dónde.</p></div>
+          <button type="button" class="ws-x" data-wsclose="wsEvModal" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="ws-modal-b" id="wsEmBody"></div>
+        <div class="ws-modal-f">
+          <button type="button" class="ws-btn ws-btn-danger" id="wsEmDel" style="display:none">Eliminar</button>
+          <button type="button" class="ws-btn" id="wsEmIcs" style="display:none" title="Descargar .ics para importarlo a Google Calendar">📅 Google Calendar</button>
+          <span class="ws-spacer"></span>
+          <button type="button" class="ws-btn" data-wsclose="wsEvModal">Cancelar</button>
+          <button type="button" class="ws-btn ws-btn-gold" id="wsEmSave">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Al tocar un día del calendario: ¿tarea o reunión? -->
+    <div class="ws-modal" id="wsDiaModal" aria-hidden="true">
+      <div class="ws-modal-box" style="max-width:400px" role="dialog" aria-modal="true" aria-labelledby="wsDmTitle">
+        <div class="ws-modal-h">
+          <div><h3 id="wsDmTitle">Agregar</h3><p id="wsDmSub"></p></div>
+          <button type="button" class="ws-x" data-wsclose="wsDiaModal" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="ws-modal-b">
+          <button type="button" class="ws-btn" id="wsDmTarea" style="text-align:left;padding:.7rem .8rem">✅ &nbsp;<b>Tarea</b> — con fecha límite ese día</button>
+          <button type="button" class="ws-btn" id="wsDmEvento" style="text-align:left;padding:.7rem .8rem">📅 &nbsp;<b>Reunión o evento</b> — con hora y participantes</button>
         </div>
       </div>
     </div>
@@ -4491,6 +4585,7 @@ const BASE_SECCIONES = [
   { id:'ws-tablero',   kind:'workspace', label:'Tablero',    cat:'espacio', desc:'kanban del equipo · arrastrá las tarjetas entre Por hacer, Haciendo y Listo' },
   { id:'ws-lista',     kind:'workspace', label:'Lista',      cat:'espacio', desc:'todas las tareas en una lista ordenable por prioridad, fecha, proyecto o responsable' },
   { id:'ws-mias',      kind:'workspace', label:'Mis tareas', cat:'espacio', desc:'lo que te asignaron a vos, en un solo lugar' },
+  { id:'ws-calendario',kind:'workspace', label:'Calendario', cat:'espacio', desc:'mes y semana · fechas límite de tareas + reuniones del equipo · exportable a Google Calendar' },
   { id:'ws-proyectos', kind:'workspace', label:'Proyectos',  cat:'espacio', desc:'agrupá las tareas por área · color, ícono y responsable de cada proyecto' },
   { id:'ws-equipo',    kind:'workspace', label:'Equipo',     cat:'espacio', desc:'quiénes entran al panel · rol, avatar y color de cada persona' },
   { id:'produccion',kind:'produccion',label:'Centro de Producción', cat:'produccion', desc:'tanques · cocción · recetas · envasado · limpiezas · paradas' },
@@ -16380,7 +16475,7 @@ const KS_ICON = {
   distribuidora:'🚚', rutas:'🗺️', mantenimiento:'🔧',
   costeo:'🧾', oee:'📊', calidad:'🏅', inventarios:'🗃', estado:'💰', costos:'💸', gastos:'🧮', nomina:'👥', equipo:'🪪', pnl:'📈', forecast:'🔮',
   produccion:'🏭',
-  'ws-tablero':'🗂️', 'ws-lista':'✅', 'ws-mias':'🎯', 'ws-proyectos':'📁', 'ws-equipo':'👤'
+  'ws-tablero':'🗂️', 'ws-lista':'✅', 'ws-mias':'🎯', 'ws-calendario':'📅', 'ws-proyectos':'📁', 'ws-equipo':'👤'
 };
 
 // Sincroniza el item activo del sidebar + el breadcrumb del topbar con la sección actual.
@@ -17429,7 +17524,7 @@ let wsTab = 'tablero';
 let wsCargando = null;        // promesa en vuelo (evita dobles fetch)
 const wsFil = { proyecto: '', persona: '', q: '', orden: 'prioridad' };
 
-const WS_TAB_DE = { 'ws-tablero':'tablero', 'ws-lista':'lista', 'ws-mias':'mias', 'ws-proyectos':'proyectos', 'ws-equipo':'equipo' };
+const WS_TAB_DE = { 'ws-tablero':'tablero', 'ws-lista':'lista', 'ws-mias':'mias', 'ws-calendario':'calendario', 'ws-proyectos':'proyectos', 'ws-equipo':'equipo' };
 const WS_PRI_LB = { baja:'Baja', media:'Media', alta:'Alta', urgente:'Urgente' };
 const WS_PRI_PESO = { urgente:0, alta:1, media:2, baja:3 };
 const WS_PALETA = ['#f5a623','#2e9c5a','#4a90d9','#c1447e','#7c6bb8','#1f8a70','#d9534f','#b87333','#5b6472','#0ea5a5'];
@@ -17516,7 +17611,7 @@ async function wsRecargar(){
 function wsBarraHtml(){
   const tabs = [
     ['tablero','🗂️','Tablero'], ['lista','✅','Lista'], ['mias','🎯','Mis tareas'],
-    ['proyectos','📁','Proyectos'], ['equipo','👤','Equipo'],
+    ['calendario','📅','Calendario'], ['proyectos','📁','Proyectos'], ['equipo','👤','Equipo'],
   ];
   const mias = (wsData.tareas||[]).filter(t => (t.asignados||[]).some(wsSoyYo) && t.estado !== 'listo').length;
   const btns = tabs.map(([id,ic,lb]) => {
@@ -17541,6 +17636,13 @@ function wsBarraHtml(){
         <option value="proyecto"${wsFil.orden==='proyecto'?' selected':''}>Por proyecto</option>
         <option value="responsable"${wsFil.orden==='responsable'?' selected':''}>Por responsable</option>
       </select></span>` : ''}`;
+  } else if (wsTab === 'calendario') {
+    const proyOps = ['<option value="">Todos los proyectos</option>']
+      .concat((wsData.proyectos||[]).filter(p => !p.archivado).map(p => `<option value="${escapeAttr(p.id)}"${wsFil.proyecto===p.id?' selected':''}>${escapeHtml((p.emoji||'')+' '+p.nombre)}</option>`)).join('');
+    filtros = `<span class="ws-spacer"></span>
+      <span class="ws-fil"><select id="wsFilProy">${proyOps}</select></span>
+      <button type="button" class="ws-btn" id="wsNuevoEv">+ Nueva reunión</button>
+      <a class="ws-btn" id="wsCalIcs" href="/admin/ws/calendario.ics" download title="Descargar todo mi calendario en .ics para importarlo a Google Calendar" style="text-decoration:none;display:inline-flex;align-items:center">📅 Exportar</a>`;
   } else if (wsTab === 'proyectos') {
     filtros = `<span class="ws-spacer"></span><button type="button" class="ws-btn" id="wsNuevoProy">+ Nuevo proyecto</button>`;
   } else if (wsTab === 'equipo' && wsEsAdmin()) {
@@ -17572,6 +17674,7 @@ function wsRender(){
     tablero:'arrastrá las tarjetas entre columnas para cambiarles el estado',
     lista:'todas las tareas en una lista, ordenable como te sirva',
     mias:'lo que te asignaron a vos',
+    calendario:'fechas límite de tareas + reuniones del equipo · exportable a Google Calendar',
     proyectos:'agrupá las tareas por área de trabajo',
     equipo:'quiénes entran al panel y con qué rol',
   };
@@ -17580,6 +17683,7 @@ function wsRender(){
   let html = wsBarraHtml();
   if (wsTab === 'tablero') html += wsTableroHtml();
   else if (wsTab === 'lista' || wsTab === 'mias') html += wsListaHtml();
+  else if (wsTab === 'calendario') html += wsCalendarioHtml();
   else if (wsTab === 'proyectos') html += wsProyectosHtml();
   else html += wsEquipoHtml();
   body.innerHTML = `<div class="ws-wrap">${html}</div>`;
@@ -17672,6 +17776,125 @@ function wsListaHtml(){
   return html + '</div>';
 }
 
+// ── Calendario ───────────────────────────────────────────────────────────────
+// Todo se calcula sobre strings "YYYY-MM-DD". Un Date por celda traería la zona
+// horaria al medio y el día se correría: el mes es una grilla de fechas, no de
+// instantes.
+const WS_MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const WS_DOW = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+const wsCal = { modo: 'mes', ancla: '' };   // ancla = cualquier día del mes/semana visible
+
+const wsISO = (y, m, d) => y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+const wsPartes = (iso) => { const [y,m,d] = iso.split('-').map(Number); return { y, m, d }; };
+// Día de la semana con lunes = 0. Se usa UTC a propósito: Date.UTC no aplica
+// husos, así que el número que sale es el del string, siempre.
+const wsDow = (iso) => { const { y,m,d } = wsPartes(iso); return (new Date(Date.UTC(y, m-1, d)).getUTCDay() + 6) % 7; };
+function wsSumarDias(iso, n){
+  const { y,m,d } = wsPartes(iso);
+  const t = new Date(Date.UTC(y, m-1, d + n));
+  return wsISO(t.getUTCFullYear(), t.getUTCMonth()+1, t.getUTCDate());
+}
+const wsSumarMeses = (iso, n) => {
+  const { y,m,d } = wsPartes(iso);
+  const t = new Date(Date.UTC(y, m-1+n, 1));
+  const ultimo = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth()+1, 0)).getUTCDate();
+  return wsISO(t.getUTCFullYear(), t.getUTCMonth()+1, Math.min(d, ultimo));
+};
+const wsLunesDe = (iso) => wsSumarDias(iso, -wsDow(iso));
+
+// Qué cae en un día: eventos (por fecha) + tareas (por fecha límite).
+function wsItemsDelDia(iso){
+  const proy = wsFil.proyecto;
+  const evs = (wsData.eventos||[]).filter(e => e.fecha === iso)
+    .sort((a,b) => (a.horaInicio||'').localeCompare(b.horaInicio||''));
+  const tks = (wsData.tareas||[]).filter(t => t.vence === iso && (!proy || t.proyectoId === proy))
+    .sort((a,b) => (WS_PRI_PESO[a.prioridad] ?? 2) - (WS_PRI_PESO[b.prioridad] ?? 2));
+  return { evs, tks };
+}
+function wsEvChipHtml(e){
+  const hora = (!e.todoElDia && e.horaInicio) ? `<b>${escapeHtml(e.horaInicio)}</b>` : `<b>${e.tipo==='reunion'?'👥':'📌'}</b>`;
+  return `<div class="ws-ev" data-wsevabrir="${escapeAttr(e.id)}" style="--ec:${escapeAttr(e.color||'#4a90d9')}" title="${escapeAttr(e.titulo)}">${hora}<span class="tt">${escapeHtml(e.titulo)}</span></div>`;
+}
+function wsTareaChipHtml(t){
+  const p = wsProyecto(t.proyectoId);
+  const listo = t.estado === 'listo';
+  return `<div class="ws-ev ws-ev-tarea${listo?' done':''}" data-wstarea="${escapeAttr(t.id)}" style="--ec:${escapeAttr(p ? p.color : '#5b6472')}" title="${escapeAttr(t.titulo)}"><b>${listo?'✓':'✅'}</b><span class="tt">${escapeHtml(t.titulo)}</span></div>`;
+}
+
+function wsCalendarioHtml(){
+  if (!wsCal.ancla) wsCal.ancla = wsHoyISO();
+  const nav = `<div class="ws-cal-bar">
+    <div class="ws-cal-nav">
+      <button type="button" id="wsCalPrev" title="Anterior">‹</button>
+      <button type="button" id="wsCalNext" title="Siguiente">›</button>
+    </div>
+    <button type="button" class="ws-btn" id="wsCalHoy">Hoy</button>
+    <span class="ws-cal-titulo" id="wsCalTitulo">${escapeHtml(wsCalTituloTxt())}</span>
+    <span class="ws-spacer"></span>
+    <div class="ws-seg">
+      <button type="button" data-wscalmodo="mes" class="${wsCal.modo==='mes'?'on':''}">Mes</button>
+      <button type="button" data-wscalmodo="semana" class="${wsCal.modo==='semana'?'on':''}">Semana</button>
+    </div>
+  </div>`;
+  return nav + (wsCal.modo === 'mes' ? wsCalMesHtml() : wsCalSemanaHtml());
+}
+function wsCalTituloTxt(){
+  const { y, m } = wsPartes(wsCal.ancla);
+  if (wsCal.modo === 'mes') return WS_MESES[m-1] + ' ' + y;
+  const lun = wsLunesDe(wsCal.ancla), dom = wsSumarDias(lun, 6);
+  const a = wsPartes(lun), b = wsPartes(dom);
+  return a.m === b.m
+    ? `${a.d} – ${b.d} de ${WS_MESES[a.m-1]} ${b.y}`
+    : `${a.d} ${WS_MESES[a.m-1].slice(0,3)} – ${b.d} ${WS_MESES[b.m-1].slice(0,3)} ${b.y}`;
+}
+function wsCalMesHtml(){
+  const { y, m } = wsPartes(wsCal.ancla);
+  const hoy = wsHoyISO();
+  const primero = wsISO(y, m, 1);
+  const inicio = wsLunesDe(primero);
+  // 6 semanas fijas: la grilla no cambia de alto al pasar de mes.
+  let celdas = '';
+  for (let i = 0; i < 42; i++) {
+    const iso = wsSumarDias(inicio, i);
+    const p = wsPartes(iso);
+    const { evs, tks } = wsItemsDelDia(iso);
+    const todos = [...evs.map(wsEvChipHtml), ...tks.map(wsTareaChipHtml)];
+    const visibles = todos.slice(0, 3);
+    const resto = todos.length - visibles.length;
+    const clases = ['ws-dia'];
+    if (p.m !== m) clases.push('fuera');
+    if (iso === hoy) clases.push('hoy');
+    if (wsDow(iso) >= 5) clases.push('finde');
+    celdas += `<div class="${clases.join(' ')}" data-wsdia="${iso}">
+      <span class="ws-dia-n">${p.d}</span>
+      ${visibles.join('')}
+      ${resto > 0 ? `<span class="ws-mas" data-wsverdia="${iso}">+${resto} más</span>` : ''}
+    </div>`;
+  }
+  return `<div class="ws-cal">
+    <div class="ws-cal-dow">${WS_DOW.map(d => `<span>${d}</span>`).join('')}</div>
+    <div class="ws-cal-grid">${celdas}</div>
+  </div>
+  <div style="font-size:.72rem;color:var(--dim)">Tocá un día vacío para agregar algo. Los ✅ son fechas límite de tareas; los 👥 son reuniones.</div>`;
+}
+function wsCalSemanaHtml(){
+  const lun = wsLunesDe(wsCal.ancla);
+  const hoy = wsHoyISO();
+  let cols = '';
+  for (let i = 0; i < 7; i++) {
+    const iso = wsSumarDias(lun, i);
+    const p = wsPartes(iso);
+    const { evs, tks } = wsItemsDelDia(iso);
+    const todos = [...evs.map(wsEvChipHtml), ...tks.map(wsTareaChipHtml)];
+    cols += `<section class="ws-semcol${iso===hoy?' hoy':''}">
+      <div class="ws-semcol-h"><div class="d">${WS_DOW[i]}</div><div class="n">${p.d}</div></div>
+      <div class="ws-semcol-b" data-wsdia="${iso}">${todos.join('') || '<div class="ws-cal-vacio">—</div>'}</div>
+    </section>`;
+  }
+  return `<div class="ws-sem">${cols}</div>
+  <div style="font-size:.72rem;color:var(--dim)">Tocá un día para agregar una tarea o una reunión.</div>`;
+}
+
 function wsProyectosHtml(){
   const ps = (wsData.proyectos||[]).slice().sort((a,b) => (a.archivado?1:0)-(b.archivado?1:0) || String(a.nombre).localeCompare(String(b.nombre),'es'));
   if (!ps.length) return '<div class="ws-empty"><b>Sin proyectos</b>Creá el primero para empezar a agrupar tareas.</div>';
@@ -17733,6 +17956,8 @@ function wsWire(){
   const fo = document.getElementById('wsFilOrden'); if (fo) fo.onchange = () => { wsFil.orden = fo.value; wsRender(); };
   const np = document.getElementById('wsNuevoProy'); if (np) np.onclick = () => wsProyModal(null);
   const nu = document.getElementById('wsNuevoUser'); if (nu) nu.onclick = () => wsUserModal(null);
+  const ne = document.getElementById('wsNuevoEv'); if (ne) ne.onclick = () => wsEvModal(null, { fecha: wsHoyISO() });
+  if (wsTab === 'calendario') wsWireCalendario();
 
   document.querySelectorAll('[data-wstarea]').forEach(el => {
     el.onclick = (ev) => { if (ev.target.closest('[data-wstoggle]')) return; wsTareaModal(el.dataset.wstarea); };
@@ -17742,6 +17967,24 @@ function wsWire(){
   document.querySelectorAll('[data-wsproy]').forEach(el => el.onclick = () => wsProyModal(el.dataset.wsproy));
   document.querySelectorAll('[data-wsuser]').forEach(b => b.onclick = () => wsUserModal(b.dataset.wsuser));
   if (wsTab === 'tablero') wsWireDnD();
+}
+
+function wsWireCalendario(){
+  const salto = (n) => { wsCal.ancla = wsCal.modo === 'mes' ? wsSumarMeses(wsCal.ancla, n) : wsSumarDias(wsCal.ancla, n * 7); wsRender(); };
+  const prev = document.getElementById('wsCalPrev'); if (prev) prev.onclick = () => salto(-1);
+  const next = document.getElementById('wsCalNext'); if (next) next.onclick = () => salto(1);
+  const hoy = document.getElementById('wsCalHoy'); if (hoy) hoy.onclick = () => { wsCal.ancla = wsHoyISO(); wsRender(); };
+  document.querySelectorAll('[data-wscalmodo]').forEach(b => b.onclick = () => { wsCal.modo = b.dataset.wscalmodo; wsRender(); });
+  document.querySelectorAll('[data-wsevabrir]').forEach(el => el.onclick = (ev) => { ev.stopPropagation(); wsEvModal(el.dataset.wsevabrir); });
+  // "+N más": pasa a la semana de ese día, donde entran todos.
+  document.querySelectorAll('[data-wsverdia]').forEach(el => el.onclick = (ev) => {
+    ev.stopPropagation(); wsCal.modo = 'semana'; wsCal.ancla = el.dataset.wsverdia; wsRender();
+  });
+  // Tocar el día (en el hueco, no sobre un chip) → elegir qué crear.
+  document.querySelectorAll('[data-wsdia]').forEach(el => el.onclick = (ev) => {
+    if (ev.target.closest('[data-wsevabrir],[data-wstarea],[data-wsverdia]')) return;
+    wsDiaModal(el.dataset.wsdia);
+  });
 }
 
 // Drag & drop del tablero (HTML5). En touch no hay arrastre nativo: ahí se toca
@@ -17803,13 +18046,13 @@ async function wsToggleListo(id){
 function wsModalAbrir(id){ const m = document.getElementById(id); m.classList.add('open'); m.setAttribute('aria-hidden','false'); }
 function wsModalCerrar(id){ const m = document.getElementById(id); m.classList.remove('open'); m.setAttribute('aria-hidden','true'); }
 document.querySelectorAll('[data-wsclose]').forEach(b => b.onclick = () => wsModalCerrar(b.dataset.wsclose));
-['wsTareaModal','wsProyModal','wsUserModal'].forEach(id => {
+['wsTareaModal','wsProyModal','wsUserModal','wsEvModal','wsDiaModal'].forEach(id => {
   const m = document.getElementById(id);
   if (m) m.addEventListener('click', (e) => { if (e.target === m) wsModalCerrar(id); });
 });
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  ['wsTareaModal','wsProyModal','wsUserModal'].forEach(id => { const m = document.getElementById(id); if (m && m.classList.contains('open')) wsModalCerrar(id); });
+  ['wsTareaModal','wsProyModal','wsUserModal','wsEvModal','wsDiaModal'].forEach(id => { const m = document.getElementById(id); if (m && m.classList.contains('open')) wsModalCerrar(id); });
 });
 
 let wsTareaEdit = null;      // tarea en edición (o null si es alta)
@@ -17822,7 +18065,8 @@ function wsTareaModal(id, pre){
         estado:t.estado, prioridad:t.prioridad||'media', vence:t.vence||'', etiquetas:(t.etiquetas||[]).slice(),
         checklist:(t.checklist||[]).map(c => ({...c})) }
     : { titulo:'', descripcion:'', proyectoId: wsFil.proyecto || '', asignados: wsTab === 'mias' ? [wsData.me.username] : [],
-        estado:(pre && pre.estado) || (wsData.estados[0]||{}).id || 'por_hacer', prioridad:'media', vence:'', etiquetas:[], checklist:[] };
+        estado:(pre && pre.estado) || (wsData.estados[0]||{}).id || 'por_hacer', prioridad:'media',
+        vence:(pre && pre.vence) || '', etiquetas:[], checklist:[] };
   document.getElementById('wsTmTitle').textContent = t ? 'Tarea' : 'Nueva tarea';
   document.getElementById('wsTmSub').textContent = t
     ? 'Editá lo que necesites, marcá la checklist o dejá un comentario.'
@@ -18006,6 +18250,146 @@ document.getElementById('wsPmDel').onclick = async () => {
   } catch(e){ showToast(String(e.message||e), 'err'); }
 };
 
+// ── Evento / reunión ─────────────────────────────────────────────────────────
+let wsEvEdit = null, wsEvBorrador = null;
+function wsEvModal(id, pre){
+  const e = id ? (wsData.eventos||[]).find(x => x.id === id) : null;
+  wsEvEdit = e || null;
+  wsEvBorrador = e
+    ? { titulo:e.titulo, tipo:e.tipo||'reunion', fecha:e.fecha, todoElDia:!!e.todoElDia, horaInicio:e.horaInicio||'',
+        horaFin:e.horaFin||'', lugar:e.lugar||'', link:e.link||'', descripcion:e.descripcion||'',
+        color:e.color||'#4a90d9', participantes:(e.participantes||[]).slice() }
+    : { titulo:'', tipo:'reunion', fecha:(pre && pre.fecha) || wsHoyISO(), todoElDia:false, horaInicio:'10:00',
+        horaFin:'11:00', lugar:'', link:'', descripcion:'', color:'#4a90d9', participantes:[wsData.me.username] };
+  document.getElementById('wsEmTitle').textContent = e ? 'Reunión' : 'Nueva reunión';
+  document.getElementById('wsEmSub').textContent = e ? 'Editá lo que necesites o exportala a tu Google Calendar.' : 'Cuándo, con quiénes y dónde.';
+  document.getElementById('wsEmDel').style.display = e ? '' : 'none';
+  document.getElementById('wsEmIcs').style.display = e ? '' : 'none';
+  wsEvModalBody();
+  wsModalAbrir('wsEvModal');
+  setTimeout(() => { const i = document.getElementById('wsEmTitulo'); if (i && !e) i.focus(); }, 40);
+}
+function wsEvModalBody(){
+  const b = wsEvBorrador, e = wsEvEdit;
+  const personas = (wsData.usuarios||[]).map(u => `<button type="button" class="ws-pick-i${b.participantes.includes(u.username)?' on':''}" data-wspart="${escapeAttr(u.username)}">${wsAvatarHtml(u.username,'ws-av-sm')}${escapeHtml(u.apodo||u.nombre||u.username)}</button>`).join('');
+  document.getElementById('wsEmBody').innerHTML = `
+    <div class="ws-err" id="wsEmErr"></div>
+    <div class="ws-f"><label for="wsEmTitulo">Título</label>
+      <input type="text" id="wsEmTitulo" placeholder="Reunión de producción" value="${escapeAttr(b.titulo)}" maxlength="200"></div>
+    <div class="ws-f2">
+      <div class="ws-f"><label>Tipo</label><div class="ws-seg" style="width:fit-content">
+        <button type="button" data-wsevtipo="reunion" class="${b.tipo==='reunion'?'on':''}">👥 Reunión</button>
+        <button type="button" data-wsevtipo="evento" class="${b.tipo==='evento'?'on':''}">📌 Evento</button>
+      </div></div>
+      <div class="ws-f"><label for="wsEmFecha">Fecha</label><input type="date" id="wsEmFecha" value="${escapeAttr(b.fecha)}"></div>
+    </div>
+    <div class="ws-f"><label class="ws-ck" style="text-transform:none;letter-spacing:0">
+      <input type="checkbox" id="wsEmTodoDia"${b.todoElDia?' checked':''}>
+      <span class="tx" style="font-weight:700">Todo el día (sin hora)</span></label></div>
+    <div class="ws-f2" id="wsEmHoras" style="${b.todoElDia?'display:none':''}">
+      <div class="ws-f"><label for="wsEmIni">Empieza</label><input type="time" id="wsEmIni" value="${escapeAttr(b.horaInicio)}"></div>
+      <div class="ws-f"><label for="wsEmFin">Termina</label><input type="time" id="wsEmFin" value="${escapeAttr(b.horaFin)}"></div>
+    </div>
+    <div class="ws-f"><label>Participantes</label><div class="ws-pick">${personas}</div></div>
+    <div class="ws-f"><label for="wsEmLugar">Lugar</label><input type="text" id="wsEmLugar" maxlength="200" value="${escapeAttr(b.lugar)}" placeholder="Planta, Garden Vespucio, oficina…"></div>
+    <div class="ws-f"><label for="wsEmLink">Link de videollamada</label>
+      <input type="text" id="wsEmLink" maxlength="500" value="${escapeAttr(b.link)}" placeholder="https://meet.google.com/…"></div>
+    <div class="ws-f"><label for="wsEmDesc">Agenda / descripción</label>
+      <textarea id="wsEmDesc" placeholder="Qué se va a ver en la reunión">${escapeHtml(b.descripcion)}</textarea></div>
+    <div class="ws-f"><label>Color</label><div class="ws-swatches">${WS_PALETA.map(c => `<button type="button" class="ws-sw${c===b.color?' on':''}" data-wsevcolor="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div></div>
+    ${e ? `<div style="font-size:.7rem;color:var(--dim);border-top:1px solid var(--border);padding-top:.5rem">
+      Creada por ${escapeHtml(wsNombre(e.creadoPor))} · ${escapeHtml(wsHace(e.createdAt))}</div>` : ''}`;
+  wsEvModalWire();
+}
+function wsEvLeerForm(){
+  const b = wsEvBorrador; if (!b) return;
+  const g = (id) => { const el = document.getElementById(id); return el ? el.value : null; };
+  const v = g('wsEmTitulo'); if (v != null) b.titulo = v;
+  const f = g('wsEmFecha'); if (f != null) b.fecha = f;
+  const i = g('wsEmIni'); if (i != null) b.horaInicio = i;
+  const fi = g('wsEmFin'); if (fi != null) b.horaFin = fi;
+  const l = g('wsEmLugar'); if (l != null) b.lugar = l;
+  const k = g('wsEmLink'); if (k != null) b.link = k;
+  const d = g('wsEmDesc'); if (d != null) b.descripcion = d;
+  const td = document.getElementById('wsEmTodoDia'); if (td) b.todoElDia = td.checked;
+}
+function wsEvModalWire(){
+  const b = wsEvBorrador;
+  document.querySelectorAll('[data-wspart]').forEach(el => el.onclick = () => {
+    wsEvLeerForm();
+    const u = el.dataset.wspart;
+    b.participantes = b.participantes.includes(u) ? b.participantes.filter(x => x !== u) : b.participantes.concat([u]);
+    wsEvModalBody();
+  });
+  document.querySelectorAll('[data-wsevtipo]').forEach(el => el.onclick = () => {
+    wsEvLeerForm(); b.tipo = el.dataset.wsevtipo;
+    // El color sigue al tipo mientras no se haya elegido uno a mano.
+    if (b.color === '#4a90d9' || b.color === '#f5a623') b.color = b.tipo === 'reunion' ? '#4a90d9' : '#f5a623';
+    wsEvModalBody();
+  });
+  document.querySelectorAll('[data-wsevcolor]').forEach(el => el.onclick = () => {
+    wsEvLeerForm(); b.color = el.dataset.wsevcolor;
+    document.querySelectorAll('[data-wsevcolor]').forEach(x => x.classList.toggle('on', x === el));
+  });
+  const td = document.getElementById('wsEmTodoDia');
+  if (td) td.onchange = () => { wsEvLeerForm(); document.getElementById('wsEmHoras').style.display = td.checked ? 'none' : ''; };
+}
+document.getElementById('wsEmSave').onclick = async () => {
+  wsEvLeerForm();
+  const b = wsEvBorrador, err = document.getElementById('wsEmErr');
+  if (!b.titulo.trim()) { err.textContent = '⚠ Ponele un título.'; err.style.display = 'block'; return; }
+  if (!b.fecha) { err.textContent = '⚠ Elegí una fecha.'; err.style.display = 'block'; return; }
+  if (!b.todoElDia && b.horaFin && b.horaInicio && b.horaFin <= b.horaInicio) {
+    err.textContent = '⚠ La hora de término tiene que ser posterior a la de inicio.'; err.style.display = 'block'; return;
+  }
+  if (b.link.trim() && !/^https?:\/\//i.test(b.link.trim())) {
+    err.textContent = '⚠ El link tiene que empezar con http:// o https://'; err.style.display = 'block'; return;
+  }
+  err.style.display = 'none';
+  try {
+    let d;
+    if (wsEvEdit) { d = await wsApi('/admin/ws/eventos/'+encodeURIComponent(wsEvEdit.id), { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(b) }); Object.assign(wsEvEdit, d.evento); }
+    else { d = await wsApi('/admin/ws/eventos', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(b) }); wsData.eventos.push(d.evento); }
+    wsModalCerrar('wsEvModal');
+    // Si se guardó desde otra pestaña, saltar al calendario en la fecha del evento.
+    if (wsTab !== 'calendario') { wsCal.ancla = b.fecha; await selectSeccion('ws-calendario'); }
+    else { wsCal.ancla = b.fecha; wsRender(); }
+    wsBellRefrescar();
+    const inv = (d.invitados||[]);
+    showToast(inv.length ? 'Guardado ✓ — invitados: ' + inv.join(', ') : 'Guardado ✓', 'ok');
+  } catch(e){ err.textContent = '⚠ ' + String(e.message||e); err.style.display = 'block'; }
+};
+document.getElementById('wsEmDel').onclick = async () => {
+  if (!wsEvEdit) return;
+  const conGente = (wsEvEdit.participantes||[]).filter(u => u !== wsData.me.username).length;
+  if (!confirm('Eliminar “' + wsEvEdit.titulo + '”?' + (conGente ? ` Se les avisa a los ${conGente} participantes.` : ''))) return;
+  try { await wsApi('/admin/ws/eventos/'+encodeURIComponent(wsEvEdit.id), { method:'DELETE' });
+    wsData.eventos = wsData.eventos.filter(x => x.id !== wsEvEdit.id);
+    wsModalCerrar('wsEvModal'); wsRender(); showToast('Evento eliminado', 'ok');
+  } catch(e){ showToast(String(e.message||e), 'err'); }
+};
+// Exporta el .ics. Google Calendar lo importa desde Configuración › Importar, y
+// en el celular basta con abrir el archivo descargado.
+document.getElementById('wsEmIcs').onclick = () => {
+  if (!wsEvEdit) return;
+  const a = document.createElement('a');
+  a.href = '/admin/ws/eventos/' + encodeURIComponent(wsEvEdit.id) + '/ics';
+  a.download = '';
+  document.body.appendChild(a); a.click(); a.remove();
+  showToast('Descargando .ics — importalo en Google Calendar', 'ok');
+};
+
+// Tocar un día del calendario: ¿tarea o reunión?
+let wsDiaElegido = '';
+function wsDiaModal(iso){
+  wsDiaElegido = iso;
+  const { y, m, d } = wsPartes(iso);
+  document.getElementById('wsDmSub').textContent = `${d} de ${WS_MESES[m-1]} de ${y}`;
+  wsModalAbrir('wsDiaModal');
+}
+document.getElementById('wsDmTarea').onclick = () => { wsModalCerrar('wsDiaModal'); wsTareaModal(null, { vence: wsDiaElegido }); };
+document.getElementById('wsDmEvento').onclick = () => { wsModalCerrar('wsDiaModal'); wsEvModal(null, { fecha: wsDiaElegido }); };
+
 let wsUserEdit = null;
 function wsUserModal(id){
   const u = id ? (wsData.usuarios||[]).find(x => x.id === id) : null;
@@ -18118,7 +18502,7 @@ function wsBellPintar(){
   bell.innerHTML = '🔔' + (sinLeer ? `<span class="b">${sinLeer > 9 ? '9+' : sinLeer}</span>` : '');
   bell.title = sinLeer ? sinLeer + ' aviso' + (sinLeer===1?'':'s') + ' sin leer' : 'Notificaciones';
   const caja = document.getElementById('wsNotif'); if (!caja) return;
-  const items = wsNotifs.slice(0, 40).map(n => `<button type="button" class="ws-notif-i${n.leida?'':' no'}" data-wsnotif="${escapeAttr(n.id)}" data-wsnotiftarea="${escapeAttr(n.tareaId||'')}">
+  const items = wsNotifs.slice(0, 40).map(n => `<button type="button" class="ws-notif-i${n.leida?'':' no'}" data-wsnotif="${escapeAttr(n.id)}" data-wsnotiftarea="${escapeAttr(n.tareaId||'')}" data-wsnotifev="${escapeAttr(n.eventoId||'')}">
       ${n.de ? wsAvatarHtml(n.de,'ws-av-sm') : '<span class="ws-av ws-av-sm" style="background:#5b6472">⚡</span>'}
       <span style="flex:1;min-width:0"><span class="tx">${escapeHtml(n.texto)}</span><span class="ts">${escapeHtml(wsHace(n.ts))}</span></span>
     </button>`).join('');
@@ -18127,16 +18511,26 @@ function wsBellPintar(){
   const leer = document.getElementById('wsNotifLeer');
   if (leer) leer.onclick = async (e) => { e.stopPropagation(); try { await wsApi('/admin/ws/notificaciones/leidas', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' }); wsNotifs.forEach(n => n.leida = true); wsBellPintar(); } catch {} };
   caja.querySelectorAll('[data-wsnotif]').forEach(b => b.onclick = async () => {
-    const id = b.dataset.wsnotif, tid = b.dataset.wsnotiftarea;
+    const id = b.dataset.wsnotif, tid = b.dataset.wsnotiftarea, eid = b.dataset.wsnotifev;
     const n = wsNotifs.find(x => x.id === id);
     if (n && !n.leida) { n.leida = true; wsBellPintar(); try { await wsApi('/admin/ws/notificaciones/leidas', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ids:[id] }) }); } catch {} }
     caja.classList.remove('open');
-    if (!tid) return;
-    // Abrir la tarea del aviso: si el espacio todavía no está cargado, se carga.
+    if (!tid && !eid) return;
+    // Abrir lo que menciona el aviso. Si el espacio todavía no está cargado (el
+    // aviso se puede tocar desde cualquier sección del ERP), se carga primero.
     if (!wsData) { try { await wsCargar(); } catch { return; } }
-    if (!(wsData.tareas||[]).some(t => t.id === tid)) { try { await wsCargar(); } catch {} }
-    if ((wsData.tareas||[]).some(t => t.id === tid)) { await selectSeccion('ws-tablero'); wsTareaModal(tid); }
-    else showToast('Esa tarea ya no existe', 'err');
+    const existe = () => eid ? (wsData.eventos||[]).some(e => e.id === eid) : (wsData.tareas||[]).some(t => t.id === tid);
+    if (!existe()) { try { await wsCargar(); } catch {} }   // puede ser nuevo desde la última carga
+    if (!existe()) { showToast(eid ? 'Ese evento ya no existe' : 'Esa tarea ya no existe', 'err'); return; }
+    if (eid) {
+      const ev = wsData.eventos.find(x => x.id === eid);
+      wsCal.ancla = ev.fecha;
+      await selectSeccion('ws-calendario');
+      wsEvModal(eid);
+    } else {
+      await selectSeccion('ws-tablero');
+      wsTareaModal(tid);
+    }
   });
 }
 async function wsBellRefrescar(){

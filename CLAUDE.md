@@ -118,3 +118,19 @@ módulo existente.
 - La credencial de `ADMIN_USER`/`ADMIN_PASSWORD` **siempre** entra como admin,
   sin importar lo que diga el registro de equipo. Es la puerta de rescate si
   alguien se degrada a sí mismo por error.
+
+### Calendario y reuniones
+
+- Las fechas son **strings `YYYY-MM-DD`**, nunca `Date`. Un `Date` por celda
+  mete la zona horaria en el medio y el día se corre. Los cálculos de grilla
+  (`wsDow`, `wsSumarDias`) usan `Date.UTC` justamente para que el número que
+  sale sea el del string.
+- El `.ics` se emite en **UTC** (sufijo `Z`), no con `TZID`: así lo interpreta
+  igual cualquier cliente sin depender de que traiga la definición de la zona.
+  Chile cambia de huso dos veces al año, así que el offset se resuelve con
+  `Intl` para la fecha concreta del evento (`wsOffsetMin`/`wsLocalAUTC`) — nunca
+  con una constante. Si tocás esto, probá un evento de enero y uno de julio:
+  10:30 tiene que dar 13:30Z y 14:30Z respectivamente.
+- Avisos: al invitar se notifica a los **nuevos** participantes; a los que ya
+  estaban solo si cambió el día o la hora. Re-notificar en cada edición
+  convierte la campanita en ruido y se deja de mirar.
