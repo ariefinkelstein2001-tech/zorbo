@@ -142,8 +142,12 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 body.admin-home .adm-shell{grid-template-columns:1fr}
 body.role-costeo .adm-shell{grid-template-columns:1fr}
 body.role-costeo .adm-chat{display:none}
+body.role-miembro .adm-shell{grid-template-columns:1fr}
+body.role-miembro .adm-chat,body.role-miembro .adm-chat-fab,body.role-miembro .asst-dock,body.role-miembro #ccVolver{display:none!important}
 body.estado-active .adm-shell{grid-template-columns:1fr}
 body.estado-active .adm-chat{display:none}
+body.ws-active .adm-shell{grid-template-columns:1fr;max-width:1720px}
+body.ws-active .adm-chat,body.ws-active .adm-chat-fab,body.ws-active .asst-dock{display:none!important}
 body.admin-home .adm-chat,body.admin-home .adm-chat-fab{display:none!important}
 
 /* ═══════════ K-BROS SHELL (sidebar + topbar + dashboard) ═══════════ */
@@ -2813,6 +2817,185 @@ body.hosp-open{overflow:hidden}
 .hosp-mini-row-stack .hosp-mini-bar{flex:1}
 .hosp-mini-row-stack .hosp-mini-pct{width:44px;flex-shrink:0}
 .hosp-balance-off{color:var(--red);font-weight:800}
+
+/* ═══════════ ESPACIO DE TRABAJO (tareas · proyectos · equipo) ═══════════ */
+/* Identidad K-BROS: azul profundo del sidebar + dorado de acento, superficies
+   claras y bordes finos. Cada proyecto y cada persona aporta su propio color,
+   así que el chrome se mantiene neutro para no competir con ellos. */
+.ws-wrap{display:flex;flex-direction:column;gap:1rem}
+.ws-bar{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.ws-tabs{display:inline-flex;gap:2px;background:var(--surface3);border-radius:12px;padding:3px}
+.ws-tab{border:0;background:none;cursor:pointer;font:inherit;font-size:.8rem;font-weight:700;color:var(--dim);padding:.45rem .9rem;border-radius:9px;display:inline-flex;align-items:center;gap:.4rem;transition:background .18s,color .18s}
+.ws-tab:hover{color:var(--text)}
+.ws-tab.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(16,35,76,.12)}
+.ws-tab .n{background:var(--ks-b900,#10234c);color:#fff;font-size:.62rem;font-weight:800;border-radius:20px;padding:.05rem .38rem;min-width:1.05rem;text-align:center}
+.ws-spacer{flex:1}
+.ws-fil{display:inline-flex;align-items:center;gap:.35rem;font-size:.78rem;color:var(--dim)}
+.ws-fil select,.ws-fil input{font:inherit;font-size:.78rem;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:.38rem .5rem}
+.ws-fil select:focus,.ws-fil input:focus{outline:none;border-color:var(--gold)}
+.ws-btn{border:1px solid var(--border);background:var(--surface);color:var(--text);font:inherit;font-size:.78rem;font-weight:700;border-radius:10px;padding:.45rem .8rem;cursor:pointer;transition:border-color .18s,background .18s}
+.ws-btn:hover{border-color:var(--gold-bd-h);background:var(--gold-glow)}
+.ws-btn-gold{background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623));border-color:transparent;color:#241a05;box-shadow:0 2px 10px rgba(245,166,35,.32)}
+.ws-btn-gold:hover{filter:brightness(1.04);background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623))}
+.ws-btn-danger{color:var(--red);border-color:#f3c9c9}
+.ws-btn-danger:hover{background:var(--red-dim);border-color:var(--red)}
+
+/* ── Avatares ── */
+.ws-av{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.64rem;font-weight:800;color:#fff;flex:0 0 auto;background-size:cover;background-position:center;box-shadow:0 0 0 2px var(--surface);letter-spacing:.02em}
+.ws-av-lg{width:40px;height:40px;font-size:.85rem}
+.ws-av-sm{width:21px;height:21px;font-size:.55rem}
+.ws-avs{display:inline-flex;align-items:center}
+.ws-avs .ws-av+.ws-av{margin-left:-7px}
+
+/* ── Kanban ── */
+.ws-kan{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(268px,1fr);gap:.85rem;align-items:start;overflow-x:auto;padding-bottom:.5rem}
+.ws-col{background:var(--surface2);border:1px solid var(--border);border-radius:16px;display:flex;flex-direction:column;min-height:150px;transition:background .18s,border-color .18s}
+.ws-col.drop{background:var(--gold-glow);border-color:var(--gold);border-style:dashed}
+.ws-col-h{display:flex;align-items:center;gap:.5rem;padding:.7rem .8rem .55rem;font-size:.74rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ws-col-h .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+.ws-col-h .n{margin-left:auto;background:var(--surface3);color:var(--muted);border-radius:20px;font-size:.66rem;padding:.08rem .42rem;letter-spacing:0}
+.ws-col-b{display:flex;flex-direction:column;gap:.55rem;padding:0 .6rem .6rem;min-height:56px}
+.ws-col-add{margin:0 .6rem .6rem;border:1px dashed var(--border);background:none;color:var(--dim);font:inherit;font-size:.76rem;font-weight:700;border-radius:11px;padding:.5rem;cursor:pointer;transition:border-color .18s,color .18s,background .18s}
+.ws-col-add:hover{border-color:var(--gold);color:var(--gold-deep);background:var(--gold-glow)}
+
+/* ── Tarjeta de tarea ── */
+.ws-card{background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:.62rem .7rem;cursor:grab;position:relative;overflow:hidden;transition:box-shadow .18s,transform .18s,border-color .18s}
+.ws-card:hover{box-shadow:0 6px 18px rgba(16,35,76,.11);border-color:#d3d6de;transform:translateY(-1px)}
+.ws-card:active{cursor:grabbing}
+.ws-card.drag{opacity:.42;transform:rotate(1.4deg) scale(.985)}
+.ws-card.done{background:var(--surface2)}
+.ws-card.done .ws-card-t{text-decoration:line-through;color:var(--dim)}
+.ws-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--pc,transparent)}
+.ws-card-top{display:flex;align-items:center;gap:.35rem;margin-bottom:.3rem;flex-wrap:wrap}
+.ws-chip{display:inline-flex;align-items:center;gap:.25rem;font-size:.63rem;font-weight:800;border-radius:20px;padding:.1rem .45rem;letter-spacing:.02em;white-space:nowrap}
+.ws-chip-pr{background:var(--surface3);color:var(--muted)}
+.ws-pri{font-size:.6rem;font-weight:800;border-radius:5px;padding:.08rem .35rem;text-transform:uppercase;letter-spacing:.05em}
+.ws-pri-baja{background:#eef1f4;color:#5b6472}
+.ws-pri-media{background:#e7f0fb;color:#2c6bb5}
+.ws-pri-alta{background:#fff1dc;color:#a05f00}
+.ws-pri-urgente{background:var(--red-dim);color:var(--red)}
+.ws-card-t{font-size:.85rem;font-weight:650;color:var(--text);line-height:1.32;word-break:break-word}
+.ws-card-auto{font-size:.6rem;font-weight:800;color:var(--gold-deep);letter-spacing:.04em}
+.ws-card-f{display:flex;align-items:center;gap:.45rem;margin-top:.5rem;flex-wrap:wrap}
+.ws-meta{display:inline-flex;align-items:center;gap:.22rem;font-size:.68rem;color:var(--dim);font-weight:600;white-space:nowrap}
+.ws-meta.vencida{color:var(--red);font-weight:800}
+.ws-meta.hoy{color:var(--gold-deep);font-weight:800}
+.ws-card-f .ws-avs{margin-left:auto}
+.ws-prog{height:4px;border-radius:4px;background:var(--surface3);overflow:hidden;margin-top:.45rem}
+.ws-prog i{display:block;height:100%;border-radius:4px;background:var(--green)}
+.ws-tag{font-size:.62rem;font-weight:700;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:.03rem .3rem}
+
+/* ── Lista / Mis tareas ── */
+.ws-list{display:flex;flex-direction:column;gap:.4rem}
+.ws-row{display:flex;align-items:center;gap:.6rem;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.55rem .7rem;cursor:pointer;transition:border-color .18s,box-shadow .18s}
+.ws-row:hover{border-color:#d3d6de;box-shadow:0 3px 12px rgba(16,35,76,.08)}
+.ws-row.done .ws-card-t{text-decoration:line-through;color:var(--dim)}
+.ws-check{width:19px;height:19px;border-radius:50%;border:2px solid var(--border);background:none;cursor:pointer;flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;font-size:.62rem;color:transparent;padding:0;transition:border-color .18s,background .18s,color .18s}
+.ws-check:hover{border-color:var(--green)}
+.ws-check.on{background:var(--green);border-color:var(--green);color:#fff}
+.ws-row-mid{flex:1;min-width:0}
+.ws-row-sub{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin-top:.15rem}
+.ws-group-h{font-size:.68rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:.6rem 0 .1rem;display:flex;align-items:center;gap:.4rem}
+
+/* ── Proyectos ── */
+.ws-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:.8rem}
+.ws-pcard{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:.9rem;position:relative;overflow:hidden;transition:box-shadow .2s,transform .2s;display:flex;flex-direction:column;cursor:pointer}
+.ws-pcard:hover{box-shadow:0 8px 24px rgba(16,35,76,.1);transform:translateY(-2px)}
+.ws-pcard::after{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--pc,var(--gold))}
+.ws-pcard.arch{opacity:.58}
+.ws-pcard-h{display:flex;align-items:center;gap:.5rem}
+.ws-pcard-ic{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex:0 0 auto}
+.ws-pcard-n{font-family:var(--display);font-size:.98rem;font-weight:800;color:var(--text);line-height:1.2}
+/* Se recorta a dos líneas para que todas las tarjetas de la fila midan igual
+   y las barras de progreso queden alineadas. */
+.ws-pcard-d{font-size:.74rem;color:var(--dim);margin-top:.4rem;line-height:1.4;min-height:2.1rem;flex:1;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ws-pcard-f{display:flex;align-items:center;gap:.4rem;margin-top:.7rem;padding-top:.6rem;border-top:1px solid var(--border)}
+.ws-pbar{height:5px;border-radius:5px;background:var(--surface3);overflow:hidden;margin-top:.55rem}
+.ws-pbar i{display:block;height:100%;border-radius:5px;background:var(--pc,var(--gold))}
+
+/* ── Usuarios ── */
+.ws-utable{width:100%;border-collapse:separate;border-spacing:0}
+.ws-utable th{text-align:left;font-size:.66rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--dim);padding:.45rem .6rem;border-bottom:1px solid var(--border)}
+.ws-utable td{padding:.55rem .6rem;border-bottom:1px solid var(--border);font-size:.82rem;color:var(--text);vertical-align:middle}
+.ws-utable tr:last-child td{border-bottom:0}
+.ws-rol{font-size:.63rem;font-weight:800;border-radius:20px;padding:.12rem .5rem;letter-spacing:.03em}
+.ws-rol-admin{background:var(--gold-dim);color:var(--gold-deep)}
+.ws-rol-miembro{background:#e7f0fb;color:#2c6bb5}
+.ws-swatches{display:flex;gap:.3rem;flex-wrap:wrap}
+.ws-sw{width:25px;height:25px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.ws-sw.on{border-color:var(--text);box-shadow:0 0 0 2px var(--surface) inset}
+
+/* ── Modal ── */
+.ws-modal{position:fixed;inset:0;z-index:120;display:none;align-items:flex-start;justify-content:center;padding:2.4rem 1rem;overflow-y:auto;background:rgba(10,24,51,.5);backdrop-filter:blur(3px)}
+.ws-modal.open{display:flex}
+.ws-modal-box{background:var(--surface);border-radius:18px;width:100%;max-width:640px;box-shadow:0 24px 60px rgba(10,24,51,.32);overflow:hidden;animation:wsPop .18s ease}
+@keyframes wsPop{from{opacity:0;transform:translateY(-8px) scale(.99)}to{opacity:1;transform:none}}
+.ws-modal-h{display:flex;align-items:flex-start;gap:.6rem;padding:1rem 1.1rem .7rem;border-bottom:1px solid var(--border)}
+.ws-modal-h h3{font-family:var(--display);font-size:1.02rem;font-weight:800;color:var(--text);margin:0;line-height:1.25}
+.ws-modal-h p{font-size:.74rem;color:var(--dim);margin:.2rem 0 0}
+.ws-x{margin-left:auto;background:none;border:0;font-size:1.1rem;color:var(--dim);cursor:pointer;line-height:1;padding:.1rem .3rem}
+.ws-x:hover{color:var(--text)}
+.ws-modal-b{padding:.9rem 1.1rem;display:flex;flex-direction:column;gap:.75rem}
+.ws-modal-f{display:flex;align-items:center;gap:.5rem;padding:.8rem 1.1rem;border-top:1px solid var(--border);background:var(--surface2)}
+.ws-modal-f .ws-spacer{flex:1}
+.ws-f{display:flex;flex-direction:column;gap:.28rem}
+.ws-f>label{font-size:.68rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--dim)}
+.ws-f input[type=text],.ws-f input[type=date],.ws-f input[type=password],.ws-f input[type=email],.ws-f select,.ws-f textarea{
+  font:inherit;font-size:.85rem;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.5rem .6rem;width:100%}
+.ws-f textarea{min-height:76px;resize:vertical;line-height:1.45}
+.ws-f input:focus,.ws-f select:focus,.ws-f textarea:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-glow)}
+.ws-f2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+@media(max-width:560px){.ws-f2{grid-template-columns:1fr}}
+.ws-err{background:var(--red-dim);color:var(--red);border-radius:9px;padding:.45rem .6rem;font-size:.78rem;font-weight:700;display:none}
+.ws-pick{display:flex;flex-wrap:wrap;gap:.35rem}
+.ws-pick-i{display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--border);background:var(--surface);border-radius:20px;padding:.22rem .55rem .22rem .25rem;cursor:pointer;font:inherit;font-size:.76rem;font-weight:600;color:var(--muted);transition:border-color .18s,background .18s,color .18s}
+.ws-pick-i:hover{border-color:var(--gold-bd-h)}
+.ws-pick-i.on{border-color:var(--gold);background:var(--gold-glow);color:var(--text);font-weight:800}
+.ws-seg{display:inline-flex;gap:2px;background:var(--surface3);border-radius:10px;padding:3px}
+.ws-seg button{border:0;background:none;font:inherit;font-size:.75rem;font-weight:700;color:var(--dim);padding:.3rem .6rem;border-radius:8px;cursor:pointer}
+.ws-seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 3px rgba(16,35,76,.12)}
+.ws-ck{display:flex;align-items:center;gap:.45rem}
+.ws-ck input{width:16px;height:16px;accent-color:var(--green);flex:0 0 auto}
+.ws-ck .tx{flex:1;font-size:.82rem;color:var(--text)}
+.ws-ck.done .tx{text-decoration:line-through;color:var(--dim)}
+.ws-ck .rm{background:none;border:0;color:var(--dim);cursor:pointer;font-size:.85rem;padding:0 .2rem}
+.ws-ck .rm:hover{color:var(--red)}
+.ws-cm{display:flex;gap:.5rem;padding:.5rem 0;border-top:1px solid var(--border)}
+.ws-cm-b{flex:1;min-width:0}
+.ws-cm-h{font-size:.72rem;color:var(--dim);font-weight:700}
+.ws-cm-h b{color:var(--text)}
+.ws-cm-t{font-size:.83rem;color:var(--text);line-height:1.45;white-space:pre-wrap;word-break:break-word;margin-top:.1rem}
+
+/* ── Campanita ── */
+.ws-bell{position:relative;background:none;border:0;cursor:pointer;font-size:1.05rem;padding:.25rem .35rem;line-height:1;color:var(--text)}
+.ws-bell .b{position:absolute;top:0;right:0;min-width:15px;height:15px;border-radius:20px;background:var(--red);color:#fff;font-size:.58rem;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 3px;box-shadow:0 0 0 2px var(--surface)}
+.ws-notif{position:absolute;top:calc(100% + 8px);right:0;width:min(340px,calc(100vw - 24px));background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 18px 44px rgba(10,24,51,.22);z-index:90;display:none;overflow:hidden}
+.ws-notif.open{display:block}
+.ws-notif-h{display:flex;align-items:center;gap:.5rem;padding:.65rem .8rem;border-bottom:1px solid var(--border);font-size:.78rem;font-weight:800;color:var(--text)}
+.ws-notif-l{max-height:min(60vh,380px);overflow-y:auto}
+.ws-notif-i{display:flex;gap:.55rem;padding:.6rem .8rem;border-bottom:1px solid var(--border);cursor:pointer;text-align:left;width:100%;background:none;border-left:0;border-right:0;border-top:0;font:inherit}
+.ws-notif-i:last-child{border-bottom:0}
+.ws-notif-i:hover{background:var(--surface2)}
+.ws-notif-i.no{background:var(--gold-glow)}
+.ws-notif-i .tx{font-size:.79rem;color:var(--text);line-height:1.35}
+.ws-notif-i .ts{font-size:.68rem;color:var(--dim);margin-top:.1rem}
+.ws-empty{text-align:center;color:var(--dim);font-size:.82rem;padding:1.6rem .8rem;line-height:1.5}
+.ws-empty b{display:block;color:var(--text);font-family:var(--display);font-size:.94rem;margin-bottom:.2rem}
+
+/* ── Responsive: en celular el tablero se apila y todo entra a una columna ── */
+@media(max-width:820px){
+  .ws-kan{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:1fr;overflow-x:visible}
+  .ws-col{min-height:0}
+  .ws-bar{gap:.45rem}
+  .ws-tabs{width:100%;overflow-x:auto}
+  .ws-tab{padding:.45rem .7rem;font-size:.76rem}
+  .ws-spacer{display:none}
+  .ws-fil{flex:1}
+  .ws-fil select{width:100%}
+  .ws-grid{grid-template-columns:1fr}
+  .ws-modal{padding:0}
+  .ws-modal-box{max-width:none;border-radius:0;min-height:100%}
+}
 </style>
 </head>
 <body>
@@ -2884,6 +3067,13 @@ body.hosp-open{overflow:hidden}
   <span class="adm-sub">Admin</span>
   <div class="adm-tag" id="tagBuild" style="display:none">cargando…</div>
   <button type="button" class="adm-out" id="ccVolver" title="Volver al selector de Centro de Costo" style="display:none">⌂ Centros</button>
+  <!-- Campanita del Espacio de trabajo: avisa cuando te asignan una tarea o
+       comentan en una tuya. Vive en el header para que se vea desde cualquier
+       sección, no solo desde el espacio. -->
+  <div style="position:relative">
+    <button type="button" class="ws-bell" id="wsBell" title="Notificaciones" aria-haspopup="true" aria-expanded="false">🔔</button>
+    <div class="ws-notif" id="wsNotif" role="menu"></div>
+  </div>
   <button type="button" class="adm-out" id="btnLogout" title="Cerrar sesión" style="display:none">Salir</button>
 </header>
 
@@ -3334,6 +3524,76 @@ body.hosp-open{overflow:hidden}
         </div>
       </div>
       <div id="teamBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
+    <!-- ═══ ESPACIO DE TRABAJO ═══
+         Una sola vista con pestañas internas (Tablero · Lista · Mis tareas ·
+         Proyectos · Equipo). Los ítems del sidebar apuntan todos acá y solo
+         cambian la pestaña activa, así el estado (filtros, datos cargados) no
+         se pierde al saltar entre ellos. -->
+    <div class="adm-panel" id="workspaceView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Espacio de trabajo</div>
+          <div class="adm-panel-meta" id="wsMeta">proyectos, tareas y equipo · todo lo que hay que hacer, en un solo lugar</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-gold" id="wsNueva" type="button">+ Nueva tarea</button>
+          <button class="adm-btn adm-btn-ghost" id="wsReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div id="wsBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
+    <!-- Modal de tarea (alta / edición / checklist / comentarios) -->
+    <div class="ws-modal" id="wsTareaModal" aria-hidden="true">
+      <div class="ws-modal-box" role="dialog" aria-modal="true" aria-labelledby="wsTmTitle">
+        <div class="ws-modal-h">
+          <div><h3 id="wsTmTitle">Nueva tarea</h3><p id="wsTmSub">Título, proyecto, responsables y fecha límite.</p></div>
+          <button type="button" class="ws-x" data-wsclose="wsTareaModal" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="ws-modal-b" id="wsTmBody"></div>
+        <div class="ws-modal-f">
+          <button type="button" class="ws-btn ws-btn-danger" id="wsTmDel" style="display:none">Eliminar</button>
+          <span class="ws-spacer"></span>
+          <button type="button" class="ws-btn" data-wsclose="wsTareaModal">Cancelar</button>
+          <button type="button" class="ws-btn ws-btn-gold" id="wsTmSave">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de proyecto -->
+    <div class="ws-modal" id="wsProyModal" aria-hidden="true">
+      <div class="ws-modal-box" style="max-width:480px" role="dialog" aria-modal="true" aria-labelledby="wsPmTitle">
+        <div class="ws-modal-h">
+          <div><h3 id="wsPmTitle">Nuevo proyecto</h3><p>Nombre, color, ícono y responsable.</p></div>
+          <button type="button" class="ws-x" data-wsclose="wsProyModal" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="ws-modal-b" id="wsPmBody"></div>
+        <div class="ws-modal-f">
+          <button type="button" class="ws-btn ws-btn-danger" id="wsPmDel" style="display:none">Eliminar</button>
+          <span class="ws-spacer"></span>
+          <button type="button" class="ws-btn" data-wsclose="wsProyModal">Cancelar</button>
+          <button type="button" class="ws-btn ws-btn-gold" id="wsPmSave">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de usuario del equipo -->
+    <div class="ws-modal" id="wsUserModal" aria-hidden="true">
+      <div class="ws-modal-box" style="max-width:520px" role="dialog" aria-modal="true" aria-labelledby="wsUmTitle">
+        <div class="ws-modal-h">
+          <div><h3 id="wsUmTitle">Nueva persona</h3><p id="wsUmSub">Su correo es el usuario con el que entra al panel.</p></div>
+          <button type="button" class="ws-x" data-wsclose="wsUserModal" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="ws-modal-b" id="wsUmBody"></div>
+        <div class="ws-modal-f">
+          <button type="button" class="ws-btn ws-btn-danger" id="wsUmDel" style="display:none">Eliminar</button>
+          <span class="ws-spacer"></span>
+          <button type="button" class="ws-btn" data-wsclose="wsUserModal">Cancelar</button>
+          <button type="button" class="ws-btn ws-btn-gold" id="wsUmSave">Guardar</button>
+        </div>
+      </div>
     </div>
 
     <!-- Producción (Centro de Producción · Cocción · Recetas · Envasado · Limpiezas · Paradas · Config) -->
@@ -4226,11 +4486,19 @@ const BASE_SECCIONES = [
   { id:'forecast',  kind:'forecast', label:'Forecast', cat:'herramientas', desc:'EERR proyectado · presupuestos por % · simulación del año' },
   { id:'forecast-comercial', kind:'forecastcomercial', label:'Forecast Comercial', cat:'herramientas', desc:'proyección canal × marca · meta +15% configurable · litros y plata' },
   { id:'equipo',    kind:'equipo',   label:'Cuentas del equipo', cat:'herramientas', desc:'altas y ediciones de cuentas individuales · nombre · apodo · acceso' },
+  // Espacio de trabajo: cinco entradas de sidebar que abren la MISMA vista
+  // (#workspaceView) y solo cambian la pestaña interna — ver wsTabDe().
+  { id:'ws-tablero',   kind:'workspace', label:'Tablero',    cat:'espacio', desc:'kanban del equipo · arrastrá las tarjetas entre Por hacer, Haciendo y Listo' },
+  { id:'ws-lista',     kind:'workspace', label:'Lista',      cat:'espacio', desc:'todas las tareas en una lista ordenable por prioridad, fecha, proyecto o responsable' },
+  { id:'ws-mias',      kind:'workspace', label:'Mis tareas', cat:'espacio', desc:'lo que te asignaron a vos, en un solo lugar' },
+  { id:'ws-proyectos', kind:'workspace', label:'Proyectos',  cat:'espacio', desc:'agrupá las tareas por área · color, ícono y responsable de cada proyecto' },
+  { id:'ws-equipo',    kind:'workspace', label:'Equipo',     cat:'espacio', desc:'quiénes entran al panel · rol, avatar y color de cada persona' },
   { id:'produccion',kind:'produccion',label:'Centro de Producción', cat:'produccion', desc:'tanques · cocción · recetas · envasado · limpiezas · paradas' },
 ];
 
 // Categorías grandes (8 áreas del sidebar). accent = color del halo de la tarjeta.
 const ADMIN_CATEGORIES = [
+  { id:'espacio',      icon:'🗂️', label:'Espacio de trabajo', desc:'Las tareas del equipo: tablero kanban, proyectos, quién hace qué y para cuándo.', accent:'#4a90d9' },
   { id:'marketing',    icon:'📣', label:'Marketing',      desc:'Cómo Zorbo se comunica y atrae: analítica, conversaciones del bot, campañas y contenido de marca.', accent:'#f5a623' },
   { id:'comercial',    icon:'🛒', label:'Comercial',      desc:'El catálogo y la venta: productos, fichas y todo lo que el cliente compra.', accent:'#2e9c5a' },
   { id:'distribucion', icon:'🚚', label:'Distribución',   desc:'Proveedores, rutas de despacho, trazabilidad y mantenimiento de la cadena de distribución.', accent:'#4a90d9' },
@@ -4484,6 +4752,7 @@ function sectionsForCat(catId){ return SECCIONES.filter(s => s.cat === catId && 
 let adminRole = 'admin', adminCosteoSvc = null;
 function showHome(){
   if (adminRole === 'costeo') { selectSeccion('costeo'); return; }
+  if (adminRole === 'miembro') { selectSeccion('ws-tablero'); return; } // el dashboard tiene plata: no es para este rol
   if (dirty && !confirm('Tenés cambios sin guardar. Descartar?')) return;
   dirty = false;
   activeCategory = null;
@@ -4571,6 +4840,8 @@ function renderTabs(){
 
 async function selectSeccion(id){
   if (adminRole === 'costeo') id = 'costeo'; // rol limitado: siempre Costeo de carta
+  // Rol miembro: cualquier destino que no sea del Espacio de trabajo cae al tablero.
+  if (adminRole === 'miembro' && !String(id).startsWith('ws-')) id = 'ws-tablero';
   if (dirty && !confirm('Tenés cambios sin guardar en esta sección. Descartar?')) return;
   activeSeccion = id;
   const sec = SECCIONES.find(s => s.id === id);
@@ -4609,6 +4880,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'equipo') {
     showView('equipo');
     await loadEquipo();
+  } else if (sec.kind === 'workspace') {
+    showView('workspace');
+    await wsAbrir(sec.id);
   } else if (sec.kind === 'produccion') {
     showView('produccion');
     await loadProduccion('produccion');
@@ -4686,6 +4960,9 @@ async function selectSeccion(id){
 
 function showView(kind){
   // El Estado de Resultado no usa el preview de Zorbot: se oculta y la vista ocupa todo el ancho.
+  // El espacio de trabajo usa todo el ancho (el tablero necesita las columnas)
+  // y no tiene nada que ver con Zorbot, así que el panel del bot se oculta.
+  document.body.classList.toggle('ws-active', kind === 'workspace');
   document.body.classList.toggle('estado-active', kind === 'estado');
   document.body.classList.toggle('finhome-active', kind === 'finhome' || kind === 'comercialhome'); // dashboard de área: sin panel Zorbot, a todo el ancho
   // "Último read" solo aplica a contenido de marca (md); en el resto de vistas no significa nada, así que se oculta.
@@ -4711,6 +4988,7 @@ function showView(kind){
   document.getElementById('gastosView').style.display     = kind === 'gastos'     ? '' : 'none';
   document.getElementById('nominaView').style.display     = kind === 'nomina'     ? '' : 'none';
   document.getElementById('equipoView').style.display     = kind === 'equipo'     ? '' : 'none';
+  document.getElementById('workspaceView').style.display  = kind === 'workspace'  ? '' : 'none';
   document.getElementById('produccionView').style.display = kind === 'produccion' ? '' : 'none';
   document.getElementById('finhomeView').style.display    = kind === 'finhome'    ? '' : 'none';
   document.getElementById('notascreditoView').style.display = kind === 'notascredito' ? '' : 'none';
@@ -16101,7 +16379,8 @@ const KS_ICON = {
   productos:'🏷️', puntos:'📍', analisisdatos:'🧭', horeca:'🍺', pyxisdocs:'🧾', analiticacomercial:'⭐',
   distribuidora:'🚚', rutas:'🗺️', mantenimiento:'🔧',
   costeo:'🧾', oee:'📊', calidad:'🏅', inventarios:'🗃', estado:'💰', costos:'💸', gastos:'🧮', nomina:'👥', equipo:'🪪', pnl:'📈', forecast:'🔮',
-  produccion:'🏭'
+  produccion:'🏭',
+  'ws-tablero':'🗂️', 'ws-lista':'✅', 'ws-mias':'🎯', 'ws-proyectos':'📁', 'ws-equipo':'👤'
 };
 
 // Sincroniza el item activo del sidebar + el breadcrumb del topbar con la sección actual.
@@ -16135,11 +16414,14 @@ function renderSidebar(){
   if (!side) return;
   const uname = window.__adminUser || '';
   const initials = uname ? (uname.replace(/@.*/,'').split(/[.\s_-]+/).map(s => s[0] || '').join('').slice(0,2).toUpperCase() || 'KB') : 'KB';
-  const roleLabel = adminRole === 'costeo' ? 'Costeo' : 'Administrador';
-  // El rol "costeo" solo ve Costeo.
+  const roleLabel = adminRole === 'costeo' ? 'Costeo' : adminRole === 'miembro' ? 'Miembro del equipo' : 'Administrador';
+  // Roles limitados: "costeo" solo ve Costeo; "miembro" solo el Espacio de
+  // trabajo (el server además bloquea el resto — ver miembroRoleAllows).
   const groups = adminRole === 'costeo'
     ? ADMIN_CATEGORIES.filter(c => c.id === 'operacion').map(c => ({ ...c, only: ['costeo'] }))
-    : ADMIN_CATEGORIES.slice();
+    : adminRole === 'miembro'
+      ? ADMIN_CATEGORIES.filter(c => c.id === 'espacio')
+      : ADMIN_CATEGORIES.slice();
   const open = ksLoadOpenGroups();
   let navHtml = '';
   groups.forEach(g => {
@@ -17119,6 +17401,750 @@ function hospRendWire(){
   if (tabKairos) tabKairos.focus();
 })();
 
+// ════════════════════════════════════════════════════════════════════════════
+// ESPACIO DE TRABAJO — tablero, lista, mis tareas, proyectos, equipo
+// ════════════════════════════════════════════════════════════════════════════
+// Todo el espacio es UNA vista (#workspaceView) con pestañas internas. Los cinco
+// ítems del sidebar solo cambian la pestaña, así saltar entre ellos no recarga
+// nada ni pierde los filtros.
+let wsData = null;            // respuesta de /admin/ws/bootstrap
+let wsTab = 'tablero';
+let wsCargando = null;        // promesa en vuelo (evita dobles fetch)
+const wsFil = { proyecto: '', persona: '', q: '', orden: 'prioridad' };
+
+const WS_TAB_DE = { 'ws-tablero':'tablero', 'ws-lista':'lista', 'ws-mias':'mias', 'ws-proyectos':'proyectos', 'ws-equipo':'equipo' };
+const WS_PRI_LB = { baja:'Baja', media:'Media', alta:'Alta', urgente:'Urgente' };
+const WS_PRI_PESO = { urgente:0, alta:1, media:2, baja:3 };
+const WS_PALETA = ['#f5a623','#2e9c5a','#4a90d9','#c1447e','#7c6bb8','#1f8a70','#d9534f','#b87333','#5b6472','#0ea5a5'];
+const WS_EMOJIS = ['📁','🏭','📣','🍽️','🛒','🚚','🔔','🍺','💡','🎯','🧾','🧪','🎨','📦','⚙️','🌟'];
+
+function wsHoyISO(){ const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function wsIniciales(u){
+  const base = (u && (u.nombre || u.apodo)) || (u && u.username) || '';
+  const limpio = String(base).replace(/@.*/, '');
+  const partes = limpio.split(/[.\s_-]+/).filter(Boolean);
+  return ((partes[0] || '?')[0] + (partes[1] ? partes[1][0] : '')).toUpperCase();
+}
+function wsUser(username){
+  const u = (wsData && wsData.usuarios || []).find(x => (x.username||'').toLowerCase() === String(username||'').toLowerCase());
+  return u || { username: String(username||''), nombre: String(username||''), color:'#5b6472', avatar:'' };
+}
+const wsNombre = (username) => { const u = wsUser(username); return u.apodo || u.nombre || u.username; };
+function wsAvatarHtml(username, cls){
+  const u = wsUser(username);
+  const est = u.avatar ? `background-image:url('${escapeAttr(u.avatar)}')` : `background-color:${escapeAttr(u.color||'#5b6472')}`;
+  return `<span class="ws-av ${cls||''}" style="${est}" title="${escapeAttr(wsNombre(username))}">${u.avatar ? '' : escapeHtml(wsIniciales(u))}</span>`;
+}
+function wsAvatarsHtml(lista){
+  const arr = (lista||[]).slice(0, 4);
+  const extra = (lista||[]).length - arr.length;
+  return `<span class="ws-avs">${arr.map(u => wsAvatarHtml(u,'ws-av-sm')).join('')}${extra>0?`<span class="ws-av ws-av-sm" style="background-color:#5b6472">+${extra}</span>`:''}</span>`;
+}
+function wsProyecto(id){ return (wsData && wsData.proyectos || []).find(p => p.id === id) || null; }
+// Fecha límite en lenguaje humano + si está vencida. El vencimiento es un día
+// del calendario (string YYYY-MM-DD), así que se compara como string: sin Date
+// no hay zona horaria que corra el día.
+function wsVenceInfo(iso){
+  if (!iso) return null;
+  const hoy = wsHoyISO();
+  const [a,m,d] = iso.split('-');
+  const corta = d + '/' + m;
+  if (iso < hoy) return { txt: 'Venció ' + corta, cls: 'vencida' };
+  if (iso === hoy) return { txt: 'Hoy', cls: 'hoy' };
+  const mañana = new Date(); mañana.setDate(mañana.getDate()+1);
+  const isoMañana = mañana.getFullYear()+'-'+String(mañana.getMonth()+1).padStart(2,'0')+'-'+String(mañana.getDate()).padStart(2,'0');
+  if (iso === isoMañana) return { txt: 'Mañana', cls: 'hoy' };
+  return { txt: corta, cls: '' };
+}
+function wsHace(ts){
+  const s = Math.max(0, Math.floor((Date.now() - ts)/1000));
+  if (s < 60) return 'recién';
+  if (s < 3600) return 'hace ' + Math.floor(s/60) + ' min';
+  if (s < 86400) return 'hace ' + Math.floor(s/3600) + ' h';
+  if (s < 604800) return 'hace ' + Math.floor(s/86400) + ' d';
+  return new Date(ts).toLocaleDateString('es-CL', { day:'2-digit', month:'2-digit' });
+}
+const wsSoyYo = (username) => wsData && wsData.me && (wsData.me.username||'').toLowerCase() === String(username||'').toLowerCase();
+const wsEsAdmin = () => !wsData || !wsData.me || wsData.me.role !== 'miembro';
+
+async function wsApi(url, opts){
+  const r = await fetch(url, opts);
+  let d = {}; try { d = await r.json(); } catch {}
+  if (!r.ok) throw new Error(d.error || ('Error ' + r.status));
+  return d;
+}
+async function wsCargar(){
+  if (wsCargando) return wsCargando;
+  wsCargando = wsApi('/admin/ws/bootstrap').then(d => { wsData = d; wsCargando = null; return d; })
+    .catch(e => { wsCargando = null; throw e; });
+  return wsCargando;
+}
+async function wsAbrir(secId){
+  wsTab = WS_TAB_DE[secId] || 'tablero';
+  const body = document.getElementById('wsBody');
+  if (!wsData) {
+    body.innerHTML = '<div class="adm-loading">Cargando…</div>';
+    try { await wsCargar(); }
+    catch(e){ body.innerHTML = `<div class="ws-empty"><b>No se pudo cargar el espacio</b>${escapeHtml(String(e.message||e))}</div>`; return; }
+  }
+  wsRender();
+}
+async function wsRecargar(){
+  wsData = null;
+  await wsAbrir(Object.keys(WS_TAB_DE).find(k => WS_TAB_DE[k] === wsTab) || 'ws-tablero');
+  wsBellRefrescar();
+}
+
+// ── Barra de pestañas + filtros ──
+function wsBarraHtml(){
+  const tabs = [
+    ['tablero','🗂️','Tablero'], ['lista','✅','Lista'], ['mias','🎯','Mis tareas'],
+    ['proyectos','📁','Proyectos'], ['equipo','👤','Equipo'],
+  ];
+  const mias = (wsData.tareas||[]).filter(t => (t.asignados||[]).some(wsSoyYo) && t.estado !== 'listo').length;
+  const btns = tabs.map(([id,ic,lb]) => {
+    const n = (id === 'mias' && mias) ? `<span class="n">${mias}</span>` : '';
+    return `<button type="button" class="ws-tab${wsTab===id?' on':''}" data-wstab="${id}">${ic} ${escapeHtml(lb)}${n}</button>`;
+  }).join('');
+  // Los filtros solo tienen sentido donde hay tareas listadas.
+  const conFiltros = wsTab === 'tablero' || wsTab === 'lista' || wsTab === 'mias';
+  let filtros = '';
+  if (conFiltros) {
+    const proyOps = ['<option value="">Todos los proyectos</option>']
+      .concat((wsData.proyectos||[]).filter(p => !p.archivado).map(p => `<option value="${escapeAttr(p.id)}"${wsFil.proyecto===p.id?' selected':''}>${escapeHtml((p.emoji||'')+' '+p.nombre)}</option>`)).join('');
+    const persOps = ['<option value="">Todo el equipo</option>']
+      .concat((wsData.usuarios||[]).map(u => `<option value="${escapeAttr(u.username)}"${wsFil.persona===u.username?' selected':''}>${escapeHtml(u.apodo||u.nombre||u.username)}</option>`)).join('');
+    filtros = `<span class="ws-spacer"></span>
+      <span class="ws-fil"><input id="wsQ" type="search" placeholder="Buscar tarea…" value="${escapeAttr(wsFil.q)}"></span>
+      <span class="ws-fil"><select id="wsFilProy">${proyOps}</select></span>
+      ${wsTab==='mias' ? '' : `<span class="ws-fil"><select id="wsFilPers">${persOps}</select></span>`}
+      ${wsTab==='lista' ? `<span class="ws-fil"><select id="wsFilOrden">
+        <option value="prioridad"${wsFil.orden==='prioridad'?' selected':''}>Por prioridad</option>
+        <option value="fecha"${wsFil.orden==='fecha'?' selected':''}>Por fecha límite</option>
+        <option value="proyecto"${wsFil.orden==='proyecto'?' selected':''}>Por proyecto</option>
+        <option value="responsable"${wsFil.orden==='responsable'?' selected':''}>Por responsable</option>
+      </select></span>` : ''}`;
+  } else if (wsTab === 'proyectos') {
+    filtros = `<span class="ws-spacer"></span><button type="button" class="ws-btn" id="wsNuevoProy">+ Nuevo proyecto</button>`;
+  } else if (wsTab === 'equipo' && wsEsAdmin()) {
+    filtros = `<span class="ws-spacer"></span><button type="button" class="ws-btn" id="wsNuevoUser">+ Nueva persona</button>`;
+  }
+  return `<div class="ws-bar"><div class="ws-tabs">${btns}</div>${filtros}</div>`;
+}
+
+// Aplica búsqueda + filtros de proyecto/persona a la lista de tareas.
+function wsTareasFiltradas(){
+  const q = wsFil.q.trim().toLowerCase();
+  return (wsData.tareas||[]).filter(t => {
+    if (wsFil.proyecto && t.proyectoId !== wsFil.proyecto) return false;
+    if (wsTab === 'mias') { if (!(t.asignados||[]).some(wsSoyYo)) return false; }
+    else if (wsFil.persona && !(t.asignados||[]).includes(wsFil.persona)) return false;
+    if (q) {
+      const hay = (t.titulo + ' ' + (t.descripcion||'') + ' ' + (t.etiquetas||[]).join(' ')).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function wsRender(){
+  const body = document.getElementById('wsBody');
+  const meta = document.getElementById('wsMeta');
+  const nuevaBtn = document.getElementById('wsNueva');
+  const METAS = {
+    tablero:'arrastrá las tarjetas entre columnas para cambiarles el estado',
+    lista:'todas las tareas en una lista, ordenable como te sirva',
+    mias:'lo que te asignaron a vos',
+    proyectos:'agrupá las tareas por área de trabajo',
+    equipo:'quiénes entran al panel y con qué rol',
+  };
+  if (meta) meta.textContent = METAS[wsTab] || '';
+  if (nuevaBtn) nuevaBtn.style.display = (wsTab === 'proyectos' || wsTab === 'equipo') ? 'none' : '';
+  let html = wsBarraHtml();
+  if (wsTab === 'tablero') html += wsTableroHtml();
+  else if (wsTab === 'lista' || wsTab === 'mias') html += wsListaHtml();
+  else if (wsTab === 'proyectos') html += wsProyectosHtml();
+  else html += wsEquipoHtml();
+  body.innerHTML = `<div class="ws-wrap">${html}</div>`;
+  wsWire();
+}
+
+// ── Tarjeta ──
+function wsCardHtml(t){
+  const p = wsProyecto(t.proyectoId);
+  const v = wsVenceInfo(t.vence);
+  const ck = (t.checklist||[]);
+  const hechos = ck.filter(x => x.hecho).length;
+  const nCom = (t.comentarios||[]).length;
+  return `<article class="ws-card${t.estado==='listo'?' done':''}" draggable="true" data-wstarea="${escapeAttr(t.id)}" style="--pc:${escapeAttr(p ? p.color : 'transparent')}">
+    <div class="ws-card-top">
+      ${p ? `<span class="ws-chip ws-chip-pr">${escapeHtml((p.emoji||'')+' '+p.nombre)}</span>` : ''}
+      <span class="ws-pri ws-pri-${escapeAttr(t.prioridad||'media')}">${escapeHtml(WS_PRI_LB[t.prioridad]||'Media')}</span>
+      ${t.auto ? '<span class="ws-card-auto" title="La generó el sistema">⚡ auto</span>' : ''}
+    </div>
+    <div class="ws-card-t">${escapeHtml(t.titulo)}</div>
+    ${ck.length ? `<div class="ws-prog"><i style="width:${Math.round(hechos/ck.length*100)}%"></i></div>` : ''}
+    ${(t.etiquetas||[]).length ? `<div class="ws-card-f">${t.etiquetas.map(e => `<span class="ws-tag">${escapeHtml(e)}</span>`).join('')}</div>` : ''}
+    <div class="ws-card-f">
+      ${v ? `<span class="ws-meta ${v.cls}">📅 ${escapeHtml(v.txt)}</span>` : ''}
+      ${ck.length ? `<span class="ws-meta">☑ ${hechos}/${ck.length}</span>` : ''}
+      ${nCom ? `<span class="ws-meta">💬 ${nCom}</span>` : ''}
+      ${(t.asignados||[]).length ? wsAvatarsHtml(t.asignados) : ''}
+    </div>
+  </article>`;
+}
+
+function wsTableroHtml(){
+  const tareas = wsTareasFiltradas();
+  const cols = (wsData.estados||[]).map(e => {
+    const suyas = tareas.filter(t => t.estado === e.id).sort((a,b) => (a.orden||0) - (b.orden||0));
+    const cards = suyas.map(wsCardHtml).join('') ||
+      '<div style="color:var(--dim);font-size:.76rem;text-align:center;padding:.9rem .4rem">Nada por acá</div>';
+    return `<section class="ws-col" data-wscol="${escapeAttr(e.id)}">
+      <div class="ws-col-h"><span class="dot" style="background:${escapeAttr(e.color)}"></span>${escapeHtml(e.nombre)}<span class="n">${suyas.length}</span></div>
+      <div class="ws-col-b" data-wsdrop="${escapeAttr(e.id)}">${cards}</div>
+      <button type="button" class="ws-col-add" data-wsadd="${escapeAttr(e.id)}">+ Agregar tarea</button>
+    </section>`;
+  }).join('');
+  return `<div class="ws-kan">${cols}</div>`;
+}
+
+function wsListaHtml(){
+  let tareas = wsTareasFiltradas();
+  if (!tareas.length) {
+    return wsTab === 'mias'
+      ? '<div class="ws-empty"><b>No tenés tareas asignadas</b>Cuando alguien te asigne una, te llega un aviso en la campanita y aparece acá.</div>'
+      : '<div class="ws-empty"><b>Todavía no hay tareas</b>Creá la primera con “+ Nueva tarea”.</div>';
+  }
+  const orden = wsTab === 'mias' ? 'prioridad' : wsFil.orden;
+  const claveGrupo = (t) => {
+    if (orden === 'proyecto') { const p = wsProyecto(t.proyectoId); return p ? (p.emoji||'') + ' ' + p.nombre : 'Sin proyecto'; }
+    if (orden === 'responsable') return (t.asignados||[]).length ? (t.asignados||[]).map(wsNombre).join(', ') : 'Sin responsable';
+    if (orden === 'fecha') { const v = wsVenceInfo(t.vence); return v ? v.txt : 'Sin fecha'; }
+    return WS_PRI_LB[t.prioridad] || 'Media';
+  };
+  tareas = tareas.slice().sort((a,b) => {
+    // Las completadas siempre al final, sin importar el criterio.
+    const la = a.estado === 'listo' ? 1 : 0, lb = b.estado === 'listo' ? 1 : 0;
+    if (la !== lb) return la - lb;
+    if (orden === 'fecha') return (a.vence || '9999').localeCompare(b.vence || '9999');
+    if (orden === 'proyecto' || orden === 'responsable') return claveGrupo(a).localeCompare(claveGrupo(b), 'es');
+    return (WS_PRI_PESO[a.prioridad] ?? 2) - (WS_PRI_PESO[b.prioridad] ?? 2);
+  });
+  let html = '<div class="ws-list">', grupoActual = null;
+  for (const t of tareas) {
+    const g = t.estado === 'listo' ? 'Completadas' : claveGrupo(t);
+    if (g !== grupoActual) { grupoActual = g; html += `<div class="ws-group-h">${escapeHtml(g)}</div>`; }
+    const p = wsProyecto(t.proyectoId);
+    const v = wsVenceInfo(t.vence);
+    const listo = t.estado === 'listo';
+    html += `<div class="ws-row${listo?' done':''}" data-wstarea="${escapeAttr(t.id)}">
+      <button type="button" class="ws-check${listo?' on':''}" data-wstoggle="${escapeAttr(t.id)}" title="${listo?'Reabrir':'Marcar como lista'}">✓</button>
+      <div class="ws-row-mid">
+        <div class="ws-card-t">${escapeHtml(t.titulo)}</div>
+        <div class="ws-row-sub">
+          ${p ? `<span class="ws-chip ws-chip-pr" style="color:${escapeAttr(p.color)}">${escapeHtml((p.emoji||'')+' '+p.nombre)}</span>` : ''}
+          <span class="ws-pri ws-pri-${escapeAttr(t.prioridad||'media')}">${escapeHtml(WS_PRI_LB[t.prioridad]||'Media')}</span>
+          ${v ? `<span class="ws-meta ${v.cls}">📅 ${escapeHtml(v.txt)}</span>` : ''}
+          ${t.auto ? '<span class="ws-card-auto">⚡ auto</span>' : ''}
+        </div>
+      </div>
+      ${(t.asignados||[]).length ? wsAvatarsHtml(t.asignados) : ''}
+    </div>`;
+  }
+  return html + '</div>';
+}
+
+function wsProyectosHtml(){
+  const ps = (wsData.proyectos||[]).slice().sort((a,b) => (a.archivado?1:0)-(b.archivado?1:0) || String(a.nombre).localeCompare(String(b.nombre),'es'));
+  if (!ps.length) return '<div class="ws-empty"><b>Sin proyectos</b>Creá el primero para empezar a agrupar tareas.</div>';
+  return `<div class="ws-grid">${ps.map(p => {
+    const suyas = (wsData.tareas||[]).filter(t => t.proyectoId === p.id);
+    const listas = suyas.filter(t => t.estado === 'listo').length;
+    const pct = suyas.length ? Math.round(listas/suyas.length*100) : 0;
+    return `<article class="ws-pcard${p.archivado?' arch':''}" data-wsproy="${escapeAttr(p.id)}" style="--pc:${escapeAttr(p.color)}">
+      <div class="ws-pcard-h">
+        <span class="ws-pcard-ic" style="background:${escapeAttr(p.color)}22">${escapeHtml(p.emoji||'📁')}</span>
+        <div><div class="ws-pcard-n">${escapeHtml(p.nombre)}</div>
+        <div style="font-size:.7rem;color:var(--dim)">${suyas.length} tarea${suyas.length===1?'':'s'}${p.archivado?' · archivado':''}</div></div>
+      </div>
+      <div class="ws-pcard-d">${escapeHtml(p.descripcion||'')}</div>
+      <div class="ws-pbar"><i style="width:${pct}%"></i></div>
+      <div class="ws-pcard-f">
+        <span style="font-size:.7rem;color:var(--dim);font-weight:700">${pct}% listo</span>
+        <span style="flex:1"></span>
+        ${p.responsable ? wsAvatarHtml(p.responsable,'ws-av-sm') : ''}
+      </div>
+    </article>`;
+  }).join('')}</div>`;
+}
+
+function wsEquipoHtml(){
+  const us = (wsData.usuarios||[]).slice().sort((a,b) => String(a.nombre||a.username).localeCompare(String(b.nombre||b.username),'es'));
+  const admin = wsEsAdmin();
+  const filas = us.map(u => {
+    const abiertas = (wsData.tareas||[]).filter(t => (t.asignados||[]).includes(u.username) && t.estado !== 'listo').length;
+    const esSesion = String(u.id||'').startsWith('sesion:');
+    return `<tr>
+      <td><div style="display:flex;align-items:center;gap:.55rem">${wsAvatarHtml(u.username)}
+        <div><div style="font-weight:700">${escapeHtml(u.apodo || u.nombre || u.username)}</div>
+        <div style="font-size:.7rem;color:var(--dim)">${escapeHtml(u.email || u.username)}</div></div></div></td>
+      <td><span class="ws-rol ws-rol-${u.role==='miembro'?'miembro':'admin'}">${u.role==='miembro'?'Miembro':'Admin'}</span></td>
+      <td style="font-variant-numeric:tabular-nums">${abiertas}</td>
+      <td style="white-space:nowrap;text-align:right">${admin && !esSesion
+        ? `<button type="button" class="ws-btn" data-wsuser="${escapeAttr(u.id)}" style="padding:.3rem .55rem">Editar</button>`
+        : '<span style="font-size:.7rem;color:var(--dim)">—</span>'}</td>
+    </tr>`;
+  }).join('');
+  const aviso = admin ? `<div style="font-size:.76rem;color:var(--dim);margin-top:.6rem;line-height:1.5">
+    Un <b>Admin</b> ve y edita todo el panel. Un <b>Miembro</b> entra solo al Espacio de trabajo — no ve Finanzas, Estado de Resultado ni ningún módulo con plata adentro.</div>` : '';
+  return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:.4rem .5rem;overflow-x:auto">
+    <table class="ws-utable"><thead><tr><th>Persona</th><th>Rol</th><th>Tareas abiertas</th><th></th></tr></thead>
+    <tbody>${filas}</tbody></table></div>${aviso}`;
+}
+
+// ── Wiring (se vuelve a correr en cada render) ──
+function wsWire(){
+  document.querySelectorAll('[data-wstab]').forEach(b => b.onclick = () => {
+    const sec = Object.keys(WS_TAB_DE).find(k => WS_TAB_DE[k] === b.dataset.wstab);
+    if (sec) selectSeccion(sec); else { wsTab = b.dataset.wstab; wsRender(); }
+  });
+  const q = document.getElementById('wsQ');
+  if (q) { let tm; q.oninput = () => { clearTimeout(tm); tm = setTimeout(() => { wsFil.q = q.value; wsRender(); document.getElementById('wsQ').focus(); }, 220); }; }
+  const fp = document.getElementById('wsFilProy'); if (fp) fp.onchange = () => { wsFil.proyecto = fp.value; wsRender(); };
+  const fu = document.getElementById('wsFilPers'); if (fu) fu.onchange = () => { wsFil.persona = fu.value; wsRender(); };
+  const fo = document.getElementById('wsFilOrden'); if (fo) fo.onchange = () => { wsFil.orden = fo.value; wsRender(); };
+  const np = document.getElementById('wsNuevoProy'); if (np) np.onclick = () => wsProyModal(null);
+  const nu = document.getElementById('wsNuevoUser'); if (nu) nu.onclick = () => wsUserModal(null);
+
+  document.querySelectorAll('[data-wstarea]').forEach(el => {
+    el.onclick = (ev) => { if (ev.target.closest('[data-wstoggle]')) return; wsTareaModal(el.dataset.wstarea); };
+  });
+  document.querySelectorAll('[data-wstoggle]').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); wsToggleListo(b.dataset.wstoggle); });
+  document.querySelectorAll('[data-wsadd]').forEach(b => b.onclick = () => wsTareaModal(null, { estado: b.dataset.wsadd }));
+  document.querySelectorAll('[data-wsproy]').forEach(el => el.onclick = () => wsProyModal(el.dataset.wsproy));
+  document.querySelectorAll('[data-wsuser]').forEach(b => b.onclick = () => wsUserModal(b.dataset.wsuser));
+  if (wsTab === 'tablero') wsWireDnD();
+}
+
+// Drag & drop del tablero (HTML5). En touch no hay arrastre nativo: ahí se toca
+// la tarjeta y se cambia el estado desde el modal, que hace exactamente lo mismo.
+let wsArrastrando = null;
+function wsWireDnD(){
+  document.querySelectorAll('.ws-card[draggable]').forEach(card => {
+    card.ondragstart = (e) => {
+      wsArrastrando = card.dataset.wstarea;
+      card.classList.add('drag');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', wsArrastrando); } catch {}
+    };
+    card.ondragend = () => { card.classList.remove('drag'); wsArrastrando = null; document.querySelectorAll('.ws-col.drop').forEach(c => c.classList.remove('drop')); };
+  });
+  document.querySelectorAll('[data-wsdrop]').forEach(zona => {
+    const col = zona.closest('.ws-col');
+    zona.ondragover = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; col.classList.add('drop'); };
+    zona.ondragleave = (e) => { if (!zona.contains(e.relatedTarget)) col.classList.remove('drop'); };
+    zona.ondrop = async (e) => {
+      e.preventDefault(); col.classList.remove('drop');
+      const id = wsArrastrando || (() => { try { return e.dataTransfer.getData('text/plain'); } catch { return ''; } })();
+      if (!id) return;
+      const t = (wsData.tareas||[]).find(x => x.id === id);
+      if (!t) return;
+      const estado = zona.dataset.wsdrop;
+      // Dónde soltó dentro de la columna: se calcula contra los centros de las
+      // tarjetas que ya están ahí, para que el orden respete el gesto.
+      const hermanas = [...zona.querySelectorAll('.ws-card')].filter(c => c.dataset.wstarea !== id);
+      let idx = hermanas.length;
+      for (let i = 0; i < hermanas.length; i++) {
+        const r = hermanas[i].getBoundingClientRect();
+        if (e.clientY < r.top + r.height/2) { idx = i; break; }
+      }
+      const ids = hermanas.map(c => c.dataset.wstarea);
+      ids.splice(idx, 0, id);
+      // Optimista: se pinta ya y recién después se confirma contra el server.
+      const estadoAntes = t.estado, ordenAntes = t.orden;
+      t.estado = estado;
+      ids.forEach((x, i) => { const y = (wsData.tareas||[]).find(z => z.id === x); if (y) y.orden = (i+1)*10; });
+      wsRender();
+      try { const d = await wsApi('/admin/ws/tareas/'+encodeURIComponent(id)+'/mover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ estado, orden: ids }) });
+        Object.assign(t, d.tarea);
+      } catch(err){ t.estado = estadoAntes; t.orden = ordenAntes; wsRender(); showToast('No se pudo mover: ' + String(err.message||err), 'err'); }
+    };
+  });
+}
+
+async function wsToggleListo(id){
+  const t = (wsData.tareas||[]).find(x => x.id === id); if (!t) return;
+  const destino = t.estado === 'listo' ? ((wsData.estados[0]||{}).id || 'por_hacer') : 'listo';
+  const antes = t.estado;
+  t.estado = destino; wsRender();
+  try { const d = await wsApi('/admin/ws/tareas/'+encodeURIComponent(id)+'/mover', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ estado: destino }) }); Object.assign(t, d.tarea); wsRender(); wsBellRefrescar(); }
+  catch(e){ t.estado = antes; wsRender(); showToast(String(e.message||e), 'err'); }
+}
+
+// ── Modales ──
+function wsModalAbrir(id){ const m = document.getElementById(id); m.classList.add('open'); m.setAttribute('aria-hidden','false'); }
+function wsModalCerrar(id){ const m = document.getElementById(id); m.classList.remove('open'); m.setAttribute('aria-hidden','true'); }
+document.querySelectorAll('[data-wsclose]').forEach(b => b.onclick = () => wsModalCerrar(b.dataset.wsclose));
+['wsTareaModal','wsProyModal','wsUserModal'].forEach(id => {
+  const m = document.getElementById(id);
+  if (m) m.addEventListener('click', (e) => { if (e.target === m) wsModalCerrar(id); });
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  ['wsTareaModal','wsProyModal','wsUserModal'].forEach(id => { const m = document.getElementById(id); if (m && m.classList.contains('open')) wsModalCerrar(id); });
+});
+
+let wsTareaEdit = null;      // tarea en edición (o null si es alta)
+let wsTareaBorrador = null;  // estado del formulario mientras está abierto
+function wsTareaModal(id, pre){
+  const t = id ? (wsData.tareas||[]).find(x => x.id === id) : null;
+  wsTareaEdit = t || null;
+  wsTareaBorrador = t
+    ? { titulo:t.titulo, descripcion:t.descripcion||'', proyectoId:t.proyectoId||'', asignados:(t.asignados||[]).slice(),
+        estado:t.estado, prioridad:t.prioridad||'media', vence:t.vence||'', etiquetas:(t.etiquetas||[]).slice(),
+        checklist:(t.checklist||[]).map(c => ({...c})) }
+    : { titulo:'', descripcion:'', proyectoId: wsFil.proyecto || '', asignados: wsTab === 'mias' ? [wsData.me.username] : [],
+        estado:(pre && pre.estado) || (wsData.estados[0]||{}).id || 'por_hacer', prioridad:'media', vence:'', etiquetas:[], checklist:[] };
+  document.getElementById('wsTmTitle').textContent = t ? 'Tarea' : 'Nueva tarea';
+  document.getElementById('wsTmSub').textContent = t
+    ? 'Editá lo que necesites, marcá la checklist o dejá un comentario.'
+    : 'Título, proyecto, responsables y fecha límite.';
+  document.getElementById('wsTmDel').style.display = t ? '' : 'none';
+  wsTareaModalBody();
+  wsModalAbrir('wsTareaModal');
+  setTimeout(() => { const i = document.getElementById('wsTmTitulo'); if (i && !t) i.focus(); }, 40);
+}
+function wsTareaModalBody(){
+  const b = wsTareaBorrador, t = wsTareaEdit;
+  const proyOps = ['<option value="">Sin proyecto</option>']
+    .concat((wsData.proyectos||[]).filter(p => !p.archivado || p.id === b.proyectoId)
+      .map(p => `<option value="${escapeAttr(p.id)}"${b.proyectoId===p.id?' selected':''}>${escapeHtml((p.emoji||'')+' '+p.nombre)}</option>`)).join('');
+  const estOps = (wsData.estados||[]).map(e => `<option value="${escapeAttr(e.id)}"${b.estado===e.id?' selected':''}>${escapeHtml(e.nombre)}</option>`).join('');
+  const priOps = ['baja','media','alta','urgente'].map(p => `<option value="${p}"${b.prioridad===p?' selected':''}>${WS_PRI_LB[p]}</option>`).join('');
+  const personas = (wsData.usuarios||[]).map(u => `<button type="button" class="ws-pick-i${b.asignados.includes(u.username)?' on':''}" data-wsasig="${escapeAttr(u.username)}">${wsAvatarHtml(u.username,'ws-av-sm')}${escapeHtml(u.apodo||u.nombre||u.username)}</button>`).join('');
+  const checks = b.checklist.map((c,i) => `<div class="ws-ck${c.hecho?' done':''}">
+      <input type="checkbox" data-wsck="${i}"${c.hecho?' checked':''}>
+      <span class="tx">${escapeHtml(c.texto)}</span>
+      <button type="button" class="rm" data-wsckrm="${i}" title="Quitar">✕</button></div>`).join('');
+  const hechos = b.checklist.filter(c => c.hecho).length;
+  const comentarios = t ? (t.comentarios||[]).slice().sort((x,y) => x.ts - y.ts).map(c => `<div class="ws-cm">
+      ${wsAvatarHtml(c.autor,'ws-av-sm')}
+      <div class="ws-cm-b"><div class="ws-cm-h"><b>${escapeHtml(wsNombre(c.autor))}</b> · ${escapeHtml(wsHace(c.ts))}</div>
+      <div class="ws-cm-t">${escapeHtml(c.texto)}</div></div></div>`).join('') : '';
+  document.getElementById('wsTmBody').innerHTML = `
+    <div class="ws-err" id="wsTmErr"></div>
+    <div class="ws-f"><label for="wsTmTitulo">Título</label>
+      <input type="text" id="wsTmTitulo" placeholder="¿Qué hay que hacer?" value="${escapeAttr(b.titulo)}" maxlength="200"></div>
+    <div class="ws-f"><label for="wsTmDesc">Descripción</label>
+      <textarea id="wsTmDesc" placeholder="Detalle, contexto, links…">${escapeHtml(b.descripcion)}</textarea></div>
+    <div class="ws-f2">
+      <div class="ws-f"><label for="wsTmProy">Proyecto</label><select id="wsTmProy">${proyOps}</select></div>
+      <div class="ws-f"><label for="wsTmEstado">Estado</label><select id="wsTmEstado">${estOps}</select></div>
+    </div>
+    <div class="ws-f2">
+      <div class="ws-f"><label for="wsTmPri">Prioridad</label><select id="wsTmPri">${priOps}</select></div>
+      <div class="ws-f"><label for="wsTmVence">Fecha límite</label><input type="date" id="wsTmVence" value="${escapeAttr(b.vence)}"></div>
+    </div>
+    <div class="ws-f"><label>Responsables</label><div class="ws-pick">${personas || '<span style="font-size:.78rem;color:var(--dim)">No hay personas cargadas todavía.</span>'}</div></div>
+    <div class="ws-f"><label for="wsTmTags">Etiquetas <span style="text-transform:none;letter-spacing:0;font-weight:600">(separadas por coma)</span></label>
+      <input type="text" id="wsTmTags" placeholder="urgente, cliente, revisar" value="${escapeAttr(b.etiquetas.join(', '))}"></div>
+    <div class="ws-f"><label>Checklist${b.checklist.length?` <span style="text-transform:none;letter-spacing:0;font-weight:600">(${hechos}/${b.checklist.length})</span>`:''}</label>
+      ${checks}
+      <div style="display:flex;gap:.4rem"><input type="text" id="wsTmCkNueva" placeholder="Agregar subtarea y Enter…" maxlength="200">
+      <button type="button" class="ws-btn" id="wsTmCkAdd">+</button></div></div>
+    ${t ? `<div class="ws-f"><label>Comentarios</label>${comentarios || '<div style="font-size:.78rem;color:var(--dim)">Sin comentarios todavía.</div>'}
+      <div style="display:flex;gap:.4rem;margin-top:.4rem"><input type="text" id="wsTmCm" placeholder="Escribí un comentario…" maxlength="2000">
+      <button type="button" class="ws-btn" id="wsTmCmAdd">Enviar</button></div></div>` : ''}
+    ${t ? `<div style="font-size:.7rem;color:var(--dim);border-top:1px solid var(--border);padding-top:.5rem">
+      Creada por ${escapeHtml(wsNombre(t.creadoPor))} · ${escapeHtml(wsHace(t.createdAt))}${t.auto ? ' · generada por el sistema' : ''}</div>` : ''}`;
+  wsTareaModalWire();
+}
+// Guarda en el borrador lo que hay en pantalla, para que un re-render (agregar
+// un ítem a la checklist, por ejemplo) no borre lo que la persona venía escribiendo.
+function wsTareaLeerForm(){
+  const b = wsTareaBorrador; if (!b) return;
+  const g = (id) => { const el = document.getElementById(id); return el ? el.value : null; };
+  const v = g('wsTmTitulo'); if (v != null) b.titulo = v;
+  const d = g('wsTmDesc'); if (d != null) b.descripcion = d;
+  const p = g('wsTmProy'); if (p != null) b.proyectoId = p;
+  const e = g('wsTmEstado'); if (e != null) b.estado = e;
+  const pr = g('wsTmPri'); if (pr != null) b.prioridad = pr;
+  const f = g('wsTmVence'); if (f != null) b.vence = f;
+  const tg = g('wsTmTags'); if (tg != null) b.etiquetas = tg.split(',').map(x => x.trim()).filter(Boolean);
+}
+function wsTareaModalWire(){
+  const b = wsTareaBorrador;
+  document.querySelectorAll('[data-wsasig]').forEach(el => el.onclick = () => {
+    wsTareaLeerForm();
+    const u = el.dataset.wsasig;
+    b.asignados = b.asignados.includes(u) ? b.asignados.filter(x => x !== u) : b.asignados.concat([u]);
+    wsTareaModalBody();
+  });
+  document.querySelectorAll('[data-wsck]').forEach(el => el.onchange = () => { wsTareaLeerForm(); b.checklist[+el.dataset.wsck].hecho = el.checked; wsTareaModalBody(); });
+  document.querySelectorAll('[data-wsckrm]').forEach(el => el.onclick = () => { wsTareaLeerForm(); b.checklist.splice(+el.dataset.wsckrm, 1); wsTareaModalBody(); });
+  const nueva = document.getElementById('wsTmCkNueva');
+  const agregar = () => {
+    const tx = (nueva.value||'').trim(); if (!tx) return;
+    wsTareaLeerForm(); b.checklist.push({ id:'', texto:tx, hecho:false }); wsTareaModalBody();
+    const n2 = document.getElementById('wsTmCkNueva'); if (n2) n2.focus();
+  };
+  if (nueva) nueva.onkeydown = (e) => { if (e.key === 'Enter'){ e.preventDefault(); agregar(); } };
+  const add = document.getElementById('wsTmCkAdd'); if (add) add.onclick = agregar;
+  const cm = document.getElementById('wsTmCm'), cmAdd = document.getElementById('wsTmCmAdd');
+  const enviarCm = async () => {
+    const tx = (cm.value||'').trim(); if (!tx || !wsTareaEdit) return;
+    cm.value = '';
+    try { const d = await wsApi('/admin/ws/tareas/'+encodeURIComponent(wsTareaEdit.id)+'/comentario', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ texto: tx }) });
+      Object.assign(wsTareaEdit, d.tarea); wsTareaLeerForm(); wsTareaModalBody(); wsRender();
+    } catch(e){ showToast(String(e.message||e), 'err'); }
+  };
+  if (cm) cm.onkeydown = (e) => { if (e.key === 'Enter'){ e.preventDefault(); enviarCm(); } };
+  if (cmAdd) cmAdd.onclick = enviarCm;
+}
+document.getElementById('wsTmSave').onclick = async () => {
+  wsTareaLeerForm();
+  const b = wsTareaBorrador;
+  const err = document.getElementById('wsTmErr');
+  if (!b.titulo.trim()) { err.textContent = '⚠ Ponele un título a la tarea.'; err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  const payload = { titulo:b.titulo, descripcion:b.descripcion, proyectoId:b.proyectoId, asignados:b.asignados,
+    estado:b.estado, prioridad:b.prioridad, vence:b.vence, etiquetas:b.etiquetas, checklist:b.checklist };
+  try {
+    let d;
+    if (wsTareaEdit) { d = await wsApi('/admin/ws/tareas/'+encodeURIComponent(wsTareaEdit.id), { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) }); Object.assign(wsTareaEdit, d.tarea); }
+    else { d = await wsApi('/admin/ws/tareas', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) }); wsData.tareas.push(d.tarea); }
+    wsModalCerrar('wsTareaModal');
+    wsRender(); wsBellRefrescar();
+    const avisados = (d.notificados||[]);
+    showToast(avisados.length ? 'Tarea guardada ✓ — avisado a ' + avisados.join(', ') : 'Tarea guardada ✓', 'ok');
+  } catch(e){ err.textContent = '⚠ ' + String(e.message||e); err.style.display = 'block'; }
+};
+document.getElementById('wsTmDel').onclick = async () => {
+  if (!wsTareaEdit || !confirm('Eliminar “' + wsTareaEdit.titulo + '”? No se puede deshacer.')) return;
+  try { await wsApi('/admin/ws/tareas/'+encodeURIComponent(wsTareaEdit.id), { method:'DELETE' });
+    wsData.tareas = wsData.tareas.filter(x => x.id !== wsTareaEdit.id);
+    wsModalCerrar('wsTareaModal'); wsRender(); showToast('Tarea eliminada', 'ok');
+  } catch(e){ showToast(String(e.message||e), 'err'); }
+};
+
+let wsProyEdit = null;
+function wsProyModal(id){
+  const p = id ? (wsData.proyectos||[]).find(x => x.id === id) : null;
+  wsProyEdit = p || null;
+  const color = p ? p.color : WS_PALETA[(wsData.proyectos||[]).length % WS_PALETA.length];
+  const emoji = p ? (p.emoji||'📁') : '📁';
+  document.getElementById('wsPmTitle').textContent = p ? 'Editar proyecto' : 'Nuevo proyecto';
+  document.getElementById('wsPmDel').style.display = p ? '' : 'none';
+  document.getElementById('wsPmDel').textContent = p && (wsData.tareas||[]).some(t => t.proyectoId === p.id) ? 'Archivar' : 'Eliminar';
+  const respOps = ['<option value="">Sin responsable</option>']
+    .concat((wsData.usuarios||[]).map(u => `<option value="${escapeAttr(u.username)}"${p && p.responsable===u.username?' selected':''}>${escapeHtml(u.apodo||u.nombre||u.username)}</option>`)).join('');
+  document.getElementById('wsPmBody').innerHTML = `
+    <div class="ws-err" id="wsPmErr"></div>
+    <div class="ws-f"><label for="wsPmNombre">Nombre</label><input type="text" id="wsPmNombre" maxlength="80" value="${escapeAttr(p?p.nombre:'')}" placeholder="Producción, Marketing…"></div>
+    <div class="ws-f"><label>Ícono</label><div class="ws-pick" id="wsPmEmojis">${WS_EMOJIS.map(e => `<button type="button" class="ws-pick-i${e===emoji?' on':''}" data-wsemoji="${e}" style="padding:.25rem .5rem">${e}</button>`).join('')}</div></div>
+    <div class="ws-f"><label>Color</label><div class="ws-swatches" id="wsPmColores">${WS_PALETA.map(c => `<button type="button" class="ws-sw${c===color?' on':''}" data-wscolor="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div></div>
+    <div class="ws-f"><label for="wsPmDesc">Descripción</label><textarea id="wsPmDesc" placeholder="Para qué es este proyecto">${escapeHtml(p?(p.descripcion||''):'')}</textarea></div>
+    <div class="ws-f"><label for="wsPmResp">Responsable</label><select id="wsPmResp">${respOps}</select></div>
+    ${p && p.archivado ? '<div style="font-size:.76rem;color:var(--dim)">Este proyecto está archivado: no aparece en los filtros ni al crear tareas.</div>' : ''}`;
+  document.getElementById('wsPmBody').dataset.emoji = emoji;
+  document.getElementById('wsPmBody').dataset.color = color;
+  document.querySelectorAll('[data-wsemoji]').forEach(b => b.onclick = () => {
+    document.getElementById('wsPmBody').dataset.emoji = b.dataset.wsemoji;
+    document.querySelectorAll('[data-wsemoji]').forEach(x => x.classList.toggle('on', x === b));
+  });
+  document.querySelectorAll('[data-wscolor]').forEach(b => b.onclick = () => {
+    document.getElementById('wsPmBody').dataset.color = b.dataset.wscolor;
+    document.querySelectorAll('[data-wscolor]').forEach(x => x.classList.toggle('on', x === b));
+  });
+  wsModalAbrir('wsProyModal');
+}
+document.getElementById('wsPmSave').onclick = async () => {
+  const err = document.getElementById('wsPmErr');
+  const body = document.getElementById('wsPmBody');
+  const payload = {
+    nombre: document.getElementById('wsPmNombre').value.trim(),
+    descripcion: document.getElementById('wsPmDesc').value,
+    responsable: document.getElementById('wsPmResp').value,
+    emoji: body.dataset.emoji, color: body.dataset.color,
+  };
+  if (!payload.nombre) { err.textContent = '⚠ Ponele un nombre al proyecto.'; err.style.display='block'; return; }
+  err.style.display = 'none';
+  try {
+    if (wsProyEdit) { const d = await wsApi('/admin/ws/proyectos/'+encodeURIComponent(wsProyEdit.id), { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) }); Object.assign(wsProyEdit, d.proyecto); }
+    else { const d = await wsApi('/admin/ws/proyectos', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) }); wsData.proyectos.push(d.proyecto); }
+    wsModalCerrar('wsProyModal'); wsRender(); showToast('Proyecto guardado ✓', 'ok');
+  } catch(e){ err.textContent = '⚠ ' + String(e.message||e); err.style.display = 'block'; }
+};
+document.getElementById('wsPmDel').onclick = async () => {
+  if (!wsProyEdit) return;
+  const conTareas = (wsData.tareas||[]).filter(t => t.proyectoId === wsProyEdit.id).length;
+  const msg = conTareas
+    ? `“${wsProyEdit.nombre}” tiene ${conTareas} tarea${conTareas===1?'':'s'}. Se va a archivar (las tareas quedan intactas). ¿Dale?`
+    : `Eliminar el proyecto “${wsProyEdit.nombre}”?`;
+  if (!confirm(msg)) return;
+  try { const d = await wsApi('/admin/ws/proyectos/'+encodeURIComponent(wsProyEdit.id), { method:'DELETE' });
+    if (d.archivado) { wsProyEdit.archivado = true; } else { wsData.proyectos = wsData.proyectos.filter(x => x.id !== wsProyEdit.id); }
+    wsModalCerrar('wsProyModal'); wsRender(); showToast(d.archivado ? 'Proyecto archivado' : 'Proyecto eliminado', 'ok');
+  } catch(e){ showToast(String(e.message||e), 'err'); }
+};
+
+let wsUserEdit = null;
+function wsUserModal(id){
+  const u = id ? (wsData.usuarios||[]).find(x => x.id === id) : null;
+  wsUserEdit = u || null;
+  const color = u ? u.color : WS_PALETA[(wsData.usuarios||[]).length % WS_PALETA.length];
+  document.getElementById('wsUmTitle').textContent = u ? 'Editar persona' : 'Nueva persona';
+  document.getElementById('wsUmSub').textContent = u
+    ? 'Cambiá su nombre, rol, color o restablecé su contraseña.'
+    : 'Su correo es el usuario con el que entra al panel.';
+  document.getElementById('wsUmDel').style.display = u ? '' : 'none';
+  document.getElementById('wsUmBody').innerHTML = `
+    <div class="ws-err" id="wsUmErr"></div>
+    ${u ? '' : `<div class="ws-f"><label for="wsUmUser">Correo (usuario)</label><input type="email" id="wsUmUser" placeholder="nombre@kairosdrinks.com"></div>`}
+    <div class="ws-f2">
+      <div class="ws-f"><label for="wsUmNombre">Nombre</label><input type="text" id="wsUmNombre" maxlength="80" value="${escapeAttr(u?u.nombre:'')}"></div>
+      <div class="ws-f"><label for="wsUmApellido">Apellido</label><input type="text" id="wsUmApellido" maxlength="80" value="${escapeAttr(u?u.apellido:'')}"></div>
+    </div>
+    <div class="ws-f2">
+      <div class="ws-f"><label for="wsUmApodo">Cómo lo llaman</label><input type="text" id="wsUmApodo" maxlength="40" value="${escapeAttr(u?u.apodo:'')}" placeholder="Apodo"></div>
+      <div class="ws-f"><label for="wsUmRol">Rol</label><select id="wsUmRol">
+        <option value="miembro"${!u || u.role==='miembro'?' selected':''}>Miembro — solo el Espacio de trabajo</option>
+        <option value="admin"${u && u.role==='admin'?' selected':''}>Admin — ve y edita todo</option>
+      </select></div>
+    </div>
+    <div class="ws-f"><label>Color</label><div class="ws-swatches" id="wsUmColores">${WS_PALETA.map(c => `<button type="button" class="ws-sw${c===color?' on':''}" data-wsucolor="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div></div>
+    <div class="ws-f"><label>Foto</label>
+      <div style="display:flex;align-items:center;gap:.6rem">
+        <span class="ws-av ws-av-lg" id="wsUmAvPrev" style="${u && u.avatar ? `background-image:url('${escapeAttr(u.avatar)}')` : `background-color:${escapeAttr(color)}`}">${u && u.avatar ? '' : escapeHtml(wsIniciales(u||{nombre:''}))}</span>
+        <input type="file" id="wsUmFoto" accept="image/*" style="font-size:.76rem">
+        ${u && u.avatar ? '<button type="button" class="ws-btn" id="wsUmFotoQuitar">Quitar</button>' : ''}
+      </div>
+      <div style="font-size:.7rem;color:var(--dim)">Opcional. Si no hay foto se usan las iniciales sobre el color elegido.</div></div>
+    <div class="ws-f"><label for="wsUmPass">${u ? 'Nueva contraseña (dejala vacía para no cambiarla)' : 'Contraseña (mínimo 8 caracteres)'}</label>
+      <input type="password" id="wsUmPass" autocomplete="new-password"></div>`;
+  const bodyEl = document.getElementById('wsUmBody');
+  bodyEl.dataset.color = color;
+  bodyEl.dataset.avatar = (u && u.avatar) || '';
+  document.querySelectorAll('[data-wsucolor]').forEach(b => b.onclick = () => {
+    bodyEl.dataset.color = b.dataset.wsucolor;
+    document.querySelectorAll('[data-wsucolor]').forEach(x => x.classList.toggle('on', x === b));
+    const prev = document.getElementById('wsUmAvPrev');
+    if (prev && !bodyEl.dataset.avatar) prev.style.backgroundColor = b.dataset.wsucolor;
+  });
+  const quitar = document.getElementById('wsUmFotoQuitar');
+  if (quitar) quitar.onclick = () => {
+    bodyEl.dataset.avatar = '';
+    const prev = document.getElementById('wsUmAvPrev');
+    prev.style.backgroundImage = ''; prev.style.backgroundColor = bodyEl.dataset.color;
+    prev.textContent = wsIniciales({ nombre: document.getElementById('wsUmNombre').value });
+  };
+  const foto = document.getElementById('wsUmFoto');
+  if (foto) foto.onchange = async () => {
+    const f = foto.files && foto.files[0]; if (!f) return;
+    const err = document.getElementById('wsUmErr');
+    try {
+      const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = rej; r.readAsDataURL(f); });
+      const d = await wsApi('/admin/upload', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ filename:f.name, contentType:f.type, dataBase64:b64 }) });
+      bodyEl.dataset.avatar = d.url;
+      const prev = document.getElementById('wsUmAvPrev');
+      prev.style.backgroundImage = `url('${d.url}')`; prev.textContent = '';
+    } catch(e){ err.textContent = '⚠ ' + String(e.message||e); err.style.display = 'block'; }
+  };
+  wsModalAbrir('wsUserModal');
+}
+document.getElementById('wsUmSave').onclick = async () => {
+  const err = document.getElementById('wsUmErr');
+  const bodyEl = document.getElementById('wsUmBody');
+  const pass = document.getElementById('wsUmPass').value;
+  const payload = {
+    nombre: document.getElementById('wsUmNombre').value.trim(),
+    apellido: document.getElementById('wsUmApellido').value.trim(),
+    apodo: document.getElementById('wsUmApodo').value.trim(),
+    role: document.getElementById('wsUmRol').value,
+    color: bodyEl.dataset.color, avatar: bodyEl.dataset.avatar,
+  };
+  err.style.display = 'none';
+  try {
+    if (wsUserEdit) {
+      if (pass) payload.password = pass;
+      await wsApi('/admin/team/'+encodeURIComponent(wsUserEdit.id), { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    } else {
+      payload.username = document.getElementById('wsUmUser').value.trim().toLowerCase();
+      payload.email = payload.username;
+      payload.password = pass;
+      if (!payload.username) throw new Error('Falta el correo.');
+      if (!payload.nombre) throw new Error('Falta el nombre.');
+      if (!pass || pass.length < 8) throw new Error('La contraseña debe tener al menos 8 caracteres.');
+      await wsApi('/admin/team', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    }
+    wsModalCerrar('wsUserModal');
+    await wsRecargar();
+    showToast('Persona guardada ✓', 'ok');
+  } catch(e){ err.textContent = '⚠ ' + String(e.message||e); err.style.display = 'block'; }
+};
+document.getElementById('wsUmDel').onclick = async () => {
+  if (!wsUserEdit) return;
+  const abiertas = (wsData.tareas||[]).filter(t => (t.asignados||[]).includes(wsUserEdit.username) && t.estado !== 'listo').length;
+  const extra = abiertas ? `\n\nOjo: tiene ${abiertas} tarea${abiertas===1?'':'s'} abierta${abiertas===1?'':'s'} asignada${abiertas===1?'':'s'}. No se borran, quedan sin responsable.` : '';
+  if (!confirm('Eliminar a ' + (wsUserEdit.nombre || wsUserEdit.username) + '? No va a poder entrar más al panel.' + extra)) return;
+  try { await wsApi('/admin/team/'+encodeURIComponent(wsUserEdit.id), { method:'DELETE' });
+    wsModalCerrar('wsUserModal'); await wsRecargar(); showToast('Persona eliminada', 'ok');
+  } catch(e){ showToast(String(e.message||e), 'err'); }
+};
+
+// ── Campanita ──
+let wsNotifs = [];
+function wsBellPintar(){
+  const bell = document.getElementById('wsBell'); if (!bell) return;
+  const sinLeer = wsNotifs.filter(n => !n.leida).length;
+  bell.innerHTML = '🔔' + (sinLeer ? `<span class="b">${sinLeer > 9 ? '9+' : sinLeer}</span>` : '');
+  bell.title = sinLeer ? sinLeer + ' aviso' + (sinLeer===1?'':'s') + ' sin leer' : 'Notificaciones';
+  const caja = document.getElementById('wsNotif'); if (!caja) return;
+  const items = wsNotifs.slice(0, 40).map(n => `<button type="button" class="ws-notif-i${n.leida?'':' no'}" data-wsnotif="${escapeAttr(n.id)}" data-wsnotiftarea="${escapeAttr(n.tareaId||'')}">
+      ${n.de ? wsAvatarHtml(n.de,'ws-av-sm') : '<span class="ws-av ws-av-sm" style="background:#5b6472">⚡</span>'}
+      <span style="flex:1;min-width:0"><span class="tx">${escapeHtml(n.texto)}</span><span class="ts">${escapeHtml(wsHace(n.ts))}</span></span>
+    </button>`).join('');
+  caja.innerHTML = `<div class="ws-notif-h">Notificaciones<span style="flex:1"></span>${sinLeer?'<button type="button" class="ws-btn" id="wsNotifLeer" style="padding:.2rem .45rem;font-size:.7rem">Marcar leídas</button>':''}</div>
+    <div class="ws-notif-l">${items || '<div class="ws-empty" style="padding:1.2rem .8rem">Sin avisos por ahora.</div>'}</div>`;
+  const leer = document.getElementById('wsNotifLeer');
+  if (leer) leer.onclick = async (e) => { e.stopPropagation(); try { await wsApi('/admin/ws/notificaciones/leidas', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' }); wsNotifs.forEach(n => n.leida = true); wsBellPintar(); } catch {} };
+  caja.querySelectorAll('[data-wsnotif]').forEach(b => b.onclick = async () => {
+    const id = b.dataset.wsnotif, tid = b.dataset.wsnotiftarea;
+    const n = wsNotifs.find(x => x.id === id);
+    if (n && !n.leida) { n.leida = true; wsBellPintar(); try { await wsApi('/admin/ws/notificaciones/leidas', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ids:[id] }) }); } catch {} }
+    caja.classList.remove('open');
+    if (!tid) return;
+    // Abrir la tarea del aviso: si el espacio todavía no está cargado, se carga.
+    if (!wsData) { try { await wsCargar(); } catch { return; } }
+    if (!(wsData.tareas||[]).some(t => t.id === tid)) { try { await wsCargar(); } catch {} }
+    if ((wsData.tareas||[]).some(t => t.id === tid)) { await selectSeccion('ws-tablero'); wsTareaModal(tid); }
+    else showToast('Esa tarea ya no existe', 'err');
+  });
+}
+async function wsBellRefrescar(){
+  try { const d = await wsApi('/admin/ws/notificaciones'); wsNotifs = d.notificaciones || []; wsBellPintar(); } catch {}
+}
+(function(){
+  const bell = document.getElementById('wsBell'), caja = document.getElementById('wsNotif');
+  if (!bell || !caja) return;
+  bell.onclick = (e) => {
+    e.stopPropagation();
+    const abrir = !caja.classList.contains('open');
+    caja.classList.toggle('open', abrir);
+    bell.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+    if (abrir) wsBellRefrescar();
+  };
+  document.addEventListener('click', (e) => { if (!caja.contains(e.target) && e.target !== bell) { caja.classList.remove('open'); bell.setAttribute('aria-expanded','false'); } });
+  // Sondeo suave: cada 60 s, y solo con la pestaña visible — sin esto la
+  // campanita solo se actualizaría al recargar la página.
+  setInterval(() => { if (document.visibilityState === 'visible') wsBellRefrescar(); }, 60000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wsBellRefrescar(); });
+})();
+
+document.getElementById('wsReload').onclick = () => wsRecargar();
+document.getElementById('wsNueva').onclick = () => { if (wsData) wsTareaModal(null); };
+
 fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
   if (d && d.username) document.getElementById('btnLogout').style.display = '';
   window.__adminUser = (d && d.username) || '';
@@ -17135,7 +18161,14 @@ fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
     // Arranca en el servicio que puede editar.
     if (adminCosteoSvc) { costeoSvc = adminCosteoSvc; const sel=document.getElementById('costeoSvc'); if(sel) sel.value=adminCosteoSvc; }
     selectSeccion('costeo');
+  } else if (adminRole === 'miembro') {
+    // Miembro del equipo: entra directo al Espacio de trabajo. No pasa por el
+    // selector de Centro de Costo ni por el dashboard (que muestra ventas).
+    ccGateDismiss();
+    document.body.classList.add('role-miembro');
+    selectSeccion('ws-tablero');
   }
+  wsBellRefrescar();
 }).catch(() => { renderSidebar(); });
 
 // ── Aviso de almacenamiento efímero ──────────────────────────────────────────

@@ -1836,6 +1836,21 @@ function costeoRoleAllows(req, sess){
   return false;
 }
 
+// Rol "miembro": solo el Espacio de trabajo. No ve ni por accidente los módulos
+// con plata adentro (Estado de Resultado, Costos, Gastos, nómina…). La lista es
+// de PERMITIDOS, no de bloqueados: un módulo nuevo nace cerrado para el miembro,
+// que es el default correcto cuando lo que se filtra es información sensible.
+function miembroRoleAllows(req){
+  const p = req.path, m = req.method;
+  if (p === '/admin' || p === '/admin/' || p === '/admin/me' || p === '/admin/logout') return true;
+  if (p.startsWith('/admin/ws/')) return true;               // el espacio de trabajo entero
+  if (p === '/admin/team' && (m === 'GET' || m === 'HEAD')) return true; // roster para asignar
+  if (p === '/admin/team/me' && m === 'PUT') return true;    // editar el perfil propio
+  if (p === '/admin/upload' && m === 'POST') return true;    // subir su propio avatar
+  if (p === '/admin/_diag/almacenamiento') return true;      // aviso de disco efímero
+  return false;
+}
+
 function wantsHtml(req){
   const accept = String(req.headers.accept || '');
   return accept.includes('text/html');
@@ -1854,6 +1869,10 @@ function requireAdmin(req, res, next){
   if (sess.role === 'costeo' && !costeoRoleAllows(req, sess)) {
     if (wantsHtml(req)) return res.redirect(302, '/admin');
     return res.status(403).json({ error: 'No tenés permiso para editar esta sección.' });
+  }
+  if (sess.role === 'miembro' && !miembroRoleAllows(req)) {
+    if (wantsHtml(req)) return res.redirect(302, '/admin');
+    return res.status(403).json({ error: 'Tu cuenta solo tiene acceso al Espacio de trabajo.' });
   }
   return next();
 }
@@ -1891,7 +1910,7 @@ app.post('/admin/login', async (req, res) => {
   } else {
     const teamMember = teamFindByUsername(userLc);
     if (teamMember && teamMember.passwordHash && teamVerifyPassword(password, teamMember.passwordHash)) {
-      account = { username: teamMember.username, role: teamMember.role || 'admin', teamId: teamMember.id };
+      account = { username: teamMember.username, role: teamRol(teamMember.role), teamId: teamMember.id };
     } else if (COSTEO_USERS[userLc] && safeStrEq(password, COSTEO_USERS_PASS)) {
       account = { username: userLc, role: 'costeo', costeoSvc: COSTEO_USERS[userLc].svc };
     }
@@ -2004,14 +2023,33 @@ app.get('/admin', requireAdmin, (_req, res) => {
 
 app.get('/admin/me', requireAdmin, (req, res) => {
   const s = adminSessionFor(req);
-  if (!s) return res.json({ username: null, role: 'admin', costeoSvc: null, nombre: '', apodo: '', teamId: null, expiresAt: null }); // auth deshabilitada
-  res.json({ username: s.username, role: s.role || 'admin', costeoSvc: s.costeoSvc || null, nombre: s.nombre || '', apodo: s.apodo || '', teamId: s.teamId || null, expiresAt: s.expiresAt });
+  if (!s) return res.json({ username: null, role: 'admin', costeoSvc: null, nombre: '', apodo: '', teamId: null, avatar: '', color: teamColor(null, 'kbros'), expiresAt: null }); // auth deshabilitada
+  const perfil = teamFindByUsername(s.username);
+  res.json({
+    username: s.username, role: s.role || 'admin', costeoSvc: s.costeoSvc || null,
+    nombre: s.nombre || '', apodo: s.apodo || '', teamId: s.teamId || (perfil && perfil.id) || null,
+    avatar: (perfil && perfil.avatar) || '', color: teamColor(perfil && perfil.color, s.username),
+    expiresAt: s.expiresAt,
+  });
 });
 
 // ─── Cuentas de equipo: alta / edición / listado ────────────────────────────
 // Mismo permiso plano que el resto del panel (cualquier sesión admin puede
 // gestionar el equipo, igual que ya puede tocar cualquier otra sección).
-const teamPublic = (m) => ({ id: m.id, username: m.username, nombre: m.nombre || '', apellido: m.apellido || '', apodo: m.apodo || '', role: m.role || 'admin', profileOnly: !!m.profileOnly, createdAt: m.createdAt || null });
+// Roles del panel: 'admin' ve y edita todo; 'miembro' solo el Espacio de trabajo
+// (ver miembroRoleAllows). Las cuentas que ya existían no declaran rol → 'admin',
+// así nadie pierde acceso por este cambio.
+const TEAM_ROLES = ['admin', 'miembro'];
+const teamRol = (r) => TEAM_ROLES.includes(String(r || '')) ? String(r) : 'admin';
+// Paleta de identidad: cada persona tiene un color para avatares y tarjetas.
+const WS_COLORES = ['#f5a623','#2e9c5a','#4a90d9','#c1447e','#7c6bb8','#1f8a70','#d9534f','#b87333','#5b6472','#0ea5a5'];
+const teamColor = (v, semilla) => {
+  const c = String(v || '').trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(c)) return c;
+  let h = 0; for (const ch of String(semilla || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return WS_COLORES[h % WS_COLORES.length];
+};
+const teamPublic = (m) => ({ id: m.id, username: m.username, email: m.email || m.username || '', nombre: m.nombre || '', apellido: m.apellido || '', apodo: m.apodo || '', role: teamRol(m.role), avatar: m.avatar || '', color: teamColor(m.color, m.username), profileOnly: !!m.profileOnly, createdAt: m.createdAt || null });
 app.get('/admin/team', requireAdmin, (req, res) => {
   res.json({ members: teamLoad().members.map(teamPublic) });
 });
@@ -2027,7 +2065,15 @@ app.post('/admin/team', requireAdmin, (req, res) => {
   if (!password || password.length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
   const data = teamLoad();
   if (data.members.some(m => (m.username || '').toLowerCase() === username)) return res.status(409).json({ error: 'Ya existe una cuenta con ese correo.' });
-  const member = { id: teamNewId(), username, passwordHash: teamHashPassword(password), profileOnly: false, nombre, apellido, apodo, role: 'admin', createdAt: Date.now() };
+  // Rol: si el alta no lo declara, 'miembro' — el acceso total se da a propósito,
+  // no por omisión. Las cuentas viejas no se tocan (siguen siendo admin).
+  const role = TEAM_ROLES.includes(String(b.role || '')) ? String(b.role) : 'miembro';
+  const member = {
+    id: teamNewId(), username, passwordHash: teamHashPassword(password), profileOnly: false,
+    nombre, apellido, apodo, role, createdAt: Date.now(),
+    email: costosStr(b.email, 120).toLowerCase() || username,
+    avatar: costosStr(b.avatar, 400), color: teamColor(b.color, username),
+  };
   data.members.push(member); teamSave(data);
   res.json({ ok: true, member: teamPublic(member) });
 });
@@ -2061,6 +2107,10 @@ app.put('/admin/team/:id', requireAdmin, (req, res) => {
   if (b.nombre != null) member.nombre = costosStr(b.nombre, 80);
   if (b.apellido != null) member.apellido = costosStr(b.apellido, 80);
   if (b.apodo != null) member.apodo = costosStr(b.apodo, 40);
+  if (b.email != null) member.email = costosStr(b.email, 120).toLowerCase();
+  if (b.avatar != null) member.avatar = costosStr(b.avatar, 400);
+  if (b.color != null) member.color = teamColor(b.color, member.username);
+  if (b.role != null && TEAM_ROLES.includes(String(b.role))) member.role = String(b.role);
   if (b.password) {
     if (String(b.password).length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres.' });
     member.passwordHash = teamHashPassword(String(b.password)); member.profileOnly = false;
@@ -2075,6 +2125,354 @@ app.delete('/admin/team/:id', requireAdmin, (req, res) => {
   if (data.members.length === n) return res.status(404).json({ error: 'No se encontró la cuenta.' });
   teamSave(data);
   res.json({ ok: true });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// ESPACIO DE TRABAJO — proyectos, tareas, notificaciones
+// ════════════════════════════════════════════════════════════════════════════
+// Todo vive en un solo doc, workspace.json, en el mismo directorio de datos que
+// el resto (volumen persistente en Railway). Las semillas SOLO completan lo que
+// está vacío: si el usuario borra un proyecto sembrado, no vuelve a aparecer
+// (por eso el flag `sembrado`, y no "¿está la lista vacía?").
+//
+// La identidad de una persona en el espacio es su USERNAME (el correo con el que
+// entra), no el id del registro de equipo: es lo único que existe siempre, tanto
+// si entró con su cuenta propia como con la credencial de administrador.
+const WS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'workspace.json');
+const WS_V = 1;
+const WS_ESTADOS_DEFAULT = [
+  { id: 'por_hacer', nombre: 'Por hacer', color: '#5b6472', orden: 0 },
+  { id: 'haciendo',  nombre: 'Haciendo',  color: '#4a90d9', orden: 1 },
+  { id: 'listo',     nombre: 'Listo',     color: '#2e9c5a', orden: 2 },
+];
+const WS_PRIORIDADES = ['baja', 'media', 'alta', 'urgente'];
+const WS_PROYECTOS_SEMILLA = [
+  { nombre: 'Producción',        emoji: '🏭', color: '#b87333' },
+  { nombre: 'Marketing',         emoji: '📣', color: '#f5a623' },
+  { nombre: 'Restaurantes',      emoji: '🍽️', color: '#c1447e' },
+  { nombre: 'Ventas',            emoji: '🛒', color: '#2e9c5a' },
+  { nombre: 'Distribución',      emoji: '🚚', color: '#4a90d9' },
+  { nombre: 'Alertas del sistema', emoji: '🔔', color: '#d9534f', descripcion: 'Tareas que genera solo el ERP cuando detecta algo que revisar.' },
+];
+
+let WS_ID_SEQ = 0;
+function wsNewId(pfx){ WS_ID_SEQ = (WS_ID_SEQ + 1) % 100000; return pfx + '_' + Date.now().toString(36) + '_' + WS_ID_SEQ.toString(36); }
+const wsStr = (v, m = 200) => String(v == null ? '' : v).trim().slice(0, m);
+const wsArr = (v) => Array.isArray(v) ? v : [];
+// Fecha "YYYY-MM-DD" o vacío. Nunca un Date: el vencimiento es un día del
+// calendario, no un instante — con zona horaria de por medio se corre un día.
+const wsFecha = (v) => /^\d{4}-\d{2}-\d{2}$/.test(String(v || '')) ? String(v) : '';
+
+function wsSave(d){
+  if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true });
+  writeFileSync(WS_FILE, JSON.stringify(d, null, 2));
+}
+function wsLoad(){
+  // El doc arranca con TODAS las claves que va a usar el espacio (eventos,
+  // canales, mensajes, metas todavía sin endpoints) para que las partes que
+  // vienen después no tengan que migrar el archivo.
+  const base = { v: WS_V, sembrado: false, estados: [], proyectos: [], tareas: [], notificaciones: [], eventos: [], canales: [], mensajes: [], metas: [] };
+  let d = { ...base };
+  try {
+    if (existsSync(WS_FILE)) {
+      const p = JSON.parse(readFileSync(WS_FILE, 'utf-8'));
+      // Copia campo por campo pero conservando cualquier clave extra que haya
+      // escrito una versión más nueva: descartar lo que no se reconoce es
+      // justo cómo se pierde el trabajo cargado a mano.
+      d = { ...base, ...p };
+      for (const k of ['estados','proyectos','tareas','notificaciones','eventos','canales','mensajes','metas']) d[k] = wsArr(d[k]);
+    }
+  } catch (e) { console.warn('workspace load:', e.message); }
+  let cambio = false;
+  if (!d.estados.length) { d.estados = WS_ESTADOS_DEFAULT.map(e => ({ ...e })); cambio = true; }
+  if (!d.sembrado) {
+    // Semilla única de proyectos. Dedupe por nombre normalizado para que correr
+    // dos veces (o sobre datos que ya los tenían) no duplique nada.
+    const yaHay = new Set(d.proyectos.map(p => wsStr(p.nombre).toLowerCase()));
+    for (const s of WS_PROYECTOS_SEMILLA) {
+      if (yaHay.has(s.nombre.toLowerCase())) continue;
+      d.proyectos.push({
+        id: wsNewId('pr'), nombre: s.nombre, color: s.color, emoji: s.emoji,
+        descripcion: s.descripcion || '', responsable: '', archivado: false, createdAt: Date.now(),
+      });
+    }
+    d.sembrado = true; cambio = true;
+  }
+  if (d.v !== WS_V) { d.v = WS_V; cambio = true; }
+  if (cambio) { try { wsSave(d); } catch (e) { console.warn('workspace seed:', e.message); } }
+  return d;
+}
+
+// Quién está haciendo la request. Con ADMIN_AUTH_ENABLED=0 no hay sesión: cae a
+// una identidad de sistema para que el panel siga usable en desarrollo.
+function wsActor(req){
+  const s = adminSessionFor(req);
+  const username = (s && s.username) ? String(s.username).toLowerCase() : 'admin@local';
+  const perfil = teamFindByUsername(username);
+  return {
+    username,
+    role: (s && s.role) || 'admin',
+    nombre: (perfil && (perfil.apodo || perfil.nombre)) || (s && (s.apodo || s.nombre)) || username,
+    avatar: (perfil && perfil.avatar) || '',
+    color: teamColor(perfil && perfil.color, username),
+  };
+}
+// El roster del espacio: las cuentas de equipo + quien esté logueado ahora (que
+// puede no tener registro propio si entró con la credencial de administrador).
+// Sin esto, el admin no podría asignarse una tarea a sí mismo.
+function wsUsuarios(req){
+  const out = teamLoad().members.map(teamPublic);
+  const yo = wsActor(req);
+  if (!out.some(u => (u.username || '').toLowerCase() === yo.username)) {
+    out.push({ id: 'sesion:' + yo.username, username: yo.username, email: yo.username, nombre: yo.nombre, apellido: '', apodo: '', role: yo.role === 'miembro' ? 'miembro' : 'admin', avatar: yo.avatar, color: yo.color, profileOnly: true, createdAt: null });
+  }
+  return out;
+}
+const wsNombreUsuario = (usuarios, username) => {
+  const u = usuarios.find(x => (x.username || '').toLowerCase() === String(username || '').toLowerCase());
+  return u ? (u.apodo || u.nombre || u.username) : String(username || '');
+};
+
+// Notificar (campanita). destinos = usernames; nunca se notifica a quien hizo la
+// acción — que te avise de lo que acabás de hacer vos es solo ruido.
+function wsNotificar(d, destinos, { tipo, texto, tareaId = null, de = '' }){
+  const vistos = new Set();
+  for (const raw of wsArr(destinos)) {
+    const u = String(raw || '').toLowerCase();
+    if (!u || u === String(de || '').toLowerCase() || vistos.has(u)) continue;
+    vistos.add(u);
+    d.notificaciones.push({ id: wsNewId('nt'), username: u, tipo, texto: wsStr(texto, 300), tareaId, de: String(de || ''), ts: Date.now(), leida: false });
+  }
+  // Techo por persona: la campanita es un aviso, no un historial. Sin esto el
+  // doc crece para siempre.
+  const porUser = new Map();
+  for (const n of d.notificaciones) { const a = porUser.get(n.username) || []; a.push(n); porUser.set(n.username, a); }
+  let recortar = false;
+  for (const a of porUser.values()) if (a.length > 200) recortar = true;
+  if (recortar) {
+    const keep = [];
+    for (const a of porUser.values()) { a.sort((x, y) => y.ts - x.ts); keep.push(...a.slice(0, 200)); }
+    d.notificaciones = keep.sort((x, y) => x.ts - y.ts);
+  }
+}
+
+function wsProyecto(b, prev){
+  const p = prev || { id: wsNewId('pr'), createdAt: Date.now(), archivado: false };
+  if (b.nombre != null) p.nombre = wsStr(b.nombre, 80);
+  if (b.color != null) p.color = teamColor(b.color, p.nombre || p.id);
+  if (b.emoji != null) p.emoji = wsStr(b.emoji, 8);
+  if (b.descripcion != null) p.descripcion = wsStr(b.descripcion, 600);
+  if (b.responsable != null) p.responsable = wsStr(b.responsable, 120).toLowerCase();
+  if (b.archivado != null) p.archivado = !!b.archivado;
+  if (!p.color) p.color = teamColor(null, p.nombre || p.id);
+  if (!p.emoji) p.emoji = '📁';
+  return p;
+}
+
+// Normaliza una tarea desde el body. `prev` = tarea existente (edición parcial:
+// solo se toca lo que vino en el body, así dos personas editando campos
+// distintos no se pisan).
+function wsTarea(d, b, prev, actor){
+  const t = prev || {
+    id: wsNewId('tk'), createdAt: Date.now(), creadoPor: actor.username,
+    checklist: [], comentarios: [], etiquetas: [], asignados: [],
+    auto: false, fuente: null, completadaAt: null,
+  };
+  if (b.titulo != null) t.titulo = wsStr(b.titulo, 200);
+  if (b.descripcion != null) t.descripcion = wsStr(b.descripcion, 4000);
+  if (b.proyectoId != null) {
+    const pid = wsStr(b.proyectoId, 60);
+    t.proyectoId = d.proyectos.some(p => p.id === pid) ? pid : '';
+  }
+  if (b.asignados != null) {
+    const validos = new Set(teamLoad().members.map(m => (m.username || '').toLowerCase()));
+    t.asignados = [...new Set(wsArr(b.asignados).map(x => wsStr(x, 120).toLowerCase()).filter(Boolean))]
+      // Se acepta un username que no esté en team.json solo si es quien está
+      // logueado (credencial de administrador sin registro propio).
+      .filter(u => validos.has(u) || u === actor.username).slice(0, 12);
+  }
+  if (b.estado != null) {
+    const e = wsStr(b.estado, 40);
+    t.estado = d.estados.some(x => x.id === e) ? e : (d.estados[0] && d.estados[0].id) || 'por_hacer';
+  }
+  if (b.prioridad != null) t.prioridad = WS_PRIORIDADES.includes(String(b.prioridad)) ? String(b.prioridad) : 'media';
+  if (b.vence != null) t.vence = wsFecha(b.vence);
+  if (b.etiquetas != null) t.etiquetas = [...new Set(wsArr(b.etiquetas).map(x => wsStr(x, 40)).filter(Boolean))].slice(0, 12);
+  if (b.checklist != null) {
+    t.checklist = wsArr(b.checklist).slice(0, 60).map(it => ({
+      id: wsStr(it && it.id, 60) || wsNewId('ck'),
+      texto: wsStr(it && it.texto, 200),
+      hecho: !!(it && it.hecho),
+    })).filter(it => it.texto);
+  }
+  if (b.orden != null && isFinite(Number(b.orden))) t.orden = Number(b.orden);
+  // Defaults de alta
+  if (t.estado == null) t.estado = (d.estados[0] && d.estados[0].id) || 'por_hacer';
+  if (t.prioridad == null) t.prioridad = 'media';
+  if (t.vence == null) t.vence = '';
+  if (t.proyectoId == null) t.proyectoId = '';
+  if (t.orden == null) t.orden = Date.now();
+  // Marca de completada: sirve para "listas esta semana" sin recorrer el log.
+  const esListo = (d.estados.find(e => e.id === t.estado) || {}).id === 'listo';
+  if (esListo && !t.completadaAt) t.completadaAt = Date.now();
+  if (!esListo) t.completadaAt = null;
+  t.updatedAt = Date.now();
+  return t;
+}
+
+app.get('/admin/ws/bootstrap', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const yo = wsActor(req);
+  res.json({
+    me: yo, usuarios: wsUsuarios(req), estados: d.estados,
+    proyectos: d.proyectos, tareas: d.tareas, prioridades: WS_PRIORIDADES,
+    notificaciones: d.notificaciones.filter(n => n.username === yo.username).sort((a, b) => b.ts - a.ts).slice(0, 60),
+  });
+});
+
+// ── Proyectos ──
+app.post('/admin/ws/proyectos', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const p = wsProyecto(req.body || {}, null);
+  if (!p.nombre) return res.status(400).json({ error: 'Ponele un nombre al proyecto.' });
+  if (d.proyectos.some(x => wsStr(x.nombre).toLowerCase() === p.nombre.toLowerCase() && !x.archivado)) {
+    return res.status(409).json({ error: 'Ya hay un proyecto activo con ese nombre.' });
+  }
+  d.proyectos.push(p); wsSave(d);
+  res.json({ ok: true, proyecto: p });
+});
+app.put('/admin/ws/proyectos/:id', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const p = d.proyectos.find(x => x.id === req.params.id);
+  if (!p) return res.status(404).json({ error: 'No se encontró el proyecto.' });
+  wsProyecto(req.body || {}, p);
+  if (!p.nombre) return res.status(400).json({ error: 'Ponele un nombre al proyecto.' });
+  wsSave(d);
+  res.json({ ok: true, proyecto: p });
+});
+app.delete('/admin/ws/proyectos/:id', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const p = d.proyectos.find(x => x.id === req.params.id);
+  if (!p) return res.status(404).json({ error: 'No se encontró el proyecto.' });
+  const conTareas = d.tareas.filter(t => t.proyectoId === p.id).length;
+  // Con tareas adentro no se borra: se archiva. Borrarlo dejaría las tareas
+  // huérfanas sin que nadie se entere.
+  if (conTareas && !req.query.forzar) {
+    p.archivado = true; wsSave(d);
+    return res.json({ ok: true, archivado: true, tareas: conTareas });
+  }
+  d.proyectos = d.proyectos.filter(x => x.id !== p.id);
+  for (const t of d.tareas) if (t.proyectoId === p.id) t.proyectoId = '';
+  wsSave(d);
+  res.json({ ok: true, archivado: false });
+});
+
+// ── Tareas ──
+app.post('/admin/ws/tareas', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const actor = wsActor(req);
+  const t = wsTarea(d, req.body || {}, null, actor);
+  if (!t.titulo) return res.status(400).json({ error: 'Ponele un título a la tarea.' });
+  d.tareas.push(t);
+  const usuarios = wsUsuarios(req);
+  wsNotificar(d, t.asignados, {
+    tipo: 'asignacion', de: actor.username, tareaId: t.id,
+    texto: `${actor.nombre} te asignó “${t.titulo}”`,
+  });
+  wsSave(d);
+  res.json({ ok: true, tarea: t, notificados: t.asignados.filter(u => u !== actor.username).map(u => wsNombreUsuario(usuarios, u)) });
+});
+app.put('/admin/ws/tareas/:id', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const t = d.tareas.find(x => x.id === req.params.id);
+  if (!t) return res.status(404).json({ error: 'No se encontró la tarea.' });
+  const actor = wsActor(req);
+  const antes = { asignados: (t.asignados || []).slice(), estado: t.estado };
+  wsTarea(d, req.body || {}, t, actor);
+  if (!t.titulo) return res.status(400).json({ error: 'Ponele un título a la tarea.' });
+  // Solo se avisa a los NUEVOS asignados: re-notificar a los de siempre en cada
+  // edición convierte la campanita en spam y deja de mirarse.
+  const nuevos = (t.asignados || []).filter(u => !antes.asignados.includes(u));
+  if (nuevos.length) wsNotificar(d, nuevos, { tipo: 'asignacion', de: actor.username, tareaId: t.id, texto: `${actor.nombre} te asignó “${t.titulo}”` });
+  if (antes.estado !== t.estado && t.completadaAt) {
+    wsNotificar(d, [t.creadoPor, ...antes.asignados], { tipo: 'completada', de: actor.username, tareaId: t.id, texto: `${actor.nombre} completó “${t.titulo}”` });
+  }
+  wsSave(d);
+  res.json({ ok: true, tarea: t });
+});
+// Mover en el tablero: cambia estado y/o posición. Endpoint aparte del PUT
+// porque el drag & drop dispara muchas veces y tiene que ser lo más barato
+// posible — y porque el PUT toca campos que el arrastre no debería tocar.
+app.post('/admin/ws/tareas/:id/mover', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const t = d.tareas.find(x => x.id === req.params.id);
+  if (!t) return res.status(404).json({ error: 'No se encontró la tarea.' });
+  const b = req.body || {};
+  const actor = wsActor(req);
+  const estadoAntes = t.estado;
+  if (b.estado != null) {
+    const e = wsStr(b.estado, 40);
+    if (!d.estados.some(x => x.id === e)) return res.status(400).json({ error: 'Estado inválido.' });
+    t.estado = e;
+  }
+  // Reordenar dentro de la columna: el cliente manda la lista de ids en el
+  // orden en que quedaron. Se numera de 10 en 10 por si hay que insertar.
+  if (Array.isArray(b.orden)) {
+    b.orden.forEach((id, i) => { const x = d.tareas.find(y => y.id === id); if (x) x.orden = (i + 1) * 10; });
+  }
+  const esListo = t.estado === 'listo';
+  if (esListo && !t.completadaAt) t.completadaAt = Date.now();
+  if (!esListo) t.completadaAt = null;
+  t.updatedAt = Date.now();
+  if (estadoAntes !== t.estado && esListo) {
+    wsNotificar(d, [t.creadoPor, ...(t.asignados || [])], { tipo: 'completada', de: actor.username, tareaId: t.id, texto: `${actor.nombre} completó “${t.titulo}”` });
+  }
+  wsSave(d);
+  res.json({ ok: true, tarea: t });
+});
+app.post('/admin/ws/tareas/:id/comentario', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const t = d.tareas.find(x => x.id === req.params.id);
+  if (!t) return res.status(404).json({ error: 'No se encontró la tarea.' });
+  const actor = wsActor(req);
+  const texto = wsStr((req.body || {}).texto, 2000);
+  if (!texto) return res.status(400).json({ error: 'Escribí algo.' });
+  const c = { id: wsNewId('cm'), autor: actor.username, texto, ts: Date.now() };
+  t.comentarios = wsArr(t.comentarios); t.comentarios.push(c);
+  t.updatedAt = Date.now();
+  wsNotificar(d, [t.creadoPor, ...(t.asignados || [])], { tipo: 'comentario', de: actor.username, tareaId: t.id, texto: `${actor.nombre} comentó en “${t.titulo}”` });
+  wsSave(d);
+  res.json({ ok: true, comentario: c, tarea: t });
+});
+app.delete('/admin/ws/tareas/:id', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const n = d.tareas.length;
+  d.tareas = d.tareas.filter(x => x.id !== req.params.id);
+  if (d.tareas.length === n) return res.status(404).json({ error: 'No se encontró la tarea.' });
+  d.notificaciones = d.notificaciones.filter(x => x.tareaId !== req.params.id);
+  wsSave(d);
+  res.json({ ok: true });
+});
+
+// ── Notificaciones ──
+app.get('/admin/ws/notificaciones', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const yo = wsActor(req);
+  const mias = d.notificaciones.filter(n => n.username === yo.username).sort((a, b) => b.ts - a.ts);
+  res.json({ notificaciones: mias.slice(0, 60), sinLeer: mias.filter(n => !n.leida).length });
+});
+app.post('/admin/ws/notificaciones/leidas', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const yo = wsActor(req);
+  const ids = wsArr((req.body || {}).ids).map(x => wsStr(x, 60));
+  let n = 0;
+  for (const x of d.notificaciones) {
+    if (x.username !== yo.username || x.leida) continue;
+    if (ids.length && !ids.includes(x.id)) continue;
+    x.leida = true; n++;
+  }
+  if (n) wsSave(d);
+  res.json({ ok: true, marcadas: n });
 });
 
 app.get('/admin/brand/:seccion', requireAdmin, (req, res) => {

@@ -90,3 +90,31 @@ Cuatro conjuntos independientes: `garden`, `badass` (comida) y `garden_barra`,
 - **Reventa** (solo barra) — productos que se compran hechos y se revenden, sin
   receta: `{ nombre, precioVenta, precioCompra }`. Si una sección de carta tiene
   platos costeados, esos ganan y la sección de reventa homónima no se muestra.
+
+## Espacio de trabajo (tareas del equipo)
+
+Gestor de tareas del equipo dentro del `/admin`: proyectos, tablero kanban,
+lista, "mis tareas", personas y campanita de avisos. Es aditivo — no toca ningún
+módulo existente.
+
+- **Datos**: un solo doc `workspace.json` en el directorio de datos (volumen
+  persistente). Tiene ya declaradas las claves de lo que falta (`eventos`,
+  `canales`, `mensajes`, `metas`) para no tener que migrar el archivo después.
+  Está en `.gitignore`: no es código fuente.
+- **Semillas**: los 6 proyectos iniciales se siembran UNA vez, con el flag
+  `sembrado` — no con "¿está la lista vacía?". Si el usuario borra uno, no
+  vuelve. Los estados por defecto se recrean solo si la lista quedó vacía.
+- **Identidad**: una persona se identifica por su `username` (el correo con el
+  que entra), no por el id de `team.json`. Es lo único que existe siempre, tanto
+  si entró con cuenta propia como con la credencial de `ADMIN_USER`.
+- **Roles** (`team.json`, campo `role`): `admin` ve y edita todo el panel;
+  `miembro` solo el Espacio de trabajo. El corte está en `miembroRoleAllows()`
+  dentro de `requireAdmin`, y es una lista de **permitidos**: un módulo nuevo
+  nace cerrado para el miembro. Las cuentas viejas sin `role` valen como
+  `admin`, así nadie pierde acceso. Un alta que no declara rol nace `miembro`.
+- El front espeja el corte (`adminRole === 'miembro'` → sidebar y navegación
+  acotados), pero el que manda es el server: el front es comodidad, no
+  seguridad.
+- La credencial de `ADMIN_USER`/`ADMIN_PASSWORD` **siempre** entra como admin,
+  sin importar lo que diga el registro de equipo. Es la puerta de rescate si
+  alguien se degrada a sí mismo por error.
