@@ -13394,11 +13394,15 @@ app.get('/admin/puntos-venta', requireAdmin, async (req, res) => {
     return r ? { zona: r.zona || null, dia: Array.isArray(r.dia) ? r.dia : [] } : null;
   };
   const points = [...map.values()].map(p => ({
-    _customerId: p.customerId,
+    customerId: p.customerId,
     rutaKey: p.rutaKey,
     name: p.name, email: p.email, total: Math.round(p.total), units: p.units, orders: p.orders,
     b2b: p.b2b, brands: [...p.brands].slice(0, 6),
     canal: puntoCanal(p),
+    // Canal(es) CRUDOS del cliente (a diferencia de `canal`, que ya cae al canal
+    // del producto si el cliente no tiene uno propio) — es lo que necesita el
+    // editor inline para saber qué chips venían tildados antes de guardar.
+    channels: p.customerId ? (notes[p.customerId]?.channels || []) : [],
     topProducto: puntoTopProducto(p),
     ruta: puntoRuta(p.rutaKey),
     address: p.address ? [p.address.address1, p.address.city, p.address.province].filter(Boolean).join(', ') : '',
@@ -13414,7 +13418,7 @@ app.get('/admin/puntos-venta', requireAdmin, async (req, res) => {
     const addr = [sp.address, sp.number].filter(Boolean).join(' ');
     const fullAddr = [addr, sp.city, sp.region, sp.country].filter(Boolean).join(', ');
     const existing = sp.customerId
-      ? points.find(p => p._customerId === sp.customerId)
+      ? points.find(p => p.customerId === sp.customerId)
       : points.find(p => p.name.toLowerCase() === String(sp.name||'').toLowerCase());
     if (existing) {
       if (sp.lat != null && existing.lat == null) { existing.lat = sp.lat; existing.lng = sp.lng; }
@@ -13426,6 +13430,7 @@ app.get('/admin/puntos-venta', requireAdmin, async (req, res) => {
         rutaKey,
         name: sp.name || 'Sin nombre', email: sp.email || '', total: 0, units: 0, orders: 0,
         b2b: true, brands: [], canal: canalDeCliente(sp.customerId, notes) || null,
+        channels: sp.customerId ? (notes[sp.customerId]?.channels || []) : [],
         topProducto: null, ruta: puntoRuta(rutaKey),
         address: fullAddr, city: sp.city || '',
         lat: sp.lat ?? null, lng: sp.lng ?? null, lastOrder: null,
@@ -13442,7 +13447,11 @@ app.get('/admin/puntos-venta', requireAdmin, async (req, res) => {
     totalVenta: points.reduce((a, p) => a + p.total, 0),
     withCoords: points.filter(p => p.lat != null).length,
     diasSemana: PUNTOS_DIAS_SEMANA,
-    points: points.map(({ _customerId, ...rest }) => rest),
+    // customerId va incluido a propósito (Fase 5b): es lo que necesita el
+    // editor de canal inline del panel para pegarle a PUT /admin/customers/:id/channels.
+    // Es un panel admin-only, no hay problema en exponerlo — ya se expone igual
+    // en Análisis de Datos › clientes mayoristas.
+    points,
   });
 });
 

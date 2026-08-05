@@ -9818,6 +9818,16 @@ function pvCanalBadge(canal){
   if (!canal) return '<span class="pv-noloc">sin canal</span>';
   return `<span class="pv-tag-canal pv-tag-canal-${escapeAttr(canal)}">${escapeHtml(PV_CANAL_LBL[canal]||canal)}</span>`;
 }
+// Editor de canal inline: reusa el mismo endpoint que la ficha del cliente en
+// Análisis de Datos (PUT /admin/customers/:id/channels) — un solo dato, una
+// sola fuente de verdad, editable desde los dos lugares. Solo se puede asignar
+// si el punto tiene un cliente real de Shopify detrás (los puntos agrupados
+// por email/dirección, sin customerId, no tienen a quién guardarle el canal).
+function pvCanalCell(p){
+  const badge = pvCanalBadge(p.canal);
+  if (!p.customerId) return `${badge}<div class="pv-noloc" style="margin-top:.15rem" title="Este punto no tiene un cliente de Shopify identificado todavía, así que no se le puede asignar canal acá.">sin cliente Shopify</div>`;
+  return `${badge}<button class="pv-ruta-edit" type="button" data-canal-edit="${escapeAttr(p.rutaKey)}">✎ editar</button>`;
+}
 function pvRutaCell(p){
   const has = p.ruta && (p.ruta.zona || (p.ruta.dia && p.ruta.dia.length));
   const chip = has
@@ -9845,7 +9855,7 @@ function renderPuntos(d){
       <td>${escapeHtml(p.name)} ${p.manual?'<span class="pv-tag-new">NUEVO</span>':(p.b2b?'<span class="pv-tag-b2b">B2B</span>':'<span class="pv-tag-b2c">B2C</span>')}
         ${p.brands && p.brands.length ? `<div class="mun-meta-cell">${escapeHtml(p.brands.join(' · '))}</div>` : ''}</td>
       <td>${p.address ? escapeHtml(p.address) : '<span class="pv-noloc">sin dirección</span>'}</td>
-      <td>${pvCanalBadge(p.canal)}</td>
+      <td>${pvCanalCell(p)}</td>
       <td>${p.topProducto ? `<span class="pv-topprod">${escapeHtml(p.topProducto.skuCode||'—')}</span><div class="mun-meta-cell">${escapeHtml(p.topProducto.title)}</div>` : '<span class="pv-noloc">—</span>'}</td>
       <td class="dist-num">${distMoney(p.total)}</td>
       <td class="dist-num">${(p.units||0).toLocaleString('es-CL')}</td>
@@ -9853,6 +9863,7 @@ function renderPuntos(d){
       <td>${pvRutaCell(p)}</td>
       <td>${p.manualId ? `<button class="pv-del" data-punto-del="${p.manualId}" title="Eliminar punto">✕</button>` : ''}</td>
     </tr>
+    <tr class="pv-canal-row" data-canal-row="${escapeAttr(p.rutaKey)}" style="display:none"><td colspan="10"></td></tr>
     <tr class="pv-ruta-row" data-ruta-row="${escapeAttr(p.rutaKey)}" style="display:none"><td colspan="10"></td></tr>`).join('') : `<tr><td colspan="10" class="pv-noloc" style="padding:1.5rem;text-align:center">Todavía no hay puntos de venta. Agrega el primero con el formulario.</td></tr>`;
 
   const ordersNote = d.ordersReason
@@ -9912,6 +9923,9 @@ function renderPuntos(d){
   document.querySelectorAll('#puntosBody [data-ruta-edit]').forEach(b => {
     b.onclick = () => pvOpenRutaEditor(b.dataset.rutaEdit, pts.find(p => p.rutaKey === b.dataset.rutaEdit), diasSemana);
   });
+  document.querySelectorAll('#puntosBody [data-canal-edit]').forEach(b => {
+    b.onclick = () => pvOpenCanalEditor(b.dataset.canalEdit, pts.find(p => p.rutaKey === b.dataset.canalEdit));
+  });
 }
 
 // Editor inline de ruta (zona + días de despacho) — se abre como fila extra
@@ -9922,7 +9936,7 @@ function pvOpenRutaEditor(rutaKey, p, diasSemana){
   const row = document.querySelector(`.pv-ruta-row[data-ruta-row="${CSS.escape(rutaKey)}"]`);
   if (!row) return;
   const open = row.style.display !== 'none';
-  document.querySelectorAll('.pv-ruta-row').forEach(r => r.style.display = 'none');
+  document.querySelectorAll('.pv-ruta-row, .pv-canal-row').forEach(r => r.style.display = 'none');
   if (open) return; // toggle: si ya estaba abierta, la cerramos y listo
   const cur = (p && p.ruta) || { zona:'', dia:[] };
   row.querySelector('td').innerHTML = `
@@ -9952,6 +9966,48 @@ function pvOpenRutaEditor(rutaKey, p, diasSemana){
       await loadPuntos();
     } catch (e) { st.className='dist-status err'; st.textContent = 'Error: ' + e.message; }
   };
+}
+
+// Editor inline de canal comercial (Horeca/Retail/Hospitality) del cliente
+// detrás de este punto. Mismo endpoint que la ficha de cliente en Análisis de
+// Datos (PUT /admin/customers/:id/channels) — un solo dato, dos puertas de
+// entrada. Cada click guarda solo (mismo patrón que los checkboxes de canal de
+// producto en SKU), y al cerrar se recarga la tabla para que el badge de
+// "Canal" quede al día con lo recién guardado.
+function pvOpenCanalEditor(rutaKey, p){
+  const row = document.querySelector(`.pv-canal-row[data-canal-row="${CSS.escape(rutaKey)}"]`);
+  if (!row || !p || !p.customerId) return;
+  const open = row.style.display !== 'none';
+  document.querySelectorAll('.pv-ruta-row, .pv-canal-row').forEach(r => r.style.display = 'none');
+  if (open) return; // toggle: si ya estaba abierta, la cerramos y listo
+  const cur = new Set(p.channels || []);
+  row.querySelector('td').innerHTML = `
+    <div class="pv-ruta-form">
+      <div class="dist-field" style="margin:0">
+        <label>Canal comercial de este cliente</label>
+        <div class="sku-chan-filters" id="pvCanalPick">${SELLIN_CANAL_OPTS.map(ch => `<button class="sku-chan${cur.has(ch.id)?' on':''}" data-ch="${ch.id}" type="button" style="padding:.45rem .75rem;font-size:.76rem"><span class="ic">${ch.ic}</span>${ch.label}</button>`).join('')}</div>
+      </div>
+      <button class="adm-btn adm-btn-ghost" id="pvCanalClose" type="button">Cerrar</button>
+      <span class="dist-status" id="pvCanalStatus"></span>
+    </div>`;
+  row.style.display = '';
+  row.querySelectorAll('#pvCanalPick .sku-chan').forEach(b => {
+    b.onclick = async () => {
+      b.classList.toggle('on');
+      const channels = [...row.querySelectorAll('#pvCanalPick .sku-chan.on')].map(x => x.dataset.ch);
+      const st = row.querySelector('#pvCanalStatus');
+      st.className = 'dist-status'; st.textContent = 'Guardando…';
+      try {
+        const r = await fetch('/admin/customers/' + encodeURIComponent(p.customerId) + '/channels', {
+          method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ channels }),
+        });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        p.channels = channels;
+        st.className = 'dist-status ok'; st.textContent = '✓ guardado';
+      } catch (e) { b.classList.toggle('on'); st.className = 'dist-status err'; st.textContent = 'Error: ' + e.message; }
+    };
+  });
+  row.querySelector('#pvCanalClose').onclick = () => { row.style.display = 'none'; loadPuntos(); };
 }
 
 async function createPuntoVenta(){
