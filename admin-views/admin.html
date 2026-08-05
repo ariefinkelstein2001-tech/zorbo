@@ -16911,7 +16911,14 @@ const HOSP_NAV = [
   { id: 'costos', label: 'Costos', icon: '🌱', vista: 'costosView', abrir: () => loadCostos('costo') },
   { id: 'gastos', label: 'Gastos', icon: '🧾', vista: 'gastosView', abrir: () => loadCostos('gasto') },
   { id: 'eerr', label: 'Estado de Resultado', icon: '📈', vista: 'pnlView', abrir: () => loadPnl() },
-  { id: 'costeo', label: 'Costeo', icon: '🧮', vista: 'costeoView', abrir: () => { costeoAreaGo('gastronomia'); loadCosteo(); } },
+  { id: 'costeo', label: 'Costeo', icon: '🧮', vista: 'costeoView', abrir: () => {
+    costeoAreaGo('gastronomia');
+    // Hospitality es solo los locales (Gastronomía): Productora y Comercialización
+    // y Distribución no son de este perfil, así que las pestañas de área se
+    // esconden enteras. hospBackToGate() las devuelve.
+    const areaTabs = document.getElementById('costeoAreaTabs'); if (areaTabs) areaTabs.style.display = 'none';
+    loadCosteo();
+  } },
   { id: 'sku', label: 'SKU / Carta', icon: '🏷️', vista: 'productsView', abrir: () => {
     activeSkuChan = 'hospitality';
     document.querySelectorAll('#skuChanFilters .sku-chan').forEach(x => x.classList.toggle('on', x.dataset.chan === 'hospitality'));
@@ -17096,6 +17103,9 @@ function hospBackToGate(){
   // con el que se ENTRA desde Hospitality, nunca debe quedarse pegado en
   // "Para ti".
   costeoAreaGo('gastronomia');
+  // Las pestañas de área se habían escondido enteras al entrar a Hospitality
+  // (ver HOSP_NAV 'costeo'.abrir) — en "Para ti" vuelven a mostrarse completas.
+  const areaTabs = document.getElementById('costeoAreaTabs'); if (areaTabs) areaTabs.style.display = '';
   activeSkuChan = 'todas';
   document.querySelectorAll('#skuChanFilters .sku-chan').forEach(x => x.classList.toggle('on', x.dataset.chan === 'todas'));
   // El selector de canal se había escondido entero al entrar a Hospitality
