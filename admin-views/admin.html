@@ -11693,6 +11693,15 @@ function cartaRow(p, secId, isSinAsignar){
   </tr>`;
 }
 const CT_THEAD = '<thead><tr><th>Plato</th><th style="text-align:right">Precio de venta</th><th style="text-align:right">Costo</th><th style="text-align:right">% de costo</th><th style="text-align:right;width:150px">Sección</th></tr></thead>';
+// % de costo promedio de lo que se está viendo ahora mismo (restaurante +
+// servicio elegidos arriba) — solo platos con precio real cargado (si no, no
+// hay % de costo que promediar) y solo platos costeados de verdad, nunca los
+// ítems de Reventa (esos tienen su propio % compra/venta, otra cosa).
+function cartaAvgPct(c){
+  const platos = [...(c.secciones||[]).flatMap(s=>s.platos||[]), ...(c.sinAsignar||[])].filter(p=>p.pctCosto!=null);
+  if (!platos.length) return { pct: null, n: 0 };
+  return { pct: Math.round(platos.reduce((s,p)=>s+p.pctCosto,0)/platos.length*10)/10, n: platos.length };
+}
 function drawCarta(){
   const c=cartaData;
   const q = ctSearchNorm(cartaSearch);
@@ -11769,7 +11778,18 @@ function drawCarta(){
       </div>
       ${conDesc?'<span class="ct-toolbar-info" style="margin:0">Precio y % de costo con el descuento aplicado — el precio real guardado no cambia.</span>':''}
     </div>` : '';
+  const avg = cartaAvgPct(c);
+  const avgTone = avg.pct==null ? '' : (avg.pct>40 ? 'tone-red' : 'tone-green');
+  const avgBlock = `
+    <div class="adm-stats" style="margin-bottom:.7rem">
+      <div class="adm-stat ${avgTone}">
+        <div class="adm-stat-k">% DE COSTO PROMEDIO</div>
+        <div class="adm-stat-v">${avg.pct!=null?avg.pct+'%':'—'}</div>
+        <div class="adm-stat-s">${escapeHtml(REST_LABEL[costeoRest]||costeoRest)} · ${isBarra()?'Barra':'Comida'} · ${avg.n?avg.n+' platos con precio cargado':'sin platos con precio real cargado todavía'}${conDesc?' · con descuento':''}</div>
+      </div>
+    </div>`;
   document.getElementById('costeoBody').innerHTML = `
+    ${avgBlock}
     <div class="ct-toolbar">
       <div class="ct-toolbar-info"><b>Precio de venta REAL</b> (el que cobrás al público, editable acá). El <b>% de costo</b> es contra ese precio real; el <b>costo</b> sale del costeo. ${c.meta.totalSecciones} secciones · ${c.meta.totalPlatos} platos.</div>
       <div class="ct-pdf">
