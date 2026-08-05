@@ -3729,6 +3729,11 @@ const CD_CODE_MAP = {
   PEDIDOSEGANA: { bucket: 'cruzada', pdv: 'Plaza Egaña' },
   PEDIDOSDOMINICOS: { bucket: 'cruzada', pdv: 'Dominicos' },
   // CD Kairos (resto de mayoristas)
+  // Pizzería Argentina de Barrio Italia: HORECA, fuera de Grupo Mil Sabores. El
+  // grupo va explícito porque "Argentina Pizzería" TAMBIÉN es una marca dentro
+  // de Mil Sabores — sin esto, el match por nombre del cliente lo mandaría al
+  // grupo equivocado.
+  PEDIDOARGENTINA: { bucket: 'cd_kairos', horeca: { grupo: 'otros', marca: 'Pizzería Argentina Barrio Italia', sector: 'Barrio Italia', razon: '' } },
   PEDIDOSCOSTANERA: { bucket: 'cd_kairos' },
   PEDIDOSSKYCOSTANERA: { bucket: 'cd_kairos' },
   PEDIDOSALTO: { bucket: 'cd_kairos' },
@@ -3791,6 +3796,9 @@ function cdZonaRepr(pdvs){
 // Resuelve un pedido HORECA a su punto de venta: {grupo, sector, razon, marca}.
 // marca (local exacto) solo si el cliente lo nombra; si es a nivel mall, marca=''.
 function cdResolveHoreca(o, cm, bucketName){
+  // 0) Clasificación explícita del código, si la tiene. Gana sobre cualquier
+  // heurística de nombre: es un dato declarado, no adivinado.
+  if (cm && cm.horeca) return { grupo: 'otros', sector: '', razon: '', marca: '', ...cm.horeca };
   const idx = cdPdvIndex();
   const hay = cdNorm((o.customer && o.customer.displayName) + ' ' + (o.customer && o.customer.defaultAddress && o.customer.defaultAddress.company || '')).replace(/\s+/g, '');
   // 1) Local (marca) exacto por el nombre del cliente.
