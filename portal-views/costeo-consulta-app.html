@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0f1a">
+<title>Costeo · K-BROS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#f5a623; --gold-bright:#ffc04d; --gold-deep:#a05f00;
+  --bg:#0b0f1a; --card:#161c2c; --card2:#1e2740; --card3:#262f49;
+  --text:#fff; --dim:#9aa5c0; --dim2:#6c7594;
+  --good:#33d17a; --warn:#ffb020; --bad:#ff5c5c;
+  --sans:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  --display:'Syne',var(--sans);
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+  overflow:hidden;overscroll-behavior:none;-webkit-tap-highlight-color:transparent;
+}
+body::before{
+  content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(60% 40% at 15% 0%,rgba(245,166,35,.14),transparent 60%),
+             radial-gradient(50% 30% at 100% 100%,rgba(61,107,255,.12),transparent 60%);
+}
+button{font-family:inherit;-webkit-appearance:none;appearance:none;border:none;background:none;color:inherit;cursor:pointer}
+input{font-family:inherit}
+h1,h2,h3{font-family:var(--display);margin:0}
+a{color:inherit}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;z-index:1;max-width:560px;margin:0 auto;background:var(--bg)}
+::-webkit-scrollbar{width:0;height:0}
+
+/* ── genéricos ── */
+.cc-eyebrow{font-size:.68rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.cc-title{font-size:1.6rem;font-weight:800;line-height:1.15;margin-top:4px}
+.cc-sub{font-size:.86rem;color:var(--dim);margin-top:8px;line-height:1.45}
+.cc-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;min-height:54px;border-radius:16px;
+  font-weight:800;font-size:1rem;cursor:pointer;transition:transform .1s,opacity .15s;
+}
+.cc-btn:active{transform:scale(.97)}
+.cc-btn.primary{background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));color:#1a1408}
+.cc-btn.ghost{background:rgba(255,255,255,.08);color:#fff}
+.cc-btn[disabled]{opacity:.45;pointer-events:none}
+.cc-spin{width:20px;height:20px;border-radius:50%;border:2.5px solid rgba(255,255,255,.25);border-top-color:#fff;animation:ccspin .7s linear infinite}
+@keyframes ccspin{to{transform:rotate(360deg)}}
+.cc-err{background:rgba(255,92,92,.14);border:1px solid rgba(255,92,92,.35);color:#ffb0b0;border-radius:14px;padding:10px 14px;font-size:.86rem;font-weight:600;margin-top:12px}
+
+/* ── pantalla genérica de auth (local picker / código) ── */
+.cc-auth{flex:1;display:flex;flex-direction:column;padding:calc(28px + var(--safe-t)) 24px calc(24px + var(--safe-b))}
+.cc-brand{display:flex;align-items:center;gap:10px;margin-bottom:34px}
+.cc-brand .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:900;color:#1a1408;font-family:var(--display)}
+.cc-brand .name{font-family:var(--display);font-weight:800;font-size:1.05rem;letter-spacing:.02em}
+.cc-brand .name small{display:block;font-family:var(--sans);font-weight:600;font-size:.68rem;color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+.cc-auth-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.cc-local-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:26px}
+.cc-local-card{
+  min-height:84px;border-radius:20px;background:var(--card);border:1.5px solid rgba(255,255,255,.06);
+  display:flex;align-items:center;gap:14px;padding:18px;text-align:left;transition:transform .1s,background .15s,border-color .15s;
+}
+.cc-local-card:active{transform:scale(.97);background:var(--card2);border-color:rgba(245,166,35,.5)}
+.cc-local-card .ic{width:48px;height:48px;border-radius:14px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:rgba(245,166,35,.14)}
+.cc-local-card .lb{font-weight:800;font-size:1.02rem;line-height:1.3}
+.cc-local-card .sb{font-size:.72rem;color:var(--dim);margin-top:3px}
+.cc-code-wrap{margin-top:30px}
+.cc-code-display{
+  display:flex;gap:10px;justify-content:center;margin:26px 0;
+}
+.cc-code-dot{width:44px;height:56px;border-radius:14px;background:var(--card);border:1.5px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:800;font-family:var(--display)}
+.cc-code-dot.filled{border-color:var(--gold);background:var(--card2)}
+.cc-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:auto}
+.cc-key{
+  aspect-ratio:1.5;border-radius:16px;background:var(--card);font-size:1.4rem;font-weight:700;
+  display:flex;align-items:center;justify-content:center;transition:transform .08s,background .12s;
+}
+.cc-key:active{transform:scale(.94);background:var(--card2)}
+.cc-key.fn{background:transparent;font-size:1.1rem;color:var(--dim)}
+.cc-back-link{margin-top:18px;text-align:center;font-size:.82rem;color:var(--dim);font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.cc-loading-screen{flex:1;display:flex;align-items:center;justify-content:center}
+
+/* ── app principal ── */
+.cc-top{flex:0 0 auto;padding:calc(14px + var(--safe-t)) 16px 10px;display:flex;align-items:center;gap:10px;background:var(--bg);position:relative;z-index:2}
+.cc-top .who{flex:1;min-width:0}
+.cc-top .who .l1{font-size:.66rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
+.cc-top .who .l2{font-weight:800;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+.cc-icon-btn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex:0 0 auto;transition:background .15s,transform .1s}
+.cc-icon-btn:active{transform:scale(.9);background:rgba(255,255,255,.16)}
+.cc-svc-row{flex:0 0 auto;padding:2px 16px 12px;display:flex;gap:8px}
+.cc-svc-pill{
+  flex:1;padding:9px 4px;border-radius:12px;background:var(--card);font-size:.76rem;font-weight:800;text-align:center;
+  color:var(--dim);transition:background .15s,color .15s;
+}
+.cc-svc-pill.on{background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));color:#1a1408}
+.cc-search-row{flex:0 0 auto;padding:0 16px 12px;display:flex;gap:8px}
+.cc-search{flex:1;background:var(--card);border-radius:14px;padding:11px 14px;display:flex;align-items:center;gap:8px}
+.cc-search input{flex:1;background:none;border:none;color:#fff;font-size:.92rem;outline:none;min-width:0}
+.cc-search input::placeholder{color:var(--dim2)}
+.cc-search .ic{color:var(--dim2);font-size:.9rem}
+.cc-cat-scroll{flex:0 0 auto;display:flex;gap:8px;overflow-x:auto;padding:0 16px 12px;-webkit-overflow-scrolling:touch}
+.cc-cat-chip{flex:0 0 auto;padding:7px 14px;border-radius:99px;background:var(--card);font-size:.76rem;font-weight:700;color:var(--dim);white-space:nowrap}
+.cc-cat-chip.on{background:rgba(245,166,35,.18);color:var(--gold-bright);border:1px solid rgba(245,166,35,.4)}
+
+.cc-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px calc(90px + var(--safe-b))}
+
+/* stat grande de % costo */
+.cc-stat-card{
+  border-radius:20px;padding:18px 20px;margin:4px 0 16px;
+  background:linear-gradient(135deg,rgba(245,166,35,.16),rgba(245,166,35,.04));
+  border:1px solid rgba(245,166,35,.22);display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+.cc-stat-card .lb{font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.cc-stat-card .lb small{display:block;font-weight:600;text-transform:none;letter-spacing:0;margin-top:2px;font-size:.68rem}
+.cc-stat-card .val{font-family:var(--display);font-weight:800;font-size:2.1rem;color:var(--gold-bright)}
+.cc-stat-card .val small{font-size:1.1rem;font-weight:700}
+
+.cc-empty{text-align:center;padding:60px 20px;color:var(--dim)}
+.cc-empty .ic{font-size:2.4rem;margin-bottom:10px;opacity:.6}
+.cc-empty .t{font-weight:700;color:#fff;margin-bottom:4px}
+.cc-empty .s{font-size:.84rem;line-height:1.4}
+
+.cc-sec{margin-bottom:22px}
+.cc-sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;padding:0 2px}
+.cc-sec-head .t{font-family:var(--display);font-weight:800;font-size:1.02rem;text-transform:uppercase;letter-spacing:.02em}
+.cc-sec-head .n{font-size:.74rem;color:var(--dim);font-weight:700}
+
+.cc-row-card{
+  background:var(--card);border-radius:16px;padding:14px 16px;margin-bottom:8px;
+  display:flex;align-items:center;gap:10px;transition:background .12s,transform .08s;
+}
+.cc-row-card:active{transform:scale(.985);background:var(--card2)}
+.cc-row-main{flex:1;min-width:0}
+.cc-row-name{font-weight:700;font-size:.94rem;line-height:1.3;overflow-wrap:anywhere}
+.cc-row-sub{font-size:.72rem;color:var(--dim);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+.cc-row-right{flex:0 0 auto;text-align:right}
+.cc-row-price{font-weight:800;font-size:1rem;color:var(--gold-bright);white-space:nowrap}
+.cc-row-price.muted{color:var(--dim2);font-weight:600;font-size:.82rem}
+.cc-pct-badge{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:99px;font-size:.68rem;font-weight:800}
+.cc-pct-badge.good{background:rgba(51,209,122,.16);color:var(--good)}
+.cc-pct-badge.warn{background:rgba(255,176,32,.16);color:var(--warn)}
+.cc-pct-badge.bad{background:rgba(255,92,92,.16);color:var(--bad)}
+.cc-pct-badge.na{background:rgba(255,255,255,.08);color:var(--dim)}
+.cc-svc-tag{display:inline-block;font-size:.6rem;font-weight:800;padding:1px 6px;border-radius:6px;background:rgba(255,255,255,.08);color:var(--dim);text-transform:uppercase;letter-spacing:.04em}
+
+.cc-tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+.cc-tag{font-size:.72rem;padding:4px 10px;border-radius:99px;background:rgba(255,92,92,.1);color:#ffb0b0;font-weight:700;border:1px dashed rgba(255,92,92,.3)}
+
+/* detalle expandible (receta) */
+.cc-detail{margin-top:8px;padding-top:10px;border-top:1px dashed rgba(255,255,255,.1)}
+.cc-detail-line{display:flex;justify-content:space-between;gap:10px;font-size:.78rem;color:var(--dim);padding:4px 0}
+.cc-detail-line b{color:#fff;font-weight:600}
+.cc-detail-tot{display:flex;justify-content:space-between;font-size:.82rem;font-weight:800;padding-top:6px;margin-top:4px;border-top:1px solid rgba(255,255,255,.08)}
+
+/* ── nav inferior ── */
+.cc-tabbar{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:560px;
+  background:rgba(17,22,36,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border-top:1px solid rgba(255,255,255,.06);display:flex;padding:8px 6px calc(8px + var(--safe-b));z-index:5;
+}
+.cc-tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:12px;color:var(--dim2);transition:color .15s}
+.cc-tab.on{color:var(--gold-bright)}
+.cc-tab .ic{font-size:1.25rem}
+.cc-tab .lb{font-size:.62rem;font-weight:800;letter-spacing:.01em}
+
+/* ── sheet de descarga / switcher ── */
+.cc-sheet-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:20;opacity:0;pointer-events:none;transition:opacity .2s}
+.cc-sheet-backdrop.show{opacity:1;pointer-events:auto}
+.cc-sheet{
+  position:fixed;left:50%;bottom:0;transform:translate(-50%,100%);width:100%;max-width:560px;
+  background:var(--card2);border-radius:24px 24px 0 0;padding:10px 18px calc(22px + var(--safe-b));z-index:21;
+  transition:transform .25s cubic-bezier(.2,.8,.3,1);
+}
+.cc-sheet.show{transform:translate(-50%,0)}
+.cc-sheet-handle{width:36px;height:4px;border-radius:99px;background:rgba(255,255,255,.2);margin:8px auto 16px}
+.cc-sheet-title{font-family:var(--display);font-weight:800;font-size:1.05rem;margin-bottom:14px}
+.cc-sheet-opt{
+  display:flex;align-items:center;gap:12px;padding:14px 6px;border-bottom:1px solid rgba(255,255,255,.06);font-weight:700;font-size:.94rem;
+  text-decoration:none;color:inherit;
+}
+.cc-sheet-opt:last-child{border-bottom:none}
+.cc-sheet-opt .ic{width:38px;height:38px;border-radius:11px;background:rgba(245,166,35,.14);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex:0 0 auto}
+.cc-sheet-opt .sb{font-size:.72rem;color:var(--dim);font-weight:600;margin-top:2px}
+.cc-fab{
+  position:fixed;right:calc(16px + (100% - 560px) / 2);bottom:calc(84px + var(--safe-b));
+  width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));
+  color:#1a1408;font-size:1.3rem;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(245,166,35,.35);
+  z-index:6;transition:transform .1s;
+}
+.cc-fab:active{transform:scale(.92)}
+@media (max-width:559px){ .cc-fab{right:16px} }
+
+.cc-toast{
+  position:fixed;left:50%;bottom:calc(96px + var(--safe-b));transform:translateX(-50%);
+  background:var(--card3);color:#fff;padding:11px 18px;border-radius:14px;font-size:.84rem;font-weight:700;
+  z-index:30;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;box-shadow:0 8px 20px rgba(0,0,0,.4);
+}
+.cc-toast.show{opacity:1;transform:translateX(-50%) translateY(-4px)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="cc-sheet-backdrop" id="ccBackdrop"></div>
+<div class="cc-sheet" id="ccSheet"></div>
+<div class="cc-toast" id="ccToast"></div>
+
+<script>
+'use strict';
+// ═════════════════════════════════════════════════════════════════════════
+// Costeo Consulta — app móvil de SOLO LECTURA. Todo lo que muestra sale de
+// GET /consulta-costeo/api/*; no hay ningún fetch con método distinto de GET
+// hacia esos endpoints en todo este archivo (los únicos POST son de sesión:
+// /codigo, /salir, /cambiar-local — ninguno toca datos de costeo).
+// ═════════════════════════════════════════════════════════════════════════
+const $app = document.getElementById('app');
+const $sheet = document.getElementById('ccSheet');
+const $backdrop = document.getElementById('ccBackdrop');
+const $toast = document.getElementById('ccToast');
+
+let ST = {
+  screen: 'loading',      // loading | pick-local | code | main
+  locales: [],
+  pickedLocal: null,      // local elegido en pantalla 1 (antes de tener sesión)
+  codeDigits: '',
+  authError: '',
+  authBusy: false,
+  // sesión
+  admin: false,
+  local: null,
+  adminLocales: null,
+  // vista principal
+  tab: 'carta',           // carta | platos | recetas | insumos
+  svc: 'comida',          // comida | barra | ambos
+  search: '',
+  catFilter: '',
+  expanded: null,         // id de fila expandida (receta/plato)
+  data: { carta: null, cartaBarraAux: null, costeo: null, costeoBarraAux: null, reventa: null },
+  loadingData: false,
+};
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function money(n){ return n==null ? null : '$' + Math.round(Number(n)).toLocaleString('es-CL'); }
+function toast(msg){
+  $toast.textContent = msg; $toast.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(()=>$toast.classList.remove('show'), 2200);
+}
+async function api(path, opts){
+  const r = await fetch(path, { credentials: 'same-origin', headers: opts && opts.body ? {'Content-Type':'application/json'} : undefined, ...opts });
+  if (r.status === 401) { ST = { ...ST, screen: 'pick-local', admin:false, local:null, pickedLocal:null }; render(); throw new Error('sesión vencida'); }
+  let j = null; try { j = await r.json(); } catch(e){}
+  if (!r.ok) throw new Error((j && j.error) || 'Error de red.');
+  return j;
+}
+
+// ── boot ──
+(async function boot(){
+  try {
+    const me = await fetch('/consulta-costeo/me', { credentials:'same-origin' });
+    if (me.ok) {
+      const j = await me.json();
+      ST.admin = !!j.admin; ST.local = j.local; ST.adminLocales = j.locales;
+      ST.screen = 'main';
+      render();
+      loadTabData();
+      return;
+    }
+  } catch(e){}
+  const r = await fetch('/consulta-costeo/locales');
+  const j = await r.json();
+  ST.locales = j.locales || [];
+  ST.screen = 'pick-local';
+  render();
+})();
+
+// ═════════ RENDER ═════════
+function render(){
+  if (ST.screen === 'loading') return renderLoading();
+  if (ST.screen === 'pick-local') return renderPickLocal();
+  if (ST.screen === 'code') return renderCode();
+  if (ST.screen === 'main') return renderMain();
+}
+function renderLoading(){
+  $app.innerHTML = `<div class="cc-loading-screen"><div class="cc-spin"></div></div>`;
+}
+const LOCAL_ICON = { garden_vespucio:'🌿', garden_antofagasta:'🌵', badass_parque_arauco:'🔥' };
+function renderPickLocal(){
+  $app.innerHTML = `
+    <div class="cc-auth">
+      <div class="cc-brand"><div class="logo">K</div><div class="name">K-BROS<small>Costeo · consulta</small></div></div>
+      <div class="cc-auth-body">
+        <div class="cc-eyebrow">Paso 1 de 2</div>
+        <div class="cc-title">¿Qué local sos?</div>
+        <div class="cc-sub">Elegí tu local para ver la carta, las recetas y los insumos costeados — solo lectura.</div>
+        <div class="cc-local-grid">
+          ${ST.locales.map(l => `
+            <button type="button" class="cc-local-card" data-id="${esc(l.id)}">
+              <div class="ic">${LOCAL_ICON[l.id]||'📍'}</div>
+              <div><div class="lb">${esc(l.label)}</div><div class="sb">Toca para continuar</div></div>
+            </button>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  $app.querySelectorAll('.cc-local-card').forEach(b => b.onclick = () => {
+    ST.pickedLocal = ST.locales.find(l => l.id === b.dataset.id);
+    ST.codeDigits = ''; ST.authError = '';
+    ST.screen = 'code'; render();
+  });
+}
+function renderCode(){
+  const dots = Array.from({length:4}, (_,i) => `<div class="cc-code-dot ${i<ST.codeDigits.length?'filled':''}">${i<ST.codeDigits.length?'•':''}</div>`).join('');
+  $app.innerHTML = `
+    <div class="cc-auth">
+      <div class="cc-brand"><div class="logo">K</div><div class="name">K-BROS<small>Costeo · consulta</small></div></div>
+      <div class="cc-eyebrow">Paso 2 de 2</div>
+      <div class="cc-title">Código de acceso</div>
+      <div class="cc-sub">${esc(ST.pickedLocal ? ST.pickedLocal.label : '')}</div>
+      <div class="cc-code-wrap">
+        <div class="cc-code-display">${dots}</div>
+        ${ST.authError ? `<div class="cc-err">${esc(ST.authError)}</div>` : ''}
+      </div>
+      <div class="cc-keypad" id="ccKeypad">
+        ${[1,2,3,4,5,6,7,8,9].map(n=>`<button type="button" class="cc-key" data-k="${n}">${n}</button>`).join('')}
+        <button type="button" class="cc-key fn" data-k="clear">Borrar todo</button>
+        <button type="button" class="cc-key" data-k="0">0</button>
+        <button type="button" class="cc-key fn" data-k="back">⌫</button>
+      </div>
+      <button type="button" class="cc-back-link" id="ccBackLink">← Elegir otro local</button>
+    </div>`;
+  document.getElementById('ccBackLink').onclick = () => { ST.screen = 'pick-local'; render(); };
+  document.getElementById('ccKeypad').querySelectorAll('.cc-key').forEach(b => b.onclick = () => onKey(b.dataset.k));
+}
+async function onKey(k){
+  if (ST.authBusy) return;
+  if (k === 'clear') { ST.codeDigits = ''; ST.authError=''; render(); return; }
+  if (k === 'back') { ST.codeDigits = ST.codeDigits.slice(0,-1); ST.authError=''; render(); return; }
+  if (ST.codeDigits.length >= 8) return;
+  ST.codeDigits += k; ST.authError = ''; render();
+  if (ST.codeDigits.length >= 4) await tryCode();
+}
+async function tryCode(){
+  ST.authBusy = true;
+  try {
+    const r = await fetch('/consulta-costeo/codigo', {
+      method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ localId: ST.pickedLocal.id, codigo: ST.codeDigits }),
+    });
+    const j = await r.json();
+    if (!r.ok) { ST.authError = j.error || 'Código incorrecto.'; ST.codeDigits=''; ST.authBusy=false; render(); return; }
+    ST.admin = !!j.admin; ST.local = j.local;
+    if (ST.admin) { const m = await fetch('/consulta-costeo/me',{credentials:'same-origin'}); const mj = await m.json(); ST.adminLocales = mj.locales; }
+    ST.screen = 'main'; ST.authBusy = false;
+    render();
+    loadTabData();
+  } catch(e) { ST.authError = 'No se pudo conectar. Probá de nuevo.'; ST.codeDigits=''; ST.authBusy=false; render(); }
+}
+
+// ═════════ APP PRINCIPAL ═════════
+const TABS = [
+  { id:'carta',   ic:'📋', lb:'Carta' },
+  { id:'platos',  ic:'🍽️', lb:'Platos' },
+  { id:'recetas', ic:'🧪', lb:'Recetas' },
+  { id:'insumos', ic:'📦', lb:'Insumos' },
+];
+function tabLabel(t){
+  if (t === 'platos') return ST.svc === 'barra' ? 'Tragos' : (ST.svc==='ambos' ? 'Platos / Tragos' : 'Platos');
+  return TABS.find(x=>x.id===t).lb;
+}
+function renderMain(){
+  const svcTabs = [ {id:'comida',lb:'Comida'}, {id:'barra',lb:'Barra'}, {id:'ambos',lb:'Comida y Barra'} ];
+  $app.innerHTML = `
+    <div class="cc-top">
+      <div class="who">
+        <div class="l1">${ST.admin?'Modo admin':'Local'}</div>
+        <div class="l2">${esc(ST.local?ST.local.label:'')} ${ST.admin?'<button type="button" class="cc-icon-btn" id="ccSwitch" style="width:24px;height:24px;font-size:.85rem;margin-left:2px">🔀</button>':''}</div>
+      </div>
+      <button type="button" class="cc-icon-btn" id="ccLogout" title="Salir">⎋</button>
+    </div>
+    <div class="cc-svc-row">
+      ${svcTabs.map(s=>`<button type="button" class="cc-svc-pill ${ST.svc===s.id?'on':''}" data-svc="${s.id}">${s.lb}</button>`).join('')}
+    </div>
+    <div class="cc-search-row">
+      <div class="cc-search"><span class="ic">🔎</span><input id="ccSearch" placeholder="Buscar ${tabLabel(ST.tab).toLowerCase()}…" value="${esc(ST.search)}"></div>
+    </div>
+    <div class="cc-cat-scroll" id="ccCatScroll"></div>
+    <div class="cc-body" id="ccBody"><div class="cc-loading-screen" style="padding:60px 0"><div class="cc-spin"></div></div></div>
+    <button type="button" class="cc-fab" id="ccFab" title="Descargar">⬇</button>
+    <div class="cc-tabbar">
+      ${TABS.map(t=>`<button type="button" class="cc-tab ${ST.tab===t.id?'on':''}" data-tab="${t.id}"><span class="ic">${t.ic}</span><span class="lb">${t.id==='platos'?tabLabel('platos'):t.lb}</span></button>`).join('')}
+    </div>`;
+  document.getElementById('ccLogout').onclick = doLogout;
+  const sw = document.getElementById('ccSwitch'); if (sw) sw.onclick = openSwitcher;
+  $app.querySelectorAll('.cc-svc-pill').forEach(b => b.onclick = () => {
+    if (ST.svc===b.dataset.svc) return;
+    ST.svc=b.dataset.svc; ST.catFilter='';
+    $app.querySelectorAll('.cc-svc-pill').forEach(x => x.classList.toggle('on', x===b));
+    loadTabData();
+  });
+  $app.querySelectorAll('.cc-tab').forEach(b => b.onclick = () => { if (ST.tab===b.dataset.tab) return; ST.tab=b.dataset.tab; ST.catFilter=''; ST.expanded=null; renderMain(); loadTabData(); });
+  document.getElementById('ccFab').onclick = openDownloads;
+  const s = document.getElementById('ccSearch');
+  s.oninput = () => { ST.search = s.value; renderBody(); };
+  renderBody();
+}
+async function doLogout(){
+  await fetch('/consulta-costeo/salir', { method:'POST', credentials:'same-origin' });
+  ST = { screen:'loading', locales:[], pickedLocal:null, codeDigits:'', authError:'', authBusy:false, admin:false, local:null, adminLocales:null, tab:'carta', svc:'comida', search:'', catFilter:'', expanded:null, data:{}, loadingData:false };
+  const r = await fetch('/consulta-costeo/locales'); const j = await r.json(); ST.locales = j.locales||[];
+  ST.screen = 'pick-local'; render();
+}
+function openSwitcher(){
+  $sheet.innerHTML = `
+    <div class="cc-sheet-handle"></div>
+    <div class="cc-sheet-title">Cambiar de local</div>
+    ${(ST.adminLocales||[]).map(l=>`
+      <button type="button" class="cc-sheet-opt" data-id="${esc(l.id)}" style="width:100%;text-align:left">
+        <div class="ic">${LOCAL_ICON[l.id]||'📍'}</div>
+        <div><div>${esc(l.label)}</div>${ST.local&&ST.local.id===l.id?'<div class="sb">Viendo ahora</div>':''}</div>
+      </button>`).join('')}`;
+  $sheet.querySelectorAll('.cc-sheet-opt').forEach(b => b.onclick = async () => {
+    closeSheet();
+    const r = await fetch('/consulta-costeo/cambiar-local', { method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ localId: b.dataset.id }) });
+    const j = await r.json();
+    if (r.ok) { ST.local = j.local; renderMain(); loadTabData(); }
+  });
+  openSheet();
+}
+function openSheet(){ $backdrop.classList.add('show'); $sheet.classList.add('show'); }
+function closeSheet(){ $backdrop.classList.remove('show'); $sheet.classList.remove('show'); }
+$backdrop.onclick = closeSheet;
+
+function openDownloads(){
+  const svcQ = ST.svc === 'ambos' ? 'comida' : ST.svc; // export server no tiene "ambos": se ofrecen los 2 por separado
+  const opts = [];
+  if (ST.tab === 'carta') {
+    opts.push({ ic:'📄', lb:'Carta en PDF', sb: svcLabel(), href:`/consulta-costeo/api/carta/export.pdf?svc=${svcQ}` });
+    opts.push({ ic:'📊', lb:'Carta en Excel', sb: svcLabel(), href:`/consulta-costeo/api/carta/export.xlsx?svc=${svcQ}` });
+  } else if (ST.tab === 'platos') {
+    opts.push({ ic:'📊', lb: (svcQ==='barra'?'Tragos':'Platos') + ' en Excel', sb: svcLabel(), href:`/consulta-costeo/api/platos/export.xlsx?svc=${svcQ}` });
+  } else if (ST.tab === 'recetas') {
+    opts.push({ ic:'📊', lb:'Recetas base en Excel', sb: svcLabel(), href:`/consulta-costeo/api/recetas/export.xlsx?svc=${svcQ}` });
+  } else if (ST.tab === 'insumos') {
+    opts.push({ ic:'📊', lb:'Insumos en Excel', sb: svcLabel(), href:`/consulta-costeo/api/insumos/export.xlsx?svc=${svcQ}` });
+  }
+  if (ST.svc === 'ambos') {
+    const otro = 'barra';
+    if (ST.tab === 'platos') opts.push({ ic:'📊', lb:'Tragos (Barra) en Excel', sb:'Barra', href:`/consulta-costeo/api/platos/export.xlsx?svc=${otro}` });
+    else if (ST.tab === 'recetas') opts.push({ ic:'📊', lb:'Recetas base (Barra) en Excel', sb:'Barra', href:`/consulta-costeo/api/recetas/export.xlsx?svc=${otro}` });
+    else if (ST.tab === 'insumos') opts.push({ ic:'📊', lb:'Insumos (Barra) en Excel', sb:'Barra', href:`/consulta-costeo/api/insumos/export.xlsx?svc=${otro}` });
+    else if (ST.tab === 'carta') { opts.push({ ic:'📄', lb:'Carta Barra en PDF', sb:'Barra', href:`/consulta-costeo/api/carta/export.pdf?svc=barra` }); opts.push({ ic:'📊', lb:'Carta Barra en Excel', sb:'Barra', href:`/consulta-costeo/api/carta/export.xlsx?svc=barra` }); }
+  }
+  $sheet.innerHTML = `
+    <div class="cc-sheet-handle"></div>
+    <div class="cc-sheet-title">Descargar ${esc(tabLabel(ST.tab).toLowerCase())}</div>
+    ${opts.map(o=>`<a class="cc-sheet-opt" href="${o.href}" target="_blank" rel="noopener"><div class="ic">${o.ic}</div><div><div>${o.lb}</div><div class="sb">${o.sb}</div></div></a>`).join('')}`;
+  openSheet();
+}
+function svcLabel(){ return ST.svc==='barra' ? 'Barra' : (ST.svc==='ambos' ? 'Comida y Barra' : 'Comida'); }
+
+// ── carga de datos (siempre GET, siempre del local de la sesión) ──
+async function loadTabData(){
+  ST.loadingData = true; renderBody();
+  try {
+    if (ST.tab === 'carta') {
+      ST.data.carta = await api(`/consulta-costeo/api/carta?svc=${ST.svc==='ambos'?'comida':ST.svc}`);
+      if (ST.svc === 'ambos') ST.data.cartaBarraAux = await api('/consulta-costeo/api/carta?svc=barra');
+      if ((ST.svc === 'barra' || ST.svc === 'ambos')) ST.data.reventa = await api('/consulta-costeo/api/reventa').catch(()=>null);
+    } else {
+      ST.data.costeo = await api(`/consulta-costeo/api/costeo?svc=${ST.svc==='ambos'?'comida':ST.svc}`);
+      if (ST.svc === 'ambos') ST.data.costeoBarraAux = await api('/consulta-costeo/api/costeo?svc=barra');
+    }
+  } catch(e) { if (ST.screen!=='main') return; toast(e.message||'Error cargando datos.'); }
+  ST.loadingData = false;
+  renderBody();
+}
+
+function normLoose(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
+
+function pctClass(pct){
+  if (pct == null) return 'na';
+  if (pct <= 28) return 'good';
+  if (pct <= 35) return 'warn';
+  return 'bad';
+}
+function pctBadge(pct){
+  return `<span class="cc-pct-badge ${pctClass(pct)}">${pct!=null?pct+'% costo':'sin precio'}</span>`;
+}
+
+// ── CARTA ──
+function cartaAvgPct(platosFlat){
+  const pcts = platosFlat.map(p=>p.pctCosto).filter(p=>p!=null);
+  if (!pcts.length) return null;
+  return Math.round(pcts.reduce((a,x)=>a+x,0)/pcts.length*10)/10;
+}
+function renderCartaBody(){
+  const q = normLoose(ST.search);
+  const blocks = [{ svc:'comida', c: ST.data.carta }];
+  if (ST.svc === 'ambos') blocks.push({ svc:'barra', c: ST.data.cartaBarraAux });
+  const allSecs = [];
+  blocks.forEach(b => {
+    if (!b.c) return;
+    (b.c.secciones||[]).forEach(s => allSecs.push({ ...s, _svc:b.svc }));
+    if (b.c.sinAsignar && b.c.sinAsignar.length) allSecs.push({ id:'sinasignar-'+b.svc, nombre:'Sin asignar', platos:b.c.sinAsignar, sinCostear:[], _svc:b.svc });
+  });
+  // reventa: blend en secciones de barra sin platos (mismo criterio que admin)
+  if (ST.data.reventa) {
+    const revByName = new Map(ST.data.reventa.secciones.map(s=>[normLoose(s.nombre.replace(/\(.*?\)/g,'')), s]));
+    allSecs.forEach(s => {
+      if (s._svc==='barra' && !s.platos.length) {
+        const rs = revByName.get(normLoose(s.nombre.replace(/\(.*?\)/g,'')));
+        if (rs) { s._reventaProds = rs.productos; revByName.delete(normLoose(s.nombre.replace(/\(.*?\)/g,''))); }
+      }
+    });
+    const usadas = new Set(allSecs.filter(s=>s._reventaProds).map(s=>normLoose(s.nombre.replace(/\(.*?\)/g,''))));
+    revByName.forEach((rs, key) => { if (!usadas.has(key) && rs.productos.length) allSecs.push({ id:'rev-'+rs.id, nombre:rs.nombre, platos:[], sinCostear:[], _svc:'barra', _reventaProds: rs.productos }); });
+  }
+  const cats = [...new Set(allSecs.filter(s=>s.platos.length||( s._reventaProds&&s._reventaProds.length)).map(s=>s.nombre))];
+  const flatPlatos = allSecs.flatMap(s=>s.platos);
+  const avg = cartaAvgPct(flatPlatos);
+  let secsToShow = allSecs.filter(s => s.platos.length || (s.sinCostear&&s.sinCostear.length) || (s._reventaProds&&s._reventaProds.length));
+  if (ST.catFilter) secsToShow = secsToShow.filter(s=>s.nombre===ST.catFilter);
+  if (q) secsToShow = secsToShow.map(s => ({
+    ...s,
+    platos: s.platos.filter(p=>normLoose(p.nombre).includes(q)),
+    _reventaProds: (s._reventaProds||[]).filter(p=>normLoose(p.nombre).includes(q)),
+  })).filter(s=>s.platos.length || (s._reventaProds&&s._reventaProds.length));
+
+  renderCatChips(cats);
+  const statHtml = `
+    <div class="cc-stat-card">
+      <div class="lb">% costo promedio<small>${svcLabel()} · sobre platos con precio cargado</small></div>
+      <div class="val">${avg!=null?avg:'—'}${avg!=null?'<small>%</small>':''}</div>
+    </div>`;
+  if (!secsToShow.length) {
+    document.getElementById('ccBody').innerHTML = statHtml + emptyState('📋','Sin resultados','Probá con otra búsqueda o categoría.');
+    return;
+  }
+  document.getElementById('ccBody').innerHTML = statHtml + secsToShow.map(s => `
+    <div class="cc-sec">
+      <div class="cc-sec-head"><span class="t">${esc(s.nombre)} ${ST.svc==='ambos'?`<span class="cc-svc-tag">${s._svc}</span>`:''}</span><span class="n">${s.platos.length||s._reventaProds&&s._reventaProds.length||0}</span></div>
+      ${s.platos.map(p => `
+        <div class="cc-row-card">
+          <div class="cc-row-main">
+            <div class="cc-row-name">${esc(p.nombre)}</div>
+            ${pctBadge(p.precioReal!=null?p.pctCosto:null)}
+          </div>
+          <div class="cc-row-right">
+            <div class="cc-row-price ${p.precioReal==null?'muted':''}">${p.precioReal!=null?money(p.precioReal):'sin precio'}</div>
+            <div style="font-size:.68rem;color:var(--dim2);margin-top:2px">costo ${money(p.costo)}</div>
+          </div>
+        </div>`).join('')}
+      ${(s._reventaProds||[]).map(p => `
+        <div class="cc-row-card">
+          <div class="cc-row-main">
+            <div class="cc-row-name">${esc(p.nombre)} <span class="cc-svc-tag">reventa</span></div>
+            ${p.pctCosto!=null?pctBadge(p.pctCosto):''}
+          </div>
+          <div class="cc-row-right">
+            <div class="cc-row-price ${p.precioVenta==null?'muted':''}">${p.precioVenta!=null?money(p.precioVenta):'sin precio'}</div>
+            ${p.precioCompra!=null?`<div style="font-size:.68rem;color:var(--dim2);margin-top:2px">compra ${money(p.precioCompra)}</div>`:''}
+          </div>
+        </div>`).join('')}
+      ${(s.sinCostear||[]).length ? `<div class="cc-tag-list" style="margin-top:6px">${s.sinCostear.map(n=>`<span class="cc-tag">${esc(n)} · sin costear</span>`).join('')}</div>` : ''}
+    </div>`).join('');
+}
+
+// ── PLATOS / RECETAS / INSUMOS (Nivel 1-3) ──
+function renderPlatosBody(){
+  const q = normLoose(ST.search);
+  const docs = [{ svc:'comida', d: ST.data.costeo }];
+  if (ST.svc === 'ambos') docs.push({ svc:'barra', d: ST.data.costeoBarraAux });
+  let items = [];
+  docs.forEach(({svc,d}) => { if (d) items.push(...d.platos.map(p=>({...p,_svc:svc}))); });
+  const cats = [...new Set(items.map(p=>p.categoria))];
+  renderCatChips(cats);
+  if (ST.catFilter) items = items.filter(p=>p.categoria===ST.catFilter);
+  if (q) items = items.filter(p=>normLoose(p.nombre).includes(q));
+  if (!items.length) { document.getElementById('ccBody').innerHTML = emptyState('🍽️','Sin resultados','Probá con otra búsqueda o categoría.'); return; }
+  const byCat = new Map(); items.forEach(p=>{ if(!byCat.has(p.categoria)) byCat.set(p.categoria,[]); byCat.get(p.categoria).push(p); });
+  document.getElementById('ccBody').innerHTML = [...byCat.entries()].map(([cat,ps])=>`
+    <div class="cc-sec">
+      <div class="cc-sec-head"><span class="t">${esc(cat)}</span><span class="n">${ps.length}</span></div>
+      ${ps.map(p=>platoRow(p)).join('')}
+    </div>`).join('');
+  document.getElementById('ccBody').querySelectorAll('[data-exp]').forEach(el => el.onclick = () => { ST.expanded = ST.expanded===el.dataset.exp?null:el.dataset.exp; renderBody(); });
+}
+function platoRow(p){
+  const id = p._svc+'-'+p.id;
+  const open = ST.expanded === id;
+  return `
+    <div class="cc-row-card" style="display:block" data-exp="${id}">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="cc-row-main">
+          <div class="cc-row-name">${esc(p.nombre)} ${ST.svc==='ambos'?`<span class="cc-svc-tag">${p._svc}</span>`:''}</div>
+          <div class="cc-row-sub">Costo final ${money(p.costoFinal)} · margen ${p.margenPct}%</div>
+        </div>
+        <div class="cc-row-right">
+          <div class="cc-row-price ${p.precioReal==null?'muted':''}">${p.precioReal!=null?money(p.precioReal):money(p.precioVentaRedondeado)+' sug.'}</div>
+          ${pctBadge(p.precioReal!=null?p.pctCostoReal:p.pctCosto)}
+        </div>
+      </div>
+      ${open ? `<div class="cc-detail">
+        ${p.lineas.map(l=>`<div class="cc-detail-line"><span>${esc(l.nombre)} <small>(${l.cantidad}${l.cantUnidad?' '+l.cantUnidad:''})</small></span><b>${money(l.costo)}</b></div>`).join('')}
+        <div class="cc-detail-line"><span>Costo insumos</span><b>${money(p.costoTotal)}</b></div>
+        <div class="cc-detail-line"><span>Protección 10%</span><b>${money(p.proteccion)}</b></div>
+        ${p.ivaAplica?`<div class="cc-detail-line"><span>IVA 19%</span><b>${money(p.iva)}</b></div>`:''}
+        <div class="cc-detail-tot"><span>Costo final</span><span>${money(p.costoFinal)}</span></div>
+      </div>` : ''}
+    </div>`;
+}
+function renderRecetasBody(){
+  const q = normLoose(ST.search);
+  const docs = [{ svc:'comida', d: ST.data.costeo }];
+  if (ST.svc === 'ambos') docs.push({ svc:'barra', d: ST.data.costeoBarraAux });
+  let items = [];
+  docs.forEach(({svc,d}) => { if (d) items.push(...d.recetasBase.map(r=>({...r,_svc:svc}))); });
+  renderCatChips([]);
+  if (q) items = items.filter(r=>normLoose(r.nombre).includes(q));
+  items.sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  if (!items.length) { document.getElementById('ccBody').innerHTML = emptyState('🧪','Sin resultados','Probá con otra búsqueda.'); return; }
+  document.getElementById('ccBody').innerHTML = `<div class="cc-sec">${items.map(r=>{
+    const id = r._svc+'-'+r.id; const open = ST.expanded===id;
+    return `<div class="cc-row-card" style="display:block" data-exp="${id}">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="cc-row-main"><div class="cc-row-name">${esc(r.nombre)} ${ST.svc==='ambos'?`<span class="cc-svc-tag">${r._svc}</span>`:''}</div>
+        <div class="cc-row-sub">Producción: ${r.produccion} ${r.unidad||''}</div></div>
+        <div class="cc-row-right"><div class="cc-row-price">${money(r.precioUnidad)}<span style="font-size:.65rem;color:var(--dim2)">/${r.unidad||'u'}</span></div></div>
+      </div>
+      ${open?`<div class="cc-detail">${r.lineas.map(l=>`<div class="cc-detail-line"><span>${esc(l.nombre)} <small>(${l.cantidad}${l.cantUnidad?' '+l.cantUnidad:''})</small></span><b>${money(l.costo)}</b></div>`).join('')}<div class="cc-detail-tot"><span>Costo total</span><span>${money(r.costoTotal)}</span></div></div>`:''}
+    </div>`;
+  }).join('')}</div>`;
+  document.getElementById('ccBody').querySelectorAll('[data-exp]').forEach(el => el.onclick = () => { ST.expanded = ST.expanded===el.dataset.exp?null:el.dataset.exp; renderBody(); });
+}
+function renderInsumosBody(){
+  const q = normLoose(ST.search);
+  const docs = [{ svc:'comida', d: ST.data.costeo }];
+  if (ST.svc === 'ambos') docs.push({ svc:'barra', d: ST.data.costeoBarraAux });
+  let items = [];
+  docs.forEach(({svc,d}) => { if (d) items.push(...d.insumos.map(i=>({...i,_svc:svc}))); });
+  renderCatChips([]);
+  if (q) items = items.filter(i=>normLoose(i.descripcion).includes(q));
+  items.sort((a,b)=>a.descripcion.localeCompare(b.descripcion));
+  if (!items.length) { document.getElementById('ccBody').innerHTML = emptyState('📦','Sin resultados','Probá con otra búsqueda.'); return; }
+  document.getElementById('ccBody').innerHTML = `<div class="cc-sec">${items.map(i=>`
+    <div class="cc-row-card">
+      <div class="cc-row-main">
+        <div class="cc-row-name">${esc(i.descripcion)} ${ST.svc==='ambos'?`<span class="cc-svc-tag">${i._svc}</span>`:''}</div>
+        <div class="cc-row-sub">${i.unidad||''}${i.volumen?' · '+i.volumen+' L/botella':''}${i.rendimiento?' · rend. '+Math.round(i.rendimiento*100)+'%':''}</div>
+      </div>
+      <div class="cc-row-right"><div class="cc-row-price">${money(i.precioReal)}</div><div style="font-size:.68rem;color:var(--dim2);margin-top:2px">neto ${money(i.precioNeto)}</div></div>
+    </div>`).join('')}</div>`;
+}
+function emptyState(ic,t,s){ return `<div class="cc-empty"><div class="ic">${ic}</div><div class="t">${esc(t)}</div><div class="s">${esc(s)}</div></div>`; }
+function renderCatChips(cats){
+  const wrap = document.getElementById('ccCatScroll');
+  if (!cats.length) { wrap.innerHTML = ''; return; }
+  wrap.innerHTML = [`<button type="button" class="cc-cat-chip ${!ST.catFilter?'on':''}" data-c="">Todas</button>`]
+    .concat(cats.map(c=>`<button type="button" class="cc-cat-chip ${ST.catFilter===c?'on':''}" data-c="${esc(c)}">${esc(c)}</button>`)).join('');
+  wrap.querySelectorAll('.cc-cat-chip').forEach(b => b.onclick = () => { ST.catFilter = b.dataset.c; renderBody(); });
+}
+function renderBody(){
+  const body = document.getElementById('ccBody');
+  if (!body) return;
+  if (ST.loadingData) { body.innerHTML = `<div class="cc-loading-screen" style="padding:60px 0"><div class="cc-spin"></div></div>`; document.getElementById('ccCatScroll').innerHTML=''; return; }
+  if (ST.tab === 'carta') return renderCartaBody();
+  if (ST.tab === 'platos') return renderPlatosBody();
+  if (ST.tab === 'recetas') return renderRecetasBody();
+  if (ST.tab === 'insumos') return renderInsumosBody();
+}
+</script>
+</body>
+</html>
