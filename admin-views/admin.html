@@ -2017,6 +2017,7 @@ body.drawer-open{overflow:hidden}
 .dist-subtab{font-family:var(--sans);font-size:.78rem;font-weight:700;color:var(--muted,#666);background:transparent;border:1px solid var(--line,#e5e5e5);border-radius:999px;padding:.45rem .9rem;cursor:pointer;transition:all .15s}
 .dist-subtab:hover{border-color:var(--gold-bd,#f1c97b);color:var(--text,#111)}
 .dist-subtab.on{background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623) 60%);color:#1a1408;border-color:transparent}
+.dist-subtab.disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
 .dist-sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
 .dist-sec-title{font-family:var(--display,inherit);font-size:1.05rem;font-weight:800;color:var(--text,#111)}
 .dist-sec-sub{font-size:.78rem;color:var(--muted,#666);margin-top:.2rem;line-height:1.5}
@@ -2127,6 +2128,17 @@ body.drawer-open{overflow:hidden}
 .ct-real:focus{outline:none;border-color:var(--gold,#f5a623);box-shadow:0 0 0 2px rgba(245,166,35,.18)}
 .ct-rev-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin:1.6rem 0 .3rem;padding-top:1.1rem;border-top:2px solid var(--gold,#f5a623)}
 .rv-add-row td{background:var(--surface-2,#faf6ec)}
+/* Vista combinada Comida y Barra (Servicio = "Comida y Barra") */
+.ct-mix-box{border:1px solid var(--gold-bd,#f1c97b);border-radius:12px;background:linear-gradient(135deg,rgba(245,166,35,.07),rgba(245,166,35,.02));padding:.9rem 1.1rem;margin-bottom:1.2rem}
+.ct-mix-pct{font-family:var(--display,inherit);font-size:1.8rem;font-weight:800;color:var(--gold-deep,#a05f00);line-height:1.1;display:flex;align-items:baseline;gap:.5rem}
+.ct-mix-pct.hi{color:#c0392b}
+.ct-mix-pct small{font-family:var(--sans);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted,#777)}
+.ct-mix-detail{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-top:.4rem;font-size:.8rem;color:var(--text-2,#52525b)}
+.ct-mix-edit{display:flex;align-items:flex-end;gap:.8rem;flex-wrap:wrap;margin-top:.8rem;padding-top:.7rem;border-top:1px dashed var(--gold-bd,#f1c97b)}
+.ct-mix-edit input{width:90px;padding:.4rem .5rem;border:1px solid var(--line,#ddd);border-radius:8px;text-align:right}
+.ct-mix-preview{font-size:.82rem;color:var(--muted,#777)}
+.ct-combo-group{margin-bottom:1.6rem}
+.ct-combo-h{font-family:var(--display,inherit);font-size:1.2rem;font-weight:800;color:var(--text,#111);margin-bottom:.7rem;padding-bottom:.4rem;border-bottom:3px solid var(--gold,#f5a623)}
 .rv-new{border:1px solid var(--line,#ddd);border-radius:7px;padding:.35rem .5rem;font-size:.82rem;background:var(--surface,#fff);color:var(--text,#111)}
 .rv-inp{border:1px solid var(--line,#e2e2e2);border-radius:var(--radius-sm,7px);padding:.35rem .5rem;background:var(--surface,#fff);color:var(--text,#111);text-align:right;font-weight:600}
 .rv-inp:focus,.rv-new:focus{outline:none;border-color:var(--gold,#f5a623);box-shadow:0 0 0 2px rgba(245,166,35,.18)}
@@ -3627,13 +3639,14 @@ body.hosp-open{overflow:hidden}
           <select id="costeoSvc" class="costeo-svc">
             <option value="comida">🍽️ Comida</option>
             <option value="barra">🍸 Barra</option>
+            <option value="ambos">🍽️🍸 Comida y Barra</option>
           </select>
         </div>
         <div class="dist-subnav" id="costeoSubnav">
-          <button type="button" class="dist-subtab on" data-csub="insumos">Insumos</button>
+          <button type="button" class="dist-subtab on" data-csub="resumen">Carta (resumen)</button>
+          <button type="button" class="dist-subtab" data-csub="platos" id="costeoTabProd">Comida</button>
           <button type="button" class="dist-subtab" data-csub="recetas">Recetas base</button>
-          <button type="button" class="dist-subtab" data-csub="platos" id="costeoTabProd">Platos</button>
-          <button type="button" class="dist-subtab" data-csub="resumen">Carta (resumen)</button>
+          <button type="button" class="dist-subtab" data-csub="insumos">Insumos</button>
         </div>
         <div id="costeoBody"><div class="adm-loading">Cargando…</div></div>
       </div>
@@ -10962,13 +10975,19 @@ async function loadRetailUploads(){
 }
 
 // ─── Costeo de carta (insumos · recetas base) ────────────────────────────────
-let costeoData = null, costeoSub = 'insumos', insumoSearch = '', rbSearch = '', costeoRest = 'garden', costeoSvc = 'comida';
+let costeoData = null, costeoSub = 'resumen', insumoSearch = '', rbSearch = '', costeoRest = 'garden', costeoSvc = 'comida';
 let platoEditing = null, platoDraft = [], platoSearch = '', platoCatFilter = '';
 const isBarra = () => costeoSvc === 'barra';
 const cMoney = (n) => '$' + Math.round(Number(n)||0).toLocaleString('es-CL');
 // Acepta coma como separador decimal (ej: "9,5")
 const cNum = (v) => { const n = parseFloat(String(v==null?'':v).trim().replace(',', '.')); return Number.isFinite(n) ? n : 0; };
 const cRest = (url) => url + (url.includes('?') ? '&' : '?') + 'rest=' + costeoRest + '&svc=' + costeoSvc;
+// Encabezado de columna con tooltip explicativo (hover/foco por teclado/tap en
+// móvil vía el mismo patrón .adm-has-tip/.adm-tip que ya usa el resto del panel
+// admin). Solo texto de ayuda — no describe nada que el sistema no calcule ya.
+function thTip(label, tip, align){
+  return `<th${align?` style="text-align:${align}"`:''} class="adm-has-tip" tabindex="0">${label}<span role="tooltip" class="adm-tip">${tip}</span></th>`;
+}
 const C_UNITS = (cur) => ['litro','mililitro','kilogramo','gramo','unidad'].map(u=>`<option value="${u}" ${cur===u?'selected':''}>${u}</option>`).join('');
 // Insumo de barra "por volumen" (litro/mililitro): precio = (neto+ILA+despacho) ÷
 // volumen de botella. Cualquier otra unidad (kilogramo/gramo/unidad — ej: una
@@ -11118,7 +11137,7 @@ async function loadCosteo(){
   const body = document.getElementById('costeoBody');
   body.innerHTML = '<div class="adm-loading">Cargando…</div>';
   // La pestaña de productos se llama "Platos" en comida y "Tragos" en barra.
-  const prodTab = document.getElementById('costeoTabProd'); if (prodTab) prodTab.textContent = isBarra() ? 'Tragos' : 'Platos';
+  const prodTab = document.getElementById('costeoTabProd'); if (prodTab) prodTab.textContent = isBarra() ? 'Barra' : 'Comida';
   try {
     costeoData = await (await fetch(cRest('/admin/costeo'))).json();
     const prodLbl = isBarra() ? 'tragos' : 'platos';
@@ -11134,16 +11153,29 @@ document.getElementById('costeoRest').addEventListener('click', e=>{
   loadCosteo();
 });
 document.getElementById('costeoSvc').addEventListener('change', e=>{
-  costeoSvc = e.target.value === 'barra' ? 'barra' : 'comida';
+  const v = e.target.value;
+  costeoSvc = (v==='barra' || v==='ambos') ? v : 'comida';
+  // "Comida y Barra" solo tiene sentido en Carta (resumen) — Insumos/Recetas/
+  // Comida/Barra siguen siendo datos de UN servicio a la vez, no hay tal cosa
+  // como una lista de insumos "combinada". Si el usuario estaba en otra
+  // pestaña, lo mandamos a Resumen (la única habilitada en este modo).
+  if (costeoSvc==='ambos') costeoSub='resumen';
   costeoResetState();
   loadCosteo();
 });
+// En modo "Comida y Barra" solo Carta (resumen) tiene una vista combinada
+// definida — las otras 3 pestañas se deshabilitan (no se pisa/inventa qué
+// mostrarían, se obliga a elegir un servicio concreto para editarlas).
+function costeoSubDisabled(csub){ return costeoSvc==='ambos' && csub!=='resumen'; }
 function renderCosteoSub(){
-  document.querySelectorAll('#costeoSubnav .dist-subtab').forEach(b=>b.classList.toggle('on', b.dataset.csub===costeoSub));
+  document.querySelectorAll('#costeoSubnav .dist-subtab').forEach(b=>{
+    b.classList.toggle('on', b.dataset.csub===costeoSub);
+    b.classList.toggle('disabled', costeoSubDisabled(b.dataset.csub));
+  });
   if (costeoSub==='insumos') return renderCosteoInsumos();
   if (costeoSub==='recetas') return renderCosteoRecetas();
   if (costeoSub==='platos') return renderCosteoPlatos();
-  if (costeoSub==='resumen') return renderCosteoCarta();
+  if (costeoSub==='resumen') return costeoSvc==='ambos' ? renderCosteoCartaCombinada() : renderCosteoCarta();
 }
 // ¿Puede el usuario costeo editar la sub-pestaña actual? Solo Recetas base y
 // Platos/Tragos, y solo en el servicio que tiene asignado (adminCosteoSvc).
@@ -11173,7 +11205,11 @@ function costeoLockView(){
     msg = 'Solo lectura · esta sección la editan los administradores.';
   body.insertAdjacentHTML('afterbegin', '<div class="ro-note">👁️ '+msg+'</div>');
 }
-document.getElementById('costeoSubnav').addEventListener('click', e=>{ const b=e.target.closest('.dist-subtab'); if(!b) return; costeoSub=b.dataset.csub; loadCosteo(); });
+document.getElementById('costeoSubnav').addEventListener('click', e=>{
+  const b=e.target.closest('.dist-subtab'); if(!b) return;
+  if (costeoSubDisabled(b.dataset.csub)) return; // ver comentario en costeoSubDisabled
+  costeoSub=b.dataset.csub; loadCosteo();
+});
 document.getElementById('btnCosteoReload').onclick = ()=>loadCosteo();
 
 // ── Insumos (Nivel 1) ──
@@ -11261,9 +11297,18 @@ function renderCosteoInsumos(){
         <div class="dist-field"><label>% Rendimiento (0-1, opcional)</label><input id="niRend" type="text" inputmode="decimal" placeholder="ej: 0,6"></div>
         <div class="dist-field" id="niEquivWrap" style="display:none"><label>Equivale a (gramos / ml, opcional)</label><div style="display:flex;gap:.4rem"><input id="niEquivGramos" type="text" inputmode="decimal" placeholder="ej: 30 g"><input id="niEquivMl" type="text" inputmode="decimal" placeholder="ej: 30 ml"></div></div>
       </div>`;
+  const tipDescripcion = 'Nombre del insumo tal como se compra — para identificarlo al armar recetas.';
+  const tipPrecioNeto = 'Lo que pagás por el insumo sin impuestos ni despacho, el precio de la factura.';
+  const tipUnidad = 'En qué unidad se compra y se mide el insumo (litro, kilogramo, unidad, etc.).';
+  const tipIla = 'Impuesto Adicional a bebidas alcohólicas — se suma al precio neto antes de calcular el precio por unidad. Solo aplica a barra.';
+  const tipDespacho = 'Flete/despacho neto de traer el insumo (sin impuestos) — se suma al precio neto.';
+  const tipVolFormato = 'Volumen de la botella (litro/mililitro) o cantidad del paquete (otras unidades) — con esto se calcula el precio real por unidad.';
+  const tipFormato = 'Cuántas unidades trae el paquete o formato de compra — con esto se calcula el precio real por unidad.';
+  const tipRend = 'Rendimiento del insumo (0 a 1): cuánto queda aprovechable después de mermas o limpieza. Vacío = sin merma (100%).';
+  const tipPrecio = 'Precio final por unidad, ya con despacho, ILA y rendimiento aplicados — es el que usan las recetas para costear.';
   const thead = barra
-    ? `<tr><th>Descripción</th><th style="text-align:right">Precio neto</th><th>Unidad</th><th style="text-align:right">ILA</th><th style="text-align:right">Despacho</th><th style="text-align:right">Volumen / Formato</th><th style="text-align:right">% Rend.</th><th style="text-align:right">Precio</th><th></th></tr>`
-    : `<tr><th>Descripción</th><th style="text-align:right">Precio neto</th><th style="text-align:right">Despacho</th><th style="text-align:right">Formato</th><th>Unidad</th><th style="text-align:right">% Rend.</th><th style="text-align:right">Precio real</th><th></th></tr>`;
+    ? `<tr>${thTip('Descripción',tipDescripcion)}${thTip('Precio neto',tipPrecioNeto,'right')}${thTip('Unidad',tipUnidad)}${thTip('ILA',tipIla,'right')}${thTip('Despacho',tipDespacho,'right')}${thTip('Volumen / Formato',tipVolFormato,'right')}${thTip('% Rend.',tipRend,'right')}${thTip('Precio',tipPrecio,'right')}<th></th></tr>`
+    : `<tr>${thTip('Descripción',tipDescripcion)}${thTip('Precio neto',tipPrecioNeto,'right')}${thTip('Despacho',tipDespacho,'right')}${thTip('Formato',tipFormato,'right')}${thTip('Unidad',tipUnidad)}${thTip('% Rend.',tipRend,'right')}${thTip('Precio real',tipPrecio,'right')}<th></th></tr>`;
   const countTxt = barra ? 'litro/mililitro: (neto + ILA + despacho) ÷ volumen · kilogramo/gramo/unidad: (neto + despacho ÷ formato) ÷ rendimiento · sin IVA (el IVA va a nivel de trago)' : 'precio real = ((neto + despacho) ÷ formato) ÷ rendimiento';
   document.getElementById('costeoBody').innerHTML = `
     <div class="dist-form" style="margin-bottom:1rem">
@@ -11608,7 +11653,7 @@ function renderCosteoPlatos(){
       </div>
     </div>
     <div class="ct-toolbar" style="margin-top:1.4rem">
-      <div class="ct-toolbar-info"><b>${isBarra()?'Tragos':'Platos'} (${(costeoData.platos||[]).length})</b> · descarga el listado con la cadena de costo y el precio real.</div>
+      <div class="ct-toolbar-info"><b>${isBarra()?'Barra':'Comida'} (${(costeoData.platos||[]).length})</b> · descarga el listado con la cadena de costo y el precio real.</div>
       <div class="ct-pdf"><span>Excel</span><button class="adm-btn adm-btn-gold" id="plXlBtn" type="button">Descargar Excel</button></div>
     </div>
     <div class="tc-search" style="display:flex;gap:.5rem;flex-wrap:wrap">
@@ -11701,6 +11746,124 @@ async function renderCosteoCarta(){
   else reventaData=null;
   drawCarta();
 }
+// ── Carta (resumen) combinada: Comida y Barra juntas ────────────────────────
+// Vista de SOLO LECTURA: reutiliza exactamente los mismos datos ya calculados
+// por cada servicio (mismo endpoint /admin/costeo/carta de siempre, llamado
+// una vez por servicio) — no recalcula nada, solo los junta en una lista. Sin
+// edición inline (precio real / mover de sección): para editar se elige
+// Comida o Barra en el selector de Servicio, así nunca hay ambigüedad de a
+// qué servicio pertenece la fila que se está tocando.
+let cartaCombinadaData = null; // {comida:{carta,reventa}, barra:{carta,reventa}, mix}
+const cRestSvc = (url, svc) => url + (url.includes('?') ? '&' : '?') + 'rest=' + costeoRest + '&svc=' + svc;
+async function costeoFetchCartaFor(svc){
+  const carta = await (await fetch(cRestSvc('/admin/costeo/carta', svc))).json();
+  let reventa = null;
+  if (svc === 'barra') { try { reventa = await (await fetch(cRestSvc('/admin/costeo/reventa', svc))).json(); } catch { reventa = null; } }
+  return { carta, reventa };
+}
+async function renderCosteoCartaCombinada(){
+  const body=document.getElementById('costeoBody');
+  body.innerHTML='<div class="adm-loading">Cargando carta combinada…</div>';
+  try{
+    const [comida, barra, mix] = await Promise.all([
+      costeoFetchCartaFor('comida'),
+      costeoFetchCartaFor('barra'),
+      fetch('/admin/costeo/mix?rest='+encodeURIComponent(costeoRest)).then(r=>r.json()),
+    ]);
+    cartaCombinadaData = { comida, barra, mix };
+  }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
+  drawCartaCombinada();
+}
+// Promedio simple del % de costo YA calculado por cada plato/producto — no
+// recalcula ningún % individual, solo promedia lo que el costeo ya entrega.
+function cartaComboAvgPct(carta, reventa){
+  const vals = [];
+  (carta.secciones||[]).forEach(s=>(s.platos||[]).forEach(p=>{ if(p.pctCosto!=null) vals.push(p.pctCosto); }));
+  (carta.sinAsignar||[]).forEach(p=>{ if(p.pctCosto!=null) vals.push(p.pctCosto); });
+  if (reventa && reventa.secciones) reventa.secciones.forEach(s=>(s.productos||[]).forEach(p=>{ if(p.pctCosto!=null) vals.push(p.pctCosto); }));
+  return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
+}
+// Fila de solo lectura para la vista combinada — igual que cartaRow() pero sin
+// input de precio ni <select> de sección (ver comentario más arriba).
+function cartaRowRO(p){
+  const pct = p.pctCosto;
+  return `<tr>
+    <td><b>${escapeHtml(p.nombre)}</b></td>
+    <td class="dist-num">${p.precioReal!=null?cMoney(p.precioReal):'<span style="color:#bbb">sin precio</span>'}</td>
+    <td class="dist-num">${cMoney(p.costo)}</td>
+    <td class="dist-num"><span class="pl-pct ${pct!=null&&pct>40?'hi':''}">${pct!=null?pct+'%':'—'}</span></td>
+    <td class="dist-num">${escapeHtml(p.__seccion||'—')}</td>
+  </tr>`;
+}
+function cartaSeccionesHtmlRO(carta){
+  const secBlocks = (carta.secciones||[]).filter(s=>s.platos&&s.platos.length).map(s=>{
+    const rows = s.platos.map(p=>cartaRowRO({...p, __seccion:s.nombre})).join('');
+    return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.platos.length})</span></div><div class="mun-wrap"><table class="mun-table">${ctThead(false)}<tbody>${rows}</tbody></table></div></div>`;
+  }).join('');
+  const sa = carta.sinAsignar||[];
+  const saBlock = sa.length ? `<div class="ct-sec ct-sec-sa"><div class="ct-sec-h">Sin asignar <span>(${sa.length})</span></div><div class="mun-wrap"><table class="mun-table">${ctThead(false)}<tbody>${sa.map(p=>cartaRowRO({...p,__seccion:'—'})).join('')}</tbody></table></div></div>` : '';
+  return secBlocks + saBlock;
+}
+function cartaReventaHtmlRO(reventa){
+  if (!reventa || !reventa.secciones || !reventa.secciones.length) return '';
+  const blocks = reventa.secciones.filter(s=>s.productos&&s.productos.length).map(s=>{
+    const rows = s.productos.map(p=>cartaRowRO({ nombre:p.nombre, precioReal:p.precioVenta, costo:p.precioCompra, pctCosto:p.pctCosto, __seccion:s.nombre })).join('');
+    return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.productos.length})</span></div><div class="mun-wrap"><table class="mun-table">${ctThead(false)}<tbody>${rows}</tbody></table></div></div>`;
+  }).join('');
+  return blocks ? `<div class="ct-rev-head"><div class="ct-sec-h" style="border:none">Reventa · destilados y bebidas <span>(venta directa)</span></div></div>${blocks}` : '';
+}
+function drawCartaCombinada(){
+  const { comida, barra, mix } = cartaCombinadaData;
+  const comidaAvg = cartaComboAvgPct(comida.carta, null);
+  const barraAvg = cartaComboAvgPct(barra.carta, barra.reventa);
+  const mComida = Number(mix.comida)||0, mBarra = Math.round((100-mComida)*10)/10;
+  // Ponderado por mix de ingresos (no promedio simple) — si a un servicio le
+  // falta info, cae de vuelta al promedio del que sí tiene, en vez de romper.
+  let weighted = null;
+  if (comidaAvg!=null && barraAvg!=null) weighted = (comidaAvg*mComida + barraAvg*mBarra)/100;
+  else if (comidaAvg!=null) weighted = comidaAvg;
+  else if (barraAvg!=null) weighted = barraAvg;
+  const fmt1 = (v) => v==null ? '—' : (Math.round(v*10)/10)+'%';
+  const mixBox = `
+    <div class="ct-mix-box">
+      <div class="ct-mix-pct ${weighted!=null&&weighted>40?'hi':''}">${fmt1(weighted)}<small>% de costo promedio ponderado</small></div>
+      <div class="ct-mix-detail">
+        <span>ponderado por <b>${mComida}% Comida</b> / <b>${mBarra}% Barra</b> · Comida ${fmt1(comidaAvg)} · Barra ${fmt1(barraAvg)}</span>
+        <button class="adm-btn adm-btn-ghost" id="ctMixEditBtn" type="button">✎ Editar mix</button>
+      </div>
+      <div class="ct-mix-edit" id="ctMixEdit" style="display:none">
+        <label class="cg-field"><span>% de ingresos que aporta Comida en ${escapeHtml(REST_LABEL[costeoRest]||costeoRest)}</span><input type="text" inputmode="numeric" id="ctMixComidaInp" value="${mComida}"></label>
+        <span class="ct-mix-preview">Barra: <b id="ctMixBarraPreview">${mBarra}%</b></span>
+        <button class="adm-btn adm-btn-gold" id="ctMixSaveBtn" type="button">Guardar mix</button>
+        <span class="dist-status" id="ctMixSt"></span>
+      </div>
+    </div>`;
+  const comidaHtml = cartaSeccionesHtmlRO(comida.carta);
+  const barraHtml = cartaSeccionesHtmlRO(barra.carta) + cartaReventaHtmlRO(barra.reventa);
+  document.getElementById('costeoBody').innerHTML = `
+    <div class="ct-toolbar">
+      <div class="ct-toolbar-info"><b>Comida y Barra combinadas</b> · vista de solo lectura — para editar precios o mover de sección, elegí Comida o Barra en el selector de Servicio. ${comida.carta.meta.totalPlatos} platos de Comida · ${barra.carta.meta.totalPlatos} tragos de Barra.</div>
+    </div>
+    ${mixBox}
+    <div class="ct-combo-group"><div class="ct-combo-h">🍽️ Comida</div>${comidaHtml||'<div class="dist-empty">Sin platos costeados.</div>'}</div>
+    <div class="ct-combo-group"><div class="ct-combo-h">🍸 Barra</div>${barraHtml||'<div class="dist-empty">Sin tragos costeados.</div>'}</div>`;
+  const editBtn=document.getElementById('ctMixEditBtn'), editBox=document.getElementById('ctMixEdit');
+  if (editBtn) editBtn.onclick=()=>{ editBox.style.display = editBox.style.display==='none' ? '' : 'none'; };
+  const inp=document.getElementById('ctMixComidaInp'), prev=document.getElementById('ctMixBarraPreview');
+  if (inp) inp.oninput=()=>{ const v=Math.min(100,Math.max(0,cNum(inp.value))); if(prev) prev.textContent=(Math.round((100-v)*10)/10)+'%'; };
+  const saveBtn=document.getElementById('ctMixSaveBtn');
+  if (saveBtn) saveBtn.onclick=async()=>{
+    const st=document.getElementById('ctMixSt');
+    const v=cNum(inp.value);
+    if (!(v>=0 && v<=100)) { st.className='dist-status err'; st.textContent='Tiene que ser un número entre 0 y 100.'; return; }
+    st.className='dist-status'; st.textContent='Guardando…';
+    try{
+      const r=await fetch('/admin/costeo/mix?rest='+encodeURIComponent(costeoRest),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({comida:v})});
+      if(!r.ok){const d=await r.json();throw new Error(d.error||'Error');}
+      await renderCosteoCartaCombinada();
+    }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
+  };
+}
 function cartaSecSelect(pid, currentSecId, isSinAsignar){
   const opts = cartaData.secciones.map(x=>`<option value="${x.id}" ${x.id===currentSecId?'selected':''}>${escapeHtml(x.nombre)}</option>`).join('');
   return `<select class="ct-move" data-pid="${pid}">
@@ -11725,7 +11888,22 @@ function cartaRow(p, secId, isSinAsignar){
     <td class="dist-num">${cartaSecSelect(p.id, secId, isSinAsignar)}</td>
   </tr>`;
 }
-const CT_THEAD = '<thead><tr><th>Plato</th><th style="text-align:right">Precio de venta</th><th style="text-align:right">Costo</th><th style="text-align:right">% de costo</th><th style="text-align:right;width:150px">Sección</th></tr></thead>';
+// Tooltips: lenguaje simple para quien mira la carta sin saber costear.
+const CT_TIP_VENTA = 'El precio real que se le cobra al público — se edita acá mismo.';
+const CT_TIP_COSTO = 'Lo que cuesta hacer el producto según el costeo (insumos + protección + IVA).';
+const CT_TIP_PCT = 'Cuánto del precio de venta se va en costo (costo ÷ precio de venta). Más bajo es mejor.';
+// "editable" cambia solo el texto del tooltip de Sección — en la vista
+// combinada Comida y Barra esa columna es de solo lectura (ver drawCartaCombinada).
+function ctThead(editable){
+  const tipSeccion = 'En qué parte de la carta aparece este producto.' + (editable ? ' Se puede reasignar acá.' : '');
+  return '<thead><tr><th>Plato</th>'
+    + thTip('Precio de venta', CT_TIP_VENTA, 'right')
+    + thTip('Costo', CT_TIP_COSTO, 'right')
+    + thTip('% de costo', CT_TIP_PCT, 'right')
+    + `<th style="text-align:right;width:150px" class="adm-has-tip" tabindex="0">Sección<span role="tooltip" class="adm-tip">${tipSeccion}</span></th>`
+    + '</tr></thead>';
+}
+const CT_THEAD = ctThead(true);
 // % de costo promedio de lo que se está viendo ahora mismo (restaurante +
 // servicio elegidos arriba) — solo platos con precio real cargado (si no, no
 // hay % de costo que promediar) y solo platos costeados de verdad, nunca los
