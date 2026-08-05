@@ -3757,6 +3757,20 @@ body.hosp-open{overflow:hidden}
       <div id="rspBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
+    <!-- Costeo Consulta: códigos de acceso de la app pública de solo lectura -->
+    <div class="adm-panel" id="ccodView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Costeo Consulta (app pública)</div>
+          <div class="adm-panel-meta">app de solo lectura para gerentes/jefes de local · <a href="/consulta-costeo" target="_blank" rel="noopener">/consulta-costeo</a></div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="ccodReload" type="button">Recargar</button>
+        </div>
+      </div>
+      <div id="ccodBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
     <!-- ═══ ESPACIO DE TRABAJO ═══
          Una sola vista con pestañas internas (Tablero · Lista · Mis tareas ·
          Proyectos · Equipo). Los ítems del sidebar apuntan todos acá y solo
@@ -4778,6 +4792,7 @@ const BASE_SECCIONES = [
   { id:'forecast-comercial', kind:'forecastcomercial', label:'Forecast Comercial', cat:'herramientas', desc:'proyección canal × marca · meta +15% configurable · litros y plata' },
   { id:'equipo',    kind:'equipo',   label:'Cuentas del equipo', cat:'herramientas', desc:'altas y ediciones de cuentas individuales · nombre · apodo · acceso' },
   { id:'respaldo',  kind:'respaldo', label:'Respaldo de datos', cat:'herramientas', desc:'estado del almacenamiento · descargar una copia completa (.json + fotos) para guardarla fuera de Railway' },
+  { id:'costeoconsulta', kind:'costeoconsulta', label:'Costeo Consulta (app)', cat:'herramientas', desc:'códigos de acceso de la app pública de solo lectura para gerentes/jefes de local' },
   // Espacio de trabajo: cinco entradas de sidebar que abren la MISMA vista
   // (#workspaceView) y solo cambian la pestaña interna — ver wsTabDe().
   { id:'ws-tablero',   kind:'workspace', label:'Tablero',    cat:'espacio', desc:'kanban del equipo · arrastrá las tarjetas entre Por hacer, Haciendo y Listo' },
@@ -5178,6 +5193,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'respaldo') {
     showView('respaldo');
     await loadRespaldo();
+  } else if (sec.kind === 'costeoconsulta') {
+    showView('costeoconsulta');
+    await loadCosteoConsulta();
   } else if (sec.kind === 'workspace') {
     showView('workspace');
     await wsAbrir(sec.id);
@@ -5288,6 +5306,7 @@ function showView(kind){
   document.getElementById('nominaView').style.display     = kind === 'nomina'     ? '' : 'none';
   document.getElementById('equipoView').style.display     = kind === 'equipo'     ? '' : 'none';
   document.getElementById('respaldoView').style.display    = kind === 'respaldo'   ? '' : 'none';
+  document.getElementById('ccodView').style.display        = kind === 'costeoconsulta' ? '' : 'none';
   document.getElementById('workspaceView').style.display  = kind === 'workspace'  ? '' : 'none';
   document.getElementById('produccionView').style.display = kind === 'produccion' ? '' : 'none';
   document.getElementById('finhomeView').style.display    = kind === 'finhome'    ? '' : 'none';
@@ -18048,6 +18067,69 @@ function renderRespaldo(d){
   };
 }
 document.getElementById('rspReload').onclick = loadRespaldo;
+
+// ─── Costeo Consulta: códigos de acceso de la app pública de solo lectura ───
+// La app en sí (/consulta-costeo) es un portal aparte, sin login de admin —
+// ver el bloque "COSTEO CONSULTA" en server.js. Acá solo se administran los
+// 4 códigos (uno por local + admin). Nunca se ve el código actual en texto:
+// solo se puede pisar por uno nuevo (mismo criterio que una contraseña).
+let ccodData = null;
+async function loadCosteoConsulta(){
+  const body = document.getElementById('ccodBody');
+  body.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const r = await fetch('/admin/costeo-consulta/codigos');
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    ccodData = d;
+    renderCosteoConsulta();
+  } catch(e){ body.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; }
+}
+function renderCosteoConsulta(){
+  const filas = ccodData.locales.map(l => `
+    <div class="rsp-card" style="margin-bottom:.7rem">
+      <h4>${escapeHtml(l.label)}</h4>
+      <p style="margin:.2rem 0 .6rem">Código propio de este local. Con él solo se ve este local, aunque se manipule la URL.</p>
+      <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+        <input class="adm-input" data-clave="${escapeAttr(l.id)}" type="text" inputmode="numeric" placeholder="Nuevo código (4 a 8 dígitos)" style="max-width:220px">
+        <button class="adm-btn adm-btn-gold" data-guardar="${escapeAttr(l.id)}" type="button">Guardar</button>
+      </div>
+    </div>`).join('');
+  document.getElementById('ccodBody').innerHTML = `
+    <div class="rsp-estado ok" style="margin-bottom:1rem">
+      <span class="ic">🔒</span>
+      <div><b>App de solo lectura</b>
+        <span>Ningún endpoint que usa esta app puede escribir datos de costeo — solo lee lo mismo que ya está cargado en el ERP.
+        Link para compartir: <code>${escapeHtml(location.origin)}/consulta-costeo</code></span></div>
+    </div>
+    ${filas}
+    <div class="rsp-card">
+      <h4>Código admin</h4>
+      <p style="margin:.2rem 0 .6rem">Además de su propio código, este destraba los 3 locales y permite alternar entre ellos dentro de la app, sin volver a pedir código.</p>
+      <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
+        <input class="adm-input" data-clave="admin" type="text" inputmode="numeric" placeholder="Nuevo código admin (4 a 8 dígitos)" style="max-width:220px">
+        <button class="adm-btn adm-btn-gold" data-guardar="admin" type="button">Guardar</button>
+      </div>
+    </div>`;
+  document.getElementById('ccodBody').querySelectorAll('[data-guardar]').forEach(btn => {
+    btn.onclick = async () => {
+      const clave = btn.dataset.guardar;
+      const input = document.querySelector(`[data-clave="${clave}"]`);
+      const v = (input.value || '').trim();
+      if (!/^\d{4,8}$/.test(v)) { showToast('El código tiene que ser numérico, de 4 a 8 dígitos.', 'err'); return; }
+      btn.disabled = true; btn.textContent = 'Guardando…';
+      try {
+        const r = await fetch('/admin/costeo-consulta/codigos', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ [clave]: v }) });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Error');
+        input.value = '';
+        showToast('Código actualizado ✓', 'ok');
+      } catch(e){ showToast(String(e.message||e), 'err'); }
+      btn.disabled = false; btn.textContent = 'Guardar';
+    };
+  });
+}
+document.getElementById('ccodReload').onclick = loadCosteoConsulta;
 
 // ════════════════════════════════════════════════════════════════════════════
 // ESPACIO DE TRABAJO — tablero, lista, mis tareas, proyectos, equipo

@@ -17783,6 +17783,226 @@ app.post('/rendimientos/proveedores', requireHospPortal, (req, res) => {
   res.json({ ok: true, proveedores: data.proveedoresFrecuentes });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// COSTEO CONSULTA — app pública de SOLO LECTURA para gerentes/jefes de local
+// (ver el costeo desde el celular, sin login de admin). Mismo patrón que
+// /rendimientos más arriba: portal-views, cookie propia, sesión en memoria +
+// persistida a disco, acceso por código de local (no PIN de admin).
+//
+// REGLA DE ORO: cada ruta de este bloque (menos el login) es un GET que arma
+// su respuesta llamando las MISMAS funciones que ya usan las rutas de admin
+// de solo lectura (loadCosteo/resolveCosteo/resolveCarta/resolveReventa/
+// loadReventa/buildCartaPdf/xlsxPackage/…) — nunca a saveCosteo ni a nada que
+// mute doc.insumos/recetasBase/platos/carta/reventa. No hay POST/PUT/DELETE
+// de datos de costeo en todo este bloque: la única escritura es la sesión del
+// portal (quién entró, no qué ve) y, en /admin/costeo-consulta/codigos, el
+// cambio de código — y esa ruta es admin-only, fuera de la superficie pública.
+// ═══════════════════════════════════════════════════════════════════════════
+const CONSULTA_LOCALES = [
+  { id: 'garden_vespucio',      label: 'Kairos Garden Vespucio',      rest: 'garden' },
+  { id: 'garden_antofagasta',   label: 'Kairos Garden Antofagasta',   rest: 'garden' },
+  { id: 'badass_parque_arauco', label: 'Kairos Badass Parque Arauco', rest: 'badass' },
+];
+const CONSULTA_LOCAL_IDS = new Set(CONSULTA_LOCALES.map(l => l.id));
+const consultaLocalDef = (id) => CONSULTA_LOCALES.find(l => l.id === id) || null;
+
+// Códigos: uno por local + uno "admin" que destraba los 3 (y permite alternar
+// entre ellos sin volver a pedir código). Defaults de arranque, cambiables
+// desde el ERP vía PUT /admin/costeo-consulta/codigos sin tocar código (mismo
+// patrón que HOSP_PIN_DEFAULT/hospLoad más arriba).
+const CONSULTA_CODIGO_DEFAULT = { garden_vespucio: '1111', garden_antofagasta: '2222', badass_parque_arauco: '3333', admin: '9999' };
+const CONSULTA_CODIGOS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'costeo-consulta-codigos.json');
+function consultaCodigosLoad(){
+  let codigos = { ...CONSULTA_CODIGO_DEFAULT };
+  try {
+    if (existsSync(CONSULTA_CODIGOS_FILE)) {
+      const p = JSON.parse(readFileSync(CONSULTA_CODIGOS_FILE, 'utf-8'));
+      if (p && p.codigos && typeof p.codigos === 'object') codigos = { ...codigos, ...p.codigos };
+    }
+  } catch (e) { console.warn('consulta codigos load:', e.message); }
+  return codigos;
+}
+function consultaCodigosSave(codigos){
+  if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true });
+  writeFileSync(CONSULTA_CODIGOS_FILE, JSON.stringify({ codigos }, null, 2));
+}
+
+// Sesión del portal: token → { admin, localId, expiresAt }. Persistida a disco
+// (mismo motivo que HOSP_PORTAL_SESSIONS: un redeploy no debe cerrar sesión a
+// mitad de un turno o una reunión).
+const CONSULTA_COOKIE = 'ccons';
+const CONSULTA_TTL_MS = 12 * 60 * 60 * 1000; // 12h: alcanza un turno largo sin re-pedir código
+const CONSULTA_SESSIONS = new Map();
+const CONSULTA_SESS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'costeo-consulta-sesiones.json');
+function consultaSessionsLoad(){
+  try {
+    if (!existsSync(CONSULTA_SESS_FILE)) return;
+    const arr = JSON.parse(readFileSync(CONSULTA_SESS_FILE, 'utf-8'));
+    const now = Date.now();
+    for (const s of (Array.isArray(arr) ? arr : [])) {
+      if (s && s.token && s.localId && Number(s.expiresAt) > now) CONSULTA_SESSIONS.set(s.token, { admin: !!s.admin, localId: s.localId, expiresAt: Number(s.expiresAt) });
+    }
+  } catch (e) { console.warn('consulta sesiones:', e.message); }
+}
+function consultaSessionsSave(){
+  try {
+    if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true });
+    writeFileSync(CONSULTA_SESS_FILE, JSON.stringify([...CONSULTA_SESSIONS].map(([token, s]) => ({ token, ...s }))));
+  } catch (e) { console.warn('consulta sesiones (save):', e.message); }
+}
+consultaSessionsLoad();
+function consultaSessionFor(req){
+  const token = parseCookies(req)[CONSULTA_COOKIE];
+  if (!token) return null;
+  const s = CONSULTA_SESSIONS.get(token);
+  if (!s) return null;
+  if (s.expiresAt < Date.now()) { CONSULTA_SESSIONS.delete(token); consultaSessionsSave(); return null; }
+  return { token, ...s };
+}
+// El local queda FIJO a la sesión: si no es admin, cualquier ?local= que venga
+// en la query se ignora — esto es lo que impide ver otro local manipulando la
+// URL/petición. Solo una sesión admin puede pedir un local distinto por query
+// (y solo uno de los 3 válidos).
+function requireConsulta(req, res, next){
+  const sess = consultaSessionFor(req);
+  if (!sess) return res.status(401).json({ error: 'Sesión vencida. Ingresá el código de nuevo.' });
+  let localId = sess.localId;
+  if (sess.admin && req.query.local && CONSULTA_LOCAL_IDS.has(String(req.query.local))) localId = String(req.query.local);
+  const local = consultaLocalDef(localId);
+  if (!local) return res.status(400).json({ error: 'Local inválido.' });
+  req.consultaSess = sess;
+  req.consultaLocal = local;
+  next();
+}
+setInterval(() => {
+  const now = Date.now();
+  let purgadas = false;
+  for (const [t, s] of CONSULTA_SESSIONS) if (s.expiresAt < now) { CONSULTA_SESSIONS.delete(t); purgadas = true; }
+  if (purgadas) consultaSessionsSave();
+}, 60 * 60 * 1000).unref?.();
+
+// La app en sí — HTML/CSS/JS autocontenido, mobile-first, sin build.
+app.get('/consulta-costeo', (_req, res) => {
+  res.sendFile(join(__dirname, 'portal-views', 'costeo-consulta-app.html'));
+});
+// Lista pública de locales (sin códigos) — para la pantalla 1 (elegir local).
+app.get('/consulta-costeo/locales', (_req, res) => {
+  res.json({ locales: CONSULTA_LOCALES.map(l => ({ id: l.id, label: l.label })) });
+});
+app.post('/consulta-costeo/codigo', async (req, res) => {
+  const { localId, codigo } = req.body || {};
+  if (!CONSULTA_LOCAL_IDS.has(localId)) return res.status(400).json({ error: 'Local inválido.' });
+  await new Promise(r => setTimeout(r, 200)); // anti fuerza bruta, mismo patrón que /rendimientos/pin
+  const codigos = consultaCodigosLoad();
+  const propio = codigos[localId] || '';
+  const admin = codigos.admin || '';
+  const esAdmin = !!(admin && typeof codigo === 'string' && codigo === admin);
+  const ok = typeof codigo === 'string' && codigo.length > 0 && ((propio && codigo === propio) || esAdmin);
+  if (!ok) return res.status(401).json({ error: 'Código incorrecto.' });
+  const token = randomBytes(32).toString('hex');
+  const expiresAt = Date.now() + CONSULTA_TTL_MS;
+  CONSULTA_SESSIONS.set(token, { admin: esAdmin, localId, expiresAt });
+  consultaSessionsSave();
+  const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  const parts = [`${CONSULTA_COOKIE}=${encodeURIComponent(token)}`, 'HttpOnly', 'Path=/', 'SameSite=Lax', `Max-Age=${Math.floor(CONSULTA_TTL_MS / 1000)}`];
+  if (secure) parts.push('Secure');
+  res.setHeader('Set-Cookie', parts.join('; '));
+  res.json({ ok: true, admin: esAdmin, local: consultaLocalDef(localId) });
+});
+app.post('/consulta-costeo/salir', (req, res) => {
+  const sess = consultaSessionFor(req);
+  if (sess) { CONSULTA_SESSIONS.delete(sess.token); consultaSessionsSave(); }
+  res.setHeader('Set-Cookie', `${CONSULTA_COOKIE}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0`);
+  res.json({ ok: true });
+});
+app.get('/consulta-costeo/me', requireConsulta, (req, res) => {
+  res.json({
+    admin: !!req.consultaSess.admin,
+    local: req.consultaLocal,
+    locales: req.consultaSess.admin ? CONSULTA_LOCALES.map(l => ({ id: l.id, label: l.label })) : null,
+  });
+});
+// Cambiar de local dentro de la MISMA sesión — solo si esa sesión ya entró con
+// el código admin. No es un login nuevo ni eleva privilegios: solo cambia cuál
+// de los 3 locales que el código admin ya autorizó está mirando ahora.
+app.post('/consulta-costeo/cambiar-local', requireConsulta, (req, res) => {
+  if (!req.consultaSess.admin) return res.status(403).json({ error: 'Solo el código admin puede cambiar de local.' });
+  const localId = String((req.body || {}).localId || '');
+  if (!CONSULTA_LOCAL_IDS.has(localId)) return res.status(400).json({ error: 'Local inválido.' });
+  const s = CONSULTA_SESSIONS.get(req.consultaSess.token);
+  if (s) { s.localId = localId; consultaSessionsSave(); }
+  res.json({ ok: true, local: consultaLocalDef(localId) });
+});
+
+// ── Datos: SOLO lectura, siempre desde req.consultaLocal.rest (nunca de un
+// `rest`/`local` que mande el cliente sin pasar por requireConsulta) ──
+app.get('/consulta-costeo/api/costeo', requireConsulta, (req, res) => {
+  const rest = req.consultaLocal.rest; const svc = costeoSvcKey(req.query.svc);
+  res.json({ restaurante: rest, servicio: svc, local: req.consultaLocal, ...resolveCosteo(loadCosteo(rest, svc)) });
+});
+app.get('/consulta-costeo/api/carta', requireConsulta, (req, res) => {
+  const rest = req.consultaLocal.rest; const svc = costeoSvcKey(req.query.svc);
+  res.json({ restaurante: rest, servicio: svc, local: req.consultaLocal, ...resolveCarta(loadCosteo(rest, svc)) });
+});
+app.get('/consulta-costeo/api/reventa', requireConsulta, (req, res) => {
+  const rest = req.consultaLocal.rest;
+  res.json({ restaurante: rest, local: req.consultaLocal, ...resolveReventa(loadReventa(rest)) });
+});
+app.get('/consulta-costeo/api/carta/export.pdf', requireConsulta, (req, res) => {
+  const rest = req.consultaLocal.rest; const svc = costeoSvcKey(req.query.svc);
+  const bloques = [{ titulo: 'Carta · ' + svcSheetLabel(rest, svc), carta: resolveCarta(loadCosteo(rest, svc)) }];
+  const sfx = svc === 'barra' ? '-barra' : '';
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="carta${sfx}-${rest}.pdf"`);
+  res.send(buildCartaPdf(bloques));
+});
+app.get('/consulta-costeo/api/carta/export.xlsx', requireConsulta, (req, res) => {
+  const rest = req.consultaLocal.rest; const svc = costeoSvcKey(req.query.svc);
+  const rows = [[{ v: svcSheetLabel(rest, svc), s: 5 }], []].concat(cartaSheetRows(resolveCarta(loadCosteo(rest, svc))));
+  const sfx = svc === 'barra' ? '-barra' : '';
+  sendXlsx(res, xlsxPackage([{ name: svcSheetLabel(rest, svc), rows }]), `carta${sfx}-${rest}.xlsx`);
+});
+app.get('/consulta-costeo/api/insumos/export.xlsx', requireConsulta, (req, res) => {
+  const rest = req.consultaLocal.rest; const svc = costeoSvcKey(req.query.svc);
+  const doc = resolveCosteo(loadCosteo(rest, svc));
+  const rows = [[{ v: svcSheetLabel(rest, svc) + ' · Insumos', s: 5 }], []].concat(insumosSheetRows(doc, svc));
+  const sfx = svc === 'barra' ? '-barra' : '';
+  sendXlsx(res, xlsxPackage([{ name: svcSheetLabel(rest, svc), rows }]), `insumos${sfx}-${rest}.xlsx`);
+});
+app.get('/consulta-costeo/api/recetas/export.xlsx', requireConsulta, (req, res) => {
+  const rest = req.consultaLocal.rest; const svc = costeoSvcKey(req.query.svc);
+  const doc = resolveCosteo(loadCosteo(rest, svc));
+  const rows = [[{ v: svcSheetLabel(rest, svc) + ' · Recetas base', s: 5 }], []].concat(rbSheetRows(doc));
+  const sfx = svc === 'barra' ? '-barra' : '';
+  sendXlsx(res, xlsxPackage([{ name: svcSheetLabel(rest, svc), rows }]), `recetas-base${sfx}-${rest}.xlsx`);
+});
+app.get('/consulta-costeo/api/platos/export.xlsx', requireConsulta, (req, res) => {
+  const rest = req.consultaLocal.rest; const svc = costeoSvcKey(req.query.svc);
+  const prod = svc === 'barra' ? 'Tragos' : 'Platos';
+  const doc = resolveCosteo(loadCosteo(rest, svc));
+  const rows = [[{ v: svcSheetLabel(rest, svc) + ' · ' + prod, s: 5 }], []].concat(platosSheetRows(doc));
+  const sfx = svc === 'barra' ? '-barra' : '';
+  sendXlsx(res, xlsxPackage([{ name: svcSheetLabel(rest, svc), rows }]), `${prod.toLowerCase()}${sfx}-${rest}.xlsx`);
+});
+
+// ── Config admin: ver/cambiar los 4 códigos desde el ERP, sin redeploy ──
+app.get('/admin/costeo-consulta/codigos', requireAdmin, (req, res) => {
+  res.json({ locales: CONSULTA_LOCALES, codigos: consultaCodigosLoad() });
+});
+app.put('/admin/costeo-consulta/codigos', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const codigos = consultaCodigosLoad();
+  const claves = [...CONSULTA_LOCAL_IDS, 'admin'];
+  for (const k of claves) {
+    if (b[k] === undefined) continue;
+    const v = String(b[k] || '').trim();
+    if (!/^\d{4,8}$/.test(v)) return res.status(400).json({ error: `El código de "${k}" debe ser numérico, de 4 a 8 dígitos.` });
+    codigos[k] = v;
+  }
+  consultaCodigosSave(codigos);
+  res.json({ ok: true, codigos });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Asistente del admin por ÁREA (Motor A). Chat propio del panel (distinto al bot
 // público /chat): sabe en qué área está el usuario y responde/ genera entregables
