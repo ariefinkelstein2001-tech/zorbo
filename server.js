@@ -13647,7 +13647,8 @@ function costeoNormalizeCarta(c){
   const wlv = Number.isFinite(c.wlv) ? c.wlv : 0; // versión: Badass comida — se elimina la sección "Wild Lunch (12:30-16:00)" de Carta (resumen), sin platos costeados
   const dsv = Number.isFinite(c.dsv) ? c.dsv : 0; // versión: Badass comida — cada hamburguesa de "Entre panes (Burgers)" se duplica en su versión "Doble" (2 smash)
   const pcb2v = Number.isFinite(c.pcb2v) ? c.pcb2v : 0; // versión: Badass barra — ronda 2 de precios reales de Cortos/Botellas, desde el Informe Artículos del POS
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, wlv, dsv, pcb2v, secciones, asignaciones };
+  const esv = Number.isFinite(c.esv) ? c.esv : 0; // versión: Badass comida — saca de Carta (resumen) los ítems de platos que ya no se sirven y renombra las Ensaladas al nombre oficial de la carta
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, wlv, dsv, pcb2v, esv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -13908,6 +13909,54 @@ function costeoBadassDobleSmash(doc, rest){
     nombresExistentes.add(costeoNorm(nombreDoble));
   });
   doc.carta.dsv = BADASS_DOBLE_SMASH_V;
+  return true;
+}
+// Badass comida: dos ajustes puntuales a Carta (resumen), confirmados con el
+// dueño — no tocan qué está costeado, solo por qué el aviso "sin costear"
+// mentía:
+// 1) "Goldmember"/"Tiradito Summer" (sección "Para compartir") y "Salmon
+//    Fiorentina"/"Salmon Risotto Fungi" (sección "La Huella Del Chef") ya no
+//    se sirven — se sacan de la lista fija de ítems de esas secciones para
+//    que dejen de figurar como "sin costear".
+// 2) "Ensaladas": el plato existe y está costeado, pero su nombre no calzaba
+//    con el ítem real de la carta por la palabra "de" en el medio ("ensalada
+//    atun" vs "Ensalada de Atún" — el match por substring no salta esa
+//    palabra) — se renombra el plato al nombre oficial de la carta, sin
+//    tocar precio ni receta.
+// Corre una sola vez (carta.esv), solo Badass comida.
+const BADASS_ITEMS_ELIMINAR_SIN_COSTEAR = {
+  'Para compartir': ['Goldmember', 'Tiradito Summer'],
+  'La Huella Del Chef': ['Salmon Fiorentina', 'Salmon Risotto Fungi'],
+};
+const BADASS_ENSALADAS_RENAME = {
+  'ensalada atun': 'Ensalada de Atún',
+  'ensalada de atun': 'Ensalada de Atún',
+  'ensalada pollo': 'Ensalada de Pollo',
+  'ensalada de pollo': 'Ensalada de Pollo',
+  'ensalada camaron': 'Ensalada de camarón',
+  'ensalada de camaron': 'Ensalada de camarón',
+  'ensalada salmon': 'Ensalada de salmón',
+  'ensalada de salmon': 'Ensalada de salmón',
+};
+const BADASS_ENSALADAS_SIN_COSTEAR_V = 1;
+function costeoBadassEnsaladasYSinCostear(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.esv >= BADASS_ENSALADAS_SIN_COSTEAR_V) return false;
+  if (costeoRestKey(rest) !== 'badass') { doc.carta.esv = BADASS_ENSALADAS_SIN_COSTEAR_V; return true; }
+  Object.entries(BADASS_ITEMS_ELIMINAR_SIN_COSTEAR).forEach(([secNombre, nombres]) => {
+    const sec = (doc.carta.secciones || []).find(s => costeoNorm(s.nombre) === costeoNorm(secNombre));
+    if (!sec) return;
+    const quitar = new Set(nombres.map(costeoNormLoose));
+    sec.items = (sec.items || []).filter(it => !quitar.has(costeoNormLoose(it.nombre)));
+  });
+  const renameMap = new Map(Object.entries(BADASS_ENSALADAS_RENAME));
+  (doc.platos || []).forEach(p => {
+    if (costeoNorm(p.categoria) !== costeoNorm('Ensaladas')) return;
+    const target = renameMap.get(costeoNormLoose(p.nombre));
+    if (target && p.nombre !== target) p.nombre = target;
+  });
+  doc.carta.esv = BADASS_ENSALADAS_SIN_COSTEAR_V;
   return true;
 }
 // Migración de platos: el archivo costeo.json ya existía (con insumos/RB guardados)
@@ -14921,10 +14970,10 @@ function costeoEnsureBarraDocs(all){
 }
 function loadCosteoAll(){
   try {
-    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.garden, 'garden'); costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.garden, 'garden'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.garden, 'garden'); costeoSeedPreciosReales(all.badass, 'badass'); costeoBadassEliminarWildLunch(all.badass, 'badass'); costeoBadassDobleSmash(all.badass, 'badass'); costeoEnsureBarraDocs(all); costeoApplySmashOverride(all.garden); costeoApplySmashOverride(all.badass); saveCosteoAll(all); return all; }
+    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.garden, 'garden'); costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.garden, 'garden'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.garden, 'garden'); costeoSeedPreciosReales(all.badass, 'badass'); costeoBadassEliminarWildLunch(all.badass, 'badass'); costeoBadassDobleSmash(all.badass, 'badass'); costeoBadassEnsaladasYSinCostear(all.badass, 'badass'); costeoEnsureBarraDocs(all); costeoApplySmashOverride(all.garden); costeoApplySmashOverride(all.badass); saveCosteoAll(all); return all; }
     const p = JSON.parse(readFileSync(COSTEO_FILE, 'utf-8'));
     // Migración: archivo viejo con la data en la raíz → pasa a "garden".
-    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoEnsureRealCarta(g, 'garden'); costeoMigratePlatos(g, 'garden'); costeoSeedPreciosReales(g, 'garden'); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.badass, 'badass'); costeoBadassEliminarWildLunch(all.badass, 'badass'); costeoBadassDobleSmash(all.badass, 'badass'); costeoEnsureBarraDocs(all); costeoApplySmashOverride(all.garden); costeoApplySmashOverride(all.badass); saveCosteoAll(all); return all; }
+    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoEnsureRealCarta(g, 'garden'); costeoMigratePlatos(g, 'garden'); costeoSeedPreciosReales(g, 'garden'); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.badass, 'badass'); costeoBadassEliminarWildLunch(all.badass, 'badass'); costeoBadassDobleSmash(all.badass, 'badass'); costeoBadassEnsaladasYSinCostear(all.badass, 'badass'); costeoEnsureBarraDocs(all); costeoApplySmashOverride(all.garden); costeoApplySmashOverride(all.badass); saveCosteoAll(all); return all; }
     const all = { garden: costeoNormalizeDoc(p.garden), badass: costeoNormalizeDoc(p.badass), garden_barra: p.garden_barra, badass_barra: p.badass_barra };
     let changed = false;
     if (costeoSeedPlatosInto(all.garden)) changed = true;
@@ -14942,6 +14991,7 @@ function loadCosteoAll(){
     // Badass comida: saca "Wild Lunch (12:30-16:00)" de Carta (resumen), nunca tuvo platos costeados.
     if (costeoBadassEliminarWildLunch(all.badass, 'badass')) changed = true;
     if (costeoBadassDobleSmash(all.badass, 'badass')) changed = true;
+    if (costeoBadassEnsaladasYSinCostear(all.badass, 'badass')) changed = true;
     // Barra: siembra los 2 conjuntos de tragos (una vez). Comida queda intacta.
     if (costeoEnsureBarraDocs(all)) changed = true;
     // Override 100% en la carne de RB SMASH (una vez por doc de comida).
