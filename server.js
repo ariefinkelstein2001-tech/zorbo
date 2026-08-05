@@ -16346,6 +16346,289 @@ app.put('/admin/costeo/mix', requireAdmin, (req, res) => {
   res.json({ rest, comida: d[rest], barra: Math.round((100 - d[rest]) * 10) / 10 });
 });
 
+// ── % de costo ponderado (Comida/Barra + 5 grupos de Barra) — capa de
+// presentación, NUEVO. Reutiliza precioReal/costo/pctCosto que el costeo YA
+// calcula (resolveCarta/resolveReventa) — nunca recalcula un costo ni un
+// precio, solo promedia lo que ya existe con distintos pesos. También
+// centraliza acá la lógica de "con descuento (40%)" que hasta ahora vivía
+// solo en el JS del ERP (admin.html), para que el ERP y la app de consulta
+// (más abajo, /consulta-costeo) usen la MISMA cuenta y nunca puedan mostrar
+// números distintos entre sí.
+const CARTA_DESCUENTO_PCT = 40; // mismo valor que CARTA_DESCUENTO_PCT en admin.html — no inventar otro
+// El descuento del 40% históricamente solo aplica a Badass (así lo definió el
+// dueño en el ERP: `costeoRest==='badass'`) — Garden nunca lo tuvo.
+const costeoDescuentoAplica = (rest) => costeoRestKey(rest) === 'badass';
+// % de costo de un ítem (plato/producto), respetando "con descuento" si aplica
+// — misma fórmula que cartaRow/reventaTableHtml en admin.html: precio con el
+// 40% aplicado, costo intacto. Sin descuento (o fuera de Badass) devuelve el
+// pctCosto que ya viene calculado, tal cual.
+function costeoItemPctConDesc(precioBase, costo, pctCostoStored, conDesc, restIsBadass){
+  if (!conDesc || !restIsBadass) return pctCostoStored;
+  if (precioBase == null || costo == null) return null;
+  const real = Math.round(precioBase * (1 - CARTA_DESCUENTO_PCT / 100));
+  return real > 0 ? Math.round((costo / real) * 1000) / 10 : null;
+}
+// Devuelve una copia de la carta resuelta con precioReal/pctCosto recalculados
+// "con descuento" (nunca muta el original ni toca costo/costoFinal).
+function costeoAplicarDescuentoCarta(carta, conDesc, restIsBadass){
+  if (!conDesc || !restIsBadass) return carta;
+  const xf = (p) => {
+    if (p.precioReal == null) return p;
+    const real = Math.round(p.precioReal * (1 - CARTA_DESCUENTO_PCT / 100));
+    const pctCosto = real > 0 ? Math.round((p.costo / real) * 1000) / 10 : null;
+    return { ...p, precioReal: real, pctCosto };
+  };
+  return {
+    ...carta,
+    secciones: (carta.secciones || []).map(s => ({ ...s, platos: (s.platos || []).map(xf) })),
+    sinAsignar: (carta.sinAsignar || []).map(xf),
+  };
+}
+function costeoAplicarDescuentoReventa(reventa, conDesc, restIsBadass){
+  if (!conDesc || !restIsBadass) return reventa;
+  const xf = (p) => {
+    if (p.precioVenta == null) return p;
+    const venta = Math.round(p.precioVenta * (1 - CARTA_DESCUENTO_PCT / 100));
+    const pctCosto = (venta > 0 && p.precioCompra != null) ? Math.round((p.precioCompra / venta) * 1000) / 10 : null;
+    return { ...p, precioVenta: venta, pctCosto };
+  };
+  return { ...reventa, secciones: (reventa.secciones || []).map(s => ({ ...s, productos: (s.productos || []).map(xf) })) };
+}
+// Mismo criterio para el detalle de Platos/Tragos (resolveCosteo, campos
+// precioReal/pctCostoReal/costoFinal — nombres distintos a los de Carta pero
+// la misma cuenta): el costo nunca cambia, solo el precio de venta y el % que
+// sale de compararlo contra el costo.
+function costeoAplicarDescuentoPlatos(resolved, conDesc, restIsBadass){
+  if (!conDesc || !restIsBadass) return resolved;
+  const xf = (p) => {
+    if (p.precioReal == null) return p;
+    const real = Math.round(p.precioReal * (1 - CARTA_DESCUENTO_PCT / 100));
+    const pctCostoReal = real > 0 ? Math.round((p.costoFinal / real) * 1000) / 10 : null;
+    return { ...p, precioReal: real, pctCostoReal };
+  };
+  return { ...resolved, platos: (resolved.platos || []).map(xf) };
+}
+
+// ── Barra: ponderación fina por 5 grupos (NUEVO — capa de presentación) ──
+// Un promedio simple de TODOS los tragos castiga el número: Cortos/licores
+// sueltos son muchas líneas de bajo % pero bajo peso real en ventas, mientras
+// que Cocktails son pocas líneas con mucho peso. Se agrupan las secciones de
+// la carta (y de Reventa) en 5 grupos y se pondera por el % de ingresos que
+// aporta cada grupo — el costo de cada grupo sigue siendo el promedio de lo
+// que el costeo YA calculó para sus tragos, no se recalcula nada.
+const COSTEO_GRUPOS_BARRA = [
+  { key: 'cervezas',     label: 'Cervezas',          visual: 'conAlcohol' },
+  { key: 'cocktails',    label: 'Cocktails',         visual: 'conAlcohol' },
+  { key: 'otrosAlcohol', label: 'Otros con alcohol', visual: 'conAlcohol' },
+  { key: 'sinAlcohol',   label: 'Sin alcohol',       visual: 'sinAlcohol' },
+  { key: 'otros',        label: 'Otros',             visual: 'otros' },
+];
+const COSTEO_GRUPOS_BARRA_KEYS = new Set(COSTEO_GRUPOS_BARRA.map(g => g.key));
+// Semilla del mapeo sección→grupo, por NOMBRE LITERAL de sección tal como lo
+// definió el dueño. Solo se precargan los nombres que calzan (Badass, y en
+// Garden los que comparten nombre idéntico o casi idéntico). Todo lo demás
+// —incluida "Mocktails" en ambos locales, y en Garden la mayoría de las
+// secciones de cóctel (nombres distintos a Badass) más "Cortos" (76 tragos)—
+// queda A PROPÓSITO sin asignar: se completa a mano desde el editor
+// (Herramientas › Costeo · Ponderación de Barra), no se adivina.
+const COSTEO_GRUPOS_BARRA_NOMBRES = {
+  cervezas: [
+    'Colección de la casa (cervezas)', 'Colección de temporada (cervezas)', 'Colección de artistas (cervezas)',
+    'Firulais Craft Mix',
+  ],
+  cocktails: [
+    'De la casa', 'Jarras de la casa', 'Malas Costumbres XD', 'De autor',
+    'Low Alcohol and Skinny Cocktails', 'CLÁSICOS',
+  ],
+  otrosAlcohol: [
+    'Spritz', 'Especial Chelas', 'Gin', 'Whisky', 'Bourbon', 'Vodka', 'Pisco', 'Ron', 'Tequila', 'Licores',
+    'Gin Botella', 'Whisky Botella', 'Bourbon Botella', 'Vodka Botella', 'Pisco Botella', 'Ron Botella', 'Tequila Botella', 'Licores Botella',
+    'Vino (botella 750cc)', 'Espumantes', 'Cervezas Invitadas',
+  ],
+  sinAlcohol: ['Para Tomar 0.0', 'Para Tomar 0,0'],
+  otros: ['Chelas sin alcohol', 'Kombucha'],
+};
+function costeoGruposBarraSeedSecciones(){
+  const map = {};
+  for (const [grupo, nombres] of Object.entries(COSTEO_GRUPOS_BARRA_NOMBRES)) {
+    for (const n of nombres) map[costeoNormLoose(n)] = grupo;
+  }
+  return map;
+}
+// Pesos iniciales (% de ingresos) que dio el dueño para Badass. Para Garden no
+// hay números reales todavía — arranca 20/20/20/20/20 a propósito (parejo,
+// obviamente provisorio) para que sea evidente que hay que ajustarlo, en vez
+// de inventar un número real disfrazado de definitivo.
+const COSTEO_GRUPOS_BARRA_PESOS_DEFAULT = {
+  badass: { cervezas: 22.99, cocktails: 40.5, otrosAlcohol: 14.07, sinAlcohol: 22, otros: 0.44 },
+  garden: { cervezas: 20, cocktails: 20, otrosAlcohol: 20, sinAlcohol: 20, otros: 20 },
+};
+const COSTEO_GRUPOS_BARRA_FILE = join(PROMPTS_EFFECTIVE_DIR, 'costeo-grupos-barra.json');
+function costeoGruposBarraLoad(){
+  try { if (existsSync(COSTEO_GRUPOS_BARRA_FILE)) { const p = JSON.parse(readFileSync(COSTEO_GRUPOS_BARRA_FILE, 'utf-8')); if (p && typeof p === 'object') return p; } }
+  catch (e) { console.warn('grupos-barra load:', e.message); }
+  return {};
+}
+function costeoGruposBarraSave(all){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTEO_GRUPOS_BARRA_FILE, JSON.stringify(all, null, 2)); }
+// pesos: se completa cualquier grupo faltante con el default del local. secciones:
+// si YA se guardó algo para el local, se usa TAL CUAL (reemplazo completo, mismo
+// criterio que /admin/costeo/carta/secciones) — el front siempre manda el mapa
+// completo (semilla + ediciones) al guardar, nunca un parche parcial.
+function costeoGruposBarraGet(rest){
+  rest = costeoRestKey(rest);
+  const all = costeoGruposBarraLoad();
+  const saved = all[rest];
+  const pesosDef = COSTEO_GRUPOS_BARRA_PESOS_DEFAULT[rest] || COSTEO_GRUPOS_BARRA_PESOS_DEFAULT.garden;
+  const pesos = {};
+  COSTEO_GRUPOS_BARRA.forEach(g => {
+    const v = saved && saved.pesos ? Number(saved.pesos[g.key]) : NaN;
+    pesos[g.key] = Number.isFinite(v) ? v : pesosDef[g.key];
+  });
+  const secciones = (saved && saved.secciones && typeof saved.secciones === 'object') ? { ...saved.secciones } : costeoGruposBarraSeedSecciones();
+  return { pesos, secciones };
+}
+// Todas las secciones de Barra (carta + reventa) del local, con cuántos
+// platos/productos tiene cada una y a qué grupo está asignada hoy (o null) —
+// para que el editor pueda listar TODO, no solo lo que ya tiene grupo.
+function costeoGruposBarraSeccionesTodas(rest, cfg){
+  const carta = resolveCarta(loadCosteo(rest, 'barra'));
+  const reventa = resolveReventa(loadReventa(rest));
+  const map = new Map();
+  const add = (nombre, n) => {
+    const key = costeoNormLoose(nombre);
+    if (!key) return;
+    if (!map.has(key)) map.set(key, { nombre, key, nPlatos: 0 });
+    map.get(key).nPlatos += n;
+  };
+  (carta.secciones || []).forEach(s => add(s.nombre, (s.platos || []).length));
+  (reventa.secciones || []).forEach(s => add(s.nombre, (s.productos || []).length));
+  return [...map.values()].map(x => ({ ...x, grupo: cfg.secciones[x.key] || null })).sort((a, b) => a.nombre.localeCompare(b.nombre));
+}
+// El cálculo en sí: promedio simple DENTRO de cada grupo (de lo que el costeo
+// ya entrega), después ponderado ENTRE los 5 grupos por su peso de ingresos.
+// "Válido" exige que los 5 pesos sumen 100% Y que ninguna sección con tragos
+// con precio cargado esté sin asignar a un grupo — mientras eso no se cumpla,
+// no se ofrece un ponderado como si fuera definitivo (candado).
+function costeoGruposBarraCompute(rest, conDesc, cfgOpt){
+  rest = costeoRestKey(rest);
+  const restIsBadass = rest === 'badass';
+  const descAplica = !!conDesc && restIsBadass;
+  const cfg = cfgOpt || costeoGruposBarraGet(rest);
+  const carta = resolveCarta(loadCosteo(rest, 'barra'));
+  const reventa = resolveReventa(loadReventa(rest));
+  const porSeccion = new Map();
+  const push = (nombre, pct) => {
+    if (pct == null) return;
+    const key = costeoNormLoose(nombre);
+    if (!key) return;
+    if (!porSeccion.has(key)) porSeccion.set(key, { nombre, pcts: [] });
+    porSeccion.get(key).pcts.push(pct);
+  };
+  (carta.secciones || []).forEach(s => (s.platos || []).forEach(p => {
+    push(s.nombre, costeoItemPctConDesc(p.precioReal, p.costo, p.pctCosto, descAplica, restIsBadass));
+  }));
+  (reventa.secciones || []).forEach(s => (s.productos || []).forEach(p => {
+    push(s.nombre, costeoItemPctConDesc(p.precioVenta, p.precioCompra, p.pctCosto, descAplica, restIsBadass));
+  }));
+  const porGrupo = {}; COSTEO_GRUPOS_BARRA.forEach(g => { porGrupo[g.key] = { pcts: [], secciones: [] }; });
+  const sinAsignar = [];
+  for (const [, info] of porSeccion) {
+    const grupo = cfg.secciones[costeoNormLoose(info.nombre)];
+    if (grupo && porGrupo[grupo]) { porGrupo[grupo].pcts.push(...info.pcts); porGrupo[grupo].secciones.push(info.nombre); }
+    else sinAsignar.push(info.nombre);
+  }
+  const detalle = COSTEO_GRUPOS_BARRA.map(g => {
+    const d = porGrupo[g.key];
+    const n = d.pcts.length;
+    const avgPct = n ? Math.round(d.pcts.reduce((a, b) => a + b, 0) / n * 10) / 10 : null;
+    return { key: g.key, label: g.label, visual: g.visual, peso: Number(cfg.pesos[g.key]) || 0, avgPct, n, secciones: d.secciones };
+  });
+  const sumaPesos = Math.round(detalle.reduce((a, d) => a + d.peso, 0) * 10) / 10;
+  const pesosValidos = Math.abs(sumaPesos - 100) < 0.05;
+  const seccionesValidas = sinAsignar.length === 0;
+  const valido = pesosValidos && seccionesValidas;
+  let pct = null;
+  if (valido) {
+    const usable = detalle.filter(d => d.avgPct != null && d.peso > 0);
+    const pesoUsable = usable.reduce((a, d) => a + d.peso, 0);
+    if (pesoUsable > 0) pct = Math.round(usable.reduce((a, d) => a + d.avgPct * d.peso, 0) / pesoUsable * 10) / 10;
+  }
+  return { valido, pct, sumaPesos, pesosValidos, seccionesValidas, sinAsignar: sinAsignar.sort((a, b) => a.localeCompare(b)), detalle, conDesc: descAplica };
+}
+app.get('/admin/costeo/grupos-barra', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest);
+  const conDesc = req.query.conDesc === '1';
+  const cfg = costeoGruposBarraGet(rest);
+  res.json({
+    rest, grupos: COSTEO_GRUPOS_BARRA, pesos: cfg.pesos, secciones: cfg.secciones,
+    seccionesTodas: costeoGruposBarraSeccionesTodas(rest, cfg),
+    ponderado: costeoGruposBarraCompute(rest, conDesc, cfg),
+  });
+});
+app.put('/admin/costeo/grupos-barra', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest);
+  const b = req.body || {};
+  if (!b.pesos || typeof b.pesos !== 'object') return res.status(400).json({ error: 'Faltan los pesos de los 5 grupos.' });
+  const pesos = {};
+  for (const g of COSTEO_GRUPOS_BARRA) {
+    const v = Number(b.pesos[g.key]);
+    if (!Number.isFinite(v) || v < 0 || v > 100) return res.status(400).json({ error: `El peso de "${g.label}" tiene que ser un número entre 0 y 100.` });
+    pesos[g.key] = Math.round(v * 100) / 100;
+  }
+  const secciones = {};
+  if (b.secciones && typeof b.secciones === 'object') {
+    for (const [k, v] of Object.entries(b.secciones)) {
+      if (v === '' || v == null) continue;
+      if (!COSTEO_GRUPOS_BARRA_KEYS.has(v)) return res.status(400).json({ error: 'Grupo inválido: ' + v });
+      secciones[k] = v;
+    }
+  }
+  const all = costeoGruposBarraLoad();
+  all[rest] = { pesos, secciones };
+  costeoGruposBarraSave(all);
+  const cfg = costeoGruposBarraGet(rest);
+  res.json({ rest, pesos: cfg.pesos, secciones: cfg.secciones, seccionesTodas: costeoGruposBarraSeccionesTodas(rest, cfg) });
+});
+
+// ── Ponderado total (Comida vs Barra, por mix de ingresos del local) ──
+// Une el promedio simple de Comida (mismo criterio que ya usa el ERP para su
+// "% de costo promedio" de Comida — sin agrupar, no lo pidió el dueño) con el
+// ponderado por grupos de Barra de arriba, mezclados por el mix de ingresos ya
+// existente (costeoMixComida). Es la MISMA función que usan el ERP (ambos
+// perfiles) y la app de consulta — así nunca pueden mostrar números distintos.
+function costeoPonderadoTotal(rest, conDesc){
+  rest = costeoRestKey(rest);
+  const restIsBadass = rest === 'badass';
+  const descAplica = !!conDesc && restIsBadass;
+  const mixComida = costeoMixComida(rest);
+  const mixBarra = Math.round((100 - mixComida) * 10) / 10;
+  const cartaComida = resolveCarta(loadCosteo(rest, 'comida'));
+  const platosComida = [...(cartaComida.secciones || []).flatMap(s => s.platos || []), ...(cartaComida.sinAsignar || [])];
+  const pctsComida = platosComida
+    .map(p => costeoItemPctConDesc(p.precioReal, p.costo, p.pctCosto, descAplica, restIsBadass))
+    .filter(x => x != null);
+  const comida = { pct: pctsComida.length ? Math.round(pctsComida.reduce((a, b) => a + b, 0) / pctsComida.length * 10) / 10 : null, n: pctsComida.length };
+  const barra = costeoGruposBarraCompute(rest, descAplica);
+  let combinado = null, motivoInvalido = null;
+  if (comida.pct == null && (!barra.valido || barra.pct == null)) {
+    motivoInvalido = 'Todavía no hay platos ni tragos con precio real cargado.';
+  } else if (!barra.valido) {
+    motivoInvalido = !barra.pesosValidos
+      ? `Los pesos de Barra suman ${barra.sumaPesos}%, no 100%.`
+      : `Faltan asignar ${barra.sinAsignar.length} sección(es) de Barra a un grupo.`;
+  } else if (comida.pct != null && barra.pct != null) {
+    combinado = Math.round((comida.pct * mixComida + barra.pct * mixBarra) / 100 * 10) / 10;
+  } else if (comida.pct != null) {
+    combinado = comida.pct;
+  } else if (barra.pct != null) {
+    combinado = barra.pct;
+  }
+  return { rest, conDesc: descAplica, mix: { comida: mixComida, barra: mixBarra }, comida, barra, combinado, motivoInvalido };
+}
+app.get('/admin/costeo/ponderado', requireAdmin, (req, res) => {
+  res.json(costeoPonderadoTotal(costeoRestKey(req.query.rest), req.query.conDesc === '1'));
+});
+
 // ── Export de la Carta a Excel (.xlsx) ──────────────────────────────────────
 // Genera un .xlsx real (OOXML) SIN dependencias: arma el ZIP a mano con entradas
 // STORE (sin compresión) + las partes XML mínimas. Una hoja por restaurante, con
@@ -17936,30 +18219,54 @@ app.post('/consulta-costeo/cambiar-local', requireConsulta, (req, res) => {
 
 // ── Datos: SOLO lectura, siempre desde req.consultaLocal.rest (nunca de un
 // `rest`/`local` que mande el cliente sin pasar por requireConsulta) ──
+// conDesc: mismo toggle "Sin descuento / Con descuento (40%)" que ya existe
+// en el ERP, ahora también disponible acá — mismas funciones puras
+// (costeoAplicarDescuento*), mismo resultado exacto en los dos lados. Solo
+// tiene efecto en Badass (Garden nunca tuvo el descuento); en Garden el query
+// param se ignora en silencio, igual que en el ERP.
+const consultaConDesc = (req) => req.query.conDesc === '1' && costeoDescuentoAplica(req.consultaLocal.rest);
 app.get('/consulta-costeo/api/costeo', requireConsulta, (req, res) => {
   const rest = req.consultaLocal.rest; const svc = costeoSvcKey(req.query.svc);
-  res.json({ restaurante: rest, servicio: svc, local: req.consultaLocal, ...resolveCosteo(loadCosteo(rest, svc)) });
+  const conDesc = consultaConDesc(req);
+  const resolved = costeoAplicarDescuentoPlatos(resolveCosteo(loadCosteo(rest, svc)), conDesc, costeoDescuentoAplica(rest));
+  res.json({ restaurante: rest, servicio: svc, local: req.consultaLocal, conDesc, ...resolved });
 });
 app.get('/consulta-costeo/api/carta', requireConsulta, (req, res) => {
   const rest = req.consultaLocal.rest; const svc = costeoSvcKey(req.query.svc);
-  res.json({ restaurante: rest, servicio: svc, local: req.consultaLocal, ...resolveCarta(loadCosteo(rest, svc)) });
+  const conDesc = consultaConDesc(req);
+  const carta = costeoAplicarDescuentoCarta(resolveCarta(loadCosteo(rest, svc)), conDesc, costeoDescuentoAplica(rest));
+  res.json({ restaurante: rest, servicio: svc, local: req.consultaLocal, conDesc, ...carta });
 });
 app.get('/consulta-costeo/api/reventa', requireConsulta, (req, res) => {
   const rest = req.consultaLocal.rest;
-  res.json({ restaurante: rest, local: req.consultaLocal, ...resolveReventa(loadReventa(rest)) });
+  const conDesc = consultaConDesc(req);
+  const reventa = costeoAplicarDescuentoReventa(resolveReventa(loadReventa(rest)), conDesc, costeoDescuentoAplica(rest));
+  res.json({ restaurante: rest, local: req.consultaLocal, conDesc, ...reventa });
+});
+// % ponderado (Comida vs Barra por mix de ingresos, Barra por sus 5 grupos) —
+// misma función que usa el ERP (costeoPonderadoTotal), scopeada SIEMPRE al
+// local autorizado de la sesión — nunca a un `rest` que mande el cliente.
+app.get('/consulta-costeo/api/ponderado', requireConsulta, (req, res) => {
+  res.json(costeoPonderadoTotal(req.consultaLocal.rest, consultaConDesc(req)));
 });
 app.get('/consulta-costeo/api/carta/export.pdf', requireConsulta, (req, res) => {
   const rest = req.consultaLocal.rest; const svc = costeoSvcKey(req.query.svc);
-  const bloques = [{ titulo: 'Carta · ' + svcSheetLabel(rest, svc), carta: resolveCarta(loadCosteo(rest, svc)) }];
-  const sfx = svc === 'barra' ? '-barra' : '';
+  const conDesc = consultaConDesc(req);
+  const carta = costeoAplicarDescuentoCarta(resolveCarta(loadCosteo(rest, svc)), conDesc, costeoDescuentoAplica(rest));
+  const titulo = 'Carta · ' + svcSheetLabel(rest, svc) + (conDesc ? ` · Con descuento ${CARTA_DESCUENTO_PCT}%` : '');
+  const bloques = [{ titulo, carta }];
+  const sfx = (svc === 'barra' ? '-barra' : '') + (conDesc ? '-descuento' : '');
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `inline; filename="carta${sfx}-${rest}.pdf"`);
   res.send(buildCartaPdf(bloques));
 });
 app.get('/consulta-costeo/api/carta/export.xlsx', requireConsulta, (req, res) => {
   const rest = req.consultaLocal.rest; const svc = costeoSvcKey(req.query.svc);
-  const rows = [[{ v: svcSheetLabel(rest, svc), s: 5 }], []].concat(cartaSheetRows(resolveCarta(loadCosteo(rest, svc))));
-  const sfx = svc === 'barra' ? '-barra' : '';
+  const conDesc = consultaConDesc(req);
+  const carta = costeoAplicarDescuentoCarta(resolveCarta(loadCosteo(rest, svc)), conDesc, costeoDescuentoAplica(rest));
+  const titulo = svcSheetLabel(rest, svc) + (conDesc ? ` · Con descuento ${CARTA_DESCUENTO_PCT}%` : '');
+  const rows = [[{ v: titulo, s: 5 }], []].concat(cartaSheetRows(carta));
+  const sfx = (svc === 'barra' ? '-barra' : '') + (conDesc ? '-descuento' : '');
   sendXlsx(res, xlsxPackage([{ name: svcSheetLabel(rest, svc), rows }]), `carta${sfx}-${rest}.xlsx`);
 });
 app.get('/consulta-costeo/api/insumos/export.xlsx', requireConsulta, (req, res) => {
@@ -17978,10 +18285,12 @@ app.get('/consulta-costeo/api/recetas/export.xlsx', requireConsulta, (req, res) 
 });
 app.get('/consulta-costeo/api/platos/export.xlsx', requireConsulta, (req, res) => {
   const rest = req.consultaLocal.rest; const svc = costeoSvcKey(req.query.svc);
+  const conDesc = consultaConDesc(req);
   const prod = svc === 'barra' ? 'Tragos' : 'Platos';
-  const doc = resolveCosteo(loadCosteo(rest, svc));
-  const rows = [[{ v: svcSheetLabel(rest, svc) + ' · ' + prod, s: 5 }], []].concat(platosSheetRows(doc));
-  const sfx = svc === 'barra' ? '-barra' : '';
+  const doc = costeoAplicarDescuentoPlatos(resolveCosteo(loadCosteo(rest, svc)), conDesc, costeoDescuentoAplica(rest));
+  const titulo = svcSheetLabel(rest, svc) + ' · ' + prod + (conDesc ? ` · Con descuento ${CARTA_DESCUENTO_PCT}%` : '');
+  const rows = [[{ v: titulo, s: 5 }], []].concat(platosSheetRows(doc));
+  const sfx = (svc === 'barra' ? '-barra' : '') + (conDesc ? '-descuento' : '');
   sendXlsx(res, xlsxPackage([{ name: svcSheetLabel(rest, svc), rows }]), `${prod.toLowerCase()}${sfx}-${rest}.xlsx`);
 });
 
