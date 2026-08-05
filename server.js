@@ -2146,6 +2146,12 @@ const WS_ESTADOS_DEFAULT = [
   { id: 'listo',     nombre: 'Listo',     color: '#2e9c5a', orden: 2 },
 ];
 const WS_PRIORIDADES = ['baja', 'media', 'alta', 'urgente'];
+const WS_CANALES_SEMILLA = [
+  { nombre: 'general',      emoji: '💬', descripcion: 'Todo el equipo' },
+  { nombre: 'produccion',   emoji: '🏭', descripcion: 'Cocciones, envasado, planta' },
+  { nombre: 'ventas',       emoji: '🛒', descripcion: 'Pedidos, clientes y canales' },
+  { nombre: 'restaurantes', emoji: '🍽️', descripcion: 'Garden, Badass y Hospitality' },
+];
 const WS_PROYECTOS_SEMILLA = [
   { nombre: 'Producción',        emoji: '🏭', color: '#b87333' },
   { nombre: 'Marketing',         emoji: '📣', color: '#f5a623' },
@@ -2168,10 +2174,10 @@ function wsSave(d){
   writeFileSync(WS_FILE, JSON.stringify(d, null, 2));
 }
 function wsLoad(){
-  // El doc arranca con TODAS las claves que va a usar el espacio (eventos,
-  // canales, mensajes, metas todavía sin endpoints) para que las partes que
-  // vienen después no tengan que migrar el archivo.
-  const base = { v: WS_V, sembrado: false, estados: [], proyectos: [], tareas: [], notificaciones: [], eventos: [], canales: [], mensajes: [], metas: [] };
+  // El doc arranca con TODAS las claves que va a usar el espacio (metas todavía
+  // sin endpoints) para que las partes que vienen después no tengan que migrar
+  // el archivo. `lecturas` es un objeto {username: {canalId: ts}}, no un array.
+  const base = { v: WS_V, sembrado: false, canalesSembrados: false, estados: [], proyectos: [], tareas: [], notificaciones: [], eventos: [], canales: [], mensajes: [], metas: [], lecturas: {} };
   let d = { ...base };
   try {
     if (existsSync(WS_FILE)) {
@@ -2181,6 +2187,7 @@ function wsLoad(){
       // justo cómo se pierde el trabajo cargado a mano.
       d = { ...base, ...p };
       for (const k of ['estados','proyectos','tareas','notificaciones','eventos','canales','mensajes','metas']) d[k] = wsArr(d[k]);
+      if (!d.lecturas || typeof d.lecturas !== 'object' || Array.isArray(d.lecturas)) d.lecturas = {};
     }
   } catch (e) { console.warn('workspace load:', e.message); }
   let cambio = false;
@@ -2197,6 +2204,19 @@ function wsLoad(){
       });
     }
     d.sembrado = true; cambio = true;
+  }
+  if (!d.canalesSembrados) {
+    // Igual que los proyectos: una sola vez, con dedupe por nombre. Si el admin
+    // borra #ventas, no reaparece en el próximo arranque.
+    const yaHay = new Set(d.canales.map(c => wsStr(c.nombre).toLowerCase()));
+    for (const s of WS_CANALES_SEMILLA) {
+      if (yaHay.has(s.nombre)) continue;
+      d.canales.push({
+        id: wsNewId('cn'), tipo: 'canal', nombre: s.nombre, emoji: s.emoji,
+        descripcion: s.descripcion, miembros: [], archivado: false, creadoPor: '', createdAt: Date.now(),
+      });
+    }
+    d.canalesSembrados = true; cambio = true;
   }
   if (d.v !== WS_V) { d.v = WS_V; cambio = true; }
   if (cambio) { try { wsSave(d); } catch (e) { console.warn('workspace seed:', e.message); } }
@@ -2226,7 +2246,24 @@ function wsUsuarios(req){
   if (!out.some(u => (u.username || '').toLowerCase() === yo.username)) {
     out.push({ id: 'sesion:' + yo.username, username: yo.username, email: yo.username, nombre: yo.nombre, apellido: '', apodo: '', role: yo.role === 'miembro' ? 'miembro' : 'admin', avatar: yo.avatar, color: yo.color, profileOnly: true, createdAt: null });
   }
-  return out;
+  return wsAsignarHandles(out);
+}
+// Handle para las menciones del chat: la parte del correo antes de la arroba.
+// Se resuelve acá, en un solo lugar, y viaja en el roster para que el front
+// escriba exactamente el mismo @handle que el server después parsea.
+function wsAsignarHandles(usuarios){
+  const usados = new Set();
+  // Por antigüedad: si dos correos comparten la parte de la izquierda, el
+  // handle "limpio" queda para la cuenta más vieja y no se mueve nunca.
+  const orden = usuarios.slice().sort((a, b) => (a.createdAt || Number.MAX_SAFE_INTEGER) - (b.createdAt || Number.MAX_SAFE_INTEGER));
+  for (const u of orden) {
+    const base = String(u.username || '').split('@')[0].toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9._-]/g, '') || 'user';
+    let h = base, n = 2;
+    while (usados.has(h)) h = base + (n++);
+    usados.add(h); u.handle = h;
+  }
+  return usuarios;
 }
 const wsNombreUsuario = (usuarios, username) => {
   const u = usuarios.find(x => (x.username || '').toLowerCase() === String(username || '').toLowerCase());
@@ -2235,13 +2272,13 @@ const wsNombreUsuario = (usuarios, username) => {
 
 // Notificar (campanita). destinos = usernames; nunca se notifica a quien hizo la
 // acción — que te avise de lo que acabás de hacer vos es solo ruido.
-function wsNotificar(d, destinos, { tipo, texto, tareaId = null, eventoId = null, de = '' }){
+function wsNotificar(d, destinos, { tipo, texto, tareaId = null, eventoId = null, canalId = null, de = '' }){
   const vistos = new Set();
   for (const raw of wsArr(destinos)) {
     const u = String(raw || '').toLowerCase();
     if (!u || u === String(de || '').toLowerCase() || vistos.has(u)) continue;
     vistos.add(u);
-    d.notificaciones.push({ id: wsNewId('nt'), username: u, tipo, texto: wsStr(texto, 300), tareaId, eventoId, de: String(de || ''), ts: Date.now(), leida: false });
+    d.notificaciones.push({ id: wsNewId('nt'), username: u, tipo, texto: wsStr(texto, 300), tareaId, eventoId, canalId, de: String(de || ''), ts: Date.now(), leida: false });
   }
   // Techo por persona: la campanita es un aviso, no un historial. Sin esto el
   // doc crece para siempre.
@@ -2650,6 +2687,227 @@ app.get('/admin/ws/calendario.ics', requireAdmin, (req, res) => {
   res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
   res.setHeader('Content-Disposition', 'attachment; filename="k-bros-calendario.ics"');
   res.send(wsIcsDoc(mios, wsUsuarios(req)));
+});
+
+// ── Chat interno: canales y mensajes directos ────────────────────────────────
+// Un canal y un mensaje directo son la misma cosa con distinto `tipo`: así hay
+// un solo almacén de mensajes, un solo contador de no leídos y un solo buscador.
+//  · tipo 'canal' → lo ve todo el equipo. Solo un admin los crea/edita/borra.
+//  · tipo 'dm'    → solo sus dos `miembros`. Cualquiera puede abrir uno.
+// Lo leído se guarda como una marca de tiempo por persona y canal
+// (`lecturas[username][canalId]`), no como un flag por mensaje: es O(1) para
+// escribir y sobrevive a que alguien borre mensajes.
+const WS_MSJ_MAX = 2000;          // por canal; más viejos se recortan al guardar
+const WS_MSJ_LARGO = 4000;
+
+const wsCanalNombre = (v) => wsStr(v, 40).toLowerCase()
+  .normalize('NFD').replace(/[̀-ͯ]/g, '')
+  .replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+
+function wsCanalVisible(c, username){
+  if (!c) return false;
+  if (c.tipo === 'dm') return (c.miembros || []).includes(username);
+  return !c.archivado;
+}
+const wsCanalPublico = (c, usuarios, yo) => {
+  if (c.tipo !== 'dm') return { ...c };
+  // Un DM se muestra con el nombre del OTRO, no con el propio.
+  const otro = (c.miembros || []).find(u => u !== yo) || yo;
+  return { ...c, nombre: wsNombreUsuario(usuarios, otro), conQuien: otro };
+};
+
+// Menciones: se resuelven contra los handles del roster. `@todos` avisa a todo
+// el canal — en un DM no tiene sentido, así que ahí se ignora.
+function wsMenciones(texto, usuarios, canal){
+  const porHandle = new Map(usuarios.map(u => [u.handle, u.username]));
+  const out = new Set();
+  for (const m of String(texto || '').matchAll(/(^|[^a-z0-9@._-])@([a-z0-9._-]{1,60})/gi)) {
+    const h = String(m[2]).toLowerCase().replace(/[._-]+$/, '');  // no comerse el punto final de la frase
+    if (h === 'todos' || h === 'canal') {
+      if (canal && canal.tipo !== 'dm') for (const u of usuarios) out.add(u.username);
+    } else if (porHandle.has(h)) out.add(porHandle.get(h));
+  }
+  return [...out];
+}
+
+// Quién tiene que enterarse de un mensaje: en un DM, el otro; en un canal,
+// solo los mencionados. Avisar de cada mensaje de cada canal sería insufrible.
+function wsChatDestinos(canal, menciones, usuarios, autor){
+  if (canal.tipo === 'dm') return (canal.miembros || []).filter(u => u !== autor);
+  return menciones.filter(u => u !== autor);
+}
+
+function wsNoLeidos(d, canal, username){
+  const marca = ((d.lecturas || {})[username] || {})[canal.id] || 0;
+  return d.mensajes.filter(m => m.canalId === canal.id && m.ts > marca && m.autor !== username).length;
+}
+
+app.get('/admin/ws/chat', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const yo = wsActor(req);
+  const usuarios = wsUsuarios(req);
+  const canales = d.canales.filter(c => wsCanalVisible(c, yo.username)).map(c => {
+    const suyos = d.mensajes.filter(m => m.canalId === c.id);
+    const ultimo = suyos.length ? suyos[suyos.length - 1] : null;
+    return {
+      ...wsCanalPublico(c, usuarios, yo.username),
+      noLeidos: wsNoLeidos(d, c, yo.username),
+      ultimoTs: ultimo ? ultimo.ts : 0,
+      ultimoTexto: ultimo ? wsStr(ultimo.texto, 90) : '',
+      ultimoAutor: ultimo ? ultimo.autor : '',
+    };
+  });
+  // Canales por nombre; los DM por actividad, que es como se usan.
+  canales.sort((a, b) => (a.tipo === 'dm' ? 1 : 0) - (b.tipo === 'dm' ? 1 : 0)
+    || (a.tipo === 'dm' ? b.ultimoTs - a.ultimoTs : String(a.nombre).localeCompare(String(b.nombre), 'es')));
+  res.json({ canales, totalNoLeidos: canales.reduce((s, c) => s + c.noLeidos, 0), usuarios });
+});
+
+// Buscador. Va antes que /:id para que "buscar" no se lea como un id de canal.
+app.get('/admin/ws/chat/buscar', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const yo = wsActor(req);
+  const usuarios = wsUsuarios(req);
+  const q = wsStr(req.query.q, 120).toLowerCase();
+  if (q.length < 2) return res.json({ resultados: [], q });
+  const visibles = new Map(d.canales.filter(c => wsCanalVisible(c, yo.username)).map(c => [c.id, c]));
+  const resultados = d.mensajes
+    .filter(m => visibles.has(m.canalId) && String(m.texto || '').toLowerCase().includes(q))
+    .sort((a, b) => b.ts - a.ts).slice(0, 60)
+    .map(m => ({ ...m, canal: wsCanalPublico(visibles.get(m.canalId), usuarios, yo.username) }));
+  res.json({ resultados, q });
+});
+
+app.post('/admin/ws/chat/dm', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const yo = wsActor(req);
+  const otro = wsStr((req.body || {}).username, 120).toLowerCase();
+  if (!otro || otro === yo.username) return res.status(400).json({ error: 'Elegí a otra persona.' });
+  const usuarios = wsUsuarios(req);
+  if (!usuarios.some(u => (u.username || '').toLowerCase() === otro)) return res.status(404).json({ error: 'Esa persona no está en el equipo.' });
+  const par = [yo.username, otro].sort();
+  // Idempotente: si el DM ya existe se devuelve ese, no se crea otro.
+  let c = d.canales.find(x => x.tipo === 'dm' && (x.miembros || []).slice().sort().join('|') === par.join('|'));
+  if (!c) {
+    c = { id: wsNewId('dm'), tipo: 'dm', nombre: '', emoji: '', descripcion: '', miembros: par, archivado: false, creadoPor: yo.username, createdAt: Date.now() };
+    d.canales.push(c); wsSave(d);
+  }
+  res.json({ ok: true, canal: wsCanalPublico(c, usuarios, yo.username) });
+});
+
+app.get('/admin/ws/chat/:id/mensajes', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const yo = wsActor(req);
+  const c = d.canales.find(x => x.id === req.params.id);
+  if (!wsCanalVisible(c, yo.username)) return res.status(404).json({ error: 'No se encontró el canal.' });
+  // `desde` es para el sondeo: solo lo nuevo. Sin él, el último tramo.
+  const desde = Number(req.query.desde || 0);
+  const todos = d.mensajes.filter(m => m.canalId === c.id);
+  const mensajes = desde ? todos.filter(m => m.ts > desde) : todos.slice(-120);
+  res.json({ canal: wsCanalPublico(c, wsUsuarios(req), yo.username), mensajes, hayMas: !desde && todos.length > 120 });
+});
+
+app.post('/admin/ws/chat/:id/mensajes', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const yo = wsActor(req);
+  const c = d.canales.find(x => x.id === req.params.id);
+  if (!wsCanalVisible(c, yo.username)) return res.status(404).json({ error: 'No se encontró el canal.' });
+  const texto = wsStr((req.body || {}).texto, WS_MSJ_LARGO);
+  const tareaId = wsStr((req.body || {}).tareaId, 60);
+  if (!texto && !tareaId) return res.status(400).json({ error: 'Escribí algo.' });
+  const usuarios = wsUsuarios(req);
+  const menciones = wsMenciones(texto, usuarios, c);
+  const m = {
+    id: wsNewId('ms'), canalId: c.id, autor: yo.username, texto, ts: Date.now(),
+    menciones, tareaId: d.tareas.some(t => t.id === tareaId) ? tareaId : '',
+  };
+  d.mensajes.push(m);
+  // Recorte por canal: el doc se relee entero en cada request, no puede crecer
+  // para siempre.
+  const delCanal = d.mensajes.filter(x => x.canalId === c.id);
+  if (delCanal.length > WS_MSJ_MAX) {
+    const sobran = new Set(delCanal.slice(0, delCanal.length - WS_MSJ_MAX).map(x => x.id));
+    d.mensajes = d.mensajes.filter(x => !sobran.has(x.id));
+  }
+  const etiqueta = c.tipo === 'dm' ? 'te escribió' : ('te nombró en #' + c.nombre);
+  wsNotificar(d, wsChatDestinos(c, menciones, usuarios, yo.username), {
+    tipo: c.tipo === 'dm' ? 'dm' : 'mencion', de: yo.username, canalId: c.id,
+    texto: `${yo.nombre} ${etiqueta}: ${wsStr(texto, 90)}`,
+  });
+  // Escribir ya cuenta como leído hasta acá.
+  d.lecturas[yo.username] = d.lecturas[yo.username] || {};
+  d.lecturas[yo.username][c.id] = m.ts;
+  wsSave(d);
+  res.json({ ok: true, mensaje: m });
+});
+
+app.post('/admin/ws/chat/:id/leido', requireAdmin, (req, res) => {
+  const d = wsLoad();
+  const yo = wsActor(req);
+  const c = d.canales.find(x => x.id === req.params.id);
+  if (!wsCanalVisible(c, yo.username)) return res.status(404).json({ error: 'No se encontró el canal.' });
+  const ts = Number((req.body || {}).ts) || Date.now();
+  d.lecturas[yo.username] = d.lecturas[yo.username] || {};
+  // Nunca hacia atrás: dos pestañas abiertas no se pisan la marca entre sí.
+  if (ts > (d.lecturas[yo.username][c.id] || 0)) { d.lecturas[yo.username][c.id] = ts; wsSave(d); }
+  res.json({ ok: true });
+});
+
+// ── Administrar canales (solo admin) ──
+function wsSoloAdmin(req, res){
+  if (wsActor(req).role === 'miembro') { res.status(403).json({ error: 'Solo un admin puede administrar los canales.' }); return false; }
+  return true;
+}
+app.post('/admin/ws/canales', requireAdmin, (req, res) => {
+  if (!wsSoloAdmin(req, res)) return;
+  const d = wsLoad();
+  const b = req.body || {};
+  const nombre = wsCanalNombre(b.nombre);
+  if (!nombre) return res.status(400).json({ error: 'Ponele un nombre al canal.' });
+  if (d.canales.some(c => c.tipo !== 'dm' && wsStr(c.nombre).toLowerCase() === nombre)) return res.status(409).json({ error: 'Ya existe un canal con ese nombre.' });
+  const c = {
+    id: wsNewId('cn'), tipo: 'canal', nombre, emoji: wsStr(b.emoji, 8) || '💬',
+    descripcion: wsStr(b.descripcion, 300), miembros: [], archivado: false,
+    creadoPor: wsActor(req).username, createdAt: Date.now(),
+  };
+  d.canales.push(c); wsSave(d);
+  res.json({ ok: true, canal: c });
+});
+app.put('/admin/ws/canales/:id', requireAdmin, (req, res) => {
+  if (!wsSoloAdmin(req, res)) return;
+  const d = wsLoad();
+  const c = d.canales.find(x => x.id === req.params.id && x.tipo !== 'dm');
+  if (!c) return res.status(404).json({ error: 'No se encontró el canal.' });
+  const b = req.body || {};
+  if (b.nombre != null) {
+    const nombre = wsCanalNombre(b.nombre);
+    if (!nombre) return res.status(400).json({ error: 'Ponele un nombre al canal.' });
+    if (d.canales.some(x => x.id !== c.id && x.tipo !== 'dm' && wsStr(x.nombre).toLowerCase() === nombre)) return res.status(409).json({ error: 'Ya existe un canal con ese nombre.' });
+    c.nombre = nombre;
+  }
+  if (b.emoji != null) c.emoji = wsStr(b.emoji, 8) || '💬';
+  if (b.descripcion != null) c.descripcion = wsStr(b.descripcion, 300);
+  if (b.archivado != null) c.archivado = !!b.archivado;
+  wsSave(d);
+  res.json({ ok: true, canal: c });
+});
+app.delete('/admin/ws/canales/:id', requireAdmin, (req, res) => {
+  if (!wsSoloAdmin(req, res)) return;
+  const d = wsLoad();
+  const c = d.canales.find(x => x.id === req.params.id && x.tipo !== 'dm');
+  if (!c) return res.status(404).json({ error: 'No se encontró el canal.' });
+  const conMensajes = d.mensajes.filter(m => m.canalId === c.id).length;
+  // Con conversación adentro se archiva: borrarlo se llevaría el historial del
+  // equipo sin que nadie pueda recuperarlo.
+  if (conMensajes && !req.query.forzar) {
+    c.archivado = true; wsSave(d);
+    return res.json({ ok: true, archivado: true, mensajes: conMensajes });
+  }
+  d.canales = d.canales.filter(x => x.id !== c.id);
+  d.mensajes = d.mensajes.filter(m => m.canalId !== c.id);
+  d.notificaciones = d.notificaciones.filter(n => n.canalId !== c.id);
+  wsSave(d);
+  res.json({ ok: true, archivado: false });
 });
 
 // ── Notificaciones ──

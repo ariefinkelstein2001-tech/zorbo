@@ -134,3 +134,28 @@ módulo existente.
 - Avisos: al invitar se notifica a los **nuevos** participantes; a los que ya
   estaban solo si cambió el día o la hora. Re-notificar en cada edición
   convierte la campanita en ruido y se deja de mirar.
+
+### Chat interno
+
+- Un **canal** y un **mensaje directo** son la misma entidad con distinto
+  `tipo` (`canal` / `dm`): un solo almacén de mensajes, un solo contador de no
+  leídos, un solo buscador. Un DM se identifica por sus dos `miembros`
+  ordenados, así abrirlo dos veces devuelve el mismo y no se duplica.
+- **Lo leído** se guarda como una marca de tiempo por persona y canal
+  (`lecturas[username][canalId]`), no como un flag por mensaje: es O(1) para
+  escribir y no se rompe si alguien borra mensajes. La marca nunca va hacia
+  atrás, así dos pestañas abiertas no se pisan.
+- **Menciones**: el handle es la parte del correo antes de la arroba y se
+  resuelve en `wsAsignarHandles()`, que viaja en el roster. El front escribe el
+  mismo `@handle` que el server después parsea — si cambiás el criterio, tocá
+  esa función y nada más. `@todos` avisa a todo el canal (en un DM se ignora).
+- **Quién recibe aviso**: en un DM, el otro; en un canal, solo los mencionados.
+  Notificar cada mensaje de cada canal haría que nadie mire la campanita.
+- **El texto se escapa primero y se decora después** (links, menciones). Al
+  revés deja pasar HTML del usuario. Hay un caso de prueba con
+  `<img src=x onerror=...>` en la suite del chat.
+- El sondeo pide solo lo nuevo (`?desde=<ts>`) cada 4 s, y únicamente con la
+  pestaña Chat abierta y visible. Al llegar mensajes no se baja el scroll si la
+  persona estaba leyendo hacia arriba, ni se pierde lo que venía escribiendo.
+- Los mensajes se recortan a `WS_MSJ_MAX` por canal: `wsLoad()` relee el doc
+  entero en cada request, así que no puede crecer sin techo.

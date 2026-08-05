@@ -182,6 +182,8 @@ body{ padding-left:var(--ks-side); }
 .ks-i.on{background:rgba(245,166,35,.14);color:#fff;font-weight:700}
 .ks-i.on::before{content:"";position:absolute;left:-10px;top:50%;transform:translateY(-50%);width:4px;height:60%;border-radius:0 4px 4px 0;background:linear-gradient(var(--gold,#f5a623),var(--gold-deep,#d98c00))}
 .ks-i.hide{display:none}
+/* Badge de mensajes sin leer sobre el ítem "Chat" del sidebar. */
+.ks-i .ks-bd-n{margin-left:auto;background:var(--red,#d32323);color:#fff;font-size:.6rem;font-weight:800;border-radius:20px;padding:.05rem .34rem;min-width:1.05rem;text-align:center}
 .ks-foot{padding:12px 14px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:.6rem}
 .ks-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold-bright,#f7b733),var(--gold-deep,#d98c00));color:#1a1408;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem;flex:0 0 auto;border:none;padding:0;font-family:inherit;cursor:pointer}
 .ks-u{flex:1;min-width:0}
@@ -2974,6 +2976,87 @@ body.hosp-open{overflow:hidden}
 .ws-ev-meta .l span:first-child{opacity:.7;flex:0 0 1.1rem}
 .ws-ev-meta a{color:#2c6bb5;word-break:break-all}
 
+/* ── Chat interno ── */
+/* Dos paneles: canales a la izquierda, conversación a la derecha. Alto fijo al
+   viewport para que el scroll viva adentro del hilo y no en la página. */
+.ws-chat{display:grid;grid-template-columns:266px 1fr;gap:.75rem;height:calc(100vh - 310px);min-height:440px}
+.ws-chat-side{background:var(--surface);border:1px solid var(--border);border-radius:16px;display:flex;flex-direction:column;overflow:hidden}
+.ws-chat-buscar{padding:.5rem;border-bottom:1px solid var(--border)}
+.ws-chat-buscar input{width:100%;font:inherit;font-size:.8rem;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:.42rem .6rem}
+.ws-chat-buscar input:focus{outline:none;border-color:var(--gold);background:var(--surface)}
+.ws-chat-lista{flex:1;overflow-y:auto;padding:.35rem}
+.ws-chat-grupo{display:flex;align-items:center;gap:.35rem;font-size:.6rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);padding:.55rem .5rem .25rem}
+.ws-chat-grupo button{margin-left:auto;background:none;border:0;color:var(--dim);cursor:pointer;font:inherit;font-size:.9rem;line-height:1;padding:0 .15rem}
+.ws-chat-grupo button:hover{color:var(--gold-deep)}
+.ws-cn{display:flex;align-items:center;gap:.45rem;width:100%;text-align:left;border:0;background:none;font:inherit;cursor:pointer;border-radius:9px;padding:.4rem .5rem;color:var(--muted);position:relative}
+.ws-cn:hover{background:var(--surface2);color:var(--text)}
+.ws-cn.on{background:var(--gold-glow);color:var(--text)}
+.ws-cn.on::before{content:"";position:absolute;left:0;top:20%;bottom:20%;width:3px;border-radius:0 3px 3px 0;background:var(--gold)}
+.ws-cn .ic{flex:0 0 auto;font-size:.88rem;width:1.1rem;text-align:center}
+.ws-cn .nm{flex:1;min-width:0;overflow:hidden}
+.ws-cn .nm b{display:block;font-size:.82rem;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws-cn .nm span{display:block;font-size:.68rem;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ws-cn.nuevo .nm b{font-weight:800;color:var(--text)}
+.ws-cn .bd{flex:0 0 auto;background:var(--red);color:#fff;font-size:.6rem;font-weight:800;border-radius:20px;padding:.05rem .34rem;min-width:1.05rem;text-align:center}
+.ws-chat-main{background:var(--surface);border:1px solid var(--border);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.ws-chat-h{display:flex;align-items:center;gap:.5rem;padding:.6rem .8rem;border-bottom:1px solid var(--border);background:var(--surface2)}
+.ws-chat-h .t{font-family:var(--display);font-size:.95rem;font-weight:800;color:var(--text)}
+.ws-chat-h .d{font-size:.72rem;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ws-chat-volver{display:none;background:none;border:0;font:inherit;font-size:1rem;cursor:pointer;color:var(--text);padding:.1rem .3rem}
+.ws-hilo{flex:1;overflow-y:auto;padding:.7rem .8rem;display:flex;flex-direction:column;gap:.1rem}
+.ws-msg{display:flex;gap:.55rem;padding:.22rem 0}
+.ws-msg .ws-av{margin-top:.1rem}
+.ws-msg-b{flex:1;min-width:0}
+.ws-msg-h{display:flex;align-items:baseline;gap:.4rem}
+.ws-msg-h b{font-size:.82rem;font-weight:800;color:var(--text)}
+.ws-msg-h .hr{font-size:.66rem;color:var(--dim)}
+.ws-msg-t{font-size:.85rem;color:var(--text);line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.ws-msg-t a{color:#2c6bb5;word-break:break-all}
+/* Mensaje seguido del mismo autor: se agrupa, sin repetir avatar ni nombre. */
+.ws-msg.seguido{padding-top:0}
+.ws-msg.seguido .ws-av,.ws-msg.seguido .ws-msg-h{display:none}
+.ws-msg.seguido .ws-msg-b{padding-left:calc(26px + .55rem)}
+.ws-msg.mio .ws-msg-t{color:var(--text)}
+.ws-mencion{background:var(--gold-dim);color:var(--gold-deep);font-weight:800;border-radius:4px;padding:0 .18rem}
+.ws-msg.ami{background:var(--gold-glow);border-radius:9px;margin:0 -.35rem;padding-left:.35rem;padding-right:.35rem}
+.ws-msg-tarea{display:inline-flex;align-items:center;gap:.35rem;margin-top:.28rem;background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--tc,#5b6472);border-radius:8px;padding:.25rem .5rem;cursor:pointer;font-size:.76rem;font-weight:650;color:var(--text);max-width:100%}
+.ws-msg-tarea:hover{border-color:var(--gold-bd-h);background:var(--gold-glow)}
+.ws-msg-tarea .x{font-size:.66rem;color:var(--dim);font-weight:600}
+.ws-dia-sep{display:flex;align-items:center;gap:.5rem;margin:.6rem 0 .3rem;font-size:.66rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.ws-dia-sep::before,.ws-dia-sep::after{content:"";flex:1;height:1px;background:var(--border)}
+.ws-comp{border-top:1px solid var(--border);padding:.55rem .7rem;background:var(--surface);position:relative}
+.ws-comp-chip{display:inline-flex;align-items:center;gap:.35rem;background:var(--gold-glow);border:1px solid var(--gold-bd);border-radius:8px;padding:.2rem .45rem;font-size:.74rem;font-weight:650;color:var(--text);margin-bottom:.4rem}
+.ws-comp-chip button{background:none;border:0;color:var(--dim);cursor:pointer;font-size:.8rem;padding:0 .1rem}
+.ws-comp-chip button:hover{color:var(--red)}
+.ws-comp-row{display:flex;align-items:flex-end;gap:.4rem}
+.ws-comp textarea{flex:1;font:inherit;font-size:.85rem;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:.5rem .65rem;resize:none;max-height:140px;line-height:1.4}
+.ws-comp textarea:focus{outline:none;border-color:var(--gold);background:var(--surface)}
+.ws-comp-b{flex:0 0 auto;border:1px solid var(--border);background:var(--surface);border-radius:10px;width:34px;height:34px;cursor:pointer;font-size:.95rem;display:flex;align-items:center;justify-content:center;padding:0}
+.ws-comp-b:hover{border-color:var(--gold-bd-h);background:var(--gold-glow)}
+.ws-comp-b.enviar{background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623));border-color:transparent;color:#241a05;font-weight:800}
+.ws-comp-tip{font-size:.66rem;color:var(--dim);margin-top:.25rem}
+/* Autocompletado de @menciones */
+.ws-at{position:absolute;bottom:calc(100% + 4px);left:.7rem;right:.7rem;max-width:280px;background:var(--surface);border:1px solid var(--border);border-radius:11px;box-shadow:0 12px 30px rgba(10,24,51,.2);overflow:hidden;z-index:20;display:none}
+.ws-at.open{display:block}
+.ws-at button{display:flex;align-items:center;gap:.45rem;width:100%;text-align:left;border:0;background:none;font:inherit;font-size:.8rem;padding:.4rem .55rem;cursor:pointer;color:var(--text)}
+.ws-at button:hover,.ws-at button.sel{background:var(--gold-glow)}
+.ws-at button .h{color:var(--dim);font-size:.72rem}
+/* Resultados del buscador, en el mismo panel del hilo */
+.ws-res{display:flex;flex-direction:column;gap:.4rem;padding:.7rem .8rem;overflow-y:auto;flex:1}
+.ws-res-i{text-align:left;border:1px solid var(--border);background:var(--surface);border-radius:11px;padding:.5rem .6rem;cursor:pointer;font:inherit;display:block;width:100%}
+.ws-res-i:hover{border-color:var(--gold-bd-h);background:var(--gold-glow)}
+.ws-res-i .cn{font-size:.68rem;font-weight:800;color:var(--gold-deep);text-transform:uppercase;letter-spacing:.05em}
+.ws-res-i .tx{font-size:.82rem;color:var(--text);line-height:1.4;margin-top:.15rem}
+.ws-res-i .mt{font-size:.68rem;color:var(--dim);margin-top:.15rem}
+@media(max-width:820px){
+  /* En celular es una cosa a la vez: la lista o la conversación. */
+  .ws-chat{grid-template-columns:1fr;height:calc(100vh - 250px);min-height:400px}
+  .ws-chat-side{display:none}
+  .ws-chat.en-lista .ws-chat-side{display:flex}
+  .ws-chat.en-lista .ws-chat-main{display:none}
+  .ws-chat-volver{display:inline-flex}
+}
+
 /* ── Modal ── */
 .ws-modal{position:fixed;inset:0;z-index:120;display:none;align-items:flex-start;justify-content:center;padding:2.4rem 1rem;overflow-y:auto;background:rgba(10,24,51,.5);backdrop-filter:blur(3px)}
 .ws-modal.open{display:flex}
@@ -3670,6 +3753,34 @@ body.hosp-open{overflow:hidden}
           <button type="button" class="ws-btn" id="wsDmTarea" style="text-align:left;padding:.7rem .8rem">✅ &nbsp;<b>Tarea</b> — con fecha límite ese día</button>
           <button type="button" class="ws-btn" id="wsDmEvento" style="text-align:left;padding:.7rem .8rem">📅 &nbsp;<b>Reunión o evento</b> — con hora y participantes</button>
         </div>
+      </div>
+    </div>
+
+    <!-- Modal de canal del chat (solo admin) -->
+    <div class="ws-modal" id="wsCanalModal" aria-hidden="true">
+      <div class="ws-modal-box" style="max-width:460px" role="dialog" aria-modal="true" aria-labelledby="wsCmTitle">
+        <div class="ws-modal-h">
+          <div><h3 id="wsCmTitle">Nuevo canal</h3><p>Un tema, un canal. Lo ve todo el equipo.</p></div>
+          <button type="button" class="ws-x" data-wsclose="wsCanalModal" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="ws-modal-b" id="wsCmBody"></div>
+        <div class="ws-modal-f">
+          <button type="button" class="ws-btn ws-btn-danger" id="wsCmDel" style="display:none">Eliminar</button>
+          <span class="ws-spacer"></span>
+          <button type="button" class="ws-btn" data-wsclose="wsCanalModal">Cancelar</button>
+          <button type="button" class="ws-btn ws-btn-gold" id="wsCmSave">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Elegir con quién abrir un mensaje directo -->
+    <div class="ws-modal" id="wsDmModal" aria-hidden="true">
+      <div class="ws-modal-box" style="max-width:400px" role="dialog" aria-modal="true" aria-labelledby="wsDmmTitle">
+        <div class="ws-modal-h">
+          <div><h3 id="wsDmmTitle">Mensaje directo</h3><p>¿A quién le escribís?</p></div>
+          <button type="button" class="ws-x" data-wsclose="wsDmModal" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="ws-modal-b" id="wsDmmBody"></div>
       </div>
     </div>
 
@@ -4586,6 +4697,7 @@ const BASE_SECCIONES = [
   { id:'ws-lista',     kind:'workspace', label:'Lista',      cat:'espacio', desc:'todas las tareas en una lista ordenable por prioridad, fecha, proyecto o responsable' },
   { id:'ws-mias',      kind:'workspace', label:'Mis tareas', cat:'espacio', desc:'lo que te asignaron a vos, en un solo lugar' },
   { id:'ws-calendario',kind:'workspace', label:'Calendario', cat:'espacio', desc:'mes y semana · fechas límite de tareas + reuniones del equipo · exportable a Google Calendar' },
+  { id:'ws-chat',      kind:'workspace', label:'Chat',       cat:'espacio', desc:'canales por tema y mensajes directos · @menciones, buscador y referencias a tareas' },
   { id:'ws-proyectos', kind:'workspace', label:'Proyectos',  cat:'espacio', desc:'agrupá las tareas por área · color, ícono y responsable de cada proyecto' },
   { id:'ws-equipo',    kind:'workspace', label:'Equipo',     cat:'espacio', desc:'quiénes entran al panel · rol, avatar y color de cada persona' },
   { id:'produccion',kind:'produccion',label:'Centro de Producción', cat:'produccion', desc:'tanques · cocción · recetas · envasado · limpiezas · paradas' },
@@ -5058,6 +5170,7 @@ function showView(kind){
   // El espacio de trabajo usa todo el ancho (el tablero necesita las columnas)
   // y no tiene nada que ver con Zorbot, así que el panel del bot se oculta.
   document.body.classList.toggle('ws-active', kind === 'workspace');
+  if (kind !== 'workspace' && typeof wsChatDetener === 'function') wsChatDetener(); // el sondeo del chat no corre fuera del espacio
   document.body.classList.toggle('estado-active', kind === 'estado');
   document.body.classList.toggle('finhome-active', kind === 'finhome' || kind === 'comercialhome'); // dashboard de área: sin panel Zorbot, a todo el ancho
   // "Último read" solo aplica a contenido de marca (md); en el resto de vistas no significa nada, así que se oculta.
@@ -16475,7 +16588,7 @@ const KS_ICON = {
   distribuidora:'🚚', rutas:'🗺️', mantenimiento:'🔧',
   costeo:'🧾', oee:'📊', calidad:'🏅', inventarios:'🗃', estado:'💰', costos:'💸', gastos:'🧮', nomina:'👥', equipo:'🪪', pnl:'📈', forecast:'🔮',
   produccion:'🏭',
-  'ws-tablero':'🗂️', 'ws-lista':'✅', 'ws-mias':'🎯', 'ws-calendario':'📅', 'ws-proyectos':'📁', 'ws-equipo':'👤'
+  'ws-tablero':'🗂️', 'ws-lista':'✅', 'ws-mias':'🎯', 'ws-calendario':'📅', 'ws-chat':'💬', 'ws-proyectos':'📁', 'ws-equipo':'👤'
 };
 
 // Sincroniza el item activo del sidebar + el breadcrumb del topbar con la sección actual.
@@ -17524,7 +17637,7 @@ let wsTab = 'tablero';
 let wsCargando = null;        // promesa en vuelo (evita dobles fetch)
 const wsFil = { proyecto: '', persona: '', q: '', orden: 'prioridad' };
 
-const WS_TAB_DE = { 'ws-tablero':'tablero', 'ws-lista':'lista', 'ws-mias':'mias', 'ws-calendario':'calendario', 'ws-proyectos':'proyectos', 'ws-equipo':'equipo' };
+const WS_TAB_DE = { 'ws-tablero':'tablero', 'ws-lista':'lista', 'ws-mias':'mias', 'ws-calendario':'calendario', 'ws-chat':'chat', 'ws-proyectos':'proyectos', 'ws-equipo':'equipo' };
 const WS_PRI_LB = { baja:'Baja', media:'Media', alta:'Alta', urgente:'Urgente' };
 const WS_PRI_PESO = { urgente:0, alta:1, media:2, baja:3 };
 const WS_PALETA = ['#f5a623','#2e9c5a','#4a90d9','#c1447e','#7c6bb8','#1f8a70','#d9534f','#b87333','#5b6472','#0ea5a5'];
@@ -17611,7 +17724,7 @@ async function wsRecargar(){
 function wsBarraHtml(){
   const tabs = [
     ['tablero','🗂️','Tablero'], ['lista','✅','Lista'], ['mias','🎯','Mis tareas'],
-    ['calendario','📅','Calendario'], ['proyectos','📁','Proyectos'], ['equipo','👤','Equipo'],
+    ['calendario','📅','Calendario'], ['chat','💬','Chat'], ['proyectos','📁','Proyectos'], ['equipo','👤','Equipo'],
   ];
   const mias = (wsData.tareas||[]).filter(t => (t.asignados||[]).some(wsSoyYo) && t.estado !== 'listo').length;
   const btns = tabs.map(([id,ic,lb]) => {
@@ -17675,6 +17788,7 @@ function wsRender(){
     lista:'todas las tareas en una lista, ordenable como te sirva',
     mias:'lo que te asignaron a vos',
     calendario:'fechas límite de tareas + reuniones del equipo · exportable a Google Calendar',
+    chat:'canales por tema y mensajes directos del equipo',
     proyectos:'agrupá las tareas por área de trabajo',
     equipo:'quiénes entran al panel y con qué rol',
   };
@@ -17684,6 +17798,7 @@ function wsRender(){
   if (wsTab === 'tablero') html += wsTableroHtml();
   else if (wsTab === 'lista' || wsTab === 'mias') html += wsListaHtml();
   else if (wsTab === 'calendario') html += wsCalendarioHtml();
+  else if (wsTab === 'chat') html += wsChatHtml();
   else if (wsTab === 'proyectos') html += wsProyectosHtml();
   else html += wsEquipoHtml();
   body.innerHTML = `<div class="ws-wrap">${html}</div>`;
@@ -17895,6 +18010,360 @@ function wsCalSemanaHtml(){
   <div style="font-size:.72rem;color:var(--dim)">Tocá un día para agregar una tarea o una reunión.</div>`;
 }
 
+// ── Chat interno ─────────────────────────────────────────────────────────────
+// Un canal y un mensaje directo son lo mismo con distinto `tipo`, igual que en
+// el server. El sondeo pide solo lo nuevo (`desde=<ts del último>`), así el
+// refresco cada 4 s es barato aunque el hilo tenga cientos de mensajes.
+const wsChat = {
+  canales: [], canalId: '', mensajes: [], usuarios: [],
+  ultimoTs: 0, cargando: false, timer: null,
+  q: '', resultados: null,        // resultados != null → el panel muestra la búsqueda
+  tareaAdjunta: '', enLista: true, // enLista: en celular, qué panel se ve
+  atAbierto: false, atSel: 0, atOpciones: [],
+};
+const WS_DOW_LARGO = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+
+function wsChatHtml(){
+  // El armazón se pinta una vez; el contenido lo llenan wsChatPintarLista /
+  // wsChatPintarHilo, para no rehacer el DOM en cada sondeo (perdería el
+  // scroll y lo que estés escribiendo).
+  return `<div class="ws-chat${wsChat.enLista?' en-lista':''}" id="wsChatWrap">
+    <aside class="ws-chat-side">
+      <div class="ws-chat-buscar"><input id="wsChatQ" type="search" placeholder="Buscar en los mensajes…" value="${escapeAttr(wsChat.q)}" autocomplete="off"></div>
+      <div class="ws-chat-lista" id="wsChatLista"></div>
+    </aside>
+    <section class="ws-chat-main" id="wsChatMain"></section>
+  </div>`;
+}
+
+const wsChatCanal = () => wsChat.canales.find(c => c.id === wsChat.canalId) || null;
+function wsChatPintarLista(){
+  const cont = document.getElementById('wsChatLista'); if (!cont) return;
+  const canales = wsChat.canales.filter(c => c.tipo !== 'dm');
+  const dms = wsChat.canales.filter(c => c.tipo === 'dm');
+  const item = (c) => `<button type="button" class="ws-cn${c.id===wsChat.canalId?' on':''}${c.noLeidos?' nuevo':''}" data-wscn="${escapeAttr(c.id)}">
+      <span class="ic">${c.tipo==='dm' ? wsAvatarHtml(c.conQuien,'ws-av-sm') : escapeHtml(c.emoji||'💬')}</span>
+      <span class="nm"><b>${c.tipo==='dm'?'':'#'}${escapeHtml(c.nombre)}</b>
+      ${c.ultimoTexto ? `<span>${escapeHtml(c.ultimoAutor===wsData.me.username?'Vos: ':'')}${escapeHtml(c.ultimoTexto)}</span>` : (c.descripcion ? `<span>${escapeHtml(c.descripcion)}</span>` : '')}</span>
+      ${c.noLeidos ? `<span class="bd">${c.noLeidos>9?'9+':c.noLeidos}</span>` : ''}
+    </button>`;
+  cont.innerHTML = `
+    <div class="ws-chat-grupo">Canales${wsEsAdmin()?'<button type="button" id="wsChatNuevoCanal" title="Nuevo canal">＋</button>':''}</div>
+    ${canales.map(item).join('') || '<div class="ws-cal-vacio">Sin canales</div>'}
+    <div class="ws-chat-grupo">Directos<button type="button" id="wsChatNuevoDm" title="Nuevo mensaje directo">＋</button></div>
+    ${dms.map(item).join('') || '<div class="ws-cal-vacio">Ninguno todavía</div>'}`;
+  cont.querySelectorAll('[data-wscn]').forEach(b => b.onclick = () => wsChatAbrir(b.dataset.wscn));
+  const nc = document.getElementById('wsChatNuevoCanal'); if (nc) nc.onclick = () => wsCanalModal(null);
+  const nd = document.getElementById('wsChatNuevoDm'); if (nd) nd.onclick = wsDmModal;
+}
+
+// Texto del mensaje: escapado primero y recién después decorado. Nunca al revés
+// — el orden inverso deja pasar HTML del usuario.
+function wsChatTexto(txt, menciones){
+  let h = escapeHtml(String(txt||''));
+  h = h.replace(/(https?:\/\/[^\s<]+)/g, (u) => `<a href="${escapeAttr(u)}" target="_blank" rel="noopener noreferrer">${escapeHtml(u)}</a>`);
+  h = h.replace(/(^|[^a-z0-9@._-])@([a-z0-9._-]{1,60})/gi, (m, pre, h2) => {
+    const limpio = h2.replace(/[._-]+$/, '');
+    const existe = limpio === 'todos' || limpio === 'canal' || (wsChat.usuarios||[]).some(u => u.handle === limpio.toLowerCase());
+    return pre + (existe ? `<span class="ws-mencion">@${escapeHtml(limpio)}</span>${h2.slice(limpio.length)}` : '@' + h2);
+  });
+  return h;
+}
+function wsChatFechaSep(ts){
+  const d = new Date(ts);
+  const iso = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const hoy = wsHoyISO();
+  if (iso === hoy) return 'Hoy';
+  if (iso === wsSumarDias(hoy, -1)) return 'Ayer';
+  const p = wsPartes(iso);
+  return `${WS_DOW_LARGO[new Date(Date.UTC(p.y,p.m-1,p.d)).getUTCDay()]} ${p.d} de ${WS_MESES[p.m-1]}`;
+}
+const wsChatHora = (ts) => new Date(ts).toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit', hour12:false });
+
+function wsChatPintarHilo(){
+  const main = document.getElementById('wsChatMain'); if (!main) return;
+  // Modo búsqueda: el panel derecho muestra los resultados.
+  if (wsChat.resultados !== null) {
+    main.innerHTML = `<div class="ws-chat-h"><button type="button" class="ws-chat-volver" id="wsChatVolver">‹</button>
+        <div><div class="t">Búsqueda</div><div class="d">${wsChat.resultados.length} resultado${wsChat.resultados.length===1?'':'s'} para “${escapeHtml(wsChat.q)}”</div></div>
+        <span style="flex:1"></span><button type="button" class="ws-btn" id="wsChatCerrarBusq">Cerrar</button></div>
+      <div class="ws-res">${wsChat.resultados.map(r => `<button type="button" class="ws-res-i" data-wsres="${escapeAttr(r.canalId)}">
+          <div class="cn">${r.canal.tipo==='dm'?'':'#'}${escapeHtml(r.canal.nombre)}</div>
+          <div class="tx">${wsChatTexto(r.texto, r.menciones)}</div>
+          <div class="mt">${escapeHtml(wsNombre(r.autor))} · ${escapeHtml(wsChatFechaSep(r.ts))} ${escapeHtml(wsChatHora(r.ts))}</div>
+        </button>`).join('') || '<div class="ws-empty"><b>Sin resultados</b>Probá con otra palabra.</div>'}</div>`;
+    main.querySelectorAll('[data-wsres]').forEach(b => b.onclick = () => { wsChat.resultados = null; wsChat.q = ''; wsChatAbrir(b.dataset.wsres); });
+    const cerrar = document.getElementById('wsChatCerrarBusq');
+    if (cerrar) cerrar.onclick = () => { wsChat.resultados = null; wsChat.q = ''; const i = document.getElementById('wsChatQ'); if (i) i.value = ''; wsChatPintarHilo(); };
+    const volver = document.getElementById('wsChatVolver'); if (volver) volver.onclick = wsChatVolverALista;
+    return;
+  }
+  const c = wsChatCanal();
+  if (!c) {
+    main.innerHTML = '<div class="ws-empty"><b>Elegí un canal</b>O abrí un mensaje directo con alguien del equipo.</div>';
+    return;
+  }
+  let hilo = '', ultimoDia = '', ultimoAutor = '', ultimoTs = 0;
+  for (const m of wsChat.mensajes) {
+    const dia = wsChatFechaSep(m.ts);
+    if (dia !== ultimoDia) { hilo += `<div class="ws-dia-sep">${escapeHtml(dia)}</div>`; ultimoDia = dia; ultimoAutor = ''; }
+    // Se agrupa con el anterior si es el mismo autor dentro de 5 minutos.
+    const seguido = m.autor === ultimoAutor && (m.ts - ultimoTs) < 300000;
+    const ami = (m.menciones || []).includes(wsData.me.username);
+    const t = m.tareaId ? (wsData.tareas||[]).find(x => x.id === m.tareaId) : null;
+    const p = t ? wsProyecto(t.proyectoId) : null;
+    hilo += `<div class="ws-msg${seguido?' seguido':''}${ami?' ami':''}">
+      ${wsAvatarHtml(m.autor)}
+      <div class="ws-msg-b">
+        <div class="ws-msg-h"><b>${escapeHtml(wsNombre(m.autor))}</b><span class="hr">${escapeHtml(wsChatHora(m.ts))}</span></div>
+        ${m.texto ? `<div class="ws-msg-t">${wsChatTexto(m.texto, m.menciones)}</div>` : ''}
+        ${t ? `<div class="ws-msg-tarea" data-wstarea="${escapeAttr(t.id)}" style="--tc:${escapeAttr(p?p.color:'#5b6472')}">✅ ${escapeHtml(t.titulo)} <span class="x">· ver tarea</span></div>`
+            : (m.tareaId ? '<div class="ws-msg-tarea" style="cursor:default">✅ <span class="x">tarea eliminada</span></div>' : '')}
+      </div></div>`;
+    ultimoAutor = m.autor; ultimoTs = m.ts;
+  }
+  const t = wsChat.tareaAdjunta ? (wsData.tareas||[]).find(x => x.id === wsChat.tareaAdjunta) : null;
+  main.innerHTML = `
+    <div class="ws-chat-h">
+      <button type="button" class="ws-chat-volver" id="wsChatVolver">‹</button>
+      <div style="min-width:0"><div class="t">${c.tipo==='dm'?'':'#'}${escapeHtml(c.nombre)}</div>
+      <div class="d">${escapeHtml(c.tipo==='dm' ? 'Mensaje directo' : (c.descripcion||''))}</div></div>
+      <span style="flex:1"></span>
+      ${c.tipo!=='dm' && wsEsAdmin() ? `<button type="button" class="ws-btn" id="wsChatEditarCanal" style="padding:.3rem .55rem">Editar</button>` : ''}
+    </div>
+    <div class="ws-hilo" id="wsHilo">${hilo || '<div class="ws-empty"><b>Todavía no hay mensajes</b>Rompé el hielo vos.</div>'}</div>
+    <div class="ws-comp">
+      <div class="ws-at" id="wsAt"></div>
+      ${t ? `<div class="ws-comp-chip">✅ ${escapeHtml(t.titulo)}<button type="button" id="wsCompQuitarTarea" title="Quitar">✕</button></div>` : ''}
+      <div class="ws-comp-row">
+        <button type="button" class="ws-comp-b" id="wsCompTarea" title="Adjuntar una tarea">📎</button>
+        <textarea id="wsCompTexto" rows="1" placeholder="Escribí un mensaje…"></textarea>
+        <button type="button" class="ws-comp-b enviar" id="wsCompEnviar" title="Enviar">➤</button>
+      </div>
+      <div class="ws-comp-tip">Enter envía · Shift+Enter salta de línea · @ menciona (@todos avisa a todo el canal)</div>
+    </div>`;
+  wsChatWireHilo();
+  const h = document.getElementById('wsHilo'); if (h) h.scrollTop = h.scrollHeight;
+}
+
+function wsChatWireHilo(){
+  const ed = document.getElementById('wsChatEditarCanal');
+  if (ed) ed.onclick = () => wsCanalModal(wsChat.canalId);
+  const volver = document.getElementById('wsChatVolver'); if (volver) volver.onclick = wsChatVolverALista;
+  const quitar = document.getElementById('wsCompQuitarTarea');
+  if (quitar) quitar.onclick = () => { wsChat.tareaAdjunta = ''; wsChatPintarHilo(); };
+  const adj = document.getElementById('wsCompTarea');
+  if (adj) adj.onclick = () => wsChatElegirTarea();
+  document.querySelectorAll('#wsChatMain [data-wstarea]').forEach(el => el.onclick = () => wsTareaModal(el.dataset.wstarea));
+  const ta = document.getElementById('wsCompTexto');
+  const enviar = document.getElementById('wsCompEnviar');
+  if (enviar) enviar.onclick = wsChatEnviar;
+  if (!ta) return;
+  ta.oninput = () => {
+    ta.style.height = 'auto'; ta.style.height = Math.min(140, ta.scrollHeight) + 'px';
+    wsChatAtActualizar(ta);
+  };
+  ta.onkeydown = (e) => {
+    if (wsChat.atAbierto) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); wsChat.atSel = (wsChat.atSel + 1) % wsChat.atOpciones.length; wsChatAtPintar(); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); wsChat.atSel = (wsChat.atSel - 1 + wsChat.atOpciones.length) % wsChat.atOpciones.length; wsChatAtPintar(); return; }
+      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); wsChatAtElegir(wsChat.atOpciones[wsChat.atSel]); return; }
+      if (e.key === 'Escape') { e.preventDefault(); wsChatAtCerrar(); return; }
+    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); wsChatEnviar(); }
+  };
+  ta.focus();
+}
+function wsChatVolverALista(){
+  wsChat.enLista = true;
+  const w = document.getElementById('wsChatWrap'); if (w) w.classList.add('en-lista');
+}
+
+// ── Autocompletado de @menciones ──
+function wsChatAtActualizar(ta){
+  const hasta = ta.value.slice(0, ta.selectionStart);
+  const m = hasta.match(/(^|[^a-z0-9@._-])@([a-z0-9._-]{0,40})$/i);
+  if (!m) return wsChatAtCerrar();
+  const q = (m[2] || '').toLowerCase();
+  const cands = [{ handle:'todos', nombre:'Todo el canal', username:'' }]
+    .concat((wsChat.usuarios||[]).filter(u => u.username !== wsData.me.username));
+  wsChat.atOpciones = cands.filter(u => !q || u.handle.startsWith(q) || cgNorm(u.nombre||'').includes(q)).slice(0, 6);
+  if (!wsChat.atOpciones.length) return wsChatAtCerrar();
+  wsChat.atAbierto = true; wsChat.atSel = 0; wsChatAtPintar();
+}
+function wsChatAtPintar(){
+  const caja = document.getElementById('wsAt'); if (!caja) return;
+  caja.className = 'ws-at' + (wsChat.atAbierto ? ' open' : '');
+  caja.innerHTML = wsChat.atOpciones.map((u, i) => `<button type="button" class="${i===wsChat.atSel?'sel':''}" data-wsat="${i}">
+      ${u.username ? wsAvatarHtml(u.username,'ws-av-sm') : '<span class="ws-av ws-av-sm" style="background:#5b6472">@</span>'}
+      ${escapeHtml(u.apodo||u.nombre||u.handle)}<span class="h">@${escapeHtml(u.handle)}</span></button>`).join('');
+  caja.querySelectorAll('[data-wsat]').forEach(b => b.onclick = () => wsChatAtElegir(wsChat.atOpciones[+b.dataset.wsat]));
+}
+function wsChatAtCerrar(){ wsChat.atAbierto = false; const c = document.getElementById('wsAt'); if (c) c.className = 'ws-at'; }
+function wsChatAtElegir(u){
+  if (!u) return wsChatAtCerrar();
+  const ta = document.getElementById('wsCompTexto'); if (!ta) return;
+  const pos = ta.selectionStart;
+  const hasta = ta.value.slice(0, pos);
+  const m = hasta.match(/@([a-z0-9._-]{0,40})$/i);
+  if (!m) return wsChatAtCerrar();
+  const inicio = pos - m[0].length;
+  const nuevo = '@' + u.handle + ' ';
+  ta.value = ta.value.slice(0, inicio) + nuevo + ta.value.slice(pos);
+  ta.selectionStart = ta.selectionEnd = inicio + nuevo.length;
+  wsChatAtCerrar(); ta.focus();
+}
+
+// ── Adjuntar una tarea al mensaje ──
+function wsChatElegirTarea(){
+  const abiertas = (wsData.tareas||[]).filter(t => t.estado !== 'listo').slice(0, 200);
+  if (!abiertas.length) { showToast('No hay tareas abiertas para adjuntar', 'err'); return; }
+  document.getElementById('wsDmmTitle').textContent = 'Adjuntar tarea';
+  document.getElementById('wsDmModal').querySelector('.ws-modal-h p').textContent = 'Se muestra como una tarjeta clickeable dentro del mensaje.';
+  document.getElementById('wsDmmBody').innerHTML = abiertas.map(t => {
+    const p = wsProyecto(t.proyectoId);
+    return `<button type="button" class="ws-btn" data-wsadjtarea="${escapeAttr(t.id)}" style="text-align:left;padding:.5rem .6rem">
+      ${p?escapeHtml((p.emoji||'')+' '):''}<b>${escapeHtml(t.titulo)}</b></button>`;
+  }).join('');
+  document.querySelectorAll('[data-wsadjtarea]').forEach(b => b.onclick = () => {
+    wsChat.tareaAdjunta = b.dataset.wsadjtarea; wsModalCerrar('wsDmModal'); wsChatPintarHilo();
+  });
+  wsModalAbrir('wsDmModal');
+}
+
+// ── Carga y sondeo ──
+async function wsChatCargarCanales(){
+  const d = await wsApi('/admin/ws/chat');
+  wsChat.canales = d.canales || [];
+  wsChat.usuarios = d.usuarios || [];
+  wsChatBadge(d.totalNoLeidos || 0);
+  return d;
+}
+// El badge vive en la pestaña Chat y en el ítem del sidebar, para que se vea
+// aunque estés en otra sección del espacio.
+function wsChatBadge(n){
+  wsChat.total = n;
+  const tab = document.querySelector('[data-wstab="chat"]');
+  if (tab) {
+    const vieja = tab.querySelector('.n'); if (vieja) vieja.remove();
+    if (n) { const s = document.createElement('span'); s.className = 'n'; s.textContent = n > 9 ? '9+' : n; tab.appendChild(s); }
+  }
+  const nav = document.querySelector('#ksSide .ks-i[data-id="ws-chat"]');
+  if (nav) {
+    let b = nav.querySelector('.ks-bd-n');
+    if (!n) { if (b) b.remove(); }
+    else {
+      if (!b) { b = document.createElement('span'); b.className = 'ks-bd-n'; nav.appendChild(b); }
+      b.textContent = n > 9 ? '9+' : n;
+    }
+  }
+}
+async function wsChatAbrir(canalId){
+  wsChat.canalId = canalId;
+  wsChat.resultados = null;
+  wsChat.mensajes = []; wsChat.ultimoTs = 0; wsChat.tareaAdjunta = '';
+  wsChat.enLista = false;
+  const w = document.getElementById('wsChatWrap'); if (w) w.classList.remove('en-lista');
+  wsChatPintarLista();
+  const main = document.getElementById('wsChatMain');
+  if (main) main.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const d = await wsApi('/admin/ws/chat/' + encodeURIComponent(canalId) + '/mensajes');
+    wsChat.mensajes = d.mensajes || [];
+    wsChat.ultimoTs = wsChat.mensajes.length ? wsChat.mensajes[wsChat.mensajes.length-1].ts : 0;
+    wsChatPintarHilo();
+    await wsChatMarcarLeido();
+  } catch(e){ if (main) main.innerHTML = `<div class="ws-empty"><b>No se pudo abrir</b>${escapeHtml(String(e.message||e))}</div>`; }
+}
+async function wsChatMarcarLeido(){
+  const c = wsChatCanal(); if (!c || !wsChat.ultimoTs) return;
+  try { await wsApi('/admin/ws/chat/'+encodeURIComponent(c.id)+'/leido', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ts: wsChat.ultimoTs }) }); } catch {}
+  c.noLeidos = 0;
+  wsChatBadge(wsChat.canales.reduce((s,x) => s + (x.noLeidos||0), 0));
+  wsChatPintarLista();
+}
+async function wsChatEnviar(){
+  const ta = document.getElementById('wsCompTexto'); if (!ta) return;
+  const texto = ta.value.trim();
+  if (!texto && !wsChat.tareaAdjunta) return;
+  const c = wsChatCanal(); if (!c) return;
+  const tareaId = wsChat.tareaAdjunta;
+  ta.value = ''; ta.style.height = 'auto'; wsChat.tareaAdjunta = ''; wsChatAtCerrar();
+  try {
+    const d = await wsApi('/admin/ws/chat/'+encodeURIComponent(c.id)+'/mensajes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ texto, tareaId }) });
+    wsChat.mensajes.push(d.mensaje);
+    wsChat.ultimoTs = d.mensaje.ts;
+    c.ultimoTexto = texto.slice(0, 90); c.ultimoTs = d.mensaje.ts; c.ultimoAutor = wsData.me.username;
+    wsChatPintarHilo(); wsChatPintarLista();
+  } catch(e){
+    // Si falló, se devuelve lo escrito para que no se pierda.
+    ta.value = texto; wsChat.tareaAdjunta = tareaId;
+    showToast('No se pudo enviar: ' + String(e.message||e), 'err');
+    wsChatPintarHilo();
+  }
+}
+async function wsChatSondear(){
+  if (wsTab !== 'chat' || document.visibilityState !== 'visible') return;
+  try {
+    const antes = wsChat.canalId;
+    // Solo lo nuevo del canal abierto; el resto llega en el conteo de la lista.
+    if (wsChat.canalId && wsChat.resultados === null) {
+      const d = await wsApi('/admin/ws/chat/'+encodeURIComponent(wsChat.canalId)+'/mensajes?desde='+wsChat.ultimoTs);
+      if (antes !== wsChat.canalId) return;      // cambió de canal mientras tanto
+      const nuevos = (d.mensajes||[]).filter(m => !wsChat.mensajes.some(x => x.id === m.id));
+      if (nuevos.length) {
+        wsChat.mensajes.push(...nuevos);
+        wsChat.ultimoTs = wsChat.mensajes[wsChat.mensajes.length-1].ts;
+        const h = document.getElementById('wsHilo');
+        // Solo se auto-baja si ya estabas abajo: si estás leyendo hacia arriba,
+        // un mensaje nuevo no debería arrastrarte.
+        const abajo = !h || (h.scrollHeight - h.scrollTop - h.clientHeight) < 60;
+        const foco = document.activeElement && document.activeElement.id === 'wsCompTexto';
+        const borrador = foco ? document.getElementById('wsCompTexto').value : null;
+        const scroll = h ? h.scrollTop : 0;
+        wsChatPintarHilo();
+        const h2 = document.getElementById('wsHilo');
+        if (h2 && !abajo) h2.scrollTop = scroll;
+        if (borrador != null) { const ta = document.getElementById('wsCompTexto'); if (ta) { ta.value = borrador; ta.focus(); } }
+        await wsChatMarcarLeido();
+      }
+    }
+    await wsChatCargarCanales();
+    if (wsChat.resultados === null) wsChatPintarLista();
+  } catch {}
+}
+function wsChatArrancar(){
+  wsChatDetener();
+  wsChat.timer = setInterval(wsChatSondear, 4000);
+}
+function wsChatDetener(){ if (wsChat.timer) { clearInterval(wsChat.timer); wsChat.timer = null; } }
+
+async function wsChatBoot(){
+  try { await wsChatCargarCanales(); } catch(e){ const l = document.getElementById('wsChatLista'); if (l) l.innerHTML = `<div class="ws-cal-vacio">${escapeHtml(String(e.message||e))}</div>`; return; }
+  wsChatPintarLista();
+  const sigueAhi = wsChat.canalId && wsChat.canales.some(c => c.id === wsChat.canalId);
+  if (sigueAhi) await wsChatAbrir(wsChat.canalId);
+  else {
+    // Sin canal elegido: en escritorio se abre #general (o el primero) para no
+    // arrancar en una pantalla vacía; en celular se muestra la lista.
+    const inicial = wsChat.canales.find(c => c.nombre === 'general') || wsChat.canales[0];
+    if (inicial && window.innerWidth > 820) await wsChatAbrir(inicial.id);
+    else wsChatPintarHilo();
+  }
+  wsChatArrancar();
+}
+async function wsChatBuscar(q){
+  wsChat.q = q;
+  if (q.trim().length < 2) { wsChat.resultados = null; wsChatPintarHilo(); return; }
+  try {
+    const d = await wsApi('/admin/ws/chat/buscar?q=' + encodeURIComponent(q.trim()));
+    wsChat.resultados = d.resultados || [];
+    wsChat.enLista = false;
+    const w = document.getElementById('wsChatWrap'); if (w) w.classList.remove('en-lista');
+    wsChatPintarHilo();
+  } catch(e){ showToast(String(e.message||e), 'err'); }
+}
+
 function wsProyectosHtml(){
   const ps = (wsData.proyectos||[]).slice().sort((a,b) => (a.archivado?1:0)-(b.archivado?1:0) || String(a.nombre).localeCompare(String(b.nombre),'es'));
   if (!ps.length) return '<div class="ws-empty"><b>Sin proyectos</b>Creá el primero para empezar a agrupar tareas.</div>';
@@ -17958,6 +18427,12 @@ function wsWire(){
   const nu = document.getElementById('wsNuevoUser'); if (nu) nu.onclick = () => wsUserModal(null);
   const ne = document.getElementById('wsNuevoEv'); if (ne) ne.onclick = () => wsEvModal(null, { fecha: wsHoyISO() });
   if (wsTab === 'calendario') wsWireCalendario();
+  // El sondeo del chat solo corre con la pestaña Chat abierta.
+  if (wsTab === 'chat') {
+    const q = document.getElementById('wsChatQ');
+    if (q) { let tm; q.oninput = () => { clearTimeout(tm); tm = setTimeout(() => wsChatBuscar(q.value), 320); }; }
+    wsChatBoot();
+  } else wsChatDetener();
 
   document.querySelectorAll('[data-wstarea]').forEach(el => {
     el.onclick = (ev) => { if (ev.target.closest('[data-wstoggle]')) return; wsTareaModal(el.dataset.wstarea); };
@@ -18046,13 +18521,13 @@ async function wsToggleListo(id){
 function wsModalAbrir(id){ const m = document.getElementById(id); m.classList.add('open'); m.setAttribute('aria-hidden','false'); }
 function wsModalCerrar(id){ const m = document.getElementById(id); m.classList.remove('open'); m.setAttribute('aria-hidden','true'); }
 document.querySelectorAll('[data-wsclose]').forEach(b => b.onclick = () => wsModalCerrar(b.dataset.wsclose));
-['wsTareaModal','wsProyModal','wsUserModal','wsEvModal','wsDiaModal'].forEach(id => {
+['wsTareaModal','wsProyModal','wsUserModal','wsEvModal','wsDiaModal','wsCanalModal','wsDmModal'].forEach(id => {
   const m = document.getElementById(id);
   if (m) m.addEventListener('click', (e) => { if (e.target === m) wsModalCerrar(id); });
 });
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  ['wsTareaModal','wsProyModal','wsUserModal','wsEvModal','wsDiaModal'].forEach(id => { const m = document.getElementById(id); if (m && m.classList.contains('open')) wsModalCerrar(id); });
+  ['wsTareaModal','wsProyModal','wsUserModal','wsEvModal','wsDiaModal','wsCanalModal','wsDmModal'].forEach(id => { const m = document.getElementById(id); if (m && m.classList.contains('open')) wsModalCerrar(id); });
 });
 
 let wsTareaEdit = null;      // tarea en edición (o null si es alta)
@@ -18390,6 +18865,81 @@ function wsDiaModal(iso){
 document.getElementById('wsDmTarea').onclick = () => { wsModalCerrar('wsDiaModal'); wsTareaModal(null, { vence: wsDiaElegido }); };
 document.getElementById('wsDmEvento').onclick = () => { wsModalCerrar('wsDiaModal'); wsEvModal(null, { fecha: wsDiaElegido }); };
 
+// ── Canal del chat (solo admin) ──
+let wsCanalEdit = null;
+function wsCanalModal(id){
+  const c = id ? wsChat.canales.find(x => x.id === id && x.tipo !== 'dm') : null;
+  wsCanalEdit = c || null;
+  document.getElementById('wsCmTitle').textContent = c ? 'Editar canal' : 'Nuevo canal';
+  document.getElementById('wsCmDel').style.display = c ? '' : 'none';
+  document.getElementById('wsCmBody').innerHTML = `
+    <div class="ws-err" id="wsCmErr"></div>
+    <div class="ws-f"><label for="wsCmNombre">Nombre</label>
+      <input type="text" id="wsCmNombre" maxlength="40" value="${escapeAttr(c?c.nombre:'')}" placeholder="marketing">
+      <div style="font-size:.7rem;color:var(--dim)">Se guarda en minúsculas y con guiones, estilo #marketing-y-rrss.</div></div>
+    <div class="ws-f"><label>Ícono</label><div class="ws-pick" id="wsCmEmojis">${WS_EMOJIS.concat(['💬','📣','🍺']).filter((v,i,a)=>a.indexOf(v)===i).map(e => `<button type="button" class="ws-pick-i${e===(c?c.emoji:'💬')?' on':''}" data-wscmemoji="${e}" style="padding:.25rem .5rem">${e}</button>`).join('')}</div></div>
+    <div class="ws-f"><label for="wsCmDesc">De qué se habla acá</label>
+      <input type="text" id="wsCmDesc" maxlength="300" value="${escapeAttr(c?(c.descripcion||''):'')}" placeholder="Cocciones, envasado, planta"></div>`;
+  const body = document.getElementById('wsCmBody');
+  body.dataset.emoji = c ? (c.emoji||'💬') : '💬';
+  document.querySelectorAll('[data-wscmemoji]').forEach(b => b.onclick = () => {
+    body.dataset.emoji = b.dataset.wscmemoji;
+    document.querySelectorAll('[data-wscmemoji]').forEach(x => x.classList.toggle('on', x === b));
+  });
+  wsModalAbrir('wsCanalModal');
+}
+document.getElementById('wsCmSave').onclick = async () => {
+  const err = document.getElementById('wsCmErr');
+  const payload = {
+    nombre: document.getElementById('wsCmNombre').value.trim(),
+    descripcion: document.getElementById('wsCmDesc').value.trim(),
+    emoji: document.getElementById('wsCmBody').dataset.emoji,
+  };
+  if (!payload.nombre) { err.textContent = '⚠ Ponele un nombre al canal.'; err.style.display='block'; return; }
+  err.style.display = 'none';
+  try {
+    let d;
+    if (wsCanalEdit) d = await wsApi('/admin/ws/canales/'+encodeURIComponent(wsCanalEdit.id), { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    else d = await wsApi('/admin/ws/canales', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+    wsModalCerrar('wsCanalModal');
+    await wsChatCargarCanales(); wsChatPintarLista();
+    if (!wsCanalEdit) await wsChatAbrir(d.canal.id); else wsChatPintarHilo();
+    showToast('Canal guardado ✓', 'ok');
+  } catch(e){ err.textContent = '⚠ ' + String(e.message||e); err.style.display = 'block'; }
+};
+document.getElementById('wsCmDel').onclick = async () => {
+  if (!wsCanalEdit) return;
+  if (!confirm(`Eliminar #${wsCanalEdit.nombre}? Si ya tiene conversación, se archiva en vez de borrarse.`)) return;
+  try {
+    const d = await wsApi('/admin/ws/canales/'+encodeURIComponent(wsCanalEdit.id), { method:'DELETE' });
+    wsModalCerrar('wsCanalModal');
+    if (wsChat.canalId === wsCanalEdit.id) { wsChat.canalId = ''; wsChat.mensajes = []; }
+    await wsChatCargarCanales(); wsChatPintarLista(); wsChatPintarHilo();
+    showToast(d.archivado ? 'Canal archivado (la conversación se conserva)' : 'Canal eliminado', 'ok');
+  } catch(e){ showToast(String(e.message||e), 'err'); }
+};
+
+// ── Abrir un mensaje directo ──
+function wsDmModal(){
+  const otros = (wsChat.usuarios||[]).filter(u => u.username !== wsData.me.username);
+  document.getElementById('wsDmmTitle').textContent = 'Mensaje directo';
+  document.getElementById('wsDmModal').querySelector('.ws-modal-h p').textContent = '¿A quién le escribís?';
+  document.getElementById('wsDmmBody').innerHTML = otros.length
+    ? otros.map(u => `<button type="button" class="ws-btn" data-wsdmcon="${escapeAttr(u.username)}" style="text-align:left;padding:.5rem .6rem;display:flex;align-items:center;gap:.5rem">
+        ${wsAvatarHtml(u.username,'ws-av-sm')}<b>${escapeHtml(u.apodo||u.nombre||u.username)}</b>
+        <span style="color:var(--dim);font-weight:600;font-size:.74rem">@${escapeHtml(u.handle)}</span></button>`).join('')
+    : '<div class="ws-empty"><b>Sos el único</b>Cargá más gente desde la pestaña Equipo.</div>';
+  document.querySelectorAll('[data-wsdmcon]').forEach(b => b.onclick = async () => {
+    try {
+      const d = await wsApi('/admin/ws/chat/dm', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username: b.dataset.wsdmcon }) });
+      wsModalCerrar('wsDmModal');
+      await wsChatCargarCanales();
+      await wsChatAbrir(d.canal.id);
+    } catch(e){ showToast(String(e.message||e), 'err'); }
+  });
+  wsModalAbrir('wsDmModal');
+}
+
 let wsUserEdit = null;
 function wsUserModal(id){
   const u = id ? (wsData.usuarios||[]).find(x => x.id === id) : null;
@@ -18502,7 +19052,7 @@ function wsBellPintar(){
   bell.innerHTML = '🔔' + (sinLeer ? `<span class="b">${sinLeer > 9 ? '9+' : sinLeer}</span>` : '');
   bell.title = sinLeer ? sinLeer + ' aviso' + (sinLeer===1?'':'s') + ' sin leer' : 'Notificaciones';
   const caja = document.getElementById('wsNotif'); if (!caja) return;
-  const items = wsNotifs.slice(0, 40).map(n => `<button type="button" class="ws-notif-i${n.leida?'':' no'}" data-wsnotif="${escapeAttr(n.id)}" data-wsnotiftarea="${escapeAttr(n.tareaId||'')}" data-wsnotifev="${escapeAttr(n.eventoId||'')}">
+  const items = wsNotifs.slice(0, 40).map(n => `<button type="button" class="ws-notif-i${n.leida?'':' no'}" data-wsnotif="${escapeAttr(n.id)}" data-wsnotiftarea="${escapeAttr(n.tareaId||'')}" data-wsnotifev="${escapeAttr(n.eventoId||'')}" data-wsnotifcn="${escapeAttr(n.canalId||'')}">
       ${n.de ? wsAvatarHtml(n.de,'ws-av-sm') : '<span class="ws-av ws-av-sm" style="background:#5b6472">⚡</span>'}
       <span style="flex:1;min-width:0"><span class="tx">${escapeHtml(n.texto)}</span><span class="ts">${escapeHtml(wsHace(n.ts))}</span></span>
     </button>`).join('');
@@ -18511,10 +19061,16 @@ function wsBellPintar(){
   const leer = document.getElementById('wsNotifLeer');
   if (leer) leer.onclick = async (e) => { e.stopPropagation(); try { await wsApi('/admin/ws/notificaciones/leidas', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' }); wsNotifs.forEach(n => n.leida = true); wsBellPintar(); } catch {} };
   caja.querySelectorAll('[data-wsnotif]').forEach(b => b.onclick = async () => {
-    const id = b.dataset.wsnotif, tid = b.dataset.wsnotiftarea, eid = b.dataset.wsnotifev;
+    const id = b.dataset.wsnotif, tid = b.dataset.wsnotiftarea, eid = b.dataset.wsnotifev, cid = b.dataset.wsnotifcn;
     const n = wsNotifs.find(x => x.id === id);
     if (n && !n.leida) { n.leida = true; wsBellPintar(); try { await wsApi('/admin/ws/notificaciones/leidas', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ids:[id] }) }); } catch {} }
     caja.classList.remove('open');
+    // Aviso de chat: abre el canal donde te nombraron o te escribieron.
+    if (cid) {
+      wsChat.canalId = cid;
+      await selectSeccion('ws-chat');
+      return;
+    }
     if (!tid && !eid) return;
     // Abrir lo que menciona el aviso. Si el espacio todavía no está cargado (el
     // aviso se puede tocar desde cualquier sección del ERP), se carga primero.
@@ -18535,6 +19091,9 @@ function wsBellPintar(){
 }
 async function wsBellRefrescar(){
   try { const d = await wsApi('/admin/ws/notificaciones'); wsNotifs = d.notificaciones || []; wsBellPintar(); } catch {}
+  // El badge de mensajes sin leer se actualiza desde cualquier sección: no hace
+  // falta estar parado en el chat para enterarte de que te escribieron.
+  if (wsTab !== 'chat') { try { const c = await wsApi('/admin/ws/chat'); wsChatBadge(c.totalNoLeidos || 0); } catch {} }
 }
 (function(){
   const bell = document.getElementById('wsBell'), caja = document.getElementById('wsNotif');
