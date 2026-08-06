@@ -2018,7 +2018,7 @@ body.drawer-open{overflow:hidden}
 .dist-subtab:hover{border-color:var(--gold-bd,#f1c97b);color:var(--text,#111)}
 .dist-subtab.on{background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623) 60%);color:#1a1408;border-color:transparent}
 .dist-subtab.disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
-.an-tab-sep{margin-left:.6rem;padding-left:1.1rem;border-left:1px dashed var(--line,#ddd)}
+.an-tab-sep{margin-left:.6rem;padding-left:1.1rem;border-left:1px dashed var(--line,#ddd)}  /* separa Análisis (herramienta) de los niveles del costeo */
 .dist-sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
 .dist-sec-title{font-family:var(--display,inherit);font-size:1.05rem;font-weight:800;color:var(--text,#111)}
 .dist-sec-sub{font-size:.78rem;color:var(--muted,#666);margin-top:.2rem;line-height:1.5}
@@ -3730,8 +3730,8 @@ body.hosp-open{overflow:hidden}
       <div id="costeoGastronomia">
         <div class="costeo-rest" id="costeoRest">
           <span class="costeo-rest-lbl">Restaurante</span>
-          <button type="button" class="costeo-rest-btn on" data-rest="garden">Garden</button>
-          <button type="button" class="costeo-rest-btn" data-rest="badass">Badass</button>
+          <button type="button" class="costeo-rest-btn on" data-rest="badass">Badass</button>
+          <button type="button" class="costeo-rest-btn" data-rest="garden">Garden</button>
           <span class="costeo-rest-lbl costeo-svc-lbl">Servicio</span>
           <select id="costeoSvc" class="costeo-svc">
             <option value="comida">🍽️ Comida</option>
@@ -3741,11 +3741,11 @@ body.hosp-open{overflow:hidden}
           </select>
         </div>
         <div class="dist-subnav" id="costeoSubnav">
-          <button type="button" class="dist-subtab on" data-csub="resumen">Carta (resumen)</button>
+          <button type="button" class="dist-subtab on" data-csub="analisis">📊 Análisis</button>
+          <button type="button" class="dist-subtab an-tab-sep" data-csub="resumen">Carta (resumen)</button>
           <button type="button" class="dist-subtab" data-csub="platos" id="costeoTabProd">Comida</button>
           <button type="button" class="dist-subtab" data-csub="recetas">Recetas base</button>
           <button type="button" class="dist-subtab" data-csub="insumos">Insumos</button>
-          <button type="button" class="dist-subtab an-tab-sep" data-csub="analisis">📊 Análisis</button>
         </div>
         <div id="costeoBody"><div class="adm-loading">Cargando…</div></div>
         <div id="costeoAnalisis" style="display:none"></div>
@@ -11094,7 +11094,8 @@ async function loadRetailUploads(){
 }
 
 // ─── Costeo de carta (insumos · recetas base) ────────────────────────────────
-let costeoData = null, costeoSub = 'resumen', insumoSearch = '', rbSearch = '', costeoRest = 'garden', costeoSvc = 'comida';
+// Costeo abre en Análisis (la lectura que se mira primero) y en Badass.
+let costeoData = null, costeoSub = 'analisis', insumoSearch = '', rbSearch = '', costeoRest = 'badass', costeoSvc = 'comida';
 let platoEditing = null, platoDraft = [], platoSearch = '', platoCatFilter = '';
 // Las mismas 16 categorías (Ron/Pisco/Vodka/Whisky/Bourbon/Gin/Licores/Tequila
 // + su "* Botella") que en Comida/Barra y Carta (resumen) viven en su propia
