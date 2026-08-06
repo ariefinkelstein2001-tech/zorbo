@@ -2018,6 +2018,7 @@ body.drawer-open{overflow:hidden}
 .dist-subtab:hover{border-color:var(--gold-bd,#f1c97b);color:var(--text,#111)}
 .dist-subtab.on{background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623) 60%);color:#1a1408;border-color:transparent}
 .dist-subtab.disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
+.an-tab-sep{margin-left:.6rem;padding-left:1.1rem;border-left:1px dashed var(--line,#ddd)}
 .dist-sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem}
 .dist-sec-title{font-family:var(--display,inherit);font-size:1.05rem;font-weight:800;color:var(--text,#111)}
 .dist-sec-sub{font-size:.78rem;color:var(--muted,#666);margin-top:.2rem;line-height:1.5}
@@ -2142,6 +2143,105 @@ body.drawer-open{overflow:hidden}
 .rv-new{border:1px solid var(--line,#ddd);border-radius:7px;padding:.35rem .5rem;font-size:.82rem;background:var(--surface,#fff);color:var(--text,#111)}
 .rv-inp{border:1px solid var(--line,#e2e2e2);border-radius:var(--radius-sm,7px);padding:.35rem .5rem;background:var(--surface,#fff);color:var(--text,#111);text-align:right;font-weight:600}
 .rv-inp:focus,.rv-new:focus{outline:none;border-color:var(--gold,#f5a623);box-shadow:0 0 0 2px rgba(245,166,35,.18)}
+
+/* ═══ ANÁLISIS del % de costo promedio ponderado ═══════════════════════════
+   Herramienta de EXPLORACIÓN, deliberadamente distinta al resto de Costeo:
+   tarjetas con aire, un resultado grande y protagonista, acordeones
+   colapsados por defecto — nada de tabla densa de golpe. */
+.an-wrap{max-width:920px;margin:0 auto;padding:.2rem 0 3rem}
+.an-head{margin-bottom:1.6rem}
+.an-head h2{font-family:var(--display);font-size:1.5rem;font-weight:800;color:var(--text);letter-spacing:-.01em;margin:0 0 .3rem}
+.an-head p{font-size:.86rem;color:var(--muted);line-height:1.5;max-width:62ch;margin:0}
+.an-controls{display:flex;flex-wrap:wrap;align-items:center;gap:.7rem;margin-bottom:1.6rem}
+.an-controls .costeo-rest-lbl{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.an-desc-toggle{display:inline-flex;border:1px solid var(--border);border-radius:var(--radius-full);padding:3px;background:var(--surface-2)}
+.an-desc-toggle button{font-family:var(--sans);font-size:.76rem;font-weight:700;border:0;background:transparent;color:var(--muted);padding:.4rem .85rem;border-radius:var(--radius-full);cursor:pointer;transition:all .15s}
+.an-desc-toggle button.on{background:var(--surface);color:var(--text);box-shadow:var(--shadow-sm)}
+/* Hero: el resultado, grande y arriba, siempre visible */
+.an-hero{position:relative;border-radius:var(--radius-lg);padding:1.8rem 2rem;margin-bottom:1.6rem;background:linear-gradient(155deg,#fff8ec,#fffefb 55%);border:1px solid var(--gold-bd);box-shadow:var(--shadow-md);overflow:hidden}
+.an-hero::before{content:"";position:absolute;top:-40%;right:-10%;width:280px;height:280px;border-radius:50%;background:radial-gradient(circle,var(--gold-glow),transparent 70%);pointer-events:none}
+.an-hero-ctx{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.9rem}
+.an-chip{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--gold-deep);background:var(--gold-dim);border-radius:var(--radius-full);padding:.28rem .7rem}
+.an-chip.muted{color:var(--muted);background:var(--surface-2)}
+.an-hero-num{display:flex;align-items:baseline;gap:.9rem;flex-wrap:wrap;position:relative;z-index:1}
+.an-hero-pct{font-family:var(--display);font-size:clamp(2.6rem,7vw,4.2rem);font-weight:800;color:var(--gold-deep);line-height:1;letter-spacing:-.02em}
+.an-hero-pct.hi{color:#c0392b}
+.an-hero-lbl{font-size:.85rem;font-weight:700;color:var(--text-2,var(--muted));max-width:26ch;line-height:1.35}
+.an-hero-empty{font-size:.95rem;color:var(--muted);font-weight:600}
+.an-hero-break{display:flex;flex-wrap:wrap;gap:1.4rem;margin-top:1.2rem;padding-top:1.1rem;border-top:1px solid rgba(160,95,0,.14);position:relative;z-index:1}
+.an-break-item{min-width:120px}
+.an-break-item .k{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.an-break-item .v{font-family:var(--display);font-size:1.3rem;font-weight:800;color:var(--text);margin-top:.1rem}
+.an-break-item .s{font-size:.72rem;color:var(--muted);margin-top:.1rem}
+.an-candado{display:flex;gap:.5rem;align-items:flex-start;margin-top:1rem;padding:.7rem .9rem;border-radius:var(--radius-md);background:rgba(192,57,43,.08);border:1px solid rgba(192,57,43,.25);color:#a83226;font-size:.82rem;font-weight:600;line-height:1.4;position:relative;z-index:1}
+/* Selector de modo: dos tarjetas grandes, no un tab genérico */
+.an-modes{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-bottom:1.6rem}
+@media(max-width:640px){.an-modes{grid-template-columns:1fr}}
+.an-mode-card{text-align:left;border:1.5px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);padding:1.2rem 1.3rem;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:.3rem}
+.an-mode-card:hover{border-color:var(--gold-bd);box-shadow:var(--shadow-sm)}
+.an-mode-card.on{border-color:var(--gold);background:linear-gradient(155deg,var(--gold-dim),var(--surface) 70%);box-shadow:var(--shadow-md)}
+.an-mode-card .ic{font-size:1.5rem}
+.an-mode-card .t{font-family:var(--display);font-size:1.02rem;font-weight:800;color:var(--text)}
+.an-mode-card .s{font-size:.78rem;color:var(--muted);line-height:1.45}
+.an-mode-card .badge{align-self:flex-start;font-size:.64rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:var(--gold-deep);background:var(--gold-dim);border-radius:var(--radius-full);padding:.15rem .55rem;margin-top:.15rem}
+/* Panel: card contenedora del modo activo, con aire */
+.an-panel{border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface);padding:1.6rem;box-shadow:var(--shadow-sm)}
+.an-panel-h{font-family:var(--display);font-size:1rem;font-weight:800;color:var(--text);margin-bottom:.3rem}
+.an-panel-sub{font-size:.8rem;color:var(--muted);margin-bottom:1.3rem;line-height:1.5}
+/* Modo rápido: pesos */
+.an-pesos-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.9rem;margin-bottom:1rem}
+.an-peso-card{border:1px solid var(--border);border-radius:var(--radius-md);padding:.85rem .9rem;background:var(--surface-2)}
+.an-peso-card label{display:block;font-size:.72rem;font-weight:800;color:var(--text);margin-bottom:.4rem}
+.an-peso-card input{width:100%;font-family:var(--display);font-size:1.15rem;font-weight:800;text-align:center;border:1px solid var(--border);border-radius:var(--radius-sm);padding:.35rem;background:var(--surface);color:var(--gold-deep)}
+.an-peso-card .avg{font-size:.68rem;color:var(--muted);margin-top:.4rem;text-align:center}
+.an-suma{display:flex;align-items:center;gap:.5rem;font-size:.84rem;font-weight:700;margin-bottom:1.2rem}
+.an-suma.ok{color:#2f8a4e}
+.an-suma.err{color:#c0392b}
+.an-mix-row{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;padding:1rem 1.1rem;border-radius:var(--radius-md);background:var(--surface-2);margin-bottom:1rem}
+.an-mix-row input{width:80px;font-family:var(--display);font-size:1.1rem;font-weight:800;text-align:center;border:1px solid var(--border);border-radius:var(--radius-sm);padding:.3rem;background:var(--surface);color:var(--gold-deep)}
+.an-link-btn{background:none;border:0;color:var(--gold-deep);font-weight:700;font-size:.8rem;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px}
+.an-mapeo-box{margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--border)}
+.an-mapeo-row{display:flex;align-items:center;justify-content:space-between;gap:.7rem;padding:.4rem 0;border-bottom:1px solid var(--border)}
+.an-mapeo-row:last-child{border-bottom:0}
+.an-mapeo-row select{font-size:.8rem;padding:.3rem .5rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text)}
+/* Modo exacto: búsqueda + acordeón por categoría */
+.an-search{width:100%;padding:.65rem .9rem;border:1px solid var(--border);border-radius:var(--radius-md);font-size:.88rem;margin-bottom:1rem;background:var(--surface-2)}
+.an-search:focus{outline:none;border-color:var(--gold);background:var(--surface)}
+.an-acc-tools{display:flex;justify-content:flex-end;gap:.8rem;margin-bottom:.6rem}
+.an-acc{border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:.6rem;overflow:hidden}
+.an-acc-h{display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.85rem 1rem;cursor:pointer;background:var(--surface-2);transition:background .12s}
+.an-acc-h:hover{background:var(--gold-dim)}
+.an-acc-h .t{font-weight:700;font-size:.88rem;color:var(--text)}
+.an-acc-h .n{font-size:.74rem;color:var(--muted)}
+.an-acc-h .qty-badge{font-size:.72rem;font-weight:800;color:var(--gold-deep);background:var(--gold-dim);border-radius:var(--radius-full);padding:.15rem .6rem;margin-left:auto}
+.an-acc-h .chev{font-size:.7rem;color:var(--muted);transition:transform .15s}
+.an-acc.open .chev{transform:rotate(90deg)}
+.an-acc-body{display:none;padding:.4rem .9rem .8rem}
+.an-acc.open .an-acc-body{display:block}
+.an-row{display:grid;grid-template-columns:1fr 90px 90px 90px;align-items:center;gap:.7rem;padding:.5rem 0;border-bottom:1px solid var(--border)}
+.an-row:last-child{border-bottom:0}
+.an-row .nm{font-size:.84rem;color:var(--text);font-weight:600}
+.an-row .num{font-size:.8rem;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+.an-row input{width:100%;padding:.35rem .4rem;border:1px solid var(--border);border-radius:var(--radius-sm);text-align:right;font-weight:700;color:var(--text)}
+.an-row input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 2px rgba(245,166,35,.15)}
+@media(max-width:600px){.an-row{grid-template-columns:1fr 70px}.an-row .num:nth-child(2){display:none}}
+/* Guardar / escenarios */
+.an-save-row{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin:1.4rem 0}
+.an-save-row input[type=text]{flex:1;min-width:200px;padding:.6rem .85rem;border:1px solid var(--border);border-radius:var(--radius-md);font-size:.86rem}
+.an-esc-section{margin-top:2.2rem}
+.an-esc-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem}
+.an-esc-h h3{font-family:var(--display);font-size:1rem;font-weight:800;color:var(--text);margin:0}
+.an-esc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.8rem}
+.an-esc-card{border:1px solid var(--border);border-radius:var(--radius-md);padding:1rem 1.1rem;background:var(--surface);box-shadow:var(--shadow-sm)}
+.an-esc-card .nm{font-weight:800;font-size:.92rem;color:var(--text);margin-bottom:.35rem}
+.an-esc-card .meta{display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.6rem}
+.an-esc-card .pct{font-family:var(--display);font-size:1.4rem;font-weight:800;color:var(--gold-deep)}
+.an-esc-card .fecha{font-size:.68rem;color:var(--muted);margin-top:.2rem;margin-bottom:.7rem}
+.an-esc-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+.an-esc-actions button{font-size:.72rem;font-weight:700;padding:.32rem .65rem;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface-2);color:var(--text);cursor:pointer}
+.an-esc-actions button:hover{border-color:var(--gold-bd)}
+.an-esc-actions button.danger:hover{border-color:#e0a09a;color:#a83226;background:#fdf2f0}
+.an-empty{text-align:center;padding:2rem 1rem;color:var(--muted);font-size:.85rem}
 
 /* ── ESTADO DE RESULTADO ── */
 .est-top{display:flex;gap:1rem;align-items:stretch;flex-wrap:wrap;margin-bottom:1rem}
@@ -3647,8 +3747,10 @@ body.hosp-open{overflow:hidden}
           <button type="button" class="dist-subtab" data-csub="platos" id="costeoTabProd">Comida</button>
           <button type="button" class="dist-subtab" data-csub="recetas">Recetas base</button>
           <button type="button" class="dist-subtab" data-csub="insumos">Insumos</button>
+          <button type="button" class="dist-subtab an-tab-sep" data-csub="analisis">📊 Análisis</button>
         </div>
         <div id="costeoBody"><div class="adm-loading">Cargando…</div></div>
+        <div id="costeoAnalisis" style="display:none"></div>
       </div>
       <div id="costeoProductora" style="display:none"></div>
       <div id="costeoComercializacion" style="display:none"></div>
@@ -11129,7 +11231,7 @@ function lineRendCell(l, idx, pfx){
   return `<div class="ren-cell"><input type="text" inputmode="numeric" class="ren-inp${l.rend!=null?' on':''}" data-${pfx}ren="${idx}" value="${cur}" placeholder="${ph}" title="Rendimiento de esta línea (hereda ${ph}% del insumo). Vacío = heredado."><span class="ren-pct">%</span>
     <button type="button" class="ren-nm" data-${pfx}nm="${idx}" title="Sin merma = 100%">💯</button>${chip}</div>`;
 }
-function costeoResetState(){ rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch=''; platoEditing=null; platoDraft=[]; platoSearch=''; platoCatFilter=''; cartaSearch=''; cartaCatFilter=''; cartaDescuento=false; }
+function costeoResetState(){ rbEditing=null; rbDraft=[]; insumoSearch=''; rbSearch=''; platoEditing=null; platoDraft=[]; platoSearch=''; platoCatFilter=''; cartaSearch=''; cartaCatFilter=''; cartaDescuento=false; anReset(); }
 
 // ── Costeo: pestañas de área (Gastronomía = herramienta real de siempre, sin
 // tocar; Productora y Comercialización y Distribución todavía sin info). ──
@@ -11185,12 +11287,24 @@ document.getElementById('costeoSvc').addEventListener('change', e=>{
 // En modo "Comida y Barra" solo Carta (resumen) tiene una vista combinada
 // definida — las otras 3 pestañas se deshabilitan (no se pisa/inventa qué
 // mostrarían, se obliga a elegir un servicio concreto para editarlas).
-function costeoSubDisabled(csub){ return costeoSvc==='ambos' && csub!=='resumen'; }
+// Análisis queda SIEMPRE habilitada: no depende de Servicio (mira Comida y
+// Barra a la vez siempre), por eso no entra en esta regla.
+function costeoSubDisabled(csub){ return costeoSvc==='ambos' && csub!=='resumen' && csub!=='analisis'; }
 function renderCosteoSub(){
   document.querySelectorAll('#costeoSubnav .dist-subtab').forEach(b=>{
     b.classList.toggle('on', b.dataset.csub===costeoSub);
     b.classList.toggle('disabled', costeoSubDisabled(b.dataset.csub));
   });
+  // Análisis vive en su propio contenedor, separado de #costeoBody a
+  // propósito (es una herramienta de exploración, no un nivel del costeo) —
+  // y no usa el selector de Servicio (mira Comida y Barra siempre juntas).
+  const svcLbl = document.querySelector('.costeo-svc-lbl'), svcSel = document.getElementById('costeoSvc');
+  const esAnalisis = costeoSub==='analisis';
+  document.getElementById('costeoBody').style.display = esAnalisis ? 'none' : '';
+  document.getElementById('costeoAnalisis').style.display = esAnalisis ? '' : 'none';
+  if (svcLbl) svcLbl.style.display = esAnalisis ? 'none' : '';
+  if (svcSel) svcSel.style.display = esAnalisis ? 'none' : '';
+  if (esAnalisis) return renderCosteoAnalisis();
   if (costeoSub==='insumos') return renderCosteoInsumos();
   if (costeoSub==='recetas') return renderCosteoRecetas();
   if (costeoSub==='platos') return renderCosteoPlatos();
@@ -12106,6 +12220,409 @@ function cartaPdf(){
 // Descarga a Excel de Recetas base ('recetas') o Platos/Tragos ('platos').
 function costeoExportXlsx(kind){
   costeoDownload('/admin/costeo/'+kind+'/export.xlsx?rest='+encodeURIComponent(costeoRest)+'&svc='+encodeURIComponent(costeoSvc));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ANÁLISIS del % de costo promedio ponderado — herramienta de EXPLORACIÓN,
+// separada del costeo de la carta a propósito (vive en #costeoAnalisis, no
+// en #costeoBody). Solo LEE precio/costo que el costeo ya calculó; nunca
+// escribe en el doc del costeo. Independiente del selector de Servicio: mira
+// Comida y Barra a la vez siempre. El local a analizar es el mismo botón
+// Garden/Badass de arriba (costeoRest); el escenario de precio es propio de
+// esta pestaña (AN.conDesc), para no acoplarla al toggle de Carta (resumen).
+// ═══════════════════════════════════════════════════════════════════════════
+let AN = {
+  loadedRest: null, // qué rest tiene cargados grupos/escenarios ahora mismo
+  conDesc: false,
+  modo: 'rapido', // 'rapido' | 'exacto'
+  pesosBarra: { cervezas: 20, cocktails: 20, otrosAlcohol: 20, sinAlcohol: 20, otros: 20 },
+  mixComida: 50,
+  unidades: {}, // key -> cantidad vendida (modo exacto)
+  resultado: null,
+  grupos: [], // [{key,label,visual}] — viene del server
+  gruposConfig: null, // {secciones, seccionesTodas}
+  escenarios: [],
+  productos: null, // cache de /analisis/productos para el modo actual+conDesc
+  productosKey: null, // rest+conDesc del cache de arriba, para saber si hay que refetch
+  mapeoAbierto: false,
+  search: '',
+  abiertas: new Set(),
+};
+function anReset(){
+  AN = { loadedRest: null, conDesc: false, modo: 'rapido',
+    pesosBarra: { cervezas: 20, cocktails: 20, otrosAlcohol: 20, sinAlcohol: 20, otros: 20 }, mixComida: 50,
+    unidades: {}, resultado: null, grupos: [], gruposConfig: null, escenarios: [],
+    productos: null, productosKey: null, mapeoAbierto: false, search: '', abiertas: new Set() };
+}
+function anDebounce(fn, ms){ let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+const anFmtPct = (v) => v == null ? '—' : (Math.round(v * 10) / 10) + '%';
+
+async function renderCosteoAnalisis(){
+  const box = document.getElementById('costeoAnalisis');
+  if (AN.loadedRest !== costeoRest) {
+    box.innerHTML = '<div class="adm-loading">Cargando análisis…</div>';
+    try {
+      const [gc, escs] = await Promise.all([
+        fetch('/admin/costeo/analisis/grupos-config?rest=' + encodeURIComponent(costeoRest)).then(r => r.json()),
+        fetch('/admin/costeo/analisis/escenarios?rest=' + encodeURIComponent(costeoRest)).then(r => r.json()),
+      ]);
+      AN.grupos = gc.grupos; AN.gruposConfig = { secciones: gc.secciones, seccionesTodas: gc.seccionesTodas };
+      AN.escenarios = escs.escenarios || [];
+      AN.loadedRest = costeoRest;
+      AN.productos = null; AN.productosKey = null;
+    } catch (e) { box.innerHTML = `<div class="dist-empty">Error: ${escapeHtml(String(e.message || e))}</div>`; return; }
+  }
+  anDraw();
+  await anCompute();
+}
+function anDraw(){
+  const box = document.getElementById('costeoAnalisis');
+  const restIsBadass = costeoRest === 'badass';
+  const restLbl = escapeHtml(REST_LABEL[costeoRest] || costeoRest);
+  const descuentoRow = restIsBadass ? `
+    <div class="an-desc-toggle">
+      <button type="button" id="anDescOff" class="${AN.conDesc ? '' : 'on'}">Sin descuento</button>
+      <button type="button" id="anDescOn" class="${AN.conDesc ? 'on' : ''}">Con descuento (${CARTA_DESCUENTO_PCT}%)</button>
+    </div>` : '';
+  box.innerHTML = `
+    <div class="an-wrap">
+      <div class="an-head">
+        <h2>Análisis del % de costo promedio ponderado</h2>
+        <p>Herramienta de exploración — no toca el costeo de la carta. Lee los precios y costos ya cargados y simula distintas maneras de ponderarlos.</p>
+      </div>
+      <div class="an-controls">
+        <span class="costeo-rest-lbl">Analizando</span><span class="an-chip">${restLbl}</span>
+        ${descuentoRow}
+      </div>
+      <div id="anHero"></div>
+      <div class="an-modes">
+        <button type="button" class="an-mode-card ${AN.modo === 'rapido' ? 'on' : ''}" id="anModeRapido">
+          <span class="ic">⚡</span><span class="t">Rápido</span>
+          <span class="badge">Estimación</span>
+          <span class="s">Ingresás pesos por grupo y el mix Comida/Barra — ves el ponderado al instante. Para simular ("¿qué pasa si sube la barra?").</span>
+        </button>
+        <button type="button" class="an-mode-card ${AN.modo === 'exacto' ? 'on' : ''}" id="anModeExacto">
+          <span class="ic">🎯</span><span class="t">Exacto</span>
+          <span class="badge">Según ventas reales</span>
+          <span class="s">Cargás cuánto vendiste de cada producto — el sistema calcula recaudación, costo y el % ponderado real, y deriva el mix real.</span>
+        </button>
+      </div>
+      <div id="anPanel"></div>
+      <div id="anEscenarios" class="an-esc-section"></div>
+    </div>`;
+  document.getElementById('anDescOff') && (document.getElementById('anDescOff').onclick = () => { AN.conDesc = false; anOnDescChange(); });
+  document.getElementById('anDescOn') && (document.getElementById('anDescOn').onclick = () => { AN.conDesc = true; anOnDescChange(); });
+  document.getElementById('anModeRapido').onclick = () => { if (AN.modo === 'rapido') return; AN.modo = 'rapido'; anDraw(); anCompute(); };
+  document.getElementById('anModeExacto').onclick = () => { if (AN.modo === 'exacto') return; AN.modo = 'exacto'; anDraw(); anCompute(); };
+  anDrawPanel();
+  anDrawEscenarios();
+}
+function anOnDescChange(){
+  AN.productos = null; AN.productosKey = null; // precio cambia con el escenario, hay que refetch
+  anDraw();
+  anCompute();
+}
+
+// ── Cómputo: pide al server el resultado (rápido o exacto) con los inputs
+// actuales — el server es la única fuente de verdad, así el ERP nunca puede
+// mostrar un número distinto al que quedaría guardado en un escenario. ──
+async function anCompute(){
+  try {
+    if (AN.modo === 'rapido') {
+      AN.resultado = await (await fetch('/admin/costeo/analisis/rapido/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rest: costeoRest, conDesc: AN.conDesc, pesosBarra: AN.pesosBarra, mixComida: AN.mixComida }) })).json();
+    } else {
+      AN.resultado = await (await fetch('/admin/costeo/analisis/exacto/preview', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rest: costeoRest, conDesc: AN.conDesc, unidades: AN.unidades }) })).json();
+    }
+  } catch (e) { AN.resultado = null; }
+  anDrawHero();
+}
+const anComputeDebounced = anDebounce(anCompute, 350);
+
+function anDrawHero(){
+  const hero = document.getElementById('anHero'); if (!hero) return;
+  const r = AN.resultado;
+  const restLbl = escapeHtml(REST_LABEL[costeoRest] || costeoRest);
+  const modoChip = AN.modo === 'rapido' ? '⚡ Rápido · estimación' : '🎯 Exacto · según ventas';
+  const descChip = AN.conDesc ? `Con descuento ${CARTA_DESCUENTO_PCT}%` : 'Sin descuento';
+  const ctx = `<div class="an-hero-ctx"><span class="an-chip">${restLbl}</span><span class="an-chip muted">${modoChip}</span><span class="an-chip muted">${descChip}</span></div>`;
+  if (!r) { hero.innerHTML = `<div class="an-hero">${ctx}<div class="an-hero-empty">No se pudo calcular. Probá de nuevo.</div></div>`; return; }
+  const pctVal = AN.modo === 'rapido' ? (r.valido ? r.pct : null) : r.pct;
+  const numHtml = pctVal != null
+    ? `<div class="an-hero-pct ${pctVal > 40 ? 'hi' : ''}">${anFmtPct(pctVal)}</div><div class="an-hero-lbl">% de costo promedio ponderado</div>`
+    : `<div class="an-hero-empty">${AN.modo === 'rapido' ? 'Ajustá los pesos para ver el ponderado.' : 'Cargá unidades vendidas para ver el resultado.'}</div>`;
+  let candado = '';
+  if (AN.modo === 'rapido' && !r.valido) {
+    const msgs = [];
+    if (!r.barra.pesosValidos) msgs.push(`Los pesos de Barra suman ${r.barra.sumaPesos}% — tienen que sumar 100%.`);
+    if (!r.barra.seccionesValidas) msgs.push(`Faltan asignar ${r.barra.sinAsignar.length} sección(es) de Barra a un grupo.`);
+    candado = `<div class="an-candado">⚠️ ${msgs.join(' ')}</div>`;
+  }
+  let breakHtml = '';
+  if (AN.modo === 'rapido' && r.comida.pct != null || (AN.modo === 'rapido' && r.barra.pct != null)) {
+    breakHtml = `<div class="an-hero-break">
+      <div class="an-break-item"><div class="k">Comida</div><div class="v">${anFmtPct(r.comida.pct)}</div><div class="s">${r.mix.comida}% del mix · ${r.comida.n} platos</div></div>
+      <div class="an-break-item"><div class="k">Barra</div><div class="v">${r.barra.valido ? anFmtPct(r.barra.pct) : '—'}</div><div class="s">${r.mix.barra}% del mix · ponderado por grupo</div></div>
+    </div>`;
+  } else if (AN.modo === 'exacto' && r.valido) {
+    breakHtml = `<div class="an-hero-break">
+      <div class="an-break-item"><div class="k">Recaudación total</div><div class="v" style="font-size:1rem">${cMoney(r.recaudacionTotal)}</div></div>
+      <div class="an-break-item"><div class="k">Costo total</div><div class="v" style="font-size:1rem">${cMoney(r.costoTotal)}</div></div>
+      <div class="an-break-item"><div class="k">Comida (real)</div><div class="v">${anFmtPct(r.comida.pct)}</div><div class="s">${r.mixReal.comida != null ? r.mixReal.comida + '% del mix real' : ''}</div></div>
+      <div class="an-break-item"><div class="k">Barra (real)</div><div class="v">${anFmtPct(r.barra.pct)}</div><div class="s">${r.mixReal.barra != null ? r.mixReal.barra + '% del mix real' : ''}</div></div>
+    </div>`;
+  }
+  hero.innerHTML = `<div class="an-hero">${ctx}<div class="an-hero-num">${numHtml}</div>${candado}${breakHtml}</div>`;
+}
+
+function anDrawPanel(){
+  const panel = document.getElementById('anPanel'); if (!panel) return;
+  panel.innerHTML = `<div class="an-panel">${AN.modo === 'rapido' ? anRapidoHtml() : anExactoHtml()}</div>`;
+  if (AN.modo === 'rapido') anWireRapido(); else anWireExacto();
+  anWireGuardar();
+}
+
+// ── MODO RÁPIDO ──
+function anRapidoHtml(){
+  const pesosGrid = AN.grupos.map(g => `
+    <div class="an-peso-card">
+      <label>${escapeHtml(g.label)}</label>
+      <input type="text" inputmode="decimal" class="an-peso" data-g="${g.key}" value="${AN.pesosBarra[g.key]}">
+      <div class="avg" id="anAvg-${g.key}">—</div>
+    </div>`).join('');
+  const suma = Math.round(AN.grupos.reduce((a, g) => a + (Number(AN.pesosBarra[g.key]) || 0), 0) * 100) / 100;
+  const mBarra = Math.round((100 - (Number(AN.mixComida) || 0)) * 10) / 10;
+  return `
+    <div class="an-panel-h">⚡ Modo rápido — pesos por grupo</div>
+    <div class="an-panel-sub">Los 5 pesos de Barra tienen que sumar 100%. El costo de cada grupo es el promedio de lo que el costeo ya calculó para sus tragos — acá solo se le aplica el peso.</div>
+    <div class="an-pesos-grid">${pesosGrid}</div>
+    <div class="an-suma" id="anSuma">Suman ${suma}%</div>
+    <div class="an-mix-row">
+      <span style="font-weight:700;font-size:.84rem">Mix Comida / Barra en ${escapeHtml(REST_LABEL[costeoRest] || costeoRest)}:</span>
+      <label style="display:flex;align-items:center;gap:.4rem">Comida <input type="text" inputmode="decimal" id="anMixComida" value="${AN.mixComida}">%</label>
+      <span style="color:var(--muted);font-size:.84rem">Barra: <b id="anMixBarra">${mBarra}%</b></span>
+    </div>
+    <button type="button" class="an-link-btn" id="anMapeoToggle">${AN.mapeoAbierto ? 'Ocultar' : 'Ver/editar'} qué sección va en qué grupo</button>
+    <div class="an-mapeo-box" id="anMapeoBox" style="display:${AN.mapeoAbierto ? '' : 'none'}">${anMapeoHtml()}</div>`;
+}
+function anMapeoHtml(){
+  const cfg = AN.gruposConfig; if (!cfg) return '';
+  const rows = cfg.seccionesTodas.map(s => {
+    const opts = AN.grupos.map(g => `<option value="${g.key}" ${s.grupo === g.key ? 'selected' : ''}>${escapeHtml(g.label)}</option>`).join('');
+    return `
+    <div class="an-mapeo-row">
+      <span>${escapeHtml(s.nombre)} <span class="mun-bk">${s.nPlatos}</span></span>
+      <select class="an-mapeo-sel" data-k="${escapeAttr(s.key)}">
+        <option value="" ${!s.grupo ? 'selected' : ''}>— Sin asignar —</option>${opts}
+      </select>
+    </div>`;
+  }).join('');
+  return rows + `<div style="margin-top:.8rem"><button type="button" class="adm-btn adm-btn-gold" id="anMapeoSave">Guardar mapeo</button> <span class="dist-status" id="anMapeoSt"></span></div>`;
+}
+function anWireRapido(){
+  document.querySelectorAll('.an-peso').forEach(inp => {
+    inp.oninput = () => { AN.pesosBarra[inp.dataset.g] = cNum(inp.value) || 0; anUpdateSuma(); anComputeDebounced(); };
+  });
+  const mixInp = document.getElementById('anMixComida');
+  mixInp.oninput = () => { AN.mixComida = Math.min(100, Math.max(0, cNum(mixInp.value) || 0)); document.getElementById('anMixBarra').textContent = (Math.round((100 - AN.mixComida) * 10) / 10) + '%'; anComputeDebounced(); };
+  document.getElementById('anMapeoToggle').onclick = () => { AN.mapeoAbierto = !AN.mapeoAbierto; const box = document.getElementById('anMapeoBox'); box.style.display = AN.mapeoAbierto ? '' : 'none'; document.getElementById('anMapeoToggle').textContent = (AN.mapeoAbierto ? 'Ocultar' : 'Ver/editar') + ' qué sección va en qué grupo'; };
+  anWireMapeoSave();
+  anUpdateAvgBadges();
+}
+function anWireMapeoSave(){
+  const btn = document.getElementById('anMapeoSave'); if (!btn) return;
+  btn.onclick = async () => {
+    const st = document.getElementById('anMapeoSt');
+    const secciones = {};
+    document.querySelectorAll('.an-mapeo-sel').forEach(sel => { if (sel.value) secciones[sel.dataset.k] = sel.value; });
+    st.className = 'dist-status'; st.textContent = 'Guardando…';
+    try {
+      const r = await fetch('/admin/costeo/analisis/grupos-config?rest=' + encodeURIComponent(costeoRest), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secciones }) });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Error'); }
+      const d2 = await r.json();
+      AN.gruposConfig.secciones = d2.secciones; AN.gruposConfig.seccionesTodas = d2.seccionesTodas;
+      st.className = 'dist-status ok'; st.textContent = 'Guardado.';
+      anComputeDebounced();
+    } catch (e) { st.className = 'dist-status err'; st.textContent = e.message; }
+  };
+}
+function anUpdateSuma(){
+  const el = document.getElementById('anSuma'); if (!el) return;
+  const suma = Math.round(AN.grupos.reduce((a, g) => a + (Number(AN.pesosBarra[g.key]) || 0), 0) * 100) / 100;
+  const ok = Math.abs(suma - 100) < 0.05;
+  el.className = 'an-suma ' + (ok ? 'ok' : 'err');
+  el.textContent = ok ? `Suman ${suma}% ✓` : `Suman ${suma}% — tienen que sumar 100%.`;
+}
+function anUpdateAvgBadges(){
+  const r = AN.resultado; if (!r || AN.modo !== 'rapido' || !r.barra || !r.barra.detalle) return;
+  r.barra.detalle.forEach(d => { const el = document.getElementById('anAvg-' + d.key); if (el) el.textContent = d.avgPct != null ? anFmtPct(d.avgPct) + ' · ' + d.n : 'sin datos'; });
+}
+
+// ── MODO EXACTO ──
+async function anEnsureProductos(){
+  const key = costeoRest + ':' + (AN.conDesc ? 1 : 0);
+  if (AN.productosKey === key && AN.productos) return AN.productos;
+  const j = await (await fetch(`/admin/costeo/analisis/productos?rest=${encodeURIComponent(costeoRest)}&conDesc=${AN.conDesc ? '1' : '0'}`)).json();
+  AN.productos = j.items; AN.productosKey = key;
+  return AN.productos;
+}
+function anExactoHtml(){
+  return `
+    <div class="an-panel-h">🎯 Modo exacto — por unidades vendidas</div>
+    <div class="an-panel-sub">Cargá cuánto vendiste de cada producto en el período — el sistema calcula la recaudación, el costo y el % ponderado real, y deriva el mix real solo. Podés dejar productos en 0 o vacío.</div>
+    <div id="anExactoBody"><div class="adm-loading">Cargando productos…</div></div>`;
+}
+function anWireExacto(){
+  anEnsureProductos().then(items => { anDrawExactoBody(items); });
+}
+function anDrawExactoBody(items){
+  const body = document.getElementById('anExactoBody'); if (!body) return;
+  // Agrupar por sección, en el orden en que aparecen.
+  const porSeccion = new Map();
+  items.forEach(it => { const k = it.seccion || 'Sin asignar'; if (!porSeccion.has(k)) porSeccion.set(k, []); porSeccion.get(k).push(it); });
+  const q = anNormLoose(AN.search);
+  const secciones = [...porSeccion.entries()].map(([nombre, prods]) => {
+    const filtrados = q ? prods.filter(p => anNormLoose(p.nombre).includes(q)) : prods;
+    return { nombre, prods, filtrados };
+  }).filter(s => !q || s.filtrados.length);
+  if (!secciones.length) {
+    body.innerHTML = `<input type="text" class="an-search" id="anSearch" placeholder="Buscar producto…" value="${escapeAttr(AN.search)}"><div class="an-empty">Sin resultados para "${escapeHtml(AN.search)}".</div>`;
+    anWireExactoSearch(); return;
+  }
+  const totalConQty = Object.keys(AN.unidades).filter(k => Number(AN.unidades[k]) > 0).length;
+  body.innerHTML = `
+    <input type="text" class="an-search" id="anSearch" placeholder="Buscar producto…" value="${escapeAttr(AN.search)}">
+    <div class="an-acc-tools">
+      <button type="button" class="an-link-btn" id="anExpAll">Expandir todo</button>
+      <button type="button" class="an-link-btn" id="anCollAll">Colapsar todo</button>
+    </div>
+    ${secciones.map(s => anAccordionHtml(s)).join('')}`;
+  anWireExactoSearch();
+  document.getElementById('anExpAll').onclick = () => { document.querySelectorAll('.an-acc').forEach(a => { a.classList.add('open'); AN.abiertas.add(a.dataset.sec); }); };
+  document.getElementById('anCollAll').onclick = () => { document.querySelectorAll('.an-acc').forEach(a => { a.classList.remove('open'); AN.abiertas.delete(a.dataset.sec); }); };
+  document.querySelectorAll('.an-acc-h').forEach(h => h.onclick = () => {
+    const acc = h.closest('.an-acc'); const sec = acc.dataset.sec;
+    const open = acc.classList.toggle('open');
+    if (open) AN.abiertas.add(sec); else AN.abiertas.delete(sec);
+  });
+  document.querySelectorAll('.an-qty').forEach(inp => {
+    inp.oninput = () => {
+      const v = cNum(inp.value);
+      if (v > 0) AN.unidades[inp.dataset.key] = v; else delete AN.unidades[inp.dataset.key];
+      anComputeDebounced();
+    };
+  });
+}
+function anAccordionHtml(s){
+  const qtyEnSeccion = s.prods.reduce((a, p) => a + (Number(AN.unidades[p.key]) || 0), 0);
+  const abierta = AN.abiertas.has(s.nombre) || (!!AN.search && s.filtrados.length > 0);
+  const rows = s.filtrados.map(p => `
+    <div class="an-row">
+      <span class="nm">${escapeHtml(p.nombre)}</span>
+      <span class="num">${p.precio != null ? cMoney(p.precio) : '—'}</span>
+      <span class="num">${p.costo != null ? cMoney(p.costo) : '—'}</span>
+      <input type="text" inputmode="numeric" class="an-qty" data-key="${escapeAttr(p.key)}" placeholder="0" value="${AN.unidades[p.key] || ''}">
+    </div>`).join('');
+  return `
+    <div class="an-acc ${abierta ? 'open' : ''}" data-sec="${escapeAttr(s.nombre)}">
+      <div class="an-acc-h">
+        <span class="chev">▶</span>
+        <span class="t">${escapeHtml(s.nombre)}</span>
+        <span class="n">${s.prods.length} producto${s.prods.length === 1 ? '' : 's'}</span>
+        ${qtyEnSeccion ? `<span class="qty-badge">${qtyEnSeccion} vendidas</span>` : ''}
+      </div>
+      <div class="an-acc-body">${rows}</div>
+    </div>`;
+}
+const anNormLoose = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+function anWireExactoSearch(){
+  const inp = document.getElementById('anSearch'); if (!inp) return;
+  inp.oninput = () => { AN.search = inp.value; const pos = inp.selectionStart; anEnsureProductos().then(items => { anDrawExactoBody(items); const n = document.getElementById('anSearch'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch {} } }); };
+}
+
+// ── Guardar / abrir / duplicar / borrar escenarios ──
+function anWireGuardar(){
+  const panel = document.getElementById('anPanel'); if (!panel) return;
+  if (document.getElementById('anSaveRow')) return;
+  panel.insertAdjacentHTML('beforeend', `
+    <div class="an-save-row" id="anSaveRow">
+      <input type="text" id="anSaveNombre" placeholder="Nombre del escenario (ej. Primer Trimestre 2026)">
+      <button type="button" class="adm-btn adm-btn-gold" id="anSaveBtn">💾 Guardar este análisis</button>
+      <span class="dist-status" id="anSaveSt"></span>
+    </div>`);
+  document.getElementById('anSaveBtn').onclick = anGuardarEscenario;
+}
+async function anGuardarEscenario(){
+  const nombreInp = document.getElementById('anSaveNombre');
+  const st = document.getElementById('anSaveSt');
+  const nombre = nombreInp.value.trim();
+  if (!nombre) { st.className = 'dist-status err'; st.textContent = 'Ponele un nombre.'; return; }
+  st.className = 'dist-status'; st.textContent = 'Guardando…';
+  try {
+    const body = { nombre, rest: costeoRest, modo: AN.modo, conDesc: AN.conDesc, pesosBarra: AN.pesosBarra, mixComida: AN.mixComida, unidades: AN.unidades };
+    const r = await fetch('/admin/costeo/analisis/escenarios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!r.ok) { const d = await r.json(); throw new Error(d.error || 'Error'); }
+    st.className = 'dist-status ok'; st.textContent = 'Guardado.';
+    nombreInp.value = '';
+    const escs = await (await fetch('/admin/costeo/analisis/escenarios?rest=' + encodeURIComponent(costeoRest))).json();
+    AN.escenarios = escs.escenarios || [];
+    anDrawEscenarios();
+  } catch (e) { st.className = 'dist-status err'; st.textContent = e.message; }
+}
+function anDrawEscenarios(){
+  const box = document.getElementById('anEscenarios'); if (!box) return;
+  if (!AN.escenarios.length) { box.innerHTML = `<div class="an-esc-h"><h3>Escenarios guardados</h3></div><div class="an-empty">Todavía no guardaste ningún análisis de ${escapeHtml(REST_LABEL[costeoRest] || costeoRest)}.</div>`; return; }
+  box.innerHTML = `
+    <div class="an-esc-h"><h3>Escenarios guardados</h3></div>
+    <div class="an-esc-grid">${AN.escenarios.map(anEscCardHtml).join('')}</div>`;
+  AN.escenarios.forEach(e => {
+    const abrir = document.getElementById('anEscAbrir-' + e.id); if (abrir) abrir.onclick = () => anAbrirEscenario(e.id);
+    const dup = document.getElementById('anEscDup-' + e.id); if (dup) dup.onclick = () => anDuplicarEscenario(e.id);
+    const del = document.getElementById('anEscDel-' + e.id); if (del) del.onclick = () => anBorrarEscenario(e.id);
+  });
+}
+function anEscCardHtml(e){
+  const fecha = e.actualizadoEn ? new Date(e.actualizadoEn).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+  const modoLbl = e.modo === 'exacto' ? '🎯 Exacto' : '⚡ Rápido';
+  return `
+    <div class="an-esc-card">
+      <div class="nm">${escapeHtml(e.nombre)}</div>
+      <div class="meta"><span class="an-chip muted">${escapeHtml(REST_LABEL[e.rest] || e.rest)}</span><span class="an-chip muted">${modoLbl}</span><span class="an-chip muted">${e.conDesc ? 'Con descuento' : 'Sin descuento'}</span></div>
+      <div class="pct">${anFmtPct(e.resultado && (e.modo === 'rapido' ? (e.resultado.valido ? e.resultado.pct : null) : e.resultado.pct))}</div>
+      <div class="fecha">${fecha}</div>
+      <div class="an-esc-actions">
+        <button type="button" id="anEscAbrir-${e.id}">Abrir</button>
+        <button type="button" id="anEscDup-${e.id}">Duplicar</button>
+        <button type="button" class="danger" id="anEscDel-${e.id}">Borrar</button>
+      </div>
+    </div>`;
+}
+async function anAbrirEscenario(id){
+  const e = AN.escenarios.find(x => x.id === id); if (!e) return;
+  if (e.rest !== costeoRest) {
+    document.querySelectorAll('#costeoRest .costeo-rest-btn').forEach(x => x.classList.toggle('on', x.dataset.rest === e.rest));
+    costeoRest = e.rest;
+  }
+  AN.modo = e.modo; AN.conDesc = !!e.conDesc;
+  if (e.modo === 'rapido') { AN.pesosBarra = { ...(e.pesosBarra || AN.pesosBarra) }; AN.mixComida = e.mixComida != null ? e.mixComida : AN.mixComida; }
+  else { AN.unidades = { ...(e.unidades || {}) }; }
+  AN.productos = null; AN.productosKey = null; AN.loadedRest = null; // fuerza a recargar grupos/escenarios del rest correcto
+  await renderCosteoAnalisis();
+}
+async function anDuplicarEscenario(id){
+  const e = AN.escenarios.find(x => x.id === id); if (!e) return;
+  const nombre = prompt('Nombre para la copia:', e.nombre + ' (copia)');
+  if (!nombre) return;
+  const body = { nombre, rest: e.rest, modo: e.modo, conDesc: e.conDesc, pesosBarra: e.pesosBarra, mixComida: e.mixComida, unidades: e.unidades };
+  await fetch('/admin/costeo/analisis/escenarios', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const escs = await (await fetch('/admin/costeo/analisis/escenarios?rest=' + encodeURIComponent(costeoRest))).json();
+  AN.escenarios = escs.escenarios || [];
+  anDrawEscenarios();
+}
+async function anBorrarEscenario(id){
+  if (!confirm('¿Borrar este escenario guardado?')) return;
+  await fetch('/admin/costeo/analisis/escenarios/' + id, { method: 'DELETE' });
+  AN.escenarios = AN.escenarios.filter(e => e.id !== id);
+  anDrawEscenarios();
 }
 
 // ── Reventa (venta directa, solo barra): productos comprados hechos y revendidos.

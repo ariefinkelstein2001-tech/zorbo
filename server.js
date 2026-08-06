@@ -16346,6 +16346,313 @@ app.put('/admin/costeo/mix', requireAdmin, (req, res) => {
   res.json({ rest, comida: d[rest], barra: Math.round((100 - d[rest]) * 10) / 10 });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ANÁLISIS DEL % DE COSTO PROMEDIO PONDERADO — herramienta de EXPLORACIÓN,
+// separada del costeo de la carta (pestaña propia "Análisis" a propósito, para
+// no contaminar Carta/Comida/Barra/Recetas/Insumos). Lee precioReal/costo que
+// el costeo YA calculó (resolveCarta/resolveReventa) y juega ENCIMA con pesos
+// o unidades vendidas — nunca escribe en el doc del costeo ni en carta.json,
+// solo en su propio store nuevo (prompts/costeo-analisis.json).
+// ═══════════════════════════════════════════════════════════════════════════
+const CARTA_DESCUENTO_PCT = 40; // mismo valor que CARTA_DESCUENTO_PCT en admin.html
+const costeoDescuentoAplica = (rest) => costeoRestKey(rest) === 'badass'; // Garden nunca tuvo descuento
+
+// ── 5 grupos de Barra (mismos que el mix Comida/Barra ya existente pide) ──
+const COSTEO_GRUPOS_BARRA = [
+  { key: 'cervezas',     label: 'Cervezas',          visual: 'conAlcohol' },
+  { key: 'cocktails',    label: 'Cocktails',         visual: 'conAlcohol' },
+  { key: 'otrosAlcohol', label: 'Otros con alcohol', visual: 'conAlcohol' },
+  { key: 'sinAlcohol',   label: 'Sin alcohol',       visual: 'sinAlcohol' },
+  { key: 'otros',        label: 'Otros',             visual: 'otros' },
+];
+const COSTEO_GRUPOS_BARRA_KEYS = new Set(COSTEO_GRUPOS_BARRA.map(g => g.key));
+// Semilla del mapeo sección→grupo por NOMBRE LITERAL (dado por el dueño para
+// Badass; en Garden solo calzan las secciones con nombre igual o casi igual).
+// Todo lo que no aparece acá —"Mocktails" en los dos locales, "Cortos" y la
+// mayoría de las secciones de cóctel de Garden (nombres distintos)— queda A
+// PROPÓSITO sin asignar: se completa a mano desde el editor de grupos, no se
+// adivina.
+const COSTEO_GRUPOS_BARRA_NOMBRES = {
+  cervezas: [
+    'Colección de la casa (cervezas)', 'Colección de temporada (cervezas)', 'Colección de artistas (cervezas)',
+    'Firulais Craft Mix',
+  ],
+  cocktails: [
+    'De la casa', 'Jarras de la casa', 'Malas Costumbres XD', 'De autor',
+    'Low Alcohol and Skinny Cocktails', 'CLÁSICOS',
+  ],
+  otrosAlcohol: [
+    'Spritz', 'Especial Chelas', 'Gin', 'Whisky', 'Bourbon', 'Vodka', 'Pisco', 'Ron', 'Tequila', 'Licores',
+    'Gin Botella', 'Whisky Botella', 'Bourbon Botella', 'Vodka Botella', 'Pisco Botella', 'Ron Botella', 'Tequila Botella', 'Licores Botella',
+    'Vino (botella 750cc)', 'Espumantes', 'Cervezas Invitadas',
+  ],
+  sinAlcohol: ['Para Tomar 0.0', 'Para Tomar 0,0'],
+  otros: ['Chelas sin alcohol', 'Kombucha'],
+};
+function costeoAnalisisSeedSecciones(){
+  const map = {};
+  for (const [grupo, nombres] of Object.entries(COSTEO_GRUPOS_BARRA_NOMBRES)) {
+    for (const n of nombres) map[costeoNormLoose(n)] = grupo;
+  }
+  return map;
+}
+
+const COSTEO_ANALISIS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'costeo-analisis.json');
+function costeoAnalisisLoad(){
+  try { if (existsSync(COSTEO_ANALISIS_FILE)) { const p = JSON.parse(readFileSync(COSTEO_ANALISIS_FILE, 'utf-8')); if (p && typeof p === 'object') return p; } }
+  catch (e) { console.warn('costeo-analisis load:', e.message); }
+  return {};
+}
+function costeoAnalisisSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTEO_ANALISIS_FILE, JSON.stringify(d, null, 2)); }
+// Mapeo sección→grupo: estructural (qué sección es de qué grupo), compartido
+// por los dos modos y por todos los escenarios de un local — no es parte de
+// un escenario individual, es un hecho sobre la carta.
+function costeoAnalisisConfigGet(rest){
+  rest = costeoRestKey(rest);
+  const d = costeoAnalisisLoad();
+  const saved = d.config && d.config[rest];
+  const secciones = (saved && saved.secciones && typeof saved.secciones === 'object') ? { ...saved.secciones } : costeoAnalisisSeedSecciones();
+  return { secciones };
+}
+function costeoAnalisisSeccionesTodas(rest, cfg){
+  const carta = resolveCarta(loadCosteo(rest, 'barra'));
+  const reventa = resolveReventa(loadReventa(rest));
+  const map = new Map();
+  const add = (nombre, n) => {
+    const key = costeoNormLoose(nombre);
+    if (!key) return;
+    if (!map.has(key)) map.set(key, { nombre, key, nPlatos: 0 });
+    map.get(key).nPlatos += n;
+  };
+  (carta.secciones || []).forEach(s => add(s.nombre, (s.platos || []).length));
+  (reventa.secciones || []).forEach(s => add(s.nombre, (s.productos || []).length));
+  return [...map.values()].map(x => ({ ...x, grupo: cfg.secciones[x.key] || null })).sort((a, b) => a.nombre.localeCompare(b.nombre));
+}
+app.get('/admin/costeo/analisis/grupos-config', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest);
+  const cfg = costeoAnalisisConfigGet(rest);
+  res.json({ rest, grupos: COSTEO_GRUPOS_BARRA, secciones: cfg.secciones, seccionesTodas: costeoAnalisisSeccionesTodas(rest, cfg) });
+});
+app.put('/admin/costeo/analisis/grupos-config', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest);
+  const b = req.body || {};
+  const secciones = {};
+  if (b.secciones && typeof b.secciones === 'object') {
+    for (const [k, v] of Object.entries(b.secciones)) {
+      if (v === '' || v == null) continue;
+      if (!COSTEO_GRUPOS_BARRA_KEYS.has(v)) return res.status(400).json({ error: 'Grupo inválido: ' + v });
+      secciones[k] = v;
+    }
+  }
+  const d = costeoAnalisisLoad(); if (!d.config) d.config = {};
+  d.config[rest] = { secciones };
+  costeoAnalisisSave(d);
+  const cfg = costeoAnalisisConfigGet(rest);
+  res.json({ rest, secciones: cfg.secciones, seccionesTodas: costeoAnalisisSeccionesTodas(rest, cfg) });
+});
+
+// ── Productos del local: la MISMA lista de base para los dos modos — precio y
+// costo tal como ya los calculó el costeo, nunca recalculados acá. ──
+function costeoAnalisisProductosDe(rest, cfg){
+  rest = costeoRestKey(rest);
+  cfg = cfg || costeoAnalisisConfigGet(rest);
+  const items = [];
+  const cartaComida = resolveCarta(loadCosteo(rest, 'comida'));
+  const pushComida = (p, seccionNombre) => items.push({ key: 'comida:' + p.id, svc: 'comida', nombre: p.nombre, seccion: seccionNombre || 'Sin asignar', costo: p.costo, precioBase: p.precioReal, grupo: null });
+  (cartaComida.secciones || []).forEach(s => (s.platos || []).forEach(p => pushComida(p, s.nombre)));
+  (cartaComida.sinAsignar || []).forEach(p => pushComida(p, null));
+  const cartaBarra = resolveCarta(loadCosteo(rest, 'barra'));
+  const reventa = resolveReventa(loadReventa(rest));
+  const pushBarra = (p, seccionNombre) => {
+    const grupo = seccionNombre ? (cfg.secciones[costeoNormLoose(seccionNombre)] || null) : null;
+    items.push({ key: 'barra:' + p.id, svc: 'barra', nombre: p.nombre, seccion: seccionNombre || 'Sin asignar', costo: p.costo, precioBase: p.precioReal, grupo });
+  };
+  (cartaBarra.secciones || []).forEach(s => (s.platos || []).forEach(p => pushBarra(p, s.nombre)));
+  (cartaBarra.sinAsignar || []).forEach(p => pushBarra(p, null));
+  (reventa.secciones || []).forEach(s => {
+    const grupo = cfg.secciones[costeoNormLoose(s.nombre)] || null;
+    (s.productos || []).forEach(p => items.push({ key: 'reventa:' + p.id, svc: 'barra', nombre: p.nombre, seccion: s.nombre, costo: p.precioCompra, precioBase: p.precioVenta, grupo }));
+  });
+  return items;
+}
+function costeoAnalisisPrecioConDesc(precioBase, conDesc, restIsBadass){
+  if (precioBase == null) return null;
+  if (!conDesc || !restIsBadass) return precioBase;
+  return Math.round(precioBase * (1 - CARTA_DESCUENTO_PCT / 100));
+}
+function costeoAnalisisItemPct(it, conDesc, restIsBadass){
+  if (it.precioBase == null || it.costo == null) return null;
+  const precio = costeoAnalisisPrecioConDesc(it.precioBase, conDesc, restIsBadass);
+  return precio > 0 ? Math.round((it.costo / precio) * 1000) / 10 : null;
+}
+app.get('/admin/costeo/analisis/productos', requireAdmin, (req, res) => {
+  const rest = costeoRestKey(req.query.rest);
+  const restIsBadass = rest === 'badass';
+  const conDesc = req.query.conDesc === '1' && restIsBadass;
+  const cfg = costeoAnalisisConfigGet(rest);
+  const items = costeoAnalisisProductosDe(rest, cfg).map(it => ({
+    key: it.key, svc: it.svc, nombre: it.nombre, seccion: it.seccion, grupo: it.grupo,
+    costo: it.costo, precio: costeoAnalisisPrecioConDesc(it.precioBase, conDesc, restIsBadass),
+    pct: costeoAnalisisItemPct(it, conDesc, restIsBadass),
+  }));
+  res.json({ rest, conDesc, items });
+});
+
+// ── MODO RÁPIDO: estimación por pesos (mismo criterio que el mix Comida/
+// Barra + los 5 grupos de Barra) — el costo de cada grupo es el promedio de
+// lo que el costeo YA calculó para sus tragos; solo se aplica el peso. ──
+function costeoAnalisisRapidoCompute(rest, conDesc, pesosBarra, mixComida, cfg){
+  rest = costeoRestKey(rest);
+  const restIsBadass = rest === 'badass';
+  const descAplica = !!conDesc && restIsBadass;
+  cfg = cfg || costeoAnalisisConfigGet(rest);
+  const items = costeoAnalisisProductosDe(rest, cfg);
+  const pctsComida = items.filter(it => it.svc === 'comida')
+    .map(it => costeoAnalisisItemPct(it, descAplica, restIsBadass)).filter(x => x != null);
+  const comida = { pct: pctsComida.length ? Math.round(pctsComida.reduce((a, b) => a + b, 0) / pctsComida.length * 10) / 10 : null, n: pctsComida.length };
+  const porGrupo = {}; COSTEO_GRUPOS_BARRA.forEach(g => { porGrupo[g.key] = []; });
+  const seccionesSinGrupo = new Set();
+  items.filter(it => it.svc === 'barra').forEach(it => {
+    const pct = costeoAnalisisItemPct(it, descAplica, restIsBadass);
+    if (pct == null) return;
+    if (it.grupo && porGrupo[it.grupo]) porGrupo[it.grupo].push(pct);
+    else seccionesSinGrupo.add(it.seccion);
+  });
+  const detalle = COSTEO_GRUPOS_BARRA.map(g => {
+    const pcts = porGrupo[g.key]; const n = pcts.length;
+    const avgPct = n ? Math.round(pcts.reduce((a, b) => a + b, 0) / n * 10) / 10 : null;
+    const peso = Number((pesosBarra || {})[g.key]) || 0;
+    return { key: g.key, label: g.label, peso, avgPct, n };
+  });
+  const sumaPesos = Math.round(detalle.reduce((a, d) => a + d.peso, 0) * 100) / 100;
+  const pesosValidos = Math.abs(sumaPesos - 100) < 0.05;
+  const seccionesValidas = seccionesSinGrupo.size === 0;
+  const barraValida = pesosValidos && seccionesValidas;
+  let barraPct = null;
+  if (barraValida) {
+    const usable = detalle.filter(d => d.avgPct != null && d.peso > 0);
+    const pesoUsable = usable.reduce((a, d) => a + d.peso, 0);
+    if (pesoUsable > 0) barraPct = Math.round(usable.reduce((a, d) => a + d.avgPct * d.peso, 0) / pesoUsable * 10) / 10;
+  }
+  const mComida = Number(mixComida) || 0, mBarra = Math.round((100 - mComida) * 10) / 10;
+  let pct = null, motivoInvalido = null;
+  if (!barraValida) motivoInvalido = !pesosValidos ? `Los pesos de Barra suman ${sumaPesos}%, no 100%.` : `Faltan asignar ${seccionesSinGrupo.size} sección(es) de Barra a un grupo.`;
+  else if (comida.pct != null && barraPct != null) pct = Math.round((comida.pct * mComida + barraPct * mBarra) / 100 * 10) / 10;
+  else if (comida.pct != null) pct = comida.pct;
+  else if (barraPct != null) pct = barraPct;
+  return {
+    modo: 'rapido', valido: barraValida, pct, conDesc: descAplica,
+    mix: { comida: mComida, barra: mBarra }, comida,
+    barra: { valido: barraValida, pct: barraPct, sumaPesos, pesosValidos, seccionesValidas, sinAsignar: [...seccionesSinGrupo].sort((a, b) => a.localeCompare(b)), detalle },
+    motivoInvalido,
+  };
+}
+app.post('/admin/costeo/analisis/rapido/preview', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const rest = costeoRestKey(b.rest);
+  res.json(costeoAnalisisRapidoCompute(rest, !!b.conDesc, b.pesosBarra || {}, Number(b.mixComida) || 0));
+});
+
+// ── MODO EXACTO: por unidades vendidas — recaudación y costo se suman
+// directo (unidades × precio / unidades × costo), así que el % ponderado
+// exacto NO necesita candado de pesos (no hay pesos, son datos reales). El
+// mix y los grupos "reales" se DERIVAN de la recaudación real, no se piden. ──
+function costeoAnalisisExactoCompute(rest, conDesc, unidades, cfg){
+  rest = costeoRestKey(rest);
+  const restIsBadass = rest === 'badass';
+  const descAplica = !!conDesc && restIsBadass;
+  cfg = cfg || costeoAnalisisConfigGet(rest);
+  const items = costeoAnalisisProductosDe(rest, cfg);
+  let recTotal = 0, costoTotal = 0, recComida = 0, costoComida = 0, recBarra = 0, costoBarra = 0;
+  let recSinGrupo = 0, costoSinGrupo = 0, nConUnidades = 0, nExcluidosSinPrecio = 0;
+  const porGrupo = {}; COSTEO_GRUPOS_BARRA.forEach(g => { porGrupo[g.key] = { rec: 0, costo: 0 }; });
+  for (const it of items) {
+    const qty = Number((unidades || {})[it.key]) || 0;
+    if (qty <= 0) continue;
+    const precio = costeoAnalisisPrecioConDesc(it.precioBase, descAplica, restIsBadass);
+    if (precio == null || it.costo == null) { nExcluidosSinPrecio++; continue; }
+    nConUnidades++;
+    const rec = qty * precio, cost = qty * it.costo;
+    recTotal += rec; costoTotal += cost;
+    if (it.svc === 'comida') { recComida += rec; costoComida += cost; }
+    else {
+      recBarra += rec; costoBarra += cost;
+      if (it.grupo && porGrupo[it.grupo]) { porGrupo[it.grupo].rec += rec; porGrupo[it.grupo].costo += cost; }
+      else { recSinGrupo += rec; costoSinGrupo += cost; }
+    }
+  }
+  const pct = recTotal > 0 ? Math.round(costoTotal / recTotal * 1000) / 10 : null;
+  const pctComida = recComida > 0 ? Math.round(costoComida / recComida * 1000) / 10 : null;
+  const pctBarra = recBarra > 0 ? Math.round(costoBarra / recBarra * 1000) / 10 : null;
+  const detalle = COSTEO_GRUPOS_BARRA.map(g => {
+    const d = porGrupo[g.key];
+    const pesoReal = recBarra > 0 ? Math.round(d.rec / recBarra * 1000) / 10 : null;
+    const avgPct = d.rec > 0 ? Math.round(d.costo / d.rec * 1000) / 10 : null;
+    return { key: g.key, label: g.label, pesoReal, avgPct, recaudacion: Math.round(d.rec), costo: Math.round(d.costo) };
+  });
+  return {
+    modo: 'exacto', valido: recTotal > 0, pct, conDesc: descAplica,
+    recaudacionTotal: Math.round(recTotal), costoTotal: Math.round(costoTotal),
+    comida: { pct: pctComida, recaudacion: Math.round(recComida), costo: Math.round(costoComida) },
+    barra: {
+      pct: pctBarra, recaudacion: Math.round(recBarra), costo: Math.round(costoBarra), detalle,
+      sinGrupo: recSinGrupo > 0 ? { recaudacion: Math.round(recSinGrupo), costo: Math.round(costoSinGrupo), pesoReal: recBarra > 0 ? Math.round(recSinGrupo / recBarra * 1000) / 10 : null } : null,
+    },
+    mixReal: { comida: recTotal > 0 ? Math.round(recComida / recTotal * 1000) / 10 : null, barra: recTotal > 0 ? Math.round(recBarra / recTotal * 1000) / 10 : null },
+    nConUnidades, nExcluidosSinPrecio,
+  };
+}
+app.post('/admin/costeo/analisis/exacto/preview', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const rest = costeoRestKey(b.rest);
+  res.json(costeoAnalisisExactoCompute(rest, !!b.conDesc, b.unidades || {}));
+});
+
+// ── Escenarios guardados: nombre a mano, local, modo, escenario de precio,
+// los pesos o las unidades ingresadas, y el resultado ya calculado — todo
+// congelado al momento de guardar, en su propio store (nunca toca el costeo). ──
+function costeoAnalisisEscenarios(){ const d = costeoAnalisisLoad(); return Array.isArray(d.escenarios) ? d.escenarios : []; }
+app.get('/admin/costeo/analisis/escenarios', requireAdmin, (req, res) => {
+  let list = costeoAnalisisEscenarios();
+  if (req.query.rest) { const rest = costeoRestKey(req.query.rest); list = list.filter(e => e.rest === rest); }
+  list = list.slice().sort((a, b) => String(b.actualizadoEn || '').localeCompare(String(a.actualizadoEn || '')));
+  res.json({ escenarios: list });
+});
+app.post('/admin/costeo/analisis/escenarios', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const nombre = costeoStr(b.nombre, 120);
+  if (!nombre) return res.status(400).json({ error: 'Ponele un nombre al escenario.' });
+  const rest = costeoRestKey(b.rest);
+  const modo = b.modo === 'exacto' ? 'exacto' : 'rapido';
+  const conDesc = !!b.conDesc;
+  const cfg = costeoAnalisisConfigGet(rest);
+  const resultado = modo === 'rapido'
+    ? costeoAnalisisRapidoCompute(rest, conDesc, b.pesosBarra || {}, Number(b.mixComida) || 0, cfg)
+    : costeoAnalisisExactoCompute(rest, conDesc, b.unidades || {}, cfg);
+  const now = new Date().toISOString();
+  const esc = {
+    id: randomUUID(), nombre, rest, modo, conDesc,
+    pesosBarra: modo === 'rapido' ? (b.pesosBarra || {}) : null,
+    mixComida: modo === 'rapido' ? (Number(b.mixComida) || 0) : null,
+    unidades: modo === 'exacto' ? (b.unidades || {}) : null,
+    resultado, creadoEn: now, actualizadoEn: now,
+  };
+  const d = costeoAnalisisLoad(); if (!Array.isArray(d.escenarios)) d.escenarios = [];
+  d.escenarios.push(esc); costeoAnalisisSave(d);
+  res.json({ escenario: esc });
+});
+app.get('/admin/costeo/analisis/escenarios/:id', requireAdmin, (req, res) => {
+  const esc = costeoAnalisisEscenarios().find(e => e.id === req.params.id);
+  if (!esc) return res.status(404).json({ error: 'No encontrado.' });
+  res.json({ escenario: esc });
+});
+app.delete('/admin/costeo/analisis/escenarios/:id', requireAdmin, (req, res) => {
+  const d = costeoAnalisisLoad(); const before = (d.escenarios || []).length;
+  d.escenarios = (d.escenarios || []).filter(e => e.id !== req.params.id);
+  costeoAnalisisSave(d);
+  res.json({ ok: true, borrado: before !== d.escenarios.length });
+});
+
 // ── Export de la Carta a Excel (.xlsx) ──────────────────────────────────────
 // Genera un .xlsx real (OOXML) SIN dependencias: arma el ZIP a mano con entradas
 // STORE (sin compresión) + las partes XML mínimas. Una hoja por restaurante, con
