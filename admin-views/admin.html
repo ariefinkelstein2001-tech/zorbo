@@ -2134,6 +2134,10 @@ body.drawer-open{overflow:hidden}
 .ct-mix-pct{font-family:var(--display,inherit);font-size:1.8rem;font-weight:800;color:var(--gold-deep,#a05f00);line-height:1.1;display:flex;align-items:baseline;gap:.5rem}
 .ct-mix-pct.hi{color:#c0392b}
 .ct-mix-pct small{font-family:var(--sans);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted,#777)}
+/* Ícono ⓘ que reemplaza el texto gris de "Comida y Barra combinadas…" — el
+   texto se muestra en el tooltip (.adm-tip ya soporta hover + foco/tap). */
+.ct-info-btn{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--gold-bd,#f1c97b);background:var(--surface,#fff);color:var(--gold-deep,#a05f00);font-family:var(--sans);font-size:.78rem;font-weight:700;line-height:1;cursor:pointer;flex:0 0 auto;padding:0}
+.ct-info-btn:hover,.ct-info-btn:focus-visible{background:var(--gold-dim,#fff3d6)}
 .ct-mix-detail{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;margin-top:.4rem;font-size:.8rem;color:var(--text-2,#52525b)}
 .ct-mix-edit{display:flex;align-items:flex-end;gap:.8rem;flex-wrap:wrap;margin-top:.8rem;padding-top:.7rem;border-top:1px dashed var(--gold-bd,#f1c97b)}
 .ct-mix-edit input{width:90px;padding:.4rem .5rem;border:1px solid var(--line,#ddd);border-radius:8px;text-align:right}
@@ -12030,9 +12034,19 @@ function drawCartaCombinada(){
   else if (comidaAvg!=null) weighted = comidaAvg;
   else if (barraAvg!=null) weighted = barraAvg;
   const fmt1 = (v) => v==null ? '—' : (Math.round(v*10)/10)+'%';
+  // barra.carta.meta.totalPlatos cuenta Cortos/Botellas también (viene del
+  // server sin recortar) — se recuenta sobre lo que de verdad quedó después
+  // de sacarlos más arriba.
+  const totalBarra = barra.carta.secciones.reduce((a,s)=>a+s.platos.length,0) + barra.carta.sinAsignar.length;
+  // Este texto vivía como bloque gris permanente arriba de la vista; ahora
+  // solo se ve en el tooltip del ícono ⓘ — mismo contenido, sin ocupar
+  // espacio de golpe. .adm-tip ya se muestra por hover, foco de teclado Y
+  // tap en móvil (.adm-has-tip:focus-within), así que no queda escondido
+  // para quien mira esto desde el celular.
+  const comboInfo = `Comida y Barra combinadas · vista de solo lectura — para editar precios o mover de sección, elige Comida o Barra en el selector de Servicio. Cortos y Botellas quedan afuera (tienen su propia sección de Servicio). ${comida.carta.meta.totalPlatos} platos de Comida · ${totalBarra} tragos de Barra.`;
   const mixBox = `
     <div class="ct-mix-box">
-      <div class="ct-mix-pct ${weighted!=null&&weighted>40?'hi':''}">${fmt1(weighted)}<small>% de costo promedio ponderado</small></div>
+      <div class="ct-mix-pct ${weighted!=null&&weighted>40?'hi':''}">${fmt1(weighted)}<button type="button" class="ct-info-btn adm-has-tip" aria-describedby="ctComboInfo" aria-label="Sobre esta vista">ⓘ<span role="tooltip" id="ctComboInfo" class="adm-tip">${escapeHtml(comboInfo)}</span></button></div>
       <div class="ct-mix-detail">
         <span>ponderado por <b>${mComida}% Comida</b> / <b>${mBarra}% Barra</b> · Comida ${fmt1(comidaAvg)} · Barra ${fmt1(barraAvg)}</span>
         <button class="adm-btn adm-btn-ghost" id="ctMixEditBtn" type="button">✎ Editar mix</button>
@@ -12046,14 +12060,7 @@ function drawCartaCombinada(){
     </div>`;
   const comidaHtml = cartaSeccionesHtmlRO(comida.carta);
   const barraHtml = cartaSeccionesHtmlRO(barra.carta) + cartaReventaHtmlRO(barra.reventa);
-  // barra.carta.meta.totalPlatos cuenta Cortos/Botellas también (viene del
-  // server sin recortar) — se recuenta sobre lo que de verdad quedó después
-  // de sacarlos más arriba.
-  const totalBarra = barra.carta.secciones.reduce((a,s)=>a+s.platos.length,0) + barra.carta.sinAsignar.length;
   document.getElementById('costeoBody').innerHTML = `
-    <div class="ct-toolbar">
-      <div class="ct-toolbar-info"><b>Comida y Barra combinadas</b> · vista de solo lectura — para editar precios o mover de sección, elegí Comida o Barra en el selector de Servicio. Cortos y Botellas quedan afuera (tienen su propia sección de Servicio). ${comida.carta.meta.totalPlatos} platos de Comida · ${totalBarra} tragos de Barra.</div>
-    </div>
     ${mixBox}
     <div class="ct-combo-group"><div class="ct-combo-h">🍽️ Comida</div>${comidaHtml||'<div class="dist-empty">Sin platos costeados.</div>'}</div>
     <div class="ct-combo-group"><div class="ct-combo-h">🍸 Barra</div>${barraHtml||'<div class="dist-empty">Sin tragos costeados.</div>'}</div>`;
