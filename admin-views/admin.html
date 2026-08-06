@@ -11986,46 +11986,71 @@ async function renderCosteoCartaCombinada(){
 }
 // Promedio simple del % de costo YA calculado por cada plato/producto — no
 // recalcula ningún % individual, solo promedia lo que el costeo ya entrega.
-function cartaComboAvgPct(carta, reventa){
+// conDesc: mismo criterio que cartaAvgPct/reventaTableHtml — con descuento,
+// cada % se recalcula contra el precio con el 40% aplicado (nunca contra el
+// pctCosto que manda el server, que es siempre sin descuento).
+function cartaComboAvgPct(carta, reventa, conDesc){
   const vals = [];
-  (carta.secciones||[]).forEach(s=>(s.platos||[]).forEach(p=>{ if(p.pctCosto!=null) vals.push(p.pctCosto); }));
-  (carta.sinAsignar||[]).forEach(p=>{ if(p.pctCosto!=null) vals.push(p.pctCosto); });
-  if (reventa && reventa.secciones) reventa.secciones.forEach(s=>(s.productos||[]).forEach(p=>{ if(p.pctCosto!=null) vals.push(p.pctCosto); }));
+  const pctDe = (precioBase, costo, pctStored) => {
+    if (!conDesc) return pctStored;
+    // costo == null pasa en reventa cuando falta cargar el precio de compra
+    // (nunca pasa en platos de carta, ahí costo siempre viene calculado) — sin
+    // este chequeo, null/real da 0 en JS y contamina el promedio con un 0%
+    // falso. Mismo guard que reventaTableHtml ya usa (venta>0 && precioCompra!=null).
+    if (precioBase == null || costo == null) return null;
+    const real = Math.round(precioBase * (1 - CARTA_DESCUENTO_PCT/100));
+    return real > 0 ? Math.round((costo/real)*1000)/10 : null;
+  };
+  (carta.secciones||[]).forEach(s=>(s.platos||[]).forEach(p=>{ const v=pctDe(p.precioReal, p.costo, p.pctCosto); if(v!=null) vals.push(v); }));
+  (carta.sinAsignar||[]).forEach(p=>{ const v=pctDe(p.precioReal, p.costo, p.pctCosto); if(v!=null) vals.push(v); });
+  if (reventa && reventa.secciones) reventa.secciones.forEach(s=>(s.productos||[]).forEach(p=>{ const v=pctDe(p.precioVenta, p.precioCompra, p.pctCosto); if(v!=null) vals.push(v); }));
   return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null;
 }
 // Fila de solo lectura para la vista combinada — igual que cartaRow() pero sin
-// input de precio ni <select> de sección (ver comentario más arriba).
-function cartaRowRO(p){
-  const pct = p.pctCosto;
+// input de precio ni <select> de sección (ver comentario más arriba). conDesc:
+// mismo criterio que cartaRow — precio y % se recalculan contra el precio con
+// el 40% aplicado; el costo nunca cambia.
+function cartaRowRO(p, conDesc){
+  const real = conDesc && p.precioReal!=null ? Math.round(p.precioReal*(1-CARTA_DESCUENTO_PCT/100)) : p.precioReal;
+  // p.costo puede venir null en filas de reventa sin precio de compra cargado
+  // (cartaReventaHtmlRO manda precioCompra como costo) — sin el != null, JS
+  // trata null/real como 0 y muestra "0%" en vez de "—". Mismo guard que
+  // reventaTableHtml (venta>0 && precioCompra!=null).
+  const pct = conDesc
+    ? (real!=null && real>0 && p.costo!=null ? Math.round((p.costo/real)*1000)/10 : null)
+    : p.pctCosto;
   return `<tr>
     <td><b>${escapeHtml(p.nombre)}</b></td>
-    <td class="dist-num">${p.precioReal!=null?cMoney(p.precioReal):'<span style="color:#bbb">sin precio</span>'}</td>
+    <td class="dist-num">${real!=null?cMoney(real):'<span style="color:#bbb">sin precio</span>'}</td>
     <td class="dist-num">${cMoney(p.costo)}</td>
     <td class="dist-num"><span class="pl-pct ${pct!=null&&pct>40?'hi':''}">${pct!=null?pct+'%':'—'}</span></td>
     <td class="dist-num">${escapeHtml(p.__seccion||'—')}</td>
   </tr>`;
 }
-function cartaSeccionesHtmlRO(carta){
+function cartaSeccionesHtmlRO(carta, conDesc){
   const secBlocks = (carta.secciones||[]).filter(s=>s.platos&&s.platos.length).map(s=>{
-    const rows = s.platos.map(p=>cartaRowRO({...p, __seccion:s.nombre})).join('');
+    const rows = s.platos.map(p=>cartaRowRO({...p, __seccion:s.nombre}, conDesc)).join('');
     return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.platos.length})</span></div><div class="mun-wrap"><table class="mun-table">${ctThead(false)}<tbody>${rows}</tbody></table></div></div>`;
   }).join('');
   const sa = carta.sinAsignar||[];
-  const saBlock = sa.length ? `<div class="ct-sec ct-sec-sa"><div class="ct-sec-h">Sin asignar <span>(${sa.length})</span></div><div class="mun-wrap"><table class="mun-table">${ctThead(false)}<tbody>${sa.map(p=>cartaRowRO({...p,__seccion:'—'})).join('')}</tbody></table></div></div>` : '';
+  const saBlock = sa.length ? `<div class="ct-sec ct-sec-sa"><div class="ct-sec-h">Sin asignar <span>(${sa.length})</span></div><div class="mun-wrap"><table class="mun-table">${ctThead(false)}<tbody>${sa.map(p=>cartaRowRO({...p,__seccion:'—'}, conDesc)).join('')}</tbody></table></div></div>` : '';
   return secBlocks + saBlock;
 }
-function cartaReventaHtmlRO(reventa){
+function cartaReventaHtmlRO(reventa, conDesc){
   if (!reventa || !reventa.secciones || !reventa.secciones.length) return '';
   const blocks = reventa.secciones.filter(s=>s.productos&&s.productos.length).map(s=>{
-    const rows = s.productos.map(p=>cartaRowRO({ nombre:p.nombre, precioReal:p.precioVenta, costo:p.precioCompra, pctCosto:p.pctCosto, __seccion:s.nombre })).join('');
+    const rows = s.productos.map(p=>cartaRowRO({ nombre:p.nombre, precioReal:p.precioVenta, costo:p.precioCompra, pctCosto:p.pctCosto, __seccion:s.nombre }, conDesc)).join('');
     return `<div class="ct-sec"><div class="ct-sec-h">${escapeHtml(s.nombre)} <span>(${s.productos.length})</span></div><div class="mun-wrap"><table class="mun-table">${ctThead(false)}<tbody>${rows}</tbody></table></div></div>`;
   }).join('');
   return blocks ? `<div class="ct-rev-head"><div class="ct-sec-h" style="border:none">Reventa · destilados y bebidas <span>(venta directa)</span></div></div>${blocks}` : '';
 }
 function drawCartaCombinada(){
   const { comida, barra, mix } = cartaCombinadaData;
-  const comidaAvg = cartaComboAvgPct(comida.carta, null);
-  const barraAvg = cartaComboAvgPct(barra.carta, barra.reventa);
+  // Mismo criterio y gate que el toggle de Comida/Barra por separado: el
+  // descuento del 40% solo existe para Badass.
+  const conDesc = cartaDescuento && costeoRest==='badass';
+  const comidaAvg = cartaComboAvgPct(comida.carta, null, conDesc);
+  const barraAvg = cartaComboAvgPct(barra.carta, barra.reventa, conDesc);
   const mComida = Number(mix.comida)||0, mBarra = Math.round((100-mComida)*10)/10;
   // Ponderado por mix de ingresos (no promedio simple) — si a un servicio le
   // falta info, cae de vuelta al promedio del que sí tiene, en vez de romper.
@@ -12044,11 +12069,22 @@ function drawCartaCombinada(){
   // tap en móvil (.adm-has-tip:focus-within), así que no queda escondido
   // para quien mira esto desde el celular.
   const comboInfo = `Comida y Barra combinadas · vista de solo lectura — para editar precios o mover de sección, elige Comida o Barra en el selector de Servicio. Cortos y Botellas quedan afuera (tienen su propia sección de Servicio). ${comida.carta.meta.totalPlatos} platos de Comida · ${totalBarra} tragos de Barra.`;
+  // Mismo toggle que Comida/Barra por separado — acá faltaba, y sin él la
+  // vista combinada quedaba pegada a "sin descuento" sin poder mostrarlo.
+  const descuentoToggle = costeoRest==='badass' ? `
+    <div class="tc-search" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.8rem">
+      <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#666">Ver precios</span>
+      <div style="display:flex;gap:.4rem">
+        <button type="button" class="adm-btn ${conDesc?'':'adm-btn-gold'}" id="ctDescOff">Sin descuento</button>
+        <button type="button" class="adm-btn ${conDesc?'adm-btn-gold':''}" id="ctDescOn">Con descuento (${CARTA_DESCUENTO_PCT}%)</button>
+      </div>
+      ${conDesc?'<span class="ct-toolbar-info" style="margin:0">Precio y % de costo con el descuento aplicado — el precio real guardado no cambia.</span>':''}
+    </div>` : '';
   const mixBox = `
     <div class="ct-mix-box">
       <div class="ct-mix-pct ${weighted!=null&&weighted>40?'hi':''}">${fmt1(weighted)}<button type="button" class="ct-info-btn adm-has-tip" aria-describedby="ctComboInfo" aria-label="Sobre esta vista">ⓘ<span role="tooltip" id="ctComboInfo" class="adm-tip">${escapeHtml(comboInfo)}</span></button></div>
       <div class="ct-mix-detail">
-        <span>ponderado por <b>${mComida}% Comida</b> / <b>${mBarra}% Barra</b> · Comida ${fmt1(comidaAvg)} · Barra ${fmt1(barraAvg)}</span>
+        <span>ponderado por <b>${mComida}% Comida</b> / <b>${mBarra}% Barra</b> · Comida ${fmt1(comidaAvg)} · Barra ${fmt1(barraAvg)}${conDesc?' · <b>con descuento 40%</b>':''}</span>
         <button class="adm-btn adm-btn-ghost" id="ctMixEditBtn" type="button">✎ Editar mix</button>
       </div>
       <div class="ct-mix-edit" id="ctMixEdit" style="display:none">
@@ -12058,12 +12094,16 @@ function drawCartaCombinada(){
         <span class="dist-status" id="ctMixSt"></span>
       </div>
     </div>`;
-  const comidaHtml = cartaSeccionesHtmlRO(comida.carta);
-  const barraHtml = cartaSeccionesHtmlRO(barra.carta) + cartaReventaHtmlRO(barra.reventa);
+  const comidaHtml = cartaSeccionesHtmlRO(comida.carta, conDesc);
+  const barraHtml = cartaSeccionesHtmlRO(barra.carta, conDesc) + cartaReventaHtmlRO(barra.reventa, conDesc);
   document.getElementById('costeoBody').innerHTML = `
+    ${descuentoToggle}
     ${mixBox}
     <div class="ct-combo-group"><div class="ct-combo-h">🍽️ Comida</div>${comidaHtml||'<div class="dist-empty">Sin platos costeados.</div>'}</div>
     <div class="ct-combo-group"><div class="ct-combo-h">🍸 Barra</div>${barraHtml||'<div class="dist-empty">Sin tragos costeados.</div>'}</div>`;
+  { const off=document.getElementById('ctDescOff'); const on=document.getElementById('ctDescOn');
+    if(off) off.onclick=()=>{ cartaDescuento=false; drawCartaCombinada(); };
+    if(on) on.onclick=()=>{ cartaDescuento=true; drawCartaCombinada(); }; }
   const editBtn=document.getElementById('ctMixEditBtn'), editBox=document.getElementById('ctMixEdit');
   if (editBtn) editBtn.onclick=()=>{ editBox.style.display = editBox.style.display==='none' ? '' : 'none'; };
   const inp=document.getElementById('ctMixComidaInp'), prev=document.getElementById('ctMixBarraPreview');
