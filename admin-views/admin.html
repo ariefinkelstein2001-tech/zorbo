@@ -2218,6 +2218,23 @@ body.drawer-open{overflow:hidden}
 .an-acc.open .chev{transform:rotate(90deg)}
 .an-acc-body{display:none;padding:.4rem .9rem .8rem}
 .an-acc.open .an-acc-body{display:block}
+/* Vínculo con Pyxis: barra de meses + selector por fila */
+.an-px{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.7rem .9rem;border-radius:var(--radius-md);background:var(--surface-2);border:1px solid var(--border);margin-bottom:1rem}
+.an-px .tt{font-size:.82rem;font-weight:700;color:var(--text)}
+.an-px .sub{font-size:.74rem;color:var(--muted)}
+.an-px-meses{display:inline-flex;gap:.3rem;flex-wrap:wrap}
+.an-px-mes{font:inherit;font-size:.76rem;font-weight:700;border:1px solid var(--border);background:var(--surface);color:var(--muted);border-radius:var(--radius-full);padding:.22rem .7rem;cursor:pointer}
+.an-px-mes.on{background:var(--gold-dim);border-color:var(--gold);color:var(--gold-deep)}
+.an-px-aviso{width:100%;font-size:.78rem;color:#a05f00;background:#fff6e5;border:1px solid var(--gold-bd,#f1c97b);border-radius:var(--radius-sm);padding:.45rem .6rem;line-height:1.45}
+.an-px-sel{width:100%;font-size:.76rem;padding:.28rem .4rem;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);max-width:100%}
+.an-px-sel.on{border-color:var(--gold);background:var(--gold-dim);color:var(--gold-deep);font-weight:700}
+.an-row.con-px{grid-template-columns:1fr 84px 84px minmax(150px,1.1fr) 84px}
+.an-row .px-cant{font-size:.8rem;font-weight:800;color:var(--gold-deep);text-align:right;font-variant-numeric:tabular-nums}
+.an-row input.desde-px{background:var(--gold-dim);border-color:var(--gold-bd,#f1c97b);color:var(--gold-deep)}
+@media(max-width:820px){
+  .an-row.con-px{grid-template-columns:1fr 84px; grid-auto-rows:min-content}
+  .an-row.con-px .an-px-sel{grid-column:1/-1}
+}
 .an-row{display:grid;grid-template-columns:1fr 90px 90px 90px;align-items:center;gap:.7rem;padding:.5rem 0;border-bottom:1px solid var(--border)}
 .an-row:last-child{border-bottom:0}
 .an-row .nm{font-size:.84rem;color:var(--text);font-weight:600}
@@ -12247,12 +12264,23 @@ let AN = {
   mapeoAbierto: false,
   search: '',
   abiertas: new Set(),
+  // ── Vínculo con Pyxis (modo exacto) ──
+  px: null,            // respuesta de /analisis/pyxis: artículos, meses, motivo
+  pxKey: null,         // rest de la carga de arriba
+  pxMapa: {},          // key del producto → nombre del artículo de Pyxis
+  pxMeses: [],         // índices de meses (0,1,2) tildados
+  pxCargando: false,
 };
 function anReset(){
+  // OJO: esta función rearma AN con una lista fija de campos. Si agregás estado
+  // nuevo arriba, agregalo TAMBIÉN acá — si no, al cambiar de restaurante el
+  // campo queda `undefined` y revienta la primera vez que se lee.
   AN = { loadedRest: null, conDesc: false, modo: 'rapido',
     pesosBarra: { cervezas: 20, cocktails: 20, otrosAlcohol: 20, sinAlcohol: 20, otros: 20 }, mixComida: 50,
     unidades: {}, resultado: null, grupos: [], gruposConfig: null, escenarios: [],
-    productos: null, productosKey: null, mapeoAbierto: false, search: '', abiertas: new Set() };
+    productos: null, productosKey: null, mapeoAbierto: false, search: '', abiertas: new Set(),
+    // El vínculo con Pyxis es por restaurante: al cambiar hay que releerlo.
+    px: null, pxKey: null, pxMapa: {}, pxMeses: [], pxCargando: false };
 }
 function anDebounce(fn, ms){ let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 const anFmtPct = (v) => v == null ? '—' : (Math.round(v * 10) / 10) + '%';
@@ -12471,8 +12499,91 @@ function anExactoHtml(){
     <div class="an-panel-sub">Cargá cuánto vendiste de cada producto en el período — el sistema calcula la recaudación, el costo y el % ponderado real, y deriva el mix real solo. Podés dejar productos en 0 o vacío.</div>
     <div id="anExactoBody"><div class="adm-loading">Cargando productos…</div></div>`;
 }
+// ── Vínculo con Pyxis ──
+// Cada plato del costeo se puede "conectar" a un artículo del Detalle de Ventas
+// de Pyxis; a partir de ahí la cantidad la trae el sistema en vez de tipearla.
+// Si Pyxis no contesta, el modo exacto sigue funcionando a mano: la conexión es
+// un extra, no un requisito.
+async function anEnsurePyxis(){
+  if (AN.pxKey === costeoRest && AN.px) return AN.px;
+  AN.pxCargando = true;
+  try {
+    const r = await fetch(`/admin/costeo/analisis/pyxis?rest=${encodeURIComponent(costeoRest)}&svc=comida`);
+    const j = await r.json();
+    AN.px = j; AN.pxKey = costeoRest;
+    AN.pxMapa = j.mapa || {};
+    // Por defecto se suman los 3 meses que trae Pyxis, igual que la pantalla de
+    // Detalle de Ventas cuando están los tres tildados.
+    if (!AN.pxMeses.length) AN.pxMeses = (j.meses || []).map(m => m.idx);
+  } catch (e) {
+    AN.px = { disponible: false, articulos: [], meses: [], motivo: 'No se pudo consultar Pyxis: ' + String(e.message || e) };
+    AN.pxKey = costeoRest;
+  }
+  AN.pxCargando = false;
+  return AN.px;
+}
+// Cantidad de un artículo sumando solo los meses tildados.
+function anPxCantidad(nombreArticulo){
+  if (!AN.px || !nombreArticulo) return null;
+  const a = (AN.px.articulos || []).find(x => x.nombre === nombreArticulo);
+  if (!a) return null;
+  const idxs = AN.pxMeses.length ? AN.pxMeses : (AN.px.meses || []).map(m => m.idx);
+  return idxs.reduce((s, i) => s + (Number(a.cant[i]) || 0), 0);
+}
+// Vuelca al modo exacto las cantidades de todo lo que esté conectado. Lo que no
+// está conectado no se toca: puede tener un número puesto a mano.
+function anPxAplicarUnidades(){
+  let n = 0;
+  for (const [key, art] of Object.entries(AN.pxMapa)) {
+    const c = anPxCantidad(art);
+    if (c == null) continue;
+    if (c > 0) AN.unidades[key] = c; else delete AN.unidades[key];
+    n++;
+  }
+  return n;
+}
+async function anPxGuardarMapa(){
+  try {
+    await fetch('/admin/costeo/analisis/pyxis/mapa', { method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ rest: costeoRest, mapa: AN.pxMapa }) });
+  } catch (e) { showToast('No se pudo guardar la conexión: ' + String(e.message||e), 'err'); }
+}
+function anPxBarraHtml(){
+  const px = AN.px;
+  if (!px) return '';
+  if (!px.disponible) {
+    return `<div class="an-px"><span class="tt">🔗 Unidades desde Pyxis</span>
+      <div class="an-px-aviso">${escapeHtml(px.motivo || 'Pyxis no está disponible.')} Mientras tanto podés cargar las unidades a mano.</div></div>`;
+  }
+  const conectados = Object.keys(AN.pxMapa).filter(k => AN.pxMapa[k]).length;
+  const meses = (px.meses || []).map(m => `<button type="button" class="an-px-mes${AN.pxMeses.includes(m.idx)?' on':''}" data-pxmes="${m.idx}">${escapeHtml(m.label)}</button>`).join('');
+  return `<div class="an-px">
+    <span class="tt">🔗 Unidades desde Pyxis</span>
+    <span class="an-px-meses">${meses}</span>
+    <span class="sub">${conectados} plato${conectados===1?'':'s'} conectado${conectados===1?'':'s'} · ${(px.articulos||[]).length} artículos de ${escapeHtml((px.marcasVistas||[]).join(', ') || 'Pyxis')}</span>
+    <span style="flex:1"></span>
+    <button type="button" class="ws-btn" id="anPxRefrescar" style="padding:.3rem .6rem">↻ Traer cantidades</button>
+  </div>`;
+}
+function anPxSelectHtml(p){
+  if (!AN.px || !AN.px.disponible) return '';
+  // Por ahora se traen solo los artículos de COMIDA de Pyxis: ofrecerlos en una
+  // fila de barra invitaría a conectar un gin con unas papas fritas.
+  if (p.svc !== 'comida') return `<span class="num" title="Por ahora la conexión con Pyxis es solo para alimentos">—</span>`;
+  const elegido = AN.pxMapa[p.key] || '';
+  // Los ya usados por otro plato se marcan, para no conectar dos veces lo mismo
+  // sin darse cuenta.
+  const usados = new Set(Object.entries(AN.pxMapa).filter(([k]) => k !== p.key).map(([, v]) => v));
+  const ops = (AN.px.articulos || []).map(a => {
+    const dup = usados.has(a.nombre) ? ' ·ya usado' : '';
+    return `<option value="${escapeAttr(a.nombre)}"${a.nombre===elegido?' selected':''}>${escapeHtml(a.nombre)} (${a.cantTotal})${dup}</option>`;
+  }).join('');
+  return `<select class="an-px-sel${elegido?' on':''}" data-pxkey="${escapeAttr(p.key)}">
+    <option value="">— sin conectar —</option>${ops}</select>`;
+}
+
 function anWireExacto(){
-  anEnsureProductos().then(items => { anDrawExactoBody(items); });
+  Promise.all([anEnsureProductos(), anEnsurePyxis()]).then(([items]) => { anDrawExactoBody(items); });
 }
 function anDrawExactoBody(items){
   const body = document.getElementById('anExactoBody'); if (!body) return;
@@ -12490,6 +12601,7 @@ function anDrawExactoBody(items){
   }
   const totalConQty = Object.keys(AN.unidades).filter(k => Number(AN.unidades[k]) > 0).length;
   body.innerHTML = `
+    ${anPxBarraHtml()}
     <input type="text" class="an-search" id="anSearch" placeholder="Buscar producto…" value="${escapeAttr(AN.search)}">
     <div class="an-acc-tools">
       <button type="button" class="an-link-btn" id="anExpAll">Expandir todo</button>
@@ -12497,6 +12609,7 @@ function anDrawExactoBody(items){
     </div>
     ${secciones.map(s => anAccordionHtml(s)).join('')}`;
   anWireExactoSearch();
+  anWirePyxis();
   document.getElementById('anExpAll').onclick = () => { document.querySelectorAll('.an-acc').forEach(a => { a.classList.add('open'); AN.abiertas.add(a.dataset.sec); }); };
   document.getElementById('anCollAll').onclick = () => { document.querySelectorAll('.an-acc').forEach(a => { a.classList.remove('open'); AN.abiertas.delete(a.dataset.sec); }); };
   document.querySelectorAll('.an-acc-h').forEach(h => h.onclick = () => {
@@ -12512,16 +12625,58 @@ function anDrawExactoBody(items){
     };
   });
 }
+function anWirePyxis(){
+  // Meses: cambian la ventana de la que se suma la cantidad. Se re-aplican las
+  // unidades de todo lo conectado para que el ponderado siga al toque.
+  document.querySelectorAll('[data-pxmes]').forEach(b => b.onclick = () => {
+    const i = Number(b.dataset.pxmes);
+    AN.pxMeses = AN.pxMeses.includes(i) ? AN.pxMeses.filter(x => x !== i) : AN.pxMeses.concat([i]).sort();
+    if (!AN.pxMeses.length) { AN.pxMeses = [i]; return; }   // al menos uno
+    anPxAplicarUnidades();
+    anDrawExactoBody(AN.productos);
+    anComputeDebounced();
+  });
+  const ref = document.getElementById('anPxRefrescar');
+  if (ref) ref.onclick = async () => {
+    ref.disabled = true; ref.textContent = '↻ Trayendo…';
+    AN.px = null; AN.pxKey = null;              // fuerza releer Pyxis
+    await anEnsurePyxis();
+    const n = anPxAplicarUnidades();
+    anDrawExactoBody(AN.productos);
+    anComputeDebounced();
+    showToast(n ? `Cantidades actualizadas desde Pyxis (${n} plato${n===1?'':'s'})` : 'No hay platos conectados todavía', 'ok');
+  };
+  // Conectar / desconectar un plato con su artículo de Pyxis.
+  document.querySelectorAll('[data-pxkey]').forEach(sel => sel.onchange = async () => {
+    const key = sel.dataset.pxkey, art = sel.value;
+    if (art) AN.pxMapa[key] = art; else delete AN.pxMapa[key];
+    // Al conectar, la cantidad entra sola; al desconectar, se limpia (el número
+    // venía de Pyxis, no de la persona).
+    const c = art ? anPxCantidad(art) : null;
+    if (art && c != null && c > 0) AN.unidades[key] = c; else delete AN.unidades[key];
+    await anPxGuardarMapa();
+    anDrawExactoBody(AN.productos);
+    anComputeDebounced();
+  });
+}
+
 function anAccordionHtml(s){
   const qtyEnSeccion = s.prods.reduce((a, p) => a + (Number(AN.unidades[p.key]) || 0), 0);
   const abierta = AN.abiertas.has(s.nombre) || (!!AN.search && s.filtrados.length > 0);
-  const rows = s.filtrados.map(p => `
-    <div class="an-row">
+  const conPx = !!(AN.px && AN.px.disponible);
+  const rows = s.filtrados.map(p => {
+    const art = AN.pxMapa[p.key] || '';
+    const cantPx = art ? anPxCantidad(art) : null;
+    return `
+    <div class="an-row${conPx ? ' con-px' : ''}">
       <span class="nm">${escapeHtml(p.nombre)}</span>
       <span class="num">${p.precio != null ? cMoney(p.precio) : '—'}</span>
       <span class="num">${p.costo != null ? cMoney(p.costo) : '—'}</span>
-      <input type="text" inputmode="numeric" class="an-qty" data-key="${escapeAttr(p.key)}" placeholder="0" value="${AN.unidades[p.key] || ''}">
-    </div>`).join('');
+      ${conPx ? anPxSelectHtml(p) : ''}
+      <input type="text" inputmode="numeric" class="an-qty${art ? ' desde-px' : ''}" data-key="${escapeAttr(p.key)}" placeholder="0"
+        value="${AN.unidades[p.key] || ''}"${art ? ` title="Viene de Pyxis: ${escapeAttr(art)}${cantPx != null ? ' · ' + cantPx + ' unidades' : ''}. Podés pisarlo a mano."` : ''}>
+    </div>`;
+  }).join('');
   return `
     <div class="an-acc ${abierta ? 'open' : ''}" data-sec="${escapeAttr(s.nombre)}">
       <div class="an-acc-h">

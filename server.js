@@ -16608,6 +16608,126 @@ app.post('/admin/costeo/analisis/exacto/preview', requireAdmin, (req, res) => {
   res.json(costeoAnalisisExactoCompute(rest, !!b.conDesc, b.unidades || {}));
 });
 
+// ── MODO EXACTO · unidades desde Pyxis ───────────────────────────────────────
+// En vez de tipear cuánto se vendió de cada plato, se "conecta" cada uno con su
+// artículo de Pyxis (Detalle de Ventas) y la cantidad la trae el sistema.
+//
+// El vínculo es por NOMBRE del artículo de Pyxis, no por un id: Pyxis no expone
+// uno estable en el detalle de ventas, y el nombre es lo que el usuario ve y
+// reconoce. Se guarda normalizado para que un cambio de mayúsculas o tildes no
+// rompa la conexión.
+const costeoPxNorm = (s) => String(s == null ? '' : s).toLowerCase()
+  .normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim();
+
+function costeoPyxisMapaGet(rest){
+  const d = costeoAnalisisLoad();
+  const m = d.pyxisMapa && d.pyxisMapa[costeoRestKey(rest)];
+  return (m && typeof m === 'object') ? { ...m } : {};
+}
+function costeoPyxisMapaSet(rest, mapa){
+  const d = costeoAnalisisLoad();
+  if (!d.pyxisMapa || typeof d.pyxisMapa !== 'object') d.pyxisMapa = {};
+  d.pyxisMapa[costeoRestKey(rest)] = mapa;
+  costeoAnalisisSave(d);
+}
+
+// Qué filas de Pyxis son de ESTE restaurante. Pyxis trae todo el grupo, así que
+// hay que acotar, y acá está la trampa: `nombreLocal` es el RECINTO (el patio
+// de comidas) y `nombreMarca` es el restaurante adentro. El recinto "Baddas
+// Parque" tiene otras marcas del grupo, así que filtrar por recinto se traería
+// las ventas ajenas.
+//
+// Por eso manda la MARCA. El recinto solo se usa como respaldo cuando ninguna
+// fila matcheó por marca (un local nuestro donde Pyxis no cargó la marca):
+// así nunca se mezclan dos restaurantes en el mismo resultado.
+const COSTEO_PYXIS_RX = { badass: /badass|baddas/, garden: /garden/ };  // "Baddas" viene mal escrito desde Pyxis
+function costeoPyxisFiltrar(rows, rest){
+  const rx = COSTEO_PYXIS_RX[costeoRestKey(rest)] || COSTEO_PYXIS_RX.garden;
+  const porMarca = (rows || []).filter(r => rx.test(costeoPxNorm(r.nombreMarca)));
+  if (porMarca.length) return { mias: porMarca, criterio: 'marca' };
+  const porLocal = (rows || []).filter(r => rx.test(costeoPxNorm(r.nombreLocal)));
+  return { mias: porLocal, criterio: porLocal.length ? 'recinto' : 'ninguno' };
+}
+
+// Artículos de Pyxis del restaurante, ya agrupados por nombre y con la cantidad
+// de cada uno de los 3 meses que devuelve Pyxis.
+// El criterio (filtrar por restaurante y familia, agrupar por artículo, sumar
+// los 3 meses) va aparte de la llamada remota, para poder probarlo sin depender
+// de que Pyxis conteste.
+function costeoPyxisAgrupar(rows, rest, familias){
+  const num = x => { const n = Number(x); return Number.isFinite(n) ? n : 0; };
+  const famSet = new Set((familias || []).map(costeoPxNorm));
+  const { mias, criterio } = costeoPyxisFiltrar(rows, rest);
+  const familiasDisponibles = [...new Set(mias.map(r => String(r.familia || '').trim()).filter(Boolean))].sort();
+  const marcasVistas = [...new Set(mias.map(r => String(r.nombreMarca || '').trim()).filter(Boolean))].sort();
+  const localesVistos = [...new Set(mias.map(r => String(r.nombreLocal || '').trim()).filter(Boolean))].sort();
+  const porNombre = new Map();
+  for (const r of mias) {
+    // Sin familias configuradas no se adivina: se devuelve la lista para que se
+    // configuren en Comercial › Horeca (Pyxis) ⚙️, que es donde ya viven.
+    if (famSet.size && !famSet.has(costeoPxNorm(r.familia))) continue;
+    const nombre = String(r.nombreProducto || '').trim();
+    if (!nombre) continue;
+    const k = costeoPxNorm(nombre);
+    const a = porNombre.get(k) || { nombre, clave: k, familia: String(r.familia || '').trim(), cant: [0, 0, 0], monto: [0, 0, 0] };
+    a.cant[0] += num(r.q1); a.cant[1] += num(r.q2); a.cant[2] += num(r.q3);
+    a.monto[0] += num(r.p1); a.monto[1] += num(r.p2); a.monto[2] += num(r.p3);
+    porNombre.set(k, a);
+  }
+  const articulos = [...porNombre.values()]
+    .map(a => ({ ...a, cantTotal: a.cant[0] + a.cant[1] + a.cant[2] }))
+    .sort((a, b) => b.cantTotal - a.cantTotal);
+  return {
+    articulos, familiasConfiguradas: familias || [], familiasDisponibles,
+    marcasVistas, localesVistos, criterio, filasDelRestaurante: mias.length, filasTotales: (rows || []).length,
+  };
+}
+async function costeoPyxisArticulos(rest, svc){
+  const cfg = pyxisHospCfgLoad();
+  const rows = await pyxisVentasRows('2', false);
+  const familias = svc === 'barra' ? cfg.familiaBarra : cfg.familiaComida;
+  return {
+    ...costeoPyxisAgrupar(rows, rest, familias),
+    meses: pyxisMesesKeys().map((key, i) => ({ key, label: pyxisMesLabel(key), idx: i })),
+  };
+}
+
+app.get('/admin/costeo/analisis/pyxis', requireAdmin, async (req, res) => {
+  const rest = costeoRestKey(req.query.rest);
+  const svc = req.query.svc === 'barra' ? 'barra' : 'comida';
+  try {
+    const d = await costeoPyxisArticulos(rest, svc);
+    if (!d.filasDelRestaurante) {
+      return res.json({ disponible: false, rest, svc, mapa: costeoPyxisMapaGet(rest), ...d,
+        motivo: `Pyxis respondió (${d.filasTotales} filas del grupo) pero ninguna es de ${rest === 'badass' ? 'Badass' : 'Garden'}. Revisá en Comercial › Horeca (Pyxis) que la marca esté bien identificada.` });
+    }
+    if (!d.familiasConfiguradas.length) {
+      return res.json({ disponible: false, rest, svc, mapa: costeoPyxisMapaGet(rest), ...d,
+        motivo: `Falta decir qué familias de Pyxis son ${svc === 'barra' ? 'barra' : 'comida'}. Se configura en Comercial › Horeca (Pyxis) ⚙️. Las que trae este local: ${d.familiasDisponibles.join(', ') || '(ninguna)'}.` });
+    }
+    res.json({ disponible: true, rest, svc, mapa: costeoPyxisMapaGet(rest), ...d });
+  } catch (e) {
+    // Pyxis caído no puede romper la pantalla: se devuelve el motivo y el modo
+    // exacto sigue funcionando a mano.
+    res.json({ disponible: false, rest, svc, articulos: [], meses: [], mapa: costeoPyxisMapaGet(rest),
+      motivo: 'No se pudo leer Pyxis: ' + String(e.message || e).slice(0, 160) });
+  }
+});
+
+app.put('/admin/costeo/analisis/pyxis/mapa', requireAdmin, (req, res) => {
+  const b = req.body || {};
+  const rest = costeoRestKey(b.rest);
+  const entrada = (b.mapa && typeof b.mapa === 'object') ? b.mapa : {};
+  const mapa = {};
+  for (const [k, v] of Object.entries(entrada)) {
+    const clave = costeoStr(k, 80);
+    const art = costeoStr(v, 200);
+    if (clave && art) mapa[clave] = art;   // vacío = desconectado, no se guarda
+  }
+  costeoPyxisMapaSet(rest, mapa);
+  res.json({ ok: true, rest, conectados: Object.keys(mapa).length });
+});
+
 // ── Escenarios guardados: nombre a mano, local, modo, escenario de precio,
 // los pesos o las unidades ingresadas, y el resultado ya calculado — todo
 // congelado al momento de guardar, en su propio store (nunca toca el costeo). ──
