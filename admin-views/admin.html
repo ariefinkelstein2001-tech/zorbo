@@ -3757,6 +3757,7 @@ body.hosp-open{overflow:hidden}
             <option value="comida">🍽️ Comida</option>
             <option value="barra">🍸 Barra</option>
             <option value="ambos">🍽️🍸 Comida y Barra</option>
+            <option value="cortosybotellas">🥃 Botellas y Cortos</option>
           </select>
         </div>
         <div class="dist-subnav" id="costeoSubnav">
@@ -11115,11 +11116,37 @@ async function loadRetailUploads(){
 // ─── Costeo de carta (insumos · recetas base) ────────────────────────────────
 let costeoData = null, costeoSub = 'resumen', insumoSearch = '', rbSearch = '', costeoRest = 'garden', costeoSvc = 'comida';
 let platoEditing = null, platoDraft = [], platoSearch = '', platoCatFilter = '';
-const isBarra = () => costeoSvc === 'barra';
+// Las mismas 16 categorías (Ron/Pisco/Vodka/Whisky/Bourbon/Gin/Licores/Tequila
+// + su "* Botella") que en Comida/Barra y Carta (resumen) viven en su propia
+// sección de Servicio "Botellas y Cortos" — misma lista que
+// COSTEO_GRUPOS_BARRA_NOMBRES.cortosBotellas en server.js, una sola fuente de
+// la verdad (si se agrega una familia nueva, hay que tocar los dos lados).
+const COSTEO_CORTO_BOTELLA_CATS = new Set([
+  'gin', 'whisky', 'bourbon', 'vodka', 'pisco', 'ron', 'tequila', 'licores',
+  'gin botella', 'whisky botella', 'bourbon botella', 'vodka botella', 'pisco botella', 'ron botella', 'tequila botella', 'licores botella',
+].map(s => s.toLowerCase().trim()));
+const esCortoBotella = (nombre) => COSTEO_CORTO_BOTELLA_CATS.has(String(nombre || '').toLowerCase().trim());
+// "Cortos y Botellas" es un recorte de solo lectura de Barra a nivel de Servicio,
+// no un servicio nuevo para el backend: `costeoApiSvc()` es lo que de verdad se
+// manda en la query (barra), mientras `costeoSvc` guarda el modo de UI (para
+// filtrar qué categorías se muestran/ocultan). isBarra() cubre los dos, porque
+// para efectos de reventa/labels "Cortos y Botellas" sigue siendo Barra.
+const isBarra = () => costeoSvc === 'barra' || costeoSvc === 'cortosybotellas';
+const costeoApiSvc = () => isBarra() ? 'barra' : 'comida';
+const costeoSvcLabel = () => costeoSvc==='cortosybotellas' ? 'Botellas y Cortos' : (isBarra() ? 'Barra' : 'Comida');
 const cMoney = (n) => '$' + Math.round(Number(n)||0).toLocaleString('es-CL');
 // Acepta coma como separador decimal (ej: "9,5")
 const cNum = (v) => { const n = parseFloat(String(v==null?'':v).trim().replace(',', '.')); return Number.isFinite(n) ? n : 0; };
-const cRest = (url) => url + (url.includes('?') ? '&' : '?') + 'rest=' + costeoRest + '&svc=' + costeoSvc;
+const cRest = (url) => url + (url.includes('?') ? '&' : '?') + 'rest=' + costeoRest + '&svc=' + costeoApiSvc();
+// Filtra una lista según el modo de Servicio: en "Botellas y Cortos" deja SOLO
+// esas categorías; en "Barra" a secas las saca (viven solo en la sección
+// nueva); en cualquier otro modo no filtra nada. `campo` es el nombre del
+// campo a mirar (categoria de un plato, nombre de una sección de carta).
+function costeoFiltrarPorModo(items, campo){
+  if (costeoSvc === 'cortosybotellas') return (items || []).filter(x => esCortoBotella(x[campo]));
+  if (costeoSvc === 'barra') return (items || []).filter(x => !esCortoBotella(x[campo]));
+  return items || [];
+}
 // Encabezado de columna con tooltip explicativo (hover/foco por teclado/tap en
 // móvil vía el mismo patrón .adm-has-tip/.adm-tip que ya usa el resto del panel
 // admin). Solo texto de ayuda — no describe nada que el sistema no calcule ya.
@@ -11274,10 +11301,17 @@ function costeoAreaGo(area){
 async function loadCosteo(){
   const body = document.getElementById('costeoBody');
   body.innerHTML = '<div class="adm-loading">Cargando…</div>';
-  // La pestaña de productos se llama "Platos" en comida y "Tragos" en barra.
-  const prodTab = document.getElementById('costeoTabProd'); if (prodTab) prodTab.textContent = isBarra() ? 'Barra' : 'Comida';
+  // La pestaña de productos se llama "Platos" en comida, "Barra" en barra y
+  // "Botellas y Cortos" en el recorte nuevo.
+  const prodTab = document.getElementById('costeoTabProd');
+  if (prodTab) prodTab.textContent = costeoSvcLabel();
   try {
     costeoData = await (await fetch(cRest('/admin/costeo'))).json();
+    // "Botellas y Cortos"/"Barra" son un recorte de solo lectura del mismo
+    // servicio barra a nivel de backend (costeoApiSvc siempre pide 'barra') —
+    // el recorte de categorías es 100% cliente, ver costeoFiltrarPorModo.
+    costeoData.platos = costeoFiltrarPorModo(costeoData.platos, 'categoria');
+    costeoData.categorias = costeoFiltrarPorModo((costeoData.categorias||[]).map(c=>({categoria:c})), 'categoria').map(x=>x.categoria);
     const prodLbl = isBarra() ? 'tragos' : 'platos';
     document.getElementById('costeoMeta').textContent = `${costeoData.insumos.length} insumos · ${costeoData.recetasBase.length} recetas base · ${(costeoData.platos||[]).length} ${prodLbl}`;
     renderCosteoSub();
@@ -11292,21 +11326,31 @@ document.getElementById('costeoRest').addEventListener('click', e=>{
 });
 document.getElementById('costeoSvc').addEventListener('change', e=>{
   const v = e.target.value;
-  costeoSvc = (v==='barra' || v==='ambos') ? v : 'comida';
+  costeoSvc = (v==='barra' || v==='ambos' || v==='cortosybotellas') ? v : 'comida';
   // "Comida y Barra" solo tiene sentido en Carta (resumen) — Insumos/Recetas/
   // Comida/Barra siguen siendo datos de UN servicio a la vez, no hay tal cosa
   // como una lista de insumos "combinada". Si el usuario estaba en otra
   // pestaña, lo mandamos a Resumen (la única habilitada en este modo).
   if (costeoSvc==='ambos') costeoSub='resumen';
+  // "Botellas y Cortos" sí tiene Carta (resumen) Y Comida/Barra propios (son
+  // los mismos platos de Barra, recortados) — solo Insumos/Recetas no aplican
+  // (son catálogo completo, no algo que se pueda recortar por familia).
+  else if (costeoSvc==='cortosybotellas' && (costeoSub==='insumos' || costeoSub==='recetas')) costeoSub='resumen';
   costeoResetState();
   loadCosteo();
 });
 // En modo "Comida y Barra" solo Carta (resumen) tiene una vista combinada
 // definida — las otras 3 pestañas se deshabilitan (no se pisa/inventa qué
-// mostrarían, se obliga a elegir un servicio concreto para editarlas).
-// Análisis queda SIEMPRE habilitada: no depende de Servicio (mira Comida y
-// Barra a la vez siempre), por eso no entra en esta regla.
-function costeoSubDisabled(csub){ return costeoSvc==='ambos' && csub!=='resumen' && csub!=='analisis'; }
+// mostrarían, se obliga a elegir un servicio concreto para editarlas). En
+// "Botellas y Cortos" se deshabilitan solo Insumos/Recetas (Carta resumen y
+// Comida/Barra sí tienen una vista recortada). Análisis queda SIEMPRE
+// habilitada: no depende de Servicio (mira Comida y Barra a la vez siempre).
+function costeoSubDisabled(csub){
+  if (csub === 'analisis') return false;
+  if (costeoSvc === 'ambos') return csub !== 'resumen';
+  if (costeoSvc === 'cortosybotellas') return csub === 'insumos' || csub === 'recetas';
+  return false;
+}
 function renderCosteoSub(){
   document.querySelectorAll('#costeoSubnav .dist-subtab').forEach(b=>{
     b.classList.toggle('on', b.dataset.csub===costeoSub);
@@ -11332,7 +11376,9 @@ function renderCosteoSub(){
 function costeoSubEditable(){
   if (adminRole !== 'costeo') return true;
   if (costeoSub !== 'recetas' && costeoSub !== 'platos') return false; // insumos/carta: solo ver
-  if (adminCosteoSvc && adminCosteoSvc !== costeoSvc) return false;    // otro servicio: solo ver
+  // "Botellas y Cortos" es un recorte de Barra, no un servicio propio: un
+  // admin restringido a Barra puede editar ahí igual que en Barra a secas.
+  if (adminCosteoSvc && adminCosteoSvc !== costeoApiSvc()) return false; // otro servicio: solo ver
   return true;
 }
 // Rol "costeo": ve todo pero solo edita lo permitido. En lo no editable desactiva
@@ -11803,8 +11849,8 @@ function renderCosteoPlatos(){
       </div>
     </div>
     <div class="ct-toolbar" style="margin-top:1.4rem">
-      <div class="ct-toolbar-info"><b>${isBarra()?'Barra':'Comida'} (${(costeoData.platos||[]).length})</b> · descarga el listado con la cadena de costo y el precio real.</div>
-      <div class="ct-pdf"><span>Excel</span><button class="adm-btn adm-btn-gold" id="plXlBtn" type="button">Descargar Excel</button></div>
+      <div class="ct-toolbar-info"><b>${costeoSvcLabel()} (${(costeoData.platos||[]).length})</b> · descarga el listado con la cadena de costo y el precio real.</div>
+      ${costeoSvc!=='cortosybotellas' ? '<div class="ct-pdf"><span>Excel</span><button class="adm-btn adm-btn-gold" id="plXlBtn" type="button">Descargar Excel</button></div>' : '<div class="ct-toolbar-info" style="margin:0">Para descargar, elegí Barra en Servicio (baja todo Barra, Cortos y Botellas incluidos).</div>'}
     </div>
     <div class="tc-search" style="display:flex;gap:.5rem;flex-wrap:wrap">
       <input type="text" id="plSearchInp" placeholder="Buscar plato…" value="${escapeAttr(platoSearch)}" style="flex:1;min-width:180px">
@@ -11891,8 +11937,13 @@ async function renderCosteoCarta(){
   body.innerHTML='<div class="adm-loading">Cargando carta…</div>';
   try{ cartaData = await (await fetch(cRest('/admin/costeo/carta'))).json(); }
   catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
-  // En barra, la carta incluye además las secciones de REVENTA (venta directa).
-  if (isBarra()){ try{ reventaData = await (await fetch(cRest('/admin/costeo/reventa'))).json(); }catch{ reventaData=null; } }
+  // "Botellas y Cortos"/"Barra" recortan las MISMAS secciones que ya devuelve
+  // el server (costeoApiSvc siempre pide 'barra') — el recorte es 100% cliente.
+  cartaData.secciones = costeoFiltrarPorModo(cartaData.secciones, 'nombre');
+  cartaData.sinAsignar = costeoFiltrarPorModo(cartaData.sinAsignar, 'categoria');
+  // Reventa (Vino/Espumantes/Gaseosas/etc.) es ajena a Cortos/Botellas — solo
+  // se carga y se blenda en Barra a secas.
+  if (costeoSvc === 'barra'){ try{ reventaData = await (await fetch(cRest('/admin/costeo/reventa'))).json(); }catch{ reventaData=null; } }
   else reventaData=null;
   drawCarta();
 }
@@ -11920,6 +11971,11 @@ async function renderCosteoCartaCombinada(){
       costeoFetchCartaFor('barra'),
       fetch('/admin/costeo/mix?rest='+encodeURIComponent(costeoRest)).then(r=>r.json()),
     ]);
+    // Cortos/Botellas viven solo en su propia sección de Servicio — se sacan
+    // acá siempre (a diferencia de costeoFiltrarPorModo, que depende de
+    // costeoSvc==='barra'/'cortosybotellas'; acá costeoSvc==='ambos').
+    barra.carta.secciones = (barra.carta.secciones||[]).filter(s=>!esCortoBotella(s.nombre));
+    barra.carta.sinAsignar = (barra.carta.sinAsignar||[]).filter(p=>!esCortoBotella(p.categoria));
     cartaCombinadaData = { comida, barra, mix };
   }catch(e){ body.innerHTML=`<div class="dist-empty">Error: ${escapeHtml(String(e.message||e))}</div>`; return; }
   drawCartaCombinada();
@@ -11990,9 +12046,13 @@ function drawCartaCombinada(){
     </div>`;
   const comidaHtml = cartaSeccionesHtmlRO(comida.carta);
   const barraHtml = cartaSeccionesHtmlRO(barra.carta) + cartaReventaHtmlRO(barra.reventa);
+  // barra.carta.meta.totalPlatos cuenta Cortos/Botellas también (viene del
+  // server sin recortar) — se recuenta sobre lo que de verdad quedó después
+  // de sacarlos más arriba.
+  const totalBarra = barra.carta.secciones.reduce((a,s)=>a+s.platos.length,0) + barra.carta.sinAsignar.length;
   document.getElementById('costeoBody').innerHTML = `
     <div class="ct-toolbar">
-      <div class="ct-toolbar-info"><b>Comida y Barra combinadas</b> · vista de solo lectura — para editar precios o mover de sección, elegí Comida o Barra en el selector de Servicio. ${comida.carta.meta.totalPlatos} platos de Comida · ${barra.carta.meta.totalPlatos} tragos de Barra.</div>
+      <div class="ct-toolbar-info"><b>Comida y Barra combinadas</b> · vista de solo lectura — para editar precios o mover de sección, elegí Comida o Barra en el selector de Servicio. Cortos y Botellas quedan afuera (tienen su propia sección de Servicio). ${comida.carta.meta.totalPlatos} platos de Comida · ${totalBarra} tragos de Barra.</div>
     </div>
     ${mixBox}
     <div class="ct-combo-group"><div class="ct-combo-h">🍽️ Comida</div>${comidaHtml||'<div class="dist-empty">Sin platos costeados.</div>'}</div>
@@ -12156,19 +12216,29 @@ function drawCarta(){
       <div class="adm-stat ${avgTone}">
         <div class="adm-stat-k">% DE COSTO PROMEDIO</div>
         <div class="adm-stat-v">${avg.pct!=null?avg.pct+'%':'—'}</div>
-        <div class="adm-stat-s">${escapeHtml(REST_LABEL[costeoRest]||costeoRest)} · ${isBarra()?'Barra':'Comida'} · ${avg.n?avg.n+' platos con precio cargado':'sin platos con precio real cargado todavía'}${conDesc?' · con descuento':''}</div>
+        <div class="adm-stat-s">${escapeHtml(REST_LABEL[costeoRest]||costeoRest)} · ${costeoSvcLabel()} · ${avg.n?avg.n+' platos con precio cargado':'sin platos con precio real cargado todavía'}${conDesc?' · con descuento':''}</div>
       </div>
     </div>`;
-  document.getElementById('costeoBody').innerHTML = `
-    ${avgBlock}
-    <div class="ct-toolbar">
-      <div class="ct-toolbar-info"><b>Precio de venta REAL</b> (el que cobrás al público, editable acá). El <b>% de costo</b> es contra ese precio real; el <b>costo</b> sale del costeo. ${c.meta.totalSecciones} secciones · ${c.meta.totalPlatos} platos.</div>
+  // c.meta.* viene del server sin recortar (cuenta TODA la Barra) — con el
+  // recorte de "Botellas y Cortos"/"Barra" hay que recontar sobre lo que
+  // realmente quedó en c.secciones/c.sinAsignar después del filtro.
+  const totalSecciones = c.secciones.length;
+  const totalPlatos = c.secciones.reduce((a,s)=>a+s.platos.length,0) + c.sinAsignar.length;
+  // El export server-side no conoce el recorte de "Botellas y Cortos" (bajaría
+  // TODA la Barra con ese nombre de archivo) — se oculta ahí para no ofrecer un
+  // archivo con más productos de los que se están mirando.
+  const descargaBox = costeoSvc!=='cortosybotellas' ? `
       <div class="ct-pdf">
         <span>Descargar</span>
         <select id="ctXlScope"><option value="one">${escapeHtml(REST_LABEL[costeoRest]||costeoRest)}</option><option value="both">Ambos restaurantes</option></select>
         <button class="adm-btn adm-btn-gold" id="ctXlBtn" type="button">Excel</button>
         <button class="adm-btn adm-btn-gold" id="ctPdfBtn" type="button">PDF</button>
-      </div>
+      </div>` : '<div class="ct-toolbar-info" style="margin:0">Para descargar Excel/PDF de estos productos, elegí Barra en Servicio (baja todo Barra, Cortos y Botellas incluidos).</div>';
+  document.getElementById('costeoBody').innerHTML = `
+    ${avgBlock}
+    <div class="ct-toolbar">
+      <div class="ct-toolbar-info"><b>Precio de venta REAL</b> (el que cobrás al público, editable acá). El <b>% de costo</b> es contra ese precio real; el <b>costo</b> sale del costeo. ${totalSecciones} secciones · ${totalPlatos} platos.</div>
+      ${descargaBox}
     </div>
     ${descuentoToggle}
     <div class="tc-search" style="display:flex;gap:.5rem;flex-wrap:wrap">
@@ -12181,8 +12251,8 @@ function drawCarta(){
     ${revBlock}`;
   document.querySelectorAll('#costeoBody .ct-move').forEach(sel=>sel.onchange=()=>cartaMove(sel.dataset.pid, sel.value));
   document.querySelectorAll('#costeoBody .ct-real').forEach(inp=>{ inp.onchange=()=>cartaSaveReal(inp); });
-  document.getElementById('ctXlBtn').onclick=cartaExcel;
-  document.getElementById('ctPdfBtn').onclick=cartaPdf;
+  { const x=document.getElementById('ctXlBtn'); if(x) x.onclick=cartaExcel; }
+  { const x=document.getElementById('ctPdfBtn'); if(x) x.onclick=cartaPdf; }
   { const off=document.getElementById('ctDescOff'); const on=document.getElementById('ctDescOn');
     if(off) off.onclick=()=>{ cartaDescuento=false; drawCarta(); };
     if(on) on.onclick=()=>{ cartaDescuento=true; drawCarta(); }; }
@@ -12225,18 +12295,18 @@ function costeoDownload(url){ const a=document.createElement('a'); a.href=url; a
 function cartaExcel(){
   const scope=document.getElementById('ctXlScope').value;
   const rest = scope==='both' ? 'both' : costeoRest;
-  costeoDownload('/admin/costeo/carta/export.xlsx?rest='+encodeURIComponent(rest)+'&svc='+encodeURIComponent(costeoSvc));
+  costeoDownload('/admin/costeo/carta/export.xlsx?rest='+encodeURIComponent(rest)+'&svc='+encodeURIComponent(costeoApiSvc()));
 }
 // Descarga la carta en PDF (se abre en una pestaña para ver/guardar). Respeta el
 // mismo scope (restaurante actual o ambos) que el Excel.
 function cartaPdf(){
   const scope=document.getElementById('ctXlScope').value;
   const rest = scope==='both' ? 'both' : costeoRest;
-  window.open('/admin/costeo/carta/export.pdf?rest='+encodeURIComponent(rest)+'&svc='+encodeURIComponent(costeoSvc),'_blank');
+  window.open('/admin/costeo/carta/export.pdf?rest='+encodeURIComponent(rest)+'&svc='+encodeURIComponent(costeoApiSvc()),'_blank');
 }
 // Descarga a Excel de Recetas base ('recetas') o Platos/Tragos ('platos').
 function costeoExportXlsx(kind){
-  costeoDownload('/admin/costeo/'+kind+'/export.xlsx?rest='+encodeURIComponent(costeoRest)+'&svc='+encodeURIComponent(costeoSvc));
+  costeoDownload('/admin/costeo/'+kind+'/export.xlsx?rest='+encodeURIComponent(costeoRest)+'&svc='+encodeURIComponent(costeoApiSvc()));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -12252,7 +12322,7 @@ let AN = {
   loadedRest: null, // qué rest tiene cargados grupos/escenarios ahora mismo
   conDesc: false,
   modo: 'rapido', // 'rapido' | 'exacto'
-  pesosBarra: { cervezas: 20, cocktails: 20, otrosAlcohol: 20, sinAlcohol: 20, otros: 20 },
+  pesosBarra: { cervezas: 16.7, cocktails: 16.7, cortosBotellas: 16.7, otrosAlcohol: 16.6, sinAlcohol: 16.6, otros: 16.7 },
   mixComida: 50,
   unidades: {}, // key -> cantidad vendida (modo exacto)
   resultado: null,
@@ -12276,7 +12346,7 @@ function anReset(){
   // nuevo arriba, agregalo TAMBIÉN acá — si no, al cambiar de restaurante el
   // campo queda `undefined` y revienta la primera vez que se lee.
   AN = { loadedRest: null, conDesc: false, modo: 'rapido',
-    pesosBarra: { cervezas: 20, cocktails: 20, otrosAlcohol: 20, sinAlcohol: 20, otros: 20 }, mixComida: 50,
+    pesosBarra: { cervezas: 16.7, cocktails: 16.7, cortosBotellas: 16.7, otrosAlcohol: 16.6, sinAlcohol: 16.6, otros: 16.7 }, mixComida: 50,
     unidades: {}, resultado: null, grupos: [], gruposConfig: null, escenarios: [],
     productos: null, productosKey: null, mapeoAbierto: false, search: '', abiertas: new Set(),
     // El vínculo con Pyxis es por restaurante: al cambiar hay que releerlo.
@@ -12780,7 +12850,10 @@ async function anAbrirEscenario(id){
     costeoRest = e.rest;
   }
   AN.modo = e.modo; AN.conDesc = !!e.conDesc;
-  if (e.modo === 'rapido') { AN.pesosBarra = { ...(e.pesosBarra || AN.pesosBarra) }; AN.mixComida = e.mixComida != null ? e.mixComida : AN.mixComida; }
+  // Un escenario guardado antes de que existiera el grupo "Cortos y Botellas"
+  // no trae esa clave — se completa en 0 (no se inventa un peso) en vez de
+  // quedar "undefined" en el input.
+  if (e.modo === 'rapido') { AN.pesosBarra = { cervezas: 0, cocktails: 0, cortosBotellas: 0, otrosAlcohol: 0, sinAlcohol: 0, otros: 0, ...(e.pesosBarra || AN.pesosBarra) }; AN.mixComida = e.mixComida != null ? e.mixComida : AN.mixComida; }
   else { AN.unidades = { ...(e.unidades || {}) }; }
   AN.productos = null; AN.productosKey = null; AN.loadedRest = null; // fuerza a recargar grupos/escenarios del rest correcto
   await renderCosteoAnalisis();

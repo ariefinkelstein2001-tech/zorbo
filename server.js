@@ -16408,13 +16408,19 @@ app.put('/admin/costeo/mix', requireAdmin, (req, res) => {
 const CARTA_DESCUENTO_PCT = 40; // mismo valor que CARTA_DESCUENTO_PCT en admin.html
 const costeoDescuentoAplica = (rest) => costeoRestKey(rest) === 'badass'; // Garden nunca tuvo descuento
 
-// ── 5 grupos de Barra (mismos que el mix Comida/Barra ya existente pide) ──
+// ── 6 grupos de Barra (mismos que el mix Comida/Barra ya existente pide) ──
+// "Cortos y Botellas" se separó de "Otros con alcohol" a pedido del dueño: son
+// las mismas 16 categorías (Ron/Pisco/Vodka/Whisky/Bourbon/Gin/Licores/Tequila
+// + su "* Botella") que en Carta (resumen) y Comida/Barra ahora viven en su
+// propia sección de Servicio "Botellas y Cortos" — ver COSTEO_CORTO_BOTELLA_CATS
+// más abajo, misma lista, una sola fuente de la verdad.
 const COSTEO_GRUPOS_BARRA = [
-  { key: 'cervezas',     label: 'Cervezas',          visual: 'conAlcohol' },
-  { key: 'cocktails',    label: 'Cocktails',         visual: 'conAlcohol' },
-  { key: 'otrosAlcohol', label: 'Otros con alcohol', visual: 'conAlcohol' },
-  { key: 'sinAlcohol',   label: 'Sin alcohol',       visual: 'sinAlcohol' },
-  { key: 'otros',        label: 'Otros',             visual: 'otros' },
+  { key: 'cervezas',       label: 'Cervezas',          visual: 'conAlcohol' },
+  { key: 'cocktails',      label: 'Cocktails',         visual: 'conAlcohol' },
+  { key: 'cortosBotellas', label: 'Cortos y Botellas', visual: 'conAlcohol' },
+  { key: 'otrosAlcohol',   label: 'Otros con alcohol', visual: 'conAlcohol' },
+  { key: 'sinAlcohol',     label: 'Sin alcohol',       visual: 'sinAlcohol' },
+  { key: 'otros',          label: 'Otros',             visual: 'otros' },
 ];
 const COSTEO_GRUPOS_BARRA_KEYS = new Set(COSTEO_GRUPOS_BARRA.map(g => g.key));
 // Semilla del mapeo sección→grupo por NOMBRE LITERAL (dado por el dueño para
@@ -16432,9 +16438,12 @@ const COSTEO_GRUPOS_BARRA_NOMBRES = {
     'De la casa', 'Jarras de la casa', 'Malas Costumbres XD', 'De autor',
     'Low Alcohol and Skinny Cocktails', 'CLÁSICOS',
   ],
-  otrosAlcohol: [
-    'Spritz', 'Especial Chelas', 'Gin', 'Whisky', 'Bourbon', 'Vodka', 'Pisco', 'Ron', 'Tequila', 'Licores',
+  cortosBotellas: [
+    'Gin', 'Whisky', 'Bourbon', 'Vodka', 'Pisco', 'Ron', 'Tequila', 'Licores',
     'Gin Botella', 'Whisky Botella', 'Bourbon Botella', 'Vodka Botella', 'Pisco Botella', 'Ron Botella', 'Tequila Botella', 'Licores Botella',
+  ],
+  otrosAlcohol: [
+    'Spritz', 'Especial Chelas',
     'Vino (botella 750cc)', 'Espumantes', 'Cervezas Invitadas',
   ],
   sinAlcohol: ['Para Tomar 0.0', 'Para Tomar 0,0'],
@@ -16449,12 +16458,38 @@ function costeoAnalisisSeedSecciones(){
 }
 
 const COSTEO_ANALISIS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'costeo-analisis.json');
-function costeoAnalisisLoad(){
-  try { if (existsSync(COSTEO_ANALISIS_FILE)) { const p = JSON.parse(readFileSync(COSTEO_ANALISIS_FILE, 'utf-8')); if (p && typeof p === 'object') return p; } }
-  catch (e) { console.warn('costeo-analisis load:', e.message); }
-  return {};
-}
 function costeoAnalisisSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTEO_ANALISIS_FILE, JSON.stringify(d, null, 2)); }
+// Migración: "Cortos y Botellas" se separó de "Otros con alcohol" (ver
+// COSTEO_GRUPOS_BARRA arriba). Si algún local ya tenía guardada, desde el
+// editor de Análisis, una asignación sección→grupo para alguna de las 16
+// categorías que se movieron y esa asignación seguía apuntando a
+// "otrosAlcohol", se corrige a "cortosBotellas" — así el % ponderado no
+// mezcla sin querer Cortos/Botellas con Vino/Espumantes/Cervezas Invitadas.
+// No toca una asignación que ya apuntara a otro grupo (respeta lo hecho a
+// mano). Corre una sola vez (d.gruposV).
+const COSTEO_ANALISIS_GRUPOS_V = 1;
+function costeoAnalisisMigrarCortosBotellas(d){
+  if (Number(d.gruposV) >= COSTEO_ANALISIS_GRUPOS_V) return false;
+  const mover = new Set(COSTEO_GRUPOS_BARRA_NOMBRES.cortosBotellas.map(costeoNormLoose));
+  if (d.config && typeof d.config === 'object') {
+    for (const rest of Object.keys(d.config)) {
+      const secciones = d.config[rest] && d.config[rest].secciones;
+      if (!secciones || typeof secciones !== 'object') continue;
+      for (const key of Object.keys(secciones)) {
+        if (secciones[key] === 'otrosAlcohol' && mover.has(key)) secciones[key] = 'cortosBotellas';
+      }
+    }
+  }
+  d.gruposV = COSTEO_ANALISIS_GRUPOS_V;
+  return true;
+}
+function costeoAnalisisLoad(){
+  let d = {};
+  try { if (existsSync(COSTEO_ANALISIS_FILE)) { const p = JSON.parse(readFileSync(COSTEO_ANALISIS_FILE, 'utf-8')); if (p && typeof p === 'object') d = p; } }
+  catch (e) { console.warn('costeo-analisis load:', e.message); }
+  if (costeoAnalisisMigrarCortosBotellas(d)) costeoAnalisisSave(d);
+  return d;
+}
 // Mapeo sección→grupo: estructural (qué sección es de qué grupo), compartido
 // por los dos modos y por todos los escenarios de un local — no es parte de
 // un escenario individual, es un hecho sobre la carta.
