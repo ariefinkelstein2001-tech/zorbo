@@ -128,7 +128,7 @@ a{color:inherit}
 .cc-stat-mini .lb{font-size:.56rem;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--dim);line-height:1.3;min-height:2.1em;display:flex;align-items:center;justify-content:center}
 .cc-stat-mini .val{font-family:var(--display);font-weight:800;font-size:1.3rem;color:var(--gold-bright);margin-top:3px;white-space:nowrap}
 .cc-stat-mini .val small{font-size:.72rem;font-weight:700}
-.cc-stat-mini .sub{font-size:.58rem;color:var(--dim2);margin-top:2px;line-height:1.25}
+.cc-stat-mini .sub{font-size:.58rem;color:var(--dim2);margin-top:2px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cc-stat-mini.tone-verde .val{color:var(--good)}
 .cc-stat-mini.tone-amarillo .val{color:var(--warn)}
 .cc-stat-mini.tone-rojo .val{color:var(--bad)}
@@ -257,7 +257,7 @@ let ST = {
     carta: null, cartaBarraAux: null, costeo: null, costeoBarraAux: null, reventa: null,
     mix: null,            // { comida, barra } — GET /consulta-costeo/api/mix (cacheado hasta cambiar de local)
     umbrales: null,       // semáforo de color — GET /consulta-costeo/api/umbrales (cacheado)
-    escUltimo: {},        // último escenario guardado de Análisis, keyed por 'sin'/'con' descuento
+    escUltimo: null,      // { rest, escenario } — el último guardado en Análisis, SIEMPRE el mismo sin importar el toggle de descuento (ver statPonderadoBox)
   },
   loadingData: false,
 };
@@ -432,22 +432,20 @@ function renderMain(){
 }
 // El toggle solo afecta Carta (resumen) — igual que en el ERP (Platos/Recetas/
 // Insumos no tienen concepto de descuento). No hace falta pedir datos nuevos:
-// precios y costos ya están en memoria, solo cambia la fórmula de display —
-// salvo el "último escenario" del cuadro (c), que sí es un dato aparte por
-// estado de descuento y puede no estar cacheado todavía.
-async function toggleDescuento(){
+// precios y costos ya están en memoria, solo cambia la fórmula de display. El
+// cuadro (c) — último escenario de Análisis — NO depende del toggle: un
+// escenario se guarda en un solo estado (con o sin descuento), así que
+// filtrarlo por el toggle actual lo hacía "desaparecer" cuando el toggle no
+// calzaba con cómo se había guardado (bug reportado: "no lo reconoce").
+// Ahora siempre muestra el último, aclarando en qué estado se calculó.
+function toggleDescuento(){
   ST.conDesc = !ST.conDesc;
   document.getElementById('ccDescToggle').classList.toggle('on', ST.conDesc);
-  const key = ST.conDesc ? 'con' : 'sin';
-  if (ST.data.escUltimo[key] === undefined) {
-    if (ST.tab==='carta') renderBody();
-    ST.data.escUltimo[key] = await api(`/consulta-costeo/api/analisis/ultimo?conDesc=${ST.conDesc?1:0}`).catch(()=>({escenario:null}));
-  }
   if (ST.tab==='carta') renderBody();
 }
 async function doLogout(){
   await fetch('/consulta-costeo/salir', { method:'POST', credentials:'same-origin' });
-  ST = { screen:'loading', locales:[], pickedLocal:null, codeDigits:'', authError:'', authBusy:false, admin:false, local:null, adminLocales:null, tab:'carta', svc:'comida', conDesc:false, search:'', catFilter:'', expanded:null, data:{ escUltimo:{} }, loadingData:false };
+  ST = { screen:'loading', locales:[], pickedLocal:null, codeDigits:'', authError:'', authBusy:false, admin:false, local:null, adminLocales:null, tab:'carta', svc:'comida', conDesc:false, search:'', catFilter:'', expanded:null, data:{ escUltimo:null }, loadingData:false };
   const r = await fetch('/consulta-costeo/locales'); const j = await r.json(); ST.locales = j.locales||[];
   ST.screen = 'pick-local'; render();
 }
@@ -467,7 +465,7 @@ function openSwitcher(){
     // mix y último escenario son por restaurante — se limpian al cambiar de
     // local para no arrastrar el número del local anterior (umbrales son
     // globales, esos sí se conservan).
-    if (r.ok) { ST.local = j.local; ST.data.mix = null; ST.data.escUltimo = {}; renderMain(); loadTabData(); }
+    if (r.ok) { ST.local = j.local; ST.data.mix = null; ST.data.escUltimo = null; renderMain(); loadTabData(); }
   });
   openSheet();
 }
@@ -504,18 +502,15 @@ function openDownloads(){
 function svcLabel(){ return ST.svc==='barra' ? 'Barra' : (ST.svc==='ambos' ? 'Comida y Barra' : 'Comida'); }
 
 // ── carga de datos (siempre GET, siempre del local de la sesión) ──
-// Datos de los 3 cuadros resumen de Carta — mix y umbrales son por local (o
-// globales) y se cachean hasta que cambie el local; el último escenario se
-// cachea por estado de descuento (ver toggleDescuento). Ninguno de los 3
-// depende del Servicio elegido (son números del restaurante entero), así que
-// no hace falta re-pedirlos al cambiar de pestaña Comida/Barra/Comida y Barra.
+// Datos de los 3 cuadros resumen de Carta — mix, umbrales y último escenario
+// son por local (o globales) y se cachean hasta que cambie el local; ninguno
+// depende del Servicio elegido (son números del restaurante entero) ni del
+// toggle de descuento (el escenario es siempre el mismo — ver
+// statPonderadoBox), así que no hace falta re-pedirlos al cambiar de pestaña.
 async function loadStatsData(){
   if (!ST.data.mix) ST.data.mix = await api('/consulta-costeo/api/mix').catch(()=>null);
   if (!ST.data.umbrales) ST.data.umbrales = await api('/consulta-costeo/api/umbrales').catch(()=>null);
-  const key = ST.conDesc ? 'con' : 'sin';
-  if (ST.data.escUltimo[key] === undefined) {
-    ST.data.escUltimo[key] = await api(`/consulta-costeo/api/analisis/ultimo?conDesc=${ST.conDesc?1:0}`).catch(()=>({escenario:null}));
-  }
+  if (!ST.data.escUltimo) ST.data.escUltimo = await api('/consulta-costeo/api/analisis/ultimo').catch(()=>null);
 }
 async function loadTabData(){
   ST.loadingData = true; renderBody();
@@ -614,16 +609,24 @@ function statMixBox(){
     <div class="sub">${mix ? '% de ingresos' : 'sin datos'}</div>
   </div>`;
 }
+// El escenario es un dato congelado en Análisis, guardado en UN solo estado
+// de descuento (el que tenía activo quien lo guardó) — no en los dos. Por
+// eso NO se filtra por el toggle actual de la app (eso hacía que un local con
+// un solo escenario guardado se quedara sin nada al mirarlo en el estado
+// "equivocado"); siempre es el más reciente, con su propio estado aclarado
+// abajo para que no se confunda con el toggle de arriba.
 function statPonderadoBox(){
-  const key = ST.conDesc ? 'con' : 'sin';
-  const esc_ = ST.data.escUltimo[key];
-  const res = esc_ && esc_.escenario && esc_.escenario.resultado;
+  const esc_ = ST.data.escUltimo && ST.data.escUltimo.escenario;
+  const res = esc_ && esc_.resultado;
   const pct = res ? res.pct : null;
-  const tone = pct != null ? ccToneClass(ccTone(pct, 'ambos', ST.conDesc)) : '';
+  const tone = pct != null ? ccToneClass(ccTone(pct, 'ambos', !!(esc_ && esc_.conDesc))) : '';
+  const sub = esc_
+    ? `"${esc(esc_.nombre)}" · ${esc_.conDesc ? 'con desc.' : 'sin desc.'}`
+    : 'sin escenario guardado';
   return `<div class="cc-stat-mini ${tone}">
     <div class="lb">% costo<br>ponderado</div>
     <div class="val">${pct!=null?pct:'—'}${pct!=null?'<small>%</small>':''}</div>
-    <div class="sub">${esc_ && esc_.escenario ? 'Último escenario' : 'sin escenario guardado'}</div>
+    <div class="sub" title="${esc_?esc('Último escenario: '+esc_.nombre):''}">${sub}</div>
   </div>`;
 }
 function ccToneClass(tone){ return tone ? 'tone-'+tone : ''; }

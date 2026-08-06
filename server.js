@@ -18722,17 +18722,20 @@ app.get('/consulta-costeo/api/mix', requireConsulta, (req, res) => {
 app.get('/consulta-costeo/api/umbrales', requireConsulta, (_req, res) => {
   res.json(costeoUmbralesLoad());
 });
-// Último escenario guardado en Análisis para este local, en el estado de
-// descuento pedido (?conDesc=0|1) — el mismo dato "congelado" que se ve en el
-// ERP bajo Análisis › Escenarios guardados. Si no hay ninguno en ese estado,
-// null (no se inventa un número).
+// Último escenario guardado en Análisis para este local — el mismo dato
+// "congelado" que se ve en el ERP bajo Análisis › Escenarios guardados. Es
+// SIEMPRE el más reciente, sin importar el toggle de descuento de la app: un
+// escenario se guarda en un solo estado (con o sin), no en los dos, así que
+// filtrar por el toggle actual podía dejar "sin escenario" a un local que sí
+// tenía uno guardado, solo porque el toggle no calzaba con cómo se guardó.
+// El propio campo conDesc del escenario viaja en la respuesta para que la
+// app aclare en qué estado se calculó.
 app.get('/consulta-costeo/api/analisis/ultimo', requireConsulta, (req, res) => {
   const rest = req.consultaLocal.rest;
-  const conDesc = req.query.conDesc === '1';
   const list = costeoAnalisisEscenarios()
-    .filter(e => e.rest === rest && !!e.conDesc === conDesc)
+    .filter(e => e.rest === rest)
     .sort((a, b) => String(b.actualizadoEn || '').localeCompare(String(a.actualizadoEn || '')));
-  res.json({ rest, conDesc, escenario: list[0] || null });
+  res.json({ rest, escenario: list[0] || null });
 });
 app.get('/consulta-costeo/api/carta/export.pdf', requireConsulta, (req, res) => {
   const rest = req.consultaLocal.rest; const svc = costeoSvcKey(req.query.svc);
