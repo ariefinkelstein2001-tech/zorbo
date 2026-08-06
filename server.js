@@ -14473,7 +14473,8 @@ function costeoNormalizeCarta(c){
   const esv = Number.isFinite(c.esv) ? c.esv : 0; // versión: Badass comida — saca de Carta (resumen) los ítems de platos que ya no se sirven y renombra las Ensaladas al nombre oficial de la carta
   const ptv = Number.isFinite(c.ptv) ? c.ptv : 0; // versión: Badass comida — se elimina la sección "Para Tomar 0.0" de Carta (resumen): es de Barra, no de alimentos
   const cbdv = Number.isFinite(c.cbdv) ? c.cbdv : 0; // versión: Badass barra — se eliminan 64 Cortos/Botellas puntuales a pedido del dueño
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, kclv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, wlv, dsv, pcb2v, esv, ptv, cbdv, secciones, asignaciones };
+  const vecv = Number.isFinite(c.vecv) ? c.vecv : 0; // versión: Badass barra — Vino y Espumantes de Reventa pasan de venderse por botella (750cc) a venderse por copa (150cc)
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, kclv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, wlv, dsv, pcb2v, esv, ptv, cbdv, vecv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -15454,6 +15455,59 @@ function costeoBadassEliminarCortosBotellas(doc, rest){
   doc.carta.cbdv = BADASS_CORTOS_BOTELLAS_ELIMINAR_V;
   return true;
 }
+// Badass barra: Vino y Espumantes de Reventa pasan de venderse por botella
+// (750cc) a venderse por copa (150cc) — a pedido del dueño. El precio de
+// compra de la copa sale de prorratear (150/750) el precio de compra que ya
+// estuviera cargado a mano para la botella; si no había compra cargada,
+// queda vacío para completar. El precio de venta NO se traslada (es un precio
+// de botella completa, no de copa) — queda vacío para que se cargue el precio
+// real de la copa. Cada sección de botella se reemplaza por su versión
+// "(copa)": mismos productos, sección de botella eliminada (ya no se vende
+// así). Dedupe por nombre normalizado de producto dentro de la sección
+// destino, además del flag de versión. Corre una sola vez (carta.vecv), solo
+// Badass.
+const BADASS_VINO_ESPUMANTE_COPA_ML = 150;
+const BADASS_VINO_ESPUMANTE_BOTELLA_ML = 750;
+const BADASS_VINO_ESPUMANTE_COPA_SECCIONES = {
+  'Vino (botella 750cc)': 'Vino (copa)',
+  'Espumantes': 'Espumantes (copa)',
+};
+const BADASS_VINO_ESPUMANTE_COPA_V = 1;
+function costeoBadassVinoEspumanteCopa(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.vecv >= BADASS_VINO_ESPUMANTE_COPA_V) return false;
+  if (costeoRestKey(rest) !== 'badass') { doc.carta.vecv = BADASS_VINO_ESPUMANTE_COPA_V; return true; }
+  // Fuerza el sembrado general de Reventa primero (si todavía no corrió): así
+  // "Vino (botella 750cc)"/"Espumantes" existen ANTES de intentar
+  // transformarlos, sin depender de en qué orden loadReventa() los siembra
+  // por su cuenta — mismo patrón que costeoBadassReventaLimpia.
+  costeoSeedReventa(doc, rest);
+  let secciones = doc.reventa.secciones;
+  const origenesAEliminar = new Set();
+  for (const [origenNombre, destNombre] of Object.entries(BADASS_VINO_ESPUMANTE_COPA_SECCIONES)) {
+    const origenNorm = costeoNorm(origenNombre);
+    const destNorm = costeoNorm(destNombre);
+    const origen = secciones.find(s => costeoNorm(s.nombre) === origenNorm);
+    if (!origen) continue; // ya migrado (o nunca existió con ese nombre): nada que hacer
+    let destino = secciones.find(s => costeoNorm(s.nombre) === destNorm);
+    if (!destino) { destino = { id: randomUUID(), nombre: destNombre, productos: [] }; secciones.push(destino); }
+    const yaEnDestino = new Set(destino.productos.map(p => costeoNorm(p.nombre)));
+    origen.productos.forEach(p => {
+      const pn = costeoNorm(p.nombre);
+      if (yaEnDestino.has(pn)) return;
+      const compraBotella = p.precioCompra != null ? Number(p.precioCompra) : null;
+      const compraCopa = compraBotella != null ? Math.round(compraBotella * BADASS_VINO_ESPUMANTE_COPA_ML / BADASS_VINO_ESPUMANTE_BOTELLA_ML) : null;
+      destino.productos.push({ id: randomUUID(), nombre: p.nombre, precioVenta: null, precioCompra: compraCopa });
+      yaEnDestino.add(pn);
+    });
+    origenesAEliminar.add(origen);
+  }
+  if (origenesAEliminar.size) secciones = secciones.filter(s => !origenesAEliminar.has(s));
+  doc.reventa.secciones = secciones;
+  doc.carta.vecv = BADASS_VINO_ESPUMANTE_COPA_V;
+  return true;
+}
 // ── Cervezas Kairos: de reventa a trago costeado ──
 // Las 4 categorías de cerveza propia (colecciones de la casa / temporada /
 // artistas y el Firulais Craft Mix) estaban cargadas como REVENTA: se veían en
@@ -15906,6 +15960,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoBadassCervezasInvitadasAReventa(all[key], rest)) ch = true;
     if (costeoSeedPreciosCortosBotellas2(all[key], rest)) ch = true;
     if (costeoBadassEliminarCortosBotellas(all[key], rest)) ch = true;
+    if (costeoBadassVinoEspumanteCopa(all[key], rest)) ch = true;
   }
   return ch;
 }
@@ -16444,7 +16499,7 @@ const COSTEO_GRUPOS_BARRA_NOMBRES = {
   ],
   otrosAlcohol: [
     'Spritz', 'Especial Chelas',
-    'Vino (botella 750cc)', 'Espumantes', 'Cervezas Invitadas',
+    'Vino (copa)', 'Espumantes (copa)', 'Cervezas Invitadas',
   ],
   sinAlcohol: ['Para Tomar 0.0', 'Para Tomar 0,0'],
   otros: ['Chelas sin alcohol', 'Kombucha'],
