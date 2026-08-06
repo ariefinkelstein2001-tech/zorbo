@@ -14459,6 +14459,7 @@ function costeoNormalizeCarta(c){
   const pcbv = Number.isFinite(c.pcbv) ? c.pcbv : 0; // versión: sembrado de precios reales de Cortos/Botellas de Badass (lista del dueño)
   const rai = Number.isFinite(c.rai) ? c.rai : 0; // versión: Badass — Kombucha y Chelas sin alcohol pasan de reventa a trago costeado (insumo propio)
   const kuv = Number.isFinite(c.kuv) ? c.kuv : 0; // versión: insumos de Kombucha/Chelas sin alcohol pasan de litro a "unidad" (se venden por botella, no por volumen)
+  const kclv = Number.isFinite(c.kclv) ? c.kclv : 0; // versión: insumos de Kombucha/Chelas sin alcohol vuelven a litro (con volumen real), para poder usarse por volumen en otras recetas
   const rlv = Number.isFinite(c.rlv) ? c.rlv : 0; // versión: Badass — se limpia la Reventa suelta, dejando solo Vino/Espumantes/Gaseosas
   const grlv = Number.isFinite(c.grlv) ? c.grlv : 0; // versión: Garden — se sacan de la Reventa suelta las categorías que ya están duplicadas como plato costeado
   const gav = Number.isFinite(c.gav) ? c.gav : 0; // versión: Badass — Gaseosas pasa de reventa a trago costeado (insumo propio)
@@ -14472,7 +14473,7 @@ function costeoNormalizeCarta(c){
   const esv = Number.isFinite(c.esv) ? c.esv : 0; // versión: Badass comida — saca de Carta (resumen) los ítems de platos que ya no se sirven y renombra las Ensaladas al nombre oficial de la carta
   const ptv = Number.isFinite(c.ptv) ? c.ptv : 0; // versión: Badass comida — se elimina la sección "Para Tomar 0.0" de Carta (resumen): es de Barra, no de alimentos
   const cbdv = Number.isFinite(c.cbdv) ? c.cbdv : 0; // versión: Badass barra — se eliminan 64 Cortos/Botellas puntuales a pedido del dueño
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, wlv, dsv, pcb2v, esv, ptv, cbdv, secciones, asignaciones };
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, kclv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, wlv, dsv, pcb2v, esv, ptv, cbdv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -15632,6 +15633,55 @@ function costeoBadassKombuchaChelaUnidad(doc, rest){
   doc.carta.kuv = BADASS_KOMBUCHA_CHELA_UNIDAD_V;
   return true;
 }
+// Badass: Kombucha (Zen/Elixir/Momentum) y las Chelas sin alcohol (Heineken
+// Cero°, Weissbier 0,0% Paulaner) tenían su insumo cargado "por unidad" (una
+// botella = 1, sin volumen) — costeoBadassKombuchaChelaUnidad las había
+// dejado así para arreglar el cálculo de esa época. Ahora hace falta el
+// insumo "por litro" (para poder usarlo por volumen en otras recetas más
+// adelante) y que la venta de la botella completa en las secciones
+// "Kombucha"/"Chelas sin alcohol" siga dando el mismo precio de siempre —
+// mismo criterio que ya se usa en Botellas: el insumo queda en litro con su
+// volumen real, y la línea del trago que vende la botella entera usa ese
+// mismo volumen como cantidad (en vez de 1), así el costo sale igual que
+// antes en vez de dividirse por litro de más. Tamaños de botella confirmados
+// por el dueño: Kombucha 500 ml, Heineken 0.0 330 ml, Paulaner 0.0% 500 ml.
+// Usa costeoSetAuto en la cantidad de la línea para no pisar una corrección
+// hecha a mano. Corre una sola vez (carta.kclv), solo Badass — pisa lo que
+// dejó costeoBadassKombuchaChelaUnidad a propósito, así que corre después.
+const BADASS_KOMBUCHA_CHELA_LITRO = {
+  'KOMBUCHA ZEN': 0.5, 'KOMBUCHA ELIXIR': 0.5, 'KOMBUCHA MOMENTUN': 0.5,
+  'HEINEKEN S/ALCOHOL': 0.33, 'PAULANER S/ALCOHOL': 0.5,
+};
+const BADASS_KOMBUCHA_CHELA_LITRO_PLATOS = ['Kombucha Biloba Zen', 'Kombucha Biloba Elixir', 'Kombucha Biloba Momentum', 'Heineken Cero°', 'Weissbier 0,0% Paulaner'];
+const BADASS_KOMBUCHA_CHELA_LITRO_V = 1;
+function costeoBadassKombuchaChelaLitro(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.kclv >= BADASS_KOMBUCHA_CHELA_LITRO_V) return false;
+  if (costeoRestKey(rest) !== 'badass') { doc.carta.kclv = BADASS_KOMBUCHA_CHELA_LITRO_V; return true; }
+  const volPorInsumo = new Map(Object.entries(BADASS_KOMBUCHA_CHELA_LITRO).map(([k, v]) => [costeoNorm(k), v]));
+  (doc.insumos || []).forEach(ins => {
+    const vol = volPorInsumo.get(costeoNorm(ins.descripcion));
+    if (!vol) return;
+    ins.unidad = 'litro';
+    ins.volumen = vol;
+  });
+  const nombresPlatos = new Set(BADASS_KOMBUCHA_CHELA_LITRO_PLATOS.map(costeoNorm));
+  (doc.platos || []).forEach(p => {
+    if (!nombresPlatos.has(costeoNorm(p.nombre))) return;
+    (p.lineas || []).forEach(l => {
+      if (l.refType !== 'insumo') return;
+      const ins = (doc.insumos || []).find(i => i.id === l.refId);
+      if (!ins) return;
+      const vol = volPorInsumo.get(costeoNorm(ins.descripcion));
+      if (!vol) return;
+      costeoAdoptarAuto(l, 'cantidad');
+      costeoSetAuto(l, 'cantidad', vol);
+    });
+  });
+  doc.carta.kclv = BADASS_KOMBUCHA_CHELA_LITRO_V;
+  return true;
+}
 // Badass: Gaseosas pasa de reventa (precio de compra manual) a trago costeado,
 // asociando cada producto a su insumo real de barra (mismo criterio que Kombucha/
 // Chelas sin alcohol). Fanta/Fanta Zero/Sprite/Sprite Zero/Coca Cola/Coca Cola Zero/
@@ -15844,6 +15894,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoCervezasKairosMediaPinta(all[key], rest)) ch = true;
     if (costeoBadassReventaAInsumo(all[key], rest)) ch = true;
     if (costeoBadassKombuchaChelaUnidad(all[key], rest)) ch = true;
+    if (costeoBadassKombuchaChelaLitro(all[key], rest)) ch = true;
     if (costeoBadassGaseosas(all[key], rest)) ch = true;
     if (costeoBadassGaseosasParaTomar(all[key], rest)) ch = true;
     if (costeoBadassReventaLimpia(all[key], rest)) ch = true;
