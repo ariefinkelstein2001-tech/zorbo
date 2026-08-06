@@ -3134,6 +3134,54 @@ body.hosp-open{overflow:hidden}
 .rsp-dia{font-size:.72rem;font-weight:700;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:.15rem .5rem;font-variant-numeric:tabular-nums}
 .rsp-dia.hoy{background:var(--gold-dim);border-color:var(--gold-bd);color:var(--gold-deep)}
 
+/* ── Globo flotante del chat interno ── */
+/* Vive en todas las secciones del panel para no tener que ir al Espacio de
+   trabajo cada vez que alguien escribe. La esquina de abajo a la derecha ya
+   está ocupada por el botón de Zorbot (en celular su FAB, en escritorio el
+   "reabrir" cuando el preview está colapsado), así que el globo se corre para
+   arriba en esos casos en vez de taparlo. */
+.wsfab{position:fixed;right:18px;bottom:18px;z-index:70;width:56px;height:56px;border-radius:50%;border:0;cursor:pointer;
+  background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623) 65%);color:#241a05;font-size:1.5rem;line-height:1;
+  display:none;align-items:center;justify-content:center;box-shadow:0 10px 28px rgba(245,166,35,.45);transition:transform .16s,box-shadow .16s}
+body.wsfab-on .wsfab{display:flex}
+.wsfab:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 14px 34px rgba(245,166,35,.55)}
+.wsfab:active{transform:scale(.95)}
+.wsfab .n{position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;border-radius:20px;background:var(--red);color:#fff;
+  font-size:.68rem;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 5px;box-shadow:0 0 0 3px var(--surface)}
+/* Late cuando llega algo nuevo: el badge solo no se ve si estás mirando otra parte. */
+@keyframes wsfabPing{0%,100%{transform:scale(1)}18%{transform:scale(1.14)}36%{transform:scale(.97)}54%{transform:scale(1.08)}}
+.wsfab.nuevo{animation:wsfabPing 1.1s ease}
+body.chat-collapsed .wsfab{bottom:84px}
+@media(max-width:1080px){ body.chat-collapsed .wsfab{bottom:18px} }
+@media(max-width:600px){ .wsfab{bottom:84px;width:52px;height:52px;font-size:1.35rem} }
+
+.wsfab-panel{position:fixed;right:18px;bottom:86px;z-index:71;width:370px;height:min(560px,calc(100vh - 140px));
+  background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:0 22px 60px rgba(10,24,51,.3);
+  display:none;flex-direction:column;overflow:hidden}
+body.wsfab-abierto .wsfab-panel{display:flex}
+body.chat-collapsed .wsfab-panel{bottom:152px}
+@media(max-width:1080px){ body.chat-collapsed .wsfab-panel{bottom:86px} }
+@media(max-width:600px){
+  .wsfab-panel{right:0;left:0;bottom:0;width:auto;height:min(78vh,560px);border-radius:18px 18px 0 0}
+  body.chat-collapsed .wsfab-panel{bottom:0}
+}
+.wsfab-h{display:flex;align-items:center;gap:.5rem;padding:.6rem .75rem;border-bottom:1px solid var(--border);background:var(--surface2);flex:0 0 auto}
+.wsfab-h .t{font-family:var(--display);font-size:.92rem;font-weight:800;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wsfab-h .d{font-size:.7rem;color:var(--dim)}
+.wsfab-b{background:none;border:0;cursor:pointer;color:var(--dim);font-size:1rem;padding:.1rem .3rem;line-height:1;border-radius:6px}
+.wsfab-b:hover{color:var(--text);background:var(--surface3)}
+.wsfab-body{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.wsfab-lista{flex:1;overflow-y:auto;padding:.35rem}
+.wsfab-lista .ws-cn{padding:.45rem .5rem}
+.wsfab-hilo{flex:1;overflow-y:auto;padding:.6rem .7rem;display:flex;flex-direction:column;gap:.1rem}
+.wsfab-comp{border-top:1px solid var(--border);padding:.5rem .6rem;display:flex;gap:.4rem;align-items:flex-end;flex:0 0 auto}
+.wsfab-comp textarea{flex:1;font:inherit;font-size:.84rem;color:var(--text);background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;padding:.45rem .6rem;resize:none;max-height:96px;line-height:1.4}
+.wsfab-comp textarea:focus{outline:none;border-color:var(--gold);background:var(--surface)}
+.wsfab-comp button{flex:0 0 auto;width:32px;height:32px;border-radius:9px;border:0;cursor:pointer;font-size:.9rem;
+  background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623));color:#241a05;font-weight:800}
+.wsfab-vacio{text-align:center;color:var(--dim);font-size:.8rem;padding:1.4rem .8rem;line-height:1.5}
+
 /* ── Metas personales ── */
 .ws-metas{display:grid;grid-template-columns:1.25fr 1fr;gap:1rem;align-items:start}
 @media(max-width:900px){.ws-metas{grid-template-columns:1fr}}
@@ -3998,6 +4046,13 @@ body.hosp-open{overflow:hidden}
           <button type="button" class="ws-btn" id="wsDmEvento" style="text-align:left;padding:.7rem .8rem">📅 &nbsp;<b>Reunión o evento</b> — con hora y participantes</button>
         </div>
       </div>
+    </div>
+
+    <!-- Globo flotante del chat: disponible en todas las secciones del panel -->
+    <button type="button" class="wsfab" id="wsFab" title="Chat del equipo" aria-label="Abrir el chat del equipo">💬</button>
+    <div class="wsfab-panel" id="wsFabPanel" role="dialog" aria-label="Chat del equipo">
+      <div class="wsfab-h" id="wsFabHead"></div>
+      <div class="wsfab-body" id="wsFabBody"></div>
     </div>
 
     <!-- Modal de canal del chat (solo admin) -->
@@ -5424,6 +5479,7 @@ function showView(kind){
   // El espacio de trabajo usa todo el ancho (el tablero necesita las columnas)
   // y no tiene nada que ver con Zorbot, así que el panel del bot se oculta.
   document.body.classList.toggle('ws-active', kind === 'workspace');
+  if (typeof wsFabSync === 'function') setTimeout(wsFabSync, 0);   // tras aplicar las clases
   if (kind !== 'workspace' && typeof wsChatDetener === 'function') wsChatDetener(); // el sondeo del chat no corre fuera del espacio
   document.body.classList.toggle('estado-active', kind === 'estado');
   document.body.classList.toggle('finhome-active', kind === 'finhome' || kind === 'comercialhome'); // dashboard de área: sin panel Zorbot, a todo el ancho
@@ -18236,6 +18292,7 @@ function ccGateSetInert(on){
 function ccGateDismiss(){
   ccGateStop();
   ccGateSetInert(false);
+  if (typeof wsFabSync === 'function') setTimeout(wsFabSync, 0);
   // Se oculta en vez de destruirse: desde el ERP se puede volver al selector
   // (botón "Centros" del encabezado) sin recargar la página.
   const gate = document.getElementById('ccGate');
@@ -18250,6 +18307,7 @@ function ccGateAbrir(){
   if (!gate) { location.reload(); return; } // rol acotado: el gate no se montó
   gate.style.display = '';
   document.body.classList.add('cc-gate-open');
+  if (typeof wsFabSync === 'function') wsFabSync();
   ccGateSetInert(true);
   ccToggleSet('kairos');
   ccUnitSticky = null;
@@ -19165,6 +19223,7 @@ function wsRender(){
   else html += wsEquipoHtml();
   body.innerHTML = `<div class="ws-wrap">${html}</div>`;
   wsWire();
+  if (typeof wsFabSync === 'function') wsFabSync();
 }
 
 // ── Tarjeta ──
@@ -19740,6 +19799,7 @@ async function wsChatCargarCanales(){
 // aunque estés en otra sección del espacio.
 function wsChatBadge(n){
   wsChat.total = n;
+  if (typeof wsFabBadge === 'function') wsFabBadge(n);
   const tab = document.querySelector('[data-wstab="chat"]');
   if (tab) {
     const vieja = tab.querySelector('.n'); if (vieja) vieja.remove();
@@ -20369,6 +20429,177 @@ function wsDiaModal(iso){
 document.getElementById('wsDmTarea').onclick = () => { wsModalCerrar('wsDiaModal'); wsTareaModal(null, { vence: wsDiaElegido }); };
 document.getElementById('wsDmEvento').onclick = () => { wsModalCerrar('wsDiaModal'); wsEvModal(null, { fecha: wsDiaElegido }); };
 
+// ── Globo flotante del chat ──────────────────────────────────────────────────
+// Un acceso al chat desde cualquier sección del panel, sin ir al Espacio de
+// trabajo. Tiene estado propio (canal abierto, mensajes) para no pelearse con
+// la pestaña Chat si las dos están arriba; comparte el data layer y el contador
+// de no leídos.
+const FAB = { abierto: false, vista: 'lista', canalId: '', mensajes: [], ultimoTs: 0, timer: null, previo: 0 };
+
+function wsFabVisible(){
+  // No se muestra: para el rol costeo (no tiene acceso al espacio), ni mientras
+  // está el selector de Centro de Costo, ni cuando ya estás en la pestaña Chat.
+  if (adminRole === 'costeo') return false;
+  if (document.body.classList.contains('cc-gate-open')) return false;
+  if (document.body.classList.contains('ws-active') && wsTab === 'chat') return false;
+  return true;
+}
+function wsFabSync(){
+  document.body.classList.toggle('wsfab-on', wsFabVisible());
+  if (!wsFabVisible()) wsFabCerrar();
+}
+function wsFabBadge(n){
+  const b = document.getElementById('wsFab'); if (!b) return;
+  const vieja = b.querySelector('.n'); if (vieja) vieja.remove();
+  if (n > 0) {
+    const s = document.createElement('span'); s.className = 'n'; s.textContent = n > 9 ? '9+' : n; b.appendChild(s);
+    // Solo late cuando el número SUBE: si no, latiría en cada sondeo.
+    if (n > FAB.previo && !FAB.abierto) { b.classList.remove('nuevo'); void b.offsetWidth; b.classList.add('nuevo'); }
+  }
+  FAB.previo = n;
+  b.title = n > 0 ? `${n} mensaje${n === 1 ? '' : 's'} sin leer` : 'Chat del equipo';
+}
+
+async function wsFabAbrir(){
+  FAB.abierto = true;
+  document.body.classList.add('wsfab-abierto');
+  await wsFabPintar();
+  wsFabArrancar();
+}
+function wsFabCerrar(){
+  FAB.abierto = false;
+  document.body.classList.remove('wsfab-abierto');
+  if (FAB.timer) { clearInterval(FAB.timer); FAB.timer = null; }
+}
+function wsFabArrancar(){
+  if (FAB.timer) clearInterval(FAB.timer);
+  FAB.timer = setInterval(wsFabSondear, 4000);
+}
+
+async function wsFabPintar(){
+  const head = document.getElementById('wsFabHead'), body = document.getElementById('wsFabBody');
+  if (!head || !body) return;
+  if (FAB.vista === 'lista') {
+    head.innerHTML = `<span class="t">💬 Chat del equipo</span><span style="flex:1"></span>
+      <button type="button" class="wsfab-b" id="wsFabIr" title="Abrir en el Espacio de trabajo">⤢</button>
+      <button type="button" class="wsfab-b" id="wsFabX" title="Cerrar">✕</button>`;
+    const canales = wsChat.canales || [];
+    body.innerHTML = `<div class="wsfab-lista">${canales.length ? canales.map(c => `
+      <button type="button" class="ws-cn${c.noLeidos ? ' nuevo' : ''}" data-fabcn="${escapeAttr(c.id)}">
+        <span class="ic">${c.tipo === 'dm' ? wsAvatarHtml(c.conQuien, 'ws-av-sm') : escapeHtml(c.emoji || '💬')}</span>
+        <span class="nm"><b>${c.tipo === 'dm' ? '' : '#'}${escapeHtml(c.nombre)}</b>
+        ${c.ultimoTexto ? `<span>${escapeHtml(c.ultimoAutor === wsData.me.username ? 'Vos: ' : '')}${escapeHtml(c.ultimoTexto)}</span>` : ''}</span>
+        ${c.noLeidos ? `<span class="bd">${c.noLeidos > 9 ? '9+' : c.noLeidos}</span>` : ''}
+      </button>`).join('') : '<div class="wsfab-vacio">Todavía no hay canales.</div>'}</div>`;
+    body.querySelectorAll('[data-fabcn]').forEach(b => b.onclick = () => wsFabEntrar(b.dataset.fabcn));
+  } else {
+    const c = (wsChat.canales || []).find(x => x.id === FAB.canalId);
+    head.innerHTML = `<button type="button" class="wsfab-b" id="wsFabVolver" title="Volver">‹</button>
+      <span class="t">${c ? (c.tipo === 'dm' ? '' : '#') + escapeHtml(c.nombre) : 'Chat'}</span><span style="flex:1"></span>
+      <button type="button" class="wsfab-b" id="wsFabIr" title="Abrir en el Espacio de trabajo">⤢</button>
+      <button type="button" class="wsfab-b" id="wsFabX" title="Cerrar">✕</button>`;
+    let hilo = '', ultimoAutor = '', ultimoTs = 0, ultimoDia = '';
+    for (const m of FAB.mensajes) {
+      const dia = wsChatFechaSep(m.ts);
+      if (dia !== ultimoDia) { hilo += `<div class="ws-dia-sep">${escapeHtml(dia)}</div>`; ultimoDia = dia; ultimoAutor = ''; }
+      const seguido = m.autor === ultimoAutor && (m.ts - ultimoTs) < 300000;
+      const ami = (m.menciones || []).includes(wsData.me.username);
+      hilo += `<div class="ws-msg${seguido ? ' seguido' : ''}${ami ? ' ami' : ''}">${wsAvatarHtml(m.autor)}
+        <div class="ws-msg-b"><div class="ws-msg-h"><b>${escapeHtml(wsNombre(m.autor))}</b><span class="hr">${escapeHtml(wsChatHora(m.ts))}</span></div>
+        ${m.texto ? `<div class="ws-msg-t">${wsChatTexto(m.texto, m.menciones)}</div>` : ''}</div></div>`;
+      ultimoAutor = m.autor; ultimoTs = m.ts;
+    }
+    body.innerHTML = `<div class="wsfab-hilo" id="wsFabHilo">${hilo || '<div class="wsfab-vacio">Sin mensajes todavía.</div>'}</div>
+      <div class="wsfab-comp">
+        <textarea id="wsFabTexto" rows="1" placeholder="Escribí un mensaje…"></textarea>
+        <button type="button" id="wsFabEnviar" title="Enviar">➤</button>
+      </div>`;
+    const ta = document.getElementById('wsFabTexto');
+    ta.oninput = () => { ta.style.height = 'auto'; ta.style.height = Math.min(96, ta.scrollHeight) + 'px'; };
+    ta.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); wsFabEnviar(); } };
+    document.getElementById('wsFabEnviar').onclick = wsFabEnviar;
+    const v = document.getElementById('wsFabVolver');
+    if (v) v.onclick = () => { FAB.vista = 'lista'; FAB.canalId = ''; wsFabPintar(); };
+    const h = document.getElementById('wsFabHilo'); if (h) h.scrollTop = h.scrollHeight;
+    ta.focus();
+  }
+  const x = document.getElementById('wsFabX'); if (x) x.onclick = wsFabCerrar;
+  const ir = document.getElementById('wsFabIr');
+  if (ir) ir.onclick = async () => { const id = FAB.canalId; wsFabCerrar(); if (id) wsChat.canalId = id; await selectSeccion('ws-chat'); };
+}
+
+async function wsFabEntrar(canalId){
+  FAB.canalId = canalId; FAB.vista = 'hilo'; FAB.mensajes = []; FAB.ultimoTs = 0;
+  await wsFabPintar();
+  try {
+    const d = await wsApi('/admin/ws/chat/' + encodeURIComponent(canalId) + '/mensajes');
+    if (FAB.canalId !== canalId) return;           // cambió de canal mientras cargaba
+    FAB.mensajes = d.mensajes || [];
+    FAB.ultimoTs = FAB.mensajes.length ? FAB.mensajes[FAB.mensajes.length - 1].ts : 0;
+    await wsFabPintar();
+    await wsFabMarcarLeido();
+  } catch (e) { showToast(String(e.message || e), 'err'); }
+}
+async function wsFabMarcarLeido(){
+  if (!FAB.canalId || !FAB.ultimoTs) return;
+  try { await wsApi('/admin/ws/chat/' + encodeURIComponent(FAB.canalId) + '/leido', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ ts: FAB.ultimoTs }) }); } catch {}
+  const c = (wsChat.canales || []).find(x => x.id === FAB.canalId);
+  if (c) c.noLeidos = 0;
+  wsChatBadge((wsChat.canales || []).reduce((s, x) => s + (x.noLeidos || 0), 0));
+}
+async function wsFabEnviar(){
+  const ta = document.getElementById('wsFabTexto'); if (!ta) return;
+  const texto = ta.value.trim(); if (!texto || !FAB.canalId) return;
+  ta.value = ''; ta.style.height = 'auto';
+  try {
+    const d = await wsApi('/admin/ws/chat/' + encodeURIComponent(FAB.canalId) + '/mensajes', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ texto }) });
+    FAB.mensajes.push(d.mensaje); FAB.ultimoTs = d.mensaje.ts;
+    const c = (wsChat.canales || []).find(x => x.id === FAB.canalId);
+    if (c) { c.ultimoTexto = texto.slice(0, 90); c.ultimoTs = d.mensaje.ts; c.ultimoAutor = wsData.me.username; }
+    await wsFabPintar();
+  } catch (e) { ta.value = texto; showToast('No se pudo enviar: ' + String(e.message || e), 'err'); }
+}
+async function wsFabSondear(){
+  if (!FAB.abierto || document.visibilityState !== 'visible') return;
+  try {
+    if (FAB.vista === 'hilo' && FAB.canalId) {
+      const canal = FAB.canalId;
+      const d = await wsApi('/admin/ws/chat/' + encodeURIComponent(canal) + '/mensajes?desde=' + FAB.ultimoTs);
+      if (FAB.canalId !== canal) return;
+      const nuevos = (d.mensajes || []).filter(m => !FAB.mensajes.some(x => x.id === m.id));
+      if (nuevos.length) {
+        FAB.mensajes.push(...nuevos);
+        FAB.ultimoTs = FAB.mensajes[FAB.mensajes.length - 1].ts;
+        const h = document.getElementById('wsFabHilo');
+        const abajo = !h || (h.scrollHeight - h.scrollTop - h.clientHeight) < 60;
+        const borrador = (document.getElementById('wsFabTexto') || {}).value || '';
+        const scroll = h ? h.scrollTop : 0;
+        await wsFabPintar();
+        const h2 = document.getElementById('wsFabHilo');
+        if (h2 && !abajo) h2.scrollTop = scroll;
+        if (borrador) { const ta = document.getElementById('wsFabTexto'); if (ta) ta.value = borrador; }
+        await wsFabMarcarLeido();
+      }
+    }
+    await wsChatCargarCanales();
+    if (FAB.vista === 'lista') await wsFabPintar();
+  } catch {}
+}
+
+(function(){
+  const b = document.getElementById('wsFab'); if (!b) return;
+  b.onclick = async () => {
+    if (FAB.abierto) return wsFabCerrar();
+    // La primera vez puede no haber datos del espacio todavía (el globo vive en
+    // cualquier sección, no solo en el Espacio de trabajo).
+    if (!wsData) { try { await wsCargar(); } catch { showToast('No se pudo abrir el chat', 'err'); return; } }
+    try { await wsChatCargarCanales(); } catch {}
+    await wsFabAbrir();
+  };
+  // Escape cierra, igual que los modales.
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && FAB.abierto) wsFabCerrar(); });
+})();
+
 // ── Canal del chat (solo admin) ──
 let wsCanalEdit = null;
 function wsCanalModal(id){
@@ -20643,6 +20874,7 @@ fetch('/admin/me').then(r => r.ok ? r.json() : null).then(d => {
     selectSeccion('ws-tablero');
   }
   wsBellRefrescar();
+  wsFabSync();
 }).catch(() => { renderSidebar(); });
 
 // ── Aviso de almacenamiento efímero ──────────────────────────────────────────
