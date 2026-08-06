@@ -16725,42 +16725,58 @@ function costeoPyxisAgrupar(rows, rest, familias){
     a.monto[0] += num(r.p1); a.monto[1] += num(r.p2); a.monto[2] += num(r.p3);
     porNombre.set(k, a);
   }
+  // Alfabético: la lista se usa para BUSCAR un artículo por nombre, no para ver
+  // cuál se vendió más. Con 300 artículos, ordenar por cantidad obliga a
+  // recorrerla entera cada vez.
   const articulos = [...porNombre.values()]
     .map(a => ({ ...a, cantTotal: a.cant[0] + a.cant[1] + a.cant[2] }))
-    .sort((a, b) => b.cantTotal - a.cantTotal);
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base', numeric: true }));
   return {
     articulos, familiasConfiguradas: familias || [], familiasDisponibles,
     marcasVistas, localesVistos, criterio, filasDelRestaurante: mias.length, filasTotales: (rows || []).length,
   };
 }
-async function costeoPyxisArticulos(rest, svc){
+// Devuelve las DOS listas (comida y barra) en una sola bajada: los datos de
+// Pyxis son los mismos, cambia solo qué familias entran en cada una. Cada lado
+// dice por separado si está disponible, porque se configuran por separado.
+async function costeoPyxisArticulos(rest){
   const cfg = pyxisHospCfgLoad();
   const rows = await pyxisVentasRows('2', false);
-  const familias = svc === 'barra' ? cfg.familiaBarra : cfg.familiaComida;
+  const base = costeoPyxisAgrupar(rows, rest, null);   // sin filtrar: para el diagnóstico
+  const porSvc = {};
+  for (const [svc, familias] of [['comida', cfg.familiaComida], ['barra', cfg.familiaBarra]]) {
+    const g = costeoPyxisAgrupar(rows, rest, familias);
+    porSvc[svc] = {
+      disponible: !!(g.filasDelRestaurante && (familias || []).length),
+      articulos: g.articulos, familiasConfiguradas: familias || [],
+      motivo: (familias || []).length ? null
+        : `Falta decir qué familias de Pyxis son ${svc}. Se configura en Comercial › Horeca (Pyxis) ⚙️. Las que trae este local: ${base.familiasDisponibles.join(', ') || '(ninguna)'}.`,
+    };
+  }
   return {
-    ...costeoPyxisAgrupar(rows, rest, familias),
+    ...base, porSvc,
     meses: pyxisMesesKeys().map((key, i) => ({ key, label: pyxisMesLabel(key), idx: i })),
   };
 }
 
 app.get('/admin/costeo/analisis/pyxis', requireAdmin, async (req, res) => {
   const rest = costeoRestKey(req.query.rest);
-  const svc = req.query.svc === 'barra' ? 'barra' : 'comida';
+  const vacio = { comida: { disponible: false, articulos: [], familiasConfiguradas: [], motivo: null },
+                  barra:  { disponible: false, articulos: [], familiasConfiguradas: [], motivo: null } };
   try {
-    const d = await costeoPyxisArticulos(rest, svc);
+    const d = await costeoPyxisArticulos(rest);
     if (!d.filasDelRestaurante) {
-      return res.json({ disponible: false, rest, svc, mapa: costeoPyxisMapaGet(rest), ...d,
+      return res.json({ disponible: false, rest, mapa: costeoPyxisMapaGet(rest), ...d,
         motivo: `Pyxis respondió (${d.filasTotales} filas del grupo) pero ninguna es de ${rest === 'badass' ? 'Badass' : 'Garden'}. Revisá en Comercial › Horeca (Pyxis) que la marca esté bien identificada.` });
     }
-    if (!d.familiasConfiguradas.length) {
-      return res.json({ disponible: false, rest, svc, mapa: costeoPyxisMapaGet(rest), ...d,
-        motivo: `Falta decir qué familias de Pyxis son ${svc === 'barra' ? 'barra' : 'comida'}. Se configura en Comercial › Horeca (Pyxis) ⚙️. Las que trae este local: ${d.familiasDisponibles.join(', ') || '(ninguna)'}.` });
-    }
-    res.json({ disponible: true, rest, svc, mapa: costeoPyxisMapaGet(rest), ...d });
+    // Alcanza con que UNO de los dos esté configurado para que la pantalla sirva.
+    const alguno = d.porSvc.comida.disponible || d.porSvc.barra.disponible;
+    res.json({ disponible: alguno, rest, mapa: costeoPyxisMapaGet(rest), ...d,
+      motivo: alguno ? null : [d.porSvc.comida.motivo, d.porSvc.barra.motivo].filter(Boolean)[0] });
   } catch (e) {
     // Pyxis caído no puede romper la pantalla: se devuelve el motivo y el modo
     // exacto sigue funcionando a mano.
-    res.json({ disponible: false, rest, svc, articulos: [], meses: [], mapa: costeoPyxisMapaGet(rest),
+    res.json({ disponible: false, rest, articulos: [], meses: [], porSvc: vacio, mapa: costeoPyxisMapaGet(rest),
       motivo: 'No se pudo leer Pyxis: ' + String(e.message || e).slice(0, 160) });
   }
 });

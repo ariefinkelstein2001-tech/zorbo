@@ -12508,7 +12508,9 @@ async function anEnsurePyxis(){
   if (AN.pxKey === costeoRest && AN.px) return AN.px;
   AN.pxCargando = true;
   try {
-    const r = await fetch(`/admin/costeo/analisis/pyxis?rest=${encodeURIComponent(costeoRest)}&svc=comida`);
+    // Una sola bajada trae comida y barra: son las mismas filas de Pyxis, lo
+    // único que cambia es qué familias entran en cada lado.
+    const r = await fetch(`/admin/costeo/analisis/pyxis?rest=${encodeURIComponent(costeoRest)}`);
     const j = await r.json();
     AN.px = j; AN.pxKey = costeoRest;
     AN.pxMapa = j.mapa || {};
@@ -12516,26 +12518,37 @@ async function anEnsurePyxis(){
     // Detalle de Ventas cuando están los tres tildados.
     if (!AN.pxMeses.length) AN.pxMeses = (j.meses || []).map(m => m.idx);
   } catch (e) {
-    AN.px = { disponible: false, articulos: [], meses: [], motivo: 'No se pudo consultar Pyxis: ' + String(e.message || e) };
+    AN.px = { disponible: false, porSvc: null, meses: [], motivo: 'No se pudo consultar Pyxis: ' + String(e.message || e) };
     AN.pxKey = costeoRest;
   }
   AN.pxCargando = false;
   return AN.px;
 }
-// Cantidad de un artículo sumando solo los meses tildados.
-function anPxCantidad(nombreArticulo){
+// Los artículos del lado (comida o barra) que corresponda.
+function anPxLista(svc){
+  const s = AN.px && AN.px.porSvc && AN.px.porSvc[svc === 'barra' ? 'barra' : 'comida'];
+  return (s && s.disponible) ? (s.articulos || []) : [];
+}
+const anPxHayAlgo = () => !!(AN.px && AN.px.disponible);
+// Cantidad de un artículo sumando solo los meses tildados. Se busca en el lado
+// que corresponde: un nombre puede existir en comida y en barra.
+function anPxCantidad(nombreArticulo, svc){
   if (!AN.px || !nombreArticulo) return null;
-  const a = (AN.px.articulos || []).find(x => x.nombre === nombreArticulo);
+  const lista = svc ? anPxLista(svc) : [...anPxLista('comida'), ...anPxLista('barra')];
+  const a = lista.find(x => x.nombre === nombreArticulo);
   if (!a) return null;
   const idxs = AN.pxMeses.length ? AN.pxMeses : (AN.px.meses || []).map(m => m.idx);
   return idxs.reduce((s, i) => s + (Number(a.cant[i]) || 0), 0);
 }
+// La clave del producto ya dice de qué lado es: 'comida:…', 'barra:…' o
+// 'reventa:…' (la reventa se vende en la barra).
+const anPxSvcDeKey = (key) => String(key || '').startsWith('comida:') ? 'comida' : 'barra';
 // Vuelca al modo exacto las cantidades de todo lo que esté conectado. Lo que no
 // está conectado no se toca: puede tener un número puesto a mano.
 function anPxAplicarUnidades(){
   let n = 0;
   for (const [key, art] of Object.entries(AN.pxMapa)) {
-    const c = anPxCantidad(art);
+    const c = anPxCantidad(art, anPxSvcDeKey(key));
     if (c == null) continue;
     if (c > 0) AN.unidades[key] = c; else delete AN.unidades[key];
     n++;
@@ -12557,24 +12570,33 @@ function anPxBarraHtml(){
   }
   const conectados = Object.keys(AN.pxMapa).filter(k => AN.pxMapa[k]).length;
   const meses = (px.meses || []).map(m => `<button type="button" class="an-px-mes${AN.pxMeses.includes(m.idx)?' on':''}" data-pxmes="${m.idx}">${escapeHtml(m.label)}</button>`).join('');
+  const nCom = anPxLista('comida').length, nBar = anPxLista('barra').length;
+  const partes = [];
+  if (nCom) partes.push(nCom + ' de comida'); else if (px.porSvc && px.porSvc.comida.motivo) partes.push('comida sin configurar');
+  if (nBar) partes.push(nBar + ' de barra'); else if (px.porSvc && px.porSvc.barra.motivo) partes.push('barra sin configurar');
+  // Si un lado no está configurado se dice cuál y por qué, en vez de que sus
+  // filas queden sin selector sin explicación.
+  const falta = ['comida', 'barra'].filter(s => px.porSvc && px.porSvc[s] && !px.porSvc[s].disponible && px.porSvc[s].motivo);
   return `<div class="an-px">
     <span class="tt">🔗 Unidades desde Pyxis</span>
     <span class="an-px-meses">${meses}</span>
-    <span class="sub">${conectados} plato${conectados===1?'':'s'} conectado${conectados===1?'':'s'} · ${(px.articulos||[]).length} artículos de ${escapeHtml((px.marcasVistas||[]).join(', ') || 'Pyxis')}</span>
+    <span class="sub">${conectados} conectado${conectados===1?'':'s'} · ${partes.join(' y ')} · ${escapeHtml((px.marcasVistas||[]).join(', ') || 'Pyxis')}</span>
     <span style="flex:1"></span>
     <button type="button" class="ws-btn" id="anPxRefrescar" style="padding:.3rem .6rem">↻ Traer cantidades</button>
+    ${falta.map(s => `<div class="an-px-aviso">${escapeHtml(px.porSvc[s].motivo)}</div>`).join('')}
   </div>`;
 }
 function anPxSelectHtml(p){
-  if (!AN.px || !AN.px.disponible) return '';
-  // Por ahora se traen solo los artículos de COMIDA de Pyxis: ofrecerlos en una
-  // fila de barra invitaría a conectar un gin con unas papas fritas.
-  if (p.svc !== 'comida') return `<span class="num" title="Por ahora la conexión con Pyxis es solo para alimentos">—</span>`;
+  if (!anPxHayAlgo()) return '';
+  const lista = anPxLista(p.svc);
+  // El lado que no está configurado no ofrece selector: el motivo ya se explica
+  // arriba, en la barra.
+  if (!lista.length) return `<span class="num" title="Sin artículos de Pyxis para este lado">—</span>`;
   const elegido = AN.pxMapa[p.key] || '';
   // Los ya usados por otro plato se marcan, para no conectar dos veces lo mismo
   // sin darse cuenta.
   const usados = new Set(Object.entries(AN.pxMapa).filter(([k]) => k !== p.key).map(([, v]) => v));
-  const ops = (AN.px.articulos || []).map(a => {
+  const ops = lista.map(a => {
     const dup = usados.has(a.nombre) ? ' ·ya usado' : '';
     return `<option value="${escapeAttr(a.nombre)}"${a.nombre===elegido?' selected':''}>${escapeHtml(a.nombre)} (${a.cantTotal})${dup}</option>`;
   }).join('');
@@ -12652,7 +12674,7 @@ function anWirePyxis(){
     if (art) AN.pxMapa[key] = art; else delete AN.pxMapa[key];
     // Al conectar, la cantidad entra sola; al desconectar, se limpia (el número
     // venía de Pyxis, no de la persona).
-    const c = art ? anPxCantidad(art) : null;
+    const c = art ? anPxCantidad(art, anPxSvcDeKey(key)) : null;
     if (art && c != null && c > 0) AN.unidades[key] = c; else delete AN.unidades[key];
     await anPxGuardarMapa();
     anDrawExactoBody(AN.productos);
@@ -12663,10 +12685,10 @@ function anWirePyxis(){
 function anAccordionHtml(s){
   const qtyEnSeccion = s.prods.reduce((a, p) => a + (Number(AN.unidades[p.key]) || 0), 0);
   const abierta = AN.abiertas.has(s.nombre) || (!!AN.search && s.filtrados.length > 0);
-  const conPx = !!(AN.px && AN.px.disponible);
+  const conPx = anPxHayAlgo();
   const rows = s.filtrados.map(p => {
     const art = AN.pxMapa[p.key] || '';
-    const cantPx = art ? anPxCantidad(art) : null;
+    const cantPx = art ? anPxCantidad(art, p.svc) : null;
     return `
     <div class="an-row${conPx ? ' con-px' : ''}">
       <span class="nm">${escapeHtml(p.nombre)}</span>
