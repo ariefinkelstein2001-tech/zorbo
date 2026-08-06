@@ -18710,6 +18710,30 @@ app.get('/consulta-costeo/api/reventa', requireConsulta, (req, res) => {
   const rest = req.consultaLocal.rest;
   res.json({ restaurante: rest, local: req.consultaLocal, ...resolveReventa(loadReventa(rest)) });
 });
+// Mix de ingresos Comida/Barra (el mismo parámetro que usa Carta resumen →
+// Comida y Barra en el ERP para ponderar) — solo lectura, mismo dato.
+app.get('/consulta-costeo/api/mix', requireConsulta, (req, res) => {
+  const rest = req.consultaLocal.rest;
+  const comida = costeoMixComida(rest);
+  res.json({ rest, comida, barra: Math.round((100 - comida) * 10) / 10 });
+});
+// Umbrales de color del semáforo de % de costo — parámetro global (no por
+// restaurante), mismo store que usa el ERP para pintar Carta (resumen).
+app.get('/consulta-costeo/api/umbrales', requireConsulta, (_req, res) => {
+  res.json(costeoUmbralesLoad());
+});
+// Último escenario guardado en Análisis para este local, en el estado de
+// descuento pedido (?conDesc=0|1) — el mismo dato "congelado" que se ve en el
+// ERP bajo Análisis › Escenarios guardados. Si no hay ninguno en ese estado,
+// null (no se inventa un número).
+app.get('/consulta-costeo/api/analisis/ultimo', requireConsulta, (req, res) => {
+  const rest = req.consultaLocal.rest;
+  const conDesc = req.query.conDesc === '1';
+  const list = costeoAnalisisEscenarios()
+    .filter(e => e.rest === rest && !!e.conDesc === conDesc)
+    .sort((a, b) => String(b.actualizadoEn || '').localeCompare(String(a.actualizadoEn || '')));
+  res.json({ rest, conDesc, escenario: list[0] || null });
+});
 app.get('/consulta-costeo/api/carta/export.pdf', requireConsulta, (req, res) => {
   const rest = req.consultaLocal.rest; const svc = costeoSvcKey(req.query.svc);
   const bloques = [{ titulo: 'Carta · ' + svcSheetLabel(rest, svc), carta: resolveCarta(loadCosteo(rest, svc)) }];

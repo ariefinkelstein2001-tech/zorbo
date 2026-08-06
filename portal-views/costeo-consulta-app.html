@@ -90,6 +90,16 @@ a{color:inherit}
 .cc-top .who .l2{font-weight:800;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
 .cc-icon-btn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex:0 0 auto;transition:background .15s,transform .1s}
 .cc-icon-btn:active{transform:scale(.9);background:rgba(255,255,255,.16)}
+/* toggle "Con descuento (40%)" — transversal a Garden/Badass, mismo criterio
+   que el toggle del ERP: pill que se llena de dorado cuando está activo. */
+.cc-desc-pill{
+  flex:0 0 auto;height:38px;padding:0 12px;border-radius:19px;background:rgba(255,255,255,.08);
+  display:flex;align-items:center;gap:6px;font-size:.72rem;font-weight:800;color:var(--dim);white-space:nowrap;
+  transition:background .15s,color .15s;
+}
+.cc-desc-pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.4;transition:opacity .15s}
+.cc-desc-pill.on{background:linear-gradient(135deg,var(--gold-bright),var(--gold-deep));color:#1a1408}
+.cc-desc-pill.on .dot{opacity:1}
 .cc-svc-row{flex:0 0 auto;padding:2px 16px 12px;display:flex;gap:8px}
 .cc-svc-pill{
   flex:1;padding:9px 4px;border-radius:12px;background:var(--card);font-size:.76rem;font-weight:800;text-align:center;
@@ -107,16 +117,21 @@ a{color:inherit}
 
 .cc-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px calc(90px + var(--safe-b))}
 
-/* stat grande de % costo */
-.cc-stat-card{
-  border-radius:20px;padding:18px 20px;margin:4px 0 16px;
-  background:linear-gradient(135deg,rgba(245,166,35,.16),rgba(245,166,35,.04));
-  border:1px solid rgba(245,166,35,.22);display:flex;align-items:center;justify-content:space-between;gap:10px;
+/* 3 cuadros resumen (Carta): % costo promedio · mix de venta · % ponderado.
+   flex parejo, se encogen juntos — a 3 no hace falta apilar ni en celulares
+   angostos (números cortos: "19.5%", "44/56", "—"). */
+.cc-stat-row{display:flex;gap:8px;margin:4px 0 16px}
+.cc-stat-mini{
+  flex:1;min-width:0;border-radius:16px;padding:12px 8px 10px;text-align:center;
+  background:linear-gradient(135deg,rgba(245,166,35,.14),rgba(245,166,35,.03));border:1px solid rgba(245,166,35,.2);
 }
-.cc-stat-card .lb{font-size:.72rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
-.cc-stat-card .lb small{display:block;font-weight:600;text-transform:none;letter-spacing:0;margin-top:2px;font-size:.68rem}
-.cc-stat-card .val{font-family:var(--display);font-weight:800;font-size:2.1rem;color:var(--gold-bright)}
-.cc-stat-card .val small{font-size:1.1rem;font-weight:700}
+.cc-stat-mini .lb{font-size:.56rem;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--dim);line-height:1.3;min-height:2.1em;display:flex;align-items:center;justify-content:center}
+.cc-stat-mini .val{font-family:var(--display);font-weight:800;font-size:1.3rem;color:var(--gold-bright);margin-top:3px;white-space:nowrap}
+.cc-stat-mini .val small{font-size:.72rem;font-weight:700}
+.cc-stat-mini .sub{font-size:.58rem;color:var(--dim2);margin-top:2px;line-height:1.25}
+.cc-stat-mini.tone-verde .val{color:var(--good)}
+.cc-stat-mini.tone-amarillo .val{color:var(--warn)}
+.cc-stat-mini.tone-rojo .val{color:var(--bad)}
 
 .cc-empty{text-align:center;padding:60px 20px;color:var(--dim)}
 .cc-empty .ic{font-size:2.4rem;margin-bottom:10px;opacity:.6}
@@ -233,11 +248,17 @@ let ST = {
   adminLocales: null,
   // vista principal
   tab: 'carta',           // carta | platos | recetas | insumos
-  svc: 'comida',          // comida | barra | ambos
+  svc: 'comida',          // comida | barra | ambos — default sin cambios; solo se reordenan las pills (ver renderMain)
+  conDesc: false,         // toggle "Con descuento (40%)" — transversal, mismo criterio que el ERP: solo afecta Carta (resumen)
   search: '',
   catFilter: '',
   expanded: null,         // id de fila expandida (receta/plato)
-  data: { carta: null, cartaBarraAux: null, costeo: null, costeoBarraAux: null, reventa: null },
+  data: {
+    carta: null, cartaBarraAux: null, costeo: null, costeoBarraAux: null, reventa: null,
+    mix: null,            // { comida, barra } — GET /consulta-costeo/api/mix (cacheado hasta cambiar de local)
+    umbrales: null,       // semáforo de color — GET /consulta-costeo/api/umbrales (cacheado)
+    escUltimo: {},        // último escenario guardado de Análisis, keyed por 'sin'/'con' descuento
+  },
   loadingData: false,
 };
 
@@ -368,18 +389,22 @@ function tabLabel(t){
   if (t === 'platos') return ST.svc === 'barra' ? 'Tragos' : (ST.svc==='ambos' ? 'Platos / Tragos' : 'Platos');
   return TABS.find(x=>x.id===t).lb;
 }
+// Orden pedido: Comida y Barra · Comida · Barra (antes: Comida · Barra · Comida y Barra).
+const SVC_TABS = [ {id:'ambos',lb:'Comida y Barra'}, {id:'comida',lb:'Comida'}, {id:'barra',lb:'Barra'} ];
 function renderMain(){
-  const svcTabs = [ {id:'comida',lb:'Comida'}, {id:'barra',lb:'Barra'}, {id:'ambos',lb:'Comida y Barra'} ];
   $app.innerHTML = `
     <div class="cc-top">
       <div class="who">
         <div class="l1">${ST.admin?'Modo admin':'Local'}</div>
         <div class="l2">${esc(ST.local?ST.local.label:'')} ${ST.admin?'<button type="button" class="cc-icon-btn" id="ccSwitch" style="width:24px;height:24px;font-size:.85rem;margin-left:2px">🔀</button>':''}</div>
       </div>
+      <button type="button" class="cc-desc-pill ${ST.conDesc?'on':''}" id="ccDescToggle" title="Precios y % de costo con el 40% de descuento aplicado — el precio real no cambia">
+        <span class="dot"></span>−40%
+      </button>
       <button type="button" class="cc-icon-btn" id="ccLogout" title="Salir">⎋</button>
     </div>
     <div class="cc-svc-row">
-      ${svcTabs.map(s=>`<button type="button" class="cc-svc-pill ${ST.svc===s.id?'on':''}" data-svc="${s.id}">${s.lb}</button>`).join('')}
+      ${SVC_TABS.map(s=>`<button type="button" class="cc-svc-pill ${ST.svc===s.id?'on':''}" data-svc="${s.id}">${s.lb}</button>`).join('')}
     </div>
     <div class="cc-search-row">
       <div class="cc-search"><span class="ic">🔎</span><input id="ccSearch" placeholder="Buscar ${tabLabel(ST.tab).toLowerCase()}…" value="${esc(ST.search)}"></div>
@@ -392,6 +417,7 @@ function renderMain(){
     </div>`;
   document.getElementById('ccLogout').onclick = doLogout;
   const sw = document.getElementById('ccSwitch'); if (sw) sw.onclick = openSwitcher;
+  document.getElementById('ccDescToggle').onclick = toggleDescuento;
   $app.querySelectorAll('.cc-svc-pill').forEach(b => b.onclick = () => {
     if (ST.svc===b.dataset.svc) return;
     ST.svc=b.dataset.svc; ST.catFilter='';
@@ -404,9 +430,24 @@ function renderMain(){
   s.oninput = () => { ST.search = s.value; renderBody(); };
   renderBody();
 }
+// El toggle solo afecta Carta (resumen) — igual que en el ERP (Platos/Recetas/
+// Insumos no tienen concepto de descuento). No hace falta pedir datos nuevos:
+// precios y costos ya están en memoria, solo cambia la fórmula de display —
+// salvo el "último escenario" del cuadro (c), que sí es un dato aparte por
+// estado de descuento y puede no estar cacheado todavía.
+async function toggleDescuento(){
+  ST.conDesc = !ST.conDesc;
+  document.getElementById('ccDescToggle').classList.toggle('on', ST.conDesc);
+  const key = ST.conDesc ? 'con' : 'sin';
+  if (ST.data.escUltimo[key] === undefined) {
+    if (ST.tab==='carta') renderBody();
+    ST.data.escUltimo[key] = await api(`/consulta-costeo/api/analisis/ultimo?conDesc=${ST.conDesc?1:0}`).catch(()=>({escenario:null}));
+  }
+  if (ST.tab==='carta') renderBody();
+}
 async function doLogout(){
   await fetch('/consulta-costeo/salir', { method:'POST', credentials:'same-origin' });
-  ST = { screen:'loading', locales:[], pickedLocal:null, codeDigits:'', authError:'', authBusy:false, admin:false, local:null, adminLocales:null, tab:'carta', svc:'comida', search:'', catFilter:'', expanded:null, data:{}, loadingData:false };
+  ST = { screen:'loading', locales:[], pickedLocal:null, codeDigits:'', authError:'', authBusy:false, admin:false, local:null, adminLocales:null, tab:'carta', svc:'comida', conDesc:false, search:'', catFilter:'', expanded:null, data:{ escUltimo:{} }, loadingData:false };
   const r = await fetch('/consulta-costeo/locales'); const j = await r.json(); ST.locales = j.locales||[];
   ST.screen = 'pick-local'; render();
 }
@@ -423,7 +464,10 @@ function openSwitcher(){
     closeSheet();
     const r = await fetch('/consulta-costeo/cambiar-local', { method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ localId: b.dataset.id }) });
     const j = await r.json();
-    if (r.ok) { ST.local = j.local; renderMain(); loadTabData(); }
+    // mix y último escenario son por restaurante — se limpian al cambiar de
+    // local para no arrastrar el número del local anterior (umbrales son
+    // globales, esos sí se conservan).
+    if (r.ok) { ST.local = j.local; ST.data.mix = null; ST.data.escUltimo = {}; renderMain(); loadTabData(); }
   });
   openSheet();
 }
@@ -460,10 +504,24 @@ function openDownloads(){
 function svcLabel(){ return ST.svc==='barra' ? 'Barra' : (ST.svc==='ambos' ? 'Comida y Barra' : 'Comida'); }
 
 // ── carga de datos (siempre GET, siempre del local de la sesión) ──
+// Datos de los 3 cuadros resumen de Carta — mix y umbrales son por local (o
+// globales) y se cachean hasta que cambie el local; el último escenario se
+// cachea por estado de descuento (ver toggleDescuento). Ninguno de los 3
+// depende del Servicio elegido (son números del restaurante entero), así que
+// no hace falta re-pedirlos al cambiar de pestaña Comida/Barra/Comida y Barra.
+async function loadStatsData(){
+  if (!ST.data.mix) ST.data.mix = await api('/consulta-costeo/api/mix').catch(()=>null);
+  if (!ST.data.umbrales) ST.data.umbrales = await api('/consulta-costeo/api/umbrales').catch(()=>null);
+  const key = ST.conDesc ? 'con' : 'sin';
+  if (ST.data.escUltimo[key] === undefined) {
+    ST.data.escUltimo[key] = await api(`/consulta-costeo/api/analisis/ultimo?conDesc=${ST.conDesc?1:0}`).catch(()=>({escenario:null}));
+  }
+}
 async function loadTabData(){
   ST.loadingData = true; renderBody();
   try {
     if (ST.tab === 'carta') {
+      await loadStatsData();
       ST.data.carta = await api(`/consulta-costeo/api/carta?svc=${ST.svc==='ambos'?'comida':ST.svc}`);
       if (ST.svc === 'ambos') ST.data.cartaBarraAux = await api('/consulta-costeo/api/carta?svc=barra');
       if ((ST.svc === 'barra' || ST.svc === 'ambos')) ST.data.reventa = await api('/consulta-costeo/api/reventa').catch(()=>null);
@@ -488,12 +546,87 @@ function pctBadge(pct){
   return `<span class="cc-pct-badge ${pctClass(pct)}">${pct!=null?pct+'% costo':'sin precio'}</span>`;
 }
 
+// Semáforo de color de Carta (resumen) — SOLO esta pestaña lo usa en el ERP
+// (Platos/Recetas/Insumos siguen con pctClass de arriba, igual que el ERP).
+// Umbrales por Servicio (comida/barra/ambos) y por estado de descuento
+// (sin/con), mismo store que /admin/costeo/umbrales — con este default como
+// respaldo mientras responde la red, igual criterio que el ERP.
+const CC_UMBRALES_DEFAULT = {
+  comida: { sin: { verde: 25, amarillo: 30 }, con: { verde: 30, amarillo: 35 } },
+  barra:  { sin: { verde: 20, amarillo: 25 }, con: { verde: 25, amarillo: 30 } },
+  ambos:  { sin: { verde: 25, amarillo: 30 }, con: { verde: 30, amarillo: 35 } },
+};
+function ccTone(pct, svcKey, conDesc){
+  if (pct == null) return null;
+  const cfg = (ST.data.umbrales && ST.data.umbrales[svcKey]) || CC_UMBRALES_DEFAULT[svcKey] || CC_UMBRALES_DEFAULT.barra;
+  const b = (conDesc ? cfg.con : cfg.sin) || CC_UMBRALES_DEFAULT.barra.sin;
+  if (pct < b.verde) return 'verde';
+  if (pct <= b.amarillo) return 'amarillo';
+  return 'rojo';
+}
+function ccPctBadge(pct, svcKey, conDesc){
+  const tone = ccTone(pct, svcKey, conDesc);
+  const cls = tone === 'verde' ? 'good' : tone === 'amarillo' ? 'warn' : tone === 'rojo' ? 'bad' : 'na';
+  return `<span class="cc-pct-badge ${cls}">${pct!=null?pct+'% costo':'sin precio'}</span>`;
+}
+
 // ── CARTA ──
-function cartaAvgPct(platosFlat){
-  const pcts = platosFlat.map(p=>p.pctCosto).filter(p=>p!=null);
+// conDesc: mismo criterio que el ERP (cartaAvgPct en admin.html) — con
+// descuento, el % de cada plato se recalcula contra el precio con el 40%
+// aplicado, nunca contra el pctCosto que manda el server (siempre sin
+// descuento). Reventa entra con su propia fórmula (venta/compra), como en
+// cartaReventaHtmlRO + reventaTableHtml del ERP.
+const CC_DESCUENTO_PCT = 40;
+function cartaAvgPct(secs, conDesc){
+  const pcts = [];
+  secs.forEach(s => {
+    (s.platos||[]).forEach(p => {
+      if (!conDesc) { if (p.pctCosto!=null) pcts.push(p.pctCosto); return; }
+      if (p.precioReal == null) return;
+      const real = Math.round(p.precioReal * (1 - CC_DESCUENTO_PCT/100));
+      if (real > 0) pcts.push(Math.round((p.costo/real)*1000)/10);
+    });
+    (s._reventaProds||[]).forEach(p => {
+      if (!conDesc) { if (p.pctCosto!=null) pcts.push(p.pctCosto); return; }
+      if (p.precioVenta == null || p.precioCompra == null) return;
+      const venta = Math.round(p.precioVenta * (1 - CC_DESCUENTO_PCT/100));
+      if (venta > 0) pcts.push(Math.round((p.precioCompra/venta)*1000)/10);
+    });
+  });
   if (!pcts.length) return null;
   return Math.round(pcts.reduce((a,x)=>a+x,0)/pcts.length*10)/10;
 }
+function cartaPlatoRealPct(p, conDesc){
+  const real = conDesc && p.precioReal!=null ? Math.round(p.precioReal*(1-CC_DESCUENTO_PCT/100)) : p.precioReal;
+  const pct = conDesc ? (real!=null && real>0 && p.costo!=null ? Math.round((p.costo/real)*1000)/10 : null) : p.pctCosto;
+  return { real, pct };
+}
+function cartaRevRealPct(p, conDesc){
+  const venta = conDesc && p.precioVenta!=null ? Math.round(p.precioVenta*(1-CC_DESCUENTO_PCT/100)) : p.precioVenta;
+  const pct = conDesc ? (venta!=null && venta>0 && p.precioCompra!=null ? Math.round((p.precioCompra/venta)*1000)/10 : null) : p.pctCosto;
+  return { venta, pct };
+}
+function statMixBox(){
+  const mix = ST.data.mix;
+  return `<div class="cc-stat-mini">
+    <div class="lb">Mix de venta<br>Comida / Barra</div>
+    <div class="val">${mix ? `${mix.comida}<small>/</small>${mix.barra}` : '—'}</div>
+    <div class="sub">${mix ? '% de ingresos' : 'sin datos'}</div>
+  </div>`;
+}
+function statPonderadoBox(){
+  const key = ST.conDesc ? 'con' : 'sin';
+  const esc_ = ST.data.escUltimo[key];
+  const res = esc_ && esc_.escenario && esc_.escenario.resultado;
+  const pct = res ? res.pct : null;
+  const tone = pct != null ? ccToneClass(ccTone(pct, 'ambos', ST.conDesc)) : '';
+  return `<div class="cc-stat-mini ${tone}">
+    <div class="lb">% costo<br>ponderado</div>
+    <div class="val">${pct!=null?pct:'—'}${pct!=null?'<small>%</small>':''}</div>
+    <div class="sub">${esc_ && esc_.escenario ? 'Último escenario' : 'sin escenario guardado'}</div>
+  </div>`;
+}
+function ccToneClass(tone){ return tone ? 'tone-'+tone : ''; }
 function renderCartaBody(){
   const q = normLoose(ST.search);
   const blocks = [{ svc:'comida', c: ST.data.carta }];
@@ -517,8 +650,7 @@ function renderCartaBody(){
     revByName.forEach((rs, key) => { if (!usadas.has(key) && rs.productos.length) allSecs.push({ id:'rev-'+rs.id, nombre:rs.nombre, platos:[], sinCostear:[], _svc:'barra', _reventaProds: rs.productos }); });
   }
   const cats = [...new Set(allSecs.filter(s=>s.platos.length||( s._reventaProds&&s._reventaProds.length)).map(s=>s.nombre))];
-  const flatPlatos = allSecs.flatMap(s=>s.platos);
-  const avg = cartaAvgPct(flatPlatos);
+  const avg = cartaAvgPct(allSecs, ST.conDesc);
   let secsToShow = allSecs.filter(s => s.platos.length || (s.sinCostear&&s.sinCostear.length) || (s._reventaProds&&s._reventaProds.length));
   if (ST.catFilter) secsToShow = secsToShow.filter(s=>s.nombre===ST.catFilter);
   if (q) secsToShow = secsToShow.map(s => ({
@@ -528,10 +660,16 @@ function renderCartaBody(){
   })).filter(s=>s.platos.length || (s._reventaProds&&s._reventaProds.length));
 
   renderCatChips(cats);
+  const avgTone = avg!=null ? ccToneClass(ccTone(avg, ST.svc, ST.conDesc)) : '';
   const statHtml = `
-    <div class="cc-stat-card">
-      <div class="lb">% costo promedio<small>${svcLabel()} · sobre platos con precio cargado</small></div>
-      <div class="val">${avg!=null?avg:'—'}${avg!=null?'<small>%</small>':''}</div>
+    <div class="cc-stat-row">
+      <div class="cc-stat-mini ${avgTone}">
+        <div class="lb">% costo<br>promedio</div>
+        <div class="val">${avg!=null?avg:'—'}${avg!=null?'<small>%</small>':''}</div>
+        <div class="sub">${svcLabel()}</div>
+      </div>
+      ${statMixBox()}
+      ${statPonderadoBox()}
     </div>`;
   if (!secsToShow.length) {
     document.getElementById('ccBody').innerHTML = statHtml + emptyState('📋','Sin resultados','Probá con otra búsqueda o categoría.');
@@ -540,28 +678,28 @@ function renderCartaBody(){
   document.getElementById('ccBody').innerHTML = statHtml + secsToShow.map(s => `
     <div class="cc-sec">
       <div class="cc-sec-head"><span class="t">${esc(s.nombre)} ${ST.svc==='ambos'?`<span class="cc-svc-tag">${s._svc}</span>`:''}</span><span class="n">${s.platos.length||s._reventaProds&&s._reventaProds.length||0}</span></div>
-      ${s.platos.map(p => `
+      ${s.platos.map(p => { const { real, pct } = cartaPlatoRealPct(p, ST.conDesc); return `
         <div class="cc-row-card">
           <div class="cc-row-main">
             <div class="cc-row-name">${esc(p.nombre)}</div>
-            ${pctBadge(p.precioReal!=null?p.pctCosto:null)}
+            ${ccPctBadge(real!=null?pct:null, ST.svc, ST.conDesc)}
           </div>
           <div class="cc-row-right">
-            <div class="cc-row-price ${p.precioReal==null?'muted':''}">${p.precioReal!=null?money(p.precioReal):'sin precio'}</div>
+            <div class="cc-row-price ${real==null?'muted':''}">${real!=null?money(real):'sin precio'}</div>
             <div style="font-size:.68rem;color:var(--dim2);margin-top:2px">costo ${money(p.costo)}</div>
           </div>
-        </div>`).join('')}
-      ${(s._reventaProds||[]).map(p => `
+        </div>`; }).join('')}
+      ${(s._reventaProds||[]).map(p => { const { venta, pct } = cartaRevRealPct(p, ST.conDesc); return `
         <div class="cc-row-card">
           <div class="cc-row-main">
             <div class="cc-row-name">${esc(p.nombre)} <span class="cc-svc-tag">reventa</span></div>
-            ${p.pctCosto!=null?pctBadge(p.pctCosto):''}
+            ${pct!=null?ccPctBadge(pct, ST.svc, ST.conDesc):''}
           </div>
           <div class="cc-row-right">
-            <div class="cc-row-price ${p.precioVenta==null?'muted':''}">${p.precioVenta!=null?money(p.precioVenta):'sin precio'}</div>
+            <div class="cc-row-price ${venta==null?'muted':''}">${venta!=null?money(venta):'sin precio'}</div>
             ${p.precioCompra!=null?`<div style="font-size:.68rem;color:var(--dim2);margin-top:2px">compra ${money(p.precioCompra)}</div>`:''}
           </div>
-        </div>`).join('')}
+        </div>`; }).join('')}
       ${(s.sinCostear||[]).length ? `<div class="cc-tag-list" style="margin-top:6px">${s.sinCostear.map(n=>`<span class="cc-tag">${esc(n)} · sin costear</span>`).join('')}</div>` : ''}
     </div>`).join('');
 }
