@@ -986,6 +986,15 @@ body.chat-collapsed.admin-home .adm-chat-reopen,body.chat-collapsed.estado-activ
 .adm-stat.tone-green .adm-stat-v{color:var(--green)}
 .adm-stat.tone-purple{border-color:#c8bee5}
 .adm-stat.tone-purple .adm-stat-v{color:#5e4ea3}
+/* Semáforo de % de costo (Costeo › Carta resumen) — namespace propio
+   (ct-tone-*) para no pisar el significado de tone-green/tone-red que ya usan
+   otros tableros del panel con sus propios criterios. */
+.adm-stat.ct-tone-verde{border-color:rgba(37,124,72,.25)}
+.adm-stat.ct-tone-verde .adm-stat-v{color:#1d6b3e}
+.adm-stat.ct-tone-amarillo{border-color:rgba(179,127,0,.3)}
+.adm-stat.ct-tone-amarillo .adm-stat-v{color:#7a5900}
+.adm-stat.ct-tone-rojo{border-color:rgba(211,35,35,.3)}
+.adm-stat.ct-tone-rojo .adm-stat-v{color:#a82323}
 
 .adm-filters{
   display:flex;flex-wrap:wrap;gap:.7rem;align-items:flex-end;
@@ -2005,7 +2014,8 @@ body.drawer-open{overflow:hidden}
 .tc-ped-table .tc-ped:last-child td{border-bottom:none}
 
 /* ── DISTRIBUIDORA ── */
-.costeo-rest{display:flex;align-items:center;gap:.5rem;margin:.3rem 0 1rem}
+.costeo-rest{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin:.3rem 0 1rem}
+.ct-desc-toggle{display:flex;align-items:center;gap:.35rem}
 .costeo-rest-lbl{font-size:.66rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted,#666);margin-right:.3rem}
 .costeo-rest-btn{font-family:var(--sans);font-size:.82rem;font-weight:700;color:var(--muted,#666);background:transparent;border:1px solid var(--line,#e5e5e5);border-radius:999px;padding:.4rem .95rem;cursor:pointer;transition:all .15s}
 .costeo-rest-btn:hover{border-color:var(--gold-bd,#f1c97b);color:var(--text,#111)}
@@ -2106,8 +2116,16 @@ body.drawer-open{overflow:hidden}
 .pl-cat-title span{color:var(--muted,#999);font-weight:600;font-size:.8rem}
 .pl-items{font-size:.72rem;color:var(--muted,#888);margin-top:.2rem;line-height:1.35}
 .pl-precio{color:var(--gold-deep,#a05f00);font-size:.98rem}
-.pl-pct{font-weight:700}
-.pl-pct.hi{color:#c0392b}
+.pl-pct{font-weight:700;padding:.1rem .5rem;border-radius:999px;display:inline-block}
+/* Semáforo de % de costo — 3 tonos configurables (umbrales editables, ver
+   ctColorTone/#ctUmbralesBtn). Fondo + texto oscuro, no solo color de texto,
+   para no depender únicamente del color (el número ya es el dato principal;
+   esto es refuerzo) y mantener contraste AA. Mismo trío de clases en la fila
+   (.pl-pct), en el % promedio (.adm-stat) y en el ponderado combinado
+   (.ct-mix-pct) — un solo sistema de color en toda Carta (resumen). */
+.ct-tone-verde{background:rgba(37,124,72,.12);color:#1d6b3e}
+.ct-tone-amarillo{background:rgba(179,127,0,.16);color:#7a5900}
+.ct-tone-rojo{background:rgba(211,35,35,.12);color:#a82323}
 .ci-rb-sep td{background:var(--surface-2,#faf6ec);font-size:.68rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#8a7a52);padding:.4rem .6rem!important}
 .ci-rb-row td{background:rgba(245,166,35,.04)}
 
@@ -2127,12 +2145,16 @@ body.drawer-open{overflow:hidden}
 .ct-real{width:110px;text-align:right;padding:.3rem .5rem;border:1px solid var(--line,#ddd);border-radius:7px;background:var(--surface,#fff);font-size:.85rem;font-weight:700;color:var(--gold-deep,#a05f00)}
 .ct-real::placeholder{font-weight:400;font-style:italic;color:#bbb}
 .ct-real:focus{outline:none;border-color:var(--gold,#f5a623);box-shadow:0 0 0 2px rgba(245,166,35,.18)}
+.ct-umb-inp{width:64px;text-align:right;padding:.3rem .5rem;border:1px solid var(--line,#ddd);border-radius:7px;background:var(--surface,#fff);font-size:.85rem;font-weight:700;color:var(--text,#111)}
+.ct-umb-inp:focus{outline:none;border-color:var(--gold,#f5a623);box-shadow:0 0 0 2px rgba(245,166,35,.18)}
 .ct-rev-head{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin:1.6rem 0 .3rem;padding-top:1.1rem;border-top:2px solid var(--gold,#f5a623)}
 .rv-add-row td{background:var(--surface-2,#faf6ec)}
 /* Vista combinada Comida y Barra (Servicio = "Comida y Barra") */
 .ct-mix-box{border:1px solid var(--gold-bd,#f1c97b);border-radius:12px;background:linear-gradient(135deg,rgba(245,166,35,.07),rgba(245,166,35,.02));padding:.9rem 1.1rem;margin-bottom:1.2rem}
 .ct-mix-pct{font-family:var(--display,inherit);font-size:1.8rem;font-weight:800;color:var(--gold-deep,#a05f00);line-height:1.1;display:flex;align-items:baseline;gap:.5rem}
-.ct-mix-pct.hi{color:#c0392b}
+.ct-mix-pct.ct-tone-verde{color:#1d6b3e}
+.ct-mix-pct.ct-tone-amarillo{color:#7a5900}
+.ct-mix-pct.ct-tone-rojo{color:#a82323}
 .ct-mix-pct small{font-family:var(--sans);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted,#777)}
 /* Ícono ⓘ que reemplaza el texto gris de "Comida y Barra combinadas…" — el
    texto se muestra en el tooltip (.adm-tip ya soporta hover + foco/tap). */
@@ -3734,11 +3756,18 @@ body.hosp-open{overflow:hidden}
           <button type="button" class="costeo-rest-btn" data-rest="garden">Garden</button>
           <span class="costeo-rest-lbl costeo-svc-lbl">Servicio</span>
           <select id="costeoSvc" class="costeo-svc">
+            <option value="ambos">🍽️🍸 Comida y Barra</option>
             <option value="comida">🍽️ Comida</option>
             <option value="barra">🍸 Barra</option>
-            <option value="ambos">🍽️🍸 Comida y Barra</option>
             <option value="cortosybotellas">🥃 Botellas y Cortos</option>
           </select>
+          <span class="costeo-rest-lbl ct-desc-lbl" id="ctDescLbl" style="display:none">Precios</span>
+          <div class="ct-desc-toggle" id="ctDescToggle" style="display:none">
+            <button type="button" class="adm-btn" id="ctDescOff">Sin descuento</button>
+            <button type="button" class="adm-btn" id="ctDescOn">Con descuento (40%)</button>
+            <button type="button" class="ct-info-btn adm-has-tip" id="ctDescInfoBtn" aria-label="Sobre el descuento">ⓘ<span role="tooltip" class="adm-tip">Muestra el precio de venta con el 40% de descuento aplicado y el % de costo recalculado contra ese precio — el precio real guardado no cambia. Aplica a Garden y Badass, en cualquier Servicio.</span></button>
+          </div>
+          <button type="button" class="adm-btn adm-btn-ghost adm-has-tip" id="ctUmbralesBtn" style="display:none">⚙ Umbrales<span role="tooltip" class="adm-tip">Definí desde qué % de costo el semáforo pinta amarillo o rojo, para Comida, Barra y Comida y Barra, con y sin descuento.</span></button>
         </div>
         <div class="dist-subnav" id="costeoSubnav">
           <button type="button" class="dist-subtab on" data-csub="analisis">📊 Análisis</button>
@@ -3752,6 +3781,21 @@ body.hosp-open{overflow:hidden}
       </div>
       <div id="costeoProductora" style="display:none"></div>
       <div id="costeoComercializacion" style="display:none"></div>
+    </div>
+
+    <!-- Umbrales de color del semáforo de % de costo (Costeo › Carta resumen) -->
+    <div class="adm-drawer" id="ctUmbralesDrawer" aria-hidden="true">
+      <div class="adm-drawer-bg" data-act="close-ct-umbrales"></div>
+      <div class="adm-drawer-panel">
+        <div class="adm-drawer-head">
+          <div style="min-width:0;flex:1">
+            <div class="adm-drawer-title">Umbrales de color</div>
+            <div class="adm-drawer-meta">% de costo desde el que la Carta (resumen) pinta amarillo o rojo — verde por debajo, amarillo incluye los dos bordes, rojo por encima. Aplica igual a Garden y Badass.</div>
+          </div>
+          <button type="button" class="adm-drawer-x" data-act="close-ct-umbrales" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="adm-drawer-body" id="ctUmbralesBody"><div class="adm-loading">Cargando…</div></div>
+      </div>
     </div>
 
     <!-- Estado de Resultado mensual del CD -->
@@ -5275,6 +5319,7 @@ async function selectSeccion(id){
   } else if (sec.kind === 'costeo') {
     showView('costeo');
     costeoAreaBoot();
+    await ctFetchUmbrales();
     await loadCosteo();
   } else if (sec.kind === 'estado') {
     showView('estado');
@@ -11264,6 +11309,11 @@ let costeoArea='gastronomia';
 function costeoAreaBoot(){
   document.querySelectorAll('#costeoAreaTabs [data-carea]').forEach(b => { b.onclick = () => costeoAreaGo(b.dataset.carea); });
   costeoAreaGo(costeoArea);
+  // El <select> de Servicio no tiene "selected" fijo en el HTML (el orden de
+  // sus <option> es solo de presentación) — sin este sync, el navegador
+  // muestra la primera opción de la lista aunque costeoSvc diga otra cosa.
+  const svcSel = document.getElementById('costeoSvc');
+  if (svcSel) svcSel.value = costeoSvc;
 }
 function costeoAreaGo(area){
   costeoArea = area;
@@ -11346,6 +11396,13 @@ function renderCosteoSub(){
   document.getElementById('costeoAnalisis').style.display = esAnalisis ? '' : 'none';
   if (svcLbl) svcLbl.style.display = esAnalisis ? 'none' : '';
   if (svcSel) svcSel.style.display = esAnalisis ? 'none' : '';
+  // El toggle de descuento y sus umbrales de color solo tienen efecto en Carta
+  // (resumen) — Insumos/Recetas/Comida-Barra (edición) y Análisis (que tiene su
+  // propio toggle separado) no los usan, así que se esconden ahí para no
+  // prometer algo que no hace nada.
+  const esResumen = costeoSub==='resumen';
+  ['ctDescLbl','ctDescToggle','ctUmbralesBtn'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display = esResumen ? '' : 'none'; });
+  if (esResumen) ctUpdateDescToggleUI();
   if (esAnalisis) return renderCosteoAnalisis();
   if (costeoSub==='insumos') return renderCosteoInsumos();
   if (costeoSub==='recetas') return renderCosteoRecetas();
@@ -11831,7 +11888,7 @@ function renderCosteoPlatos(){
     </div>
     <div class="ct-toolbar" style="margin-top:1.4rem">
       <div class="ct-toolbar-info"><b>${costeoSvcLabel()} (${(costeoData.platos||[]).length})</b> · descarga el listado con la cadena de costo y el precio real.</div>
-      ${costeoSvc!=='cortosybotellas' ? '<div class="ct-pdf"><span>Excel</span><button class="adm-btn adm-btn-gold" id="plXlBtn" type="button">Descargar Excel</button></div>' : '<div class="ct-toolbar-info" style="margin:0">Para descargar, elegí Barra en Servicio (baja todo Barra, Cortos y Botellas incluidos).</div>'}
+      ${costeoSvc!=='cortosybotellas' ? '<div class="ct-pdf"><span>Excel</span><button class="adm-btn adm-btn-gold" id="plXlBtn" type="button">Descargar Excel</button></div>' : '<div class="ct-toolbar-info" style="margin:0">Para descargar, elige Barra en Servicio (baja todo Barra, Cortos y Botellas incluidos).</div>'}
     </div>
     <div class="tc-search" style="display:flex;gap:.5rem;flex-wrap:wrap">
       <input type="text" id="plSearchInp" placeholder="Buscar plato…" value="${escapeAttr(platoSearch)}" style="flex:1;min-width:180px">
@@ -11908,10 +11965,134 @@ async function platoDelete(id){
 let cartaData = null;
 let cartaSearch = '', cartaCatFilter = '', cartaDescuento = false;
 const REST_LABEL = { garden:'Kairos Garden', badass:'Badass' };
-// Vista "con descuento" de Carta (resumen): solo Badass. Muestra el precio de
-// venta con un 40% de descuento aplicado y el % de costo recalculado contra
-// ese precio con descuento — solo de vista, no toca el precio real guardado.
+// Vista "con descuento" de Carta (resumen): transversal a Garden y Badass, y a
+// los 4 valores de Servicio — muestra el precio de venta con un 40% de
+// descuento aplicado y el % de costo recalculado contra ese precio con
+// descuento — solo de vista, no toca el precio real guardado. El toggle vive
+// como controles persistentes en la barra de arriba (junto al selector de
+// Servicio, ver #ctDescToggle en el HTML) en vez de recrearse en cada
+// drawCarta/drawCartaCombinada — por eso su wiring y su estado visual se
+// manejan acá aparte, no dentro de esas funciones de render.
 const CARTA_DESCUENTO_PCT = 40;
+function ctUpdateDescToggleUI(){
+  const off=document.getElementById('ctDescOff'), on=document.getElementById('ctDescOn');
+  if (off) off.classList.toggle('adm-btn-gold', !cartaDescuento);
+  if (on) on.classList.toggle('adm-btn-gold', cartaDescuento);
+}
+{ const off=document.getElementById('ctDescOff'), on=document.getElementById('ctDescOn');
+  const ctDescRedraw = () => { if (costeoSub!=='resumen') return; ctUpdateDescToggleUI(); costeoSvc==='ambos' ? drawCartaCombinada() : drawCarta(); };
+  if (off) off.onclick = () => { if(!cartaDescuento) return; cartaDescuento=false; ctDescRedraw(); };
+  if (on) on.onclick = () => { if(cartaDescuento) return; cartaDescuento=true; ctDescRedraw(); }; }
+
+// ── Semáforo de color del % de costo ────────────────────────────────────────
+// Umbrales configurables por Servicio (comida/barra/ambos) y por estado del
+// toggle de descuento (sin/con) — NO por restaurante (Garden y Badass usan
+// los mismos). Se cachean acá y se recargan del server al entrar a Costeo y
+// después de guardar cambios en la pantalla de ajustes; mientras tanto (o si
+// el fetch falla) se usa este mismo default, que es el que también vive en
+// server.js (COSTEO_UMBRALES_DEFAULT) — así el primer render nunca queda sin
+// color mientras responde la red.
+const CT_UMBRALES_DEFAULT = {
+  comida: { sin: { verde: 25, amarillo: 30 }, con: { verde: 30, amarillo: 35 } },
+  barra:  { sin: { verde: 20, amarillo: 25 }, con: { verde: 25, amarillo: 30 } },
+  ambos:  { sin: { verde: 25, amarillo: 30 }, con: { verde: 30, amarillo: 35 } },
+};
+let ctUmbrales = JSON.parse(JSON.stringify(CT_UMBRALES_DEFAULT));
+async function ctFetchUmbrales(){
+  try{ const d = await (await fetch('/admin/costeo/umbrales')).json(); if(d && typeof d==='object') ctUmbrales = d; }catch{}
+}
+// "Botellas y Cortos" no tiene fila propia de umbrales todavía (a pedido del
+// pedido: "usar por ahora los umbrales de Barra, salvo que se configure
+// aparte") — se resuelve acá, no en el store, para no duplicar la config.
+function ctSvcKey(){ return costeoSvc==='cortosybotellas' ? 'barra' : costeoSvc; }
+// Convención de bordes: verde estrictamente MENOR al umbral de abajo; amarillo
+// INCLUSIVE en los dos extremos (de verde a amarillo); rojo estrictamente
+// MAYOR al de arriba. Ningún valor numérico queda sin tono.
+function ctColorTone(pct, servicioKey, conDesc){
+  if (pct == null) return null;
+  const key = servicioKey === 'cortosybotellas' ? 'barra' : servicioKey;
+  const cfg = ctUmbrales[key] || CT_UMBRALES_DEFAULT.barra;
+  const b = (conDesc ? cfg.con : cfg.sin) || CT_UMBRALES_DEFAULT.barra.sin;
+  if (pct < b.verde) return 'verde';
+  if (pct <= b.amarillo) return 'amarillo';
+  return 'rojo';
+}
+function ctToneClass(tone){ return tone ? 'ct-tone-'+tone : ''; }
+// Actualiza el color de una celda de % ya en pantalla (guardado inline, sin
+// re-render de toda la fila) — mismo criterio que ctColorTone, para que el
+// guardado sin recargar la tabla no quede con un color viejo/incorrecto.
+function ctApplyToneClass(el, pct, servicioKey, conDesc){
+  el.className = 'pl-pct ' + ctToneClass(ctColorTone(pct, servicioKey, conDesc));
+}
+// ── Pantalla de ajustes: umbrales de color ──────────────────────────────────
+const CT_UMBRALES_SVC_LABEL = { comida:'🍽️ Comida', barra:'🍸 Barra', ambos:'🍽️🍸 Comida y Barra' };
+function ctUmbralesRowHtml(svc, cfg){
+  const inp = (estado, campo, val) => `<input type="text" inputmode="decimal" class="ct-umb-inp" data-svc="${svc}" data-estado="${estado}" data-campo="${campo}" value="${val}" style="width:64px">`;
+  return `<tr>
+    <td><b>${CT_UMBRALES_SVC_LABEL[svc]}</b></td>
+    <td class="dist-num">${inp('sin','verde',cfg.sin.verde)}</td>
+    <td class="dist-num">${inp('sin','amarillo',cfg.sin.amarillo)}</td>
+    <td class="dist-num">${inp('con','verde',cfg.con.verde)}</td>
+    <td class="dist-num">${inp('con','amarillo',cfg.con.amarillo)}</td>
+  </tr>`;
+}
+function ctUmbralesRenderForm(data){
+  const rows = ['comida','barra','ambos'].map(svc => ctUmbralesRowHtml(svc, data[svc] || CT_UMBRALES_DEFAULT[svc])).join('');
+  document.getElementById('ctUmbralesBody').innerHTML = `
+    <div class="ct-toolbar-info" style="margin-bottom:.8rem">Verde: menor al primer número. Amarillo: entre los dos, bordes incluidos. Rojo: mayor al segundo. "Botellas y Cortos" usa los mismos umbrales que Barra.</div>
+    <div class="mun-wrap"><table class="mun-table">
+      <thead>
+        <tr><th></th><th colspan="2" style="text-align:center">Sin descuento</th><th colspan="2" style="text-align:center">Con descuento (40%)</th></tr>
+        <tr><th>Servicio</th><th style="text-align:right">Verde hasta</th><th style="text-align:right">Amarillo hasta</th><th style="text-align:right">Verde hasta</th><th style="text-align:right">Amarillo hasta</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <div class="dist-form-actions" style="margin-top:1rem">
+      <button class="adm-btn adm-btn-gold" id="ctUmbralesSaveBtn" type="button">Guardar umbrales</button>
+      <button class="adm-btn adm-btn-ghost" id="ctUmbralesResetBtn" type="button">Restaurar valores por defecto</button>
+      <span class="dist-status" id="ctUmbralesSt"></span>
+    </div>`;
+  document.getElementById('ctUmbralesSaveBtn').onclick = ctUmbralesSave;
+  document.getElementById('ctUmbralesResetBtn').onclick = () => ctUmbralesRenderForm(CT_UMBRALES_DEFAULT);
+}
+async function ctUmbralesSave(){
+  const st = document.getElementById('ctUmbralesSt');
+  const body = {};
+  let bad = false;
+  document.querySelectorAll('.ct-umb-inp').forEach(inp=>{
+    const { svc, estado, campo } = inp.dataset;
+    if (!body[svc]) body[svc] = { sin:{}, con:{} };
+    const v = cNum(inp.value);
+    if (!Number.isFinite(v) || v < 0) bad = true;
+    body[svc][estado][campo] = v;
+  });
+  if (bad) { st.className='dist-status err'; st.textContent='Todos los campos tienen que ser números ≥ 0.'; return; }
+  for (const svc of Object.keys(body)) for (const estado of ['sin','con']) {
+    if (body[svc][estado].amarillo < body[svc][estado].verde) { st.className='dist-status err'; st.textContent=`En ${CT_UMBRALES_SVC_LABEL[svc]} (${estado==='sin'?'sin':'con'} descuento) el amarillo tiene que ser ≥ que el verde.`; return; }
+  }
+  st.className='dist-status'; st.textContent='Guardando…';
+  try{
+    const r = await fetch('/admin/costeo/umbrales', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    ctUmbrales = d;
+    st.className='dist-status ok'; st.textContent='✓ Guardado';
+    // Repinta lo que esté en pantalla ahora mismo con los umbrales nuevos.
+    if (costeoSub==='resumen') { costeoSvc==='ambos' ? drawCartaCombinada() : drawCarta(); }
+  }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
+}
+function openCtUmbrales(){
+  document.getElementById('ctUmbralesDrawer').classList.add('open');
+  document.body.classList.add('drawer-open');
+  ctUmbralesRenderForm(ctUmbrales);
+}
+function closeCtUmbrales(){
+  document.getElementById('ctUmbralesDrawer').classList.remove('open');
+  if (!document.querySelector('.adm-drawer.open')) document.body.classList.remove('drawer-open');
+}
+document.getElementById('ctUmbralesDrawer').addEventListener('click', (e)=>{ if (e.target.dataset.act==='close-ct-umbrales') closeCtUmbrales(); });
+document.addEventListener('keydown', (e)=>{ if (e.key==='Escape' && document.getElementById('ctUmbralesDrawer').classList.contains('open')) closeCtUmbrales(); });
+{ const btn = document.getElementById('ctUmbralesBtn'); if (btn) btn.onclick = openCtUmbrales; }
 const ctSearchNorm = (s) => String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
 async function renderCosteoCarta(){
   const body=document.getElementById('costeoBody');
@@ -12000,7 +12181,7 @@ function cartaRowRO(p, conDesc){
     <td><b>${escapeHtml(p.nombre)}</b></td>
     <td class="dist-num">${real!=null?cMoney(real):'<span style="color:#bbb">sin precio</span>'}</td>
     <td class="dist-num">${cMoney(p.costo)}</td>
-    <td class="dist-num"><span class="pl-pct ${pct!=null&&pct>40?'hi':''}">${pct!=null?pct+'%':'—'}</span></td>
+    <td class="dist-num"><span class="pl-pct ${ctToneClass(ctColorTone(pct,'ambos',conDesc))}">${pct!=null?pct+'%':'—'}</span></td>
     <td class="dist-num">${escapeHtml(p.__seccion||'—')}</td>
   </tr>`;
 }
@@ -12023,9 +12204,9 @@ function cartaReventaHtmlRO(reventa, conDesc){
 }
 function drawCartaCombinada(){
   const { comida, barra, mix } = cartaCombinadaData;
-  // Mismo criterio y gate que el toggle de Comida/Barra por separado: el
-  // descuento del 40% solo existe para Badass.
-  const conDesc = cartaDescuento && costeoRest==='badass';
+  // El toggle de descuento es transversal (Garden y Badass, los 4 Servicio) —
+  // vive arriba, en la barra global (#ctDescToggle), no acá.
+  const conDesc = cartaDescuento;
   const comidaAvg = cartaComboAvgPct(comida.carta, null, conDesc);
   const barraAvg = cartaComboAvgPct(barra.carta, barra.reventa, conDesc);
   const mComida = Number(mix.comida)||0, mBarra = Math.round((100-mComida)*10)/10;
@@ -12046,20 +12227,9 @@ function drawCartaCombinada(){
   // tap en móvil (.adm-has-tip:focus-within), así que no queda escondido
   // para quien mira esto desde el celular.
   const comboInfo = `Comida y Barra combinadas · vista de solo lectura — para editar precios o mover de sección, elige Comida o Barra en el selector de Servicio. Cortos y Botellas quedan afuera (tienen su propia sección de Servicio). ${comida.carta.meta.totalPlatos} platos de Comida · ${totalBarra} tragos de Barra.`;
-  // Mismo toggle que Comida/Barra por separado — acá faltaba, y sin él la
-  // vista combinada quedaba pegada a "sin descuento" sin poder mostrarlo.
-  const descuentoToggle = costeoRest==='badass' ? `
-    <div class="tc-search" style="display:flex;gap:.5rem;align-items:center;margin-bottom:.8rem">
-      <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#666">Ver precios</span>
-      <div style="display:flex;gap:.4rem">
-        <button type="button" class="adm-btn ${conDesc?'':'adm-btn-gold'}" id="ctDescOff">Sin descuento</button>
-        <button type="button" class="adm-btn ${conDesc?'adm-btn-gold':''}" id="ctDescOn">Con descuento (${CARTA_DESCUENTO_PCT}%)</button>
-      </div>
-      ${conDesc?'<span class="ct-toolbar-info" style="margin:0">Precio y % de costo con el descuento aplicado — el precio real guardado no cambia.</span>':''}
-    </div>` : '';
   const mixBox = `
     <div class="ct-mix-box">
-      <div class="ct-mix-pct ${weighted!=null&&weighted>40?'hi':''}">${fmt1(weighted)}<button type="button" class="ct-info-btn adm-has-tip" aria-describedby="ctComboInfo" aria-label="Sobre esta vista">ⓘ<span role="tooltip" id="ctComboInfo" class="adm-tip">${escapeHtml(comboInfo)}</span></button></div>
+      <div class="ct-mix-pct ${ctToneClass(ctColorTone(weighted,'ambos',conDesc))}">${fmt1(weighted)}<button type="button" class="ct-info-btn adm-has-tip" aria-describedby="ctComboInfo" aria-label="Sobre esta vista">ⓘ<span role="tooltip" id="ctComboInfo" class="adm-tip">${escapeHtml(comboInfo)}</span></button></div>
       <div class="ct-mix-detail">
         <span>ponderado por <b>${mComida}% Comida</b> / <b>${mBarra}% Barra</b> · Comida ${fmt1(comidaAvg)} · Barra ${fmt1(barraAvg)}${conDesc?' · <b>con descuento 40%</b>':''}</span>
         <button class="adm-btn adm-btn-ghost" id="ctMixEditBtn" type="button">✎ Editar mix</button>
@@ -12074,13 +12244,9 @@ function drawCartaCombinada(){
   const comidaHtml = cartaSeccionesHtmlRO(comida.carta, conDesc);
   const barraHtml = cartaSeccionesHtmlRO(barra.carta, conDesc) + cartaReventaHtmlRO(barra.reventa, conDesc);
   document.getElementById('costeoBody').innerHTML = `
-    ${descuentoToggle}
     ${mixBox}
     <div class="ct-combo-group"><div class="ct-combo-h">🍽️ Comida</div>${comidaHtml||'<div class="dist-empty">Sin platos costeados.</div>'}</div>
     <div class="ct-combo-group"><div class="ct-combo-h">🍸 Barra</div>${barraHtml||'<div class="dist-empty">Sin tragos costeados.</div>'}</div>`;
-  { const off=document.getElementById('ctDescOff'); const on=document.getElementById('ctDescOn');
-    if(off) off.onclick=()=>{ cartaDescuento=false; drawCartaCombinada(); };
-    if(on) on.onclick=()=>{ cartaDescuento=true; drawCartaCombinada(); }; }
   const editBtn=document.getElementById('ctMixEditBtn'), editBox=document.getElementById('ctMixEdit');
   if (editBtn) editBtn.onclick=()=>{ editBox.style.display = editBox.style.display==='none' ? '' : 'none'; };
   const inp=document.getElementById('ctMixComidaInp'), prev=document.getElementById('ctMixBarraPreview');
@@ -12105,7 +12271,7 @@ function cartaSecSelect(pid, currentSecId, isSinAsignar){
     <option value="" ${isSinAsignar?'selected':''}>— Sin asignar —</option></select>`;
 }
 function cartaRow(p, secId, isSinAsignar){
-  const conDesc = cartaDescuento && costeoRest==='badass';
+  const conDesc = cartaDescuento;
   const realBase = p.precioReal;
   const real = conDesc && realBase!=null ? Math.round(realBase*(1-CARTA_DESCUENTO_PCT/100)) : realBase;
   const pct = conDesc
@@ -12118,7 +12284,7 @@ function cartaRow(p, secId, isSinAsignar){
     <td><b>${escapeHtml(p.nombre)}</b>${isSinAsignar?` <span class="mun-bk">${escapeHtml(p.categoria)}</span>`:''}</td>
     <td class="dist-num">${precioCell}</td>
     <td class="dist-num">${cMoney(p.costo)}</td>
-    <td class="dist-num"><span class="pl-pct ${pct!=null&&pct>40?'hi':''}" data-pct>${pct!=null?pct+'%':'—'}</span></td>
+    <td class="dist-num"><span class="pl-pct ${ctToneClass(ctColorTone(pct,ctSvcKey(),conDesc))}" data-pct>${pct!=null?pct+'%':'—'}</span></td>
     <td class="dist-num">${cartaSecSelect(p.id, secId, isSinAsignar)}</td>
   </tr>`;
 }
@@ -12209,10 +12375,9 @@ function drawCarta(){
     const showHeader = (!catF || rest.some(s=>s.nombre===catF)) && (!q || restFiltered.length);
     if (showHeader) revBlock = `
       <div class="ct-rev-head">
-        <div class="ct-sec-h" style="border:none">Reventa · destilados y bebidas <span>(venta directa)</span></div>
+        <div class="ct-sec-h" style="border:none">Reventa · destilados y bebidas <span>(venta directa)</span> <button type="button" class="ct-info-btn adm-has-tip" aria-label="Sobre Reventa">ⓘ<span role="tooltip" class="adm-tip">Se compran hechos y se revenden. Carga el precio de compra y el % de costo = compra ÷ venta se calcula solo.</span></button></div>
         <button class="adm-btn adm-btn-ghost" id="rvAddSec" type="button">+ Sección</button>
       </div>
-      <div class="ct-toolbar-info" style="margin:-.3rem 0 .6rem">Se compran hechos y se revenden. Carga el <b>precio de compra</b> y el <b>% de costo</b> = compra ÷ venta se calcula solo.</div>
       ${restFiltered.map(reventaSectionBlock).join('')}`;
   }
   // Categorías disponibles para el selector: secciones del menú + Sin asignar +
@@ -12223,31 +12388,28 @@ function drawCarta(){
     ...((isBarra() && reventaData && reventaData.secciones) ? reventaData.secciones.filter(s=>!usedRev.has(s.id)).map(s=>({v:s.nombre,l:s.nombre})) : []),
   ];
   const noResults = q && !secBlocks && !saBlock && !revBlock;
-  const conDesc = cartaDescuento && costeoRest==='badass';
-  const descuentoToggle = costeoRest==='badass' ? `
-    <div class="tc-search" style="display:flex;gap:.5rem;align-items:center">
-      <span style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#666">Ver precios</span>
-      <div style="display:flex;gap:.4rem">
-        <button type="button" class="adm-btn ${conDesc?'':'adm-btn-gold'}" id="ctDescOff">Sin descuento</button>
-        <button type="button" class="adm-btn ${conDesc?'adm-btn-gold':''}" id="ctDescOn">Con descuento (${CARTA_DESCUENTO_PCT}%)</button>
-      </div>
-      ${conDesc?'<span class="ct-toolbar-info" style="margin:0">Precio y % de costo con el descuento aplicado — el precio real guardado no cambia.</span>':''}
-    </div>` : '';
-  const avg = cartaAvgPct(c, conDesc);
-  const avgTone = avg.pct==null ? '' : (avg.pct>40 ? 'tone-red' : 'tone-green');
-  const avgBlock = `
-    <div class="adm-stats" style="margin-bottom:.7rem">
-      <div class="adm-stat ${avgTone}">
-        <div class="adm-stat-k">% DE COSTO PROMEDIO</div>
-        <div class="adm-stat-v">${avg.pct!=null?avg.pct+'%':'—'}</div>
-        <div class="adm-stat-s">${escapeHtml(REST_LABEL[costeoRest]||costeoRest)} · ${costeoSvcLabel()} · ${avg.n?avg.n+' platos con precio cargado':'sin platos con precio real cargado todavía'}${conDesc?' · con descuento':''}</div>
-      </div>
-    </div>`;
+  const conDesc = cartaDescuento;
   // c.meta.* viene del server sin recortar (cuenta TODA la Barra) — con el
   // recorte de "Botellas y Cortos"/"Barra" hay que recontar sobre lo que
   // realmente quedó en c.secciones/c.sinAsignar después del filtro.
   const totalSecciones = c.secciones.length;
   const totalPlatos = c.secciones.reduce((a,s)=>a+s.platos.length,0) + c.sinAsignar.length;
+  const avg = cartaAvgPct(c, conDesc);
+  const avgTone = ctToneClass(ctColorTone(avg.pct, ctSvcKey(), conDesc));
+  // Este texto vivía como párrafo gris fijo arriba de la tabla; ahora solo se
+  // ve en el tooltip del ícono ⓘ junto al % (mismo patrón que la vista
+  // combinada) — Precio de venta/% de costo YA tienen su propio tooltip en el
+  // encabezado de columna (ver ctThead/CT_TIP_*), así que acá solo queda lo
+  // que no está en ningún header: de dónde sale el costo, y los conteos.
+  const ctInfo = `El precio de venta es el que se cobra al público, editable acá mismo. El % de costo es siempre contra ese precio real; el costo sale del costeo. ${totalSecciones} secciones · ${totalPlatos} platos.`;
+  const avgBlock = `
+    <div class="adm-stats" style="margin-bottom:.7rem">
+      <div class="adm-stat ${avgTone}">
+        <div class="adm-stat-k">% DE COSTO PROMEDIO</div>
+        <div class="adm-stat-v" style="display:inline-flex;align-items:baseline;gap:.4rem">${avg.pct!=null?avg.pct+'%':'—'}<button type="button" class="ct-info-btn adm-has-tip" aria-label="Sobre esta vista">ⓘ<span role="tooltip" class="adm-tip">${escapeHtml(ctInfo)}</span></button></div>
+        <div class="adm-stat-s">${escapeHtml(REST_LABEL[costeoRest]||costeoRest)} · ${costeoSvcLabel()} · ${avg.n?avg.n+' platos con precio cargado':'sin platos con precio real cargado todavía'}${conDesc?' · con descuento':''}</div>
+      </div>
+    </div>`;
   // El export server-side no conoce el recorte de "Botellas y Cortos" (bajaría
   // TODA la Barra con ese nombre de archivo) — se oculta ahí para no ofrecer un
   // archivo con más productos de los que se están mirando.
@@ -12257,14 +12419,12 @@ function drawCarta(){
         <select id="ctXlScope"><option value="one">${escapeHtml(REST_LABEL[costeoRest]||costeoRest)}</option><option value="both">Ambos restaurantes</option></select>
         <button class="adm-btn adm-btn-gold" id="ctXlBtn" type="button">Excel</button>
         <button class="adm-btn adm-btn-gold" id="ctPdfBtn" type="button">PDF</button>
-      </div>` : '<div class="ct-toolbar-info" style="margin:0">Para descargar Excel/PDF de estos productos, elegí Barra en Servicio (baja todo Barra, Cortos y Botellas incluidos).</div>';
+      </div>` : '<div class="ct-toolbar-info" style="margin:0">Para descargar Excel/PDF de estos productos, elige Barra en Servicio (baja todo Barra, Cortos y Botellas incluidos).</div>';
   document.getElementById('costeoBody').innerHTML = `
     ${avgBlock}
-    <div class="ct-toolbar">
-      <div class="ct-toolbar-info"><b>Precio de venta REAL</b> (el que cobrás al público, editable acá). El <b>% de costo</b> es contra ese precio real; el <b>costo</b> sale del costeo. ${totalSecciones} secciones · ${totalPlatos} platos.</div>
+    <div class="ct-toolbar" style="justify-content:flex-end">
       ${descargaBox}
     </div>
-    ${descuentoToggle}
     <div class="tc-search" style="display:flex;gap:.5rem;flex-wrap:wrap">
       <input type="text" id="ctSearchInp" placeholder="Buscar producto…" value="${escapeAttr(cartaSearch)}" style="flex:1;min-width:180px">
       <select id="ctCatFilter" style="max-width:260px"><option value="">Todas las categorías</option>${catOptions.map(o=>`<option value="${escapeAttr(o.v)}" ${catF===o.v?'selected':''}>${escapeHtml(o.l)}</option>`).join('')}</select>
@@ -12277,9 +12437,6 @@ function drawCarta(){
   document.querySelectorAll('#costeoBody .ct-real').forEach(inp=>{ inp.onchange=()=>cartaSaveReal(inp); });
   { const x=document.getElementById('ctXlBtn'); if(x) x.onclick=cartaExcel; }
   { const x=document.getElementById('ctPdfBtn'); if(x) x.onclick=cartaPdf; }
-  { const off=document.getElementById('ctDescOff'); const on=document.getElementById('ctDescOn');
-    if(off) off.onclick=()=>{ cartaDescuento=false; drawCarta(); };
-    if(on) on.onclick=()=>{ cartaDescuento=true; drawCarta(); }; }
   const csi=document.getElementById('ctSearchInp');
   csi.oninput=()=>{ cartaSearch=csi.value; const p=csi.selectionStart; drawCarta(); const n=document.getElementById('ctSearchInp'); if(n){ n.focus(); try{n.setSelectionRange(p,p);}catch{} } };
   document.getElementById('ctCatFilter').onchange=(e)=>{ cartaCatFilter=e.target.value; drawCarta(); };
@@ -12310,7 +12467,9 @@ async function cartaSaveReal(inp){
     if(p){ p.precioReal=real; p.pctCosto = real ? Math.round((p.costo/real)*1000)/10 : null; }
     inp.value = real!=null ? real : '';
     const tr=inp.closest('tr'); const pctEl=tr && tr.querySelector('[data-pct]');
-    if(pctEl){ const pct=p?p.pctCosto:null; pctEl.textContent = pct!=null ? pct+'%' : '—'; pctEl.classList.toggle('hi', pct!=null && pct>40); }
+    // Este input solo existe en la rama "sin descuento" de cartaRow (con
+    // descuento el precio es de solo lectura) — conDesc siempre false acá.
+    if(pctEl){ const pct=p?p.pctCosto:null; pctEl.textContent = pct!=null ? pct+'%' : '—'; ctApplyToneClass(pctEl, pct, ctSvcKey(), false); }
   }catch(e){ alert(e.message); }
 }
 // Descarga la carta en Excel (.xlsx). El servidor arma el archivo con una hoja por
@@ -12803,7 +12962,7 @@ let reventaData = null;
 function ctLooseNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\(.*?\)/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
 // Solo la tabla de productos de una sección de reventa (sin encabezado de sección).
 function reventaTableHtml(s){
-  const conDesc = cartaDescuento && costeoRest==='badass';
+  const conDesc = cartaDescuento;
   const rows=s.productos.map(p=>{
     const ventaBase = p.precioVenta;
     const venta = conDesc && ventaBase!=null ? Math.round(ventaBase*(1-CARTA_DESCUENTO_PCT/100)) : ventaBase;
@@ -12826,7 +12985,7 @@ function reventaTableHtml(s){
       <td>${escapeHtml(p.nombre)}</td>
       <td class="dist-num">${ventaCell}</td>
       <td class="dist-num">${compraCell}</td>
-      <td class="dist-num"><span class="pl-pct ${pct!=null&&pct>40?'hi':''}" data-rvpct>${pct!=null?pct+'%':'—'}</span></td>
+      <td class="dist-num"><span class="pl-pct ${ctToneClass(ctColorTone(pct,ctSvcKey(),conDesc))}" data-rvpct>${pct!=null?pct+'%':'—'}</span></td>
       <td><button class="pv-del" data-rvdel="${p.id}">✕</button> <span class="dist-status" data-rvst></span></td>
     </tr>`;
   }).join('');
@@ -12860,7 +13019,9 @@ async function reventaSaveProd(id){
     const r=await fetch(cRest(`/admin/costeo/reventa/producto/${id}`),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({precioVenta:venta,precioCompra:compra})});
     if(!r.ok){const e=await r.json();throw new Error(e.error||'Error');}
     const p=reventaFindProd(id); if(p){ p.precioVenta=venta>0?Math.round(venta):null; p.precioCompra=compra>0?Math.round(compra):null; p.pctCosto=(p.precioVenta&&p.precioCompra!=null)?Math.round((p.precioCompra/p.precioVenta)*1000)/10:null; }
-    const pctEl=tr.querySelector('[data-rvpct]'); if(pctEl){ const pct=p?p.pctCosto:null; pctEl.textContent=pct!=null?pct+'%':'—'; pctEl.classList.toggle('hi', pct!=null&&pct>40); }
+    // Este input de venta solo existe en la rama "sin descuento" de
+    // reventaTableHtml (con descuento es de solo lectura) — conDesc false acá.
+    const pctEl=tr.querySelector('[data-rvpct]'); if(pctEl){ const pct=p?p.pctCosto:null; pctEl.textContent=pct!=null?pct+'%':'—'; ctApplyToneClass(pctEl, pct, ctSvcKey(), false); }
     st.className='dist-status ok'; st.textContent='✓'; setTimeout(()=>{st.textContent='';},1200);
   }catch(e){ st.className='dist-status err'; st.textContent=e.message; }
 }

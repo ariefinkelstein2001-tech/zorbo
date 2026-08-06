@@ -16510,6 +16510,65 @@ app.put('/admin/costeo/mix', requireAdmin, (req, res) => {
   res.json({ rest, comida: d[rest], barra: Math.round((100 - d[rest]) * 10) / 10 });
 });
 
+// ── Umbrales de color del semáforo de % de costo (NUEVO — capa de presentación) ──
+// Parámetro editable y persistente: desde qué % de costo la Carta (resumen)
+// pinta verde/amarillo/rojo el % de costo promedio y el de cada fila. Igual
+// que el mix de arriba, vive en su propio store — nunca toca insumos/recetas/
+// platos/precios ni el costeo en sí. Aplica igual a Garden y Badass (no es
+// por restaurante); varía por Servicio (comida/barra/ambos) y por si el
+// toggle de descuento está activo. "Botellas y Cortos" reusa los umbrales de
+// "barra" — no tiene fila propia por ahora (spec del pedido), se resuelve en
+// costeoUmbralesServicioKey en vez de duplicar la config.
+const COSTEO_UMBRALES_FILE = join(PROMPTS_EFFECTIVE_DIR, 'costeo-umbrales.json');
+const COSTEO_UMBRALES_DEFAULT = {
+  comida: { sin: { verde: 25, amarillo: 30 }, con: { verde: 30, amarillo: 35 } },
+  barra:  { sin: { verde: 20, amarillo: 25 }, con: { verde: 25, amarillo: 30 } },
+  ambos:  { sin: { verde: 25, amarillo: 30 }, con: { verde: 30, amarillo: 35 } },
+};
+function costeoUmbralesLoad(){
+  // Deep-merge sobre el default para que un archivo viejo/parcial (o creado a
+  // mano) nunca deje un bucket sin verde/amarillo — siempre hay un número con
+  // que pintar, aunque el usuario nunca haya tocado los ajustes.
+  const out = JSON.parse(JSON.stringify(COSTEO_UMBRALES_DEFAULT));
+  try {
+    if (existsSync(COSTEO_UMBRALES_FILE)) {
+      const p = JSON.parse(readFileSync(COSTEO_UMBRALES_FILE, 'utf-8'));
+      for (const svc of Object.keys(COSTEO_UMBRALES_DEFAULT)) {
+        for (const estado of ['sin', 'con']) {
+          const b = p && p[svc] && p[svc][estado];
+          if (!b) continue;
+          const verde = Number(b.verde), amarillo = Number(b.amarillo);
+          if (Number.isFinite(verde) && Number.isFinite(amarillo) && verde >= 0 && amarillo >= verde) {
+            out[svc][estado] = { verde, amarillo };
+          }
+        }
+      }
+    }
+  } catch (e) { console.warn('costeo-umbrales load:', e.message); }
+  return out;
+}
+function costeoUmbralesSave(d){ if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true }); writeFileSync(COSTEO_UMBRALES_FILE, JSON.stringify(d, null, 2)); }
+app.get('/admin/costeo/umbrales', requireAdmin, (req, res) => {
+  res.json(costeoUmbralesLoad());
+});
+app.put('/admin/costeo/umbrales', requireAdmin, (req, res) => {
+  const body = req.body || {};
+  const out = {};
+  for (const svc of Object.keys(COSTEO_UMBRALES_DEFAULT)) {
+    out[svc] = {};
+    for (const estado of ['sin', 'con']) {
+      const b = body[svc] && body[svc][estado];
+      const verde = Number(b && b.verde), amarillo = Number(b && b.amarillo);
+      if (!Number.isFinite(verde) || !Number.isFinite(amarillo) || verde < 0 || amarillo < verde) {
+        return res.status(400).json({ error: `Umbral inválido en ${svc}/${estado}: verde y amarillo tienen que ser números, verde ≥ 0 y amarillo ≥ verde.` });
+      }
+      out[svc][estado] = { verde: Math.round(verde * 10) / 10, amarillo: Math.round(amarillo * 10) / 10 };
+    }
+  }
+  costeoUmbralesSave(out);
+  res.json(out);
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ANÁLISIS DEL % DE COSTO PROMEDIO PONDERADO — herramienta de EXPLORACIÓN,
 // separada del costeo de la carta (pestaña propia "Análisis" a propósito, para
