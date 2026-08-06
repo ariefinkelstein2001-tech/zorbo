@@ -2781,6 +2781,24 @@ const MP_HERO_SLIDES = [
 
 // Solo entran al home los productos que llevan tag ZORBO en Shopify.
 // Luego se clasifican en chelas / craftmix / destileria / packs por título.
+
+// ¿Es un destilado/licor? Un solo criterio para el home y para el mayorista —
+// antes cada uno tenía su propia lista de palabras y no coincidían.
+// Se mira en este orden:
+//   1. El tipo de producto de Shopify (lo más confiable cuando está cargado).
+//   2. Las etiquetas.
+//   3. Palabras del título, incluidos ESTILOS que no nombran el destilado:
+//      "London Dry" es un gin y no dice "gin" en ninguna parte. Sin esto, un
+//      producto así cae en cervezas si su vendor quedó mal cargado en Shopify.
+const ES_DESTILADO_RX = /\bgin\b|\bron\b|\brum\b|whisky|whiskey|vodka|pisco|tequila|mezcal|vermut|vermouth|licor|destilad|london\s*dry|dry\s*gin|rey\s*de\s*copas|b[aá]rvaro|b[aá]varo|mojito|\brtd\b/;
+function esDestiladoProd(p){
+  // Solo palabras de CATEGORÍA en tipo/etiquetas: buscar "ron" suelto ahí
+  // pescaría cosas como "patrón" o "electrónico".
+  if (/licor|destilad|spirit/.test(String(p.type || '').toLowerCase())) return true;
+  if (/licor|destilad|spirit/.test((p.tags || []).map(x => String(x).toLowerCase()).join(' '))) return true;
+  return ES_DESTILADO_RX.test(String(p.title || '').toLowerCase());
+}
+
 function hasZorboTag(p){
   const tags = (p.tags || []).map(t => String(t).trim().toUpperCase());
   return tags.includes('ZORBO');
@@ -2788,6 +2806,7 @@ function hasZorboTag(p){
 function classifyHpProduct(p, home){
   if (!hasZorboTag(p)) return null;
   const t = (p.title || '').toLowerCase();
+  const destilado = esDestiladoProd(p);
   // Packs Mix 6 estilos: regla por título, gana siempre (un pack mix de Kairos
   // no debe caer en Chelas aunque su vendor sea Kairos).
   if (/(6|12|24)\s*pack.*(mix|variado|6\s*estilos)/.test(t)) return 'packs';
@@ -2801,14 +2820,19 @@ function classifyHpProduct(p, home){
     if (vend) {
       for (const b of home.brands) {
         const bv = norm(b.vendor);
-        if (bv && (vend === bv || vend.includes(bv) || bv.includes(vend))) return b.category;
+        // Excepción: si el producto es un destilado, el vendor no puede
+        // mandarlo a Chelas. Pasó con "London Dry", un gin cargado en Shopify
+        // con vendor Kairos. Cualquier otra categoría configurada se respeta.
+        if (bv && (vend === bv || vend.includes(bv) || bv.includes(vend))) {
+          return (destilado && b.category === 'chelas') ? 'destileria' : b.category;
+        }
       }
     }
   }
   // Firulais
   if (/cholita|pepita|cachupin|firulais|chelada/.test(t)) return 'craftmix';
   // Destilados Banny
-  if (/\bgin\b|whisky|whiskey|\bron\b|\brum\b|vermut|bavaro|b[aá]rvaro|rey\s*de\s*copas/.test(t)) return 'destileria';
+  if (destilado) return 'destileria';
   // Por defecto, cualquier otra cosa con tag ZORBO va a Chelas (cervezas Kairos)
   return 'chelas';
 }
@@ -4481,7 +4505,7 @@ function detectMpBrand(p){
   if (v.includes('acholada') || t.includes('acholada')) return 'acholada';
   if (v.includes('firulais') || t.includes('firulais') || t.includes('chelada')) return 'firulais';
   if (v.includes('banny') || t.includes('banny')) return 'banny';
-  if (/\bgin\b|\brum\b|\bron\b|whisky|whiskey|vermut|mojito|rtd/.test(t)) return 'banny';
+  if (esDestiladoProd(p)) return 'banny';
   if (v.includes('kairos')) return 'kairos';
   // Vendor desconocido (Del Puerto, OTROS, etc.) → Otros.
   return 'otros';
