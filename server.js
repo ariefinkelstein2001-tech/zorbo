@@ -16428,11 +16428,39 @@ app.post('/admin/costeo/carta/precio-real', requireAdmin, (req, res) => {
   p.precioReal = (Number(b.precioReal) > 0) ? Math.round(Number(b.precioReal)) : null;
   saveCosteo(rest, req.query.svc, d); res.json({ ok: true, precioReal: p.precioReal });
 });
+// Borrar un plato: además de sacarlo de Nivel 3, limpia el fantasma que deja
+// en Carta (resumen) — el/los ítems del menú real que este plato cubría y que
+// ningún OTRO plato sigue cubriendo pasan de "con precio" a "sin costear" el
+// día que se borra, si no se hace nada. Se compara el "sin costear" de la
+// sección ANTES y DESPUÉS de borrar (con resolveCarta, la misma función que
+// usa la pestaña): lo que aparece de nuevo es justo lo que el plato borrado
+// cubría en soledad, y eso es lo único que se saca. Un ítem que YA estaba sin
+// costear, o que sigue cubierto por otro plato con nombre parecido, no se
+// toca — cero riesgo de barrer de más.
 app.delete('/admin/costeo/platos/:id', requireAdmin, (req, res) => {
-  const rest = req.query.rest; const d = loadCosteo(rest, req.query.svc); const before = d.platos.length;
-  d.platos = d.platos.filter(x => x.id !== String(req.params.id));
+  const rest = req.query.rest; const svc = req.query.svc;
+  const d = loadCosteo(rest, svc);
+  const id = String(req.params.id);
+  const before = d.platos.length;
+  const antes = resolveCarta(d);
+  const seccionId = (antes.secciones.find(s => (s.platos || []).some(p => p.id === id)) || {}).id;
+  d.platos = d.platos.filter(x => x.id !== id);
   if (d.platos.length === before) return res.status(404).json({ error: 'Plato no encontrado.' });
-  saveCosteo(rest, req.query.svc, d); res.json({ ok: true });
+  d.carta = costeoNormalizeCarta(d.carta);
+  delete d.carta.asignaciones[id];
+  if (seccionId) {
+    const seccionAntes = antes.secciones.find(s => s.id === seccionId);
+    const yaSinCostearAntes = new Set((seccionAntes && seccionAntes.sinCostear) || []);
+    const despues = resolveCarta(d);
+    const seccionDespues = despues.secciones.find(s => s.id === seccionId);
+    const nuevoSinCostear = seccionDespues ? (seccionDespues.sinCostear || []).filter(n => !yaSinCostearAntes.has(n)) : [];
+    if (nuevoSinCostear.length) {
+      const set = new Set(nuevoSinCostear);
+      const secDoc = d.carta.secciones.find(s => s.id === seccionId);
+      if (secDoc) secDoc.items = (secDoc.items || []).filter(it => !set.has(it.nombre));
+    }
+  }
+  saveCosteo(rest, svc, d); res.json({ ok: true });
 });
 
 // ── Carta (Nivel 4): platos costeados organizados por las secciones del menú ──
