@@ -14481,7 +14481,8 @@ function costeoNormalizeCarta(c){
   const vecv = Number.isFinite(c.vecv) ? c.vecv : 0; // versión: Badass barra — Vino y Espumantes de Reventa pasan de venderse por botella (750cc) a venderse por copa (150cc)
   const veiv = Number.isFinite(c.veiv) ? c.veiv : 0; // versión: Badass barra — la copa de Vino/Espumantes se vincula a un insumo real (precio de compra ya no se tipea a mano)
   const asv = Number.isFinite(c.asv) ? c.asv : 0; // versión: Garden comida — se elimina la sección "Almuerzo Silvestre (12:30-16:00)" de Carta (resumen): sin platos costeados, no toca la carta pública del local
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, kclv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, wlv, dsv, pcb2v, esv, ptv, cbdv, vecv, veiv, asv, secciones, asignaciones };
+  const gsv = Number.isFinite(c.gsv) ? c.gsv : 0; // versión: Garden comida — se eliminan "Para tomar 0,0°", "Banny dips" y "Agregados" de Carta (resumen): sin platos costeados
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, kclv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, wlv, dsv, pcb2v, esv, ptv, cbdv, vecv, veiv, asv, gsv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -14727,6 +14728,28 @@ function costeoGardenEliminarAlmuerzoSilvestre(doc, rest){
     doc.categorias = (doc.categorias || []).filter(c => costeoNorm(c) !== objetivo);
   }
   doc.carta.asv = GARDEN_ALMUERZO_SILVESTRE_V;
+  return true;
+}
+// Garden (comida): 3 secciones de Carta (resumen) que nunca tuvieron platos
+// costeados — a pedido del dueño se eliminan, mismo patrón que Almuerzo
+// Silvestre/Wild Lunch. Cada una se borra SOLO si de verdad tiene 0 platos
+// costeados categorizados ahí (por seguridad, no se asume). Corre una sola
+// vez (carta.gsv), solo Garden comida (no aplica a garden_barra).
+const GARDEN_SECCIONES_VACIAS = ['Para tomar 0,0°', 'Banny dips', 'Agregados'];
+const GARDEN_SECCIONES_VACIAS_V = 1;
+function costeoGardenEliminarSeccionesVacias(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.gsv >= GARDEN_SECCIONES_VACIAS_V) return false;
+  if (costeoRestKey(rest) !== 'garden') { doc.carta.gsv = GARDEN_SECCIONES_VACIAS_V; return true; }
+  const objetivos = new Set(GARDEN_SECCIONES_VACIAS.map(costeoNorm));
+  const tienePlatos = new Set((doc.platos || []).map(p => costeoNorm(p.categoria)));
+  const aBorrar = new Set([...objetivos].filter(o => !tienePlatos.has(o)));
+  if (aBorrar.size) {
+    doc.carta.secciones = (doc.carta.secciones || []).filter(s => !aBorrar.has(costeoNorm(s.nombre)));
+    doc.categorias = (doc.categorias || []).filter(c => !aBorrar.has(costeoNorm(c)));
+  }
+  doc.carta.gsv = GARDEN_SECCIONES_VACIAS_V;
   return true;
 }
 // Badass (comida): "Para Tomar 0.0" es una sección de BARRA (los tragos de
@@ -16049,10 +16072,10 @@ function costeoEnsureBarraDocs(all){
 }
 function loadCosteoAll(){
   try {
-    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.garden, 'garden'); costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.garden, 'garden'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.garden, 'garden'); costeoSeedPreciosReales(all.badass, 'badass'); costeoBadassEliminarWildLunch(all.badass, 'badass'); costeoBadassEliminarParaTomarComida(all.badass, 'badass'); costeoBadassDobleSmash(all.badass, 'badass'); costeoBadassEnsaladasYSinCostear(all.badass, 'badass'); costeoGardenEliminarAlmuerzoSilvestre(all.garden, 'garden'); costeoEnsureBarraDocs(all); costeoApplySmashOverride(all.garden); costeoApplySmashOverride(all.badass); saveCosteoAll(all); return all; }
+    if (!existsSync(COSTEO_FILE)) { const all = { garden: costeoDefaults(), badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.garden, 'garden'); costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.garden, 'garden'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.garden, 'garden'); costeoSeedPreciosReales(all.badass, 'badass'); costeoBadassEliminarWildLunch(all.badass, 'badass'); costeoBadassEliminarParaTomarComida(all.badass, 'badass'); costeoBadassDobleSmash(all.badass, 'badass'); costeoBadassEnsaladasYSinCostear(all.badass, 'badass'); costeoGardenEliminarAlmuerzoSilvestre(all.garden, 'garden'); costeoGardenEliminarSeccionesVacias(all.garden, 'garden'); costeoEnsureBarraDocs(all); costeoApplySmashOverride(all.garden); costeoApplySmashOverride(all.badass); saveCosteoAll(all); return all; }
     const p = JSON.parse(readFileSync(COSTEO_FILE, 'utf-8'));
     // Migración: archivo viejo con la data en la raíz → pasa a "garden".
-    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoEnsureRealCarta(g, 'garden'); costeoMigratePlatos(g, 'garden'); costeoSeedPreciosReales(g, 'garden'); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.badass, 'badass'); costeoBadassEliminarWildLunch(all.badass, 'badass'); costeoBadassEliminarParaTomarComida(all.badass, 'badass'); costeoBadassDobleSmash(all.badass, 'badass'); costeoBadassEnsaladasYSinCostear(all.badass, 'badass'); costeoGardenEliminarAlmuerzoSilvestre(all.garden, 'garden'); costeoEnsureBarraDocs(all); costeoApplySmashOverride(all.garden); costeoApplySmashOverride(all.badass); saveCosteoAll(all); return all; }
+    if (Array.isArray(p.insumos)) { const g = costeoNormalizeDoc(p); costeoSeedPlatosInto(g); costeoEnsureRealCarta(g, 'garden'); costeoMigratePlatos(g, 'garden'); costeoSeedPreciosReales(g, 'garden'); const all = { garden: g, badass: costeoDefaultsBadass() }; costeoEnsureRealCarta(all.badass, 'badass'); costeoMigratePlatos(all.badass, 'badass'); costeoSeedPreciosReales(all.badass, 'badass'); costeoBadassEliminarWildLunch(all.badass, 'badass'); costeoBadassEliminarParaTomarComida(all.badass, 'badass'); costeoBadassDobleSmash(all.badass, 'badass'); costeoBadassEnsaladasYSinCostear(all.badass, 'badass'); costeoGardenEliminarAlmuerzoSilvestre(all.garden, 'garden'); costeoGardenEliminarSeccionesVacias(all.garden, 'garden'); costeoEnsureBarraDocs(all); costeoApplySmashOverride(all.garden); costeoApplySmashOverride(all.badass); saveCosteoAll(all); return all; }
     const all = { garden: costeoNormalizeDoc(p.garden), badass: costeoNormalizeDoc(p.badass), garden_barra: p.garden_barra, badass_barra: p.badass_barra };
     let changed = false;
     if (costeoSeedPlatosInto(all.garden)) changed = true;
@@ -16071,6 +16094,7 @@ function loadCosteoAll(){
     if (costeoBadassEliminarWildLunch(all.badass, 'badass')) changed = true;
     // Garden comida: saca "Almuerzo Silvestre (12:30-16:00)" de Carta (resumen), sin platos costeados (no toca la carta pública del local).
     if (costeoGardenEliminarAlmuerzoSilvestre(all.garden, 'garden')) changed = true;
+    if (costeoGardenEliminarSeccionesVacias(all.garden, 'garden')) changed = true;
     // Badass comida: saca "Para Tomar 0.0" de Carta (resumen) — es de Barra, no de alimentos.
     if (costeoBadassEliminarParaTomarComida(all.badass, 'badass')) changed = true;
     if (costeoBadassDobleSmash(all.badass, 'badass')) changed = true;
