@@ -12511,9 +12511,15 @@ function anPxBarraHtml(){
   const conectados = Object.keys(AN.pxMapa).filter(k => AN.pxMapa[k]).length;
   const meses = (px.meses || []).map(m => `<button type="button" class="an-px-mes${AN.pxMeses.includes(m.idx)?' on':''}" data-pxmes="${m.idx}">${escapeHtml(m.label)}</button>`).join('');
   const nCom = anPxLista('comida').length, nBar = anPxLista('barra').length;
+  // Se dice de qué familias de Pyxis salió cada lado: si falta algo (los
+  // mocktails, por ejemplo), se ve de una si es porque su familia no entró.
+  const fam = (svc) => {
+    const f = (px.porSvc && px.porSvc[svc] && px.porSvc[svc].familiasIncluidas) || [];
+    return f.length ? ` (${f.join(', ')})` : '';
+  };
   const partes = [];
-  if (nCom) partes.push(nCom + ' de comida'); else if (px.porSvc && px.porSvc.comida.motivo) partes.push('comida sin configurar');
-  if (nBar) partes.push(nBar + ' de barra'); else if (px.porSvc && px.porSvc.barra.motivo) partes.push('barra sin configurar');
+  if (nCom) partes.push(nCom + ' de comida' + fam('comida')); else if (px.porSvc && px.porSvc.comida.motivo) partes.push('comida sin configurar');
+  if (nBar) partes.push(nBar + ' de barra' + fam('barra')); else if (px.porSvc && px.porSvc.barra.motivo) partes.push('barra sin configurar');
   // Si un lado no está configurado se dice cuál y por qué, en vez de que sus
   // filas queden sin selector sin explicación.
   const falta = ['comida', 'barra'].filter(s => px.porSvc && px.porSvc[s] && !px.porSvc[s].disponible && px.porSvc[s].motivo);

@@ -16740,18 +16740,25 @@ function costeoPyxisFiltrar(rows, rest){
 // El criterio (filtrar por restaurante y familia, agrupar por artículo, sumar
 // los 3 meses) va aparte de la llamada remota, para poder probarlo sin depender
 // de que Pyxis conteste.
-function costeoPyxisAgrupar(rows, rest, familias){
+// `opts` decide qué familias entran:
+//   { incluir: [...] } → solo esas
+//   { excluir: [...] } → todas menos esas
+//   null               → todas (para el diagnóstico)
+function costeoPyxisAgrupar(rows, rest, opts){
   const num = x => { const n = Number(x); return Number.isFinite(n) ? n : 0; };
-  const famSet = new Set((familias || []).map(costeoPxNorm));
+  const incluir = opts && opts.incluir ? new Set(opts.incluir.map(costeoPxNorm)) : null;
+  const excluir = opts && opts.excluir ? new Set(opts.excluir.map(costeoPxNorm)) : null;
   const { mias, criterio } = costeoPyxisFiltrar(rows, rest);
   const familiasDisponibles = [...new Set(mias.map(r => String(r.familia || '').trim()).filter(Boolean))].sort();
   const marcasVistas = [...new Set(mias.map(r => String(r.nombreMarca || '').trim()).filter(Boolean))].sort();
   const localesVistos = [...new Set(mias.map(r => String(r.nombreLocal || '').trim()).filter(Boolean))].sort();
+  const incluidas = new Set();
   const porNombre = new Map();
   for (const r of mias) {
-    // Sin familias configuradas no se adivina: se devuelve la lista para que se
-    // configuren en Comercial › Horeca (Pyxis) ⚙️, que es donde ya viven.
-    if (famSet.size && !famSet.has(costeoPxNorm(r.familia))) continue;
+    const fam = costeoPxNorm(r.familia);
+    if (incluir && !incluir.has(fam)) continue;
+    if (excluir && excluir.has(fam)) continue;
+    if (r.familia) incluidas.add(String(r.familia).trim());
     const nombre = String(r.nombreProducto || '').trim();
     if (!nombre) continue;
     const k = costeoPxNorm(nombre);
@@ -16767,7 +16774,7 @@ function costeoPyxisAgrupar(rows, rest, familias){
     .map(a => ({ ...a, cantTotal: a.cant[0] + a.cant[1] + a.cant[2] }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base', numeric: true }));
   return {
-    articulos, familiasConfiguradas: familias || [], familiasDisponibles,
+    articulos, familiasDisponibles, familiasIncluidas: [...incluidas].sort(),
     marcasVistas, localesVistos, criterio, filasDelRestaurante: mias.length, filasTotales: (rows || []).length,
   };
 }
@@ -16778,14 +16785,27 @@ async function costeoPyxisArticulos(rest){
   const cfg = pyxisHospCfgLoad();
   const rows = await pyxisVentasRows('2', false);
   const base = costeoPyxisAgrupar(rows, rest, null);   // sin filtrar: para el diagnóstico
+  const comidaFam = cfg.familiaComida || [];
+  // BARRA = todo lo que NO es comida, no una lista blanca de familias.
+  // Con lista blanca, cualquier familia que no esté declarada desaparece sin
+  // aviso: así se estaban perdiendo los mocktails, que en Pyxis no caen en
+  // "Con Alcohol". Declarando solo qué es comida, el resto entra siempre.
+  const opts = {
+    comida: comidaFam.length ? { incluir: comidaFam } : null,
+    barra: comidaFam.length ? { excluir: comidaFam }
+      : ((cfg.familiaBarra || []).length ? { incluir: cfg.familiaBarra } : null),
+  };
   const porSvc = {};
-  for (const [svc, familias] of [['comida', cfg.familiaComida], ['barra', cfg.familiaBarra]]) {
-    const g = costeoPyxisAgrupar(rows, rest, familias);
+  for (const svc of ['comida', 'barra']) {
+    const g = costeoPyxisAgrupar(rows, rest, opts[svc]);
+    // Comida necesita sí o sí la lista: no hay forma de adivinar qué es comida.
+    // Barra se deriva de ella, así que solo falla si tampoco hay familiaBarra.
+    const configurado = svc === 'comida' ? comidaFam.length > 0 : (comidaFam.length > 0 || (cfg.familiaBarra || []).length > 0);
     porSvc[svc] = {
-      disponible: !!(g.filasDelRestaurante && (familias || []).length),
-      articulos: g.articulos, familiasConfiguradas: familias || [],
-      motivo: (familias || []).length ? null
-        : `Falta decir qué familias de Pyxis son ${svc}. Se configura en Comercial › Horeca (Pyxis) ⚙️. Las que trae este local: ${base.familiasDisponibles.join(', ') || '(ninguna)'}.`,
+      disponible: !!(g.filasDelRestaurante && configurado),
+      articulos: g.articulos, familiasIncluidas: g.familiasIncluidas,
+      motivo: configurado ? null
+        : `Falta decir qué familias de Pyxis son comida. Se configura en Comercial › Horeca (Pyxis) ⚙️; lo que quede afuera cuenta como barra. Las que trae este local: ${base.familiasDisponibles.join(', ') || '(ninguna)'}.`,
     };
   }
   return {
@@ -16796,8 +16816,8 @@ async function costeoPyxisArticulos(rest){
 
 app.get('/admin/costeo/analisis/pyxis', requireAdmin, async (req, res) => {
   const rest = costeoRestKey(req.query.rest);
-  const vacio = { comida: { disponible: false, articulos: [], familiasConfiguradas: [], motivo: null },
-                  barra:  { disponible: false, articulos: [], familiasConfiguradas: [], motivo: null } };
+  const vacio = { comida: { disponible: false, articulos: [], familiasIncluidas: [], motivo: null },
+                  barra:  { disponible: false, articulos: [], familiasIncluidas: [], motivo: null } };
   try {
     const d = await costeoPyxisArticulos(rest);
     if (!d.filasDelRestaurante) {
