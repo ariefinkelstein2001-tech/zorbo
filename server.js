@@ -14406,6 +14406,11 @@ function costeoNormalizeReventa(r){
       nombre: costeoStr(p && p.nombre, 200) || 'Producto',
       precioVenta: costeoNumOrNull(p && p.precioVenta),
       precioCompra: costeoNumOrNull(p && p.precioCompra),
+      // Vínculo opcional a un insumo real de barra (Nivel 1): si está presente,
+      // precioCompra deja de tipearse a mano y se recalcula siempre en
+      // resolveReventa como precio del insumo (por litro) × porcionMl.
+      insumoId: costeoStr(p && p.insumoId, 60) || null,
+      porcionMl: costeoNumOrNull(p && p.porcionMl),
     })).filter(p => p.nombre) : [],
   })) : [];
   const v = Number.isFinite(r.v) ? r.v : 0;
@@ -14474,7 +14479,8 @@ function costeoNormalizeCarta(c){
   const ptv = Number.isFinite(c.ptv) ? c.ptv : 0; // versión: Badass comida — se elimina la sección "Para Tomar 0.0" de Carta (resumen): es de Barra, no de alimentos
   const cbdv = Number.isFinite(c.cbdv) ? c.cbdv : 0; // versión: Badass barra — se eliminan 64 Cortos/Botellas puntuales a pedido del dueño
   const vecv = Number.isFinite(c.vecv) ? c.vecv : 0; // versión: Badass barra — Vino y Espumantes de Reventa pasan de venderse por botella (750cc) a venderse por copa (150cc)
-  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, kclv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, wlv, dsv, pcb2v, esv, ptv, cbdv, vecv, secciones, asignaciones };
+  const veiv = Number.isFinite(c.veiv) ? c.veiv : 0; // versión: Badass barra — la copa de Vino/Espumantes se vincula a un insumo real (precio de compra ya no se tipea a mano)
+  return { v, pv, rv, biv, cv, smv, urv, rvb, ctv, btv, ckv, ckmv, blv, bav, bvv, glcv, pcbv, rai, kuv, kclv, rlv, grlv, gav, gtv, cbfv, cbev, bciv, wlv, dsv, pcb2v, esv, ptv, cbdv, vecv, veiv, secciones, asignaciones };
 }
 // Carta por defecto: agrupa los platos ya costeados por su categoría (respetando
 // el orden de doc.categorias). Deja la pestaña Carta usable de una, antes de
@@ -15508,6 +15514,57 @@ function costeoBadassVinoEspumanteCopa(doc, rest){
   doc.carta.vecv = BADASS_VINO_ESPUMANTE_COPA_V;
   return true;
 }
+// Badass barra: la copa de Vino/Espumantes (ver costeoBadassVinoEspumanteCopa)
+// se VINCULA a un insumo real de barra (Nivel 1) en vez de tener un precio de
+// compra tipeado a mano. Cada producto guarda `insumoId` + `porcionMl` (150);
+// resolveReventa recalcula precioCompra = precio del insumo (por litro) ×
+// porcionMl, SIEMPRE, así que si el insumo cambia de precio la copa lo sigue
+// al toque, sin volver a correr nada. Casi todos los vinos ya tenían su
+// insumo cargado (del Excel de barra, sin usar) — el mapeo de qué insumo es
+// cada uno lo confirmó el dueño (los códigos C/CS/M de Undurraga Aliwen y
+// Casas Patronales son ambiguos a simple vista: Carmenere/Cabernet
+// Sauvignon/Merlot). "Santa Ema Merlot Reserva" no tenía insumo — se crea
+// nuevo, en 0, para completar el precio a mano en Insumos. Dedupe: no toca un
+// producto que ya tenga insumoId (por si se corre de nuevo). Corre una sola
+// vez (carta.veiv), solo Badass.
+const BADASS_VINO_ESPUMANTE_INSUMO = {
+  'Apaltagua Chardonnay Reserva': 'APALTAGUA RESERVA CH',
+  'Errázuriz Sauvignon Blanc Reserva': 'ERRAZURIZ RESERVA SERIES SB',
+  'Santa Ema Merlot Reserva': 'VINO SANTA EMA MERLOT', // no existía en el catálogo: se crea
+  'Aliwen Cabernet Sauvignon Reserva': 'UNDURRAGA ALIWEN CS',
+  'Casas Patronales Carmenere Reserva': 'CASAS PATRONALES C',
+  'Undurraga Extra Brut': 'UNDURRAGA EXTRA BRUT',
+  'Undurraga Brut': 'UNDURRAGA BRUT',
+};
+const BADASS_VINO_ESPUMANTE_PORCION_ML = 150;
+const BADASS_VINO_ESPUMANTE_INSUMO_V = 1;
+function costeoBadassVinoEspumanteInsumo(doc, rest){
+  if (!doc) return false;
+  doc.carta = costeoNormalizeCarta(doc.carta);
+  if (doc.carta.veiv >= BADASS_VINO_ESPUMANTE_INSUMO_V) return false;
+  if (costeoRestKey(rest) !== 'badass') { doc.carta.veiv = BADASS_VINO_ESPUMANTE_INSUMO_V; return true; }
+  doc.reventa = costeoNormalizeReventa(doc.reventa);
+  const insByName = new Map((doc.insumos || []).map(i => [costeoNorm(i.descripcion), i]));
+  const destinos = new Set([costeoNorm('Vino (copa)'), costeoNorm('Espumantes (copa)')]);
+  (doc.reventa.secciones || []).forEach(s => {
+    if (!destinos.has(costeoNorm(s.nombre))) return;
+    (s.productos || []).forEach(p => {
+      if (p.insumoId) return; // ya vinculado
+      const insNombre = BADASS_VINO_ESPUMANTE_INSUMO[p.nombre];
+      if (!insNombre) return; // producto agregado a mano después, sin mapeo conocido: no se toca
+      let ins = insByName.get(costeoNorm(insNombre));
+      if (!ins) {
+        ins = { id: randomUUID(), descripcion: insNombre, precioNeto: 0, unidad: 'litro', volumen: 1, ila: 0, despacho: 0, rendimiento: null };
+        doc.insumos.push(ins);
+        insByName.set(costeoNorm(insNombre), ins);
+      }
+      p.insumoId = ins.id;
+      p.porcionMl = BADASS_VINO_ESPUMANTE_PORCION_ML;
+    });
+  });
+  doc.carta.veiv = BADASS_VINO_ESPUMANTE_INSUMO_V;
+  return true;
+}
 // ── Cervezas Kairos: de reventa a trago costeado ──
 // Las 4 categorías de cerveza propia (colecciones de la casa / temporada /
 // artistas y el Firulais Craft Mix) estaban cargadas como REVENTA: se veían en
@@ -15961,6 +16018,7 @@ function costeoEnsureBarraDocs(all){
     if (costeoSeedPreciosCortosBotellas2(all[key], rest)) ch = true;
     if (costeoBadassEliminarCortosBotellas(all[key], rest)) ch = true;
     if (costeoBadassVinoEspumanteCopa(all[key], rest)) ch = true;
+    if (costeoBadassVinoEspumanteInsumo(all[key], rest)) ch = true;
   }
   return ch;
 }
@@ -17316,12 +17374,24 @@ function loadReventa(rest){
   return doc;
 }
 function resolveReventa(doc){
+  const insById = new Map((doc.insumos || []).map(i => [i.id, i]));
   const secciones = (doc.reventa.secciones || []).map(s => ({
     id: s.id, nombre: s.nombre,
-    productos: (s.productos || []).map(p => ({
-      id: p.id, nombre: p.nombre, precioVenta: p.precioVenta, precioCompra: p.precioCompra,
-      pctCosto: (p.precioVenta && p.precioCompra != null) ? Math.round((p.precioCompra / p.precioVenta) * 1000) / 10 : null,
-    })),
+    productos: (s.productos || []).map(p => {
+      // Producto vinculado a un insumo real: el precio de compra sale SIEMPRE
+      // del precio actual del insumo (por litro) × la porción — nunca del
+      // valor tipeado a mano, que queda obsoleto apenas se vincula.
+      const ins = p.insumoId ? insById.get(p.insumoId) : null;
+      const precioCompra = ins
+        ? Math.round(insumoPrecioReal(ins) * ((Number(p.porcionMl) || 0) / 1000))
+        : p.precioCompra;
+      return {
+        id: p.id, nombre: p.nombre, precioVenta: p.precioVenta, precioCompra,
+        pctCosto: (p.precioVenta && precioCompra != null) ? Math.round((precioCompra / p.precioVenta) * 1000) / 10 : null,
+        vinculado: !!ins,
+        insumoNombre: ins ? ins.descripcion : null,
+      };
+    }),
   }));
   const totalProd = secciones.reduce((a, s) => a + s.productos.length, 0);
   return { secciones, meta: { totalSecciones: secciones.length, totalProductos: totalProd } };
@@ -17338,7 +17408,9 @@ app.put('/admin/costeo/reventa/producto/:id', requireAdmin, (req, res) => {
   if (!prod) return res.status(404).json({ error: 'Producto no encontrado.' });
   if (b.nombre !== undefined) { const v = costeoStr(b.nombre, 200); if (v) prod.nombre = v; }
   if (b.precioVenta !== undefined) prod.precioVenta = costeoNumOrNull(b.precioVenta);
-  if (b.precioCompra !== undefined) prod.precioCompra = costeoNumOrNull(b.precioCompra);
+  // Si está vinculado a un insumo, el precio de compra se calcula solo
+  // (resolveReventa) — no se acepta un valor tipeado a mano que lo pisaría.
+  if (b.precioCompra !== undefined && !prod.insumoId) prod.precioCompra = costeoNumOrNull(b.precioCompra);
   saveCosteo(rest, 'barra', doc); res.json({ ok: true });
 });
 // Agregar un producto a una sección de reventa.

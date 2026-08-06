@@ -12813,11 +12813,19 @@ function reventaTableHtml(s){
     const ventaCell = conDesc
       ? `<b>${venta!=null?cMoney(venta):'—'}</b>`
       : `<input type="text" inputmode="decimal" class="rv-inp dist-num" data-f="precioVenta" value="${venta!=null?venta:''}" placeholder="—" style="width:95px">`;
+    // Vinculado a un insumo (ver resolveReventa): el precio de compra sale
+    // solo del insumo × la porción, no se tipea — input deshabilitado (con el
+    // valor calculado igual, para que reventaSaveProd lo pueda leer sin
+    // romper) y una leyenda con el insumo de origen.
+    const compraCell = p.vinculado
+      ? `<input type="text" class="rv-inp dist-num" data-f="precioCompra" value="${p.precioCompra!=null?p.precioCompra:''}" disabled title="Calculado del insumo — no se edita acá" style="width:95px;color:#888;background:#f5f5f5">
+         <div style="font-size:.68rem;color:#999;margin-top:.15rem">= ${escapeHtml(p.insumoNombre||'insumo')}</div>`
+      : `<input type="text" inputmode="decimal" class="rv-inp dist-num" data-f="precioCompra" value="${p.precioCompra!=null?p.precioCompra:''}" placeholder="cargar" style="width:95px">`;
     return `
     <tr data-rvp="${p.id}">
       <td>${escapeHtml(p.nombre)}</td>
       <td class="dist-num">${ventaCell}</td>
-      <td class="dist-num"><input type="text" inputmode="decimal" class="rv-inp dist-num" data-f="precioCompra" value="${p.precioCompra!=null?p.precioCompra:''}" placeholder="cargar" style="width:95px"></td>
+      <td class="dist-num">${compraCell}</td>
       <td class="dist-num"><span class="pl-pct ${pct!=null&&pct>40?'hi':''}" data-rvpct>${pct!=null?pct+'%':'—'}</span></td>
       <td><button class="pv-del" data-rvdel="${p.id}">✕</button> <span class="dist-status" data-rvst></span></td>
     </tr>`;
