@@ -3414,6 +3414,9 @@ body.chat-collapsed .wsfab-panel{bottom:152px}
 .seba-faq .seba-faq-q{flex:0 0 30%}
 .seba-nota{font-family:var(--sans);font-size:.74rem;color:var(--muted);line-height:1.55;background:var(--surface2);
   border-left:3px solid var(--gold-bd);border-radius:0 8px 8px 0;padding:.55rem .7rem;margin:.5rem 0}
+.seba-nota.alerta{border-left-color:var(--red);background:var(--red-dim)}
+.seba-nota.ok{border-left-color:var(--green);background:var(--green-dim)}
+.seba-nota code{font-family:var(--mono);font-size:.7rem;word-break:break-all}
 .seba-dim{color:var(--muted)}
 .seba-tabla{width:100%;border-collapse:collapse;font-family:var(--sans);font-size:.79rem}
 .seba-tabla th{text-align:left;font-size:.6rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);padding:.35rem .5rem;border-bottom:1px solid var(--border)}
@@ -19060,7 +19063,7 @@ document.getElementById('rspReload').onclick = loadRespaldo;
 // se editan, se guardan (versionando lo anterior) y se prueban con el simulador,
 // que corre exactamente el mismo camino que un DM real pero sin mandar nada a
 // Instagram — así se puede afinar el tono antes de que Meta apruebe la app.
-const SEBA = { cerebro:null, versiones:[], catalogo:null, estado:null, hist:[] };
+const SEBA = { cerebro:null, versiones:[], catalogo:null, dominios:null, estado:null, hist:[] };
 const SEBA_BLOQUES = [
   { k:'identidad',  t:'Identidad',  d:'quién es Seba, su personalidad y el tono · acá vive la regla de sonar humano', filas:7 },
   { k:'objetivo',   t:'Objetivo',   d:'qué tiene que lograr en la conversación', filas:4 },
@@ -19080,6 +19083,7 @@ async function sebaCargar(){
     SEBA.cerebro = d.cerebro || {};
     SEBA.versiones = d.versiones || [];
     SEBA.catalogo = d.catalogo || null;
+    SEBA.dominios = d.dominios || null;
     SEBA.estado = d.estado || null;
     sebaRender();
   } catch(e){ body.innerHTML = '<div class="adm-empty">No se pudo cargar: ' + escapeHtml(String(e.message||e)) + '</div>'; }
@@ -19128,6 +19132,37 @@ function sebaEstadoHtml(){
         </ol>
         <p>El token de Instagram dura 60 días y se renueva solo (una vez por día, cuando le quedan menos de 15). Si alguna vez lo pegás de nuevo a mano en Railway, el nuevo manda.</p>
       </details>
+    </div>`;
+}
+
+// Dominio con el que se arman los links de carrito. Es lo primero que ve el
+// cliente en el DM, así que no puede salir el handle .myshopify.com.
+function sebaDominioHtml(){
+  const d = SEBA.dominios || {};
+  const cfg = String((SEBA.cerebro && SEBA.cerebro.dominioCarrito) || '');
+  const comoLoSaco = {
+    panel:     'lo escribiste acá abajo',
+    env:       'viene de SEBA_CART_DOMAIN en Railway',
+    shopify:   'es el dominio principal que declara Shopify',
+    myshopify: 'es el dominio interno de Shopify — se ve off-brand en un DM',
+  }[d.origen] || '';
+  const alerta = d.origen === 'myshopify';
+  return `
+    <div class="seba-bloque">
+      <label>Dominio del carrito<em>con qué dominio se arman los links que Seba manda por DM · dejalo vacío para usar el principal de Shopify</em></label>
+      <div class="seba-fila">
+        <input class="adm-input" id="sebaDominio" value="${escapeHtml(cfg)}" placeholder="automático${d.primario ? ' (' + escapeHtml(d.primario) + ')' : ''}">
+        <button class="adm-btn adm-btn-ghost" id="sebaDomProbar" type="button">Probar link</button>
+      </div>
+      <div class="seba-nota ${alerta ? 'alerta' : ''}">
+        Ahora se está usando <b>${escapeHtml(d.enUso || '—')}</b>${comoLoSaco ? ' · ' + escapeHtml(comoLoSaco) : ''}.
+        ${alerta ? '<b>Ojo:</b> ese es el dominio interno. Configurá un dominio propio en Shopify (Configuración › Dominios) o escribí acá el que corresponda.' : ''}
+        ${d.disponible
+          ? `<br>Shopify declara: principal <b>${escapeHtml(d.primario || '—')}</b> · interno <code>${escapeHtml(d.myshopify || '—')}</code>.`
+          : `<br>${escapeHtml(d.motivo || 'No se pudo leer el dominio de Shopify.')}`}
+        ${(d.primario && d.primario !== cfg && d.primario !== d.enUso) ? `<br><a href="#" id="sebaDomUsar">Usar ${escapeHtml(d.primario)}</a>` : ''}
+      </div>
+      <div id="sebaDomRes"></div>
     </div>`;
 }
 
@@ -19183,6 +19218,7 @@ function sebaRender(){
     </div>
 
     <div class="seba-sec"><h3>Packs y links (desde Shopify)</h3></div>
+    ${sebaDominioHtml()}
     ${sebaCatalogoHtml()}
 
     <div class="seba-sec"><h3>Probar sin mandar nada</h3></div>
@@ -19236,6 +19272,8 @@ function sebaLeerForm(){
   document.querySelectorAll('#sebaBody .seba-ta').forEach(t => { c[t.dataset.k] = t.value; });
   const mod = document.getElementById('sebaModelo');
   c.modelo = mod ? mod.value.trim() : '';
+  const dom = document.getElementById('sebaDominio');
+  if (dom) c.dominioCarrito = dom.value.trim();
   const act = document.getElementById('sebaActivo');
   if (act) c.activo = act.checked;
   c.pasos = [...document.querySelectorAll('#sebaPasos .seba-paso')].map(i => i.value.trim()).filter(Boolean);
@@ -19272,6 +19310,31 @@ function sebaWire(){
   document.querySelectorAll('#sebaBody .seba-ver button[data-ver]').forEach(b => {
     b.onclick = () => sebaRestaurar(b.dataset.ver);
   });
+  const usar = document.getElementById('sebaDomUsar');
+  if (usar) usar.onclick = (e) => {
+    e.preventDefault();
+    document.getElementById('sebaDominio').value = (SEBA.dominios || {}).primario || '';
+    showToast('Listo — acordate de guardar el cerebro para que quede', 'ok');
+  };
+  const dp = document.getElementById('sebaDomProbar');
+  if (dp) dp.onclick = async () => {
+    const caja = document.getElementById('sebaDomRes');
+    dp.disabled = true; dp.textContent = 'Probando…';
+    caja.innerHTML = '<div class="seba-nota">Abriendo un link de carrito de verdad…</div>';
+    try {
+      const r = await fetch('/admin/seba/probar-dominio', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ dominio: document.getElementById('sebaDominio').value.trim() }),
+      });
+      const x = await r.json();
+      if (!r.ok) throw new Error(x.error || 'Error');
+      caja.innerHTML = x.ok
+        ? `<div class="seba-nota ok">El link abre bien ✓ — probé con <b>${escapeHtml(x.producto || '')}</b> y terminó en <code>${escapeHtml(x.destino || '')}</code>.
+           ${x.sugerido ? `Shopify lo redirige a <b>${escapeHtml(x.sugerido)}</b>: conviene poner ese directo y ahorrarse el salto.` : ''}</div>`
+        : `<div class="seba-nota alerta">Ese dominio NO sirve para links de carrito. ${escapeHtml(x.motivo || '')}<br>Probé con <code>${escapeHtml(x.url || '')}</code>.</div>`;
+    } catch(e){ caja.innerHTML = '<div class="seba-nota alerta">' + escapeHtml(String(e.message||e)) + '</div>'; }
+    dp.disabled = false; dp.textContent = 'Probar link';
+  };
   const tk = document.getElementById('sebaTokenBtn');
   if (tk) tk.onclick = async () => {
     tk.disabled = true; tk.textContent = 'Renovando…';
@@ -19328,6 +19391,7 @@ async function sebaGuardar(){
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Error');
     SEBA.cerebro = d.cerebro; SEBA.versiones = d.versiones || [];
+    if (d.dominios) SEBA.dominios = d.dominios;   // el dominio en uso pudo cambiar con este guardado
     showToast(d.sinCambios ? 'No había nada nuevo que guardar' : 'Cerebro guardado ✓', 'ok');
     sebaRender();
   } catch(e){ showToast(String(e.message||e), 'err'); }
@@ -19340,6 +19404,7 @@ async function sebaRestaurar(id){
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Error');
     SEBA.cerebro = d.cerebro; SEBA.versiones = d.versiones || [];
+    if (d.dominios) SEBA.dominios = d.dominios;
     showToast('Versión restaurada ✓', 'ok');
     sebaRender();
   } catch(e){ showToast(String(e.message||e), 'err'); }

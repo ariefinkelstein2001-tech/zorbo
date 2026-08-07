@@ -19643,6 +19643,11 @@ function sebaCerebroDefault(){
   return {
     activo: false,   // arranca apagado: se prende desde el panel cuando Meta aprobó la app
     modelo: SEBA_MODELO_DEFAULT,
+    // Dominio con el que se arman los links de carrito. Vacío = automático: se
+    // usa el dominio PRINCIPAL que declara Shopify (el de marca). Se deja vacío
+    // a propósito en vez de clavar un dominio: si mañana cambian el principal en
+    // Shopify, el link acompaña solo, sin tocar nada acá.
+    dominioCarrito: '',
     identidad: [
       'Te llamás Seba y atendés los mensajes de Instagram de Firulais.',
       'Firulais son cheladas artesanales chilenas, 473cc, 4.5% de alcohol, 100% natural. "Perrísimas desde el primer sorbo".',
@@ -19776,9 +19781,66 @@ function sebaEsFirulais(p){
   const t = String(p.title || '').toLowerCase();
   return v.includes('firulais') || t.includes('firulais');
 }
-const sebaTienda = () => (process.env.SEBA_CART_DOMAIN || process.env.SHOPIFY_STORE_DOMAIN || '').trim();
-const sebaCartUrl = (variantId, qty) => {
-  const shop = sebaTienda();
+// ─── Dominio del carrito ───────────────────────────────────────────────────
+// El permalink NO debe salir con el handle .myshopify.com: en un DM se lee como
+// un link ajeno a la marca. El dominio se resuelve por prioridad:
+//   1. lo que Arie escribió en el panel (cerebro.dominioCarrito)
+//   2. SEBA_CART_DOMAIN, por si hace falta forzarlo desde Railway
+//   3. el dominio PRINCIPAL que declara Shopify (el branded, si está configurado)
+//   4. SHOPIFY_STORE_DOMAIN, último recurso para no quedarse sin link
+// El 3 es el default real: Shopify redirige el myshopify al principal igual, así
+// que usarlo derecho ahorra el salto y muestra el dominio lindo desde el vamos.
+const sebaDomLimpio = (s) => String(s || '').trim().toLowerCase()
+  .replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/:\d+$/, '');
+const sebaDomValido = (s) => /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(sebaDomLimpio(s));
+
+// Dominios que declara la tienda. Se cachea: cambia una vez cada nunca.
+const SEBA_DOM_TTL = 30 * 60 * 1000;
+let sebaDomCache = null, sebaDomAt = 0;
+async function sebaShopDominios(force = false){
+  if (!force && sebaDomCache && Date.now() - sebaDomAt < SEBA_DOM_TTL) return sebaDomCache;
+  let out = { disponible: false, motivo: '', primario: '', myshopify: '', ssl: false };
+  if (!process.env.SHOPIFY_ADMIN_TOKEN) {
+    out.motivo = 'Shopify no conectado (falta SHOPIFY_ADMIN_TOKEN).';
+    return out;   // sin cachear: apenas se configure el token, se vuelve a intentar
+  }
+  try {
+    const r = await shopifyAdminFetch('/graphql.json', {
+      method: 'POST',
+      body: JSON.stringify({ query: '{ shop { name myshopifyDomain primaryDomain { host sslEnabled } } }' }),
+    });
+    if (r.errors) throw new Error(JSON.stringify(r.errors).slice(0, 200));
+    const s = (r.data && r.data.shop) || {};
+    out = {
+      disponible: true, motivo: '',
+      primario: sebaDomLimpio((s.primaryDomain || {}).host || ''),
+      myshopify: sebaDomLimpio(s.myshopifyDomain || ''),
+      ssl: !!(s.primaryDomain || {}).sslEnabled,
+    };
+    sebaDomCache = out; sebaDomAt = Date.now();
+  } catch (e) {
+    out.motivo = 'No se pudo leer el dominio de Shopify: ' + String(e.message || e).slice(0, 200);
+  }
+  return out;
+}
+// Resolución sincrónica: usa el cache de dominios, nunca sale a la red. El
+// llamador se encarga de haber pedido sebaShopDominios() antes si le importa.
+function sebaTienda(cerebro){
+  const delPanel = cerebro && cerebro.dominioCarrito;
+  if (sebaDomValido(delPanel)) return sebaDomLimpio(delPanel);
+  if (sebaDomValido(process.env.SEBA_CART_DOMAIN)) return sebaDomLimpio(process.env.SEBA_CART_DOMAIN);
+  if (sebaDomCache && sebaDomValido(sebaDomCache.primario)) return sebaDomCache.primario;
+  return sebaDomLimpio(process.env.SHOPIFY_STORE_DOMAIN);
+}
+// De dónde salió el dominio que se está usando — para poder mostrarlo en el panel.
+function sebaTiendaOrigen(cerebro){
+  if (sebaDomValido(cerebro && cerebro.dominioCarrito)) return 'panel';
+  if (sebaDomValido(process.env.SEBA_CART_DOMAIN)) return 'env';
+  if (sebaDomCache && sebaDomValido(sebaDomCache.primario)) return 'shopify';
+  return 'myshopify';
+}
+const sebaCartUrl = (variantId, qty, dominio) => {
+  const shop = sebaDomLimpio(dominio);
   if (!shop || !variantId) return '';
   return `https://${shop}/cart/${variantId}:${Math.max(1, Math.min(20, qty || 1))}`;
 };
@@ -19805,7 +19867,8 @@ async function sebaPacks(force = false){
           handle: p.handle,
           disponible: v.available !== false,
         };
-        fila.url = sebaCartUrl(fila.variantId, 1);
+        // Sin `url` a propósito: el dominio del carrito es configurable y este
+        // cache dura 5 minutos. Se arma con sebaCartUrl() en el momento de usarlo.
         if (n) packs.push(fila); else otros.push(fila);
       }
     }
@@ -19829,11 +19892,11 @@ function sebaPackVariante(packs, n){
 // El modelo NUNCA escribe una URL: escribe [[CARRITO:8]] o [[CARRITO:8:2]] y
 // el server la reemplaza por el permalink verdadero. Así un link mal tipeado
 // no llega nunca al cliente. Función pura a propósito, para poder probarla.
-function sebaExpandirLinks(texto, packs){
+function sebaExpandirLinks(texto, packs, dominio){
   let t = String(texto || '');
   t = t.replace(/\[\[\s*CARRITO\s*:\s*(\d{1,2})\s*(?::\s*(\d{1,2})\s*)?\]\]/gi, (_m, nStr, qStr) => {
     const v = sebaPackVariante(packs, parseInt(nStr, 10));
-    const url = v ? sebaCartUrl(v.variantId, parseInt(qStr || '1', 10)) : '';
+    const url = v ? sebaCartUrl(v.variantId, parseInt(qStr || '1', 10), dominio) : '';
     return url || SEBA_WEB;
   });
   t = t.replace(/\[\[\s*WEB\s*\]\]/gi, SEBA_WEB);
@@ -19842,8 +19905,11 @@ function sebaExpandirLinks(texto, packs){
 // Red de seguridad: cualquier URL que no sea del checkout o de la web de la
 // marca se cambia por la web. Un link inventado en un DM es peor que no dar
 // ninguno — la persona lo abre, no funciona, y se pierde la venta.
-function sebaSanearLinks(texto){
-  const shop = sebaTienda().toLowerCase();
+// El dominio del carrito entra por parámetro porque es configurable: si se
+// leyera de una constante, cambiarlo en el panel dejaría el link recién armado
+// fuera de la lista blanca y el saneo lo borraría.
+function sebaSanearLinks(texto, dominio){
+  const shop = sebaDomLimpio(dominio);
   const web = SEBA_WEB.replace(/^https?:\/\//, '').toLowerCase();
   return String(texto || '').replace(/https?:\/\/[^\s<>()\[\]"']+/gi, (u) => {
     const host = u.replace(/^https?:\/\//i, '').split(/[\/?#]/)[0].toLowerCase();
@@ -19920,6 +19986,13 @@ const sebaModelo = (c) => {
 // simulador del panel — así lo que se prueba es lo mismo que corre en vivo.
 async function sebaRedactar(cerebro, historial){
   const cat = await sebaPacks(false);
+  // Se refresca el dominio principal de Shopify antes de armar links: es lo que
+  // hace que el permalink salga con el dominio de marca y no con el myshopify.
+  // Está cacheado 30 min, así que no cuesta una llamada por DM.
+  if (!sebaDomValido(cerebro && cerebro.dominioCarrito) && !sebaDomValido(process.env.SEBA_CART_DOMAIN)) {
+    await sebaShopDominios(false).catch(() => {});
+  }
+  const dominio = sebaTienda(cerebro);
   const sys = sebaSystem(cerebro, cat);
   const msgs = (historial || [])
     .slice(-SEBA_HIST_CLAUDE)
@@ -19941,8 +20014,8 @@ async function sebaRedactar(cerebro, historial){
     messages: limpio,
   });
   const crudo = (msg.content || []).filter(x => x.type === 'text').map(x => x.text).join('\n').trim();
-  const texto = sebaSanearLinks(sebaExpandirLinks(crudo, cat.packs));
-  return { texto, crudo, modelo: sebaModelo(cerebro), catalogo: cat };
+  const texto = sebaSanearLinks(sebaExpandirLinks(crudo, cat.packs, dominio), dominio);
+  return { texto, crudo, modelo: sebaModelo(cerebro), catalogo: cat, dominio };
 }
 
 // ─── Token de Instagram ────────────────────────────────────────────────────
@@ -20157,6 +20230,13 @@ function sebaLimpiarCerebro(entra, previo){
   const e = entra || {};
   for (const k of SEBA_CAMPOS_TXT) if (typeof e[k] === 'string') c[k] = e[k].slice(0, 20000);
   if (typeof e.modelo === 'string') c.modelo = e.modelo.trim().slice(0, 60);
+  // Dominio del carrito: vacío = automático. Si viene algo que no es un dominio
+  // se descarta en silencio y queda lo que había — mejor eso que empezar a mandar
+  // links rotos por DM porque alguien pegó una URL entera con path.
+  if (typeof e.dominioCarrito === 'string') {
+    const d = sebaDomLimpio(e.dominioCarrito);
+    if (!d || sebaDomValido(d)) c.dominioCarrito = d;
+  }
   if (typeof e.activo === 'boolean') c.activo = e.activo;
   if (Array.isArray(e.pasos)) c.pasos = e.pasos.map(x => String(x || '').slice(0, 500)).filter(Boolean).slice(0, 30);
   if (Array.isArray(e.faqs)) {
@@ -20195,25 +20275,83 @@ function sebaEstado(){
     conversaciones: d.conversaciones.length,
     web: SEBA_WEB,
     modeloDefault: SEBA_MODELO_DEFAULT,
+    dominioCarrito: sebaTienda(sebaLoad().cerebro),
   };
 }
 
 app.get('/admin/seba', requireAdmin, async (req, res) => {
   const d = sebaLoad();
-  const cat = await sebaPacks(String(req.query.refresh || '') === '1').catch(e => ({ disponible: false, motivo: String(e.message || e), packs: [], otros: [] }));
+  const forzar = String(req.query.refresh || '') === '1';
+  const cat = await sebaPacks(forzar).catch(e => ({ disponible: false, motivo: String(e.message || e), packs: [], otros: [] }));
+  const doms = await sebaShopDominios(forzar).catch(e => ({ disponible: false, motivo: String(e.message || e), primario: '', myshopify: '' }));
+  const dominio = sebaTienda(d.cerebro);
+  // El link se arma acá y no en sebaPacks: el dominio es configurable y el cache
+  // de productos dura 5 minutos, así que una URL guardada ahí quedaría vieja.
+  // Copia, no mutación: `cat` ES el objeto cacheado.
+  const catalogo = { ...cat, packs: (cat.packs || []).map(p => ({ ...p, url: sebaCartUrl(p.variantId, 1, dominio) })) };
   res.json({
     cerebro: d.cerebro,
     versiones: d.versiones.slice().sort((a, b) => b.ts - a.ts).map(sebaVersionMeta),
-    catalogo: cat,
+    catalogo,
+    dominios: { ...doms, enUso: dominio, origen: sebaTiendaOrigen(d.cerebro) },
     estado: sebaEstado(),
   });
+});
+
+// Veredicto de la prueba de dominio. Aparte y pura para poder probarla sin
+// salir a internet: lo único que hace el endpoint es traer la respuesta.
+// Un permalink bueno termina en el checkout o en el carrito de Shopify; el
+// sitio propio en Railway contesta 404 y eso se tiene que ver acá, no cuando
+// un cliente abre el link en el DM y no le carga nada.
+function sebaVeredictoCarrito({ dominio, status, ok, destino, cuerpo }){
+  const host = String(destino || '').replace(/^https?:\/\//i, '').split(/[\/?#]/)[0].toLowerCase();
+  const c = String(cuerpo || '');
+  const esCheckout = /\/checkouts?\//i.test(destino || '') || /\/cart\b/i.test(destino || '')
+    || /Shopify\.(shop|checkout)|cdn\.shopify\.com/i.test(c);
+  const bien = !!ok && esCheckout;
+  return {
+    ok: bien, host, status: status || 0,
+    // Si el permalink terminó en otro host, ese es el que Shopify considera el
+    // bueno: conviene ponerlo directo y ahorrarse el salto.
+    sugerido: (bien && host && host !== sebaDomLimpio(dominio)) ? host : '',
+    motivo: bien ? '' : (ok
+      ? 'El dominio contesta, pero el link no termina en un carrito de Shopify. Ese dominio no sirve para cart permalinks.'
+      : 'El dominio contestó HTTP ' + (status || '—') + '. No sirve para cart permalinks.'),
+  };
+}
+
+app.post('/admin/seba/probar-dominio', requireAdmin, async (req, res) => {
+  const pedido = sebaDomLimpio((req.body || {}).dominio);
+  const d = sebaLoad();
+  const dominio = pedido || sebaTienda(d.cerebro);
+  if (!sebaDomValido(dominio)) return res.status(400).json({ error: 'Eso no parece un dominio. Escribilo sin https:// ni barras, por ejemplo tienda.zorbo.cl' });
+  const cat = await sebaPacks(false).catch(() => ({ packs: [] }));
+  const v = sebaPackVariante(cat.packs, 4) || sebaPackVariante(cat.packs, 8) || sebaPackVariante(cat.packs, 12) || (cat.packs || [])[0];
+  if (!v) return res.status(503).json({ error: 'No hay ningún pack de Firulais en Shopify para probar el link. Conectá Shopify o cargá los packs primero.' });
+  const url = sebaCartUrl(v.variantId, 1, dominio);
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 12000);
+    const r = await fetch(url, { redirect: 'follow', signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0 (compatible; KBROS-Seba/1)' } });
+    clearTimeout(t);
+    const destino = String(r.url || url);
+    const cuerpo = (await r.text().catch(() => '')).slice(0, 4000);
+    const v2 = sebaVeredictoCarrito({ dominio, status: r.status, ok: r.ok, destino, cuerpo });
+    res.json({ ...v2, url, destino, producto: v.titulo });
+  } catch (e) {
+    res.json({ ok: false, url, motivo: 'No se pudo abrir el link: ' + String(e.message || e).slice(0, 200) });
+  }
 });
 
 app.put('/admin/seba/cerebro', requireAdmin, (req, res) => {
   const d = sebaLoad();
   const nuevo = sebaLimpiarCerebro((req.body || {}).cerebro, d.cerebro);
+  // El dominio del carrito se resuelve por prioridad, así que después de guardar
+  // puede no ser el que se escribió (vacío = automático). Viaja en la respuesta
+  // para que el panel muestre el que va a salir de verdad y no el anterior.
+  const doms = (c) => ({ ...(sebaDomCache || { disponible: false, primario: '', myshopify: '' }), enUso: sebaTienda(c), origen: sebaTiendaOrigen(c) });
   if (JSON.stringify(nuevo) === JSON.stringify(d.cerebro)) {
-    return res.json({ ok: true, sinCambios: true, cerebro: d.cerebro, versiones: d.versiones.slice().sort((a, b) => b.ts - a.ts).map(sebaVersionMeta) });
+    return res.json({ ok: true, sinCambios: true, cerebro: d.cerebro, dominios: doms(d.cerebro), versiones: d.versiones.slice().sort((a, b) => b.ts - a.ts).map(sebaVersionMeta) });
   }
   // Se versiona lo ANTERIOR: así "volver a la versión X" devuelve lo que había
   // antes de ese guardado, que es lo que uno espera al arrepentirse.
@@ -20227,7 +20365,7 @@ app.put('/admin/seba/cerebro', requireAdmin, (req, res) => {
   if (d.versiones.length > SEBA_VERS_MAX) { d.versiones.sort((a, b) => a.ts - b.ts); d.versiones = d.versiones.slice(-SEBA_VERS_MAX); }
   d.cerebro = nuevo;
   sebaSave(d);
-  res.json({ ok: true, cerebro: d.cerebro, versiones: d.versiones.slice().sort((a, b) => b.ts - a.ts).map(sebaVersionMeta) });
+  res.json({ ok: true, cerebro: d.cerebro, dominios: doms(d.cerebro), versiones: d.versiones.slice().sort((a, b) => b.ts - a.ts).map(sebaVersionMeta) });
 });
 
 app.get('/admin/seba/version/:id', requireAdmin, (req, res) => {
@@ -20249,7 +20387,11 @@ app.post('/admin/seba/version/:id/restaurar', requireAdmin, (req, res) => {
   if (d.versiones.length > SEBA_VERS_MAX) { d.versiones.sort((a, b) => a.ts - b.ts); d.versiones = d.versiones.slice(-SEBA_VERS_MAX); }
   d.cerebro = sebaLimpiarCerebro(v.cerebro, sebaCerebroDefault());
   sebaSave(d);
-  res.json({ ok: true, cerebro: d.cerebro, versiones: d.versiones.slice().sort((a, b) => b.ts - a.ts).map(sebaVersionMeta) });
+  res.json({
+    ok: true, cerebro: d.cerebro,
+    dominios: { ...(sebaDomCache || { disponible: false, primario: '', myshopify: '' }), enUso: sebaTienda(d.cerebro), origen: sebaTiendaOrigen(d.cerebro) },
+    versiones: d.versiones.slice().sort((a, b) => b.ts - a.ts).map(sebaVersionMeta),
+  });
 });
 
 // Simulador del panel: corre el MISMO camino que un DM real pero no manda

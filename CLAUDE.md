@@ -233,6 +233,20 @@ Claude → `graph.instagram.com/<v>/me/messages`.
   `sebaSanearLinks` cambia por la web cualquier URL que no sea del checkout o de
   perrisima.cl — un link inventado en un DM se abre, no funciona, y se pierde
   la venta.
+- **El dominio del carrito es configurable** (`cerebro.dominioCarrito`, campo en
+  el panel). Se resuelve por prioridad: panel → `SEBA_CART_DOMAIN` →
+  **dominio principal que declara Shopify** → `SHOPIFY_STORE_DOMAIN`. Vacío
+  significa automático, y el automático es el principal de Shopify: el handle
+  `.myshopify.com` se lee off-brand en un DM y Shopify redirige igual, así que
+  usar el principal derecho ahorra el salto.
+  El dominio va **por parámetro** a `sebaCartUrl`/`sebaExpandirLinks`/`sebaSanearLinks`,
+  no por constante: si el saneo mirara un valor fijo, cambiar el dominio en el
+  panel borraría el link que se acaba de armar.
+  **Cuidado con qué dominio se elige.** `zorbo.cl` y `k-bros.cl` son ESTA app de
+  Express, no Shopify: `GET /cart/<variante>:1` ahí da 404 (hay un test que lo
+  comprueba, `t-dominio-real.mjs`). Solo sirve un dominio que apunte a Shopify.
+  Por eso el panel tiene "Probar link", que pide un permalink real y mira dónde
+  termina; el criterio está en `sebaVeredictoCarrito`, aparte y puro.
 - **Nace apagado** (`cerebro.activo === false`). Recibe y guarda DMs, pero no
   contesta hasta que se prende desde el panel. Un bot que empieza a hablar solo
   el día del deploy es peor que uno que no existe.
