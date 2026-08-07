@@ -202,3 +202,50 @@ criterio de cada detector va en una función pura aparte (ver
 El umbral de costeo se compara contra el `margenPct` que el usuario le puso a
 cada plato, más `WS_AUTO_COSTEO_HOLGURA` puntos de tolerancia. No hay un número
 "de costo alto" inventado en el código: el objetivo lo define el usuario.
+
+## Bot "Seba" — DMs de Instagram de Firulais
+
+Módulo aislado al final de `server.js` (bloque `Bot "Seba"`) + la sección
+"Bot Seba — Firulais" en Marketing. **No comparte nada con Zorbot** (`/chat`)
+ni con el bot mayorista: lo único que reusa son las dos conexiones que ya
+existían, el cliente de Anthropic y `loadProductsCache()` de Shopify.
+
+Flujo: DM → `POST /webhooks/instagram` → se valida la firma → se guarda el
+mensaje → una cola con pacing arma el prompt (cerebro + historial + catálogo) →
+Claude → `graph.instagram.com/<v>/me/messages`.
+
+- **No hay base de datos.** El pedido original hablaba de tablas; acá se sigue
+  la convención del repo: `seba.json` (cerebro + versiones, lo escribe el panel)
+  y `seba-chats.json` (conversaciones, envíos y `mid` vistos, lo escribe el bot).
+  Están separados a propósito: guardar el cerebro no debe reescribir el
+  historial, ni al revés. Los dos en `.gitignore`.
+- **El token de Instagram vive fuera de `prompts/`** (`$DATA_DIR/seba-token.json`).
+  Si estuviera adentro viajaría dentro del `.zip` de respaldo que se baja a
+  Drive. Se renueva solo (una vez por día, si le quedan menos de 15) y el valor
+  del env **gana** si cambia: así pegar un token nuevo en Railway siempre
+  funciona.
+- **La firma se valida sobre el cuerpo crudo.** Por eso hay un
+  `express.raw()` acotado a `/webhooks/instagram` montado **antes** de
+  `express.json()`, arriba de todo el archivo. Si alguien mueve ese `app.use`,
+  el HMAC deja de dar y Meta queda desconectado sin ruido.
+- **El modelo nunca escribe una URL.** Escribe `[[CARRITO:8]]`, `[[CARRITO:8:2]]`
+  o `[[WEB]]` y el server los reemplaza (`sebaExpandirLinks`). Además
+  `sebaSanearLinks` cambia por la web cualquier URL que no sea del checkout o de
+  perrisima.cl — un link inventado en un DM se abre, no funciona, y se pierde
+  la venta.
+- **Nace apagado** (`cerebro.activo === false`). Recibe y guarda DMs, pero no
+  contesta hasta que se prende desde el panel. Un bot que empieza a hablar solo
+  el día del deploy es peor que uno que no existe.
+- **Idempotencia**: Meta reintenta el webhook. Se dedupean los `mid` ya vistos y
+  se ignoran los ecos (`message.is_echo`) — sin eso el bot se contesta a sí mismo.
+- **Solo responde a lo que entra** y solo dentro de la ventana de 24h. Fuera de
+  ella marca `conv.fueraDeVentana` y no manda nada: `human_agent` es Fase 2.
+- **Cola con pacing**: techo de `SEBA_MAX_HORA` (200) por hora rodante, contado
+  en el doc y no en memoria, así un redeploy no regala cupo de golpe; más
+  `SEBA_GAP_MS` de respiro entre envíos.
+- Las funciones puras (`sebaPackDe`, `sebaExpandirLinks`, `sebaSanearLinks`,
+  `sebaCortar`, `sebaFirmaValida`, `sebaSystem`, `sebaEsperaMs`) están separadas
+  justamente para poder probarlas sin Meta ni Shopify ni Anthropic.
+- Los precios y variantes salen **siempre** de Shopify. Si Shopify no está, el
+  prompt lo dice y le prohíbe a Seba inventar precios.
+- Política de privacidad para el App Review: `public/firulais-privacidad.html`.

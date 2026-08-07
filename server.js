@@ -13,6 +13,11 @@ const app = express();
 const client = new Anthropic();
 
 app.use(cors());
+// El webhook de Instagram (bot Seba, más abajo) valida la firma
+// X-Hub-Signature-256 sobre el cuerpo CRUDO: si express.json() lo parsea
+// primero, el buffer original se pierde y cualquier reserialización cambia el
+// HMAC. Por eso el parser raw va ANTES y acotado solo a esa ruta.
+app.use('/webhooks/instagram', express.raw({ type: '*/*', limit: '1mb' }));
 app.use(express.json({ limit: '12mb' })); // 12mb para permitir uploads base64 (PDF/imagen) desde el admin
 
 // ─── Storage paths (con soporte Railway Volume) ──────────────────────────────
@@ -19581,6 +19586,704 @@ app.delete('/session/:id', (req, res) => {
   sessions.delete(req.params.id);
   res.json({ ok: true, summary: serializeSession(session).summary });
 });
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Bot "Seba" — DMs de Instagram de Firulais                          (Fase 1)
+// ═══════════════════════════════════════════════════════════════════════════
+// Módulo aislado: no toca a Zorbot (/chat), ni al bot mayorista, ni a ninguna
+// otra marca. Lo único que comparte con el resto del server es el cliente de
+// Anthropic y el cache de productos de Shopify — las dos conexiones que ya
+// existían y que el pedido pidió reusar en vez de duplicar.
+//
+// Flujo: DM entra por el webhook de Meta → se valida la firma → se guarda en
+// el historial → una cola con pacing arma el prompt (cerebro editable +
+// historial) → Claude responde → se manda por la Instagram Graph API.
+//
+// DÓNDE VIVEN LOS DATOS. El pedido hablaba de "base de datos"; este proyecto
+// no tiene una: todo lo editable se persiste como JSON en el volumen
+// ($DATA_DIR/prompts/*.json). Se respeta esa convención, con dos documentos
+// separados a propósito:
+//   · seba.json        → el cerebro + sus versiones. Lo escribe el panel, casi
+//                        nunca. Entra en el respaldo diario y en el .zip.
+//   · seba-chats.json  → conversaciones, envíos y mids vistos. Lo escribe el
+//                        bot en cada DM. Separado para que guardar el cerebro
+//                        no reescriba el historial (ni al revés).
+// El token de Instagram NO va en ninguno de los dos: vive fuera de prompts/
+// justamente para no viajar dentro del .zip de respaldo que se baja a Drive.
+
+const SEBA_V = 1;
+const SEBA_FILE       = join(PROMPTS_EFFECTIVE_DIR, 'seba.json');
+const SEBA_CHATS_FILE = join(PROMPTS_EFFECTIVE_DIR, 'seba-chats.json');
+const SEBA_TOKEN_FILE = DATA_DIR ? join(DATA_DIR, 'seba-token.json') : join(LOGS_DIR, 'seba-token.json');
+
+const SEBA_WEBHOOK_PATH = '/webhooks/instagram';
+const SEBA_MODELO_DEFAULT = (process.env.SEBA_MODEL || 'claude-sonnet-5').trim();
+const SEBA_WEB = (process.env.SEBA_WEB_URL || 'https://perrisima.cl').replace(/\/+$/, '');
+const SEBA_IG_VERSION = (process.env.IG_GRAPH_VERSION || 'v23.0').trim();
+const SEBA_DRY_RUN = process.env.SEBA_DRY_RUN === '1';
+
+// Techo de Meta: ~200 mensajes automáticos por hora y por cuenta. El GAP es el
+// respiro mínimo entre envíos — no es el techo, es para no disparar ráfagas.
+const SEBA_MAX_HORA = Number(process.env.SEBA_MAX_HORA || 200);
+const SEBA_GAP_MS   = Number(process.env.SEBA_GAP_MS || 1200);
+const SEBA_VENTANA_MS = 24 * 60 * 60 * 1000;  // ventana de respuesta libre de Meta
+
+const SEBA_VERS_MAX   = 40;    // versiones del cerebro que se guardan
+const SEBA_CONVS_MAX  = 400;   // conversaciones en el doc (se cae la más vieja)
+const SEBA_MSJS_MAX   = 40;    // mensajes por conversación que van al historial
+const SEBA_VISTOS_MAX = 500;   // mids ya procesados (Meta reintenta el webhook)
+const SEBA_HIST_CLAUDE = 20;   // cuántos mensajes del historial ve el modelo
+const SEBA_MAX_CHARS  = 950;   // límite de texto por DM de Instagram (1000)
+
+// ─── El cerebro por defecto ────────────────────────────────────────────────
+// Es SEMILLA, no configuración: se escribe una sola vez (flag `sembrado`) y a
+// partir de ahí manda lo que Arie deje en el panel. Si borra un bloque, queda
+// borrado — no vuelve en el próximo arranque.
+function sebaCerebroDefault(){
+  return {
+    activo: false,   // arranca apagado: se prende desde el panel cuando Meta aprobó la app
+    modelo: SEBA_MODELO_DEFAULT,
+    identidad: [
+      'Te llamás Seba y atendés los mensajes de Instagram de Firulais.',
+      'Firulais son cheladas artesanales chilenas, 473cc, 4.5% de alcohol, 100% natural. "Perrísimas desde el primer sorbo".',
+      'Hablás como chileno de verdad: relajado, callejero, perri, con humor. Tuteás siempre.',
+      'Sos una persona del equipo. Nunca digas que sos un bot, una IA, un asistente ni nada parecido,',
+      'ni siquiera si te lo preguntan derecho: sos Seba y listo.',
+    ].join('\n'),
+    objetivo: [
+      'Atender bien y vender packs, sin ser pesado.',
+      'Primero entender qué busca la persona; recién después ofrecer.',
+      'Si no quiere comprar, igual la atendés bien: la idea es que quede con ganas de volver.',
+    ].join('\n'),
+    formato: [
+      'Respuestas cortas, de DM real: una o dos frases, tres como mucho.',
+      'Nada de textos largos, ni listas con viñetas, ni lenguaje acartonado.',
+      'Emojis con moderación: uno cada tanto, no en cada mensaje.',
+      'No uses signos de apertura (¿ ¡), solo los de cierre.',
+    ].join('\n'),
+    pasos: [
+      'Saludar natural, como le escribirías a un conocido.',
+      'Entender qué busca: si pregunta algo puntual, responder eso primero.',
+      'Si la cosa va para venta, preguntar qué pack quiere: 4, 8 o 12.',
+      'Con el pack claro, pasarle el link de carrito ya armado.',
+      'Si quiere mirar, comparar o ver promos, mandarlo a la web.',
+      'Cerrar corto y amable, sin insistir.',
+    ],
+    productos: [
+      'Firulais se vende en packs de 4, 8 y 12 latas.',
+      'Los precios y los formatos exactos te los pasa el sistema en cada conversación: usá SOLO esos.',
+      'Promos vigentes: (escribí acá las promos del mes para que Seba las ofrezca).',
+    ].join('\n'),
+    faqs: [
+      { q: 'Tienen alcohol?', a: 'Sí, 4.5%. Es una chelada de verdad, no un refresco.' },
+      { q: 'Pican?', a: 'Depende del sabor. Las de perfil habanero pican; las de mango, limón o piña van más por lo frutal.' },
+      { q: 'Son naturales?', a: 'Sí, 100% natural. Sin colorantes ni saborizantes artificiales.' },
+      { q: 'Hacen despacho?', a: 'Sí, el despacho se calcula solo en el checkout según la dirección.' },
+      { q: 'Tienen sin alcohol?', a: 'Por ahora no, todas son 4.5%.' },
+    ],
+    donots: [
+      'No inventes sabores, precios, stock, plazos de despacho ni promociones que no te haya pasado el sistema.',
+      'No prometas fechas de entrega.',
+      'No pidas datos de tarjeta, RUT ni claves: el pago va siempre en el checkout.',
+      'No mandes links que no te haya dado el sistema.',
+      'No hables de otras marcas del grupo salvo que pregunten.',
+      'No insistas si la persona ya dijo que no.',
+      'No digas que sos un bot ni menciones inteligencia artificial.',
+    ].join('\n'),
+    derivacion: [
+      'Pasar a una persona del equipo cuando: hay un reclamo por un pedido ya pagado,',
+      'un problema de despacho, una consulta de facturación o mayorista, o si la persona pide hablar con alguien del equipo.',
+      '(Fase 2: por ahora Seba avisa que alguien del equipo responde al toque; todavía no hay bandeja.)',
+    ].join('\n'),
+  };
+}
+
+function sebaSave(d){
+  if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true });
+  writeFileSync(SEBA_FILE, JSON.stringify(d, null, 2));
+}
+function sebaLoad(){
+  const base = { v: SEBA_V, sembrado: false, cerebro: null, versiones: [] };
+  let d = { ...base };
+  try {
+    if (existsSync(SEBA_FILE)) {
+      const p = JSON.parse(readFileSync(SEBA_FILE, 'utf-8'));
+      // Copia con spread y no campo por campo: una lista fija de claves es
+      // exactamente cómo se pierde en silencio lo que escribió una versión
+      // más nueva. Ya pasó dos veces en este repo.
+      d = { ...base, ...p };
+      if (!Array.isArray(d.versiones)) d.versiones = [];
+    }
+  } catch (e) { console.warn('[seba] load:', e.message); }
+  let cambio = false;
+  if (!d.sembrado) { d.cerebro = sebaCerebroDefault(); d.sembrado = true; cambio = true; }
+  if (!d.cerebro || typeof d.cerebro !== 'object') { d.cerebro = sebaCerebroDefault(); cambio = true; }
+  if (d.v !== SEBA_V) { d.v = SEBA_V; cambio = true; }
+  if (cambio) { try { sebaSave(d); } catch (e) { console.warn('[seba] seed:', e.message); } }
+  return d;
+}
+
+function sebaChatsSave(d){
+  if (PROMPTS_OVERRIDE_DIR && !existsSync(PROMPTS_OVERRIDE_DIR)) mkdirSync(PROMPTS_OVERRIDE_DIR, { recursive: true });
+  writeFileSync(SEBA_CHATS_FILE, JSON.stringify(d, null, 2));
+}
+function sebaChatsLoad(){
+  const base = { v: SEBA_V, conversaciones: [], envios: [], vistos: [] };
+  let d = { ...base };
+  try {
+    if (existsSync(SEBA_CHATS_FILE)) {
+      const p = JSON.parse(readFileSync(SEBA_CHATS_FILE, 'utf-8'));
+      d = { ...base, ...p };
+    }
+  } catch (e) { console.warn('[seba] chats load:', e.message); }
+  for (const k of ['conversaciones', 'envios', 'vistos']) if (!Array.isArray(d[k])) d[k] = [];
+  return d;
+}
+function sebaConv(d, igsid){
+  let c = d.conversaciones.find(x => x.id === igsid);
+  if (!c) {
+    c = { id: igsid, mensajes: [], creada: Date.now(), actualizada: Date.now(), ultimoEntrante: 0, humano: false };
+    d.conversaciones.push(c);
+    if (d.conversaciones.length > SEBA_CONVS_MAX) {
+      d.conversaciones.sort((a, b) => (a.actualizada || 0) - (b.actualizada || 0));
+      d.conversaciones = d.conversaciones.slice(-SEBA_CONVS_MAX);
+    }
+  }
+  if (!Array.isArray(c.mensajes)) c.mensajes = [];
+  return c;
+}
+function sebaTrimConv(c){
+  if (c.mensajes.length > SEBA_MSJS_MAX) c.mensajes = c.mensajes.slice(-SEBA_MSJS_MAX);
+}
+
+// ─── Catálogo: packs de Firulais leídos de Shopify ─────────────────────────
+// Nada de productos ni precios hardcodeados. Sale del mismo cache que usa el
+// resto del server (loadProductsCache), filtrado a Firulais.
+let sebaPacksCache = null, sebaPacksAt = 0;
+const SEBA_PACKS_TTL = 5 * 60 * 1000;
+
+// Detecta el tamaño de pack en un título. Devuelve 4, 8, 12 o 0.
+function sebaPackDe(texto){
+  const t = String(texto || '').toLowerCase();
+  let m = t.match(/(\d{1,2})\s*[-–]?\s*pack/);        // "12 pack", "12-pack"
+  if (!m) m = t.match(/pack\s*(?:de\s*)?(\d{1,2})\b/); // "pack de 8", "pack 8"
+  if (!m) m = t.match(/\bx\s?(\d{1,2})\b/);            // "x12", "x 4"
+  const n = m ? parseInt(m[1], 10) : 0;
+  return [4, 8, 12].includes(n) ? n : 0;
+}
+function sebaEsFirulais(p){
+  const v = String(p.vendor || '').toLowerCase();
+  const t = String(p.title || '').toLowerCase();
+  return v.includes('firulais') || t.includes('firulais');
+}
+const sebaTienda = () => (process.env.SEBA_CART_DOMAIN || process.env.SHOPIFY_STORE_DOMAIN || '').trim();
+const sebaCartUrl = (variantId, qty) => {
+  const shop = sebaTienda();
+  if (!shop || !variantId) return '';
+  return `https://${shop}/cart/${variantId}:${Math.max(1, Math.min(20, qty || 1))}`;
+};
+
+async function sebaPacks(force = false){
+  if (!force && sebaPacksCache && Date.now() - sebaPacksAt < SEBA_PACKS_TTL) return sebaPacksCache;
+  let out = { disponible: false, motivo: '', packs: [], otros: [] };
+  if (!process.env.SHOPIFY_ADMIN_TOKEN) {
+    out.motivo = 'Shopify no conectado (falta SHOPIFY_ADMIN_TOKEN).';
+    return out;
+  }
+  try {
+    const all = (await loadProductsCache(force)) || [];
+    const mios = all.filter(p => String(p.status || 'ACTIVE').toUpperCase() === 'ACTIVE' && sebaEsFirulais(p));
+    const packs = [], otros = [];
+    for (const p of mios) {
+      for (const v of (p.variants || [])) {
+        const n = sebaPackDe(p.title) || sebaPackDe(v.title);
+        const fila = {
+          pack: n,
+          titulo: p.title + (v.title && v.title !== 'Default Title' ? ' · ' + v.title : ''),
+          precio: Math.round(parseFloat(v.price) || 0),
+          variantId: String(v.id),
+          handle: p.handle,
+          disponible: v.available !== false,
+        };
+        fila.url = sebaCartUrl(fila.variantId, 1);
+        if (n) packs.push(fila); else otros.push(fila);
+      }
+    }
+    packs.sort((a, b) => a.pack - b.pack || a.precio - b.precio);
+    out = { disponible: true, motivo: '', packs, otros };
+  } catch (e) {
+    out.motivo = 'Error leyendo Shopify: ' + String(e.message || e).slice(0, 200);
+  }
+  sebaPacksCache = out; sebaPacksAt = Date.now();
+  return out;
+}
+// Para un tamaño de pack, la variante más barata que esté disponible.
+function sebaPackVariante(packs, n){
+  const cand = (packs || []).filter(p => p.pack === n && p.variantId);
+  if (!cand.length) return null;
+  const hay = cand.filter(p => p.disponible);
+  return (hay.length ? hay : cand)[0];
+}
+
+// ─── Marcadores → links reales ─────────────────────────────────────────────
+// El modelo NUNCA escribe una URL: escribe [[CARRITO:8]] o [[CARRITO:8:2]] y
+// el server la reemplaza por el permalink verdadero. Así un link mal tipeado
+// no llega nunca al cliente. Función pura a propósito, para poder probarla.
+function sebaExpandirLinks(texto, packs){
+  let t = String(texto || '');
+  t = t.replace(/\[\[\s*CARRITO\s*:\s*(\d{1,2})\s*(?::\s*(\d{1,2})\s*)?\]\]/gi, (_m, nStr, qStr) => {
+    const v = sebaPackVariante(packs, parseInt(nStr, 10));
+    const url = v ? sebaCartUrl(v.variantId, parseInt(qStr || '1', 10)) : '';
+    return url || SEBA_WEB;
+  });
+  t = t.replace(/\[\[\s*WEB\s*\]\]/gi, SEBA_WEB);
+  return t;
+}
+// Red de seguridad: cualquier URL que no sea del checkout o de la web de la
+// marca se cambia por la web. Un link inventado en un DM es peor que no dar
+// ninguno — la persona lo abre, no funciona, y se pierde la venta.
+function sebaSanearLinks(texto){
+  const shop = sebaTienda().toLowerCase();
+  const web = SEBA_WEB.replace(/^https?:\/\//, '').toLowerCase();
+  return String(texto || '').replace(/https?:\/\/[^\s<>()\[\]"']+/gi, (u) => {
+    const host = u.replace(/^https?:\/\//i, '').split(/[\/?#]/)[0].toLowerCase();
+    const ok = (shop && host === shop) || (web && (host === web || host.endsWith('.' + web)));
+    return ok ? u : SEBA_WEB;
+  });
+}
+// Instagram corta en 1000 caracteres. Partimos por párrafo/oración antes de
+// partir por la mitad de una palabra.
+function sebaCortar(texto, max = SEBA_MAX_CHARS){
+  const t = String(texto || '').trim();
+  if (t.length <= max) return t ? [t] : [];
+  const out = [];
+  let resto = t;
+  while (resto.length > max && out.length < 3) {
+    let corte = resto.lastIndexOf('\n', max);
+    if (corte < max * 0.4) corte = resto.lastIndexOf('. ', max);
+    if (corte < max * 0.4) corte = resto.lastIndexOf(' ', max);
+    if (corte <= 0) corte = max;
+    out.push(resto.slice(0, corte + 1).trim());
+    resto = resto.slice(corte + 1).trim();
+  }
+  if (resto) out.push(resto.slice(0, max));
+  return out.filter(Boolean);
+}
+
+// ─── El prompt ─────────────────────────────────────────────────────────────
+function sebaCatalogoTexto(cat){
+  if (!cat.disponible) return 'Catálogo no disponible ahora mismo (' + (cat.motivo || 'sin detalle') + '). NO inventes precios: si preguntan, decí que en un rato les confirmás y mandá a la web con [[WEB]].';
+  const lineas = [];
+  for (const n of [4, 8, 12]) {
+    const v = sebaPackVariante(cat.packs, n);
+    if (!v) { lineas.push(`- Pack de ${n}: no disponible ahora. No lo ofrezcas.`); continue; }
+    lineas.push(`- Pack de ${n}: ${v.titulo} — $${v.precio.toLocaleString('es-CL')} CLP${v.disponible ? '' : ' (SIN STOCK, no lo ofrezcas)'} → link: [[CARRITO:${n}]]`);
+  }
+  if (!lineas.some(l => !l.includes('no disponible'))) {
+    lineas.push('Ningún pack está cargado en la tienda ahora. Mandá a la web con [[WEB]] en vez de armar links.');
+  }
+  return lineas.join('\n');
+}
+function sebaSystem(cerebro, cat){
+  const c = cerebro || {};
+  const pasos = Array.isArray(c.pasos) ? c.pasos.filter(Boolean) : [];
+  const faqs  = Array.isArray(c.faqs) ? c.faqs.filter(f => f && (f.q || f.a)) : [];
+  const bloque = (titulo, cuerpo) => (String(cuerpo || '').trim() ? `## ${titulo}\n${String(cuerpo).trim()}` : '');
+  return [
+    bloque('Quién sos', c.identidad),
+    bloque('Qué buscás', c.objetivo),
+    bloque('Cómo escribís', c.formato),
+    pasos.length ? '## Cómo llevás la conversación\n' + pasos.map((p, i) => `${i + 1}. ${p}`).join('\n') : '',
+    bloque('Productos y promos', c.productos),
+    faqs.length ? '## Preguntas frecuentes\n' + faqs.map(f => `- ${f.q}\n  → ${f.a}`).join('\n') : '',
+    bloque('Lo que NO hacés', c.donots),
+    bloque('Cuándo pasa a una persona del equipo', c.derivacion),
+    '## Catálogo real de esta conversación (única fuente de precios)\n' + sebaCatalogoTexto(cat),
+    [
+      '## Reglas del canal (no negociables)',
+      'Estás en un DM de Instagram: mensajes cortos, uno por vez.',
+      'NUNCA escribas una URL a mano. Para pasar el carrito escribí el marcador [[CARRITO:4]], [[CARRITO:8]] o [[CARRITO:12]]',
+      '(y [[CARRITO:8:2]] si quiere dos packs de 8). Para mandar a la web escribí [[WEB]]. El sistema los reemplaza por el link real.',
+      'Solo armás el link cuando el pack está claro. Si no lo dijo, preguntáselo primero.',
+      'Los precios salen solo del catálogo de arriba. Si algo no está ahí, no lo sabés.',
+      'Respondé siempre en español de Chile, sin signos de apertura.',
+      'Devolvé solo el texto del mensaje: nada de comillas, prefijos ni "Seba:".',
+    ].join('\n'),
+  ].filter(Boolean).join('\n\n');
+}
+const sebaModelo = (c) => {
+  const m = String((c && c.modelo) || '').trim();
+  return /^[a-z0-9][a-z0-9._-]{2,60}$/i.test(m) ? m : SEBA_MODELO_DEFAULT;
+};
+
+// Arma la respuesta sin mandarla. Se usa igual desde el webhook y desde el
+// simulador del panel — así lo que se prueba es lo mismo que corre en vivo.
+async function sebaRedactar(cerebro, historial){
+  const cat = await sebaPacks(false);
+  const sys = sebaSystem(cerebro, cat);
+  const msgs = (historial || [])
+    .slice(-SEBA_HIST_CLAUDE)
+    .filter(m => m && m.texto)
+    .map(m => ({ role: m.rol === 'bot' ? 'assistant' : 'user', content: String(m.texto).slice(0, 2000) }));
+  // La API exige que el primero sea del usuario y que no haya dos seguidos del
+  // mismo rol; el historial real puede violar las dos cosas.
+  const limpio = [];
+  for (const m of msgs) {
+    if (!limpio.length && m.role !== 'user') continue;
+    if (limpio.length && limpio[limpio.length - 1].role === m.role) { limpio[limpio.length - 1].content += '\n' + m.content; continue; }
+    limpio.push(m);
+  }
+  if (!limpio.length) return { texto: '', crudo: '', modelo: sebaModelo(cerebro), motivo: 'sin mensajes del cliente' };
+  const msg = await client.messages.create({
+    model: sebaModelo(cerebro),
+    max_tokens: 500,
+    system: sys,
+    messages: limpio,
+  });
+  const crudo = (msg.content || []).filter(x => x.type === 'text').map(x => x.text).join('\n').trim();
+  const texto = sebaSanearLinks(sebaExpandirLinks(crudo, cat.packs));
+  return { texto, crudo, modelo: sebaModelo(cerebro), catalogo: cat };
+}
+
+// ─── Token de Instagram ────────────────────────────────────────────────────
+// El de larga duración dura 60 días y se renueva llamando a refresh_access_token.
+// Se guarda FUERA de prompts/ para que no entre en el respaldo descargable.
+function sebaTokenStore(){
+  try { if (existsSync(SEBA_TOKEN_FILE)) return JSON.parse(readFileSync(SEBA_TOKEN_FILE, 'utf-8')); } catch {}
+  return null;
+}
+function sebaTokenGuardar(obj){
+  try {
+    const dir = dirname(SEBA_TOKEN_FILE);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    writeFileSync(SEBA_TOKEN_FILE, JSON.stringify(obj, null, 2));
+  } catch (e) { console.warn('[seba] token save:', e.message); }
+}
+// El env manda: si Arie pega un token nuevo en Railway, el renovado se descarta.
+function sebaTokenActual(){
+  const env = (process.env.IG_ACCESS_TOKEN || '').trim();
+  const st = sebaTokenStore();
+  if (st && st.token && st.semilla === env) return { token: st.token, ...st, origen: 'renovado' };
+  return env ? { token: env, semilla: env, obtenidoTs: 0, expiraTs: 0, origen: 'env' } : null;
+}
+async function sebaRenovarToken(forzar = false){
+  const cur = sebaTokenActual();
+  if (!cur) return { ok: false, motivo: 'Falta IG_ACCESS_TOKEN.' };
+  const quedan = cur.expiraTs ? cur.expiraTs - Date.now() : null;
+  if (!forzar && quedan !== null && quedan > 15 * 24 * 60 * 60 * 1000) {
+    return { ok: true, saltado: true, expiraTs: cur.expiraTs };
+  }
+  try {
+    const u = `https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=${encodeURIComponent(cur.token)}`;
+    const r = await fetch(u);
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.access_token) return { ok: false, motivo: 'Meta ' + r.status + ': ' + JSON.stringify(j).slice(0, 200) };
+    const expiraTs = Date.now() + (Number(j.expires_in) || 60 * 24 * 3600) * 1000;
+    sebaTokenGuardar({ token: j.access_token, semilla: (process.env.IG_ACCESS_TOKEN || '').trim(), obtenidoTs: Date.now(), expiraTs });
+    return { ok: true, expiraTs };
+  } catch (e) { return { ok: false, motivo: String(e.message || e).slice(0, 200) }; }
+}
+
+// ─── Envío por la Instagram Graph API ──────────────────────────────────────
+async function sebaEnviarIG(igsid, texto){
+  const cur = sebaTokenActual();
+  if (!cur) return { ok: false, motivo: 'Falta IG_ACCESS_TOKEN.' };
+  if (SEBA_DRY_RUN) { console.log('[seba][dry-run] →', igsid, ':', texto); return { ok: true, simulado: true }; }
+  const r = await fetch(`https://graph.instagram.com/${SEBA_IG_VERSION}/me/messages`, {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + cur.token, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ recipient: { id: igsid }, message: { text: texto } }),
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) return { ok: false, motivo: 'IG ' + r.status + ': ' + JSON.stringify(j).slice(0, 300) };
+  return { ok: true, mid: j.message_id || '' };
+}
+
+// ─── Cola con pacing ───────────────────────────────────────────────────────
+// Dos frenos distintos: el techo por hora (regla de Meta) y un respiro mínimo
+// entre envíos para no salir en ráfaga. Los envíos se cuentan en el doc y no
+// en memoria, así un redeploy no regala cupo de golpe.
+const SEBA_COLA = [];
+let sebaTrabajando = false;
+const sebaDormir = (ms) => new Promise(r => setTimeout(r, ms));
+let sebaUltimoEnvio = 0;
+
+function sebaEnviosUltimaHora(d){
+  const corte = Date.now() - 3600000;
+  return (d.envios || []).filter(t => t > corte);
+}
+// Milisegundos que hay que esperar antes de poder mandar. 0 = vía libre.
+function sebaEsperaMs(d){
+  const recientes = sebaEnviosUltimaHora(d);
+  if (recientes.length >= SEBA_MAX_HORA) {
+    const masViejo = Math.min(...recientes);
+    return Math.max(1000, masViejo + 3600000 - Date.now());
+  }
+  return Math.max(0, sebaUltimoEnvio + SEBA_GAP_MS - Date.now());
+}
+function sebaEncolar(igsid){
+  if (!SEBA_COLA.includes(igsid)) SEBA_COLA.push(igsid);
+  if (!sebaTrabajando) sebaWorker();
+}
+async function sebaWorker(){
+  if (sebaTrabajando) return;
+  sebaTrabajando = true;
+  try {
+    while (SEBA_COLA.length) {
+      const igsid = SEBA_COLA[0];
+      const espera = sebaEsperaMs(sebaChatsLoad());
+      if (espera > 0) { await sebaDormir(Math.min(espera, 60000)); continue; }
+      SEBA_COLA.shift();
+      try { await sebaResponder(igsid); }
+      catch (e) { console.warn('[seba] responder', igsid, ':', e.message); }
+    }
+  } finally { sebaTrabajando = false; }
+}
+
+async function sebaResponder(igsid){
+  const cerebro = sebaLoad().cerebro;
+  if (!cerebro || cerebro.activo === false) return;              // apagado desde el panel
+  let d = sebaChatsLoad();
+  let conv = d.conversaciones.find(c => c.id === igsid);
+  if (!conv || !conv.mensajes.length) return;
+  if (conv.humano) return;                                        // gancho Fase 2
+  // Ventana de 24h de Meta. Fuera de ella no se puede responder sin
+  // human_agent (Fase 2): se marca y no se manda nada.
+  if (Date.now() - (conv.ultimoEntrante || 0) > SEBA_VENTANA_MS) {
+    conv.fueraDeVentana = true; sebaChatsSave(d);
+    console.warn('[seba] fuera de la ventana de 24h, no se responde a', igsid);
+    return;
+  }
+  const r = await sebaRedactar(cerebro, conv.mensajes);
+  if (!r.texto) return;
+  const partes = sebaCortar(r.texto);
+  const enviados = [];
+  for (const parte of partes) {
+    const env = await sebaEnviarIG(igsid, parte);
+    sebaUltimoEnvio = Date.now();
+    if (!env.ok) { console.warn('[seba] envío falló:', env.motivo); break; }
+    enviados.push(parte);
+    // Cada parte cuenta contra el techo horario: es un mensaje más para Meta.
+    d = sebaChatsLoad();
+    d.envios = sebaEnviosUltimaHora(d); d.envios.push(Date.now());
+    sebaChatsSave(d);
+    if (partes.length > 1) await sebaDormir(SEBA_GAP_MS);
+  }
+  if (!enviados.length) return;
+  // Se relee justo antes de escribir: entre el request a Claude y ahora pudo
+  // entrar otro DM, y pisar el doc entero con una copia vieja lo borraría.
+  d = sebaChatsLoad();
+  conv = sebaConv(d, igsid);
+  for (const p of enviados) conv.mensajes.push({ rol: 'bot', texto: p, ts: Date.now() });
+  conv.actualizada = Date.now();
+  conv.modelo = r.modelo;
+  sebaTrimConv(conv);
+  sebaChatsSave(d);
+}
+
+// ─── Webhook de Meta ───────────────────────────────────────────────────────
+// La firma se calcula sobre el cuerpo CRUDO. El parser raw acotado a esta ruta
+// está montado arriba de todo, antes de express.json().
+function sebaFirmaValida(raw, firma, secret){
+  if (!secret) return false;
+  const s = String(firma || '');
+  if (!/^sha256=[0-9a-f]{64}$/i.test(s)) return false;
+  const esperado = 'sha256=' + createHmac('sha256', secret).update(raw).digest('hex');
+  const a = Buffer.from(s.toLowerCase()), b = Buffer.from(esperado.toLowerCase());
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+// Handshake de verificación de Meta.
+app.get(SEBA_WEBHOOK_PATH, (req, res) => {
+  const modo = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+  const esperado = (process.env.WEBHOOK_VERIFY_TOKEN || '').trim();
+  if (modo === 'subscribe' && esperado && String(token) === esperado) {
+    return res.status(200).type('text/plain').send(String(challenge == null ? '' : challenge));
+  }
+  console.warn('[seba] verificación de webhook rechazada');
+  return res.sendStatus(403);
+});
+
+app.post(SEBA_WEBHOOK_PATH, (req, res) => {
+  const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from('');
+  if (!sebaFirmaValida(raw, req.get('x-hub-signature-256'), (process.env.META_APP_SECRET || '').trim())) {
+    console.warn('[seba] firma X-Hub-Signature-256 inválida — request descartado');
+    return res.sendStatus(403);
+  }
+  let payload;
+  try { payload = JSON.parse(raw.toString('utf-8') || '{}'); }
+  catch { return res.sendStatus(400); }
+  // Meta reintenta si tardamos: confirmamos ya y procesamos después.
+  res.sendStatus(200);
+  setImmediate(() => { try { sebaRecibir(payload); } catch (e) { console.warn('[seba] recibir:', e.message); } });
+});
+
+function sebaRecibir(payload){
+  const entries = Array.isArray(payload && payload.entry) ? payload.entry : [];
+  const d = sebaChatsLoad();
+  const responder = new Set();
+  let cambio = false;
+  for (const en of entries) {
+    for (const ev of (Array.isArray(en.messaging) ? en.messaging : [])) {
+      const msg = ev && ev.message;
+      if (!msg || msg.is_echo) continue;                 // eco de lo que mandamos nosotros
+      const igsid = String((ev.sender || {}).id || '');
+      if (!igsid) continue;
+      const mid = String(msg.mid || '');
+      if (mid && d.vistos.includes(mid)) continue;       // reintento de Meta: idempotente
+      if (mid) { d.vistos.push(mid); if (d.vistos.length > SEBA_VISTOS_MAX) d.vistos = d.vistos.slice(-SEBA_VISTOS_MAX); }
+      const texto = String(msg.text || '').trim();
+      const conv = sebaConv(d, igsid);
+      conv.ultimoEntrante = Date.now();
+      conv.actualizada = Date.now();
+      conv.fueraDeVentana = false;
+      conv.mensajes.push({ rol: 'user', texto: texto ? texto.slice(0, 2000) : '(mandó un adjunto)', ts: Date.now() });
+      sebaTrimConv(conv);
+      cambio = true;
+      if (texto && !conv.humano) responder.add(igsid);   // adjuntos sin texto no se contestan en Fase 1
+    }
+  }
+  if (cambio) sebaChatsSave(d);
+  for (const id of responder) sebaEncolar(id);
+}
+
+// ─── Panel: cerebro editable, versiones y simulador ────────────────────────
+const SEBA_CAMPOS_TXT = ['identidad', 'objetivo', 'formato', 'productos', 'donots', 'derivacion'];
+function sebaLimpiarCerebro(entra, previo){
+  const c = { ...(previo || sebaCerebroDefault()) };
+  const e = entra || {};
+  for (const k of SEBA_CAMPOS_TXT) if (typeof e[k] === 'string') c[k] = e[k].slice(0, 20000);
+  if (typeof e.modelo === 'string') c.modelo = e.modelo.trim().slice(0, 60);
+  if (typeof e.activo === 'boolean') c.activo = e.activo;
+  if (Array.isArray(e.pasos)) c.pasos = e.pasos.map(x => String(x || '').slice(0, 500)).filter(Boolean).slice(0, 30);
+  if (Array.isArray(e.faqs)) {
+    c.faqs = e.faqs
+      .map(f => ({ q: String((f && f.q) || '').slice(0, 300), a: String((f && f.a) || '').slice(0, 2000) }))
+      .filter(f => f.q || f.a).slice(0, 60);
+  }
+  return c;
+}
+function sebaVersionMeta(v){
+  return { id: v.id, ts: v.ts, autor: v.autor || '', nota: v.nota || '' };
+}
+function sebaActor(req){
+  const s = adminSessionFor(req);
+  return (s && s.username) || 'admin';
+}
+function sebaEstado(){
+  const cur = sebaTokenActual();
+  const d = sebaChatsLoad();
+  return {
+    // Solo si están o no: el valor de un secreto no sale nunca del server.
+    env: {
+      META_APP_ID:          !!(process.env.META_APP_ID || '').trim(),
+      META_APP_SECRET:      !!(process.env.META_APP_SECRET || '').trim(),
+      IG_ACCESS_TOKEN:      !!(process.env.IG_ACCESS_TOKEN || '').trim(),
+      WEBHOOK_VERIFY_TOKEN: !!(process.env.WEBHOOK_VERIFY_TOKEN || '').trim(),
+      ANTHROPIC_API_KEY:    !!(process.env.ANTHROPIC_API_KEY || '').trim(),
+      SHOPIFY_ADMIN_TOKEN:  !!(process.env.SHOPIFY_ADMIN_TOKEN || '').trim(),
+    },
+    webhook: SEBA_WEBHOOK_PATH,
+    dryRun: SEBA_DRY_RUN,
+    token: cur ? { origen: cur.origen, expiraTs: cur.expiraTs || 0 } : null,
+    cola: SEBA_COLA.length,
+    enviosUltimaHora: sebaEnviosUltimaHora(d).length,
+    maxHora: SEBA_MAX_HORA,
+    conversaciones: d.conversaciones.length,
+    web: SEBA_WEB,
+    modeloDefault: SEBA_MODELO_DEFAULT,
+  };
+}
+
+app.get('/admin/seba', requireAdmin, async (req, res) => {
+  const d = sebaLoad();
+  const cat = await sebaPacks(String(req.query.refresh || '') === '1').catch(e => ({ disponible: false, motivo: String(e.message || e), packs: [], otros: [] }));
+  res.json({
+    cerebro: d.cerebro,
+    versiones: d.versiones.slice().sort((a, b) => b.ts - a.ts).map(sebaVersionMeta),
+    catalogo: cat,
+    estado: sebaEstado(),
+  });
+});
+
+app.put('/admin/seba/cerebro', requireAdmin, (req, res) => {
+  const d = sebaLoad();
+  const nuevo = sebaLimpiarCerebro((req.body || {}).cerebro, d.cerebro);
+  if (JSON.stringify(nuevo) === JSON.stringify(d.cerebro)) {
+    return res.json({ ok: true, sinCambios: true, cerebro: d.cerebro, versiones: d.versiones.slice().sort((a, b) => b.ts - a.ts).map(sebaVersionMeta) });
+  }
+  // Se versiona lo ANTERIOR: así "volver a la versión X" devuelve lo que había
+  // antes de ese guardado, que es lo que uno espera al arrepentirse.
+  d.versiones.push({
+    id: 'sv_' + randomUUID().slice(0, 8),
+    ts: Date.now(),
+    autor: sebaActor(req),
+    nota: String((req.body || {}).nota || '').slice(0, 200),
+    cerebro: d.cerebro,
+  });
+  if (d.versiones.length > SEBA_VERS_MAX) { d.versiones.sort((a, b) => a.ts - b.ts); d.versiones = d.versiones.slice(-SEBA_VERS_MAX); }
+  d.cerebro = nuevo;
+  sebaSave(d);
+  res.json({ ok: true, cerebro: d.cerebro, versiones: d.versiones.slice().sort((a, b) => b.ts - a.ts).map(sebaVersionMeta) });
+});
+
+app.get('/admin/seba/version/:id', requireAdmin, (req, res) => {
+  const v = sebaLoad().versiones.find(x => x.id === req.params.id);
+  if (!v) return res.status(404).json({ error: 'Versión no encontrada.' });
+  res.json({ version: sebaVersionMeta(v), cerebro: v.cerebro });
+});
+
+app.post('/admin/seba/version/:id/restaurar', requireAdmin, (req, res) => {
+  const d = sebaLoad();
+  const v = d.versiones.find(x => x.id === req.params.id);
+  if (!v) return res.status(404).json({ error: 'Versión no encontrada.' });
+  // Restaurar también versiona lo que había: nada se pierde por deshacer.
+  d.versiones.push({
+    id: 'sv_' + randomUUID().slice(0, 8), ts: Date.now(), autor: sebaActor(req),
+    nota: 'antes de volver a la versión del ' + new Date(v.ts).toLocaleString('es-CL'),
+    cerebro: d.cerebro,
+  });
+  if (d.versiones.length > SEBA_VERS_MAX) { d.versiones.sort((a, b) => a.ts - b.ts); d.versiones = d.versiones.slice(-SEBA_VERS_MAX); }
+  d.cerebro = sebaLimpiarCerebro(v.cerebro, sebaCerebroDefault());
+  sebaSave(d);
+  res.json({ ok: true, cerebro: d.cerebro, versiones: d.versiones.slice().sort((a, b) => b.ts - a.ts).map(sebaVersionMeta) });
+});
+
+// Simulador del panel: corre el MISMO camino que un DM real pero no manda
+// nada a Instagram. Sirve para probar el cerebro sin esperar el App Review.
+app.post('/admin/seba/probar', requireAdmin, async (req, res) => {
+  const b = req.body || {};
+  const historial = Array.isArray(b.historial)
+    ? b.historial.map(m => ({ rol: m && m.rol === 'bot' ? 'bot' : 'user', texto: String((m && m.texto) || '').slice(0, 2000) })).filter(m => m.texto).slice(-SEBA_HIST_CLAUDE)
+    : [];
+  const texto = String(b.texto || '').trim().slice(0, 2000);
+  if (texto) historial.push({ rol: 'user', texto });
+  if (!historial.length) return res.status(400).json({ error: 'Escribí un mensaje para probar.' });
+  const cerebro = b.cerebro ? sebaLimpiarCerebro(b.cerebro, sebaLoad().cerebro) : sebaLoad().cerebro;
+  try {
+    const r = await sebaRedactar(cerebro, historial);
+    res.json({ ok: true, respuesta: r.texto, crudo: r.crudo, modelo: r.modelo, partes: sebaCortar(r.texto) });
+  } catch (e) {
+    res.status(500).json({ error: 'Error hablando con Claude: ' + String(e.message || e).slice(0, 300) });
+  }
+});
+
+app.get('/admin/seba/diag', requireAdmin, (req, res) => res.json(sebaEstado()));
+
+app.post('/admin/seba/token/renovar', requireAdmin, async (req, res) => {
+  const r = await sebaRenovarToken(true);
+  res.json(r);
+});
+
+// Renovación del token: al arrancar y una vez por día. Solo actúa si al token
+// le quedan menos de 15 días, así no se gasta llamadas al pedo.
+if ((process.env.IG_ACCESS_TOKEN || '').trim()) {
+  setTimeout(() => { sebaRenovarToken(false).then(r => { if (!r.ok) console.warn('[seba] token:', r.motivo); }); }, 30000).unref?.();
+  setInterval(() => { sebaRenovarToken(false).then(r => { if (!r.ok) console.warn('[seba] token:', r.motivo); }); }, 24 * 3600 * 1000).unref?.();
+}
 
 // ─── Manejo de errores centralizado ────────────────────────────────────────
 // Sin esto, cualquier error que no capture una ruta puntual (el body-parser

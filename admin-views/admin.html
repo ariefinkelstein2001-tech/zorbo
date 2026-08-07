@@ -3379,6 +3379,61 @@ body.chat-collapsed .wsfab-panel{bottom:152px}
   .ws-semcol-b .ws-ev b,.ws-semcol-b .ws-ev .tt{display:inline}
   .ws-cal-titulo{min-width:0;font-size:.94rem}
 }
+
+/* ─── Bot Seba (DMs de Instagram de Firulais) ─────────────────────────────── */
+.seba-estado{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:.9rem;margin-bottom:1.1rem}
+.seba-estado-row{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin-bottom:.6rem}
+.seba-switch{display:inline-flex;align-items:center;gap:.5rem;font-family:var(--sans);font-size:.86rem;color:var(--text);cursor:pointer}
+.seba-switch input{width:17px;height:17px;accent-color:var(--gold);cursor:pointer}
+.seba-chip{display:inline-flex;align-items:center;gap:.3rem;font-family:var(--mono);font-size:.63rem;letter-spacing:.03em;
+  padding:.2rem .48rem;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--muted)}
+.seba-chip.ok{background:var(--green-dim);border-color:var(--green-dim);color:var(--green)}
+.seba-chip.no{background:var(--red-dim);border-color:var(--red-dim);color:var(--red)}
+.seba-chip.warn{background:var(--gold-dim);border-color:var(--gold-bd);color:var(--gold-deep);font-family:var(--sans);font-size:.72rem}
+.seba-estado-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:.5rem;margin-top:.7rem}
+.seba-estado-grid>div{background:var(--surface);border:1px solid var(--border);border-radius:9px;padding:.5rem .65rem;min-width:0}
+.seba-estado-grid span{display:block;font-family:var(--sans);font-size:.6rem;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
+.seba-estado-grid b{display:block;font-family:var(--mono);font-size:.72rem;color:var(--text);margin-top:3px;word-break:break-all}
+.seba-ayuda{margin-top:.8rem;border-top:1px solid var(--border);padding-top:.7rem}
+.seba-ayuda summary{cursor:pointer;font-family:var(--sans);font-size:.76rem;font-weight:700;color:var(--gold-deep);list-style:none}
+.seba-ayuda summary::-webkit-details-marker{display:none}
+.seba-ayuda summary::before{content:'▸ ';color:var(--gold)}
+.seba-ayuda[open] summary::before{content:'▾ '}
+.seba-ayuda ol{margin:.6rem 0 0;padding-left:1.15rem}
+.seba-ayuda li,.seba-ayuda p{font-family:var(--sans);font-size:.76rem;color:var(--muted);line-height:1.6;margin:.3rem 0}
+.seba-ayuda code{font-family:var(--mono);font-size:.71rem;background:var(--surface3);padding:.05rem .3rem;border-radius:4px;color:var(--text)}
+.seba-sec{border-top:1px solid var(--border);margin:1.4rem 0 .9rem;padding-top:.9rem}
+.seba-sec h3{font-family:var(--display);font-size:.98rem;margin:0;color:var(--text)}
+.seba-bloque{margin-bottom:1rem}
+.seba-bloque>label{display:block;font-family:var(--sans);font-size:.78rem;font-weight:700;color:var(--text);margin-bottom:.35rem}
+.seba-bloque>label em{display:block;font-weight:400;font-style:normal;font-size:.7rem;color:var(--muted);margin-top:2px}
+.seba-ta{width:100%;resize:vertical;line-height:1.55;font-size:.82rem}
+.seba-fila{display:flex;gap:.4rem;align-items:center;margin-bottom:.4rem}
+.seba-fila .adm-input{flex:1;min-width:0}
+.seba-num{font-family:var(--mono);font-size:.72rem;color:var(--muted);width:1.4rem;text-align:right;flex-shrink:0}
+.seba-faq .seba-faq-q{flex:0 0 30%}
+.seba-nota{font-family:var(--sans);font-size:.74rem;color:var(--muted);line-height:1.55;background:var(--surface2);
+  border-left:3px solid var(--gold-bd);border-radius:0 8px 8px 0;padding:.55rem .7rem;margin:.5rem 0}
+.seba-dim{color:var(--muted)}
+.seba-tabla{width:100%;border-collapse:collapse;font-family:var(--sans);font-size:.79rem}
+.seba-tabla th{text-align:left;font-size:.6rem;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);padding:.35rem .5rem;border-bottom:1px solid var(--border)}
+.seba-tabla td{padding:.45rem .5rem;border-bottom:1px solid var(--border);color:var(--text)}
+.seba-sim{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface)}
+.seba-sim-hist{max-height:320px;overflow-y:auto;padding:.7rem;display:flex;flex-direction:column;gap:.4rem;background:var(--surface2)}
+.seba-msj{max-width:78%;padding:.45rem .65rem;border-radius:13px;font-family:var(--sans);font-size:.82rem;line-height:1.45;word-break:break-word}
+.seba-msj.yo{align-self:flex-end;background:var(--gold-dim);border:1px solid var(--gold-bd);color:var(--gold-deep)}
+.seba-msj.bot{align-self:flex-start;background:var(--surface);border:1px solid var(--border);color:var(--text)}
+.seba-sim-in{display:flex;gap:.4rem;padding:.55rem;border-top:1px solid var(--border)}
+.seba-sim-in .adm-input{flex:1;min-width:0}
+.seba-vers{display:flex;flex-direction:column;gap:.35rem}
+.seba-ver{display:flex;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap;
+  background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:.45rem .65rem;font-family:var(--sans);font-size:.78rem}
+.seba-ver .seba-dim{font-size:.72rem;margin-left:.4rem}
+@media(max-width:600px){
+  .seba-faq{flex-wrap:wrap}
+  .seba-faq .seba-faq-q{flex:1 1 100%}
+  .seba-msj{max-width:90%}
+}
 </style>
 </head>
 <body>
@@ -3933,6 +3988,21 @@ body.chat-collapsed .wsfab-panel{bottom:152px}
         </div>
       </div>
       <div id="teamBody"><div class="adm-loading">Cargando…</div></div>
+    </div>
+
+    <!-- Bot Seba: DMs de Instagram de Firulais. Cerebro editable + versiones + simulador. -->
+    <div class="adm-panel" id="sebaView" style="display:none">
+      <div class="adm-panel-head">
+        <div>
+          <div class="adm-panel-title">Bot Seba — Firulais</div>
+          <div class="adm-panel-meta">contesta los mensajes directos de Instagram de Firulais · el cerebro se edita acá, sin tocar código</div>
+        </div>
+        <div class="adm-actions">
+          <button class="adm-btn adm-btn-ghost" id="sebaReload" type="button">Recargar</button>
+          <button class="adm-btn adm-btn-gold" id="sebaSave" type="button">Guardar cerebro</button>
+        </div>
+      </div>
+      <div id="sebaBody"><div class="adm-loading">Cargando…</div></div>
     </div>
 
     <!-- Respaldo de datos: estado del almacenamiento + copia descargable -->
@@ -4944,6 +5014,7 @@ const BASE_SECCIONES = [
   { id:'mundial',   kind:'mundial',  label:'Campañas',        cat:'marketing', desc:'predicciones del pack mundialero · quién compró y qué eligió' },
   { id:'chats',     kind:'chats',    label:'Conversaciones',  cat:'marketing', desc:'historial completo · filtros y embudo' },
   { id:'feedback',   kind:'feedback', label:'Feedback IA',     cat:'marketing', desc:'correcciones para entrenar a Zorbot' },
+  { id:'seba',      kind:'seba',     label:'Bot Seba — Firulais', cat:'marketing', desc:'el bot que contesta los DM de Instagram de Firulais · cerebro editable, versiones y simulador' },
   { id:'marcas',    kind:'marcas',   label:'Marcas',          cat:'marketing', desc:'ZORBO · Kairos Brewing · Firulais · Banny · K-BROS — sitio, diseño y audiovisual de cada marca' },
   { id:'web',       kind:'web',      label:'Página web',      cat:'marketing', desc:'franja, banner, botones y marcas del home', nav:false, parentNav:'marcas' },
   { id:'tutoriales', kind:'tutorials',label:'Tutoriales',      cat:'marketing', desc:'videos técnicos que Zorbot comparte cuando aplica', nav:false, parentNav:'marcas' },
@@ -5446,6 +5517,9 @@ async function selectSeccion(id){
   } else if (sec.kind === 'feedback') {
     showView('feedback');
     await loadFeedbackList();
+  } else if (sec.kind === 'seba') {
+    showView('seba');
+    await sebaCargar();
   } else if (sec.kind === 'tutorials') {
     showView('tutorials');
     await loadTutorials();
@@ -5519,6 +5593,7 @@ function showView(kind){
   if (kind !== 'produccion' && typeof prodStopTimers === 'function') prodStopTimers();
   if (kind === 'estado') estadoBoot();
   document.getElementById('feedbackView').style.display   = kind === 'feedback'   ? '' : 'none';
+  document.getElementById('sebaView').style.display       = kind === 'seba'       ? '' : 'none';
   document.getElementById('tutorialsView').style.display  = kind === 'tutorials'  ? '' : 'none';
   document.getElementById('webView').style.display        = kind === 'web'        ? '' : 'none';
   document.getElementById('marcasView').style.display     = kind === 'marcas'     ? '' : 'none';
@@ -18979,6 +19054,298 @@ function renderRespaldo(d){
   };
 }
 document.getElementById('rspReload').onclick = loadRespaldo;
+
+// ─── Bot Seba — DMs de Instagram de Firulais ─────────────────────────────────
+// El cerebro son bloques de texto libre que viven en el server (seba.json). Acá
+// se editan, se guardan (versionando lo anterior) y se prueban con el simulador,
+// que corre exactamente el mismo camino que un DM real pero sin mandar nada a
+// Instagram — así se puede afinar el tono antes de que Meta apruebe la app.
+const SEBA = { cerebro:null, versiones:[], catalogo:null, estado:null, hist:[] };
+const SEBA_BLOQUES = [
+  { k:'identidad',  t:'Identidad',  d:'quién es Seba, su personalidad y el tono · acá vive la regla de sonar humano', filas:7 },
+  { k:'objetivo',   t:'Objetivo',   d:'qué tiene que lograr en la conversación', filas:4 },
+  { k:'formato',    t:'Formato de respuesta', d:'largo, estilo y forma de escribir de cada mensaje', filas:5 },
+  { k:'productos',  t:'Productos y promos', d:'promos vigentes y cómo ofrecerlas · los precios salen solos de Shopify, no los escribas acá', filas:6 },
+  { k:'donots',     t:'Lo que NO debe hacer', d:'una regla por línea', filas:7 },
+  { k:'derivacion', t:'Derivación a una persona', d:'cuándo un caso deja de ser para el bot (se ejecuta en la Fase 2)', filas:4 },
+];
+
+async function sebaCargar(){
+  const body = document.getElementById('sebaBody');
+  body.innerHTML = '<div class="adm-loading">Cargando…</div>';
+  try {
+    const r = await fetch('/admin/seba');
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    SEBA.cerebro = d.cerebro || {};
+    SEBA.versiones = d.versiones || [];
+    SEBA.catalogo = d.catalogo || null;
+    SEBA.estado = d.estado || null;
+    sebaRender();
+  } catch(e){ body.innerHTML = '<div class="adm-empty">No se pudo cargar: ' + escapeHtml(String(e.message||e)) + '</div>'; }
+}
+
+function sebaEstadoHtml(){
+  const s = SEBA.estado; if (!s) return '';
+  const faltan = Object.entries(s.env).filter(([, v]) => !v).map(([k]) => k);
+  const chip = (ok, txt) => `<span class="seba-chip ${ok?'ok':'no'}">${ok?'✓':'✗'} ${escapeHtml(txt)}</span>`;
+  const enc = SEBA.cerebro && SEBA.cerebro.activo;
+  const exp = s.token && s.token.expiraTs
+    ? Math.round((s.token.expiraTs - Date.now()) / 86400000) + ' días'
+    : (s.token ? 'sin fecha conocida' : '—');
+  return `
+    <div class="seba-estado">
+      <div class="seba-estado-row">
+        <label class="seba-switch">
+          <input type="checkbox" id="sebaActivo" ${enc?'checked':''}>
+          <span>${enc ? 'Seba está <b>respondiendo</b> los DM' : 'Seba está <b>apagado</b> (no responde nada)'}</span>
+        </label>
+        ${s.dryRun ? '<span class="seba-chip warn">modo prueba (SEBA_DRY_RUN): no manda nada a Instagram</span>' : ''}
+      </div>
+      <div class="seba-estado-row">
+        ${Object.entries(s.env).map(([k, v]) => chip(v, k)).join('')}
+      </div>
+      ${faltan.length ? `<div class="seba-nota">Falta configurar en Railway: <b>${faltan.map(escapeHtml).join(', ')}</b>. Hasta que estén, el webhook rechaza todo.</div>` : ''}
+      <div class="seba-estado-grid">
+        <div><span>Webhook</span><b>${escapeHtml(location.origin + s.webhook)}</b></div>
+        <div><span>Token de Instagram</span><b>${escapeHtml(s.token ? s.token.origen : 'no configurado')} · vence en ${escapeHtml(exp)}</b></div>
+        <div><span>Enviados en la última hora</span><b>${s.enviosUltimaHora} / ${s.maxHora}</b></div>
+        <div><span>En cola</span><b>${s.cola}</b></div>
+        <div><span>Conversaciones guardadas</span><b>${s.conversaciones}</b></div>
+        <div><span>Web de la marca</span><b>${escapeHtml(s.web)}</b></div>
+      </div>
+      <div class="adm-actions" style="margin-top:.7rem">
+        <button class="adm-btn adm-btn-ghost" id="sebaTokenBtn" type="button">Renovar token de Instagram</button>
+      </div>
+      <details class="seba-ayuda">
+        <summary>Cómo conectarlo y cómo probarlo antes de que Meta apruebe la app</summary>
+        <ol>
+          <li>En <b>developers.facebook.com</b> → tu app → <b>Instagram → Configuración de la API</b>, vinculá la cuenta de Instagram de Firulais y pedí los permisos <code>instagram_business_basic</code>, <code>instagram_business_manage_messages</code> y <code>human_agent</code> (este último recién se usa en la Fase 2, pero conviene dejarlo pedido de una).</li>
+          <li>En <b>Webhooks</b>, pegá la URL de arriba y el mismo <code>WEBHOOK_VERIFY_TOKEN</code> que pusiste en Railway. Suscribí el campo <b>messages</b>. Meta hace una llamada de verificación: si el token coincide, queda conectado al toque.</li>
+          <li>En Railway cargá <code>META_APP_ID</code>, <code>META_APP_SECRET</code>, <code>IG_ACCESS_TOKEN</code> y <code>WEBHOOK_VERIFY_TOKEN</code>. Sin App Secret el webhook rechaza todo, y con razón: es lo que prueba que el mensaje viene de Meta.</li>
+          <li><b>Probar sin esperar el App Review:</b> en la app de Meta → <b>Roles</b> → <b>Instagram Testers</b>, invitá la cuenta de Instagram con la que vas a probar. Esa persona acepta la invitación desde su Instagram (Configuración → Apps y sitios web → Invitaciones de tester). Desde ahí puede mandarle DM a Firulais y Seba le responde, aunque la app todavía esté en modo desarrollo.</li>
+          <li>Para probar el tono sin tocar Instagram, usá el simulador de más abajo. Y si querés que el bot piense pero no mande nada, seteá <code>SEBA_DRY_RUN=1</code> en Railway.</li>
+        </ol>
+        <p>El token de Instagram dura 60 días y se renueva solo (una vez por día, cuando le quedan menos de 15). Si alguna vez lo pegás de nuevo a mano en Railway, el nuevo manda.</p>
+      </details>
+    </div>`;
+}
+
+function sebaCatalogoHtml(){
+  const c = SEBA.catalogo;
+  if (!c || !c.disponible) {
+    return `<div class="seba-nota">Catálogo no disponible: ${escapeHtml((c && c.motivo) || 'sin detalle')}. Sin catálogo, Seba no arma links ni da precios — manda a la web.</div>`;
+  }
+  const filas = [4, 8, 12].map(n => {
+    const v = (c.packs || []).filter(p => p.pack === n).sort((a, b) => (b.disponible - a.disponible) || (a.precio - b.precio))[0];
+    if (!v) return `<tr><td>Pack de ${n}</td><td colspan="3" class="seba-dim">no está en Shopify — Seba no lo ofrece</td></tr>`;
+    return `<tr>
+      <td>Pack de ${n}</td>
+      <td>${escapeHtml(v.titulo)}</td>
+      <td>$${(v.precio||0).toLocaleString('es-CL')}</td>
+      <td>${v.disponible ? `<a href="${escapeHtml(v.url)}" target="_blank" rel="noopener">link de carrito</a>` : '<span class="seba-dim">sin stock</span>'}</td>
+    </tr>`;
+  }).join('');
+  return `
+    <table class="seba-tabla"><thead><tr><th>Pack</th><th>Producto en Shopify</th><th>Precio</th><th>Carrito</th></tr></thead><tbody>${filas}</tbody></table>
+    <div class="seba-nota">Sale directo de Shopify (productos de Firulais). Los precios no se escriben acá: si cambian en Shopify, cambian solos.</div>`;
+}
+
+function sebaRender(){
+  const c = SEBA.cerebro || {};
+  const pasos = Array.isArray(c.pasos) ? c.pasos : [];
+  const faqs = Array.isArray(c.faqs) ? c.faqs : [];
+  document.getElementById('sebaBody').innerHTML = `
+    ${sebaEstadoHtml()}
+
+    <div class="seba-sec"><h3>Cerebro</h3></div>
+    ${SEBA_BLOQUES.map(b => `
+      <div class="seba-bloque">
+        <label>${escapeHtml(b.t)}<em>${escapeHtml(b.d)}</em></label>
+        <textarea class="adm-input seba-ta" data-k="${b.k}" rows="${b.filas}">${escapeHtml(String(c[b.k] || ''))}</textarea>
+      </div>`).join('')}
+
+    <div class="seba-bloque">
+      <label>Pasos de la conversación<em>el paso a paso ideal · se puede reordenar y agregar</em></label>
+      <div id="sebaPasos">${pasos.map((p, i) => sebaPasoHtml(p, i)).join('')}</div>
+      <button class="adm-btn adm-btn-ghost" id="sebaPasoAdd" type="button">+ Agregar paso</button>
+    </div>
+
+    <div class="seba-bloque">
+      <label>Preguntas frecuentes<em>lo que más preguntan por DM y cómo se responde</em></label>
+      <div id="sebaFaqs">${faqs.map((f, i) => sebaFaqHtml(f, i)).join('')}</div>
+      <button class="adm-btn adm-btn-ghost" id="sebaFaqAdd" type="button">+ Agregar pregunta</button>
+    </div>
+
+    <div class="seba-bloque">
+      <label>Modelo de Claude<em>cuál modelo piensa las respuestas · dejalo vacío para usar el que trae el sistema (${escapeHtml((SEBA.estado&&SEBA.estado.modeloDefault)||'')})</em></label>
+      <input class="adm-input" id="sebaModelo" value="${escapeHtml(String(c.modelo || ''))}" placeholder="${escapeHtml((SEBA.estado&&SEBA.estado.modeloDefault)||'')}" style="max-width:340px">
+    </div>
+
+    <div class="seba-sec"><h3>Packs y links (desde Shopify)</h3></div>
+    ${sebaCatalogoHtml()}
+
+    <div class="seba-sec"><h3>Probar sin mandar nada</h3></div>
+    <div class="seba-nota">Corre el mismo camino que un DM real —cerebro, historial, catálogo y links— pero no toca Instagram. Prueba lo que está escrito arriba, aunque todavía no lo hayas guardado.</div>
+    <div class="seba-sim">
+      <div id="sebaSimHist" class="seba-sim-hist"></div>
+      <div class="seba-sim-in">
+        <input class="adm-input" id="sebaSimTxt" placeholder="Escribí como si fueras un cliente…">
+        <button class="adm-btn adm-btn-gold" id="sebaSimSend" type="button">Enviar</button>
+        <button class="adm-btn adm-btn-ghost" id="sebaSimClear" type="button">Limpiar</button>
+      </div>
+    </div>
+
+    <div class="seba-sec"><h3>Historial de versiones</h3></div>
+    ${SEBA.versiones.length ? `<div class="seba-vers">${SEBA.versiones.map(v => `
+      <div class="seba-ver">
+        <div>
+          <b>${new Date(v.ts).toLocaleString('es-CL')}</b>
+          <span class="seba-dim">${escapeHtml(v.autor || '')}${v.nota ? ' · ' + escapeHtml(v.nota) : ''}</span>
+        </div>
+        <button class="adm-btn adm-btn-ghost" data-ver="${escapeHtml(v.id)}" type="button">Volver a esta</button>
+      </div>`).join('')}</div>`
+      : '<div class="seba-nota">Todavía no hay versiones guardadas. Se crea una cada vez que guardás un cambio.</div>'}
+
+    <div class="seba-sec"><h3>Bandeja de conversaciones</h3></div>
+    <div class="seba-nota">Va en la Fase 2: acá se van a ver los DM en curso y se va a poder contestar a mano (handoff humano). El historial ya se está guardando desde ahora, así que cuando llegue va a tener con qué llenarse.</div>
+  `;
+  sebaWire();
+  sebaSimRender();
+}
+function sebaPasoHtml(p, i){
+  return `<div class="seba-fila" data-i="${i}">
+    <span class="seba-num">${i + 1}</span>
+    <input class="adm-input seba-paso" value="${escapeHtml(String(p || ''))}">
+    <button class="adm-btn adm-btn-ghost" data-mov="-1" type="button" title="Subir">↑</button>
+    <button class="adm-btn adm-btn-ghost" data-mov="1" type="button" title="Bajar">↓</button>
+    <button class="adm-btn adm-btn-ghost" data-del="1" type="button" title="Quitar">✕</button>
+  </div>`;
+}
+function sebaFaqHtml(f, i){
+  return `<div class="seba-fila seba-faq" data-i="${i}">
+    <input class="adm-input seba-faq-q" value="${escapeHtml(String((f && f.q) || ''))}" placeholder="Pregunta">
+    <input class="adm-input seba-faq-a" value="${escapeHtml(String((f && f.a) || ''))}" placeholder="Respuesta">
+    <button class="adm-btn adm-btn-ghost" data-del="1" type="button" title="Quitar">✕</button>
+  </div>`;
+}
+// Lee el formulario entero. Es la única fuente de lo que se guarda y de lo que
+// prueba el simulador — así lo que se testea es lo que está en pantalla.
+function sebaLeerForm(){
+  const c = { ...(SEBA.cerebro || {}) };
+  document.querySelectorAll('#sebaBody .seba-ta').forEach(t => { c[t.dataset.k] = t.value; });
+  const mod = document.getElementById('sebaModelo');
+  c.modelo = mod ? mod.value.trim() : '';
+  const act = document.getElementById('sebaActivo');
+  if (act) c.activo = act.checked;
+  c.pasos = [...document.querySelectorAll('#sebaPasos .seba-paso')].map(i => i.value.trim()).filter(Boolean);
+  c.faqs = [...document.querySelectorAll('#sebaFaqs .seba-faq')].map(f => ({
+    q: f.querySelector('.seba-faq-q').value.trim(),
+    a: f.querySelector('.seba-faq-a').value.trim(),
+  })).filter(f => f.q || f.a);
+  return c;
+}
+function sebaWire(){
+  const pasos = document.getElementById('sebaPasos');
+  const add = document.getElementById('sebaPasoAdd');
+  if (add) add.onclick = () => { const c = sebaLeerForm(); c.pasos.push(''); SEBA.cerebro = c; sebaRender(); };
+  if (pasos) pasos.onclick = (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const fila = b.closest('.seba-fila'); const i = Number(fila.dataset.i);
+    const c = sebaLeerForm();
+    if (b.dataset.del) c.pasos.splice(i, 1);
+    else {
+      const j = i + Number(b.dataset.mov);
+      if (j < 0 || j >= c.pasos.length) return;
+      [c.pasos[i], c.pasos[j]] = [c.pasos[j], c.pasos[i]];
+    }
+    SEBA.cerebro = c; sebaRender();
+  };
+  const faqAdd = document.getElementById('sebaFaqAdd');
+  if (faqAdd) faqAdd.onclick = () => { const c = sebaLeerForm(); c.faqs.push({ q:'', a:'' }); SEBA.cerebro = c; sebaRender(); };
+  const faqs = document.getElementById('sebaFaqs');
+  if (faqs) faqs.onclick = (e) => {
+    const b = e.target.closest('button[data-del]'); if (!b) return;
+    const c = sebaLeerForm(); c.faqs.splice(Number(b.closest('.seba-fila').dataset.i), 1);
+    SEBA.cerebro = c; sebaRender();
+  };
+  document.querySelectorAll('#sebaBody .seba-ver button[data-ver]').forEach(b => {
+    b.onclick = () => sebaRestaurar(b.dataset.ver);
+  });
+  const tk = document.getElementById('sebaTokenBtn');
+  if (tk) tk.onclick = async () => {
+    tk.disabled = true; tk.textContent = 'Renovando…';
+    try {
+      const r = await fetch('/admin/seba/token/renovar', { method:'POST' });
+      const x = await r.json();
+      if (!x.ok) throw new Error(x.motivo || 'No se pudo renovar');
+      showToast(x.saltado ? 'El token todavía tiene cuerda, no hacía falta renovarlo ✓' : 'Token renovado ✓', 'ok');
+      await sebaCargar();
+    } catch(e){ showToast(String(e.message||e), 'err'); tk.disabled = false; tk.textContent = 'Renovar token de Instagram'; }
+  };
+  const send = document.getElementById('sebaSimSend');
+  const txt = document.getElementById('sebaSimTxt');
+  if (send) send.onclick = sebaSimEnviar;
+  if (txt) txt.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); sebaSimEnviar(); } };
+  const clr = document.getElementById('sebaSimClear');
+  if (clr) clr.onclick = () => { SEBA.hist = []; sebaSimRender(); };
+}
+function sebaSimRender(){
+  const box = document.getElementById('sebaSimHist'); if (!box) return;
+  box.innerHTML = SEBA.hist.length
+    ? SEBA.hist.map(m => `<div class="seba-msj ${m.rol === 'bot' ? 'bot' : 'yo'}">${escapeHtml(m.texto).replace(/\n/g,'<br>')}</div>`).join('')
+    : '<div class="seba-dim" style="padding:.6rem">Escribí abajo y probá cómo responde.</div>';
+  box.scrollTop = box.scrollHeight;
+}
+async function sebaSimEnviar(){
+  const inp = document.getElementById('sebaSimTxt');
+  const texto = (inp.value || '').trim();
+  if (!texto) return;
+  const btn = document.getElementById('sebaSimSend');
+  SEBA.hist.push({ rol:'user', texto }); inp.value = '';
+  sebaSimRender();
+  btn.disabled = true; btn.textContent = 'Pensando…';
+  try {
+    const r = await fetch('/admin/seba/probar', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ cerebro: sebaLeerForm(), historial: SEBA.hist.slice(0, -1), texto }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    for (const p of (d.partes && d.partes.length ? d.partes : [d.respuesta])) if (p) SEBA.hist.push({ rol:'bot', texto:p });
+    sebaSimRender();
+  } catch(e){ showToast(String(e.message||e), 'err'); }
+  btn.disabled = false; btn.textContent = 'Enviar';
+}
+async function sebaGuardar(){
+  const btn = document.getElementById('sebaSave');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+  try {
+    const r = await fetch('/admin/seba/cerebro', {
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ cerebro: sebaLeerForm() }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    SEBA.cerebro = d.cerebro; SEBA.versiones = d.versiones || [];
+    showToast(d.sinCambios ? 'No había nada nuevo que guardar' : 'Cerebro guardado ✓', 'ok');
+    sebaRender();
+  } catch(e){ showToast(String(e.message||e), 'err'); }
+  btn.disabled = false; btn.textContent = 'Guardar cerebro';
+}
+async function sebaRestaurar(id){
+  if (!confirm('Volver a esta versión? Lo que hay ahora queda guardado como una versión más, así que no se pierde.')) return;
+  try {
+    const r = await fetch('/admin/seba/version/' + encodeURIComponent(id) + '/restaurar', { method:'POST' });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Error');
+    SEBA.cerebro = d.cerebro; SEBA.versiones = d.versiones || [];
+    showToast('Versión restaurada ✓', 'ok');
+    sebaRender();
+  } catch(e){ showToast(String(e.message||e), 'err'); }
+}
+document.getElementById('sebaReload').onclick = sebaCargar;
+document.getElementById('sebaSave').onclick = sebaGuardar;
 
 // ─── Costeo Consulta: códigos de acceso de la app pública de solo lectura ───
 // La app en sí (/consulta-costeo) es un portal aparte, sin login de admin —

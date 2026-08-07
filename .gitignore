@@ -34,3 +34,5 @@ prompts/hosp-portal-sesiones.json
 prompts/hosp-ingresos.json
 prompts/workspace.json
 logs/backups/
+prompts/seba.json
+prompts/seba-chats.json
