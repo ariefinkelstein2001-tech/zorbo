@@ -203,6 +203,25 @@ El umbral de costeo se compara contra el `margenPct` que el usuario le puso a
 cada plato, más `WS_AUTO_COSTEO_HOLGURA` puntos de tolerancia. No hay un número
 "de costo alto" inventado en el código: el objetivo lo define el usuario.
 
+## Secciones de la tienda: dónde cae cada producto
+
+La sección se decide **por título**, no por vendor: un pack de Kairos tiene el
+mismo `vendor` que una lata de Kairos, así que mirar el vendor lo manda a
+Chelas igual. Dos reglas puras, las dos con test (`t-clasif.mjs`):
+
+- `esDestiladoProd` — un destilado nunca cae en Chelas aunque su vendor esté
+  mal cargado en Shopify. Ya pasó con "London Dry" (un gin con vendor Kairos).
+- `esPackArmado` — un pack de varios estilos va a "Nuestros Packs". Reconoce
+  "6/12/24 pack … mix/variado", "Mix 6 estilos", un título que empieza con la
+  palabra "Pack", y la composición con cantidades unidas por "+"
+  ("2 Valle + 2 GOAT + 2 GDML"). Ese "+" entre dos cantidades es la firma del
+  pack: una lata suelta no lo tiene. Ya pasó con "Pack Invierno".
+
+Cuando algo aparezca en la sección equivocada, **arreglá el dato en Shopify
+primero** (vendor, tipo, tags): la regla acá es la red de contención para los
+casos que el dato no puede resolver, no el lugar donde se lista producto por
+producto.
+
 ## Quién ve qué en el catálogo mayorista de Zorbo
 
 La visibilidad **no se decide en este repo**: sale de Shopify.

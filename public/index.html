@@ -2803,14 +2803,33 @@ function hasZorboTag(p){
   const tags = (p.tags || []).map(t => String(t).trim().toUpperCase());
   return tags.includes('ZORBO');
 }
+// ¿El producto es un PACK ARMADO (varios estilos en una caja) y no una lata
+// suelta? Se decide por título: el vendor no sirve, porque un pack de Kairos
+// tiene el mismo vendor que una lata de Kairos y caería igual en Chelas.
+// Tres señales, cualquiera alcanza:
+//   1. "6/12/24 pack … mix/variado" — el formato de siempre.
+//   2. "Mix 6 estilos".
+//   3. Un pack con nombre propio ("Pack Invierno: 2 Valle + 2 GOAT + 2 GDML"):
+//      empieza con la palabra "Pack", o lista su composición con cantidades
+//      unidas por "+". Ese "+" entre dos cantidades es la firma de que adentro
+//      viene más de un estilo — una lata suelta nunca lo tiene.
+const ES_PACK_RX = [
+  /(6|12|24)\s*pack.*(mix|variado|6\s*estilos)/,
+  /mix\s*6\s*estilos/,
+  /^pack\b/,
+  /\d+\s*[a-záéíóúñ].*\+\s*\d+\s*[a-záéíóúñ]/,
+];
+function esPackArmado(titulo){
+  const t = String(titulo || '').toLowerCase().trim();
+  return ES_PACK_RX.some(rx => rx.test(t));
+}
 function classifyHpProduct(p, home){
   if (!hasZorboTag(p)) return null;
   const t = (p.title || '').toLowerCase();
   const destilado = esDestiladoProd(p);
-  // Packs Mix 6 estilos: regla por título, gana siempre (un pack mix de Kairos
-  // no debe caer en Chelas aunque su vendor sea Kairos).
-  if (/(6|12|24)\s*pack.*(mix|variado|6\s*estilos)/.test(t)) return 'packs';
-  if (/mix\s*6\s*estilos/.test(t)) return 'packs';
+  // Los packs armados ganan siempre: un pack mix de Kairos no debe caer en
+  // Chelas aunque su vendor sea Kairos.
+  if (esPackArmado(t)) return 'packs';
   // Marcas configuradas desde el panel: si el vendor del producto coincide con
   // el de una marca, manda su categoría (override de las reglas por keyword).
   // Útil sobre todo para categorías nuevas creadas desde el admin.
