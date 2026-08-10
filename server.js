@@ -18078,6 +18078,78 @@ app.put('/admin/customers/:id/channels', requireAdmin, (req, res) => {
   }
 });
 
+// ─── "Qué ve este cliente en Zorbo" (diagnóstico de catálogo) ───────────────
+// Qué productos ve un mayorista NO se decide acá: sale de sus tags en Shopify
+// (MAYORISTA → todo el catálogo mayorista; MAYORISTA1 → solo la colección
+// "MAYORISTAS EX") y del producto (activo + que cuente como mayorista).
+// A propósito NO hay excepciones por cliente en el código: sería una lista
+// paralela a la colección de Shopify y las dos se desincronizarían al toque.
+// Esto solo MUESTRA la decisión y el motivo, para no tener que adivinar por
+// qué a alguien no le aparece algo.
+function clienteVeProducto(p, level, exIds){
+  if (String(p.status || 'ACTIVE').toUpperCase() !== 'ACTIVE')
+    return { visible: false, motivo: 'El producto no está activo en Shopify (borrador o archivado). No lo ve nadie.' };
+  if (!level)
+    return { visible: false, motivo: 'El cliente no tiene el tag MAYORISTA ni MAYORISTA1 en Shopify: entra al catálogo público, donde los barriles y bidones no se muestran.' };
+  if (!isMayoristaProduct(p))
+    return { visible: false, motivo: 'El producto no cuenta como mayorista: no tiene el tag MAYORISTA y el título no empieza con "Barril" ni "Bidón".' };
+  if (level === 'ex') {
+    if (!exIds)
+      return { visible: false, motivo: `El cliente es MAYORISTA1 y no se pudo leer la colección "${MAYO_EX_TITLE}", así que no ve nada.` };
+    if (!exIds.has(String(p.id)))
+      return { visible: false, motivo: `El cliente es MAYORISTA1: solo ve lo que esté dentro de la colección "${MAYO_EX_TITLE}", y este producto no está adentro.` };
+  }
+  return { visible: true, motivo: '' };
+}
+
+app.get('/admin/customers/:id/catalogo', requireAdmin, async (req, res) => {
+  const cust = await loadWholesaleCustomers(false);
+  if (!cust.available) return res.json({ available: false, reason: cust.reason });
+  const c = cust.customers.find(x => x.id === String(req.params.id));
+  if (!c) return res.status(404).json({ error: 'Cliente no encontrado.' });
+  const q = String(req.query.q || '').trim().toLowerCase();
+  try {
+    const level = mayoLevelFromTags((c.tags || []).join(','));
+    const ex = level === 'ex' ? await loadMayoExProductIds(false) : null;
+    const exIds = (ex && ex.available && ex.found) ? ex.ids : null;
+    const all = (await loadProductsCache(false)) || [];
+    // Se listan los mayoristas (los que el cliente podría llegar a ver) más
+    // cualquier cosa que matchee la búsqueda: si busca "barril red" y el
+    // producto está mal clasificado, tiene que aparecer igual con el motivo.
+    const items = all
+      .filter(p => isMayoristaProduct(p) || (q && String(p.title || '').toLowerCase().includes(q)))
+      .filter(p => !q || String(p.title || '').toLowerCase().includes(q))
+      .map(p => ({ id: String(p.id), titulo: p.title, estado: String(p.status || 'ACTIVE').toUpperCase(), ...clienteVeProducto(p, level, exIds) }))
+      .sort((a, b) => (a.visible === b.visible ? a.titulo.localeCompare(b.titulo, 'es') : (a.visible ? -1 : 1)))
+      .slice(0, 400);
+    res.json({
+      available: true,
+      cliente: { id: c.id, nombre: c.name, email: c.email, tags: c.tags || [] },
+      nivel: level,
+      nivelTexto: level === 'ex' ? `MAYORISTA1 — solo la colección "${MAYO_EX_TITLE}"`
+                : level === 'all' ? 'MAYORISTA — todo el catálogo mayorista'
+                : 'Sin tag mayorista — solo el catálogo público',
+      coleccion: level === 'ex' ? { titulo: MAYO_EX_TITLE, resuelta: !!exIds, enLaColeccion: exIds ? exIds.size : 0 } : null,
+      ve: items.filter(x => x.visible).length,
+      noVe: items.filter(x => !x.visible).length,
+      items,
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Error armando el catálogo del cliente: ' + String(e.message || e).slice(0, 200) });
+  }
+});
+
+// Los tags del cliente y la colección EX se cachean 10 minutos cada uno. Sin
+// esto, arreglar algo en Shopify parece no haber funcionado hasta que vence el
+// cache — y uno lo toca de nuevo pensando que se equivocó.
+app.post('/admin/customers/cache/refrescar', requireAdmin, async (req, res) => {
+  custLevelCache.clear();
+  mayoExCache = null; mayoExCacheAt = 0;
+  wholesaleCache = null; wholesaleCacheAt = 0;
+  try { await loadProductsCache(true); } catch (e) { return res.json({ ok: true, aviso: 'Se limpiaron los caches, pero Shopify no respondió: ' + String(e.message || e).slice(0, 160) }); }
+  res.json({ ok: true });
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // HOSPITALITY — perfil propio (unidad de negocio de restaurantes), separado
 // del perfil madre. Primera sección: Rendimientos (aprovechamiento de

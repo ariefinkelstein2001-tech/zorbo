@@ -3144,6 +3144,10 @@ body.hosp-open{overflow:hidden}
   background:linear-gradient(135deg,var(--gold-bright,#ffb840),var(--gold,#f5a623) 65%);color:#241a05;font-size:1.5rem;line-height:1;
   display:none;align-items:center;justify-content:center;box-shadow:0 10px 28px rgba(245,166,35,.45);transition:transform .16s,box-shadow .16s}
 body.wsfab-on .wsfab{display:flex}
+/* Con un cajón abierto (ficha de cliente, conversación) el globo queda encima
+   de los botones de abajo a la derecha del cajón y los tapa. */
+body.drawer-open.wsfab-on .wsfab,
+body.drawer-open .wsfab-panel{display:none}
 .wsfab:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 14px 34px rgba(245,166,35,.55)}
 .wsfab:active{transform:scale(.95)}
 .wsfab .n{position:absolute;top:-2px;right:-2px;min-width:20px;height:20px;border-radius:20px;background:var(--red);color:#fff;
@@ -3379,6 +3383,27 @@ body.chat-collapsed .wsfab-panel{bottom:152px}
   .ws-semcol-b .ws-ev b,.ws-semcol-b .ws-ev .tt{display:inline}
   .ws-cal-titulo{min-width:0;font-size:.94rem}
 }
+
+/* ─── "Qué ve este cliente en Zorbo" (ficha de cliente mayorista) ─────────── */
+.cust-cat-acts{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin-bottom:.6rem}
+.cust-cat-nivel{display:flex;flex-direction:column;gap:3px;border-left:3px solid var(--border);border-radius:0 8px 8px 0;
+  background:var(--surface2);padding:.55rem .7rem;font-family:var(--sans);font-size:.78rem;color:var(--text)}
+.cust-cat-nivel span{font-size:.72rem;color:var(--muted)}
+.cust-cat-nivel code{font-family:var(--mono);font-size:.68rem;background:var(--surface3);padding:.05rem .28rem;border-radius:4px}
+.cust-cat-nivel.ok{border-left-color:var(--green)}
+.cust-cat-nivel.warn{border-left-color:var(--gold)}
+.cust-cat-nivel.no{border-left-color:var(--red)}
+.cust-cat-resumen{font-family:var(--sans);font-size:.75rem;color:var(--muted);margin:.6rem 0 .35rem}
+.cust-cat-lista{display:flex;flex-direction:column;gap:2px;max-height:320px;overflow-y:auto}
+.cust-cat-item{display:grid;grid-template-columns:1.1rem minmax(0,1fr);gap:.4rem;align-items:baseline;
+  padding:.35rem .45rem;border-radius:7px;font-family:var(--sans);font-size:.78rem}
+.cust-cat-item.si{background:var(--green-dim)}
+.cust-cat-item.no{background:var(--surface2)}
+.cust-cat-ic{font-weight:700}
+.cust-cat-item.si .cust-cat-ic{color:var(--green)}
+.cust-cat-item.no .cust-cat-ic{color:var(--red)}
+.cust-cat-nom{min-width:0;color:var(--text)}
+.cust-cat-por{grid-column:2;font-size:.71rem;color:var(--muted);line-height:1.45}
 
 /* ─── Bot Seba (DMs de Instagram de Firulais) ─────────────────────────────── */
 .seba-estado{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:.9rem;margin-bottom:1.1rem}
@@ -8903,6 +8928,17 @@ function renderCustomerAndc(c){
     </div>
 
     <div class="cust-sect">
+      <div class="cust-sect-t">Qué ve este cliente en Zorbo</div>
+      <div class="adm-panel-meta" style="margin-bottom:.5rem">qué productos le aparecen al entrar, y el motivo de los que no. Sale de sus tags en Shopify — acá se mira, no se edita.</div>
+      <div class="cust-cat-acts">
+        <input class="adm-input" id="custCatQ" placeholder="buscar un producto (ej: barril red)" style="flex:1;min-width:0">
+        <button class="adm-btn adm-btn-secondary" id="custCatVer" type="button">Ver</button>
+        <button class="adm-btn adm-btn-ghost" id="custCatRefresh" type="button" title="Los tags y la colección se cachean 10 min: si acabás de cambiar algo en Shopify, tocá acá">Releer Shopify</button>
+      </div>
+      <div id="custCatBody"></div>
+    </div>
+
+    <div class="cust-sect">
       <div class="cust-sect-t">Notas internas</div>
       <textarea class="cust-note" id="andcCustNote" rows="4" placeholder="Observaciones del equipo sobre este cliente…">${escapeHtml(c.note||'')}</textarea>
       <div class="cust-note-acts">
@@ -8946,6 +8982,53 @@ function renderCustomerAndc(c){
     } catch (e) { showToast('Error: ' + e.message, 'err'); }
     finally { btn.disabled = false; btn.textContent = o; }
   };
+  // bind "qué ve en Zorbo"
+  const cq = document.getElementById('custCatQ');
+  if (cq) cq.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); custCatCargar(); } };
+  const cv = document.getElementById('custCatVer');
+  if (cv) cv.onclick = () => custCatCargar();
+  const cr = document.getElementById('custCatRefresh');
+  if (cr) cr.onclick = async () => {
+    cr.disabled = true; cr.textContent = 'Releyendo…';
+    try {
+      const r = await fetch('/admin/customers/cache/refrescar', { method:'POST' });
+      const d = await r.json();
+      showToast(d.aviso || 'Datos releídos de Shopify ✓', d.aviso ? 'err' : 'ok');
+      await custCatCargar();
+    } catch (e) { showToast('Error: ' + e.message, 'err'); }
+    cr.disabled = false; cr.textContent = 'Releer Shopify';
+  };
+}
+
+// Muestra qué productos le aparecen a un cliente y, sobre todo, POR QUÉ no le
+// aparecen los otros. La decisión vive en Shopify (tags del cliente + colección
+// "MAYORISTAS EX"); acá solo se lee.
+async function custCatCargar(){
+  const caja = document.getElementById('custCatBody');
+  if (!caja || !andcCustCurrentId) return;
+  const q = (document.getElementById('custCatQ') || {}).value || '';
+  caja.innerHTML = '<div class="adm-loading">Consultando Shopify…</div>';
+  try {
+    const r = await fetch('/admin/customers/' + encodeURIComponent(andcCustCurrentId) + '/catalogo?q=' + encodeURIComponent(q.trim()));
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'HTTP ' + r.status);
+    if (!d.available) { caja.innerHTML = `<div class="adm-empty">${escapeHtml(d.reason || 'No disponible')}</div>`; return; }
+    const nivelCls = d.nivel === 'all' ? 'ok' : (d.nivel === 'ex' ? 'warn' : 'no');
+    caja.innerHTML = `
+      <div class="cust-cat-nivel ${nivelCls}">
+        <b>${escapeHtml(d.nivelTexto)}</b>
+        <span>tags en Shopify: ${(d.cliente.tags || []).length ? d.cliente.tags.map(t => `<code>${escapeHtml(t)}</code>`).join(' ') : '(ninguno)'}</span>
+        ${d.coleccion ? `<span>${d.coleccion.resuelta ? `la colección "${escapeHtml(d.coleccion.titulo)}" tiene ${d.coleccion.enLaColeccion} productos` : `no se pudo leer la colección "${escapeHtml(d.coleccion.titulo)}" — así el cliente no ve NADA`}</span>` : ''}
+      </div>
+      <div class="cust-cat-resumen">Ve <b>${d.ve}</b> · no ve <b>${d.noVe}</b>${q.trim() ? ' (filtrado por "' + escapeHtml(q.trim()) + '")' : ''}</div>
+      ${d.items.length ? `<div class="cust-cat-lista">${d.items.map(it => `
+        <div class="cust-cat-item ${it.visible ? 'si' : 'no'}">
+          <span class="cust-cat-ic">${it.visible ? '✓' : '✗'}</span>
+          <span class="cust-cat-nom">${escapeHtml(it.titulo)}</span>
+          ${it.visible ? '' : `<span class="cust-cat-por">${escapeHtml(it.motivo)}</span>`}
+        </div>`).join('')}</div>`
+        : '<div class="adm-empty">Ningún producto coincide con esa búsqueda.</div>'}`;
+  } catch (e) { caja.innerHTML = `<div class="adm-empty" style="color:var(--red)">Error: ${escapeHtml(String(e.message || e))}</div>`; }
 }
 
 // Bind range pills de Analítica comercial (independiente del de Marketing)

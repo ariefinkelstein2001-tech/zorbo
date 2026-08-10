@@ -203,6 +203,35 @@ El umbral de costeo se compara contra el `margenPct` que el usuario le puso a
 cada plato, más `WS_AUTO_COSTEO_HOLGURA` puntos de tolerancia. No hay un número
 "de costo alto" inventado en el código: el objetivo lo define el usuario.
 
+## Quién ve qué en el catálogo mayorista de Zorbo
+
+La visibilidad **no se decide en este repo**: sale de Shopify.
+
+- **Tag del cliente** (`mayoLevelFromTags`): `MAYORISTA` → ve todo el catálogo
+  mayorista; `MAYORISTA1` → ve **solo** la colección `MAYORISTAS EX`
+  (`MAYO_EX_COLLECTION`); sin tag → catálogo público, donde los barriles y
+  bidones no aparecen. Si tiene los dos tags gana el restringido.
+- **Producto** (`isMayoristaProduct`): cuenta como mayorista si tiene el tag
+  `MAYORISTA`, o si el título **empieza** con "Barril "/"Bidon ", o si matchea
+  `N pack … mayorista`. Un barril que se llame distinto y no tenga el tag no
+  entra al catálogo mayorista y no lo ve nadie.
+- Y siempre: el producto tiene que estar **ACTIVE**.
+
+**No agregues excepciones por cliente en el código.** Sería una lista paralela
+a la colección de Shopify y las dos se desincronizarían al primer cambio: para
+que a un cliente le aparezca un producto, se toca Shopify (el tag del cliente o
+la colección), no `server.js`.
+
+Dos caches de 10 minutos tapan el resultado de ese cambio y hacen pensar que no
+funcionó: `custLevelCache` (tags por email) y `mayoExCache` (la colección). Por
+eso la ficha del cliente tiene **"Releer Shopify"**
+(`POST /admin/customers/cache/refrescar`), que los limpia.
+
+Para no adivinar por qué a alguien no le aparece algo, la ficha del cliente
+mayorista (Comercial › Análisis de Datos › Analítica comercial) tiene
+**"Qué ve este cliente en Zorbo"**: lista producto por producto con el motivo
+concreto. El criterio está en `clienteVeProducto`, aparte y puro.
+
 ## Bot "Seba" — DMs de Instagram de Firulais
 
 Módulo aislado al final de `server.js` (bloque `Bot "Seba"`) + la sección
