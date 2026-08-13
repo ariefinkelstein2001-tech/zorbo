@@ -222,6 +222,25 @@ primero** (vendor, tipo, tags): la regla acá es la red de contención para los
 casos que el dato no puede resolver, no el lugar donde se lista producto por
 producto.
 
+## Cantidades en la tienda
+
+- La cantidad **se escribe**, no solo se sube de a uno con "+". Un mayorista
+  pide 96 latas y apretar 95 veces no es una opción (lo reportó un cliente).
+  Es un `<input>` en los tres lugares donde se elige cantidad: la tarjeta del
+  home, la ficha del producto y el carro. El tope general es `QTY_MAX`.
+- **El stock no siempre es un tope.** `vStockCap()` devuelve `null` —sin tope—
+  cuando la variante no tiene inventario trackeado o su política es `CONTINUE`
+  ("seguir vendiendo cuando no haya existencias"), porque en esos casos Shopify
+  acepta el pedido igual. Solo topea con `DENY` + inventario trackeado. Los dos
+  datos vienen de Shopify (`inventoryPolicy`, `inventoryItem.tracked`); si
+  faltan, se asume el criterio viejo (topea por stock) para no romper nada.
+- Cuando sí hay tope, el campo **avisa**: parpadea y el `title` dice cuántos
+  hay. Recortar en silencio es lo que hizo que un cliente pensara que la página
+  estaba rota.
+- Ese aviso se mantiene mientras el campo esté pegado al tope, no solo en el
+  instante del recorte: al salir del campo se revalida con el valor ya
+  recortado, y si se limpiara ahí nadie alcanzaría a leerlo.
+
 ## Quién ve qué en el catálogo mayorista de Zorbo
 
 La visibilidad **no se decide en este repo**: sale de Shopify.

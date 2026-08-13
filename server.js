@@ -1302,6 +1302,8 @@ const PRODUCTS_QUERY = `query($cursor: String) {
             node {
               id title price compareAtPrice sku
               availableForSale inventoryQuantity
+              inventoryPolicy
+              inventoryItem { tracked }
               image { url }
             }
           }
@@ -1350,6 +1352,13 @@ async function loadProductsCache(force = false){
           sku:            v.sku,
           available:      v.availableForSale,
           stock:          v.inventoryQuantity,
+          // Con estos dos la tienda sabe si el stock es un TOPE de verdad o
+          // solo informativo: si el inventario no se trackea, o la política es
+          // CONTINUE ("seguir vendiendo sin existencias"), se puede pedir más
+          // de lo que hay. Sin esto, un mayorista que necesita 96 se queda
+          // trabado en las 37 que figuran cargadas.
+          policy:         v.inventoryPolicy || null,
+          tracked:        v.inventoryItem ? v.inventoryItem.tracked !== false : true,
           image:          v.image && v.image.url ? v.image.url : null,
         })),
       });

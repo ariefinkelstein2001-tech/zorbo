@@ -562,17 +562,22 @@ header .mayo-hacct .mayo-logout-btn .ml-ico{display:none}
   .shop-page .hp-acts{flex-direction:column;gap:6px}
   .shop-page .hp-qty{align-self:center}
   .shop-page .hp-qty button{height:32px;width:30px;font-size:15px}
-  .shop-page .hp-qty .v{height:32px;width:32px;line-height:32px;font-size:13px}
+  .shop-page .hp-qty .v{height:32px;width:44px;line-height:32px;font-size:13px}
   .shop-page button.hp-add{height:34px;font-size:10px;letter-spacing:.05em;padding:0 8px;width:100%}
   .shop-page .hp-section{padding:32px 0 18px}
   .shop-page .hp-section-head{padding:0 1rem;margin-bottom:14px}
   .shop-page .hp-section-t{font-size:clamp(26px,7vw,32px)}
 }
+.hp-qty .v:focus,.mp-qty .mp-qv:focus,.ci-qty .ci-qv:focus{outline:2px solid #f5a623;outline-offset:-2px}
+/* Se pidió más de lo que hay: el campo parpadea en rojo en vez de corregirse
+   solo y en silencio, que es lo que confunde. El motivo va en el title. */
+@keyframes qtyTope{0%,100%{background:#fff}35%{background:#ffe3e3}}
+.hp-qty .v.tope,.mp-qty .mp-qv.tope,.ci-qty .ci-qv.tope{animation:qtyTope .5s ease}
 .shop-page .hp-acts{display:flex;gap:8px;margin-top:auto}
 .shop-page .hp-qty{display:flex;border:1.5px solid #ddd;border-radius:4px;overflow:hidden;flex-shrink:0}
 .shop-page .hp-qty button{background:#fafafa;color:#111;border:none;width:34px;height:42px;font-size:18px;font-weight:700;cursor:pointer;transition:background .15s}
 .shop-page .hp-qty button:hover{background:#f0f0f0;color:#f5a623}
-.shop-page .hp-qty .v{width:36px;height:42px;line-height:42px;text-align:center;font-weight:700;font-size:15px;color:#111;background:#fff;border-left:1.5px solid #ddd;border-right:1.5px solid #ddd}
+.shop-page .hp-qty .v{width:52px;height:42px;line-height:42px;text-align:center;font-weight:700;font-size:15px;color:#111;background:#fff;border:none;border-left:1.5px solid #ddd;border-right:1.5px solid #ddd;padding:0;margin:0;font-family:inherit;-webkit-appearance:none;appearance:none;border-radius:0}
 .shop-page button.hp-add{
   flex:1;background:#f5a623;border:none;color:#1a1408;
   font-family:'Bricolage Grotesque',sans-serif;font-size:13px;letter-spacing:.12em;
@@ -813,7 +818,7 @@ body.pdp-open{overflow:hidden}
   font-family:'DM Sans',sans-serif;
 }
 .pdp-card .hp-qty button:hover{background:#f0f0f0;color:#f5a623}
-.pdp-card .hp-qty .v{width:36px;height:42px;line-height:42px;text-align:center;font-weight:700;font-size:15px;color:#111;background:#fff;border-left:1.5px solid #ddd;border-right:1.5px solid #ddd}
+.pdp-card .hp-qty .v{width:52px;height:42px;line-height:42px;text-align:center;font-weight:700;font-size:15px;color:#111;background:#fff;border:none;border-left:1.5px solid #ddd;border-right:1.5px solid #ddd;padding:0;margin:0;font-family:inherit;-webkit-appearance:none;appearance:none;border-radius:0}
 .pdp-card button.hp-add{
   flex:1;border:none;cursor:pointer;background:#f5a623;color:#111;
   font-family:'Bricolage Grotesque',sans-serif;font-size:13px;font-weight:700;
@@ -843,7 +848,7 @@ body.pdp-open{overflow:hidden}
   .pdp-desc{font-size:14px;line-height:1.55}
   .pdp-acts{gap:6px;margin-top:10px}
   .pdp-card .hp-qty button{width:28px;height:36px;font-size:15px}
-  .pdp-card .hp-qty .v{width:30px;height:36px;line-height:36px;font-size:13px}
+  .pdp-card .hp-qty .v{width:44px;height:36px;line-height:36px;font-size:13px}
   .pdp-card button.hp-add{height:36px;font-size:11px;padding:0 12px;letter-spacing:.08em}
   .pdp-card .hp-variant{font-size:11px;padding:6px 10px}
 }
@@ -905,7 +910,7 @@ body.pdp-open{overflow:hidden}
 .shop-page.chat-cards .hp-card-price{font-size:16px}
 .shop-page.chat-cards .hp-variant{font-size:10px;padding:5px 9px}
 .shop-page.chat-cards .hp-qty button{width:28px;height:34px;font-size:15px}
-.shop-page.chat-cards .hp-qty .v{width:30px;height:34px;line-height:34px;font-size:13px}
+.shop-page.chat-cards .hp-qty .v{width:42px;height:34px;line-height:34px;font-size:13px}
 .shop-page.chat-cards button.hp-add{font-size:11px;height:34px}
 
 .shop-page .hp-games-section{padding:24px clamp(1rem,4vw,3rem) 32px}
@@ -1013,6 +1018,7 @@ header .account-chip{margin-left:auto}
 .shop-page .mp-acts{display:flex;gap:7px;margin-top:auto}
 .shop-page .mp-qty{display:flex;border-radius:2px;overflow:hidden;flex-shrink:0}
 .shop-page .mp-qty button{background:transparent;border:none;font-size:16px;width:32px;height:40px;cursor:pointer;line-height:1;font-family:'DM Sans',sans-serif;font-weight:700;transition:background .15s}
+.shop-page .mp-qty .mp-qv{width:50px;height:40px;text-align:center;font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;background:transparent;border:none;color:inherit;padding:0;-webkit-appearance:none;appearance:none;border-radius:0}
 .shop-page .mp-qv{width:32px;text-align:center;font-size:14px;font-weight:600;height:40px;line-height:40px;user-select:none}
 .shop-page button.mp-add{flex:1;border:none;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;height:40px;transition:filter .15s}
 .shop-page button.mp-add:hover{filter:brightness(1.12)}
@@ -1326,6 +1332,7 @@ header .account-chip{margin-left:auto}
 .qbtn{width:23px;height:23px;border-radius:7px;background:var(--surface3);border:1px solid var(--border);color:var(--text);font-size:.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:var(--sans)}
 .qbtn:hover{border-color:var(--gold-bd-h)}
 .ci-qty span{font-size:.78rem;min-width:16px;text-align:center}
+.ci-qty .ci-qv{font-size:.78rem;width:44px;text-align:center;background:transparent;border:1px solid rgba(255,255,255,.18);border-radius:4px;color:inherit;font-family:inherit;padding:2px 0;-webkit-appearance:none;appearance:none}
 .ci-price{font-size:.74rem;color:var(--gold);font-weight:800;white-space:nowrap;flex-shrink:0}
 .cart-foot{padding:.95rem 1.25rem;border-top:1px solid var(--border);flex-shrink:0}
 .ship-bar{height:4px;background:var(--surface3);border-radius:2px;margin-bottom:.32rem;overflow:hidden}
@@ -2873,10 +2880,17 @@ function vInStock(v){
   if (typeof v.stock === 'number' && v.stock > 0) return true;
   return v.available !== false;
 }
-// Tope de cantidad por stock: número positivo si el inventario está trackeado,
-// o null si no (sin tope numérico, solo el máximo general).
+// Tope de cantidad por stock. null = sin tope numérico (solo el máximo general).
+// El stock NO siempre es un tope: si el inventario no se trackea, o la variante
+// tiene la política CONTINUE ("seguir vendiendo cuando no haya existencias"),
+// Shopify acepta pedir más de lo que figura y nosotros también tenemos que
+// dejar. Un mayorista que necesita 96 latas no puede quedar trabado en las 37
+// que hay cargadas hoy.
 function vStockCap(v){
-  return (v && typeof v.stock === 'number' && v.stock > 0) ? v.stock : null;
+  if (!v) return null;
+  if (v.tracked === false) return null;
+  if (String(v.policy || '').toUpperCase() === 'CONTINUE') return null;
+  return (typeof v.stock === 'number' && v.stock > 0) ? v.stock : null;
 }
 
 // ─── Servicios con UI especial (selector de marca/opción + calendario) ──────
@@ -3011,7 +3025,7 @@ function buildHpCard(p){
     ${variantPills}
     <div class="hp-card-price">${oldP}$${price.toLocaleString('es-CL')}${offTag}</div>
     <div class="hp-acts">
-      <div class="hp-qty" data-max="${v0Cap ?? ''}"><button onclick="hpQty(this,-1)">−</button><span class="v">1</span><button onclick="hpQty(this,1)">+</button></div>
+      <div class="hp-qty" data-max="${v0Cap ?? ''}"><button onclick="hpQty(this,-1)">−</button><input class="v" type="text" inputmode="numeric" value="1" aria-label="Cantidad" oninput="hpQtyInput(this)" onchange="hpQtySet(this)" onblur="hpQtySet(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();hpQtySet(this);this.blur()}"><button onclick="hpQty(this,1)">+</button></div>
       ${addBtn}
     </div>
   </div>`;
@@ -3091,7 +3105,7 @@ function hpOpenProduct(pid){
           <div class="pdp-desc">${descHtml}</div>
           ${variantPills}
           <div class="hp-acts pdp-acts">
-            <div class="hp-qty" data-max="${v0Cap ?? ''}"><button onclick="hpQty(this,-1)">−</button><span class="v">1</span><button onclick="hpQty(this,1)">+</button></div>
+            <div class="hp-qty" data-max="${v0Cap ?? ''}"><button onclick="hpQty(this,-1)">−</button><input class="v" type="text" inputmode="numeric" value="1" aria-label="Cantidad" oninput="hpQtyInput(this)" onchange="hpQtySet(this)" onblur="hpQtySet(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();hpQtySet(this);this.blur()}"><button onclick="hpQty(this,1)">+</button></div>
             <button class="hp-add${v0Stock ? '' : ' soldout'}" data-product='${JSON.stringify(productData).replace(/'/g,"&#39;")}' data-addlabel="${p._request ? 'SOLICITAR' : 'AÑADIR AL CARRITO'}" onclick="hpAdd(this)"${v0Stock ? '' : ' disabled'}>${v0Stock ? (p._request ? 'SOLICITAR' : 'AÑADIR AL CARRITO') : 'AGOTADO'}</button>
           </div>
         </div>
@@ -3238,7 +3252,7 @@ function hpSelectVariant(btn){
   if (qWrap) {
     qWrap.dataset.max = cap != null ? String(cap) : '';
     const vEl = qWrap.querySelector('.v');
-    if (vEl) vEl.textContent = Math.max(1, Math.min(hpQtyCap(qWrap), parseInt(vEl.textContent,10)||1));
+    if (vEl) qtyAplicar(vEl, parseInt(vEl.value, 10) || 1, hpQtyCap(qWrap));
   }
   const addBtn = card.querySelector('.hp-add');
   if (addBtn) {
@@ -3266,22 +3280,53 @@ function hpSelectVariant(btn){
 }
 
 // Tope efectivo del contador: el menor entre 99 y el stock (data-max).
+// Tope general de una compra online. Antes eran 99 y no alcanzaba: un mayorista
+// pide de a cientos de latas.
+const QTY_MAX = 9999;
 function hpQtyCap(wrap){
   const m = parseInt(wrap && wrap.dataset ? wrap.dataset.max : '', 10);
-  return (Number.isFinite(m) && m > 0) ? Math.min(99, m) : 99;
+  return (Number.isFinite(m) && m > 0) ? Math.min(QTY_MAX, m) : QTY_MAX;
+}
+// Deja el input en un número válido y avisa cuando hubo que recortarlo: si se
+// recorta en silencio, la persona escribe 96, ve 37 y no entiende por qué.
+function qtyAplicar(el, valor, cap){
+  const pedido = Math.floor(Number(valor));
+  const n = Math.max(1, Math.min(cap, Number.isFinite(pedido) && pedido > 0 ? pedido : 1));
+  el.value = n;
+  // El aviso se mantiene mientras el campo siga pegado al tope, no solo en el
+  // instante en que se recorta: al salir del campo se vuelve a validar con el
+  // valor ya recortado y, si se limpiara ahí, el usuario nunca alcanzaría a
+  // leer por qué le bajó el número.
+  if (n >= cap && cap < QTY_MAX) {
+    el.title = 'Hay ' + cap + ' disponibles';
+    if (Number.isFinite(pedido) && pedido > cap) {
+      el.classList.remove('tope'); void el.offsetWidth; el.classList.add('tope');
+    }
+  } else {
+    el.title = '';
+    el.classList.remove('tope');
+  }
+  return n;
 }
 function hpQty(btn, delta){
   const wrap = btn.closest('.hp-qty');
   const el = wrap && wrap.querySelector('.v');
   if (!el) return;
-  const cap = hpQtyCap(wrap);
-  el.textContent = Math.max(1, Math.min(cap, (parseInt(el.textContent,10)||1)+delta));
+  qtyAplicar(el, (parseInt(el.value, 10) || 1) + delta, hpQtyCap(wrap));
+}
+// Mientras escribe no se corrige nada (si no, borrar para escribir "96" salta a
+// 1 y se pelea con el teclado). Se valida recién al salir del campo o con Enter.
+function hpQtyInput(el){
+  el.value = el.value.replace(/[^\d]/g, '').slice(0, 4);
+}
+function hpQtySet(el){
+  qtyAplicar(el, el.value, hpQtyCap(el.closest('.hp-qty')));
 }
 
 function hpAdd(btn){
   const data = JSON.parse(btn.getAttribute('data-product').replace(/&#39;/g,"'"));
   const wrap = btn.closest('.hp-card').querySelector('.hp-qty');
-  let qty = parseInt(wrap.querySelector('.v').textContent,10) || 1;
+  let qty = parseInt(wrap.querySelector('.v').value, 10) || 1;
   if (!data.variantId) return;
   const label = btn.dataset.addlabel || 'AÑADIR AL CARRITO';
   const doneWord = label === 'SOLICITAR' ? 'SOLICITADO' : 'AGREGADO';
@@ -4216,14 +4261,28 @@ function addToCart(p, qty = 1) {
   updateCart();
   toast(p);
 }
+// Tope de una línea del carro. `p.stock` ya viene de vStockCap(), o sea que es
+// null cuando Shopify deja vender sin existencias: acá no se vuelve a decidir.
+const cartCap = (it) => ((it && typeof it.p.stock === 'number' && it.p.stock > 0) ? it.p.stock : QTY_MAX);
 function changeQty(idx, d) {
   const it = cart[idx];
   if (!it) return;
-  let next = it.qty + d;
-  const max = (typeof it.p.stock === 'number' && it.p.stock > 0) ? it.p.stock : null;
-  if (max) next = Math.min(next, max);
+  const next = Math.min(cartCap(it), it.qty + d);
   it.qty = next;
   if (it.qty <= 0) cart.splice(idx, 1);
+  updateCart();
+}
+// Cantidad escrita a mano en el carro. Vaciar el campo o poner 0 saca la línea,
+// igual que bajar con el "−".
+function setQty(idx, el) {
+  const it = cart[idx];
+  if (!it) return;
+  const pedido = parseInt(el.value, 10);
+  if (Number.isFinite(pedido) && pedido <= 0) { cart.splice(idx, 1); updateCart(); return; }
+  const cap = cartCap(it);
+  const n = qtyAplicar(el, el.value, cap);
+  if (n === it.qty) return;   // sin cambios: no se repinta y no se pierde el foco
+  it.qty = n;
   updateCart();
 }
 function updateCart() {
@@ -4249,7 +4308,9 @@ function updateCart() {
         </div>
         <div class="ci-qty">
           <button class="qbtn" onclick="changeQty(${idx},-1)">−</button>
-          <span>${item.qty}</span>
+          <input class="ci-qv" type="text" inputmode="numeric" value="${item.qty}" aria-label="Cantidad"
+                 oninput="hpQtyInput(this)" onchange="setQty(${idx}, this)" onblur="setQty(${idx}, this)"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();setQty(${idx}, this);this.blur()}">
           <button class="qbtn" onclick="changeQty(${idx},1)">+</button>
         </div>
         <span class="ci-price">$${(item.p.price * item.qty).toLocaleString('es-CL')}</span>
@@ -4606,7 +4667,9 @@ function buildMpCard(p){
       <div class="mp-acts">
         <div class="mp-qty">
           <button onclick="mpQty(this,-1)">−</button>
-          <span class="mp-qv">1</span>
+          <input class="mp-qv" type="text" inputmode="numeric" value="1" aria-label="Cantidad"
+                 oninput="hpQtyInput(this)" onchange="mpQtySet(this)" onblur="mpQtySet(this)"
+                 onkeydown="if(event.key==='Enter'){event.preventDefault();mpQtySet(this);this.blur()}">
           <button onclick="mpQty(this,1)">+</button>
         </div>
         <button class="mp-add" data-product='${JSON.stringify(productData).replace(/'/g,"&#39;")}' onclick="mpAdd(this)">Agregar</button>
@@ -4618,9 +4681,9 @@ function mpQty(btn, delta){
   const wrap = btn.closest('.mp-qty');
   const el = wrap && wrap.querySelector('.mp-qv');
   if (!el) return;
-  const next = Math.max(1, Math.min(99, (parseInt(el.textContent,10)||1)+delta));
-  el.textContent = next;
+  qtyAplicar(el, (parseInt(el.value, 10) || 1) + delta, QTY_MAX);
 }
+function mpQtySet(el){ qtyAplicar(el, el.value, QTY_MAX); }
 function mpVariantChange(sel){
   const card = sel.closest('.mp-card');
   if (!card) return;
@@ -4644,7 +4707,7 @@ function mpAdd(btn){
   const data = JSON.parse(btn.getAttribute('data-product').replace(/&#39;/g,"'"));
   const card = btn.closest('.mp-card');
   const qtyEl = card && card.querySelector('.mp-qv');
-  const qty = qtyEl ? Math.max(1, parseInt(qtyEl.textContent,10)||1) : 1;
+  const qty = qtyEl ? Math.max(1, parseInt(qtyEl.value, 10) || 1) : 1;
   addToCart(data, qty);
   btn.textContent = `✓ Agregado (${qty})`;
   btn.classList.add('done');
